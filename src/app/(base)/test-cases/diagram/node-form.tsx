@@ -1,8 +1,14 @@
-"use client";
-import React, { useCallback, useEffect, useState } from "react";
-import { formOpts, NodeData } from "@/constants/form-opts/diagram/node-form";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,43 +18,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NodeData } from "@/constants/form-opts/diagram/node-form";
 import {
   Locator,
   StepParameterType,
   TemplateStep,
-  TemplateStepParameter,
+  TemplateStepIcon,
 } from "@prisma/client";
-import { DialogHeader } from "@/components/ui/dialog";
-import { DialogTitle } from "@/components/ui/dialog";
-import { DialogClose } from "@/components/ui/dialog";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
-import { DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { TemplateStepParameter } from "@prisma/client";
+import React, { useState } from "react";
 import DynamicFormFields from "./dynamic-parameters";
 import { generateGherkinStep } from "@/lib/transformers/gherkin-converter";
 
 const NodeForm = ({
+  onSubmitAction,
+  initialValues,
   templateSteps,
   templateStepParams,
-  initialValues,
   showAddNodeDialog,
-  locators,
   setShowAddNodeDialog,
+  locators,
 }: {
+  onSubmitAction: (values: NodeData) => void;
+  initialValues: NodeData;
   templateSteps: TemplateStep[];
   templateStepParams: TemplateStepParameter[];
-  initialValues: NodeData;
   showAddNodeDialog: boolean;
-  locators: Locator[];
   setShowAddNodeDialog: (show: boolean) => void;
+  locators: Locator[];
 }) => {
+  // states for dynamic form fields
+  const [selectedTemplateStep, setSelectedTemplateStep] =
+    useState<TemplateStep | null>(null);
   const [selectedTemplateStepParams, setSelectedTemplateStepParams] = useState<
     TemplateStepParameter[]
   >([]);
-  const [selectedTemplateStep, setSelectedTemplateStep] =
-    useState<TemplateStep | null>(null);
-
-  const [gherkinStep, setGherkinStep] = useState<string>("");
   const [parameters, setParameters] = useState<
     {
       name: string;
@@ -57,287 +61,120 @@ const NodeForm = ({
       order: number;
     }[]
   >([]);
-  const [parameterErrors, setParameterErrors] = useState<{
-    [key: string]: string;
-  }>({});
+  const [gherkinStep, setGherkinStep] = useState<string>("");
 
-  const validateParameters = (
-    values: {
-      name: string;
-      value: string;
-      type: StepParameterType;
-      order: number;
-    }[]
-  ) => {
-    const errors: { [key: string]: string } = {};
-
-    values.forEach((param) => {
-      if (!param.value || param.value.trim() === "") {
-        errors[param.name] = `${param.name} is required`;
-      }
-
-      if (param.type === "NUMBER" && isNaN(Number(param.value))) {
-        errors[param.name] = `${param.name} must be a number`;
-      }
-
-      if (param.type === "DATE" && !isValidDate(param.value)) {
-        errors[param.name] = `${param.name} must be a valid date`;
-      }
-    });
-
-    setParameterErrors(errors);
-    return Object.keys(errors).length === 0;
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const values = Object.fromEntries(formData.entries());
+    const nodeData: NodeData = {
+      ...values,
+      parameters: parameters,
+      label: values.label as string,
+      gherkinStep: gherkinStep,
+      templateStepId: values.templateStepId as string,
+    };
+    onSubmitAction(nodeData);
   };
-
-  const isValidDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date.getTime());
-  };
-
-  const handleParametersChange = (
-    values: {
-      name: string;
-      value: string;
-      type: StepParameterType;
-      order: number;
-    }[]
-  ) => {
-    const isValid = validateParameters(values);
-    if (isValid) {
-      setParameters(values);
-    }
-  };
-
-  const form = useForm({
-    defaultValues: initialValues,
-    validators: formOpts?.validators,
-    onSubmit: async ({ value }) => {
-      if (!validateParameters(parameters)) {
-        return;
-      }
-      console.log(value);
-      console.log("parameters", parameters);
-      resetForm();
-    },
-  });
-
-  const resetForm = useCallback(() => {
-    setShowAddNodeDialog(false);
-    setSelectedTemplateStepParams([]);
-    setSelectedTemplateStep(null);
-    setParameters([]);
-    setParameterErrors({});
-    setGherkinStep("");
-    form.reset();
-  }, [form, setShowAddNodeDialog]);
-
-  useEffect(() => {
-    if (selectedTemplateStep) {
-      // console.log(selectedTemplateStep.signature, parameters);
-      setGherkinStep(
-        generateGherkinStep(selectedTemplateStep.signature, parameters)
-      );
-    }
-  }, [selectedTemplateStep, parameters]);
 
   return (
     <Dialog open={showAddNodeDialog} onOpenChange={setShowAddNodeDialog}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
-        }}
-      >
-        <DialogContent>
+      <DialogTrigger asChild>
+        <Button>Add Node</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add a new Node</DialogTitle>
+            <DialogTitle>Add Node</DialogTitle>
           </DialogHeader>
-
-          <div className="flex gap-4 w-full">
-            <div className="w-full">
-              <form.Field
+          <DialogDescription>
+            Insert a new node to the diagram
+          </DialogDescription>
+          <div className="my-4">
+            <div className="flex flex-col gap-2 mb-4">
+              <Label htmlFor="label">Label</Label>
+              <Input
+                id="label"
                 name="label"
-                validators={{
-                  onChange: z.string().min(1, { message: "Label is required" }),
-                }}
-              >
-                {(field) => {
-                  return (
-                    <div className="flex flex-col gap-2 mb-4 w-full">
-                      <Label htmlFor={field.name}>Label</Label>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                      />
-                      {field.state.meta.errors.map((error) => (
-                        <p
-                          key={error as string}
-                          className="text-pink-500 text-xs"
-                        >
-                          {error}
-                        </p>
-                      ))}
-                    </div>
-                  );
-                }}
-              </form.Field>
-              <form.Field
-                name="templateStepId"
-                validators={{
-                  onChange: z
-                    .string()
-                    .min(1, { message: "Template step is required" }),
-                }}
-              >
-                {(field) => {
-                  return (
-                    <div className="flex flex-col gap-2 mb-4 w-full">
-                      <Label htmlFor={field.name}>Template Step</Label>
-                      <Select
-                        name={field.name}
-                        value={field.state.value}
-                        onValueChange={(value) => {
-                          field.handleChange(value);
-                          setSelectedTemplateStepParams(
-                            templateStepParams.filter(
-                              (param) => param.templateStepId === value
-                            )
-                          );
-                          setSelectedTemplateStep(
-                            templateSteps.find((step) => step.id === value) ||
-                              null
-                          );
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a template step" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {templateSteps.map((step) => (
-                            <SelectItem key={step.id} value={step.id}>
-                              {step.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.state.meta.errors.map((error) => (
-                        <p
-                          key={error as string}
-                          className="text-pink-500 text-xs"
-                        >
-                          {error}
-                        </p>
-                      ))}
-                    </div>
-                  );
-                }}
-              </form.Field>
-
-              <div className="flex flex-col gap-2 mb-4 w-full">
-                <DynamicFormFields
-                  templateStepParams={selectedTemplateStepParams}
-                  locators={locators.map((locator) => locator.name)}
-                  onChange={handleParametersChange}
-                />
-                {Object.entries(parameterErrors).map(([name, error]) => (
-                  <p key={name} className="text-pink-500 text-xs">
-                    {error}
-                  </p>
-                ))}
-              </div>
-              <form.Field
-                name="gherkinStep"
-                validators={{
-                  onChange: z.string(),
-                }}
-              >
-                {(field) => {
-                  return (
-                    <div className="flex flex-col gap-2 mb-4 w-full">
-                      <Label htmlFor={field.name}>Gherkin Step</Label>
-                      <Input
-                        id={field.name}
-                        disabled
-                        name={field.name}
-                        value={gherkinStep}
-                        onChange={(e) => {
-                          setGherkinStep(e.target.value);
-                          field.handleChange(e.target.value);
-                        }}
-                      />
-                      {field.state.meta.errors.map((error) => (
-                        <p
-                          key={error as string}
-                          className="text-pink-500 text-xs"
-                        >
-                          {error}
-                        </p>
-                      ))}
-                    </div>
-                  );
-                }}
-              </form.Field>
-              <form.Field
-                name="order"
-                validators={{
-                  onChange: z.number().min(0, { message: "Order is required" }),
-                }}
-              >
-                {(field) => {
-                  return (
-                    <div className="flex flex-col gap-2 mb-4 w-full">
-                      <Label htmlFor={field.name}>Order</Label>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onChange={(e) =>
-                          field.handleChange(Number(e.target.value))
-                        }
-                      />
-                      {field.state.meta.errors.map((error) => (
-                        <p
-                          key={error as string}
-                          className="text-pink-500 text-xs"
-                        >
-                          {error}
-                        </p>
-                      ))}
-                    </div>
-                  );
-                }}
-              </form.Field>
+                defaultValue={initialValues.label}
+              />
             </div>
+            <div className="flex flex-col gap-2 mb-4">
+              <Label htmlFor="templateStepId">Template Step</Label>
+              <Select
+                name="templateStepId"
+                defaultValue={initialValues.templateStepId}
+                onValueChange={(value) => {
+                  const step = templateSteps.find((step) => step.id === value);
+                  if (step) {
+                    setSelectedTemplateStep(step);
+                    setSelectedTemplateStepParams(
+                      templateStepParams.filter(
+                        (param) => param.templateStepId === step.id
+                      )
+                    );
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template step" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templateSteps.map((step) => (
+                    <SelectItem key={step.id} value={step.id}>
+                      {step.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2 mb-4">
+              <DynamicFormFields
+                selectedTemplateStep={selectedTemplateStep as TemplateStep}
+                templateStepParams={selectedTemplateStepParams}
+                locators={locators.map((locator) => locator.name)}
+                onChange={(values) => {
+                  setParameters([...values]);
+                  // Generate gherkin step directly when parameters change
+                  if (selectedTemplateStep && selectedTemplateStep.signature) {
+                    const gherkin = generateGherkinStep(
+                      selectedTemplateStep.signature,
+                      values
+                    );
+                    setGherkinStep(gherkin);
+                  }
+                }}
+              />
+            </div>
+            {selectedTemplateStep && (
+              <div className="flex flex-col gap-2 mb-4">
+                <Label htmlFor="gherkinStep">Gherkin Step</Label>
+                <Input
+                  disabled
+                  id="gherkinStep"
+                  name="gherkinStep"
+                  value={gherkinStep}
+                />
+              </div>
+            )}
+            <input
+              type="hidden"
+              name="icon"
+              value={
+                selectedTemplateStep?.icon
+                  ? selectedTemplateStep.icon
+                  : TemplateStepIcon.MOUSE
+              }
+            />
           </div>
-
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" onClick={resetForm}>
-                Cancel
-              </Button>
+              <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <form.Subscribe
-              selector={(formState) => [
-                formState.canSubmit,
-                formState.isSubmitting,
-              ]}
-            >
-              {([canSubmit, isSubmitting]) => (
-                <Button
-                  type="submit"
-                  disabled={!canSubmit}
-                  onClick={() => form.handleSubmit()}
-                >
-                  {isSubmitting ? "..." : "Save"}
-                </Button>
-              )}
-            </form.Subscribe>
+            <Button type="submit">Add</Button>
           </DialogFooter>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 };

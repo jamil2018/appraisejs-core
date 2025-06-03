@@ -14,7 +14,6 @@ export const nodeDataSchema = z.object({
       order: z.number(),
     })
   ),
-  order: z.number(),
 });
 
 export type NodeData = z.infer<typeof nodeDataSchema>;
@@ -25,7 +24,6 @@ export const formOpts = formOptions({
     gherkinStep: "",
     templateStepId: "",
     parameters: [],
-    order: 0,
   } as NodeData,
   validators: {
     onChange: nodeDataSchema,

@@ -19,9 +19,15 @@ import { Button } from "@/components/ui/button";
 import ButtonEdge from "./button-edge";
 import { Plus } from "lucide-react";
 import OptionsHeaderNode from "./options-header-node";
-import { NodeOrderMap } from "@/types/diagram/diagram";
+import { NodeData, NodeOrderMap } from "@/types/diagram/diagram";
 import NodeForm from "./node-form";
-import { Locator, TemplateStep, TemplateStepParameter } from "@prisma/client";
+import {
+  Locator,
+  TemplateStep,
+  TemplateStepIcon,
+  TemplateStepParameter,
+} from "@prisma/client";
+import { KeyToIconTransformer } from "@/lib/transformers/key-to-icon-transformer";
 
 const edgeTypes = {
   buttonEdge: ButtonEdge,
@@ -159,7 +165,7 @@ const FlowDiagram = ({
           label: node.data.label as string,
           gherkinStep: node.data.gherkinStep as string | undefined,
           isFirstNode: node.data.isFirstNode as boolean | undefined,
-          icon: node.data.icon as React.ReactNode | undefined,
+          icon: node.data.icon as string | undefined,
           parameters: node.data.parameters as
             | { name: string; value: string; order: number }[]
             | undefined,
@@ -176,7 +182,7 @@ const FlowDiagram = ({
         label: currentNode.data.label as string,
         gherkinStep: currentNode.data.gherkinStep as string | undefined,
         isFirstNode: currentNode.data.isFirstNode as boolean | undefined,
-        icon: currentNode.data.icon as React.ReactNode | undefined,
+        icon: currentNode.data.icon as string | undefined,
         parameters: currentNode.data.parameters as
           | { name: string; value: string; order: number }[]
           | undefined,
@@ -199,7 +205,7 @@ const FlowDiagram = ({
           label: node.data.label as string,
           gherkinStep: node.data.gherkinStep as string | undefined,
           isFirstNode: node.data.isFirstNode as boolean | undefined,
-          icon: node.data.icon as React.ReactNode | undefined,
+          icon: node.data.icon as string | undefined,
           parameters: node.data.parameters as
             | { name: string; value: string; order: number }[]
             | undefined,
@@ -241,25 +247,32 @@ const FlowDiagram = ({
     [setEdges, isValidConnection]
   );
 
-  const addNode = useCallback(() => {
-    const newNode: Node = {
-      id: crypto.randomUUID(),
-      data: {
-        label: `Node new`,
-        gherkinStep: "Test Step",
-        isFirstNode: false,
-        icon: <Plus />,
-        parameters: [
-          { name: "param1", value: "value1", order: 1 },
-          { name: "param2", value: "value2", order: 2 },
-        ],
-      },
-      position: { x: 0, y: 0 },
-      type: "optionsHeaderNode",
-    };
-    setNodes((nds) => nds.concat(newNode));
-    setShowAddNodeDialog(false);
-  }, [setNodes, setShowAddNodeDialog]);
+  const addNode = useCallback(
+    (nodeData: NodeData) => {
+      const newNode: Node = {
+        id: crypto.randomUUID(),
+        data: {
+          label: nodeData.label,
+          gherkinStep: nodeData.gherkinStep,
+          isFirstNode: nodes.length === 0,
+          icon: KeyToIconTransformer(nodeData.icon as TemplateStepIcon),
+          parameters: nodeData.parameters,
+        },
+        position: { x: 0, y: 0 },
+        type: "optionsHeaderNode",
+      };
+      setNodes((nds) => nds.concat(newNode));
+      setShowAddNodeDialog(false);
+    },
+    [setNodes, setShowAddNodeDialog, nodes]
+  );
+
+  const memoizedTemplateSteps = useMemo(() => templateSteps, [templateSteps]);
+  const memoizedTemplateStepParams = useMemo(
+    () => templateStepParams,
+    [templateStepParams]
+  );
+  const memoizedLocators = useMemo(() => locators, [locators]);
 
   return (
     <>
@@ -295,22 +308,24 @@ const FlowDiagram = ({
         </ReactFlow>
       </div>
 
-      <NodeForm
-        onSubmitAction={addNode}
-        initialValues={{
-          label: "",
-          gherkinStep: "",
-          templateStepId: "",
-          parameters: [],
-          order: 0,
-        }}
-        templateSteps={templateSteps}
-        templateStepParams={templateStepParams}
-        showAddNodeDialog={showAddNodeDialog}
-        addNodeHandler={addNode}
-        setShowAddNodeDialog={setShowAddNodeDialog}
-        locators={locators}
-      />
+      {showAddNodeDialog && (
+        <NodeForm
+          onSubmitAction={(values) =>
+            addNode({ ...values, order: nodes.length })
+          }
+          initialValues={{
+            label: "",
+            gherkinStep: "",
+            templateStepId: "",
+            parameters: [],
+          }}
+          templateSteps={memoizedTemplateSteps}
+          templateStepParams={memoizedTemplateStepParams}
+          showAddNodeDialog={showAddNodeDialog}
+          setShowAddNodeDialog={setShowAddNodeDialog}
+          locators={memoizedLocators}
+        />
+      )}
     </>
   );
 };

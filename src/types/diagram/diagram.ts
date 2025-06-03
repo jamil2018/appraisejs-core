@@ -3,7 +3,7 @@ export type NodeData = {
   label: string;
   gherkinStep?: string;
   isFirstNode?: boolean;
-  icon?: React.ReactNode;
+  icon?: string;
   parameters?: { name: string; value: string; order: number }[];
 };
 

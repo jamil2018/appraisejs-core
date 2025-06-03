@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -20,10 +20,15 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { StepParameterType, TemplateStepParameter } from "@prisma/client";
+import {
+  StepParameterType,
+  TemplateStep,
+  TemplateStepParameter,
+} from "@prisma/client";
 import { format } from "date-fns";
 
 interface DynamicFormFieldsProps {
+  selectedTemplateStep: TemplateStep;
   templateStepParams: TemplateStepParameter[];
   locators: string[];
   onChange?: (
@@ -32,16 +37,25 @@ interface DynamicFormFieldsProps {
       value: string;
       type: StepParameterType;
       order: number;
-    }[],
-    isValid: boolean
+    }[]
   ) => void;
 }
 
 export default function DynamicFormFields({
+  selectedTemplateStep,
   templateStepParams,
   locators,
   onChange,
 }: DynamicFormFieldsProps) {
+  useEffect(() => {
+    // reset the values of the parameters when the selected template step changes
+    const values: { [key: string]: string | number | boolean | Date } = {};
+    templateStepParams.forEach((param) => {
+      values[param.name] = "";
+    });
+    setValues(values);
+  }, [selectedTemplateStep, templateStepParams]);
+
   // Memoize uniqueLocators to prevent recreation on every render
   const uniqueLocators = useMemo(() => [...new Set(locators)], [locators]);
 
@@ -70,7 +84,7 @@ export default function DynamicFormFields({
     });
 
     return values;
-  }, [templateStepParams, uniqueLocators]);
+  }, [templateStepParams]);
 
   // Initialize state with initial values
   const [values, setValues] = useState<{
@@ -144,28 +158,7 @@ export default function DynamicFormFields({
         };
       });
 
-      // Validation function
-      const isValid = templateStepParams.every((param) => {
-        const v = formattedValues.find((fv) => fv.name === param.name)?.value;
-        switch (param.type) {
-          case "NUMBER":
-            return (
-              v !== undefined && v !== null && v !== "" && !isNaN(Number(v))
-            );
-          case "STRING":
-            return v !== undefined && v !== null && v.trim() !== "";
-          case "DATE":
-            return v !== undefined && v !== null && v !== "";
-          case "BOOLEAN":
-            return v === "true" || v === "false";
-          case "LOCATOR":
-            return v !== undefined && v !== null && v !== "";
-          default:
-            return false;
-        }
-      });
-
-      onChange(formattedValues, isValid);
+      onChange(formattedValues);
     }
   };
 
