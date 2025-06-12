@@ -276,7 +276,7 @@ const FlowDiagram = ({
 
   return (
     <>
-      <div className="w-full h-[500px]">
+      <div className="w-full h-[400px]">
         <div className="mb-8">
           <Button onClick={() => setShowAddNodeDialog(true)}>
             <span className="flex items-center">

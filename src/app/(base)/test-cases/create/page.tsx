@@ -6,8 +6,14 @@ import {
   getAllTemplateStepParamsAction,
   getAllTemplateStepsAction,
 } from "@/actions/template-step/template-step-actions";
-import { Locator, TemplateStep, TemplateStepParameter } from "@prisma/client";
+import {
+  Locator,
+  TemplateStep,
+  TemplateStepParameter,
+  TestSuite,
+} from "@prisma/client";
 import { getAllLocatorsAction } from "@/actions/locator/locator-actions";
+import { getAllTestSuitesAction } from "@/actions/test-suite/test-suite-actions";
 
 const CreateTestCase = async () => {
   const { data: templateStepParams, error: templateStepParamsError } =
@@ -16,12 +22,24 @@ const CreateTestCase = async () => {
   const { data: templateSteps, error: templateStepsError } =
     await getAllTemplateStepsAction();
 
+  const { data: testSuites, error: testSuitesError } =
+    await getAllTestSuitesAction();
+
   const { data: locators, error: locatorsError } = await getAllLocatorsAction();
 
-  if (templateStepParamsError || templateStepsError || locatorsError) {
+  if (
+    templateStepParamsError ||
+    templateStepsError ||
+    locatorsError ||
+    testSuitesError
+  ) {
     return (
       <div>
-        Error: {templateStepParamsError || templateStepsError || locatorsError}
+        Error:{" "}
+        {templateStepParamsError ||
+          templateStepsError ||
+          locatorsError ||
+          testSuitesError}
       </div>
     );
   }
@@ -39,6 +57,7 @@ const CreateTestCase = async () => {
         templateStepParams={templateStepParams as TemplateStepParameter[]}
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
+        testSuites={testSuites as TestSuite[]}
       />
     </div>
   );
