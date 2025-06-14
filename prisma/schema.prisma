@@ -7,6 +7,167 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id             String      @id @default(uuid())
+  username       String      @unique
+  email          String      @unique
+  password       String
+  role           Role
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  createdReviews Review[]    @relation("ReviewCreator")
+  reviews        Review[]    @relation("Reviewer")
+  testCases      TestCase[]  @relation("TestCaseCreator")
+  testRuns       TestRun[]   @relation("TestRunExecutor")
+  TestSuite      TestSuite[]
+  UserRole       UserRole[]
+}
+
+model TestSuite {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  createdBy   String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  testRuns    TestRun[]
+  creator     User       @relation(fields: [createdBy], references: [id])
+  testCases   TestCase[] @relation("TestSuiteTestCases")
+}
+
+model Review {
+  id         String       @id @default(uuid())
+  testCaseId String
+  reviewerId String
+  status     ReviewStatus
+  comments   String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  createdBy  String
+  creator    User         @relation("ReviewCreator", fields: [createdBy], references: [id])
+  reviewer   User         @relation("Reviewer", fields: [reviewerId], references: [id])
+  testCase   TestCase     @relation(fields: [testCaseId], references: [id])
+}
+
+model LinkedJiraTicket {
+  id            String   @id @default(uuid())
+  testCaseId    String
+  jiraTicketId  String
+  jiraTicketUrl String
+  jiraStatus    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  testCase      TestCase @relation(fields: [testCaseId], references: [id])
+}
+
+model TestRun {
+  id            String            @id @default(uuid())
+  testSuiteId   String
+  executedBy    String
+  status        TestRunStatus
+  executionTime String?
+  comments      String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  name          String
+  executor      User              @relation("TestRunExecutor", fields: [executedBy], references: [id])
+  testSuite     TestSuite         @relation(fields: [testSuiteId], references: [id])
+  testCases     TestRunTestCase[]
+}
+
+model TestRunTestCase {
+  testRunId     String
+  testCaseId    String
+  executionTime Int?
+  comments      String?
+  status        TestCaseStatus
+  result        TestCaseResult?
+  testCase      TestCase        @relation(fields: [testCaseId], references: [id])
+  testRun       TestRun         @relation(fields: [testRunId], references: [id])
+
+  @@id([testRunId, testCaseId])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model TemplateStep {
+  id                 String                  @id @default(uuid())
+  name               String
+  description        String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  signature          String
+  functionDefinition String?
+  type               TemplateStepType
+  icon               TemplateStepIcon
+  parameters         TemplateStepParameter[]
+}
+
+model TemplateStepParameter {
+  id             String            @id @default(uuid())
+  name           String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  templateStepId String
+  order          Int
+  type           StepParameterType
+  templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id])
+}
+
+model TestCase {
+  id                String             @id @default(uuid())
+  title             String
+  description       String
+  createdBy         String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  linkedJiraTickets LinkedJiraTicket[]
+  reviews           Review[]
+  creator           User               @relation("TestCaseCreator", fields: [createdBy], references: [id])
+  steps             TestCaseStep[]
+  testRuns          TestRunTestCase[]
+  TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
+}
+
+model TestCaseStep {
+  id          String                  @id @default(uuid())
+  testCaseId  String
+  order       Int
+  gherkinStep String
+  icon        TemplateStepIcon
+  label       String
+  testCase    TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters  TestCaseStepParameter[]
+}
+
+model TestCaseStepParameter {
+  id             String            @id @default(uuid())
+  name           String
+  value          String
+  order          Int
+  testCaseStepId String
+  locatorId      String?
+  type           StepParameterType
+  Locator        Locator?          @relation(fields: [locatorId], references: [id])
+  testCaseStep   TestCaseStep      @relation(fields: [testCaseStepId], references: [id])
+}
+
+model Locator {
+  id             String                  @id @default(uuid())
+  name           String
+  value          String
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  stepParameters TestCaseStepParameter[]
+}
+
 enum Role {
   ADMIN
   TESTER
@@ -73,165 +234,4 @@ enum TemplateStepIcon {
   WAIT
   VALIDATION
   DEBUG
-}
-
-model User {
-  id             String      @id @default(uuid())
-  username       String      @unique
-  email          String      @unique
-  password       String
-  role           Role
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  testCases      TestCase[]  @relation("TestCaseCreator")
-  reviews        Review[]    @relation("Reviewer")
-  testRuns       TestRun[]   @relation("TestRunExecutor")
-  TestSuite      TestSuite[]
-  UserRole       UserRole[]
-  createdReviews Review[]    @relation("ReviewCreator")
-}
-
-model TestSuite {
-  id          String     @id @default(uuid())
-  name        String
-  description String?
-  createdBy   String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  creator     User       @relation(fields: [createdBy], references: [id])
-  testCases   TestCase[] @relation("TestSuiteTestCases")
-  testRuns    TestRun[]
-}
-
-model Review {
-  id         String       @id @default(uuid())
-  testCaseId String
-  reviewerId String
-  status     ReviewStatus
-  comments   String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  testCase   TestCase     @relation(fields: [testCaseId], references: [id])
-  reviewer   User         @relation("Reviewer", fields: [reviewerId], references: [id])
-  creator    User         @relation("ReviewCreator", fields: [createdBy], references: [id])
-  createdBy  String
-}
-
-model LinkedJiraTicket {
-  id            String   @id @default(uuid())
-  testCaseId    String
-  jiraTicketId  String
-  jiraTicketUrl String
-  jiraStatus    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  testCase      TestCase @relation(fields: [testCaseId], references: [id])
-}
-
-model TestRun {
-  id            String            @id @default(uuid())
-  name          String
-  testSuiteId   String
-  executedBy    String
-  status        TestRunStatus
-  executionTime String?
-  comments      String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  testSuite     TestSuite         @relation(fields: [testSuiteId], references: [id])
-  executor      User              @relation("TestRunExecutor", fields: [executedBy], references: [id])
-  testCases     TestRunTestCase[]
-}
-
-model TestRunTestCase {
-  testRunId     String
-  testCaseId    String
-  status        TestCaseStatus
-  result        TestCaseResult?
-  executionTime Int?
-  comments      String?
-  testRun       TestRun         @relation(fields: [testRunId], references: [id])
-  testCase      TestCase        @relation(fields: [testCaseId], references: [id])
-
-  @@id([testRunId, testCaseId])
-}
-
-model UserRole {
-  id        String   @id @default(uuid())
-  userId    String
-  role      Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-model TemplateStep {
-  id                 String                  @id @default(uuid())
-  name               String // e.g., "Click Element", "Enter Text"
-  description        String?
-  icon               TemplateStepIcon
-  type               TemplateStepType
-  parameters         TemplateStepParameter[]
-  signature          String
-  functionDefinition String?
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
-  TestCaseStep       TestCaseStep[]
-}
-
-model TemplateStepParameter {
-  id             String            @id @default(uuid())
-  name           String
-  type           StepParameterType
-  order          Int
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id])
-  templateStepId String
-}
-
-model TestCase {
-  id                String             @id @default(uuid())
-  title             String
-  description       String
-  createdBy         String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  creator           User               @relation("TestCaseCreator", fields: [createdBy], references: [id])
-  reviews           Review[]
-  testRuns          TestRunTestCase[]
-  linkedJiraTickets LinkedJiraTicket[]
-  TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
-  steps             TestCaseStep[]
-}
-
-model TestCaseStep {
-  id             String                  @id @default(uuid())
-  testCaseId     String
-  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
-  templateStepId String
-  templateStep   TemplateStep            @relation(fields: [templateStepId], references: [id])
-  order          Int // Determined by React Flow
-  parameters     TestCaseStepParameter[]
-}
-
-model TestCaseStepParameter {
-  id             String            @id @default(uuid())
-  name           String
-  value          String
-  type           StepParameterType
-  order          Int
-  testCaseStep   TestCaseStep      @relation(fields: [testCaseStepId], references: [id])
-  testCaseStepId String
-  Locator        Locator?          @relation(fields: [locatorId], references: [id])
-  locatorId      String?
-}
-
-model Locator {
-  id             String                  @id @default(uuid())
-  name           String
-  value          String
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  stepParameters TestCaseStepParameter[]
 }

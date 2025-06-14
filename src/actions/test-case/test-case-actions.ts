@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { testCaseSchema } from "@/constants/form-opts/test-case-form-opts";
 import { z } from "zod";
 import { auth } from "@/auth";
-import { TestCaseStepParameterType } from "@prisma/client";
+import { StepParameterType } from "@prisma/client";
 
 /**
  * Get all test cases
@@ -58,7 +58,6 @@ export async function deleteTestCaseAction(
  * @returns ActionResponse
  */
 export async function createTestCaseAction(
-  _prev: unknown,
   value: z.infer<typeof testCaseSchema>
 ): Promise<ActionResponse> {
   try {
@@ -68,18 +67,19 @@ export async function createTestCaseAction(
       data: {
         title: value.title,
         description: value.description ?? "",
+        TestSuite: {
+          connect: value.testSuiteIds.map((id) => ({ id })),
+        },
         steps: {
           create: value.steps.map((step) => ({
-            templateStep: {
-              connect: {
-                id: step.templateStepId,
-              },
-            },
+            gherkinStep: step.gherkinStep,
+            label: step.label,
+            icon: step.icon,
             parameters: {
               create: step.parameters.map((param) => ({
                 name: param.name,
                 value: param.value,
-                type: param.type as TestCaseStepParameterType,
+                type: param.type as StepParameterType,
                 order: param.order,
               })),
             },
@@ -93,7 +93,7 @@ export async function createTestCaseAction(
         },
       },
     });
-
+    revalidatePath("/test-cases");
     return {
       status: 200,
       message: "Test case created successfully",

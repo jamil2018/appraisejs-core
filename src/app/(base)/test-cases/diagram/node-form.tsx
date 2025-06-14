@@ -80,7 +80,9 @@ const NodeForm = ({
   return (
     <Dialog open={showAddNodeDialog} onOpenChange={setShowAddNodeDialog}>
       <DialogTrigger asChild>
-        <Button>Add Node</Button>
+        <Button type="button" onClick={(e) => e.preventDefault()}>
+          Add Node
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
