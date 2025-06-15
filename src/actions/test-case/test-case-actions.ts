@@ -36,9 +36,33 @@ export async function deleteTestCaseAction(
   id: string[]
 ): Promise<ActionResponse> {
   try {
-    await prisma.testCase.deleteMany({
-      where: { id: { in: id } },
+    await prisma.$transaction(async (tx) => {
+      // Delete all step parameters associated with the test case steps
+      await tx.testCaseStepParameter.deleteMany({
+        where: {
+          testCaseStep: {
+            testCaseId: {
+              in: id,
+            },
+          },
+        },
+      });
+
+      // Delete all test case steps
+      await tx.testCaseStep.deleteMany({
+        where: {
+          testCaseId: {
+            in: id,
+          },
+        },
+      });
+
+      // Delete the test cases
+      await tx.testCase.deleteMany({
+        where: { id: { in: id } },
+      });
     });
+
     revalidatePath("/test-cases");
     return {
       status: 200,
