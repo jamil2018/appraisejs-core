@@ -14,7 +14,16 @@ import { StepParameterType } from "@prisma/client";
  */
 export async function getAllTestCasesAction(): Promise<ActionResponse> {
   try {
-    const testCases = await prisma.testCase.findMany();
+    const testCases = await prisma.testCase.findMany({
+      include: {
+        steps: {
+          include: {
+            parameters: true,
+          },
+        },
+        TestSuite: true,
+      },
+    });
     return {
       status: 200,
       data: testCases,

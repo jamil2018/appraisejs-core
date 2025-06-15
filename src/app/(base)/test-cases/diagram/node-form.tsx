@@ -140,6 +140,7 @@ const NodeForm = ({
                   // Generate gherkin step directly when parameters change
                   if (selectedTemplateStep && selectedTemplateStep.signature) {
                     const gherkin = generateGherkinStep(
+                      selectedTemplateStep.type,
                       selectedTemplateStep.signature,
                       values
                     );

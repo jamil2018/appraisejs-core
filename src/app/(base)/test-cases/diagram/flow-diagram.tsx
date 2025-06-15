@@ -233,7 +233,13 @@ const FlowDiagram = ({
         (edge) => edge.target === connection.target
       );
 
-      return !hasSourceConnection && !hasTargetConnection;
+      // Allow reconnection if we're connecting the same nodes
+      const isReconnecting = edges.some(
+        (edge) =>
+          edge.source === connection.source && edge.target === connection.target
+      );
+
+      return isReconnecting || (!hasSourceConnection && !hasTargetConnection);
     },
     [edges]
   );

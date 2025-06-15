@@ -3,7 +3,7 @@ import {
   getAllTestCasesAction,
 } from "@/actions/test-case/test-case-actions";
 import { DataTable } from "@/components/ui/data-table";
-import { TestCase } from "@prisma/client";
+import { TestCase, TestCaseStep } from "@prisma/client";
 import { testCaseTableCols } from "./test-case-table-columns";
 
 export default async function TestCaseTable() {
@@ -13,7 +13,7 @@ export default async function TestCaseTable() {
     <>
       <DataTable
         columns={testCaseTableCols}
-        data={testCases as TestCase[]}
+        data={testCases as (TestCase & { steps: TestCaseStep[] })[]}
         filterColumn="title"
         filterPlaceholder="Filter by title..."
         createLink="/test-cases/create"

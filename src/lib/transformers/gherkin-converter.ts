@@ -1,4 +1,7 @@
+import { TemplateStepType } from "@prisma/client";
+
 export const generateGherkinStep = (
+  type: TemplateStepType,
   signature: string,
   parameters: { value: string; order: number }[]
 ) => {
@@ -27,5 +30,7 @@ export const generateGherkinStep = (
     })
     .join(" ");
 
-  return gherkinStep;
+  // Prepend the appropriate Gherkin keyword based on type
+  const keyword = type === "ACTION" ? "When" : "Then";
+  return `${keyword} ${gherkinStep}`;
 };
