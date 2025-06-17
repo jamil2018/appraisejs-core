@@ -162,7 +162,6 @@ const NodeForm = ({
             </div>
             <div className="flex flex-col gap-2 mb-4">
               <DynamicFormFields
-                selectedTemplateStep={selectedTemplateStep as TemplateStep}
                 templateStepParams={selectedTemplateStepParams}
                 locators={locators.map((locator) => locator.name)}
                 initialParameterValues={initialValues.parameters}
