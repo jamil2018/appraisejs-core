@@ -1,10 +1,18 @@
+import { StepParameterType } from "@prisma/client";
+
 export type NodeData = {
   order: number;
   label: string;
   gherkinStep?: string;
   isFirstNode?: boolean;
   icon?: string;
-  parameters?: { name: string; value: string; order: number }[];
+  parameters: {
+    name: string;
+    value: string;
+    type: StepParameterType;
+    order: number;
+  }[];
+  templateStepId: string;
 };
 
 export type NodeOrderMap = Record<string, NodeData>;

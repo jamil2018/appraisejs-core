@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -20,15 +20,10 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  StepParameterType,
-  TemplateStep,
-  TemplateStepParameter,
-} from "@prisma/client";
+import { StepParameterType, TemplateStepParameter } from "@prisma/client";
 import { format } from "date-fns";
 
 interface DynamicFormFieldsProps {
-  selectedTemplateStep: TemplateStep;
   templateStepParams: TemplateStepParameter[];
   locators: string[];
   onChange?: (
@@ -39,52 +34,89 @@ interface DynamicFormFieldsProps {
       order: number;
     }[]
   ) => void;
+  initialParameterValues?: {
+    name: string;
+    value: string;
+    type: StepParameterType;
+    order: number;
+  }[];
 }
 
-export default function DynamicFormFields({
-  selectedTemplateStep,
+export default function DynamicFormFields(props: DynamicFormFieldsProps) {
+  const { templateStepParams, initialParameterValues } = props;
+  const resetKey = useMemo(() => {
+    return JSON.stringify({
+      params: templateStepParams.map((p) => ({ name: p.name, type: p.type })),
+      initialParameterValues,
+    });
+  }, [templateStepParams, initialParameterValues]);
+
+  return <DynamicFormFieldsInner key={resetKey} {...props} />;
+}
+
+function DynamicFormFieldsInner({
   templateStepParams,
   locators,
   onChange,
+  initialParameterValues,
 }: DynamicFormFieldsProps) {
-  useEffect(() => {
-    // reset the values of the parameters when the selected template step changes
-    const values: { [key: string]: string | number | boolean | Date } = {};
-    templateStepParams.forEach((param) => {
-      values[param.name] = "";
-    });
-    setValues(values);
-  }, [selectedTemplateStep, templateStepParams]);
-
   // Memoize uniqueLocators to prevent recreation on every render
   const uniqueLocators = useMemo(() => [...new Set(locators)], [locators]);
 
-  // Create initial values only once when component mounts or when dependencies change
+  // Create initial values only once when component mounts
   const initialValues = useMemo(() => {
     const values: { [key: string]: string | number | boolean | Date } = {};
-
+    // Build a map for quick lookup of initial values by name
+    const initialValueMap: Record<
+      string,
+      { value: string; type: StepParameterType }
+    > = {};
+    initialParameterValues?.forEach((v) => {
+      initialValueMap[v.name] = { value: v.value, type: v.type };
+    });
     templateStepParams.forEach((param) => {
-      switch (param.type) {
-        case "NUMBER":
-          values[param.name] = 0;
-          break;
-        case "STRING":
-          values[param.name] = "";
-          break;
-        case "DATE":
-          values[param.name] = new Date();
-          break;
-        case "BOOLEAN":
-          values[param.name] = false;
-          break;
-        case "LOCATOR":
-          values[param.name] = "";
-          break;
+      const initial = initialValueMap[param.name];
+      if (initial) {
+        switch (param.type) {
+          case "NUMBER":
+            values[param.name] = Number(initial.value);
+            break;
+          case "STRING":
+          case "LOCATOR":
+            values[param.name] = initial.value;
+            break;
+          case "DATE":
+            // Try to parse date from string
+            const date = new Date(initial.value);
+            values[param.name] = isNaN(date.getTime()) ? new Date() : date;
+            break;
+          case "BOOLEAN":
+            values[param.name] = initial.value === "true";
+            break;
+        }
+      } else {
+        // fallback to default
+        switch (param.type) {
+          case "NUMBER":
+            values[param.name] = 0;
+            break;
+          case "STRING":
+            values[param.name] = "";
+            break;
+          case "DATE":
+            values[param.name] = new Date();
+            break;
+          case "BOOLEAN":
+            values[param.name] = false;
+            break;
+          case "LOCATOR":
+            values[param.name] = "";
+            break;
+        }
       }
     });
-
     return values;
-  }, [templateStepParams]);
+  }, [templateStepParams, initialParameterValues]);
 
   // Initialize state with initial values
   const [values, setValues] = useState<{
@@ -131,7 +163,7 @@ export default function DynamicFormFields({
               typeof currentValue.getTime === "function" &&
               !Number.isNaN(currentValue.getTime())
             ) {
-              stringValue = format(currentValue as Date, "dd-MM-yy");
+              stringValue = format(currentValue as Date, "PPP");
             } else {
               stringValue = "";
             }

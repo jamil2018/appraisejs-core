@@ -12,6 +12,7 @@ import {
   useEdgesState,
   useNodesState,
   Connection,
+  NodeProps,
 } from "@xyflow/react";
 import { useCallback, useState, useEffect, useMemo, memo } from "react";
 import "@xyflow/react/dist/style.css";
@@ -19,21 +20,18 @@ import { Button } from "@/components/ui/button";
 import ButtonEdge from "./button-edge";
 import { Plus } from "lucide-react";
 import OptionsHeaderNode from "./options-header-node";
-import { NodeData, NodeOrderMap } from "@/types/diagram/diagram";
+import { NodeData } from "@/constants/form-opts/diagram/node-form";
+import { NodeOrderMap } from "@/types/diagram/diagram";
 import NodeForm from "./node-form";
 import {
   Locator,
   TemplateStep,
-  TemplateStepIcon,
   TemplateStepParameter,
+  StepParameterType,
 } from "@prisma/client";
-import { KeyToIconTransformer } from "@/lib/transformers/key-to-icon-transformer";
 
 const edgeTypes = {
   buttonEdge: ButtonEdge,
-};
-const nodeTypes = {
-  optionsHeaderNode: OptionsHeaderNode,
 };
 
 const FlowDiagram = ({
@@ -63,10 +61,16 @@ const FlowDiagram = ({
       sortedEntries.forEach(([id, nodeData], index) => {
         const baseNodeData = {
           label: nodeData.label,
-          gherkinStep: nodeData.gherkinStep || "",
-          isFirstNode: nodeData.isFirstNode || false,
-          icon: nodeData.icon || "",
-          parameters: nodeData.parameters,
+          gherkinStep: nodeData.gherkinStep ?? "",
+          isFirstNode: nodeData.isFirstNode ?? false,
+          icon: nodeData.icon ?? "",
+          parameters: (nodeData.parameters ?? []).map((p) => ({
+            name: p.name,
+            value: p.value,
+            type: p.type ?? StepParameterType.STRING,
+            order: p.order,
+          })),
+          templateStepId: nodeData.templateStepId ?? "",
         };
 
         // Skip isolated nodes (order === -1)
@@ -119,6 +123,78 @@ const FlowDiagram = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [showAddNodeDialog, setShowAddNodeDialog] = useState(false);
+  const [showEditNodeDialog, setShowEditNodeDialog] = useState(false);
+  const [editNodeId, setEditNodeId] = useState<string | null>(null);
+  const [editNodeData, setEditNodeData] = useState<NodeData | null>(null);
+
+  const handleEditNode = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find((node) => node.id === nodeId);
+      setEditNodeData({
+        ...(node?.data as NodeData),
+        gherkinStep: (node?.data as NodeData)?.gherkinStep ?? "",
+        parameters: ((node?.data as NodeData)?.parameters ?? []).map((p) => ({
+          name: p.name,
+          value: p.value,
+          type: p.type ?? StepParameterType.STRING,
+          order: p.order,
+        })),
+        templateStepId: (node?.data as NodeData)?.templateStepId ?? "",
+      });
+      setEditNodeId(nodeId);
+      setShowEditNodeDialog(true);
+    },
+    [nodes]
+  );
+
+  const addNode = useCallback(
+    (formData: NodeData) => {
+      // Lookup the icon from the template step
+      const templateStep = templateSteps.find(
+        (ts) => ts.id === formData.templateStepId
+      );
+      const icon = templateStep?.icon ?? "MOUSE";
+      const newNode: Node = {
+        id: crypto.randomUUID(),
+        data: {
+          ...formData,
+          icon, // Add icon here
+          isFirstNode: nodes.length === 0,
+        },
+        position: { x: 0, y: 0 },
+        type: "optionsHeaderNode",
+      };
+      setNodes((nds) => nds.concat(newNode));
+      setShowAddNodeDialog(false);
+    },
+    [setNodes, setShowAddNodeDialog, nodes, templateSteps]
+  );
+
+  const handleEditNodeSubmit = useCallback(
+    (formData: NodeData) => {
+      if (!editNodeId) return;
+      const templateStep = templateSteps.find(
+        (ts) => ts.id === formData.templateStepId
+      );
+      const icon = templateStep?.icon ?? "MOUSE";
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === editNodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  ...formData,
+                  icon, // Update icon here
+                },
+              }
+            : node
+        )
+      );
+      setShowEditNodeDialog(false);
+    },
+    [editNodeId, setNodes, setShowEditNodeDialog, templateSteps]
+  );
 
   const determineNodeOrders = useCallback((nodes: Node[], edges: Edge[]) => {
     // Create adjacency list
@@ -163,12 +239,18 @@ const FlowDiagram = ({
         orders[node.id] = {
           order: -1,
           label: node.data.label as string,
-          gherkinStep: node.data.gherkinStep as string | undefined,
-          isFirstNode: node.data.isFirstNode as boolean | undefined,
-          icon: node.data.icon as string | undefined,
-          parameters: node.data.parameters as
-            | { name: string; value: string; order: number }[]
-            | undefined,
+          gherkinStep: (node.data.gherkinStep as string) ?? "",
+          isFirstNode: (node.data.isFirstNode as boolean) ?? false,
+          icon: (node.data.icon as string) ?? "",
+          parameters: (
+            (node.data.parameters as NodeData["parameters"]) ?? []
+          ).map((p) => ({
+            name: p.name,
+            value: p.value,
+            type: p.type ?? StepParameterType.STRING,
+            order: p.order,
+          })),
+          templateStepId: (node.data.templateStepId as string) ?? "",
         };
       }
     });
@@ -180,12 +262,18 @@ const FlowDiagram = ({
       orders[currentId] = {
         order: orderNum++,
         label: currentNode.data.label as string,
-        gherkinStep: currentNode.data.gherkinStep as string | undefined,
-        isFirstNode: currentNode.data.isFirstNode as boolean | undefined,
-        icon: currentNode.data.icon as string | undefined,
-        parameters: currentNode.data.parameters as
-          | { name: string; value: string; order: number }[]
-          | undefined,
+        gherkinStep: (currentNode.data.gherkinStep as string) ?? "",
+        isFirstNode: (currentNode.data.isFirstNode as boolean) ?? false,
+        icon: (currentNode.data.icon as string) ?? "",
+        parameters: (
+          (currentNode.data.parameters as NodeData["parameters"]) ?? []
+        ).map((p) => ({
+          name: p.name,
+          value: p.value,
+          type: p.type ?? StepParameterType.STRING,
+          order: p.order,
+        })),
+        templateStepId: (currentNode.data.templateStepId as string) ?? "",
       };
 
       // Process neighbors
@@ -203,12 +291,18 @@ const FlowDiagram = ({
         orders[node.id] = {
           order: orderNum++,
           label: node.data.label as string,
-          gherkinStep: node.data.gherkinStep as string | undefined,
-          isFirstNode: node.data.isFirstNode as boolean | undefined,
-          icon: node.data.icon as string | undefined,
-          parameters: node.data.parameters as
-            | { name: string; value: string; order: number }[]
-            | undefined,
+          gherkinStep: (node.data.gherkinStep as string) ?? "",
+          isFirstNode: (node.data.isFirstNode as boolean) ?? false,
+          icon: (node.data.icon as string) ?? "",
+          parameters: (
+            (node.data.parameters as NodeData["parameters"]) ?? []
+          ).map((p) => ({
+            name: p.name,
+            value: p.value,
+            type: p.type ?? StepParameterType.STRING,
+            order: p.order,
+          })),
+          templateStepId: (node.data.templateStepId as string) ?? "",
         };
       }
     });
@@ -253,32 +347,22 @@ const FlowDiagram = ({
     [setEdges, isValidConnection]
   );
 
-  const addNode = useCallback(
-    (nodeData: NodeData) => {
-      const newNode: Node = {
-        id: crypto.randomUUID(),
-        data: {
-          label: nodeData.label,
-          gherkinStep: nodeData.gherkinStep,
-          isFirstNode: nodes.length === 0,
-          icon: KeyToIconTransformer(nodeData.icon as TemplateStepIcon),
-          parameters: nodeData.parameters,
-        },
-        position: { x: 0, y: 0 },
-        type: "optionsHeaderNode",
-      };
-      setNodes((nds) => nds.concat(newNode));
-      setShowAddNodeDialog(false);
-    },
-    [setNodes, setShowAddNodeDialog, nodes]
-  );
-
   const memoizedTemplateSteps = useMemo(() => templateSteps, [templateSteps]);
   const memoizedTemplateStepParams = useMemo(
     () => templateStepParams,
     [templateStepParams]
   );
   const memoizedLocators = useMemo(() => locators, [locators]);
+
+  // Properly type nodeTypes to avoid 'any'
+  const nodeTypes = useMemo(
+    () => ({
+      optionsHeaderNode: (props: NodeProps) => (
+        <OptionsHeaderNode {...props} onEdit={handleEditNode} />
+      ),
+    }),
+    [handleEditNode]
+  );
 
   return (
     <>
@@ -316,9 +400,7 @@ const FlowDiagram = ({
 
       {showAddNodeDialog && (
         <NodeForm
-          onSubmitAction={(values) =>
-            addNode({ ...values, order: nodes.length })
-          }
+          onSubmitAction={addNode}
           initialValues={{
             label: "",
             gherkinStep: "",
@@ -329,6 +411,23 @@ const FlowDiagram = ({
           templateStepParams={memoizedTemplateStepParams}
           showAddNodeDialog={showAddNodeDialog}
           setShowAddNodeDialog={setShowAddNodeDialog}
+          locators={memoizedLocators}
+        />
+      )}
+
+      {showEditNodeDialog && (
+        <NodeForm
+          onSubmitAction={handleEditNodeSubmit}
+          initialValues={{
+            label: editNodeData?.label ?? "",
+            gherkinStep: editNodeData?.gherkinStep ?? "",
+            templateStepId: editNodeData?.templateStepId ?? "",
+            parameters: editNodeData?.parameters ?? [],
+          }}
+          templateSteps={memoizedTemplateSteps}
+          templateStepParams={memoizedTemplateStepParams}
+          showAddNodeDialog={showEditNodeDialog}
+          setShowAddNodeDialog={setShowEditNodeDialog}
           locators={memoizedLocators}
         />
       )}

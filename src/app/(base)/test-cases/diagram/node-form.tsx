@@ -26,7 +26,7 @@ import {
   TemplateStepIcon,
 } from "@prisma/client";
 import { TemplateStepParameter } from "@prisma/client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DynamicFormFields from "./dynamic-parameters";
 import { generateGherkinStep } from "@/lib/transformers/gherkin-converter";
 
@@ -36,23 +36,30 @@ const NodeForm = ({
   templateSteps,
   templateStepParams,
   showAddNodeDialog,
-  setShowAddNodeDialog,
   locators,
+  setShowAddNodeDialog,
 }: {
   onSubmitAction: (values: NodeData) => void;
   initialValues: NodeData;
   templateSteps: TemplateStep[];
   templateStepParams: TemplateStepParameter[];
   showAddNodeDialog: boolean;
-  setShowAddNodeDialog: (show: boolean) => void;
   locators: Locator[];
+  setShowAddNodeDialog: (show: boolean) => void;
 }) => {
   // states for dynamic form fields
   const [selectedTemplateStep, setSelectedTemplateStep] =
-    useState<TemplateStep | null>(null);
+    useState<TemplateStep | null>(
+      templateSteps.find((step) => step.id === initialValues.templateStepId) ??
+        null
+    );
   const [selectedTemplateStepParams, setSelectedTemplateStepParams] = useState<
     TemplateStepParameter[]
-  >([]);
+  >(
+    templateStepParams.filter(
+      (param) => param.templateStepId === initialValues.templateStepId
+    ) ?? []
+  );
   const [parameters, setParameters] = useState<
     {
       name: string;
@@ -60,8 +67,31 @@ const NodeForm = ({
       type: StepParameterType;
       order: number;
     }[]
-  >([]);
-  const [gherkinStep, setGherkinStep] = useState<string>("");
+  >(initialValues.parameters ?? []);
+  const [gherkinStep, setGherkinStep] = useState<string>(
+    initialValues.gherkinStep ?? ""
+  );
+
+  // Synchronize state with initialValues when they change
+  useEffect(() => {
+    const step =
+      templateSteps.find((step) => step.id === initialValues.templateStepId) ??
+      null;
+    setSelectedTemplateStep(step);
+    setSelectedTemplateStepParams(
+      templateStepParams.filter(
+        (param) => param.templateStepId === initialValues.templateStepId
+      )
+    );
+    setParameters(initialValues.parameters ?? []);
+    setGherkinStep(initialValues.gherkinStep ?? "");
+  }, [
+    initialValues.templateStepId,
+    initialValues.parameters,
+    initialValues.gherkinStep,
+    templateSteps,
+    templateStepParams,
+  ]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -135,6 +165,7 @@ const NodeForm = ({
                 selectedTemplateStep={selectedTemplateStep as TemplateStep}
                 templateStepParams={selectedTemplateStepParams}
                 locators={locators.map((locator) => locator.name)}
+                initialParameterValues={initialValues.parameters}
                 onChange={(values) => {
                   setParameters([...values]);
                   // Generate gherkin step directly when parameters change
@@ -174,7 +205,7 @@ const NodeForm = ({
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button type="submit">Add</Button>
+            <Button type="submit">Save</Button>
           </DialogFooter>
         </form>
       </DialogContent>
