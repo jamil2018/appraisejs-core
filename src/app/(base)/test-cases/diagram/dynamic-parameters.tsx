@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import {
+  useState,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+  useEffect,
+} from "react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -22,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { StepParameterType, TemplateStepParameter } from "@prisma/client";
 import { format } from "date-fns";
+import ErrorMessage from "@/components/form/error-message";
 
 interface DynamicFormFieldsProps {
   templateStepParams: TemplateStepParameter[];
@@ -42,8 +49,17 @@ interface DynamicFormFieldsProps {
   }[];
 }
 
-export default function DynamicFormFields(props: DynamicFormFieldsProps) {
-  const { templateStepParams, initialParameterValues } = props;
+export interface DynamicFormFieldsRef {
+  validate: () => boolean;
+}
+
+const DynamicFormFields = forwardRef<
+  DynamicFormFieldsRef,
+  DynamicFormFieldsProps
+>((props, ref) => {
+  const { templateStepParams, locators, onChange, initialParameterValues } =
+    props;
+
   const resetKey = useMemo(() => {
     return JSON.stringify({
       params: templateStepParams.map((p) => ({ name: p.name, type: p.type })),
@@ -51,15 +67,6 @@ export default function DynamicFormFields(props: DynamicFormFieldsProps) {
     });
   }, [templateStepParams, initialParameterValues]);
 
-  return <DynamicFormFieldsInner key={resetKey} {...props} />;
-}
-
-function DynamicFormFieldsInner({
-  templateStepParams,
-  locators,
-  onChange,
-  initialParameterValues,
-}: DynamicFormFieldsProps) {
   // Memoize uniqueLocators to prevent recreation on every render
   const uniqueLocators = useMemo(() => [...new Set(locators)], [locators]);
 
@@ -122,6 +129,32 @@ function DynamicFormFieldsInner({
   const [values, setValues] = useState<{
     [key: string]: string | number | boolean | Date;
   }>(initialValues);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setErrors({});
+  }, [templateStepParams]);
+
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      const newErrors: Record<string, string> = {};
+      templateStepParams.forEach((param) => {
+        const value = values[param.name];
+        if (param.type === "LOCATOR" && !value) {
+          newErrors[param.name] = "Locator is required";
+        }
+        if (param.type === "STRING" && !value) {
+          newErrors[param.name] = "This field is required";
+        }
+        if (param.type === "NUMBER" && !value) {
+          newErrors[param.name] = "This field is required";
+        }
+        // Add other validation rules here if needed
+      });
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    },
+  }));
 
   // Update values when an input changes
   const handleInputChange = (
@@ -134,6 +167,13 @@ function DynamicFormFieldsInner({
     };
 
     setValues(newValues);
+
+    // Clear error for the field being edited
+    if (errors[name]) {
+      const newErrors = { ...errors };
+      delete newErrors[name];
+      setErrors(newErrors);
+    }
 
     // Notify parent component of changes
     if (onChange) {
@@ -197,6 +237,7 @@ function DynamicFormFieldsInner({
   // Render the appropriate input field based on the parameter type
   const renderInputField = (param: TemplateStepParameter) => {
     const { name, type } = param;
+    const errorMessage = errors[name];
 
     switch (type) {
       case "NUMBER":
@@ -211,7 +252,10 @@ function DynamicFormFieldsInner({
               value={typeof values[name] === "number" ? values[name] : 0}
               onChange={(e) => handleInputChange(name, Number(e.target.value))}
               className="w-full"
-              required
+            />
+            <ErrorMessage
+              message={errorMessage || ""}
+              visible={!!errorMessage}
             />
           </div>
         );
@@ -228,7 +272,10 @@ function DynamicFormFieldsInner({
               value={typeof values[name] === "string" ? values[name] : ""}
               onChange={(e) => handleInputChange(name, e.target.value)}
               className="w-full"
-              required
+            />
+            <ErrorMessage
+              message={errorMessage || ""}
+              visible={!!errorMessage}
             />
           </div>
         );
@@ -324,6 +371,10 @@ function DynamicFormFieldsInner({
                 ))}
               </SelectContent>
             </Select>
+            <ErrorMessage
+              message={errorMessage || ""}
+              visible={!!errorMessage}
+            />
           </div>
         );
 
@@ -338,7 +389,7 @@ function DynamicFormFieldsInner({
   }
 
   return (
-    <Card className="border-none shadow-none">
+    <Card className="border-none shadow-none" key={resetKey}>
       <CardContent className="p-0">
         <fieldset className="border rounded-md p-4">
           <legend className="text-sm font-medium px-2">Parameters</legend>
@@ -351,4 +402,6 @@ function DynamicFormFieldsInner({
       </CardContent>
     </Card>
   );
-}
+});
+DynamicFormFields.displayName = "DynamicFormFields";
+export default DynamicFormFields;

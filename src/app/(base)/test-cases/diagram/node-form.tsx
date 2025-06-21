@@ -26,9 +26,17 @@ import {
   TemplateStepIcon,
 } from "@prisma/client";
 import { TemplateStepParameter } from "@prisma/client";
-import React, { useState, useEffect } from "react";
-import DynamicFormFields from "./dynamic-parameters";
+import React, { useState, useEffect, useRef } from "react";
+import DynamicFormFields, { DynamicFormFieldsRef } from "./dynamic-parameters";
 import { generateGherkinStep } from "@/lib/transformers/gherkin-converter";
+import { z } from "zod";
+import ErrorMessage from "@/components/form/error-message";
+import { format } from "date-fns";
+
+const errorSchema = z.object({
+  label: z.string().min(3, { message: "Label must be at least 3 characters" }),
+  templateStepId: z.string().min(1, { message: "Template step is required" }),
+});
 
 const NodeForm = ({
   onSubmitAction,
@@ -47,6 +55,10 @@ const NodeForm = ({
   locators: Locator[];
   setShowAddNodeDialog: (show: boolean) => void;
 }) => {
+  const dynamicFormRef = useRef<DynamicFormFieldsRef>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(
+    initialValues.templateStepId
+  );
   // states for dynamic form fields
   const [selectedTemplateStep, setSelectedTemplateStep] =
     useState<TemplateStep | null>(
@@ -71,9 +83,12 @@ const NodeForm = ({
   const [gherkinStep, setGherkinStep] = useState<string>(
     initialValues.gherkinStep ?? ""
   );
-
+  const [errors, setErrors] = useState<
+    z.inferFlattenedErrors<typeof errorSchema>["fieldErrors"]
+  >({});
   // Synchronize state with initialValues when they change
   useEffect(() => {
+    setSelectedTemplateId(initialValues.templateStepId);
     const step =
       templateSteps.find((step) => step.id === initialValues.templateStepId) ??
       null;
@@ -95,14 +110,33 @@ const NodeForm = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const isDynamicFormValid = dynamicFormRef.current?.validate();
+
     const formData = new FormData(e.currentTarget);
-    const values = Object.fromEntries(formData.entries());
+    const formValues = Object.fromEntries(formData.entries());
+
+    const dataToValidate = {
+      label: formValues.label,
+      templateStepId: selectedTemplateId,
+    };
+
+    const parsed = errorSchema.safeParse(dataToValidate);
+
+    if (!parsed.success || !isDynamicFormValid) {
+      if (!parsed.success) {
+        setErrors(parsed.error.flatten().fieldErrors);
+      }
+      return;
+    }
+
+    setErrors({});
     const nodeData: NodeData = {
-      ...values,
+      ...formValues,
       parameters: parameters,
-      label: values.label as string,
+      label: formValues.label as string,
       gherkinStep: gherkinStep,
-      templateStepId: values.templateStepId as string,
+      templateStepId: selectedTemplateId as string,
     };
     onSubmitAction(nodeData);
   };
@@ -129,22 +163,65 @@ const NodeForm = ({
                 id="label"
                 name="label"
                 defaultValue={initialValues.label}
+                onChange={(e) => {
+                  setErrors((prev) => ({
+                    ...prev,
+                    label: e.target.value ? undefined : ["Label is required"],
+                  }));
+                }}
+              />
+              <ErrorMessage
+                message={errors.label?.[0] ?? ""}
+                visible={!!errors.label}
               />
             </div>
             <div className="flex flex-col gap-2 mb-4">
               <Label htmlFor="templateStepId">Template Step</Label>
               <Select
                 name="templateStepId"
-                defaultValue={initialValues.templateStepId}
+                value={selectedTemplateId}
                 onValueChange={(value) => {
+                  setErrors((prev) => ({
+                    ...prev,
+                    templateStepId: value
+                      ? undefined
+                      : ["Template step is required"],
+                  }));
+                  setSelectedTemplateId(value);
                   const step = templateSteps.find((step) => step.id === value);
                   if (step) {
                     setSelectedTemplateStep(step);
-                    setSelectedTemplateStepParams(
-                      templateStepParams.filter(
-                        (param) => param.templateStepId === step.id
-                      )
+                    const newParams = templateStepParams.filter(
+                      (param) => param.templateStepId === step.id
                     );
+                    setSelectedTemplateStepParams(newParams);
+                    const initialParamsForStep = newParams.map((param) => {
+                      let defaultValue = "";
+                      switch (param.type) {
+                        case "NUMBER":
+                          defaultValue = "0";
+                          break;
+                        case "STRING":
+                          defaultValue = "";
+                          break;
+                        case "LOCATOR":
+                          defaultValue = "";
+                          break;
+                        case "BOOLEAN":
+                          defaultValue = "false";
+                          break;
+                        case "DATE":
+                          defaultValue = format(new Date(), "PPP");
+                          break;
+                      }
+                      return {
+                        name: param.name,
+                        value: defaultValue,
+                        type: param.type,
+                        order: param.order,
+                      };
+                    });
+                    setParameters(initialParamsForStep);
                   }
                 }}
               >
@@ -159,9 +236,14 @@ const NodeForm = ({
                   ))}
                 </SelectContent>
               </Select>
+              <ErrorMessage
+                message={errors.templateStepId?.[0] ?? ""}
+                visible={!!errors.templateStepId}
+              />
             </div>
             <div className="flex flex-col gap-2 mb-4">
               <DynamicFormFields
+                ref={dynamicFormRef}
                 templateStepParams={selectedTemplateStepParams}
                 locators={locators.map((locator) => locator.name)}
                 initialParameterValues={initialValues.parameters}
