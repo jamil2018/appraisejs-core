@@ -184,7 +184,11 @@ export default function LocatorInspector({
   }, []);
 
   // Generate CSS selector
-  const generateCSSPath = (element: any) => {
+  const generateCSSPath = (element: {
+    tagName: string;
+    className?: string;
+    id?: string;
+  }) => {
     if (element.id) return `#${element.id}`;
 
     let path = element.tagName.toLowerCase();
@@ -198,7 +202,11 @@ export default function LocatorInspector({
   };
 
   // Generate XPath
-  const generateXPath = (element: any) => {
+  const generateXPath = (element: {
+    tagName: string;
+    className?: string;
+    id?: string;
+  }) => {
     if (element.id) return `//*[@id="${element.id}"]`;
 
     let path = `//${element.tagName.toLowerCase()}`;

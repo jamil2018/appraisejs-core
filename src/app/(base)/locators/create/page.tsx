@@ -3,6 +3,7 @@ import HeaderSubtitle from "@/components/typography/page-header-subtitle";
 import React from "react";
 import LocatorForm from "../locator-form";
 import { createLocatorAction } from "@/actions/locator/locator-actions";
+import LocatorInspector from "@/components/data-extraction/locator-inspector";
 
 const CreateLocator = () => {
   return (
@@ -18,6 +19,7 @@ const CreateLocator = () => {
         successMessage="Locator created successfully"
         onSubmitAction={createLocatorAction}
       />
+      <LocatorInspector iframeUrl="https://192.168.76.136/" />
     </>
   );
 };

@@ -116,6 +116,7 @@ export async function createTestCaseAction(
                 order: param.order,
               })),
             },
+            templateStepId: step.templateStepId,
             order: step.order,
           })),
         },
@@ -153,10 +154,88 @@ export async function getTestCaseByIdAction(
       where: { id },
       include: {
         steps: true,
+        TestSuite: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
     return {
       status: 200,
+      data: {
+        ...testCase,
+        testSuiteIds: testCase?.TestSuite.map((suite) => suite.id),
+      },
+    };
+  } catch (e) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${e}`,
+    };
+  }
+}
+
+export async function updateTestCaseAction(
+  value: z.infer<typeof testCaseSchema>,
+  id?: string
+): Promise<ActionResponse> {
+  if (!id) {
+    throw new Error(
+      "updateTestCaseAction: 'id' parameter is required for updating a test case."
+    );
+  }
+  try {
+    // 1. Find all step IDs for the test case
+    const steps = await prisma.testCaseStep.findMany({
+      where: { testCaseId: id },
+      select: { id: true },
+    });
+    const stepIds = steps.map((step) => step.id);
+
+    // 2. Delete all parameters for those steps
+    if (stepIds.length > 0) {
+      await prisma.testCaseStepParameter.deleteMany({
+        where: { testCaseStepId: { in: stepIds } },
+      });
+    }
+
+    // 3. Delete all steps for the test case
+    await prisma.testCaseStep.deleteMany({
+      where: { testCaseId: id },
+    });
+
+    // 4. Then, update the test case with new steps
+    const testCase = await prisma.testCase.update({
+      where: { id },
+      data: {
+        title: value.title,
+        description: value.description ?? "",
+        steps: {
+          create: value.steps.map((step) => ({
+            gherkinStep: step.gherkinStep,
+            label: step.label ?? "",
+            icon: step.icon ?? "",
+            parameters: {
+              create: step.parameters.map((param) => ({
+                name: param.name,
+                value: param.value,
+                type: param.type as StepParameterType,
+                order: param.order,
+              })),
+            },
+            templateStepId: step.templateStepId,
+            order: step.order,
+          })),
+        },
+      },
+      include: {
+        steps: true,
+      },
+    });
+    return {
+      status: 200,
+      message: "Test case updated successfully",
       data: testCase,
     };
   } catch (e) {

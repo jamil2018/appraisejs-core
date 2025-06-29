@@ -14,6 +14,7 @@ import {
 } from "@prisma/client";
 import { getAllLocatorsAction } from "@/actions/locator/locator-actions";
 import { getAllTestSuitesAction } from "@/actions/test-suite/test-suite-actions";
+import { createTestCaseAction } from "@/actions/test-case/test-case-actions";
 
 const CreateTestCase = async () => {
   const { data: templateStepParams, error: templateStepParamsError } =
@@ -58,6 +59,7 @@ const CreateTestCase = async () => {
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
         testSuites={testSuites as TestSuite[]}
+        onSubmitAction={createTestCaseAction}
       />
     </div>
   );

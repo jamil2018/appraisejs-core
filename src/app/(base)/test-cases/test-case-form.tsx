@@ -17,7 +17,6 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { Button } from "@/components/ui/button";
 import ErrorMessage from "@/components/form/error-message";
 import { z } from "zod";
-import { createTestCaseAction } from "@/actions/test-case/test-case-actions";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { IconToKeyTransformer } from "@/lib/transformers/key-to-icon-transformer";
@@ -25,6 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CodeMirror, { EditorView } from "@uiw/react-codemirror";
 import { langs } from "@uiw/codemirror-extensions-langs";
 import { githubDark } from "@uiw/codemirror-theme-github";
+import { ActionResponse } from "@/types/form/actionHandler";
+import { testCaseSchema } from "@/constants/form-opts/test-case-form-opts";
 
 const errorSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
@@ -46,6 +47,7 @@ const errorSchema = z.object({
         })
       ),
       order: z.number(),
+      templateStepId: z.string(),
     })
   ),
 });
@@ -56,19 +58,37 @@ const TestCaseForm = ({
   templateSteps,
   locators,
   testSuites,
+  id,
+  defaultTitle,
+  defaultDescription,
+  defaultTestSuiteIds,
+  onSubmitAction,
 }: {
   defaultNodesOrder: NodeOrderMap;
   templateStepParams: TemplateStepParameter[];
   templateSteps: TemplateStep[];
   locators: Locator[];
   testSuites: TestSuite[];
+  onSubmitAction: (
+    value: z.infer<typeof testCaseSchema>,
+    id?: string
+  ) => Promise<ActionResponse>;
+  id?: string;
+  defaultTitle?: string;
+  defaultDescription?: string;
+  defaultTestSuiteIds?: string[];
 }) => {
   const router = useRouter();
   // states
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(defaultNodesOrder);
-  const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [selectedTestSuites, setSelectedTestSuites] = useState<string[]>([]);
+  const [title, setTitle] = useState<string>(defaultTitle || "");
+  const [description, setDescription] = useState<string>(
+    defaultDescription || ""
+  );
+  const [selectedTestSuites, setSelectedTestSuites] = useState<string[]>(
+    defaultTestSuiteIds || []
+  );
+  console.log(`defaultTestSuiteIds`, defaultTestSuiteIds);
   const [errors, setErrors] = useState<{
     title?: string[];
     description?: string[];
@@ -183,6 +203,7 @@ const TestCaseForm = ({
         icon: IconToKeyTransformer(value.icon),
         parameters: value.parameters,
         order: value.order,
+        templateStepId: value.templateStepId,
       })),
     });
 
@@ -191,11 +212,11 @@ const TestCaseForm = ({
       return;
     }
     setErrors({});
-    const response = await createTestCaseAction(result.data);
+    const response = await onSubmitAction(result.data, id);
     if (response.status === 200) {
       toast({
         title: "Success",
-        description: "Test case created successfully",
+        description: "Test case saved successfully",
         variant: "default",
       });
       router.push(`/test-cases`);
@@ -207,7 +228,15 @@ const TestCaseForm = ({
         variant: "destructive",
       });
     }
-  }, [description, nodesOrder, selectedTestSuites, title, router]);
+  }, [
+    description,
+    nodesOrder,
+    selectedTestSuites,
+    title,
+    router,
+    onSubmitAction,
+    id,
+  ]);
 
   return (
     <div className="flex flex-col gap-4">

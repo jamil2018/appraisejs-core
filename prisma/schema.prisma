@@ -108,6 +108,7 @@ model TemplateStep {
   type               TemplateStepType
   icon               TemplateStepIcon
   parameters         TemplateStepParameter[]
+  TestCaseStep       TestCaseStep[]
 }
 
 model TemplateStepParameter {
@@ -137,14 +138,16 @@ model TestCase {
 }
 
 model TestCaseStep {
-  id          String                  @id @default(uuid())
-  testCaseId  String
-  order       Int
-  gherkinStep String
-  icon        TemplateStepIcon
-  label       String
-  testCase    TestCase                @relation(fields: [testCaseId], references: [id])
-  parameters  TestCaseStepParameter[]
+  id             String                  @id @default(uuid())
+  testCaseId     String
+  order          Int
+  gherkinStep    String
+  icon           TemplateStepIcon
+  label          String
+  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters     TestCaseStepParameter[]
+  templateStepId String
+  TemplateStep   TemplateStep            @relation(fields: [templateStepId], references: [id])
 }
 
 model TestCaseStepParameter {

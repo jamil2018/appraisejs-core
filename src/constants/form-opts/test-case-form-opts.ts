@@ -21,6 +21,7 @@ export const testCaseSchema = z.object({
           })
         ),
         order: z.number(),
+        templateStepId: z.string(),
       })
     )
     .min(1, { message: "Steps are required" }),
