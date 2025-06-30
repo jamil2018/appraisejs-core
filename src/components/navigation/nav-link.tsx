@@ -16,15 +16,13 @@ const NavLink = ({
 }) => {
   const pathname = usePathname();
   return (
-    <Link href={href} legacyBehavior passHref>
-      <NavigationMenuLink
-        className={navigationMenuTriggerStyle()}
-        active={pathname === href}
-        href={href}
-      >
-        {children}
-      </NavigationMenuLink>
-    </Link>
+    <NavigationMenuLink
+      className={navigationMenuTriggerStyle()}
+      active={pathname === href}
+      asChild
+    >
+      <Link href={href}>{children}</Link>
+    </NavigationMenuLink>
   );
 };
 
