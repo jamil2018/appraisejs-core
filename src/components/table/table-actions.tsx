@@ -51,7 +51,7 @@ const TableActions = ({
           <DropdownMenuSeparator />
           {viewLink && (
             <DropdownMenuItem>
-              <Link href={viewLink} legacyBehavior>
+              <Link href={viewLink}>
                 <span className="flex items-center gap-2">
                   {viewActionIcon} {viewActionText}
                 </span>
@@ -59,7 +59,7 @@ const TableActions = ({
             </DropdownMenuItem>
           )}
           <DropdownMenuItem>
-            <Link href={modifyLink} legacyBehavior>
+            <Link href={modifyLink}>
               <span className="flex items-center gap-2">
                 {editActionIcon} {editActionText}
               </span>

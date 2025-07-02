@@ -8,19 +8,20 @@ datasource db {
 }
 
 model User {
-  id             String      @id @default(uuid())
-  username       String      @unique
-  email          String      @unique
-  password       String
-  role           Role
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  createdReviews Review[]    @relation("ReviewCreator")
-  reviews        Review[]    @relation("Reviewer")
-  testCases      TestCase[]  @relation("TestCaseCreator")
-  testRuns       TestRun[]   @relation("TestRunExecutor")
-  TestSuite      TestSuite[]
-  UserRole       UserRole[]
+  id               String             @id @default(uuid())
+  username         String             @unique
+  email            String             @unique
+  password         String
+  role             Role
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  createdReviews   Review[]           @relation("ReviewCreator")
+  reviews          Review[]           @relation("Reviewer")
+  testCases        TestCase[]         @relation("TestCaseCreator")
+  testRuns         TestRun[]          @relation("TestRunExecutor")
+  TestSuite        TestSuite[]
+  UserRole         UserRole[]
+  TemplateTestCase TemplateTestCase[] @relation("TemplateTestCaseCreator")
 }
 
 model TestSuite {
@@ -109,6 +110,8 @@ model TemplateStep {
   icon               TemplateStepIcon
   parameters         TemplateStepParameter[]
   TestCaseStep       TestCaseStep[]
+
+  TemplateTestCaseStep TemplateTestCaseStep[]
 }
 
 model TemplateStepParameter {
@@ -150,6 +153,43 @@ model TestCaseStep {
   TemplateStep   TemplateStep            @relation(fields: [templateStepId], references: [id])
 }
 
+model TemplateTestCase {
+  id          String                 @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  creator     User                   @relation("TemplateTestCaseCreator", fields: [createdBy], references: [id])
+  createdBy   String
+  steps       TemplateTestCaseStep[]
+}
+
+model TemplateTestCaseStep {
+  id                 String                          @id @default(uuid())
+  order              Int
+  gherkinStep        String
+  icon               TemplateStepIcon
+  label              String
+  templateTestCaseId String
+  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
+  parameters         TemplateTestCaseStepParameter[]
+  templateStepId     String
+  TemplateStep       TemplateStep                    @relation(fields: [templateStepId], references: [id])
+}
+
+model TemplateTestCaseStepParameter {
+  id                   String               @id @default(uuid())
+  name                 String
+  defaultValue         String
+  order                Int
+  testCaseStepId       String
+  locatorId            String?
+  type                 StepParameterType
+  defaultLocatorId     String?
+  defaultLocator       Locator?             @relation(fields: [defaultLocatorId], references: [id])
+  templateTestCaseStep TemplateTestCaseStep @relation(fields: [testCaseStepId], references: [id])
+}
+
 model TestCaseStepParameter {
   id             String            @id @default(uuid())
   name           String
@@ -163,12 +203,13 @@ model TestCaseStepParameter {
 }
 
 model Locator {
-  id             String                  @id @default(uuid())
-  name           String
-  value          String
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  stepParameters TestCaseStepParameter[]
+  id                            String                          @id @default(uuid())
+  name                          String
+  value                         String
+  createdAt                     DateTime                        @default(now())
+  updatedAt                     DateTime                        @updatedAt
+  stepParameters                TestCaseStepParameter[]
+  TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
 }
 
 enum Role {

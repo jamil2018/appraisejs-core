@@ -49,6 +49,9 @@ export default function BaseLayout({
             <NavigationMenuItem>
               <NavLink href="/locators">Locators</NavLink>
             </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavLink href="/template-test-cases">Template Test Cases</NavLink>
+            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
       </nav>
