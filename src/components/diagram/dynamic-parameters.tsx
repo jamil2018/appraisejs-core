@@ -33,6 +33,7 @@ import ErrorMessage from "@/components/form/error-message";
 interface DynamicFormFieldsProps {
   templateStepParams: TemplateStepParameter[];
   locators: string[];
+  defaultValueInput?: boolean;
   onChange?: (
     values: {
       name: string;
@@ -57,8 +58,13 @@ const DynamicFormFields = forwardRef<
   DynamicFormFieldsRef,
   DynamicFormFieldsProps
 >((props, ref) => {
-  const { templateStepParams, locators, onChange, initialParameterValues } =
-    props;
+  const {
+    templateStepParams,
+    locators,
+    defaultValueInput = false,
+    onChange,
+    initialParameterValues,
+  } = props;
 
   const resetKey = useMemo(() => {
     return JSON.stringify({
@@ -137,9 +143,16 @@ const DynamicFormFields = forwardRef<
 
   useImperativeHandle(ref, () => ({
     validate: () => {
+      // Skip all validation if defaultValueInput is true (all fields are optional)
+      if (defaultValueInput) {
+        setErrors({});
+        return true;
+      }
+
       const newErrors: Record<string, string> = {};
       templateStepParams.forEach((param) => {
         const value = values[param.name];
+
         if (param.type === "LOCATOR" && !value) {
           newErrors[param.name] = "Locator is required";
         }
@@ -244,7 +257,8 @@ const DynamicFormFields = forwardRef<
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`input-${name}`}>
-              {name} <span className="text-red-500">*</span>
+              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Input
               id={`input-${name}`}
@@ -264,7 +278,8 @@ const DynamicFormFields = forwardRef<
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`input-${name}`}>
-              {name} <span className="text-red-500">*</span>
+              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Input
               id={`input-${name}`}
@@ -284,7 +299,8 @@ const DynamicFormFields = forwardRef<
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label>
-              {name} <span className="text-red-500">*</span>
+              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -294,13 +310,23 @@ const DynamicFormFields = forwardRef<
                     "w-full justify-start text-left font-normal",
                     !values[name] && "text-muted-foreground"
                   )}
-                  aria-required="true"
+                  aria-required={!defaultValueInput}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {values[name] instanceof Date ? (
                     format(values[name] as Date, "PPP")
                   ) : (
-                    <span className="text-red-500">Pick a date *</span>
+                    <span
+                      className={
+                        defaultValueInput
+                          ? "text-muted-foreground"
+                          : "text-red-500"
+                      }
+                    >
+                      {defaultValueInput
+                        ? "Pick a date (optional)"
+                        : "Pick a date *"}
+                    </span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -312,9 +338,11 @@ const DynamicFormFields = forwardRef<
                       ? (values[name] as Date)
                       : undefined
                   }
-                  onSelect={(date) => handleInputChange(name, date as Date)}
+                  onSelect={(date: Date | undefined) =>
+                    handleInputChange(name, date as Date)
+                  }
                   initialFocus
-                  required
+                  required={!defaultValueInput}
                 />
               </PopoverContent>
             </Popover>
@@ -325,7 +353,8 @@ const DynamicFormFields = forwardRef<
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`select-${name}`}>
-              {name} <span className="text-red-500">*</span>
+              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Select
               value={
@@ -336,10 +365,16 @@ const DynamicFormFields = forwardRef<
               onValueChange={(value) =>
                 handleInputChange(name, value === "true")
               }
-              required
+              required={!defaultValueInput}
             >
               <SelectTrigger id={`select-${name}`} className="w-full">
-                <SelectValue placeholder="Select a value *" />
+                <SelectValue
+                  placeholder={
+                    defaultValueInput
+                      ? "Select a value (optional)"
+                      : "Select a value *"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="true">True</SelectItem>
@@ -353,15 +388,22 @@ const DynamicFormFields = forwardRef<
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`select-${name}`}>
-              {name} <span className="text-red-500">*</span>
+              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Select
               value={typeof values[name] === "string" ? values[name] : ""}
               onValueChange={(value) => handleInputChange(name, value)}
-              required
+              required={!defaultValueInput}
             >
               <SelectTrigger id={`select-${name}`} className="w-full">
-                <SelectValue placeholder="Select a locator *" />
+                <SelectValue
+                  placeholder={
+                    defaultValueInput
+                      ? "Select a locator (optional)"
+                      : "Select a locator *"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {uniqueLocators.map((locator) => (

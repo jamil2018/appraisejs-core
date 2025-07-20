@@ -27,6 +27,7 @@ export default async function ModifyTemplateStepPage({
         name: templateStep.name,
         type: templateStep.type,
         signature: templateStep.signature,
+        icon: templateStep.icon,
         description: templateStep.description || "",
         functionDefinition: templateStep.functionDefinition || "",
         params: templateStep.parameters.map((param) => ({

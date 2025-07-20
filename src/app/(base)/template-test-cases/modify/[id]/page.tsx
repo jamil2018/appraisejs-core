@@ -2,8 +2,12 @@ import PageHeader from "@/components/typography/page-header";
 import { Blocks } from "lucide-react";
 import React from "react";
 
-const ModifyTemplateTestCase = ({ params }: { params: { id: string } }) => {
-  const { id } = params;
+const ModifyTemplateTestCase = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
 
   return (
     <>

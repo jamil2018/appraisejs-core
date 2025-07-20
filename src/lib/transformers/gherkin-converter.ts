@@ -5,27 +5,33 @@ export const generateGherkinStep = (
   signature: string,
   parameters: { value: string; order: number }[]
 ) => {
-  // console.log(signature, parameters);
   const signatureParts = signature.split(" ");
   const sortedParameters = parameters.sort((a, b) => a.order - b.order);
 
   const gherkinStep = signatureParts
     .map((part) => {
-      if (part === "{string}" || part === "{int}" || part === "{boolean}") {
+      // Check if this part is a parameter placeholder
+      if (part.startsWith("{") && part.endsWith("}")) {
         const parameter = sortedParameters.shift();
-        if (!parameter) {
+
+        // If no parameter or missing value, return the placeholder to indicate incompleteness
+        if (!parameter || !parameter.value || parameter.value.trim() === "") {
           return part;
         }
-        if (part === "{string}") {
-          return `"${parameter?.value}"`;
-        }
-        if (part === "{int}") {
-          return `${parameter?.value}`;
-        }
-        if (part === "{boolean}") {
-          return `${parameter?.value}`;
+
+        // Format the parameter value based on its type
+        switch (part) {
+          case "{string}":
+            return `"${parameter.value}"`;
+          case "{int}":
+            return parameter.value;
+          case "{boolean}":
+            return parameter.value;
+          default:
+            return parameter.value;
         }
       }
+
       return part;
     })
     .join(" ");

@@ -7,22 +7,22 @@ import {
   Controls,
   Edge,
   Node,
+  NodeProps,
   OnConnect,
   ReactFlow,
   useEdgesState,
   useNodesState,
   Connection,
-  NodeProps,
 } from "@xyflow/react";
-import { useCallback, useState, useEffect, useMemo, memo } from "react";
 import "@xyflow/react/dist/style.css";
+import { useCallback, useState, useEffect, useMemo, memo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import ButtonEdge from "./button-edge";
 import { Plus } from "lucide-react";
 import OptionsHeaderNode from "./options-header-node";
+import NodeForm from "./node-form";
 import { NodeData } from "@/constants/form-opts/diagram/node-form";
 import { NodeOrderMap } from "@/types/diagram/diagram";
-import NodeForm from "./node-form";
 import {
   Locator,
   TemplateStep,
@@ -40,13 +40,17 @@ const FlowDiagram = ({
   templateSteps,
   locators,
   onNodeOrderChange,
+  defaultValueInput = false,
 }: {
   nodeOrder: NodeOrderMap;
   templateStepParams: TemplateStepParameter[];
   templateSteps: TemplateStep[];
   locators: Locator[];
+  defaultValueInput?: boolean;
   onNodeOrderChange: (nodeOrder: NodeOrderMap) => void;
 }) => {
+  const handleEditNodeRef = useRef<(nodeId: string) => void>(() => {});
+
   const generateInitialNodesAndEdges = useCallback(
     (nodeOrder: NodeOrderMap) => {
       const nodes: Node[] = [];
@@ -146,6 +150,11 @@ const FlowDiagram = ({
     },
     [nodes]
   );
+
+  // Update the ref whenever handleEditNode changes
+  useEffect(() => {
+    handleEditNodeRef.current = handleEditNode;
+  }, [handleEditNode]);
 
   const addNode = useCallback(
     (formData: NodeData) => {
@@ -315,6 +324,22 @@ const FlowDiagram = ({
     onNodeOrderChange(orders);
   }, [nodes, edges, determineNodeOrders, onNodeOrderChange]);
 
+  // Clean up orphaned edges when nodes are deleted
+  useEffect(() => {
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    const orphanedEdges = edges.filter(
+      (edge) => !nodeIds.has(edge.source) || !nodeIds.has(edge.target)
+    );
+
+    if (orphanedEdges.length > 0) {
+      setEdges((prevEdges) =>
+        prevEdges.filter(
+          (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target)
+        )
+      );
+    }
+  }, [nodes, edges, setEdges]);
+
   const isValidConnection = useCallback(
     (connection: Connection | Edge) => {
       // Check if source node already has an outgoing connection
@@ -354,14 +379,17 @@ const FlowDiagram = ({
   );
   const memoizedLocators = useMemo(() => locators, [locators]);
 
-  // Properly type nodeTypes to avoid 'any'
+  // Memoize nodeTypes to prevent recreation
   const nodeTypes = useMemo(
     () => ({
       optionsHeaderNode: (props: NodeProps) => (
-        <OptionsHeaderNode {...props} onEdit={handleEditNode} />
+        <OptionsHeaderNode
+          {...props}
+          onEdit={(nodeId) => handleEditNodeRef.current(nodeId)}
+        />
       ),
     }),
-    [handleEditNode]
+    [] // Empty dependency array - now stable since we use ref
   );
 
   return (
@@ -412,6 +440,7 @@ const FlowDiagram = ({
           showAddNodeDialog={showAddNodeDialog}
           setShowAddNodeDialog={setShowAddNodeDialog}
           locators={memoizedLocators}
+          defaultValueInput={defaultValueInput}
         />
       )}
 
@@ -429,6 +458,7 @@ const FlowDiagram = ({
           showAddNodeDialog={showEditNodeDialog}
           setShowAddNodeDialog={setShowEditNodeDialog}
           locators={memoizedLocators}
+          defaultValueInput={defaultValueInput}
         />
       )}
     </>

@@ -23,7 +23,6 @@ export interface TestRunsWithRelations extends TestRun {
 export interface TestRunTestCases extends TestRunTestCase {
   testCase: {
     title: string;
-    expectedOutcome: string;
   };
 }
 
@@ -54,7 +53,6 @@ type TestRunTestCaseWithTestCaseDetails = {
   testCase: {
     title: string;
     description: string;
-    expectedOutcome: string;
     steps: string[];
     creator: {
       username: string;
@@ -147,7 +145,6 @@ export async function getTestRunAction(id: string): Promise<ActionResponse> {
           select: {
             title: true,
             description: true,
-            expectedOutcome: true,
             steps: true,
             creator: {
               select: {
@@ -185,7 +182,6 @@ export async function getTestRunTestCasesAction(
       testCase: {
         select: {
           title: true,
-          expectedOutcome: true,
         },
       },
     },

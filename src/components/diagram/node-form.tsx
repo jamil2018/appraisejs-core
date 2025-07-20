@@ -46,6 +46,7 @@ const NodeForm = ({
   showAddNodeDialog,
   locators,
   setShowAddNodeDialog,
+  defaultValueInput = false,
 }: {
   onSubmitAction: (values: NodeData) => void;
   initialValues: NodeData;
@@ -54,6 +55,7 @@ const NodeForm = ({
   showAddNodeDialog: boolean;
   locators: Locator[];
   setShowAddNodeDialog: (show: boolean) => void;
+  defaultValueInput?: boolean;
 }) => {
   const dynamicFormRef = useRef<DynamicFormFieldsRef>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState(
@@ -222,6 +224,16 @@ const NodeForm = ({
                       };
                     });
                     setParameters(initialParamsForStep);
+
+                    // Generate gherkin step immediately when template step is selected
+                    if (step.signature) {
+                      const gherkin = generateGherkinStep(
+                        step.type,
+                        step.signature,
+                        initialParamsForStep
+                      );
+                      setGherkinStep(gherkin);
+                    }
                   }
                 }}
               >
@@ -259,6 +271,7 @@ const NodeForm = ({
                     setGherkinStep(gherkin);
                   }
                 }}
+                defaultValueInput={defaultValueInput}
               />
             </div>
             {selectedTemplateStep && (

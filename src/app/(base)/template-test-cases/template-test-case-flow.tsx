@@ -17,18 +17,20 @@ function useDebouncedCallback<T extends unknown[]>(
   };
 }
 
-const TestCaseFlow = ({
+const TemplateTestCaseFlow = ({
   initialNodesOrder,
   templateStepParams,
   templateSteps,
   locators,
   onNodeOrderChange,
+  defaultValueInput = false,
 }: {
   initialNodesOrder: NodeOrderMap;
   templateStepParams: TemplateStepParameter[];
   templateSteps: TemplateStep[];
   locators: Locator[];
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void;
+  defaultValueInput?: boolean;
 }) => {
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(initialNodesOrder);
 
@@ -54,9 +56,10 @@ const TestCaseFlow = ({
         onNodeOrderChange={handleNodeOrderChange}
         templateSteps={templateSteps}
         locators={locators}
+        defaultValueInput={defaultValueInput}
       />
     </>
   );
 };
 
-export default TestCaseFlow;
+export default TemplateTestCaseFlow;
