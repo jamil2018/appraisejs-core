@@ -22,7 +22,11 @@ import { Plus } from "lucide-react";
 import OptionsHeaderNode from "./options-header-node";
 import NodeForm from "./node-form";
 import { NodeData } from "@/constants/form-opts/diagram/node-form";
-import { NodeOrderMap } from "@/types/diagram/diagram";
+import {
+  NodeOrderMap,
+  TemplateTestCaseNodeData,
+  TemplateTestCaseNodeOrderMap,
+} from "@/types/diagram/diagram";
 import {
   Locator,
   TemplateStep,
@@ -42,17 +46,19 @@ const FlowDiagram = ({
   onNodeOrderChange,
   defaultValueInput = false,
 }: {
-  nodeOrder: NodeOrderMap;
+  nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap;
   templateStepParams: TemplateStepParameter[];
   templateSteps: TemplateStep[];
   locators: Locator[];
   defaultValueInput?: boolean;
-  onNodeOrderChange: (nodeOrder: NodeOrderMap) => void;
+  onNodeOrderChange: (
+    nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap
+  ) => void;
 }) => {
   const handleEditNodeRef = useRef<(nodeId: string) => void>(() => {});
 
   const generateInitialNodesAndEdges = useCallback(
-    (nodeOrder: NodeOrderMap) => {
+    (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => {
       const nodes: Node[] = [];
       const edges: Edge[] = [];
 
@@ -68,12 +74,18 @@ const FlowDiagram = ({
           gherkinStep: nodeData.gherkinStep ?? "",
           isFirstNode: nodeData.isFirstNode ?? false,
           icon: nodeData.icon ?? "",
-          parameters: (nodeData.parameters ?? []).map((p) => ({
-            name: p.name,
-            value: p.value,
-            type: p.type ?? StepParameterType.STRING,
-            order: p.order,
-          })),
+          parameters: (nodeData.parameters ?? []).map(
+            (
+              p:
+                | NodeData["parameters"][number]
+                | TemplateTestCaseNodeData["parameters"][number]
+            ) => ({
+              name: p.name,
+              value: "value" in p ? p.value : p.defaultValue,
+              type: p.type ?? StepParameterType.STRING,
+              order: p.order,
+            })
+          ),
           templateStepId: nodeData.templateStepId ?? "",
         };
 

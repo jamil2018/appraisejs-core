@@ -31,6 +31,7 @@ import { githubDark } from "@uiw/codemirror-theme-github";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ParamChip from "./paramChip";
+import { useRouter } from "next/navigation";
 
 const getInitialFunctionDefinition = () =>
   `When('', async function(this:World){});`;
@@ -52,6 +53,7 @@ export const TemplateStepForm = ({
     id?: string
   ) => Promise<ActionResponse>;
 }) => {
+  const router = useRouter();
   const [signature, setSignature] = useState(defaultValues?.signature ?? "");
   const [functionDefinition, setFunctionDefinition] = useState(
     defaultValues?.functionDefinition ?? getInitialFunctionDefinition()
@@ -78,7 +80,7 @@ export const TemplateStepForm = ({
         setFunctionDefinition(getInitialFunctionDefinition());
         setType(TemplateStepType.ACTION);
         setParams([]);
-        if (form.reset) form.reset();
+        router.push(`/template-steps`);
       }
       if (res.status === 400) {
         toast({

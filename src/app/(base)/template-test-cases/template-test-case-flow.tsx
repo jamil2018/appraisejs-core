@@ -1,7 +1,15 @@
 import FlowDiagram from "@/components/diagram/flow-diagram";
-import { NodeOrderMap } from "@/types/diagram/diagram";
-import { Locator, TemplateStep, TemplateStepParameter } from "@prisma/client";
-import React, { useCallback, useEffect, useState, useRef } from "react";
+import {
+  TemplateTestCaseNodeOrderMap,
+  NodeOrderMap,
+} from "@/types/diagram/diagram";
+import {
+  Locator,
+  TemplateStep,
+  TemplateStepParameter,
+  StepParameterType,
+} from "@prisma/client";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 function useDebouncedCallback<T extends unknown[]>(
   callback: (...args: T) => void,
@@ -25,18 +33,38 @@ const TemplateTestCaseFlow = ({
   onNodeOrderChange,
   defaultValueInput = false,
 }: {
-  initialNodesOrder: NodeOrderMap;
+  initialNodesOrder: TemplateTestCaseNodeOrderMap;
   templateStepParams: TemplateStepParameter[];
   templateSteps: TemplateStep[];
   locators: Locator[];
-  onNodeOrderChange: (nodesOrder: NodeOrderMap) => void;
+  onNodeOrderChange: (nodesOrder: TemplateTestCaseNodeOrderMap) => void;
   defaultValueInput?: boolean;
 }) => {
-  const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(initialNodesOrder);
+  const [nodesOrder, setNodesOrder] =
+    useState<TemplateTestCaseNodeOrderMap>(initialNodesOrder);
 
   const handleNodeOrderChange = useCallback(
-    (nodeOrder: NodeOrderMap) => {
-      setNodesOrder(nodeOrder);
+    (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => {
+      // Convert NodeOrderMap to TemplateTestCaseNodeOrderMap if needed
+      const convertedNodeOrder: TemplateTestCaseNodeOrderMap = {};
+      Object.entries(nodeOrder).forEach(([key, nodeData]) => {
+        convertedNodeOrder[key] = {
+          ...nodeData,
+          parameters: nodeData.parameters.map(
+            (param: {
+              name: string;
+              value?: string;
+              defaultValue?: string;
+              type: StepParameterType;
+              order: number;
+            }) => ({
+              ...param,
+              defaultValue: "value" in param ? param.value : param.defaultValue,
+            })
+          ),
+        };
+      });
+      setNodesOrder(convertedNodeOrder);
     },
     [setNodesOrder]
   );

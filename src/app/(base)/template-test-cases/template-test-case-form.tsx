@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useState } from "react";
 import TemplateTestCaseFlow from "./template-test-case-flow";
-import { NodeOrderMap } from "@/types/diagram/diagram";
+import { TemplateTestCaseNodeOrderMap } from "@/types/diagram/diagram";
 import {
   Locator,
   StepParameterType,
@@ -28,23 +28,25 @@ import { templateTestCaseSchema } from "@/constants/form-opts/template-test-case
 const errorSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
   description: z.string().optional(),
-  steps: z.array(
-    z.object({
-      gherkinStep: z.string(),
-      label: z.string(),
-      icon: z.nativeEnum(TemplateStepIcon),
-      parameters: z.array(
-        z.object({
-          name: z.string(),
-          value: z.string(),
-          type: z.nativeEnum(StepParameterType),
-          order: z.number(),
-        })
-      ),
-      order: z.number(),
-      templateStepId: z.string(),
-    })
-  ),
+  steps: z
+    .array(
+      z.object({
+        gherkinStep: z.string(),
+        label: z.string(),
+        icon: z.nativeEnum(TemplateStepIcon),
+        parameters: z.array(
+          z.object({
+            name: z.string(),
+            value: z.string(),
+            type: z.nativeEnum(StepParameterType),
+            order: z.number(),
+          })
+        ),
+        order: z.number(),
+        templateStepId: z.string(),
+      })
+    )
+    .min(1, { message: "At least one step is required" }),
 });
 
 const TemplateTestCaseForm = ({
@@ -58,7 +60,7 @@ const TemplateTestCaseForm = ({
   defaultValueInput = false,
   onSubmitAction,
 }: {
-  defaultNodesOrder: NodeOrderMap;
+  defaultNodesOrder: TemplateTestCaseNodeOrderMap;
   templateStepParams: TemplateStepParameter[];
   templateSteps: TemplateStep[];
   locators: Locator[];
@@ -73,7 +75,8 @@ const TemplateTestCaseForm = ({
 }) => {
   const router = useRouter();
   // states
-  const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(defaultNodesOrder);
+  const [nodesOrder, setNodesOrder] =
+    useState<TemplateTestCaseNodeOrderMap>(defaultNodesOrder);
   const [title, setTitle] = useState<string>(defaultTitle || "");
   const [description, setDescription] = useState<string>(
     defaultDescription || ""
@@ -81,6 +84,7 @@ const TemplateTestCaseForm = ({
   const [errors, setErrors] = useState<{
     title?: string[];
     description?: string[];
+    steps?: string[];
   }>({});
 
   const generateGherkinSyntax = useCallback(() => {
@@ -158,9 +162,12 @@ const TemplateTestCaseForm = ({
   }, [title, description, nodesOrder]);
 
   // handlers
-  const onNodeOrderChange = useCallback((nodesOrder: NodeOrderMap) => {
-    setNodesOrder(nodesOrder);
-  }, []);
+  const onNodeOrderChange = useCallback(
+    (nodesOrder: TemplateTestCaseNodeOrderMap) => {
+      setNodesOrder(nodesOrder);
+    },
+    []
+  );
 
   const onTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,7 +209,7 @@ const TemplateTestCaseForm = ({
         description: "Test case saved successfully",
         variant: "default",
       });
-      router.push(`/test-cases`);
+      router.push(`/template-test-cases`);
     }
     if (response.status === 500) {
       toast({
@@ -275,6 +282,10 @@ const TemplateTestCaseForm = ({
           defaultValueInput={defaultValueInput}
         />
       </div>
+      <ErrorMessage
+        message={errors.steps?.[0] || ""}
+        visible={!!errors.steps}
+      />
       <div className="flex flex-col gap-2 mb-4">
         <Button onClick={handleSubmit} className="w-fit px-6">
           Save

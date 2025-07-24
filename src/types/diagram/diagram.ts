@@ -16,3 +16,22 @@ export type NodeData = {
 };
 
 export type NodeOrderMap = Record<string, NodeData>;
+
+export type TemplateTestCaseNodeData = {
+  order: number;
+  label: string;
+  gherkinStep?: string;
+  icon?: string;
+  parameters: {
+    name: string;
+    defaultValue: string;
+    type: StepParameterType;
+    order: number;
+  }[];
+  templateStepId: string;
+};
+
+export type TemplateTestCaseNodeOrderMap = Record<
+  string,
+  TemplateTestCaseNodeData
+>;
