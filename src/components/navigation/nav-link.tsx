@@ -10,9 +10,11 @@ import Link from "next/link";
 const NavLink = ({
   children,
   href,
+  icon,
 }: {
   children: React.ReactNode;
   href: string;
+  icon?: React.ReactNode;
 }) => {
   const pathname = usePathname();
   return (
@@ -21,7 +23,12 @@ const NavLink = ({
       active={pathname === href}
       asChild
     >
-      <Link href={href}>{children}</Link>
+      <Link href={href}>
+        <div className="flex items-center gap-1">
+          {icon}
+          {children}
+        </div>
+      </Link>
     </NavigationMenuLink>
   );
 };

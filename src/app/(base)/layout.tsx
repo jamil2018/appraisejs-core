@@ -5,6 +5,18 @@ import {
   NavigationMenuItem,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
+import {
+  Blocks,
+  BookOpenCheck,
+  Code,
+  LayoutDashboard,
+  LayoutTemplate,
+  ScanEye,
+  Settings,
+  TestTubeDiagonal,
+  TestTubes,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 
 export default function BaseLayout({
@@ -23,34 +35,84 @@ export default function BaseLayout({
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/dashboard">Dashboard</NavLink>
+              <NavLink
+                href="/dashboard"
+                icon={<LayoutDashboard className="w-4 h-4 text-primary" />}
+              >
+                Dashboard
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/test-suites">Test Suites</NavLink>
+              <NavLink
+                href="/test-suites"
+                icon={<TestTubes className="w-4 h-4 text-primary" />}
+              >
+                Test Suites
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/test-cases">Test Cases</NavLink>
+              <NavLink
+                href="/test-cases"
+                icon={<TestTubeDiagonal className="w-4 h-4 text-primary" />}
+              >
+                Test Cases
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/test-runs">Test Runs</NavLink>
+              <NavLink
+                href="/test-runs"
+                icon={<BookOpenCheck className="w-4 h-4 text-primary" />}
+              >
+                Test Runs
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/users">Users</NavLink>
+              <NavLink
+                href="/users"
+                icon={<Users className="w-4 h-4 text-primary" />}
+              >
+                Users
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/reviews">Reviews</NavLink>
+              <NavLink
+                href="/reviews"
+                icon={<ScanEye className="w-4 h-4 text-primary" />}
+              >
+                Reviews
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/settings">Settings</NavLink>
+              <NavLink
+                href="/settings"
+                icon={<Settings className="w-4 h-4 text-primary" />}
+              >
+                Settings
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/template-steps">Template Steps</NavLink>
+              <NavLink
+                href="/template-steps"
+                icon={<LayoutTemplate className="w-4 h-4 text-primary" />}
+              >
+                Template Steps
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/locators">Locators</NavLink>
+              <NavLink
+                href="/locators"
+                icon={<Code className="w-4 h-4 text-primary" />}
+              >
+                Locators
+              </NavLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavLink href="/template-test-cases">Template Test Cases</NavLink>
+              <NavLink
+                href="/template-test-cases"
+                icon={<Blocks className="w-4 h-4 text-primary" />}
+              >
+                Template Test Cases
+              </NavLink>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>

@@ -30,6 +30,13 @@ import { toast } from "@/hooks/use-toast";
 import { ActionResponse } from "@/types/form/actionHandler";
 import DeletePrompt from "../user-prompt/delete-prompt";
 import { randomBytes } from "crypto";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -39,6 +46,12 @@ interface DataTableProps<TData, TValue> {
   createLink?: string;
   modifyLink?: string;
   deleteAction?: (id: string[]) => Promise<ActionResponse>;
+  multiOptionCreateButton?: boolean;
+  createButtonOptions?: {
+    label: string;
+    link: string;
+    icon?: React.ReactNode;
+  }[];
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +60,8 @@ export function DataTable<TData, TValue>({
   filterColumn,
   filterPlaceholder,
   createLink,
+  multiOptionCreateButton,
+  createButtonOptions,
   modifyLink,
   deleteAction,
 }: DataTableProps<TData, TValue>) {
@@ -102,6 +117,26 @@ export function DataTable<TData, TValue>({
                 <PlusCircle className="w-4 h-4" />
               </Link>
             </Button>
+          )}
+          {multiOptionCreateButton && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <PlusCircle className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Create Test Case</DropdownMenuLabel>
+                {createButtonOptions?.map((option) => (
+                  <DropdownMenuItem key={option.label} asChild>
+                    <Link href={option.link}>
+                      {option.icon}
+                      {option.label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {modifyLink && (
             <Button
