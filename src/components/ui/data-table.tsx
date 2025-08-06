@@ -112,7 +112,7 @@ export function DataTable<TData, TValue>({
       <div className="flex justify-end">
         <div className="flex gap-2 mb-4">
           {createLink && (
-            <Button variant="outline" size="icon">
+            <Button variant="default" size="icon">
               <Link href={createLink}>
                 <PlusCircle className="w-4 h-4" />
               </Link>
@@ -121,7 +121,7 @@ export function DataTable<TData, TValue>({
           {multiOptionCreateButton && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="default" size="icon">
                   <PlusCircle className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>

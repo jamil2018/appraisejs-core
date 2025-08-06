@@ -48,9 +48,9 @@ const CreateTestCase = async () => {
   return (
     <div>
       <div className="mb-8">
-        <PageHeader>Create Test Case</PageHeader>
+        <PageHeader>Create New Test Case</PageHeader>
         <HeaderSubtitle>
-          Create a new test case to run your tests against
+          Create a new test from scratch to execute against your application
         </HeaderSubtitle>
       </div>
       <TestCaseForm
