@@ -29,10 +29,12 @@ model TestSuite {
   name        String
   description String?
   createdBy   String
+  moduleId    String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   testRuns    TestRun[]
   creator     User       @relation(fields: [createdBy], references: [id])
+  module      Module     @relation(fields: [moduleId], references: [id])
   testCases   TestCase[] @relation("TestSuiteTestCases")
 }
 
@@ -206,10 +208,24 @@ model Locator {
   id                            String                          @id @default(uuid())
   name                          String
   value                         String
+  moduleId                      String
   createdAt                     DateTime                        @default(now())
   updatedAt                     DateTime                        @updatedAt
+  module                        Module                          @relation(fields: [moduleId], references: [id])
   stepParameters                TestCaseStepParameter[]
   TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
+}
+
+model Module {
+  id         String      @id @default(uuid())
+  name       String
+  parentId   String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  parent     Module?     @relation("ModuleHierarchy", fields: [parentId], references: [id])
+  children   Module[]    @relation("ModuleHierarchy")
+  testSuites TestSuite[]
+  locators   Locator[]
 }
 
 enum Role {
