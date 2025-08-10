@@ -1,11 +1,51 @@
-const ModifyModule = ({ params }: { params: { id: string } }) => {
-  const { id } = params;
+import {
+  getAllModulesAction,
+  getModuleByIdAction,
+  updateModuleAction,
+} from "@/actions/modules/module-actions";
+import { Module } from "@prisma/client";
+import ModuleForm from "../../module-form";
+import { ROOT_MODULE_UUID } from "@/constants/form-opts/module-form-opts";
+
+const ModifyModule = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
+  const { data: moduleToBeEditedData, error: moduleToBeEditedError } =
+    await getModuleByIdAction(id);
+
+  const { data: modulesData, error: modulesError } =
+    await getAllModulesAction();
+
+  if (moduleToBeEditedError || modulesError) {
+    return <div>Error: {moduleToBeEditedError || modulesError}</div>;
+  }
+
+  const moduleData = moduleToBeEditedData as Module & {
+    parent: { name: string };
+  };
+
+  const parentOptions = (
+    modulesData as (Module & { parent: { name: string } })[]
+  ).filter(
+    (module: Module & { parent: { name: string } }) =>
+      module.id !== moduleData.id
+  ) as (Module & { parent: { name: string } })[];
 
   return (
-    <div>
-      <h1>Modify Module</h1>
-      <p>Module ID: {id}</p>
-    </div>
+    <ModuleForm
+      id={id}
+      defaultValues={{
+        name: moduleData.name,
+        parentId: moduleData.parentId ?? ROOT_MODULE_UUID,
+      }}
+      successTitle="Module updated"
+      successMessage="Module updated successfully"
+      parentOptions={parentOptions}
+      onSubmitAction={updateModuleAction}
+    />
   );
 };
 

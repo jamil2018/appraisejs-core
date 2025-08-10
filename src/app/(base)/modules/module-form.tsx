@@ -10,7 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formOpts, type Module } from "@/constants/form-opts/module-form-opts";
+import {
+  formOpts,
+  type Module,
+  ROOT_MODULE_UUID,
+} from "@/constants/form-opts/module-form-opts";
 import { toast } from "@/hooks/use-toast";
 import { ActionResponse } from "@/types/form/actionHandler";
 import { useForm } from "@tanstack/react-form";
@@ -100,42 +104,35 @@ const ModuleForm = ({
           );
         }}
       </form.Field>
-      <form.Field
-        name="parentId"
-        validators={{
-          onChange: z.string().optional(),
-        }}
-      >
+      <form.Field name="parentId">
         {(field) => {
           return (
             <div className="flex flex-col gap-2 mb-4 lg:w-1/3">
               <Label htmlFor={field.name}>Parent</Label>
               <Select
-                value={field.state.value}
+                value={field.state.value || ROOT_MODULE_UUID}
                 onValueChange={(value) => field.handleChange(value)}
-                disabled={parentOptions.length === 0}
               >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
                       parentOptions.length === 0
                         ? "No parent modules available"
-                        : "Select a parent"
+                        : "Select a parent or Root"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {parentOptions.length > 0 ? (
-                    parentOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      No parent modules available
-                    </div>
-                  )}
+                  <SelectItem value={ROOT_MODULE_UUID}>
+                    Root (No Parent)
+                  </SelectItem>
+                  {parentOptions.length > 0
+                    ? parentOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.name}
+                        </SelectItem>
+                      ))
+                    : null}
                 </SelectContent>
               </Select>
             </div>
