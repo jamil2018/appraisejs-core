@@ -34,7 +34,7 @@ model TestSuite {
   updatedAt   DateTime   @updatedAt
   testRuns    TestRun[]
   creator     User       @relation(fields: [createdBy], references: [id])
-  module      Module     @relation(fields: [moduleId], references: [id])
+  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   testCases   TestCase[] @relation("TestSuiteTestCases")
 }
 
@@ -211,7 +211,7 @@ model Locator {
   moduleId                      String
   createdAt                     DateTime                        @default(now())
   updatedAt                     DateTime                        @updatedAt
-  module                        Module                          @relation(fields: [moduleId], references: [id])
+  module                        Module                          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   stepParameters                TestCaseStepParameter[]
   TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
 }
@@ -222,7 +222,7 @@ model Module {
   parentId   String?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
-  parent     Module?     @relation("ModuleHierarchy", fields: [parentId], references: [id])
+  parent     Module?     @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children   Module[]    @relation("ModuleHierarchy")
   testSuites TestSuite[]
   locators   Locator[]
