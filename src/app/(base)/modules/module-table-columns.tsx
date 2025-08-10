@@ -54,7 +54,7 @@ export const moduleTableCols: ColumnDef<
     ),
     cell: ({ row }) => {
       const parent = row.original.parent;
-      return <div>{parent?.name ?? "Root"}</div>;
+      return <div>{parent?.name ?? "< root >"}</div>;
     },
   },
   {
