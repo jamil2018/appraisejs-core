@@ -4,16 +4,20 @@ import {
 } from "@/actions/locator/locator-actions";
 import { DataTable } from "@/components/ui/data-table";
 import { locatorTableCols } from "./locator-table-columns";
-import { Locator } from "@prisma/client";
+import { Locator, Module } from "@prisma/client";
 
 const LocatorTable = async () => {
-  const { data: locators } = await getAllLocatorsAction();
+  const { data: locators, error: locatorsError } = await getAllLocatorsAction();
+
+  if (locatorsError) {
+    return <div>Error: {locatorsError}</div>;
+  }
 
   return (
     <>
       <DataTable
         columns={locatorTableCols}
-        data={locators as Locator[]}
+        data={locators as (Locator & { module: Module })[]}
         filterColumn="name"
         filterPlaceholder="Filter by name..."
         createLink="/locators/create"

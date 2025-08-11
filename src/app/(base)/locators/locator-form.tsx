@@ -10,17 +10,28 @@ import { useForm } from "@tanstack/react-form";
 import { initialFormState, ServerFormState } from "@tanstack/react-form/nextjs";
 import React from "react";
 import { z } from "zod";
+import { Module } from "@prisma/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 const LocatorForm = ({
   defaultValues,
   successTitle,
   successMessage,
   id,
+  moduleList,
   onSubmitAction,
 }: {
   defaultValues?: Locator;
   successTitle: string;
   successMessage: string;
+  moduleList: Module[];
   id?: string;
   onSubmitAction: (
     initialFormState: ServerFormState<Locator>,
@@ -28,6 +39,7 @@ const LocatorForm = ({
     id?: string
   ) => Promise<ActionResponse>;
 }) => {
+  const router = useRouter();
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
@@ -38,6 +50,7 @@ const LocatorForm = ({
           title: successTitle,
           description: successMessage,
         });
+        router.push("/locators");
       }
       if (res.status === 400) {
         toast({
@@ -77,6 +90,7 @@ const LocatorForm = ({
                 id={field.name}
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="Enter locator name"
               />
               {field.state.meta.isTouched &&
                 field.state.meta.errors.map((error) => (
@@ -102,7 +116,43 @@ const LocatorForm = ({
                 id={field.name}
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="CSS or XPath Selector"
               />
+              {field.state.meta.isTouched &&
+                field.state.meta.errors.map((error) => (
+                  <p key={error as string} className="text-pink-500 text-xs">
+                    {error}
+                  </p>
+                ))}
+            </div>
+          );
+        }}
+      </form.Field>
+      <form.Field
+        name="moduleId"
+        validators={{
+          onChange: z.string().min(1, { message: "Module is required" }),
+        }}
+      >
+        {(field) => {
+          return (
+            <div className="flex flex-col gap-2 mb-4 lg:w-1/3">
+              <Label htmlFor={field.name}>Module</Label>
+              <Select
+                value={field.state.value}
+                onValueChange={(value) => field.handleChange(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a module" />
+                </SelectTrigger>
+                <SelectContent>
+                  {moduleList.map((module) => (
+                    <SelectItem key={module.id} value={module.id}>
+                      {module.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {field.state.meta.isTouched &&
                 field.state.meta.errors.map((error) => (
                   <p key={error as string} className="text-pink-500 text-xs">

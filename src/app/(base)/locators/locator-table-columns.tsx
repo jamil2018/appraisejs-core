@@ -5,10 +5,10 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import TableActions from "@/components/table/table-actions";
-import { Locator } from "@prisma/client";
+import { Locator, Module } from "@prisma/client";
 import { deleteLocatorAction } from "@/actions/locator/locator-actions";
 
-export const locatorTableCols: ColumnDef<Locator>[] = [
+export const locatorTableCols: ColumnDef<Locator & { module: Module }>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -49,6 +49,12 @@ export const locatorTableCols: ColumnDef<Locator>[] = [
     accessorKey: "value",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Value" />
+    ),
+  },
+  {
+    accessorKey: "module.name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Module" />
     ),
   },
   {

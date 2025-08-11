@@ -8,7 +8,11 @@ import { z } from "zod";
 
 export async function getAllLocatorsAction(): Promise<ActionResponse> {
   try {
-    const locators = await prisma.locator.findMany();
+    const locators = await prisma.locator.findMany({
+      include: {
+        module: true,
+      },
+    });
     return {
       status: 200,
       data: locators,
