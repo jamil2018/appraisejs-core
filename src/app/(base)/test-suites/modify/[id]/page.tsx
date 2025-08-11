@@ -6,7 +6,8 @@ import { TestSuiteForm } from "../../test-suite-form";
 import React from "react";
 import { TestSuite } from "@prisma/client";
 import { getAllTestCasesAction } from "@/actions/test-case/test-case-actions";
-import { TestCase } from "@prisma/client";
+import { Module, TestCase } from "@prisma/client";
+import { getAllModulesAction } from "@/actions/modules/module-actions";
 
 const ModifyTestSuite = async ({
   params,
@@ -17,11 +18,17 @@ const ModifyTestSuite = async ({
   const { data: testSuite, error } = await getTestSuiteByIdAction(id);
   const { data: testCases } = await getAllTestCasesAction();
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  const { data: moduleList, error: moduleListError } =
+    await getAllModulesAction();
+
+  if (error || moduleListError) {
+    return <div>Error: {error || moduleListError}</div>;
   }
 
-  const testSuiteData = testSuite as TestSuite & { testCases: TestCase[] };
+  const testSuiteData = testSuite as TestSuite & {
+    testCases: TestCase[];
+    module: Module;
+  };
 
   return (
     <TestSuiteForm
@@ -29,12 +36,14 @@ const ModifyTestSuite = async ({
         name: testSuiteData.name ?? "",
         description: testSuiteData.description ?? "",
         testCases: testSuiteData.testCases.map((testCase) => testCase.id),
+        moduleId: testSuiteData.moduleId ?? "",
       }}
       successTitle="Suite updated"
       successMessage="Test suite updated successfully"
       onSubmitAction={updateTestSuiteAction}
       id={id}
       testCases={testCases as TestCase[]}
+      moduleList={moduleList as Module[]}
     />
   );
 };

@@ -51,6 +51,12 @@ export const testSuiteTableCols: ColumnDef<TestSuite>[] = [
     ),
   },
   {
+    accessorKey: "module.name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Module" />
+    ),
+  },
+  {
     accessorKey: "createdAt",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created At" />

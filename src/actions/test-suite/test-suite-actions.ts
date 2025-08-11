@@ -15,7 +15,11 @@ import { z, ZodError } from "zod";
  */
 export async function getAllTestSuitesAction(): Promise<ActionResponse> {
   try {
-    const testSuites = await prisma.testSuite.findMany();
+    const testSuites = await prisma.testSuite.findMany({
+      include: {
+        module: true,
+      },
+    });
     return {
       status: 200,
       data: testSuites,
@@ -45,6 +49,11 @@ export async function createTestSuiteAction(
       data: {
         name: value.name,
         description: value.description,
+        module: {
+          connect: {
+            id: value.moduleId,
+          },
+        },
         testCases: {
           connect: value.testCases?.map((id) => ({ id })),
         },
@@ -149,6 +158,11 @@ export async function updateTestSuiteAction(
         description: value.description,
         testCases: {
           set: value.testCases?.map((id) => ({ id })),
+        },
+        module: {
+          connect: {
+            id: value.moduleId,
+          },
         },
       },
     });

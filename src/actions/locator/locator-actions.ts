@@ -101,6 +101,9 @@ export async function getLocatorByIdAction(
   try {
     const locator = await prisma.locator.findUnique({
       where: { id },
+      include: {
+        module: true,
+      },
     });
     return {
       status: 200,

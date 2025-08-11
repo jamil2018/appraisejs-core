@@ -5,14 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import MultiSelectWithPreview from "@/components/ui/multi-select-with-preview";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   formOpts,
   TestSuite,
 } from "@/constants/form-opts/test-suite-form-opts";
 import { toast } from "@/hooks/use-toast";
 import { ActionResponse } from "@/types/form/actionHandler";
-import { TestCase } from "@prisma/client";
+import { Module, TestCase } from "@prisma/client";
 import { useForm } from "@tanstack/react-form";
 import { ServerFormState, initialFormState } from "@tanstack/react-form/nextjs";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 
 export const TestSuiteForm = ({
@@ -22,6 +30,7 @@ export const TestSuiteForm = ({
   id,
   onSubmitAction,
   testCases,
+  moduleList,
 }: {
   defaultValues?: TestSuite;
   successTitle: string;
@@ -33,7 +42,9 @@ export const TestSuiteForm = ({
     id?: string
   ) => Promise<ActionResponse>;
   testCases: TestCase[];
+  moduleList: Module[];
 }) => {
+  const router = useRouter();
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
@@ -44,6 +55,7 @@ export const TestSuiteForm = ({
           title: successTitle,
           description: successMessage,
         });
+        router.push("/test-suites");
       }
       if (res.status === 400) {
         toast({
@@ -141,7 +153,30 @@ export const TestSuiteForm = ({
           );
         }}
       </form.Field>
-
+      <form.Field name="moduleId">
+        {(field) => {
+          return (
+            <div className="flex flex-col gap-2 mb-4 lg:w-1/3">
+              <Label htmlFor={field.name}>Module</Label>
+              <Select
+                value={field.state.value}
+                onValueChange={(value) => field.handleChange(value)}
+              >
+                <SelectTrigger id={field.name}>
+                  <SelectValue placeholder="Select a module" />
+                </SelectTrigger>
+                <SelectContent>
+                  {moduleList.map((module) => (
+                    <SelectItem key={module.id} value={module.id}>
+                      {module.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          );
+        }}
+      </form.Field>
       <form.Subscribe
         selector={(formState) => [formState.canSubmit, formState.isSubmitting]}
       >
