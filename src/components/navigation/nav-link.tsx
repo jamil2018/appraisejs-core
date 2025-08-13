@@ -9,22 +9,26 @@ const NavLink = ({
   children,
   href,
   icon,
+  className,
+  isIconOnly,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   href: string;
   icon?: React.ReactNode;
+  className?: React.HTMLAttributes<HTMLAnchorElement>["className"];
+  isIconOnly?: boolean;
 }) => {
   const pathname = usePathname();
 
   // Use useMemo to prevent unnecessary re-renders and ensure stable active state
   const isActive = useMemo(() => {
     // Exact match for root paths
-    if (href === "/dashboard" && pathname === "/dashboard") {
+    if (href === "/" && pathname === "/") {
       return true;
     }
     // For other paths, check if the current path starts with the href
     // This handles nested routes like /test-cases/create, /test-cases/modify, etc.
-    return href !== "/dashboard" && pathname.startsWith(href);
+    return href !== "/" && pathname.startsWith(href);
   }, [pathname, href]);
 
   return (
@@ -37,13 +41,18 @@ const NavLink = ({
         "focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-1",
         "disabled:pointer-events-none disabled:opacity-50",
         "outline-none",
-        isActive && "bg-accent text-accent-foreground"
+        isActive && "bg-accent text-accent-foreground",
+        className
       )}
     >
-      <div className="flex items-center gap-1">
-        {icon}
-        {children}
-      </div>
+      {isIconOnly ? (
+        icon
+      ) : (
+        <div className="flex items-center gap-1">
+          {icon}
+          {children}
+        </div>
+      )}
     </Link>
   );
 };

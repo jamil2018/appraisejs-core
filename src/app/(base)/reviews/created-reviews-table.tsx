@@ -1,28 +1,17 @@
+// Created reviews table temporarily commented out - will be reworked later
 import React from "react";
-import { DataTable } from "@/components/ui/data-table";
-import { reviewTableByCreatorCols } from "./review-table-by-creator-columns";
-import {
-  getAllReviewsByCreatorAction,
-  deleteReviewAction,
-  ReviewWithRelations,
-} from "@/actions/review/review-actions";
 
-const ReviewTableByCreator = async () => {
-  const { data: reviews } = await getAllReviewsByCreatorAction();
+/*
+Created reviews table functionality temporarily disabled
+Will be re-implemented without user dependencies
+*/
 
+export default function CreatedReviewsTable() {
   return (
-    <>
-      <DataTable
-        columns={reviewTableByCreatorCols}
-        data={reviews as ReviewWithRelations[]}
-        filterColumn="id"
-        filterPlaceholder="Filter by id..."
-        createLink="/reviews/create"
-        modifyLink="/reviews/modify"
-        deleteAction={deleteReviewAction}
-      />
-    </>
+    <div className="p-4">
+      <p className="text-muted-foreground">
+        Created reviews table will be implemented later.
+      </p>
+    </div>
   );
-};
-
-export default ReviewTableByCreator;
+}

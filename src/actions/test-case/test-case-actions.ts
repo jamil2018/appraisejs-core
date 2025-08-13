@@ -5,7 +5,7 @@ import { ActionResponse } from "@/types/form/actionHandler";
 import { revalidatePath } from "next/cache";
 import { testCaseSchema } from "@/constants/form-opts/test-case-form-opts";
 import { z } from "zod";
-import { auth } from "@/auth";
+
 import { StepParameterType } from "@prisma/client";
 
 /**
@@ -95,11 +95,11 @@ export async function createTestCaseAction(
 ): Promise<ActionResponse> {
   try {
     testCaseSchema.parse(value);
-    const session = await auth();
     const newTestCase = await prisma.testCase.create({
       data: {
         title: value.title,
         description: value.description ?? "",
+
         TestSuite: {
           connect: value.testSuiteIds.map((id) => ({ id })),
         },
@@ -119,11 +119,6 @@ export async function createTestCaseAction(
             templateStepId: step.templateStepId,
             order: step.order,
           })),
-        },
-        creator: {
-          connect: {
-            id: session?.user?.id,
-          },
         },
       },
     });

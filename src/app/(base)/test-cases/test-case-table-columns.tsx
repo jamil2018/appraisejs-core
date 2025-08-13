@@ -6,6 +6,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { deleteTestCaseAction } from "@/actions/test-case/test-case-actions";
 import TableActions from "@/components/table/table-actions";
+import { formatDateTime } from "@/lib/utils";
 
 export const testCaseTableCols: ColumnDef<
   TestCase & { steps: TestCaseStep[] }
@@ -67,18 +68,18 @@ export const testCaseTableCols: ColumnDef<
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created At" />
     ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.createdAt);
+    },
   },
   {
     accessorKey: "updatedAt",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Updated At" />
     ),
-  },
-  {
-    accessorKey: "createdBy",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created By" />
-    ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.updatedAt);
+    },
   },
   {
     id: "actions",

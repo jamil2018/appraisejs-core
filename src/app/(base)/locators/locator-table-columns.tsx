@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import TableActions from "@/components/table/table-actions";
 import { Locator, Module } from "@prisma/client";
 import { deleteLocatorAction } from "@/actions/locator/locator-actions";
+import { formatDateTime } from "@/lib/utils";
 
 export const locatorTableCols: ColumnDef<Locator & { module: Module }>[] = [
   {
@@ -62,12 +63,18 @@ export const locatorTableCols: ColumnDef<Locator & { module: Module }>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created At" />
     ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.createdAt);
+    },
   },
   {
     accessorKey: "updatedAt",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Updated At" />
     ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.updatedAt);
+    },
   },
   {
     id: "actions",

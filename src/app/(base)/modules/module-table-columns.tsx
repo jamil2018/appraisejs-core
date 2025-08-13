@@ -8,6 +8,7 @@ import TableActions from "@/components/table/table-actions";
 import { Module } from "@prisma/client";
 import { deleteModuleAction } from "@/actions/modules/module-actions";
 import { buildModulePathFromParent } from "@/lib/path-helpers/module-path";
+import { formatDateTime } from "@/lib/utils";
 
 export const moduleTableCols: ColumnDef<
   Module & { parent: { name: string } }
@@ -77,12 +78,18 @@ export const moduleTableCols: ColumnDef<
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created At" />
     ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.createdAt);
+    },
   },
   {
     accessorKey: "updatedAt",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Updated At" />
     ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.updatedAt);
+    },
   },
   {
     id: "actions",

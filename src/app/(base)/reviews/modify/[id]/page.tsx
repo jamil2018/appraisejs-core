@@ -1,53 +1,20 @@
-import {
-  getReviewByIdAction,
-  updateReviewAction,
-} from "@/actions/review/review-actions";
-import { Review, TestCase, User } from "@prisma/client";
+// Modify review page temporarily commented out - will be reworked later
 import React from "react";
-import ReviewForm from "../../review-form";
-import HeaderSubtitle from "@/components/typography/page-header-subtitle";
-import PageHeader from "@/components/typography/page-header";
-import { getAllTestCasesAction } from "@/actions/test-case/test-case-actions";
-import { getAllUsersAction } from "@/actions/user/user-actions";
 
-const ModifyReview = async ({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) => {
-  const { id } = await params;
-  const { data, error } = await getReviewByIdAction(id);
-  const { data: users, error: usersError } = await getAllUsersAction();
-  const { data: testCases, error: testCasesError } =
-    await getAllTestCasesAction();
+/*
+Modify review functionality temporarily disabled
+Will be re-implemented without user dependencies
+*/
 
-  if (error || usersError || testCasesError) {
-    return <div>Error: {error || usersError || testCasesError}</div>;
-  }
-
-  const review = data as Review;
+const ModifyReview = () => {
   return (
-    <>
-      <div className="mb-8">
-        <PageHeader>Modify Review</PageHeader>
-        <HeaderSubtitle>Modify a review</HeaderSubtitle>
-      </div>
-      <ReviewForm
-        successTitle="Review updated"
-        successMessage="Review updated successfully"
-        onSubmitAction={updateReviewAction}
-        id={id}
-        defaultValues={{
-          testCaseId: review.testCaseId,
-          reviewerId: review.reviewerId,
-          status: review.status,
-          comments: review.comments ?? "",
-        }}
-        hideComments={true}
-        users={users as User[]}
-        testCases={testCases as TestCase[]}
-      />
-    </>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Modify Review</h1>
+      <p className="text-muted-foreground mt-4">
+        Review modification will be implemented later without user
+        authentication dependencies.
+      </p>
+    </div>
   );
 };
 

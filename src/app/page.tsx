@@ -1,24 +1,20 @@
-import Logo from "@/components/logo";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+"use client";
 import React from "react";
+import PageHeader from "@/components/typography/page-header";
+import HeaderSubtitle from "@/components/typography/page-header-subtitle";
 
-const Home = () => {
+const Dashboard = () => {
   return (
-    <>
-      <h1>Home</h1>
-      <Logo />
-      <Button className="mr-2">
-        <Link href="/login">Login</Link>
-      </Button>
-      <Button className="mr-2">
-        <Link href="/register">Register</Link>
-      </Button>
-      <Button className="mr-2">
-        <Link href="/dashboard">Dashboard</Link>
-      </Button>
-    </>
+    <div>
+      <div className="mb-8">
+        <PageHeader>Dashboard</PageHeader>
+        <HeaderSubtitle>
+          Welcome to the dashboard. Here you can see your test suites and run
+          them.
+        </HeaderSubtitle>
+      </div>
+    </div>
   );
 };
 
-export default Home;
+export default Dashboard;

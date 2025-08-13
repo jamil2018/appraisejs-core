@@ -1,7 +1,6 @@
 // action.ts
 "use server";
 
-import { auth } from "@/auth";
 import prisma from "@/config/db-config";
 import { testSuiteSchema } from "@/constants/form-opts/test-suite-form-opts";
 import { ActionResponse } from "@/types/form/actionHandler";
@@ -44,7 +43,6 @@ export async function createTestSuiteAction(
 ): Promise<ActionResponse> {
   try {
     testSuiteSchema.parse(value);
-    const session = await auth();
     await prisma.testSuite.create({
       data: {
         name: value.name,
@@ -57,11 +55,7 @@ export async function createTestSuiteAction(
         testCases: {
           connect: value.testCases?.map((id) => ({ id })),
         },
-        creator: {
-          connect: {
-            id: session?.user?.id,
-          },
-        },
+
       },
     });
     revalidatePath("/test-suites");

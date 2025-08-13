@@ -1,27 +1,17 @@
+// Reviewer reviews table temporarily commented out - will be reworked later
 import React from "react";
-import { DataTable } from "@/components/ui/data-table";
-import { reviewTableByReviewerCols } from "./review-table-by-reviewer-columns";
-import {
-  getReviewsByReviewerAction,
-  deleteReviewAction,
-  ReviewWithRelations,
-} from "@/actions/review/review-actions";
 
-const ReviewTableByReviewer = async () => {
-  const { data: reviews } = await getReviewsByReviewerAction();
+/*
+Reviewer reviews table functionality temporarily disabled
+Will be re-implemented without user dependencies
+*/
 
+export default function ReviewerReviewsTable() {
   return (
-    <>
-      <DataTable
-        columns={reviewTableByReviewerCols}
-        data={reviews as ReviewWithRelations[]}
-        filterColumn="id"
-        filterPlaceholder="Filter by id..."
-        modifyLink="/reviews/review"
-        deleteAction={deleteReviewAction}
-      />
-    </>
+    <div className="p-4">
+      <p className="text-muted-foreground">
+        Reviewer reviews table will be implemented later.
+      </p>
+    </div>
   );
-};
-
-export default ReviewTableByReviewer;
+}

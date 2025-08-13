@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import TableActions from "@/components/table/table-actions";
 import { deleteTemplateStepAction } from "@/actions/template-step/template-step-actions";
 import { TemplateStep, TemplateStepParameter } from "@prisma/client";
+import { formatDateTime } from "@/lib/utils";
 
 export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
   {
@@ -88,12 +89,18 @@ export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created At" />
     ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.createdAt);
+    },
   },
   {
     accessorKey: "updatedAt",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Updated At" />
     ),
+    cell: ({ row }) => {
+      return formatDateTime(row.original.updatedAt);
+    },
   },
   {
     id: "actions",

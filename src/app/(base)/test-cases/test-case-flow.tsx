@@ -1,6 +1,14 @@
 import FlowDiagram from "@/components/diagram/flow-diagram";
-import { NodeOrderMap } from "@/types/diagram/diagram";
-import { Locator, TemplateStep, TemplateStepParameter } from "@prisma/client";
+import {
+  NodeOrderMap,
+  TemplateTestCaseNodeOrderMap,
+} from "@/types/diagram/diagram";
+import {
+  Locator,
+  TemplateStep,
+  TemplateStepParameter,
+  StepParameterType,
+} from "@prisma/client";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 
 function useDebouncedCallback<T extends unknown[]>(
@@ -33,8 +41,27 @@ const TestCaseFlow = ({
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(initialNodesOrder);
 
   const handleNodeOrderChange = useCallback(
-    (nodeOrder: NodeOrderMap) => {
-      setNodesOrder(nodeOrder);
+    (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => {
+      // Convert TemplateTestCaseNodeOrderMap to NodeOrderMap if needed
+      const convertedNodeOrder: NodeOrderMap = {};
+      Object.entries(nodeOrder).forEach(([key, nodeData]) => {
+        convertedNodeOrder[key] = {
+          ...nodeData,
+          parameters: nodeData.parameters.map(
+            (param: {
+              name: string;
+              value?: string;
+              defaultValue?: string;
+              type: StepParameterType;
+              order: number;
+            }) => ({
+              ...param,
+              value: "defaultValue" in param ? param.defaultValue : param.value,
+            })
+          ),
+        };
+      });
+      setNodesOrder(convertedNodeOrder);
     },
     [setNodesOrder]
   );
@@ -51,6 +78,7 @@ const TestCaseFlow = ({
       <FlowDiagram
         nodeOrder={nodesOrder}
         templateStepParams={templateStepParams}
+        defaultValueInput={false}
         onNodeOrderChange={handleNodeOrderChange}
         templateSteps={templateSteps}
         locators={locators}

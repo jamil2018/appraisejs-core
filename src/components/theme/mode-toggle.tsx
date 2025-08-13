@@ -11,9 +11,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export function ModeToggle() {
-  const { setTheme } = useTheme();
+  const { setTheme, theme } = useTheme();
 
   return (
     <DropdownMenu>
@@ -25,13 +26,31 @@ export function ModeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem
+          onClick={() => setTheme("light")}
+          className={cn(
+            "active:bg-accent active:text-accent-foreground",
+            theme === "light" && "bg-accent text-accent-foreground"
+          )}
+        >
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem
+          onClick={() => setTheme("dark")}
+          className={cn(
+            "active:bg-accent active:text-accent-foreground",
+            theme === "dark" && "bg-accent text-accent-foreground"
+          )}
+        >
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem
+          onClick={() => setTheme("system")}
+          className={cn(
+            "active:bg-accent active:text-accent-foreground",
+            theme === "system" && "bg-accent text-accent-foreground"
+          )}
+        >
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

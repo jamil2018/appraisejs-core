@@ -1,54 +1,21 @@
-import {
-  getReviewByIdAction,
-  updateReviewAction,
-} from "@/actions/review/review-actions";
-import { Review, TestCase, User } from "@prisma/client";
+// Review view page temporarily commented out - will be reworked later
 import React from "react";
-import ReviewForm from "../../review-form";
-import HeaderSubtitle from "@/components/typography/page-header-subtitle";
-import PageHeader from "@/components/typography/page-header";
-import { getAllTestCasesAction } from "@/actions/test-case/test-case-actions";
-import { getAllUsersAction } from "@/actions/user/user-actions";
 
-const ProviderReview = async ({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) => {
-  const { id } = await params;
-  const { data, error } = await getReviewByIdAction(id);
-  const { data: users, error: usersError } = await getAllUsersAction();
-  const { data: testCases, error: testCasesError } =
-    await getAllTestCasesAction();
+/*
+Review view functionality temporarily disabled
+Will be re-implemented without user dependencies
+*/
 
-  if (error || usersError || testCasesError) {
-    return <div>Error: {error || usersError || testCasesError}</div>;
-  }
-
-  const review = data as Review;
+const ReviewView = () => {
   return (
-    <>
-      <div className="mb-8">
-        <PageHeader>Provide Review</PageHeader>
-        <HeaderSubtitle>Provide a review for the test case</HeaderSubtitle>
-      </div>
-      <ReviewForm
-        successTitle="Review provided"
-        successMessage="Review provided successfully"
-        onSubmitAction={updateReviewAction}
-        id={id}
-        defaultValues={{
-          testCaseId: review.testCaseId,
-          reviewerId: review.reviewerId,
-          status: review.status,
-          comments: review.comments ?? "",
-        }}
-        hideTestCaseSelect={true}
-        users={users as User[]}
-        testCases={testCases as TestCase[]}
-      />
-    </>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Review Details</h1>
+      <p className="text-muted-foreground mt-4">
+        Review viewing will be implemented later without user authentication
+        dependencies.
+      </p>
+    </div>
   );
 };
 
-export default ProviderReview;
+export default ReviewView;

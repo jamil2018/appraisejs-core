@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 import { templateTestCaseSchema } from "@/constants/form-opts/template-test-case-form-opts";
 import { StepParameterType } from "@prisma/client";
 import { z } from "zod";
-import { auth } from "@/auth";
 
 /**
  * Get all template test cases
@@ -95,11 +94,11 @@ export async function createTemplateTestCaseAction(
 ): Promise<ActionResponse> {
   try {
     templateTestCaseSchema.parse(value);
-    const session = await auth();
     const newTemplateTestCase = await prisma.templateTestCase.create({
       data: {
         name: value.title,
         description: value.description ?? "",
+
         steps: {
           create: value.steps.map((step) => ({
             gherkinStep: step.gherkinStep,
@@ -120,11 +119,6 @@ export async function createTemplateTestCaseAction(
             },
             order: step.order,
           })),
-        },
-        creator: {
-          connect: {
-            id: session?.user?.id,
-          },
         },
       },
     });

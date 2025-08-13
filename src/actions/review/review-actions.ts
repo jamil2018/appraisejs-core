@@ -5,7 +5,7 @@ import { reviewSchema } from "@/constants/form-opts/review-form-opts";
 import { ActionResponse } from "@/types/form/actionHandler";
 import { Review } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+
 import { z } from "zod";
 
 export interface ReviewWithRelations extends Review {
@@ -19,7 +19,7 @@ export interface ReviewWithRelations extends Review {
 
 export async function getReviewsByReviewerAction(): Promise<ActionResponse> {
   try {
-    const session = await auth();
+    // Since auth is removed, return all reviews (or you may want to remove this function)
     const reviews = await prisma.review.findMany({
       include: {
         testCase: {
@@ -27,14 +27,7 @@ export async function getReviewsByReviewerAction(): Promise<ActionResponse> {
             title: true,
           },
         },
-        reviewer: {
-          select: {
-            username: true,
-          },
-        },
-      },
-      where: {
-        reviewerId: session?.user?.id ?? "",
+
       },
     });
     return {
@@ -51,7 +44,7 @@ export async function getReviewsByReviewerAction(): Promise<ActionResponse> {
 
 export async function getAllReviewsByCreatorAction(): Promise<ActionResponse> {
   try {
-    const session = await auth();
+    // Since auth is removed, return all reviews (or you may want to remove this function)
     const reviews = await prisma.review.findMany({
       include: {
         testCase: {
@@ -59,14 +52,7 @@ export async function getAllReviewsByCreatorAction(): Promise<ActionResponse> {
             title: true,
           },
         },
-        reviewer: {
-          select: {
-            username: true,
-          },
-        },
-      },
-      where: {
-        createdBy: session?.user?.id ?? "",
+
       },
     });
     return {
@@ -148,11 +134,9 @@ export async function createReviewAction(
 ): Promise<ActionResponse> {
   try {
     reviewSchema.parse(value);
-    const session = await auth();
     const newReview = await prisma.review.create({
       data: {
         ...value,
-        createdBy: session?.user?.id ?? "",
       },
     });
     revalidatePath("/reviews");
