@@ -77,8 +77,7 @@ model TestCase {
   linkedJiraTickets LinkedJiraTicket[]
   reviews           Review[]
   steps             TestCaseStep[]
-
-  TestSuite TestSuite[] @relation("TestSuiteTestCases")
+  TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
 }
 
 model TestCaseStep {
@@ -145,24 +144,34 @@ model Locator {
   id                            String                          @id @default(uuid())
   name                          String
   value                         String
-  moduleId                      String
   createdAt                     DateTime                        @default(now())
   updatedAt                     DateTime                        @updatedAt
-  module                        Module                          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   stepParameters                TestCaseStepParameter[]
   TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
+  locatorGroup                  LocatorGroup?                   @relation(fields: [locatorGroupId], references: [id], onDelete: Cascade)
+  locatorGroupId                String?
+}
+
+model LocatorGroup {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  locators  Locator[]
+  moduleId  String
+  module    Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 }
 
 model Module {
-  id         String      @id @default(uuid())
-  name       String
-  parentId   String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  parent     Module?     @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children   Module[]    @relation("ModuleHierarchy")
-  testSuites TestSuite[]
-  locators   Locator[]
+  id            String         @id @default(uuid())
+  name          String
+  parentId      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  parent        Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Module[]       @relation("ModuleHierarchy")
+  testSuites    TestSuite[]
+  locatorGroups LocatorGroup[]
 }
 
 enum Role {

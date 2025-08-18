@@ -10,7 +10,11 @@ export async function getAllLocatorsAction(): Promise<ActionResponse> {
   try {
     const locators = await prisma.locator.findMany({
       include: {
-        module: true,
+        locatorGroup: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
     return {
@@ -54,7 +58,16 @@ export async function createLocatorAction(
 
     const newLocator = await prisma.locator.create({
       data: {
-        ...value,
+        name: value.name,
+        value: value.value,
+        locatorGroupId: value.locatorGroupId,
+      },
+      include: {
+        locatorGroup: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
     revalidatePath("/locators");
@@ -79,7 +92,18 @@ export async function updateLocatorAction(
   try {
     const updatedLocator = await prisma.locator.update({
       where: { id },
-      data: value,
+      data: {
+        name: value.name,
+        value: value.value,
+        locatorGroupId: value.locatorGroupId,
+      },
+      include: {
+        locatorGroup: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
     revalidatePath("/locators");
     return {
@@ -102,7 +126,11 @@ export async function getLocatorByIdAction(
     const locator = await prisma.locator.findUnique({
       where: { id },
       include: {
-        module: true,
+        locatorGroup: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
     return {
@@ -113,6 +141,30 @@ export async function getLocatorByIdAction(
     return {
       status: 500,
       error: `Server error occurred: ${e}`,
+    };
+  }
+}
+
+export async function getUngroupedLocatorsAction(): Promise<ActionResponse> {
+  try {
+    const locators = await prisma.locator.findMany({
+      where: {
+        locatorGroupId: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        value: true,
+      },
+    });
+    return {
+      status: 200,
+      data: locators,
+    };
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
     };
   }
 }

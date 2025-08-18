@@ -3,15 +3,15 @@ import HeaderSubtitle from "@/components/typography/page-header-subtitle";
 import React from "react";
 import LocatorForm from "../locator-form";
 import { createLocatorAction } from "@/actions/locator/locator-actions";
-import { getAllModulesAction } from "@/actions/modules/module-actions";
-import { Module } from "@prisma/client";
+import { getAllLocatorGroupsAction } from "@/actions/locator-groups/locator-group-actions";
+import { LocatorGroup } from "@prisma/client";
 
 const CreateLocator = async () => {
-  const { data: moduleList, error: moduleListError } =
-    await getAllModulesAction();
+  const { data: locatorGroupList, error: locatorGroupListError } =
+    await getAllLocatorGroupsAction();
 
-  if (moduleListError) {
-    return <div>Error: {moduleListError}</div>;
+  if (locatorGroupListError) {
+    return <div>Error: {locatorGroupListError}</div>;
   }
 
   return (
@@ -26,7 +26,7 @@ const CreateLocator = async () => {
         successTitle="Locator created"
         successMessage="Locator created successfully"
         onSubmitAction={createLocatorAction}
-        moduleList={moduleList as Module[]}
+        locatorGroupList={locatorGroupList as LocatorGroup[]}
       />
     </>
   );

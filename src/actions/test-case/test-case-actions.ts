@@ -5,6 +5,7 @@ import { ActionResponse } from "@/types/form/actionHandler";
 import { revalidatePath } from "next/cache";
 import { testCaseSchema } from "@/constants/form-opts/test-case-form-opts";
 import { z } from "zod";
+import { generateFeatureFile } from "@/lib/feature-file-generator";
 
 import { StepParameterType } from "@prisma/client";
 
@@ -45,6 +46,22 @@ export async function deleteTestCaseAction(
   id: string[]
 ): Promise<ActionResponse> {
   try {
+    // Get the test suites that will be affected before deletion
+    const affectedTestSuites = await prisma.testSuite.findMany({
+      where: {
+        testCases: {
+          some: {
+            id: {
+              in: id,
+            },
+          },
+        },
+      },
+      include: {
+        module: true,
+      },
+    });
+
     await prisma.$transaction(async (tx) => {
       // Delete all step parameters associated with the test case steps
       await tx.testCaseStepParameter.deleteMany({
@@ -71,6 +88,23 @@ export async function deleteTestCaseAction(
         where: { id: { in: id } },
       });
     });
+
+    // Regenerate feature files for affected test suites
+    for (const testSuite of affectedTestSuites) {
+      try {
+        await generateFeatureFile(
+          testSuite.id,
+          testSuite.name,
+          testSuite.description || undefined
+        );
+      } catch (featureFileError) {
+        console.error(
+          `Error regenerating feature file for test suite ${testSuite.name}:`,
+          featureFileError
+        );
+        // Don't fail the deletion if feature file regeneration fails
+      }
+    }
 
     revalidatePath("/test-cases");
     return {
@@ -121,7 +155,32 @@ export async function createTestCaseAction(
           })),
         },
       },
+      include: {
+        TestSuite: {
+          include: {
+            module: true,
+          },
+        },
+      },
     });
+
+    // Regenerate feature files for all related test suites
+    for (const testSuite of newTestCase.TestSuite) {
+      try {
+        await generateFeatureFile(
+          testSuite.id,
+          testSuite.name,
+          testSuite.description || undefined
+        );
+      } catch (featureFileError) {
+        console.error(
+          `Error regenerating feature file for test suite ${testSuite.name}:`,
+          featureFileError
+        );
+        // Don't fail the creation if feature file regeneration fails
+      }
+    }
+
     revalidatePath("/test-cases");
     return {
       status: 200,
@@ -181,6 +240,20 @@ export async function updateTestCaseAction(
     );
   }
   try {
+    // Get the test suites that will be affected before updating
+    const affectedTestSuites = await prisma.testSuite.findMany({
+      where: {
+        testCases: {
+          some: {
+            id: id,
+          },
+        },
+      },
+      include: {
+        module: true,
+      },
+    });
+
     // 1. Find all step IDs for the test case
     const steps = await prisma.testCaseStep.findMany({
       where: { testCaseId: id },
@@ -228,6 +301,24 @@ export async function updateTestCaseAction(
         steps: true,
       },
     });
+
+    // Regenerate feature files for all affected test suites
+    for (const testSuite of affectedTestSuites) {
+      try {
+        await generateFeatureFile(
+          testSuite.id,
+          testSuite.name,
+          testSuite.description || undefined
+        );
+      } catch (featureFileError) {
+        console.error(
+          `Error regenerating feature file for test suite ${testSuite.name}:`,
+          featureFileError
+        );
+        // Don't fail the update if feature file regeneration fails
+      }
+    }
+
     return {
       status: 200,
       message: "Test case updated successfully",

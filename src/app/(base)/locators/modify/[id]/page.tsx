@@ -2,10 +2,10 @@ import {
   getLocatorByIdAction,
   updateLocatorAction,
 } from "@/actions/locator/locator-actions";
-import { Locator, Module } from "@prisma/client";
+import { Locator, LocatorGroup } from "@prisma/client";
 import React from "react";
 import LocatorForm from "../../locator-form";
-import { getAllModulesAction } from "@/actions/modules/module-actions";
+import { getAllLocatorGroupsAction } from "@/actions/locator-groups/locator-group-actions";
 
 const ModifyLocator = async ({
   params,
@@ -19,13 +19,13 @@ const ModifyLocator = async ({
     return <div>Error: {error}</div>;
   }
 
-  const locator = data as Locator & { module: Module };
+  const locator = data as Locator & { locatorGroup: LocatorGroup };
 
-  const { data: moduleList, error: moduleListError } =
-    await getAllModulesAction();
+  const { data: locatorGroupList, error: locatorGroupListError } =
+    await getAllLocatorGroupsAction();
 
-  if (moduleListError) {
-    return <div>Error: {moduleListError}</div>;
+  if (locatorGroupListError) {
+    return <div>Error: {locatorGroupListError}</div>;
   }
 
   return (
@@ -33,13 +33,13 @@ const ModifyLocator = async ({
       defaultValues={{
         name: locator.name ?? "",
         value: locator.value ?? "",
-        moduleId: locator.moduleId ?? "",
+        locatorGroupId: locator.locatorGroupId ?? "",
       }}
       successTitle="Locator updated"
       successMessage="Locator updated successfully"
       onSubmitAction={updateLocatorAction}
       id={id}
-      moduleList={moduleList as Module[]}
+      locatorGroupList={locatorGroupList as LocatorGroup[]}
     />
   );
 };

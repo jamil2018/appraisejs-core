@@ -5,13 +5,11 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import TableActions from "@/components/table/table-actions";
-import { Locator, LocatorGroup } from "@prisma/client";
-import { deleteLocatorAction } from "@/actions/locator/locator-actions";
+import { LocatorGroup } from "@prisma/client";
 import { formatDateTime } from "@/lib/utils";
+import { deleteLocatorGroupAction } from "@/actions/locator-groups/locator-group-actions";
 
-export const locatorTableCols: ColumnDef<
-  Locator & { locatorGroup: LocatorGroup }
->[] = [
+export const locatorGroupTableCols: ColumnDef<LocatorGroup>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -49,15 +47,9 @@ export const locatorTableCols: ColumnDef<
     ),
   },
   {
-    accessorKey: "value",
+    accessorKey: "module.name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Value" />
-    ),
-  },
-  {
-    accessorKey: "locatorGroup.name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Locator Group" />
+      <DataTableColumnHeader column={column} title="Module" />
     ),
   },
   {
@@ -81,11 +73,11 @@ export const locatorTableCols: ColumnDef<
   {
     id: "actions",
     cell: ({ row }) => {
-      const locator = row.original;
+      const locatorGroup = row.original;
       return (
         <TableActions
-          modifyLink={`/locators/modify/${locator.id}`}
-          deleteHandler={() => deleteLocatorAction([locator.id])}
+          modifyLink={`/locator-groups/modify/${locatorGroup.id}`}
+          deleteHandler={() => deleteLocatorGroupAction([locatorGroup.id])}
         />
       );
     },

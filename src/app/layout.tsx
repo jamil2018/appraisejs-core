@@ -28,6 +28,7 @@ import {
   BrickWall,
   Code,
   FileSliders,
+  Group,
   LayoutDashboard,
   LayoutTemplate,
   Puzzle,
@@ -123,6 +124,12 @@ export default function RootLayout({
                       description: "Create, modify, and run locators",
                     },
                     {
+                      text: "Locator Groups",
+                      icon: <Group className="w-6 h-6 text-primary" />,
+                      href: "/locator-groups",
+                      description: "Create, modify, and run locator groups",
+                    },
+                    {
                       text: "Modules",
                       icon: <Puzzle className="w-6 h-6 text-primary" />,
                       href: "/modules",
@@ -130,21 +137,6 @@ export default function RootLayout({
                     },
                   ]}
                 />
-
-                {/* <NavMenuCardDeck
-                    containerButtonText="Manage"
-                    containerButtonIcon={
-                      <Wrench className="w-5 h-5 text-primary" />
-                    }
-                    dropdownItems={[
-                      {
-                        text: "Settings",
-                        icon: <Settings className="w-6 h-6 text-primary" />,
-                        href: "/settings",
-                        description: "Create, modify, and run settings",
-                      },
-                    ]}
-                  /> */}
                 <NavLink
                   href="/settings"
                   icon={<Settings className="w-5 h-5 text-primary" />}

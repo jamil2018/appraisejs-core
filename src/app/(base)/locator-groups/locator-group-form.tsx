@@ -3,14 +3,19 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formOpts, Locator } from "@/constants/form-opts/locator-form-opts";
+import {
+  formOpts,
+  LocatorGroup,
+} from "@/constants/form-opts/locator-group-form-opts";
 import { toast } from "@/hooks/use-toast";
 import { ActionResponse } from "@/types/form/actionHandler";
 import { useForm } from "@tanstack/react-form";
 import { initialFormState, ServerFormState } from "@tanstack/react-form/nextjs";
 import React from "react";
 import { z } from "zod";
-import { LocatorGroup } from "@prisma/client";
+import { useRouter } from "next/navigation";
+import { Module } from "@prisma/client";
+
 import {
   Select,
   SelectContent,
@@ -18,28 +23,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
 
-const LocatorForm = ({
+const LocatorGroupForm = ({
   defaultValues,
   successTitle,
   successMessage,
   id,
-  locatorGroupList,
   onSubmitAction,
+  moduleList,
 }: {
-  defaultValues?: Locator;
+  defaultValues?: LocatorGroup;
   successTitle: string;
   successMessage: string;
-  locatorGroupList: LocatorGroup[];
+  moduleList: Module[];
   id?: string;
   onSubmitAction: (
-    initialFormState: ServerFormState<Locator>,
-    value: Locator,
+    initialFormState: ServerFormState<LocatorGroup>,
+    value: LocatorGroup,
     id?: string
   ) => Promise<ActionResponse>;
 }) => {
   const router = useRouter();
+
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
@@ -50,7 +55,7 @@ const LocatorForm = ({
           title: successTitle,
           description: successMessage,
         });
-        router.push("/locators");
+        router.push("/locator-groups");
       }
       if (res.status === 400) {
         toast({
@@ -90,7 +95,7 @@ const LocatorForm = ({
                 id={field.name}
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="Enter locator name"
+                placeholder="Enter locator group name"
               />
               {field.state.meta.isTouched &&
                 field.state.meta.errors.map((error) => (
@@ -103,52 +108,26 @@ const LocatorForm = ({
         }}
       </form.Field>
       <form.Field
-        name="value"
+        name="moduleId"
         validators={{
-          onChange: z.string().min(1, { message: "Value is required" }),
+          onChange: z.string().min(1, { message: "Module is required" }),
         }}
       >
         {(field) => {
           return (
             <div className="flex flex-col gap-2 mb-4 lg:w-1/3">
-              <Label htmlFor={field.name}>Value</Label>
-              <Input
-                id={field.name}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="CSS or XPath Selector"
-              />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error) => (
-                  <p key={error as string} className="text-pink-500 text-xs">
-                    {error}
-                  </p>
-                ))}
-            </div>
-          );
-        }}
-      </form.Field>
-      <form.Field
-        name="locatorGroupId"
-        validators={{
-          onChange: z.string().min(1, { message: "Locator group is required" }),
-        }}
-      >
-        {(field) => {
-          return (
-            <div className="flex flex-col gap-2 mb-4 lg:w-1/3">
-              <Label htmlFor={field.name}>Locator Group</Label>
+              <Label htmlFor={field.name}>Module</Label>
               <Select
                 value={field.state.value}
                 onValueChange={(value) => field.handleChange(value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a locator group" />
+                  <SelectValue placeholder="Select a module" />
                 </SelectTrigger>
                 <SelectContent>
-                  {locatorGroupList.map((locatorGroup) => (
-                    <SelectItem key={locatorGroup.id} value={locatorGroup.id}>
-                      {locatorGroup.name}
+                  {moduleList.map((moduleData) => (
+                    <SelectItem key={moduleData.id} value={moduleData.id}>
+                      {moduleData.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -163,6 +142,7 @@ const LocatorForm = ({
           );
         }}
       </form.Field>
+
       <form.Subscribe
         selector={(formState) => [formState.canSubmit, formState.isSubmitting]}
       >
@@ -176,4 +156,4 @@ const LocatorForm = ({
   );
 };
 
-export default LocatorForm;
+export default LocatorGroupForm;
