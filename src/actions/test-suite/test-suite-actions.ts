@@ -7,6 +7,10 @@ import { ActionResponse } from "@/types/form/actionHandler";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z, ZodError } from "zod";
+import {
+  generateFeatureFile,
+  deleteFeatureFile,
+} from "@/lib/feature-file-generator";
 
 /**
  * Get all test suites
@@ -43,7 +47,9 @@ export async function createTestSuiteAction(
 ): Promise<ActionResponse> {
   try {
     testSuiteSchema.parse(value);
-    await prisma.testSuite.create({
+
+    // Create the test suite
+    const newTestSuite = await prisma.testSuite.create({
       data: {
         name: value.name,
         description: value.description,
@@ -55,9 +61,24 @@ export async function createTestSuiteAction(
         testCases: {
           connect: value.testCases?.map((id) => ({ id })),
         },
-
+      },
+      include: {
+        module: true,
       },
     });
+
+    // Generate feature file for the new test suite
+    try {
+      await generateFeatureFile(
+        newTestSuite.id,
+        newTestSuite.name,
+        newTestSuite.description || undefined
+      );
+    } catch (featureFileError) {
+      console.error("Error generating feature file:", featureFileError);
+      // Don't fail the test suite creation if feature file generation fails
+    }
+
     revalidatePath("/test-suites");
     return {
       status: 200,
@@ -92,6 +113,19 @@ export async function deleteTestSuiteAction(
   id: string[]
 ): Promise<ActionResponse> {
   try {
+    // Delete corresponding feature files before deleting test suites
+    for (const testSuiteId of id) {
+      try {
+        await deleteFeatureFile(testSuiteId);
+      } catch (featureFileError) {
+        console.error(
+          `Error deleting feature file for test suite ${testSuiteId}:`,
+          featureFileError
+        );
+        // Don't fail the test suite deletion if feature file deletion fails
+      }
+    }
+
     await prisma.testSuite.deleteMany({
       where: { id: { in: id } },
     });
@@ -145,7 +179,37 @@ export async function updateTestSuiteAction(
 ): Promise<ActionResponse> {
   try {
     testSuiteSchema.parse(value);
-    await prisma.testSuite.update({
+
+    // Get the current test suite to check if name or module changed
+    const currentTestSuite = await prisma.testSuite.findUnique({
+      where: { id },
+      include: {
+        module: true,
+      },
+    });
+
+    if (!currentTestSuite) {
+      return {
+        status: 404,
+        error: "Test suite not found",
+      };
+    }
+
+    // Check if name or module changed - if so, delete old feature file
+    const nameChanged = currentTestSuite.name !== value.name;
+    const moduleChanged = currentTestSuite.moduleId !== value.moduleId;
+
+    if (nameChanged || moduleChanged) {
+      try {
+        await deleteFeatureFile(currentTestSuite.id);
+      } catch (featureFileError) {
+        console.error("Error deleting old feature file:", featureFileError);
+        // Don't fail the update if old file deletion fails
+      }
+    }
+
+    // Update the test suite
+    const updatedTestSuite = await prisma.testSuite.update({
       where: { id },
       data: {
         name: value.name,
@@ -159,7 +223,23 @@ export async function updateTestSuiteAction(
           },
         },
       },
+      include: {
+        module: true,
+      },
     });
+
+    // Generate new feature file with updated information
+    try {
+      await generateFeatureFile(
+        updatedTestSuite.id,
+        updatedTestSuite.name,
+        updatedTestSuite.description || undefined
+      );
+    } catch (featureFileError) {
+      console.error("Error generating updated feature file:", featureFileError);
+      // Don't fail the test suite update if feature file generation fails
+    }
+
     revalidatePath("/test-suites");
     return {
       status: 200,
