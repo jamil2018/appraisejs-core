@@ -8,21 +8,20 @@ datasource db {
 }
 
 model TestSuite {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
   description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   moduleId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  module    Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  testCases TestCase[] @relation("TestSuiteTestCases")
+  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  testCases   TestCase[] @relation("TestSuiteTestCases")
 }
 
 model Review {
   id         String       @id @default(uuid())
   testCaseId String
-  reviewerId String // Keep as string for now, but won't reference User
+  reviewerId String
   status     ReviewStatus
   comments   String?
   createdAt  DateTime     @default(now())
@@ -42,19 +41,18 @@ model LinkedJiraTicket {
 }
 
 model TemplateStep {
-  id                 String                  @id @default(uuid())
-  name               String
-  description        String?
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
-  signature          String
-  functionDefinition String?
-  type               TemplateStepType
-  icon               TemplateStepIcon
-  parameters         TemplateStepParameter[]
-  TestCaseStep       TestCaseStep[]
-
+  id                   String                  @id @default(uuid())
+  name                 String
+  description          String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  signature            String
+  functionDefinition   String?
+  type                 TemplateStepType
+  icon                 TemplateStepIcon
+  parameters           TemplateStepParameter[]
   TemplateTestCaseStep TemplateTestCaseStep[]
+  TestCaseStep         TestCaseStep[]
 }
 
 model TemplateStepParameter {
@@ -87,10 +85,10 @@ model TestCaseStep {
   gherkinStep    String
   icon           TemplateStepIcon
   label          String
-  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
-  parameters     TestCaseStepParameter[]
   templateStepId String
   TemplateStep   TemplateStep            @relation(fields: [templateStepId], references: [id])
+  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters     TestCaseStepParameter[]
 }
 
 model TemplateTestCase {
@@ -109,10 +107,10 @@ model TemplateTestCaseStep {
   icon               TemplateStepIcon
   label              String
   templateTestCaseId String
-  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
-  parameters         TemplateTestCaseStepParameter[]
   templateStepId     String
   TemplateStep       TemplateStep                    @relation(fields: [templateStepId], references: [id])
+  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
+  parameters         TemplateTestCaseStepParameter[]
 }
 
 model TemplateTestCaseStepParameter {
@@ -146,10 +144,10 @@ model Locator {
   value                         String
   createdAt                     DateTime                        @default(now())
   updatedAt                     DateTime                        @updatedAt
-  stepParameters                TestCaseStepParameter[]
-  TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
-  locatorGroup                  LocatorGroup?                   @relation(fields: [locatorGroupId], references: [id], onDelete: Cascade)
   locatorGroupId                String?
+  locatorGroup                  LocatorGroup?                   @relation(fields: [locatorGroupId], references: [id], onDelete: Cascade)
+  TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
+  stepParameters                TestCaseStepParameter[]
 }
 
 model LocatorGroup {
@@ -157,8 +155,8 @@ model LocatorGroup {
   name      String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  locators  Locator[]
   moduleId  String
+  locators  Locator[]
   module    Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 }
 
@@ -168,10 +166,10 @@ model Module {
   parentId      String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  locatorGroups LocatorGroup[]
   parent        Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children      Module[]       @relation("ModuleHierarchy")
   testSuites    TestSuite[]
-  locatorGroups LocatorGroup[]
 }
 
 enum Role {

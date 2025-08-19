@@ -5,6 +5,20 @@ import { locatorSchema } from "@/constants/form-opts/locator-form-opts";
 import { ActionResponse } from "@/types/form/actionHandler";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createOrUpdateLocatorGroupFile } from "@/lib/locator-group-file-utils";
+
+// Helper function to update locator group JSON file when locators change
+async function updateLocatorGroupFile(
+  locatorGroupId: string | null
+): Promise<void> {
+  if (!locatorGroupId) return;
+
+  try {
+    await createOrUpdateLocatorGroupFile(locatorGroupId);
+  } catch (error) {
+    console.error("Error updating locator group file:", error);
+  }
+}
 
 export async function getAllLocatorsAction(): Promise<ActionResponse> {
   try {
@@ -33,9 +47,27 @@ export async function deleteLocatorAction(
   ids: string[]
 ): Promise<ActionResponse> {
   try {
+    // Get locator group IDs before deletion to update files
+    const locatorsToDelete = await prisma.locator.findMany({
+      where: { id: { in: ids } },
+      select: { locatorGroupId: true },
+    });
+
+    const locatorGroupIds = [
+      ...new Set(locatorsToDelete.map((l) => l.locatorGroupId).filter(Boolean)),
+    ];
+
     const locator = await prisma.locator.deleteMany({
       where: { id: { in: ids } },
     });
+
+    // Update JSON files for affected locator groups in parallel
+    await Promise.all(
+      locatorGroupIds
+        .filter(Boolean)
+        .map((groupId) => updateLocatorGroupFile(groupId))
+    );
+
     revalidatePath("/locators");
     return {
       status: 200,
@@ -70,6 +102,12 @@ export async function createLocatorAction(
         },
       },
     });
+
+    // Update the locator group JSON file
+    if (value.locatorGroupId) {
+      await updateLocatorGroupFile(value.locatorGroupId);
+    }
+
     revalidatePath("/locators");
     return {
       status: 200,
@@ -90,6 +128,12 @@ export async function updateLocatorAction(
   id?: string
 ): Promise<ActionResponse> {
   try {
+    // Get the current locator to check if locatorGroupId changed
+    const currentLocator = await prisma.locator.findUnique({
+      where: { id },
+      select: { locatorGroupId: true },
+    });
+
     const updatedLocator = await prisma.locator.update({
       where: { id },
       data: {
@@ -105,6 +149,30 @@ export async function updateLocatorAction(
         },
       },
     });
+
+    // Update JSON files for affected locator groups
+    const groupsToUpdate = new Set<string>();
+
+    if (currentLocator?.locatorGroupId !== value.locatorGroupId) {
+      // Group changed - update both old and new groups
+      if (currentLocator?.locatorGroupId) {
+        groupsToUpdate.add(currentLocator.locatorGroupId);
+      }
+      if (value.locatorGroupId) {
+        groupsToUpdate.add(value.locatorGroupId);
+      }
+    } else if (value.locatorGroupId) {
+      // Same group - just update the current group
+      groupsToUpdate.add(value.locatorGroupId);
+    }
+
+    // Update all affected groups in parallel
+    await Promise.all(
+      Array.from(groupsToUpdate).map((groupId) =>
+        updateLocatorGroupFile(groupId)
+      )
+    );
+
     revalidatePath("/locators");
     return {
       status: 200,
