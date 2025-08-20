@@ -16,6 +16,9 @@ export const templateStepSchema = z.object({
     })
   ),
   icon: z.string(),
+  templateStepGroupId: z
+    .string()
+    .min(1, { message: "Template step group is required" }),
 });
 
 export type TemplateStep = z.infer<typeof templateStepSchema>;
@@ -29,5 +32,6 @@ export const formOpts = formOptions({
     functionDefinition: "",
     params: [],
     icon: "MOUSE",
+    templateStepGroupId: "",
   } as TemplateStep,
 });

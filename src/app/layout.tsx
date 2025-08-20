@@ -27,6 +27,7 @@ import {
   Bot,
   BrickWall,
   Code,
+  Component,
   FileSliders,
   Group,
   LayoutDashboard,
@@ -101,6 +102,13 @@ export default function RootLayout({
                       icon: <LayoutTemplate className="w-6 h-6 text-primary" />,
                       href: "/template-steps",
                       description: "Create, modify, and run template steps",
+                    },
+                    {
+                      text: "Template Step Groups",
+                      icon: <Component className="w-6 h-6 text-primary" />,
+                      href: "/template-step-groups",
+                      description:
+                        "Create, modify, and run template step groups",
                     },
                     {
                       text: "Template Test Cases",

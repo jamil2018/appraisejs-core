@@ -53,6 +53,8 @@ model TemplateStep {
   parameters           TemplateStepParameter[]
   TemplateTestCaseStep TemplateTestCaseStep[]
   TestCaseStep         TestCaseStep[]
+  templateStepGroupId  String
+  templateStepGroup    TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
 }
 
 model TemplateStepParameter {
@@ -64,6 +66,15 @@ model TemplateStepParameter {
   order          Int
   type           StepParameterType
   templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id])
+}
+
+model TemplateStepGroup {
+  id            String         @id @default(uuid())
+  name          String
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  templateSteps TemplateStep[] @relation("TemplateStepGroupSteps")
 }
 
 model TestCase {

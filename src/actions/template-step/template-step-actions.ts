@@ -20,6 +20,7 @@ export async function getAllTemplateStepsAction(): Promise<ActionResponse> {
             name: true,
           },
         },
+        templateStepGroup: true,
       },
     });
     return {
@@ -82,6 +83,11 @@ export async function createTemplateStepAction(
           })),
         },
         icon: value.icon as TemplateStepIcon,
+        templateStepGroup: {
+          connect: {
+            id: value.templateStepGroupId,
+          },
+        },
       },
     });
 
@@ -124,6 +130,12 @@ export async function updateTemplateStepAction(
             order: param.order,
           })),
         },
+        icon: value.icon as TemplateStepIcon,
+        templateStepGroup: {
+          connect: {
+            id: value.templateStepGroupId,
+          },
+        },
       },
     });
     revalidatePath("/template-steps");
@@ -148,6 +160,7 @@ export async function getTemplateStepByIdAction(
       where: { id },
       include: {
         parameters: true,
+        templateStepGroup: true,
       },
     });
     return {

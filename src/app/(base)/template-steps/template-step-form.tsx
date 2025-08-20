@@ -42,6 +42,7 @@ export const TemplateStepForm = ({
   successMessage,
   id,
   onSubmitAction,
+  templateStepGroups,
 }: {
   defaultValues?: TemplateStep;
   successTitle: string;
@@ -52,6 +53,7 @@ export const TemplateStepForm = ({
     value: TemplateStep,
     id?: string
   ) => Promise<ActionResponse>;
+  templateStepGroups: Array<{ id: string; name: string }>;
 }) => {
   const router = useRouter();
   const [signature, setSignature] = useState(defaultValues?.signature ?? "");
@@ -226,6 +228,44 @@ export const TemplateStepForm = ({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              );
+            }}
+          </form.Field>
+          <form.Field
+            name="templateStepGroupId"
+            validators={{
+              onChange: z
+                .string()
+                .min(1, { message: "Template step group is required" }),
+            }}
+          >
+            {(field) => {
+              return (
+                <div className="flex flex-col gap-2 mb-4 lg:w-2/3">
+                  <Label htmlFor={field.name}>Template Step Group</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      field.handleChange(value);
+                    }}
+                    value={field.state.value}
+                  >
+                    <SelectTrigger id={field.name}>
+                      <SelectValue placeholder="Select a template step group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templateStepGroups?.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {field.state.meta.errors.map((error) => (
+                    <p key={error as string} className="text-pink-500 text-xs">
+                      {error}
+                    </p>
+                  ))}
                 </div>
               );
             }}
