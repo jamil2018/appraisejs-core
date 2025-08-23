@@ -41,4 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 # auto-generated feature files (regenerate with npm run regenerate-features)
-src/tests/features/**/*.feature
+src/tests
