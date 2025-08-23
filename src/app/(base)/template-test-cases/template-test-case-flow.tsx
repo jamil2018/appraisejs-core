@@ -1,28 +1,17 @@
-import FlowDiagram from "@/components/diagram/flow-diagram";
-import {
-  TemplateTestCaseNodeOrderMap,
-  NodeOrderMap,
-} from "@/types/diagram/diagram";
-import {
-  Locator,
-  TemplateStep,
-  TemplateStepParameter,
-  StepParameterType,
-} from "@prisma/client";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import FlowDiagram from '@/components/diagram/flow-diagram'
+import { TemplateTestCaseNodeOrderMap, NodeOrderMap } from '@/types/diagram/diagram'
+import { Locator, TemplateStep, TemplateStepParameter, StepParameterType } from '@prisma/client'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
-function useDebouncedCallback<T extends unknown[]>(
-  callback: (...args: T) => void,
-  delay: number
-) {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+function useDebouncedCallback<T extends unknown[]>(callback: (...args: T) => void, delay: number) {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   return (...args: T) => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
     timeoutRef.current = setTimeout(() => {
-      callback(...args);
-    }, delay);
-  };
+      callback(...args)
+    }, delay)
+  }
 }
 
 const TemplateTestCaseFlow = ({
@@ -33,48 +22,47 @@ const TemplateTestCaseFlow = ({
   onNodeOrderChange,
   defaultValueInput = false,
 }: {
-  initialNodesOrder: TemplateTestCaseNodeOrderMap;
-  templateStepParams: TemplateStepParameter[];
-  templateSteps: TemplateStep[];
-  locators: Locator[];
-  onNodeOrderChange: (nodesOrder: TemplateTestCaseNodeOrderMap) => void;
-  defaultValueInput?: boolean;
+  initialNodesOrder: TemplateTestCaseNodeOrderMap
+  templateStepParams: TemplateStepParameter[]
+  templateSteps: TemplateStep[]
+  locators: Locator[]
+  onNodeOrderChange: (nodesOrder: TemplateTestCaseNodeOrderMap) => void
+  defaultValueInput?: boolean
 }) => {
-  const [nodesOrder, setNodesOrder] =
-    useState<TemplateTestCaseNodeOrderMap>(initialNodesOrder);
+  const [nodesOrder, setNodesOrder] = useState<TemplateTestCaseNodeOrderMap>(initialNodesOrder)
 
   const handleNodeOrderChange = useCallback(
     (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => {
       // Convert NodeOrderMap to TemplateTestCaseNodeOrderMap if needed
-      const convertedNodeOrder: TemplateTestCaseNodeOrderMap = {};
+      const convertedNodeOrder: TemplateTestCaseNodeOrderMap = {}
       Object.entries(nodeOrder).forEach(([key, nodeData]) => {
         convertedNodeOrder[key] = {
           ...nodeData,
           parameters: nodeData.parameters.map(
             (param: {
-              name: string;
-              value?: string;
-              defaultValue?: string;
-              type: StepParameterType;
-              order: number;
+              name: string
+              value?: string
+              defaultValue?: string
+              type: StepParameterType
+              order: number
             }) => ({
               ...param,
-              defaultValue: "value" in param ? param.value : param.defaultValue,
-            })
+              defaultValue: 'value' in param ? param.value : param.defaultValue,
+            }),
           ),
-        };
-      });
-      setNodesOrder(convertedNodeOrder);
+        }
+      })
+      setNodesOrder(convertedNodeOrder)
     },
-    [setNodesOrder]
-  );
+    [setNodesOrder],
+  )
 
-  const debouncedSaveNodesOrder = useDebouncedCallback(onNodeOrderChange, 200);
+  const debouncedSaveNodesOrder = useDebouncedCallback(onNodeOrderChange, 200)
 
   useEffect(() => {
-    debouncedSaveNodesOrder(nodesOrder);
+    debouncedSaveNodesOrder(nodesOrder)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodesOrder]);
+  }, [nodesOrder])
 
   return (
     <>
@@ -87,7 +75,7 @@ const TemplateTestCaseFlow = ({
         defaultValueInput={defaultValueInput}
       />
     </>
-  );
-};
+  )
+}
 
-export default TemplateTestCaseFlow;
+export default TemplateTestCaseFlow

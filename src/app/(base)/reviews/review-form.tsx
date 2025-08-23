@@ -7,5 +7,5 @@ This file will be restored and updated when the review system is reworked
 */
 
 export default function ReviewForm() {
-  return <div>Review form will be implemented later</div>;
+  return <div>Review form will be implemented later</div>
 }

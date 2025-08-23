@@ -1,163 +1,142 @@
-"use client";
+'use client'
 
-import type React from "react";
+import type React from 'react'
 
-import { useState, useEffect } from "react";
-import { PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { z } from "zod";
+import { useState, useEffect } from 'react'
+import { PlusCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { z } from 'zod'
 
 // Define the form schema
 const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  type: z.string().min(1, { message: "Please select a type" }),
+  name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
+  type: z.string().min(1, { message: 'Please select a type' }),
   order: z.coerce.number().int().positive(),
-});
+})
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>
 
 // Define the item type
 type Param = {
-  id: string;
-  name: string;
-  type: string;
-  order: number;
-};
+  id: string
+  name: string
+  type: string
+  order: number
+}
 
 export default function ParamChip({
   types,
   onSubmit,
   defaultValues,
 }: {
-  types: string[];
-  onSubmit: (value: Param[]) => void;
-  defaultValues?: Param[];
+  types: string[]
+  onSubmit: (value: Param[]) => void
+  defaultValues?: Param[]
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [items, setItems] = useState<Param[]>(defaultValues || []);
+  const [isOpen, setIsOpen] = useState(false)
+  const [items, setItems] = useState<Param[]>(defaultValues || [])
   // Add this useEffect to sync items with defaultValues
   useEffect(() => {
-    setItems(defaultValues || []);
-  }, [defaultValues]);
+    setItems(defaultValues || [])
+  }, [defaultValues])
 
   // Form state
   const [formValues, setFormValues] = useState<FormValues>({
-    name: "",
-    type: "",
+    name: '',
+    type: '',
     order: 1,
-  });
+  })
 
   // Form errors
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Handle input change
   const handleChange = (field: keyof FormValues, value: string) => {
-    setFormValues((prev) => ({
+    setFormValues(prev => ({
       ...prev,
-      [field]: field === "order" ? Number(value) : value,
-    }));
+      [field]: field === 'order' ? Number(value) : value,
+    }))
 
     // Clear error for this field when user types
     if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
-  };
+  }
 
   // Validate form
   const validateForm = (): boolean => {
     try {
-      formSchema.parse(formValues);
-      setErrors({});
-      return true;
+      formSchema.parse(formValues)
+      setErrors({})
+      return true
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
+        const newErrors: Record<string, string> = {}
+        error.errors.forEach(err => {
           if (err.path[0]) {
-            newErrors[err.path[0] as string] = err.message;
+            newErrors[err.path[0] as string] = err.message
           }
-        });
-        setErrors(newErrors);
+        })
+        setErrors(newErrors)
       }
-      return false;
+      return false
     }
-  };
+  }
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (validateForm()) {
       // Create a new item with the form values
       const newItem = {
         id: crypto.randomUUID(),
         ...formValues,
-      };
+      }
 
       // Add the new item to the items array
-      setItems([...items, newItem]);
+      setItems([...items, newItem])
 
       // Reset the form
       setFormValues({
-        name: "",
-        type: "",
+        name: '',
+        type: '',
         order: 1,
-      });
+      })
 
       // Call the onSubmit callback with the new item
-      onSubmit([...items, newItem]);
+      onSubmit([...items, newItem])
 
       // Close the modal
-      setIsOpen(false);
+      setIsOpen(false)
     }
-  };
+  }
 
   // Handle removing an item
   const removeItem = (id: string) => {
-    setItems(items.filter((item) => item.id !== id));
-    onSubmit(items.filter((item) => item.id !== id));
-  };
+    setItems(items.filter(item => item.id !== id))
+    onSubmit(items.filter(item => item.id !== id))
+  }
 
   return (
     <div className="space-y-6">
-      <Button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        variant="outline"
-        size="icon"
-      >
+      <Button type="button" onClick={() => setIsOpen(true)} variant="outline" size="icon">
         <PlusCircle className="h-4 w-4" />
       </Button>
 
       {/* Display the added items as chips */}
       <div className="flex flex-wrap gap-2">
-        {items.map((item) => (
-          <Badge
-            key={item.id}
-            variant="secondary"
-            className="px-3 py-1 text-sm"
-          >
+        {items.map(item => (
+          <Badge key={item.id} variant="secondary" className="px-3 py-1 text-sm">
             {item.name}
             <button
               type="button"
@@ -168,9 +147,7 @@ export default function ParamChip({
             </button>
           </Badge>
         ))}
-        {items.length === 0 && (
-          <p className="text-sm text-muted-foreground">No items added yet.</p>
-        )}
+        {items.length === 0 && <p className="text-sm text-muted-foreground">No items added yet.</p>}
       </div>
 
       {/* Modal with form */}
@@ -185,38 +162,27 @@ export default function ParamChip({
               <Input
                 id="name"
                 value={formValues.name}
-                onChange={(e) => handleChange("name", e.target.value)}
+                onChange={e => handleChange('name', e.target.value)}
                 placeholder="Enter name"
               />
-              {errors.name && (
-                <p className="text-sm font-medium text-destructive">
-                  {errors.name}
-                </p>
-              )}
+              {errors.name && <p className="text-sm font-medium text-destructive">{errors.name}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
-              <Select
-                value={formValues.type}
-                onValueChange={(value) => handleChange("type", value)}
-              >
+              <Select value={formValues.type} onValueChange={value => handleChange('type', value)}>
                 <SelectTrigger id="type">
                   <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {types.map((type) => (
+                  {types.map(type => (
                     <SelectItem key={type} value={type}>
                       {type}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {errors.type && (
-                <p className="text-sm font-medium text-destructive">
-                  {errors.type}
-                </p>
-              )}
+              {errors.type && <p className="text-sm font-medium text-destructive">{errors.type}</p>}
             </div>
 
             <div className="space-y-2">
@@ -226,21 +192,13 @@ export default function ParamChip({
                 type="number"
                 min="1"
                 value={formValues.order}
-                onChange={(e) => handleChange("order", e.target.value)}
+                onChange={e => handleChange('order', e.target.value)}
               />
-              {errors.order && (
-                <p className="text-sm font-medium text-destructive">
-                  {errors.order}
-                </p>
-              )}
+              {errors.order && <p className="text-sm font-medium text-destructive">{errors.order}</p>}
             </div>
 
             <DialogFooter className="mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
               <Button type="button" onClick={handleSubmit}>
@@ -251,5 +209,5 @@ export default function ParamChip({
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

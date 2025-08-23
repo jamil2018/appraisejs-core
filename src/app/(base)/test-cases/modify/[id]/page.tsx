@@ -1,7 +1,4 @@
-import {
-  getTestCaseByIdAction,
-  updateTestCaseAction,
-} from "@/actions/test-case/test-case-actions";
+import { getTestCaseByIdAction, updateTestCaseAction } from '@/actions/test-case/test-case-actions'
 import {
   Locator,
   TemplateStep,
@@ -10,56 +7,36 @@ import {
   TestCaseStep,
   TestCaseStepParameter,
   TestSuite,
-} from "@prisma/client";
-import React from "react";
-import TestCaseForm from "../../test-case-form";
-import HeaderSubtitle from "@/components/typography/page-header-subtitle";
-import PageHeader from "@/components/typography/page-header";
+} from '@prisma/client'
+import React from 'react'
+import TestCaseForm from '../../test-case-form'
+import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import PageHeader from '@/components/typography/page-header'
 import {
   getAllTemplateStepParamsAction,
   getAllTemplateStepsAction,
-} from "@/actions/template-step/template-step-actions";
-import { getAllLocatorsAction } from "@/actions/locator/locator-actions";
-import { getAllTestSuitesAction } from "@/actions/test-suite/test-suite-actions";
-import { NodeOrderMap } from "@/types/diagram/diagram";
+} from '@/actions/template-step/template-step-actions'
+import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
+import { NodeOrderMap } from '@/types/diagram/diagram'
 
-const ModifyTestCase = async ({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) => {
-  const { id } = await params;
-  const { data, error } = await getTestCaseByIdAction(id);
+const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params
+  const { data, error } = await getTestCaseByIdAction(id)
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>Error: {error}</div>
   }
   const testCase = data as TestCase & {
-    steps: (TestCaseStep & { parameters: TestCaseStepParameter[] })[];
-    testSuiteIds: string[];
-  };
-  const { data: templateStepParams, error: templateStepParamsError } =
-    await getAllTemplateStepParamsAction();
-  const { data: templateSteps, error: templateStepsError } =
-    await getAllTemplateStepsAction();
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction();
-  const { data: testSuites, error: testSuitesError } =
-    await getAllTestSuitesAction();
-  if (
-    templateStepParamsError ||
-    templateStepsError ||
-    locatorsError ||
-    testSuitesError
-  ) {
-    return (
-      <div>
-        Error:{" "}
-        {templateStepParamsError ||
-          templateStepsError ||
-          locatorsError ||
-          testSuitesError}
-      </div>
-    );
+    steps: (TestCaseStep & { parameters: TestCaseStepParameter[] })[]
+    testSuiteIds: string[]
+  }
+  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
+  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
+  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
+  const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
+  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError) {
+    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError || testSuitesError}</div>
   }
   return (
     <>
@@ -83,21 +60,19 @@ const ModifyTestCase = async ({
             label: step.label,
             gherkinStep: step.gherkinStep,
             icon: step.icon,
-            parameters: (
-              (step.parameters || []) as TestCaseStepParameter[]
-            ).map((param: TestCaseStepParameter) => ({
+            parameters: ((step.parameters || []) as TestCaseStepParameter[]).map((param: TestCaseStepParameter) => ({
               name: param.name,
               value: param.value,
               type: param.type,
               order: param.order,
             })),
             templateStepId: step.templateStepId,
-          };
-          return acc;
+          }
+          return acc
         }, {} as NodeOrderMap)}
       />
     </>
-  );
-};
+  )
+}
 
-export default ModifyTestCase;
+export default ModifyTestCase

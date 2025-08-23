@@ -10,6 +10,12 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    ignores: [
+      "src/tests/steps/**/*.step.ts", // Exclude generated template step files
+      "src/tests/steps/**/*", // Exclude all files in steps directory
+    ],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

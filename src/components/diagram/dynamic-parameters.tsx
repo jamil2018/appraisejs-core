@@ -1,238 +1,195 @@
-"use client";
+'use client'
 
-import {
-  useState,
-  useMemo,
-  forwardRef,
-  useImperativeHandle,
-  useEffect,
-} from "react";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { StepParameterType, TemplateStepParameter } from "@prisma/client";
-import { format } from "date-fns";
-import ErrorMessage from "@/components/form/error-message";
+import { useState, useMemo, forwardRef, useImperativeHandle, useEffect } from 'react'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CalendarIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Card, CardContent } from '@/components/ui/card'
+import { StepParameterType, TemplateStepParameter } from '@prisma/client'
+import { format } from 'date-fns'
+import ErrorMessage from '@/components/form/error-message'
 
 interface DynamicFormFieldsProps {
-  templateStepParams: TemplateStepParameter[];
-  locators: string[];
-  defaultValueInput?: boolean;
+  templateStepParams: TemplateStepParameter[]
+  locators: string[]
+  defaultValueInput?: boolean
   onChange?: (
     values: {
-      name: string;
-      value: string;
-      type: StepParameterType;
-      order: number;
-    }[]
-  ) => void;
+      name: string
+      value: string
+      type: StepParameterType
+      order: number
+    }[],
+  ) => void
   initialParameterValues?: {
-    name: string;
-    value: string;
-    type: StepParameterType;
-    order: number;
-  }[];
+    name: string
+    value: string
+    type: StepParameterType
+    order: number
+  }[]
 }
 
 export interface DynamicFormFieldsRef {
-  validate: () => boolean;
+  validate: () => boolean
 }
 
-const DynamicFormFields = forwardRef<
-  DynamicFormFieldsRef,
-  DynamicFormFieldsProps
->((props, ref) => {
-  const {
-    templateStepParams,
-    locators,
-    defaultValueInput = false,
-    onChange,
-    initialParameterValues,
-  } = props;
+const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProps>((props, ref) => {
+  const { templateStepParams, locators, defaultValueInput = false, onChange, initialParameterValues } = props
 
   const resetKey = useMemo(() => {
     return JSON.stringify({
-      params: templateStepParams.map((p) => ({ name: p.name, type: p.type })),
+      params: templateStepParams.map(p => ({ name: p.name, type: p.type })),
       initialParameterValues,
-    });
-  }, [templateStepParams, initialParameterValues]);
+    })
+  }, [templateStepParams, initialParameterValues])
 
   // Memoize uniqueLocators to prevent recreation on every render
-  const uniqueLocators = useMemo(() => [...new Set(locators)], [locators]);
+  const uniqueLocators = useMemo(() => [...new Set(locators)], [locators])
 
   // Create initial values only once when component mounts
   const initialValues = useMemo(() => {
-    const values: { [key: string]: string | number | boolean | Date } = {};
+    const values: { [key: string]: string | number | boolean | Date } = {}
     // Build a map for quick lookup of initial values by name
-    const initialValueMap: Record<
-      string,
-      { value: string; type: StepParameterType }
-    > = {};
-    initialParameterValues?.forEach((v) => {
-      initialValueMap[v.name] = { value: v.value, type: v.type };
-    });
-    templateStepParams.forEach((param) => {
-      const initial = initialValueMap[param.name];
+    const initialValueMap: Record<string, { value: string; type: StepParameterType }> = {}
+    initialParameterValues?.forEach(v => {
+      initialValueMap[v.name] = { value: v.value, type: v.type }
+    })
+    templateStepParams.forEach(param => {
+      const initial = initialValueMap[param.name]
       if (initial) {
         switch (param.type) {
-          case "NUMBER":
-            values[param.name] = Number(initial.value);
-            break;
-          case "STRING":
-          case "LOCATOR":
-            values[param.name] = initial.value;
-            break;
-          case "DATE":
+          case 'NUMBER':
+            values[param.name] = Number(initial.value)
+            break
+          case 'STRING':
+          case 'LOCATOR':
+            values[param.name] = initial.value
+            break
+          case 'DATE':
             // Try to parse date from string
-            const date = new Date(initial.value);
-            values[param.name] = isNaN(date.getTime()) ? new Date() : date;
-            break;
-          case "BOOLEAN":
-            values[param.name] = initial.value === "true";
-            break;
+            const date = new Date(initial.value)
+            values[param.name] = isNaN(date.getTime()) ? new Date() : date
+            break
+          case 'BOOLEAN':
+            values[param.name] = initial.value === 'true'
+            break
         }
       } else {
         // fallback to default
         switch (param.type) {
-          case "NUMBER":
-            values[param.name] = 0;
-            break;
-          case "STRING":
-            values[param.name] = "";
-            break;
-          case "DATE":
-            values[param.name] = new Date();
-            break;
-          case "BOOLEAN":
-            values[param.name] = false;
-            break;
-          case "LOCATOR":
-            values[param.name] = "";
-            break;
+          case 'NUMBER':
+            values[param.name] = 0
+            break
+          case 'STRING':
+            values[param.name] = ''
+            break
+          case 'DATE':
+            values[param.name] = new Date()
+            break
+          case 'BOOLEAN':
+            values[param.name] = false
+            break
+          case 'LOCATOR':
+            values[param.name] = ''
+            break
         }
       }
-    });
-    return values;
-  }, [templateStepParams, initialParameterValues]);
+    })
+    return values
+  }, [templateStepParams, initialParameterValues])
 
   // Initialize state with initial values
   const [values, setValues] = useState<{
-    [key: string]: string | number | boolean | Date;
-  }>(initialValues);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+    [key: string]: string | number | boolean | Date
+  }>(initialValues)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    setErrors({});
-  }, [templateStepParams]);
+    setErrors({})
+  }, [templateStepParams])
 
   useImperativeHandle(ref, () => ({
     validate: () => {
       // Skip all validation if defaultValueInput is true (all fields are optional)
       if (defaultValueInput) {
-        setErrors({});
-        return true;
+        setErrors({})
+        return true
       }
 
-      const newErrors: Record<string, string> = {};
-      templateStepParams.forEach((param) => {
-        const value = values[param.name];
+      const newErrors: Record<string, string> = {}
+      templateStepParams.forEach(param => {
+        const value = values[param.name]
 
-        if (param.type === "LOCATOR" && !value) {
-          newErrors[param.name] = "Locator is required";
+        if (param.type === 'LOCATOR' && !value) {
+          newErrors[param.name] = 'Locator is required'
         }
-        if (param.type === "STRING" && !value) {
-          newErrors[param.name] = "This field is required";
+        if (param.type === 'STRING' && !value) {
+          newErrors[param.name] = 'This field is required'
         }
-        if (param.type === "NUMBER" && !value) {
-          newErrors[param.name] = "This field is required";
+        if (param.type === 'NUMBER' && !value) {
+          newErrors[param.name] = 'This field is required'
         }
         // Add other validation rules here if needed
-      });
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
+      })
+      setErrors(newErrors)
+      return Object.keys(newErrors).length === 0
     },
-  }));
+  }))
 
   // Update values when an input changes
-  const handleInputChange = (
-    name: string,
-    value: string | number | boolean | Date
-  ) => {
+  const handleInputChange = (name: string, value: string | number | boolean | Date) => {
     const newValues = {
       ...values,
       [name]: value,
-    };
+    }
 
-    setValues(newValues);
+    setValues(newValues)
 
     // Clear error for the field being edited
     if (errors[name]) {
-      const newErrors = { ...errors };
-      delete newErrors[name];
-      setErrors(newErrors);
+      const newErrors = { ...errors }
+      delete newErrors[name]
+      setErrors(newErrors)
     }
 
     // Notify parent component of changes
     if (onChange) {
       // We need to calculate formatted values based on the new state
-      const formattedValues = templateStepParams.map((param) => {
-        let stringValue = "";
+      const formattedValues = templateStepParams.map(param => {
+        let stringValue = ''
         // Use the new value if it's the one that changed, otherwise use the current state
-        const currentValue = param.name === name ? value : values[param.name];
+        const currentValue = param.name === name ? value : values[param.name]
 
         switch (param.type) {
-          case "NUMBER":
-            stringValue =
-              currentValue !== undefined && currentValue !== null
-                ? String(currentValue)
-                : "";
-            break;
-          case "STRING":
-            stringValue =
-              currentValue !== undefined && currentValue !== null
-                ? (currentValue as string)
-                : "";
-            break;
-          case "DATE":
+          case 'NUMBER':
+            stringValue = currentValue !== undefined && currentValue !== null ? String(currentValue) : ''
+            break
+          case 'STRING':
+            stringValue = currentValue !== undefined && currentValue !== null ? (currentValue as string) : ''
+            break
+          case 'DATE':
             if (
               currentValue &&
               currentValue instanceof Date &&
-              typeof currentValue.getTime === "function" &&
+              typeof currentValue.getTime === 'function' &&
               !Number.isNaN(currentValue.getTime())
             ) {
-              stringValue = format(currentValue as Date, "PPP");
+              stringValue = format(currentValue as Date, 'PPP')
             } else {
-              stringValue = "";
+              stringValue = ''
             }
-            break;
-          case "BOOLEAN":
-            stringValue =
-              currentValue !== undefined && currentValue !== null
-                ? String(currentValue)
-                : "";
-            break;
-          case "LOCATOR":
-            stringValue =
-              currentValue !== undefined && currentValue !== null
-                ? (currentValue as string)
-                : "";
-            break;
+            break
+          case 'BOOLEAN':
+            stringValue = currentValue !== undefined && currentValue !== null ? String(currentValue) : ''
+            break
+          case 'LOCATOR':
+            stringValue = currentValue !== undefined && currentValue !== null ? (currentValue as string) : ''
+            break
         }
 
         return {
@@ -240,92 +197,75 @@ const DynamicFormFields = forwardRef<
           value: stringValue,
           type: param.type,
           order: param.order,
-        };
-      });
+        }
+      })
 
-      onChange(formattedValues);
+      onChange(formattedValues)
     }
-  };
+  }
 
   // Render the appropriate input field based on the parameter type
   const renderInputField = (param: TemplateStepParameter) => {
-    const { name, type } = param;
-    const errorMessage = errors[name];
+    const { name, type } = param
+    const errorMessage = errors[name]
 
     switch (type) {
-      case "NUMBER":
+      case 'NUMBER':
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`input-${name}`}>
-              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Input
               id={`input-${name}`}
               type="number"
-              value={typeof values[name] === "number" ? values[name] : 0}
-              onChange={(e) => handleInputChange(name, Number(e.target.value))}
+              value={typeof values[name] === 'number' ? values[name] : 0}
+              onChange={e => handleInputChange(name, Number(e.target.value))}
               className="w-full"
             />
-            <ErrorMessage
-              message={errorMessage || ""}
-              visible={!!errorMessage}
-            />
+            <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
           </div>
-        );
+        )
 
-      case "STRING":
+      case 'STRING':
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`input-${name}`}>
-              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Input
               id={`input-${name}`}
               type="text"
-              value={typeof values[name] === "string" ? values[name] : ""}
-              onChange={(e) => handleInputChange(name, e.target.value)}
+              value={typeof values[name] === 'string' ? values[name] : ''}
+              onChange={e => handleInputChange(name, e.target.value)}
               className="w-full"
             />
-            <ErrorMessage
-              message={errorMessage || ""}
-              visible={!!errorMessage}
-            />
+            <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
           </div>
-        );
+        )
 
-      case "DATE":
+      case 'DATE':
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label>
-              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !values[name] && "text-muted-foreground"
-                  )}
+                  className={cn('w-full justify-start text-left font-normal', !values[name] && 'text-muted-foreground')}
                   aria-required={!defaultValueInput}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {values[name] instanceof Date ? (
-                    format(values[name] as Date, "PPP")
+                    format(values[name] as Date, 'PPP')
                   ) : (
-                    <span
-                      className={
-                        defaultValueInput
-                          ? "text-muted-foreground"
-                          : "text-red-500"
-                      }
-                    >
-                      {defaultValueInput
-                        ? "Pick a date (optional)"
-                        : "Pick a date *"}
+                    <span className={defaultValueInput ? 'text-muted-foreground' : 'text-red-500'}>
+                      {defaultValueInput ? 'Pick a date (optional)' : 'Pick a date *'}
                     </span>
                   )}
                 </Button>
@@ -333,48 +273,30 @@ const DynamicFormFields = forwardRef<
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={
-                    values[name] instanceof Date
-                      ? (values[name] as Date)
-                      : undefined
-                  }
-                  onSelect={(date: Date | undefined) =>
-                    handleInputChange(name, date as Date)
-                  }
+                  selected={values[name] instanceof Date ? (values[name] as Date) : undefined}
+                  onSelect={(date: Date | undefined) => handleInputChange(name, date as Date)}
                   initialFocus
                   required={!defaultValueInput}
                 />
               </PopoverContent>
             </Popover>
           </div>
-        );
+        )
 
-      case "BOOLEAN":
+      case 'BOOLEAN':
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`select-${name}`}>
-              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Select
-              value={
-                typeof values[name] === "boolean"
-                  ? String(values[name])
-                  : "false"
-              }
-              onValueChange={(value) =>
-                handleInputChange(name, value === "true")
-              }
+              value={typeof values[name] === 'boolean' ? String(values[name]) : 'false'}
+              onValueChange={value => handleInputChange(name, value === 'true')}
               required={!defaultValueInput}
             >
               <SelectTrigger id={`select-${name}`} className="w-full">
-                <SelectValue
-                  placeholder={
-                    defaultValueInput
-                      ? "Select a value (optional)"
-                      : "Select a value *"
-                  }
-                />
+                <SelectValue placeholder={defaultValueInput ? 'Select a value (optional)' : 'Select a value *'} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="true">True</SelectItem>
@@ -382,68 +304,59 @@ const DynamicFormFields = forwardRef<
               </SelectContent>
             </Select>
           </div>
-        );
+        )
 
-      case "LOCATOR":
+      case 'LOCATOR':
         return (
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor={`select-${name}`}>
-              {defaultValueInput ? `Default ${name}` : name}{" "}
+              {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
             <Select
-              value={typeof values[name] === "string" ? values[name] : ""}
-              onValueChange={(value) => handleInputChange(name, value)}
+              value={typeof values[name] === 'string' ? values[name] : ''}
+              onValueChange={value => handleInputChange(name, value)}
               required={!defaultValueInput}
             >
               <SelectTrigger id={`select-${name}`} className="w-full">
-                <SelectValue
-                  placeholder={
-                    defaultValueInput
-                      ? "Select a locator (optional)"
-                      : "Select a locator *"
-                  }
-                />
+                <SelectValue placeholder={defaultValueInput ? 'Select a locator (optional)' : 'Select a locator *'} />
               </SelectTrigger>
               <SelectContent>
-                {uniqueLocators.map((locator) => (
+                {uniqueLocators.map(locator => (
                   <SelectItem key={locator} value={locator}>
                     {locator}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <ErrorMessage
-              message={errorMessage || ""}
-              visible={!!errorMessage}
-            />
+            <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
           </div>
-        );
+        )
 
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   // Guard: do not render if no parameters
   if (!templateStepParams || templateStepParams.length === 0) {
-    return null;
+    return null
   }
 
   return (
     <Card className="border-none shadow-none" key={resetKey}>
       <CardContent className="p-0">
-        <fieldset className="border rounded-md p-4">
-          <legend className="text-sm font-medium px-2">Parameters</legend>
+        <fieldset className="rounded-md border p-4">
+          <legend className="px-2 text-sm font-medium">Parameters</legend>
           <div className="space-y-6">
-            {templateStepParams.map((param) => (
+            {templateStepParams.map(param => (
               <div key={param.name}>{renderInputField(param)}</div>
             ))}
           </div>
         </fieldset>
       </CardContent>
     </Card>
-  );
-});
-DynamicFormFields.displayName = "DynamicFormFields";
-export default DynamicFormFields;
+  )
+})
+DynamicFormFields.displayName = 'DynamicFormFields'
+export default DynamicFormFields

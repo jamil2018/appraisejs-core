@@ -1,10 +1,10 @@
-"use server";
+'use server'
 
-import prisma from "@/config/db-config";
-import { locatorGroupSchema } from "@/constants/form-opts/locator-group-form-opts";
-import { ActionResponse } from "@/types/form/actionHandler";
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import prisma from '@/config/db-config'
+import { locatorGroupSchema } from '@/constants/form-opts/locator-group-form-opts'
+import { ActionResponse } from '@/types/form/actionHandler'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import {
   createOrUpdateLocatorGroupFile,
   deleteLocatorGroupFile,
@@ -12,14 +12,14 @@ import {
   moveLocatorGroupFile,
   createEmptyLocatorGroupFile,
   readLocatorGroupFile,
-} from "@/lib/locator-group-file-utils";
+} from '@/lib/locator-group-file-utils'
 
 // Common include pattern for locator groups
 const locatorGroupInclude = {
   module: {
     select: { name: true },
   },
-} as const;
+} as const
 
 /**
  * Get all locator groups
@@ -28,41 +28,39 @@ export async function getAllLocatorGroupsAction(): Promise<ActionResponse> {
   try {
     const locatorGroups = await prisma.locatorGroup.findMany({
       include: locatorGroupInclude,
-    });
+    })
 
     return {
       status: 200,
       data: locatorGroups,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
 /**
  * Get a locator group by ID
  */
-export async function getLocatorGroupByIdAction(
-  id: string
-): Promise<ActionResponse> {
+export async function getLocatorGroupByIdAction(id: string): Promise<ActionResponse> {
   try {
     const locatorGroup = await prisma.locatorGroup.findUnique({
       where: { id },
       include: locatorGroupInclude,
-    });
+    })
 
     return {
       status: 200,
       data: locatorGroup,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
@@ -71,7 +69,7 @@ export async function getLocatorGroupByIdAction(
  */
 export async function createLocatorGroupAction(
   _prev: unknown,
-  value: z.infer<typeof locatorGroupSchema>
+  value: z.infer<typeof locatorGroupSchema>,
 ): Promise<ActionResponse> {
   try {
     const locatorGroup = await prisma.locatorGroup.create({
@@ -79,25 +77,25 @@ export async function createLocatorGroupAction(
         name: value.name,
         moduleId: value.moduleId,
         locators: {
-          connect: value.locators?.map((locator) => ({ id: locator })) || [],
+          connect: value.locators?.map(locator => ({ id: locator })) || [],
         },
       },
-    });
+    })
 
     // Create empty JSON file initially
-    await createEmptyLocatorGroupFile(locatorGroup.id);
+    await createEmptyLocatorGroupFile(locatorGroup.id)
 
-    revalidatePath("/locator-groups");
+    revalidatePath('/locator-groups')
     return {
       status: 200,
       data: locatorGroup,
-      message: "Locator group created successfully",
-    };
+      message: 'Locator group created successfully',
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
@@ -107,20 +105,20 @@ export async function createLocatorGroupAction(
 export async function updateLocatorGroupAction(
   _prev: unknown,
   value: z.infer<typeof locatorGroupSchema>,
-  id?: string
+  id?: string,
 ): Promise<ActionResponse> {
   try {
     // Get current state to detect changes
     const currentLocatorGroup = await prisma.locatorGroup.findUnique({
       where: { id },
       include: { module: true },
-    });
+    })
 
     if (!currentLocatorGroup) {
       return {
         status: 404,
-        error: "Locator group not found",
-      };
+        error: 'Locator group not found',
+      }
     }
 
     // Update the locator group
@@ -130,98 +128,94 @@ export async function updateLocatorGroupAction(
         name: value.name,
         moduleId: value.moduleId,
         locators: {
-          set: value.locators?.map((locator) => ({ id: locator })) || [],
+          set: value.locators?.map(locator => ({ id: locator })) || [],
         },
       },
       include: locatorGroupInclude,
-    });
+    })
 
     // Handle file operations based on changes
-    const nameChanged = currentLocatorGroup.name !== value.name;
-    const moduleChanged = currentLocatorGroup.moduleId !== value.moduleId;
+    const nameChanged = currentLocatorGroup.name !== value.name
+    const moduleChanged = currentLocatorGroup.moduleId !== value.moduleId
 
     if (nameChanged && moduleChanged) {
       // Both changed - move the file (this will handle both changes)
-      await moveLocatorGroupFile(id!);
+      await moveLocatorGroupFile(id!)
     } else if (nameChanged) {
       // Only name changed - rename the file
-      await renameLocatorGroupFile(id!, value.name);
+      await renameLocatorGroupFile(id!, value.name)
     } else if (moduleChanged) {
       // Only module changed - move the file
-      await moveLocatorGroupFile(id!);
+      await moveLocatorGroupFile(id!)
     } else {
       // No structural changes - just update content
-      await createOrUpdateLocatorGroupFile(id!);
+      await createOrUpdateLocatorGroupFile(id!)
     }
 
-    revalidatePath("/locator-groups");
+    revalidatePath('/locator-groups')
     return {
       status: 200,
       data: updatedLocatorGroup,
-      message: "Locator group updated successfully",
-    };
+      message: 'Locator group updated successfully',
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
 /**
  * Delete locator groups
  */
-export async function deleteLocatorGroupAction(
-  ids: string[]
-): Promise<ActionResponse> {
+export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionResponse> {
   try {
     // Delete JSON files first
-    await Promise.all(ids.map((id) => deleteLocatorGroupFile(id)));
+    await Promise.all(ids.map(id => deleteLocatorGroupFile(id)))
 
     // Delete the locator groups (locators will be deleted via cascade)
     await prisma.locatorGroup.deleteMany({
       where: { id: { in: ids } },
-    });
+    })
 
-    revalidatePath("/locator-groups");
+    revalidatePath('/locator-groups')
     return {
       status: 200,
       data: ids,
       message: `${ids.length} locator group(s) deleted successfully`,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
 /**
  * Get the content of a specific locator group file
  */
-export async function getLocatorGroupFileContentAction(
-  locatorGroupId: string
-): Promise<ActionResponse> {
+export async function getLocatorGroupFileContentAction(locatorGroupId: string): Promise<ActionResponse> {
   try {
-    const fileData = await readLocatorGroupFile(locatorGroupId);
+    const fileData = await readLocatorGroupFile(locatorGroupId)
 
     if (!fileData) {
       return {
         status: 404,
-        error: "Locator group not found or file path could not be determined",
-      };
+        error: 'Locator group not found or file path could not be determined',
+      }
     }
 
     return {
       status: 200,
       data: fileData,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
@@ -237,19 +231,15 @@ export async function regenerateAllLocatorGroupFilesAction(): Promise<ActionResp
           select: { name: true, value: true },
         },
       },
-    });
+    })
 
     // Process all files in parallel for better performance
     const results = await Promise.allSettled(
-      locatorGroups.map((locatorGroup) =>
-        createOrUpdateLocatorGroupFile(locatorGroup.id)
-      )
-    );
+      locatorGroups.map(locatorGroup => createOrUpdateLocatorGroupFile(locatorGroup.id)),
+    )
 
-    const successCount = results.filter(
-      (result) => result.status === "fulfilled" && result.value
-    ).length;
-    const errorCount = results.length - successCount;
+    const successCount = results.filter(result => result.status === 'fulfilled' && result.value).length
+    const errorCount = results.length - successCount
 
     return {
       status: 200,
@@ -259,11 +249,11 @@ export async function regenerateAllLocatorGroupFilesAction(): Promise<ActionResp
         errors: errorCount,
       },
       message: `Regenerated ${successCount} files successfully. ${errorCount} errors encountered.`,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }

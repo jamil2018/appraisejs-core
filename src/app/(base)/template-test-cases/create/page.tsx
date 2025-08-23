@@ -1,29 +1,23 @@
-import PageHeader from "@/components/typography/page-header";
-import HeaderSubtitle from "@/components/typography/page-header-subtitle";
-import { Blocks } from "lucide-react";
-import React from "react";
-import TemplateTestCaseForm from "../template-test-case-form";
-import { Locator, TemplateStep, TemplateStepParameter } from "@prisma/client";
-import { getAllLocatorsAction } from "@/actions/locator/locator-actions";
-import { getAllTemplateStepParamsAction } from "@/actions/template-step/template-step-actions";
-import { getAllTemplateStepsAction } from "@/actions/template-step/template-step-actions";
-import { createTemplateTestCaseAction } from "@/actions/template-test-case/template-test-case-actions";
+import PageHeader from '@/components/typography/page-header'
+import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import { Blocks } from 'lucide-react'
+import React from 'react'
+import TemplateTestCaseForm from '../template-test-case-form'
+import { Locator, TemplateStep, TemplateStepParameter } from '@prisma/client'
+import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { getAllTemplateStepParamsAction } from '@/actions/template-step/template-step-actions'
+import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
+import { createTemplateTestCaseAction } from '@/actions/template-test-case/template-test-case-actions'
 
 const CreateTemplateTestCase = async () => {
-  const { data: templateStepParams, error: templateStepParamsError } =
-    await getAllTemplateStepParamsAction();
+  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
 
-  const { data: templateSteps, error: templateStepsError } =
-    await getAllTemplateStepsAction();
+  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
 
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction();
+  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
 
   if (templateStepParamsError || templateStepsError || locatorsError) {
-    return (
-      <div>
-        Error: {templateStepParamsError || templateStepsError || locatorsError}
-      </div>
-    );
+    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError}</div>
   }
 
   return (
@@ -31,13 +25,11 @@ const CreateTemplateTestCase = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Blocks className="w-8 h-8 mr-2" />
+            <Blocks className="mr-2 h-8 w-8" />
             Create Template Test Case
           </span>
         </PageHeader>
-        <HeaderSubtitle>
-          Create a new template test case to quickly create test cases
-        </HeaderSubtitle>
+        <HeaderSubtitle>Create a new template test case to quickly create test cases</HeaderSubtitle>
       </div>
       <TemplateTestCaseForm
         defaultNodesOrder={{}}
@@ -48,7 +40,7 @@ const CreateTemplateTestCase = async () => {
         defaultValueInput={true}
       />
     </>
-  );
-};
+  )
+}
 
-export default CreateTemplateTestCase;
+export default CreateTemplateTestCase

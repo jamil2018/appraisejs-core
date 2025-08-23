@@ -65,7 +65,7 @@ model TemplateStepParameter {
   templateStepId String
   order          Int
   type           StepParameterType
-  templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id])
+  templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
 }
 
 model TemplateStepGroup {
@@ -97,7 +97,7 @@ model TestCaseStep {
   icon           TemplateStepIcon
   label          String
   templateStepId String
-  TemplateStep   TemplateStep            @relation(fields: [templateStepId], references: [id])
+  TemplateStep   TemplateStep            @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
   testCase       TestCase                @relation(fields: [testCaseId], references: [id])
   parameters     TestCaseStepParameter[]
 }
@@ -119,7 +119,7 @@ model TemplateTestCaseStep {
   label              String
   templateTestCaseId String
   templateStepId     String
-  TemplateStep       TemplateStep                    @relation(fields: [templateStepId], references: [id])
+  TemplateStep       TemplateStep                    @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
   templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
   parameters         TemplateTestCaseStepParameter[]
 }

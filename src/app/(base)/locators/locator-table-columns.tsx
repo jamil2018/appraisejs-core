@@ -1,26 +1,21 @@
-"use client";
+'use client'
 
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
-import { ColumnDef } from "@tanstack/react-table";
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { ColumnDef } from '@tanstack/react-table'
 
-import { Checkbox } from "@/components/ui/checkbox";
-import TableActions from "@/components/table/table-actions";
-import { Locator, LocatorGroup } from "@prisma/client";
-import { deleteLocatorAction } from "@/actions/locator/locator-actions";
-import { formatDateTime } from "@/lib/utils";
+import { Checkbox } from '@/components/ui/checkbox'
+import TableActions from '@/components/table/table-actions'
+import { Locator, LocatorGroup } from '@prisma/client'
+import { deleteLocatorAction } from '@/actions/locator/locator-actions'
+import { formatDateTime } from '@/lib/utils'
 
-export const locatorTableCols: ColumnDef<
-  Locator & { locatorGroup: LocatorGroup }
->[] = [
+export const locatorTableCols: ColumnDef<Locator & { locatorGroup: LocatorGroup }>[] = [
   {
-    id: "select",
+    id: 'select',
     header: ({ table }) => (
       <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
         className="mr-2"
       />
@@ -28,7 +23,7 @@ export const locatorTableCols: ColumnDef<
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        onCheckedChange={value => row.toggleSelected(!!value)}
         aria-label="Select row"
         className="mr-2"
       />
@@ -37,57 +32,45 @@ export const locatorTableCols: ColumnDef<
     enableHiding: false,
   },
   {
-    accessorKey: "id",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID" />
-    ),
+    accessorKey: 'id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
   },
   {
-    accessorKey: "name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    accessorKey: 'name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
   },
   {
-    accessorKey: "value",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Value" />
-    ),
+    accessorKey: 'value',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Value" />,
   },
   {
-    accessorKey: "locatorGroup.name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Locator Group" />
-    ),
+    accessorKey: 'locatorGroup.name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Locator Group" />,
   },
   {
-    accessorKey: "createdAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
-    ),
+    accessorKey: 'createdAt',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
     cell: ({ row }) => {
-      return formatDateTime(row.original.createdAt);
+      return formatDateTime(row.original.createdAt)
     },
   },
   {
-    accessorKey: "updatedAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Updated At" />
-    ),
+    accessorKey: 'updatedAt',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Updated At" />,
     cell: ({ row }) => {
-      return formatDateTime(row.original.updatedAt);
+      return formatDateTime(row.original.updatedAt)
     },
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => {
-      const locator = row.original;
+      const locator = row.original
       return (
         <TableActions
           modifyLink={`/locators/modify/${locator.id}`}
           deleteHandler={() => deleteLocatorAction([locator.id])}
         />
-      );
+      )
     },
   },
-];
+]

@@ -1,26 +1,23 @@
-import PageHeader from "@/components/typography/page-header";
-import HeaderSubtitle from "@/components/typography/page-header-subtitle";
-import React from "react";
-import LocatorForm from "../locator-form";
-import { createLocatorAction } from "@/actions/locator/locator-actions";
-import { getAllLocatorGroupsAction } from "@/actions/locator-groups/locator-group-actions";
-import { LocatorGroup } from "@prisma/client";
+import PageHeader from '@/components/typography/page-header'
+import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import React from 'react'
+import LocatorForm from '../locator-form'
+import { createLocatorAction } from '@/actions/locator/locator-actions'
+import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { LocatorGroup } from '@prisma/client'
 
 const CreateLocator = async () => {
-  const { data: locatorGroupList, error: locatorGroupListError } =
-    await getAllLocatorGroupsAction();
+  const { data: locatorGroupList, error: locatorGroupListError } = await getAllLocatorGroupsAction()
 
   if (locatorGroupListError) {
-    return <div>Error: {locatorGroupListError}</div>;
+    return <div>Error: {locatorGroupListError}</div>
   }
 
   return (
     <>
       <div className="mb-8">
         <PageHeader>Create Locator</PageHeader>
-        <HeaderSubtitle>
-          Create a new locator to be used in your test cases.
-        </HeaderSubtitle>
+        <HeaderSubtitle>Create a new locator to be used in your test cases.</HeaderSubtitle>
       </div>
       <LocatorForm
         successTitle="Locator created"
@@ -29,7 +26,7 @@ const CreateLocator = async () => {
         locatorGroupList={locatorGroupList as LocatorGroup[]}
       />
     </>
-  );
-};
+  )
+}
 
-export default CreateLocator;
+export default CreateLocator

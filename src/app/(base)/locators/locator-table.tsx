@@ -1,16 +1,13 @@
-import {
-  deleteLocatorAction,
-  getAllLocatorsAction,
-} from "@/actions/locator/locator-actions";
-import { DataTable } from "@/components/ui/data-table";
-import { locatorTableCols } from "./locator-table-columns";
-import { Locator, LocatorGroup } from "@prisma/client";
+import { deleteLocatorAction, getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { DataTable } from '@/components/ui/data-table'
+import { locatorTableCols } from './locator-table-columns'
+import { Locator, LocatorGroup } from '@prisma/client'
 
 const LocatorTable = async () => {
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction();
+  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
 
   if (locatorsError) {
-    return <div>Error: {locatorsError}</div>;
+    return <div>Error: {locatorsError}</div>
   }
 
   return (
@@ -25,7 +22,7 @@ const LocatorTable = async () => {
         deleteAction={deleteLocatorAction}
       />
     </>
-  );
-};
+  )
+}
 
-export default LocatorTable;
+export default LocatorTable

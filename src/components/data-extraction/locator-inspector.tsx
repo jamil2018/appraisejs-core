@@ -1,46 +1,37 @@
-"use client";
+'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Copy, Target, MousePointer, Info } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Copy, Target, MousePointer, Info } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 
 interface SelectedElementDetails {
-  tag: string;
-  id?: string;
-  className?: string;
-  name?: string;
-  text?: string;
-  cssPath: string;
-  xpath: string;
-  html: string;
+  tag: string
+  id?: string
+  className?: string
+  name?: string
+  text?: string
+  cssPath: string
+  xpath: string
+  html: string
 }
 
 interface LocatorInspectorProps {
-  iframeUrl?: string;
+  iframeUrl?: string
 }
 
-export default function LocatorInspector({
-  iframeUrl = "/sample-page",
-}: LocatorInspectorProps) {
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedElementDetails, setSelectedElementDetails] = useState<
-    SelectedElementDetails | undefined
-  >();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+export default function LocatorInspector({ iframeUrl = '/sample-page' }: LocatorInspectorProps) {
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedElementDetails, setSelectedElementDetails] = useState<SelectedElementDetails | undefined>()
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // Injection script - optimized and cleaned up
   const injectionScript = `
@@ -141,31 +132,31 @@ export default function LocatorInspector({
         }
       });
     })();
-  `;
+  `
 
   // Inject script when iframe loads
   const handleIframeLoad = () => {
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
+    const iframe = iframeRef.current
+    if (!iframe?.contentWindow) return
 
     try {
-      const script = iframe.contentDocument?.createElement("script");
+      const script = iframe.contentDocument?.createElement('script')
       if (script) {
-        script.textContent = injectionScript;
-        iframe.contentDocument?.head.appendChild(script);
+        script.textContent = injectionScript
+        iframe.contentDocument?.head.appendChild(script)
       }
     } catch (error) {
-      console.warn("Could not inject script into iframe:", error);
+      console.warn('Could not inject script into iframe:', error)
     }
-  };
+  }
 
   // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === "SELECTION_MODE_OFF") {
-        setIsSelectionMode(false);
-      } else if (event.data.type === "ELEMENT_SELECTED") {
-        const { elementData } = event.data;
+      if (event.data.type === 'SELECTION_MODE_OFF') {
+        setIsSelectionMode(false)
+      } else if (event.data.type === 'ELEMENT_SELECTED') {
+        const { elementData } = event.data
         setSelectedElementDetails({
           tag: elementData.tagName.toLowerCase(),
           id: elementData.id || undefined,
@@ -175,75 +166,61 @@ export default function LocatorInspector({
           cssPath: generateCSSPath(elementData),
           xpath: generateXPath(elementData),
           html: elementData.outerHTML,
-        });
+        })
       }
-    };
+    }
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
 
   // Generate CSS selector
-  const generateCSSPath = (element: {
-    tagName: string;
-    className?: string;
-    id?: string;
-  }) => {
-    if (element.id) return `#${element.id}`;
+  const generateCSSPath = (element: { tagName: string; className?: string; id?: string }) => {
+    if (element.id) return `#${element.id}`
 
-    let path = element.tagName.toLowerCase();
+    let path = element.tagName.toLowerCase()
     if (element.className) {
-      const classes = element.className.split(" ").filter(Boolean);
+      const classes = element.className.split(' ').filter(Boolean)
       if (classes.length > 0) {
-        path += "." + classes.join(".");
+        path += '.' + classes.join('.')
       }
     }
-    return path;
-  };
+    return path
+  }
 
   // Generate XPath
-  const generateXPath = (element: {
-    tagName: string;
-    className?: string;
-    id?: string;
-  }) => {
-    if (element.id) return `//*[@id="${element.id}"]`;
+  const generateXPath = (element: { tagName: string; className?: string; id?: string }) => {
+    if (element.id) return `//*[@id="${element.id}"]`
 
-    let path = `//${element.tagName.toLowerCase()}`;
+    let path = `//${element.tagName.toLowerCase()}`
     if (element.className) {
-      path += `[@class="${element.className}"]`;
+      path += `[@class="${element.className}"]`
     }
-    return path;
-  };
+    return path
+  }
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
+    navigator.clipboard.writeText(text)
+  }
 
   const toggleSelectionMode = () => {
-    const newSelectionMode = !isSelectionMode;
-    setIsSelectionMode(newSelectionMode);
+    const newSelectionMode = !isSelectionMode
+    setIsSelectionMode(newSelectionMode)
 
-    const iframe = iframeRef.current;
+    const iframe = iframeRef.current
     if (iframe?.contentWindow) {
       iframe.contentWindow.postMessage(
         {
-          type: "TOGGLE_SELECTION_MODE",
+          type: 'TOGGLE_SELECTION_MODE',
           isSelectionMode: newSelectionMode,
         },
-        "*"
-      );
+        '*',
+      )
     }
-  };
+  }
 
   // Render property field with copy button
-  const renderPropertyField = (
-    id: string,
-    label: string,
-    value: string,
-    bgColor?: string,
-    borderColor?: string
-  ) => (
+  const renderPropertyField = (id: string, label: string, value: string, bgColor?: string, borderColor?: string) => (
     <div className="space-y-2">
       <Label htmlFor={id} className="text-sm font-medium">
         {label}
@@ -253,14 +230,14 @@ export default function LocatorInspector({
           id={id}
           value={value}
           readOnly
-          className={`font-mono text-sm rounded-r-none border-r-0 ${bgColor || ""} ${borderColor || ""}`}
+          className={`rounded-r-none border-r-0 font-mono text-sm ${bgColor || ''} ${borderColor || ''}`}
         />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               size="sm"
               variant="outline"
-              className="h-10 w-10 p-0 rounded-l-none border-l-0"
+              className="h-10 w-10 rounded-l-none border-l-0 p-0"
               onClick={() => copyToClipboard(value)}
             >
               <Copy className="h-3 w-3" />
@@ -272,26 +249,22 @@ export default function LocatorInspector({
         </Tooltip>
       </div>
     </div>
-  );
+  )
 
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-background border-b shadow-sm">
-          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <header className="border-b bg-background shadow-sm">
+          <div className="container mx-auto flex items-center justify-between px-6 py-4">
             <div className="space-y-1">
-              <h1 className="text-2xl font-bold tracking-tight">
-                Locator Explorer
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Inspect and generate locators for test automation
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight">Locator Explorer</h1>
+              <p className="text-sm text-muted-foreground">Inspect and generate locators for test automation</p>
             </div>
             <div className="flex items-center gap-3">
               <Button
                 onClick={toggleSelectionMode}
-                variant={isSelectionMode ? "default" : "outline"}
+                variant={isSelectionMode ? 'default' : 'outline'}
                 size="sm"
                 className="flex items-center gap-2"
               >
@@ -309,7 +282,7 @@ export default function LocatorInspector({
               </Button>
               {isSelectionMode && (
                 <Badge variant="secondary" className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
                   Click an element to inspect
                 </Badge>
               )}
@@ -323,16 +296,14 @@ export default function LocatorInspector({
           <div className="flex-1 p-6">
             <Card className="h-full shadow-lg">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold text-gray-800">
-                  Application Under Test
-                </CardTitle>
+                <CardTitle className="text-lg font-semibold text-gray-800">Application Under Test</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="h-[80vh] bg-gray-100 rounded-b-lg overflow-hidden">
+                <div className="h-[80vh] overflow-hidden rounded-b-lg bg-gray-100">
                   <iframe
                     ref={iframeRef}
                     src={iframeUrl}
-                    className="w-full h-full border-0"
+                    className="h-full w-full border-0"
                     title="Application Under Test"
                     sandbox="allow-same-origin allow-scripts allow-forms"
                     onLoad={handleIframeLoad}
@@ -346,13 +317,10 @@ export default function LocatorInspector({
           <div className="w-96 p-6 pl-0">
             <Card className="h-full shadow-lg">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                   <span className="truncate">Selected Element</span>
                   {selectedElementDetails && (
-                    <Badge
-                      variant="outline"
-                      className="font-mono text-xs shrink-0"
-                    >
+                    <Badge variant="outline" className="shrink-0 font-mono text-xs">
                       {selectedElementDetails.tag.toUpperCase()}
                     </Badge>
                   )}
@@ -364,41 +332,24 @@ export default function LocatorInspector({
                     <div className="space-y-6">
                       {/* Element Properties */}
                       <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
                           Properties
                         </h3>
                         <div className="space-y-3">
                           {renderPropertyField(
-                            "tag",
-                            "Tag Name",
+                            'tag',
+                            'Tag Name',
                             selectedElementDetails.tag,
-                            "bg-blue-50",
-                            "border-blue-200"
+                            'bg-blue-50',
+                            'border-blue-200',
                           )}
-                          {selectedElementDetails.id &&
-                            renderPropertyField(
-                              "id",
-                              "ID",
-                              selectedElementDetails.id
-                            )}
+                          {selectedElementDetails.id && renderPropertyField('id', 'ID', selectedElementDetails.id)}
                           {selectedElementDetails.className &&
-                            renderPropertyField(
-                              "class",
-                              "Class",
-                              selectedElementDetails.className
-                            )}
+                            renderPropertyField('class', 'Class', selectedElementDetails.className)}
                           {selectedElementDetails.name &&
-                            renderPropertyField(
-                              "name",
-                              "Name",
-                              selectedElementDetails.name
-                            )}
+                            renderPropertyField('name', 'Name', selectedElementDetails.name)}
                           {selectedElementDetails.text &&
-                            renderPropertyField(
-                              "text",
-                              "Text Content",
-                              selectedElementDetails.text
-                            )}
+                            renderPropertyField('text', 'Text Content', selectedElementDetails.text)}
                         </div>
                       </div>
 
@@ -406,20 +357,12 @@ export default function LocatorInspector({
 
                       {/* Selectors */}
                       <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                          Locators
-                        </h3>
+                        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Locators</h3>
                         <div className="space-y-3">
                           <div className="space-y-2">
-                            <Label
-                              htmlFor="css"
-                              className="text-sm font-medium flex items-center gap-2 flex-wrap"
-                            >
+                            <Label htmlFor="css" className="flex flex-wrap items-center gap-2 text-sm font-medium">
                               <span>CSS Selector</span>
-                              <Badge
-                                variant="secondary"
-                                className="text-xs shrink-0"
-                              >
+                              <Badge variant="secondary" className="shrink-0 text-xs">
                                 Recommended
                               </Badge>
                             </Label>
@@ -428,19 +371,15 @@ export default function LocatorInspector({
                                 id="css"
                                 value={selectedElementDetails.cssPath}
                                 readOnly
-                                className="bg-green-50 border-green-200 font-mono text-sm rounded-r-none border-r-0"
+                                className="rounded-r-none border-r-0 border-green-200 bg-green-50 font-mono text-sm"
                               />
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-10 w-10 p-0 rounded-l-none border-l-0"
-                                    onClick={() =>
-                                      copyToClipboard(
-                                        selectedElementDetails.cssPath
-                                      )
-                                    }
+                                    className="h-10 w-10 rounded-l-none border-l-0 p-0"
+                                    onClick={() => copyToClipboard(selectedElementDetails.cssPath)}
                                   >
                                     <Copy className="h-3 w-3" />
                                   </Button>
@@ -453,11 +392,11 @@ export default function LocatorInspector({
                           </div>
 
                           {renderPropertyField(
-                            "xpath",
-                            "XPath",
+                            'xpath',
+                            'XPath',
                             selectedElementDetails.xpath,
-                            "bg-yellow-50",
-                            "border-yellow-200"
+                            'bg-yellow-50',
+                            'border-yellow-200',
                           )}
                         </div>
                       </div>
@@ -466,25 +405,21 @@ export default function LocatorInspector({
 
                       {/* HTML Snippet */}
                       <div className="space-y-3">
-                        <Label className="text-sm font-medium">
-                          HTML Snippet
-                        </Label>
+                        <Label className="text-sm font-medium">HTML Snippet</Label>
                         <div className="flex">
                           <Textarea
                             value={selectedElementDetails.html}
                             readOnly
-                            className="font-mono text-xs resize-none min-h-[120px] rounded-r-none border-r-0 flex-1"
+                            className="min-h-[120px] flex-1 resize-none rounded-r-none border-r-0 font-mono text-xs"
                           />
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="w-10 rounded-l-none border-l-0 self-start"
-                                style={{ height: "120px" }}
-                                onClick={() =>
-                                  copyToClipboard(selectedElementDetails.html)
-                                }
+                                className="w-10 self-start rounded-l-none border-l-0"
+                                style={{ height: '120px' }}
+                                onClick={() => copyToClipboard(selectedElementDetails.html)}
                               >
                                 <Copy className="h-3 w-3" />
                               </Button>
@@ -497,23 +432,19 @@ export default function LocatorInspector({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                      <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                    <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
                         <Target className="h-8 w-8 text-muted-foreground" />
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">
-                        No Element Selected
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4 max-w-sm break-words">
-                        Click the &quot;Select Element&quot; button above, then
-                        click on any element in the application to inspect its
-                        properties.
+                      <h3 className="mb-2 text-lg font-semibold">No Element Selected</h3>
+                      <p className="mb-4 max-w-sm break-words text-sm text-muted-foreground">
+                        Click the &quot;Select Element&quot; button above, then click on any element in the application
+                        to inspect its properties.
                       </p>
                       <Alert className="max-w-sm">
                         <Info className="h-4 w-4" />
                         <AlertDescription className="break-words">
-                          Use the element selector to generate reliable locators
-                          for your test automation scripts.
+                          Use the element selector to generate reliable locators for your test automation scripts.
                         </AlertDescription>
                       </Alert>
                     </div>
@@ -525,5 +456,5 @@ export default function LocatorInspector({
         </div>
       </div>
     </TooltipProvider>
-  );
+  )
 }

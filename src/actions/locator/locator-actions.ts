@@ -1,22 +1,20 @@
-"use server";
+'use server'
 
-import prisma from "@/config/db-config";
-import { locatorSchema } from "@/constants/form-opts/locator-form-opts";
-import { ActionResponse } from "@/types/form/actionHandler";
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
-import { createOrUpdateLocatorGroupFile } from "@/lib/locator-group-file-utils";
+import prisma from '@/config/db-config'
+import { locatorSchema } from '@/constants/form-opts/locator-form-opts'
+import { ActionResponse } from '@/types/form/actionHandler'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+import { createOrUpdateLocatorGroupFile } from '@/lib/locator-group-file-utils'
 
 // Helper function to update locator group JSON file when locators change
-async function updateLocatorGroupFile(
-  locatorGroupId: string | null
-): Promise<void> {
-  if (!locatorGroupId) return;
+async function updateLocatorGroupFile(locatorGroupId: string | null): Promise<void> {
+  if (!locatorGroupId) return
 
   try {
-    await createOrUpdateLocatorGroupFile(locatorGroupId);
+    await createOrUpdateLocatorGroupFile(locatorGroupId)
   } catch (error) {
-    console.error("Error updating locator group file:", error);
+    console.error('Error updating locator group file:', error)
   }
 }
 
@@ -30,63 +28,55 @@ export async function getAllLocatorsAction(): Promise<ActionResponse> {
           },
         },
       },
-    });
+    })
     return {
       status: 200,
       data: locators,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
-export async function deleteLocatorAction(
-  ids: string[]
-): Promise<ActionResponse> {
+export async function deleteLocatorAction(ids: string[]): Promise<ActionResponse> {
   try {
     // Get locator group IDs before deletion to update files
     const locatorsToDelete = await prisma.locator.findMany({
       where: { id: { in: ids } },
       select: { locatorGroupId: true },
-    });
+    })
 
-    const locatorGroupIds = [
-      ...new Set(locatorsToDelete.map((l) => l.locatorGroupId).filter(Boolean)),
-    ];
+    const locatorGroupIds = [...new Set(locatorsToDelete.map(l => l.locatorGroupId).filter(Boolean))]
 
     const locator = await prisma.locator.deleteMany({
       where: { id: { in: ids } },
-    });
+    })
 
     // Update JSON files for affected locator groups in parallel
-    await Promise.all(
-      locatorGroupIds
-        .filter(Boolean)
-        .map((groupId) => updateLocatorGroupFile(groupId))
-    );
+    await Promise.all(locatorGroupIds.filter(Boolean).map(groupId => updateLocatorGroupFile(groupId)))
 
-    revalidatePath("/locators");
+    revalidatePath('/locators')
     return {
       status: 200,
       data: locator,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }
 
 export async function createLocatorAction(
   _prev: unknown,
-  value: z.infer<typeof locatorSchema>
+  value: z.infer<typeof locatorSchema>,
 ): Promise<ActionResponse> {
   try {
-    locatorSchema.parse(value);
+    locatorSchema.parse(value)
 
     const newLocator = await prisma.locator.create({
       data: {
@@ -101,38 +91,38 @@ export async function createLocatorAction(
           },
         },
       },
-    });
+    })
 
     // Update the locator group JSON file
     if (value.locatorGroupId) {
-      await updateLocatorGroupFile(value.locatorGroupId);
+      await updateLocatorGroupFile(value.locatorGroupId)
     }
 
-    revalidatePath("/locators");
+    revalidatePath('/locators')
     return {
       status: 200,
       data: newLocator,
-      message: "Locator created successfully",
-    };
+      message: 'Locator created successfully',
+    }
   } catch (e) {
     return {
       status: 500,
       error: `Server error occurred: ${e}`,
-    };
+    }
   }
 }
 
 export async function updateLocatorAction(
   _prev: unknown,
   value: z.infer<typeof locatorSchema>,
-  id?: string
+  id?: string,
 ): Promise<ActionResponse> {
   try {
     // Get the current locator to check if locatorGroupId changed
     const currentLocator = await prisma.locator.findUnique({
       where: { id },
       select: { locatorGroupId: true },
-    });
+    })
 
     const updatedLocator = await prisma.locator.update({
       where: { id },
@@ -148,48 +138,42 @@ export async function updateLocatorAction(
           },
         },
       },
-    });
+    })
 
     // Update JSON files for affected locator groups
-    const groupsToUpdate = new Set<string>();
+    const groupsToUpdate = new Set<string>()
 
     if (currentLocator?.locatorGroupId !== value.locatorGroupId) {
       // Group changed - update both old and new groups
       if (currentLocator?.locatorGroupId) {
-        groupsToUpdate.add(currentLocator.locatorGroupId);
+        groupsToUpdate.add(currentLocator.locatorGroupId)
       }
       if (value.locatorGroupId) {
-        groupsToUpdate.add(value.locatorGroupId);
+        groupsToUpdate.add(value.locatorGroupId)
       }
     } else if (value.locatorGroupId) {
       // Same group - just update the current group
-      groupsToUpdate.add(value.locatorGroupId);
+      groupsToUpdate.add(value.locatorGroupId)
     }
 
     // Update all affected groups in parallel
-    await Promise.all(
-      Array.from(groupsToUpdate).map((groupId) =>
-        updateLocatorGroupFile(groupId)
-      )
-    );
+    await Promise.all(Array.from(groupsToUpdate).map(groupId => updateLocatorGroupFile(groupId)))
 
-    revalidatePath("/locators");
+    revalidatePath('/locators')
     return {
       status: 200,
       data: updatedLocator,
-      message: "Locator updated successfully",
-    };
+      message: 'Locator updated successfully',
+    }
   } catch (e) {
     return {
       status: 500,
       error: `Server error occurred: ${e}`,
-    };
+    }
   }
 }
 
-export async function getLocatorByIdAction(
-  id: string
-): Promise<ActionResponse> {
+export async function getLocatorByIdAction(id: string): Promise<ActionResponse> {
   try {
     const locator = await prisma.locator.findUnique({
       where: { id },
@@ -200,16 +184,16 @@ export async function getLocatorByIdAction(
           },
         },
       },
-    });
+    })
     return {
       status: 200,
       data: locator,
-    };
+    }
   } catch (e) {
     return {
       status: 500,
       error: `Server error occurred: ${e}`,
-    };
+    }
   }
 }
 
@@ -224,15 +208,15 @@ export async function getUngroupedLocatorsAction(): Promise<ActionResponse> {
         name: true,
         value: true,
       },
-    });
+    })
     return {
       status: 200,
       data: locators,
-    };
+    }
   } catch (error) {
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
-    };
+    }
   }
 }

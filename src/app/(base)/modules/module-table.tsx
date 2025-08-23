@@ -1,13 +1,10 @@
-import { DataTable } from "@/components/ui/data-table";
-import { Module } from "@prisma/client";
-import {
-  getAllModulesAction,
-  deleteModuleAction,
-} from "@/actions/modules/module-actions";
-import { moduleTableCols } from "./module-table-columns";
+import { DataTable } from '@/components/ui/data-table'
+import { Module } from '@prisma/client'
+import { getAllModulesAction, deleteModuleAction } from '@/actions/modules/module-actions'
+import { moduleTableCols } from './module-table-columns'
 
 const ModuleTable = async () => {
-  const { data: modules } = await getAllModulesAction();
+  const { data: modules } = await getAllModulesAction()
 
   return (
     <>
@@ -21,7 +18,7 @@ const ModuleTable = async () => {
         deleteAction={deleteModuleAction}
       />
     </>
-  );
-};
+  )
+}
 
-export default ModuleTable;
+export default ModuleTable

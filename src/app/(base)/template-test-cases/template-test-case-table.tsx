@@ -1,18 +1,18 @@
-import { DataTable } from "@/components/ui/data-table";
-import React from "react";
-import { templateTestCaseTableCols } from "./template-test-case-table-columns";
+import { DataTable } from '@/components/ui/data-table'
+import React from 'react'
+import { templateTestCaseTableCols } from './template-test-case-table-columns'
 import {
   getAllTemplateTestCasesAction,
   deleteTemplateTestCaseAction,
-} from "@/actions/template-test-case/template-test-case-actions";
-import { TemplateTestCase, TemplateTestCaseStep } from "@prisma/client";
+} from '@/actions/template-test-case/template-test-case-actions'
+import { TemplateTestCase, TemplateTestCaseStep } from '@prisma/client'
 
 type TemplateTestCaseWithSteps = TemplateTestCase & {
-  steps: TemplateTestCaseStep[];
-};
+  steps: TemplateTestCaseStep[]
+}
 
 const TemplateTestCaseTable = async () => {
-  const { data: templateTestCases } = await getAllTemplateTestCasesAction();
+  const { data: templateTestCases } = await getAllTemplateTestCasesAction()
 
   return (
     <>
@@ -26,7 +26,7 @@ const TemplateTestCaseTable = async () => {
         deleteAction={deleteTemplateTestCaseAction}
       />
     </>
-  );
-};
+  )
+}
 
-export default TemplateTestCaseTable;
+export default TemplateTestCaseTable

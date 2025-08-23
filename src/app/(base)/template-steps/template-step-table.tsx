@@ -1,13 +1,10 @@
-import {
-  deleteTemplateStepAction,
-  getAllTemplateStepsAction,
-} from "@/actions/template-step/template-step-actions";
-import { DataTable } from "@/components/ui/data-table";
-import { templateStepTableCols } from "./template-step-table-columns";
-import { TemplateStep } from "@prisma/client";
+import { deleteTemplateStepAction, getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
+import { DataTable } from '@/components/ui/data-table'
+import { templateStepTableCols } from './template-step-table-columns'
+import { TemplateStep } from '@prisma/client'
 
 const TemplateStepTable = async () => {
-  const { data: templateSteps } = await getAllTemplateStepsAction();
+  const { data: templateSteps } = await getAllTemplateStepsAction()
 
   return (
     <>
@@ -21,7 +18,7 @@ const TemplateStepTable = async () => {
         deleteAction={deleteTemplateStepAction}
       />
     </>
-  );
-};
+  )
+}
 
-export default TemplateStepTable;
+export default TemplateStepTable

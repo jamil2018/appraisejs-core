@@ -1,18 +1,14 @@
-import { DataTable } from "@/components/ui/data-table";
-import React from "react";
-import { testSuiteTableCols } from "./test-suite-table-columns";
-import {
-  getAllTestSuitesAction,
-  deleteTestSuiteAction,
-} from "@/actions/test-suite/test-suite-actions";
-import { Module, TestSuite } from "@prisma/client";
+import { DataTable } from '@/components/ui/data-table'
+import React from 'react'
+import { testSuiteTableCols } from './test-suite-table-columns'
+import { getAllTestSuitesAction, deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
+import { Module, TestSuite } from '@prisma/client'
 
 const TestSuiteTable = async () => {
-  const { data: testSuites, error: testSuitesError } =
-    await getAllTestSuitesAction();
+  const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
 
   if (testSuitesError) {
-    return <div>Error: {testSuitesError}</div>;
+    return <div>Error: {testSuitesError}</div>
   }
 
   return (
@@ -27,7 +23,7 @@ const TestSuiteTable = async () => {
         deleteAction={deleteTestSuiteAction}
       />
     </>
-  );
-};
+  )
+}
 
-export default TestSuiteTable;
+export default TestSuiteTable

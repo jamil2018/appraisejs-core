@@ -5,5 +5,5 @@ Review table columns functionality temporarily disabled
 Will be re-implemented without user dependencies
 */
 
-export const reviewTableByReviewerColumns = [];
-export default reviewTableByReviewerColumns;
+export const reviewTableByReviewerColumns = []
+export default reviewTableByReviewerColumns

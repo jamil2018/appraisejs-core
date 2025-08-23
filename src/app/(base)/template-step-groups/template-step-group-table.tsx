@@ -1,18 +1,17 @@
-import { DataTable } from "@/components/ui/data-table";
-import React from "react";
-import { templateStepGroupTableCols } from "./template-step-group-table-columns";
+import { DataTable } from '@/components/ui/data-table'
+import React from 'react'
+import { templateStepGroupTableCols } from './template-step-group-table-columns'
 import {
   getAllTemplateStepGroupsAction,
   deleteTemplateStepGroupAction,
-} from "@/actions/template-step-group/template-step-group-actions";
-import { TemplateStepGroup } from "@prisma/client";
+} from '@/actions/template-step-group/template-step-group-actions'
+import { TemplateStepGroup } from '@prisma/client'
 
 const TemplateStepGroupTable = async () => {
-  const { data: templateStepGroups, error: templateStepGroupsError } =
-    await getAllTemplateStepGroupsAction();
+  const { data: templateStepGroups, error: templateStepGroupsError } = await getAllTemplateStepGroupsAction()
 
   if (templateStepGroupsError) {
-    return <div>Error: {templateStepGroupsError}</div>;
+    return <div>Error: {templateStepGroupsError}</div>
   }
 
   return (
@@ -27,7 +26,7 @@ const TemplateStepGroupTable = async () => {
         deleteAction={deleteTemplateStepGroupAction}
       />
     </>
-  );
-};
+  )
+}
 
-export default TemplateStepGroupTable;
+export default TemplateStepGroupTable

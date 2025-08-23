@@ -1,24 +1,21 @@
-"use client";
+'use client'
 
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
-import { ColumnDef } from "@tanstack/react-table";
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { ColumnDef } from '@tanstack/react-table'
 
-import { Checkbox } from "@/components/ui/checkbox";
-import TableActions from "@/components/table/table-actions";
-import { LocatorGroup } from "@prisma/client";
-import { formatDateTime } from "@/lib/utils";
-import { deleteLocatorGroupAction } from "@/actions/locator-groups/locator-group-actions";
+import { Checkbox } from '@/components/ui/checkbox'
+import TableActions from '@/components/table/table-actions'
+import { LocatorGroup } from '@prisma/client'
+import { formatDateTime } from '@/lib/utils'
+import { deleteLocatorGroupAction } from '@/actions/locator-groups/locator-group-actions'
 
 export const locatorGroupTableCols: ColumnDef<LocatorGroup>[] = [
   {
-    id: "select",
+    id: 'select',
     header: ({ table }) => (
       <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
         className="mr-2"
       />
@@ -26,7 +23,7 @@ export const locatorGroupTableCols: ColumnDef<LocatorGroup>[] = [
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        onCheckedChange={value => row.toggleSelected(!!value)}
         aria-label="Select row"
         className="mr-2"
       />
@@ -35,51 +32,41 @@ export const locatorGroupTableCols: ColumnDef<LocatorGroup>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "id",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID" />
-    ),
+    accessorKey: 'id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
   },
   {
-    accessorKey: "name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    accessorKey: 'name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
   },
   {
-    accessorKey: "module.name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Module" />
-    ),
+    accessorKey: 'module.name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Module" />,
   },
   {
-    accessorKey: "createdAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
-    ),
+    accessorKey: 'createdAt',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
     cell: ({ row }) => {
-      return formatDateTime(row.original.createdAt);
+      return formatDateTime(row.original.createdAt)
     },
   },
   {
-    accessorKey: "updatedAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Updated At" />
-    ),
+    accessorKey: 'updatedAt',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Updated At" />,
     cell: ({ row }) => {
-      return formatDateTime(row.original.updatedAt);
+      return formatDateTime(row.original.updatedAt)
     },
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => {
-      const locatorGroup = row.original;
+      const locatorGroup = row.original
       return (
         <TableActions
           modifyLink={`/locator-groups/modify/${locatorGroup.id}`}
           deleteHandler={() => deleteLocatorGroupAction([locatorGroup.id])}
         />
-      );
+      )
     },
   },
-];
+]
