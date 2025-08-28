@@ -3,6 +3,8 @@ import PageHeader from '@/components/typography/page-header'
 import React from 'react'
 import TemplateStepTable from './template-step-table'
 import { LayoutTemplate } from 'lucide-react'
+import { Suspense } from 'react'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const TemplateSteps = () => {
   return (
@@ -16,7 +18,9 @@ const TemplateSteps = () => {
         </PageHeader>
         <HeaderSubtitle>Template steps are the steps that are used to define a reusable test step</HeaderSubtitle>
       </div>
-      <TemplateStepTable />
+      <Suspense fallback={<DataTableSkeleton />}>
+        <TemplateStepTable />
+      </Suspense>
     </>
   )
 }

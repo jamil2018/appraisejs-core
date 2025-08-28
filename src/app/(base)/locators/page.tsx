@@ -3,6 +3,8 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
 import { Code } from 'lucide-react'
 import LocatorTable from './locator-table'
+import { Suspense } from 'react'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const Locators = () => {
   return (
@@ -16,7 +18,9 @@ const Locators = () => {
         </PageHeader>
         <HeaderSubtitle>Locators are the elements that are used to identify the elements on the page</HeaderSubtitle>
       </div>
-      <LocatorTable />
+      <Suspense fallback={<DataTableSkeleton />}>
+        <LocatorTable />
+      </Suspense>
     </>
   )
 }

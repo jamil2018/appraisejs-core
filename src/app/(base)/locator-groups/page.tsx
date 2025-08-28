@@ -3,6 +3,8 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
 import { Group } from 'lucide-react'
 import LocatorGroupTable from './locator-group-table'
+import { Suspense } from 'react'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const LocatorGroups = () => {
   return (
@@ -18,7 +20,9 @@ const LocatorGroups = () => {
           Locator groups are used to group locators together. They are used to identify the elements on the page.
         </HeaderSubtitle>
       </div>
-      <LocatorGroupTable />
+      <Suspense fallback={<DataTableSkeleton />}>
+        <LocatorGroupTable />
+      </Suspense>
     </>
   )
 }

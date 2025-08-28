@@ -3,7 +3,7 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Component } from 'lucide-react'
 import TemplateStepGroupTable from './template-step-group-table'
 import { Suspense } from 'react'
-import Loading from '../../../components/ui/loading'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const TemplateStepGroups = async () => {
   return (
@@ -19,7 +19,7 @@ const TemplateStepGroups = async () => {
           Template step groups organize related template steps for better management and reusability
         </HeaderSubtitle>
       </div>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<DataTableSkeleton />}>
         <TemplateStepGroupTable />
       </Suspense>
     </>

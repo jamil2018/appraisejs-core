@@ -1,9 +1,9 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import Loading from '@/components/ui/loading'
 import React, { Suspense } from 'react'
 import { TestTubeDiagonal } from 'lucide-react'
 import TestCaseTable from './test-case-table'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const TestCases = async () => {
   return (
@@ -19,7 +19,7 @@ const TestCases = async () => {
           Test cases are individual tests that are used to test a specific feature or functionality
         </HeaderSubtitle>
       </div>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<DataTableSkeleton />}>
         <TestCaseTable />
       </Suspense>
     </>

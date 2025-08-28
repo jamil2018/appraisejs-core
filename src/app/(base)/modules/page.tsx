@@ -3,6 +3,8 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
 import { Code } from 'lucide-react'
 import ModuleTable from './module-table'
+import { Suspense } from 'react'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const Modules = () => {
   return (
@@ -16,7 +18,9 @@ const Modules = () => {
         </PageHeader>
         <HeaderSubtitle>Modules are the components that are used to build the application</HeaderSubtitle>
       </div>
-      <ModuleTable />
+      <Suspense fallback={<DataTableSkeleton />}>
+        <ModuleTable />
+      </Suspense>
     </>
   )
 }

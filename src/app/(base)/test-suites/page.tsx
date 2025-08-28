@@ -3,7 +3,7 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { TestTubes } from 'lucide-react'
 import TestSuiteTable from './test-suite-table'
 import { Suspense } from 'react'
-import Loading from '../../../components/ui/loading'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const TestSuites = async () => {
   return (
@@ -19,7 +19,7 @@ const TestSuites = async () => {
           Test suites are collections of tests that are used to test a specific feature or functionality
         </HeaderSubtitle>
       </div>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<DataTableSkeleton />}>
         <TestSuiteTable />
       </Suspense>
     </>

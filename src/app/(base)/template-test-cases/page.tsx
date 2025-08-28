@@ -1,9 +1,9 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import Loading from '@/components/ui/loading'
 import { Blocks } from 'lucide-react'
 import React, { Suspense } from 'react'
 import TemplateTestCaseTable from './template-test-case-table'
+import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 
 const TemplateTestCasesPage = () => {
   return (
@@ -17,7 +17,7 @@ const TemplateTestCasesPage = () => {
         </PageHeader>
         <HeaderSubtitle>A collection of templates to quickly create test cases</HeaderSubtitle>
       </div>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<DataTableSkeleton />}>
         <TemplateTestCaseTable />
       </Suspense>
     </>
