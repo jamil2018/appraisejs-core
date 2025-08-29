@@ -18,6 +18,8 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ParamChip from './paramChip'
 import { useRouter } from 'next/navigation'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircleIcon } from 'lucide-react'
 
 const getInitialFunctionDefinition = () => `When('', async function(this:World){});`
 
@@ -119,241 +121,255 @@ export const TemplateStepForm = ({
   }, [signature, type, params, functionDefinition])
 
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
-      <div className="flex gap-4">
-        <div className="w-full">
-          <form.Field
-            name="name"
-            validators={{
-              onChange: z.string().min(3, { message: 'Name must be at least 3 characters' }),
-            }}
-          >
-            {field => {
-              return (
-                <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
-                  <Label htmlFor={field.name}>Name</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={e => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.errors.map(error => (
-                    <p key={error as string} className="text-xs text-pink-500">
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )
-            }}
-          </form.Field>
-          <form.Field name="description">
-            {field => {
-              return (
-                <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
-                  <Label htmlFor={field.name}>Description</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={e => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.errors.map(error => (
-                    <p key={error as string} className="text-xs text-pink-500">
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )
-            }}
-          </form.Field>
-          <form.Field name="icon">
-            {field => {
-              return (
-                <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
-                  <Label htmlFor={field.name}>Icon</Label>
-                  <Select
-                    onValueChange={value => {
-                      field.handleChange(value)
-                    }}
-                    value={field.state.value}
-                  >
-                    <SelectTrigger id={field.name}>
-                      <SelectValue placeholder="Select an icon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(TemplateStepIcon).map(icon => (
-                        <SelectItem key={icon} value={icon}>
-                          {icon}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )
-            }}
-          </form.Field>
-          <form.Field
-            name="templateStepGroupId"
-            validators={{
-              onChange: z.string().min(1, { message: 'Template step group is required' }),
-            }}
-          >
-            {field => {
-              return (
-                <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
-                  <Label htmlFor={field.name}>Template Step Group</Label>
-                  <Select
-                    onValueChange={value => {
-                      field.handleChange(value)
-                    }}
-                    value={field.state.value}
-                  >
-                    <SelectTrigger id={field.name}>
-                      <SelectValue placeholder="Select a template step group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templateStepGroups?.map(group => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {field.state.meta.errors.map(error => (
-                    <p key={error as string} className="text-xs text-pink-500">
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )
-            }}
-          </form.Field>
-          <form.Field
-            name="type"
-            validators={{
-              onChange: z.string().min(1, { message: 'Type is required' }),
-            }}
-          >
-            {field => {
-              return (
-                <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
-                  <Label htmlFor={field.name}>Type</Label>
-                  <Select
-                    onValueChange={value => {
-                      field.handleChange(value)
-                      setType(value as TemplateStepType)
-                    }}
-                    value={field.state.value}
-                  >
-                    <SelectTrigger id={field.name}>
-                      <SelectValue placeholder="Select a type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(TemplateStepType).map(type => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {field.state.meta.errors.map(error => (
-                    <p key={error as string} className="text-xs text-pink-500">
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )
-            }}
-          </form.Field>
-          <form.Field
-            name="signature"
-            validators={{
-              onChange: z.string().min(3, { message: 'Signature is required' }),
-            }}
-          >
-            {field => {
-              return (
-                <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
-                  <Label htmlFor={field.name}>Signature</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={signature}
-                    onChange={e => {
-                      field.handleChange(e.target.value)
-                      setSignature(e.target.value)
-                    }}
-                  />
-                  {field.state.meta.errors.map(error => (
-                    <p key={error as string} className="text-xs text-pink-500">
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )
-            }}
-          </form.Field>
-          <form.Field name="params">
-            {field => {
-              return (
-                <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
-                  <Label htmlFor={field.name}>Parameters</Label>
-                  <ParamChip
-                    defaultValues={params}
-                    types={Object.values(StepParameterType)}
-                    onSubmit={value => {
-                      field.handleChange(value)
-                      setParams(value as TemplateStepParameter[])
-                    }}
-                  />
-                </div>
-              )
-            }}
-          </form.Field>
+    <>
+      <Alert variant="destructive" className="mb-4 max-w-fit">
+        <AlertCircleIcon />
+        <AlertTitle className="text-xl font-bold">
+          Please take precaution before updating function signature or parameters.
+        </AlertTitle>
+        <AlertDescription className="text-xs">
+          <p>
+            If you update the function signature or parameters, the function body will be updated in the file
+            automatically and your changes will be lost.
+          </p>
+        </AlertDescription>
+      </Alert>
+      <form
+        onSubmit={e => {
+          e.preventDefault()
+          e.stopPropagation()
+          form.handleSubmit()
+        }}
+      >
+        <div className="flex gap-4">
+          <div className="w-full">
+            <form.Field
+              name="name"
+              validators={{
+                onChange: z.string().min(3, { message: 'Name must be at least 3 characters' }),
+              }}
+            >
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
+                    <Label htmlFor={field.name}>Name</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onChange={e => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                  </div>
+                )
+              }}
+            </form.Field>
+            <form.Field name="description">
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
+                    <Label htmlFor={field.name}>Description</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onChange={e => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                  </div>
+                )
+              }}
+            </form.Field>
+            <form.Field name="icon">
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
+                    <Label htmlFor={field.name}>Icon</Label>
+                    <Select
+                      onValueChange={value => {
+                        field.handleChange(value)
+                      }}
+                      value={field.state.value}
+                    >
+                      <SelectTrigger id={field.name}>
+                        <SelectValue placeholder="Select an icon" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(TemplateStepIcon).map(icon => (
+                          <SelectItem key={icon} value={icon}>
+                            {icon}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )
+              }}
+            </form.Field>
+            <form.Field
+              name="templateStepGroupId"
+              validators={{
+                onChange: z.string().min(1, { message: 'Template step group is required' }),
+              }}
+            >
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
+                    <Label htmlFor={field.name}>Template Step Group</Label>
+                    <Select
+                      onValueChange={value => {
+                        field.handleChange(value)
+                      }}
+                      value={field.state.value}
+                    >
+                      <SelectTrigger id={field.name}>
+                        <SelectValue placeholder="Select a template step group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templateStepGroups?.map(group => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                  </div>
+                )
+              }}
+            </form.Field>
+            <form.Field
+              name="type"
+              validators={{
+                onChange: z.string().min(1, { message: 'Type is required' }),
+              }}
+            >
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
+                    <Label htmlFor={field.name}>Type</Label>
+                    <Select
+                      onValueChange={value => {
+                        field.handleChange(value)
+                        setType(value as TemplateStepType)
+                      }}
+                      value={field.state.value}
+                    >
+                      <SelectTrigger id={field.name}>
+                        <SelectValue placeholder="Select a type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(TemplateStepType).map(type => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                  </div>
+                )
+              }}
+            </form.Field>
+            <form.Field
+              name="signature"
+              validators={{
+                onChange: z.string().min(3, { message: 'Signature is required' }),
+              }}
+            >
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
+                    <Label htmlFor={field.name}>Signature</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={signature}
+                      onChange={e => {
+                        field.handleChange(e.target.value)
+                        setSignature(e.target.value)
+                      }}
+                    />
+                    {field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                  </div>
+                )
+              }}
+            </form.Field>
+            <form.Field name="params">
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2 lg:w-2/3">
+                    <Label htmlFor={field.name}>Parameters</Label>
+                    <ParamChip
+                      defaultValues={params}
+                      types={Object.values(StepParameterType)}
+                      onSubmit={value => {
+                        field.handleChange(value)
+                        setParams(value as TemplateStepParameter[])
+                      }}
+                    />
+                  </div>
+                )
+              }}
+            </form.Field>
+          </div>
+          <div className="w-full">
+            <Card>
+              <CardHeader>
+                <CardTitle>Function Definition (Preview)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form.Field name="functionDefinition">
+                  {field => {
+                    return (
+                      <div className="mb-4 flex w-full flex-col gap-2">
+                        <CodeMirror
+                          editable={false}
+                          value={functionDefinition}
+                          onChange={value => {
+                            field.handleChange(value)
+                            setFunctionDefinition(value)
+                          }}
+                          height="200px"
+                          extensions={[langs.typescript(), EditorView.lineWrapping]}
+                          theme={githubDark}
+                        />
+                      </div>
+                    )
+                  }}
+                </form.Field>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-        <div className="w-full">
-          <Card>
-            <CardHeader>
-              <CardTitle>Function Definition (Preview)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form.Field name="functionDefinition">
-                {field => {
-                  return (
-                    <div className="mb-4 flex w-full flex-col gap-2">
-                      <CodeMirror
-                        editable={false}
-                        value={functionDefinition}
-                        onChange={value => {
-                          field.handleChange(value)
-                          setFunctionDefinition(value)
-                        }}
-                        height="200px"
-                        extensions={[langs.typescript(), EditorView.lineWrapping]}
-                        theme={githubDark}
-                      />
-                    </div>
-                  )
-                }}
-              </form.Field>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => (
-          <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? '...' : 'Save'}
-          </Button>
-        )}
-      </form.Subscribe>
-    </form>
+        <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
+          {([canSubmit, isSubmitting]) => (
+            <Button type="submit" disabled={!canSubmit}>
+              {isSubmitting ? '...' : 'Save'}
+            </Button>
+          )}
+        </form.Subscribe>
+      </form>
+    </>
   )
 }
