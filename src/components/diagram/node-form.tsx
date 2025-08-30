@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
-import { Locator, StepParameterType, TemplateStep, TemplateStepIcon } from '@prisma/client'
+import { Locator, LocatorGroup, StepParameterType, TemplateStep, TemplateStepIcon } from '@prisma/client'
 import { TemplateStepParameter } from '@prisma/client'
 import React, { useState, useEffect, useRef } from 'react'
 import DynamicFormFields, { DynamicFormFieldsRef } from './dynamic-parameters'
@@ -34,6 +34,7 @@ const NodeForm = ({
   templateStepParams,
   showAddNodeDialog,
   locators,
+  locatorGroups,
   setShowAddNodeDialog,
   defaultValueInput = false,
 }: {
@@ -43,6 +44,7 @@ const NodeForm = ({
   templateStepParams: TemplateStepParameter[]
   showAddNodeDialog: boolean
   locators: Locator[]
+  locatorGroups: LocatorGroup[]
   setShowAddNodeDialog: (show: boolean) => void
   defaultValueInput?: boolean
 }) => {
@@ -214,7 +216,8 @@ const NodeForm = ({
               <DynamicFormFields
                 ref={dynamicFormRef}
                 templateStepParams={selectedTemplateStepParams}
-                locators={locators.map(locator => locator.name)}
+                locators={locators}
+                locatorGroups={locatorGroups}
                 initialParameterValues={initialValues.parameters}
                 onChange={values => {
                   setParameters([...values])

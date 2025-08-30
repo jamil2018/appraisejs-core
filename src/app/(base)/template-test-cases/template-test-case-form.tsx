@@ -2,7 +2,14 @@
 import React, { useCallback, useState } from 'react'
 import TemplateTestCaseFlow from './template-test-case-flow'
 import { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import { Locator, StepParameterType, TemplateStep, TemplateStepIcon, TemplateStepParameter } from '@prisma/client'
+import {
+  Locator,
+  LocatorGroup,
+  StepParameterType,
+  TemplateStep,
+  TemplateStepIcon,
+  TemplateStepParameter,
+} from '@prisma/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -48,6 +55,7 @@ const TemplateTestCaseForm = ({
   templateStepParams,
   templateSteps,
   locators,
+  locatorGroups,
   id,
   defaultTitle,
   defaultDescription,
@@ -58,6 +66,7 @@ const TemplateTestCaseForm = ({
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
   locators: Locator[]
+  locatorGroups: LocatorGroup[]
   onSubmitAction: (value: z.infer<typeof templateTestCaseSchema>, id?: string) => Promise<ActionResponse>
   id?: string
   defaultTitle?: string
@@ -236,6 +245,7 @@ const TemplateTestCaseForm = ({
           templateSteps={templateSteps}
           onNodeOrderChange={onNodeOrderChange}
           locators={locators}
+          locatorGroups={locatorGroups}
           defaultValueInput={defaultValueInput}
         />
       </div>

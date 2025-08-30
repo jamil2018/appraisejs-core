@@ -1,5 +1,6 @@
 import {
   Locator,
+  LocatorGroup,
   TemplateStep,
   TemplateStepParameter,
   TemplateTestCase,
@@ -14,12 +15,13 @@ import {
   getAllTemplateStepParamsAction,
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
-import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import {
   getTemplateTestCaseByIdAction,
   updateTemplateTestCaseAction,
 } from '@/actions/template-test-case/template-test-case-actions'
+import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 
 const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
@@ -36,8 +38,9 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
   const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
   const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()
-  if (templateStepParamsError || templateStepsError || locatorsError) {
-    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError}</div>
+  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
+  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError) {
+    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError}</div>
   }
   return (
     <>
@@ -53,6 +56,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
         templateStepParams={templateStepParams as TemplateStepParameter[]}
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
+        locatorGroups={locatorGroups as LocatorGroup[]}
         defaultNodesOrder={templateTestCase.steps.reduce((acc, step) => {
           acc[step.id] = {
             order: step.order,

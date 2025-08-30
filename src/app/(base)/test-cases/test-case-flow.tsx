@@ -1,6 +1,6 @@
 import FlowDiagram from '@/components/diagram/flow-diagram'
 import { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import { Locator, TemplateStep, TemplateStepParameter, StepParameterType } from '@prisma/client'
+import { Locator, TemplateStep, TemplateStepParameter, StepParameterType, LocatorGroup } from '@prisma/client'
 import React, { useCallback, useEffect, useState, useRef } from 'react'
 
 function useDebouncedCallback<T extends unknown[]>(callback: (...args: T) => void, delay: number) {
@@ -19,12 +19,14 @@ const TestCaseFlow = ({
   templateStepParams,
   templateSteps,
   locators,
+  locatorGroups,
   onNodeOrderChange,
 }: {
   initialNodesOrder: NodeOrderMap
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
   locators: Locator[]
+  locatorGroups: LocatorGroup[]
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
 }) => {
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(initialNodesOrder)
@@ -71,6 +73,7 @@ const TestCaseFlow = ({
         onNodeOrderChange={handleNodeOrderChange}
         templateSteps={templateSteps}
         locators={locators}
+        locatorGroups={locatorGroups}
       />
     </>
   )

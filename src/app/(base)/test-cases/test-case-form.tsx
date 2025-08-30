@@ -4,6 +4,7 @@ import TestCaseFlow from './test-case-flow'
 import { NodeOrderMap } from '@/types/diagram/diagram'
 import {
   Locator,
+  LocatorGroup,
   StepParameterType,
   TemplateStep,
   TemplateStepIcon,
@@ -55,6 +56,7 @@ const TestCaseForm = ({
   templateStepParams,
   templateSteps,
   locators,
+  locatorGroups,
   testSuites,
   id,
   defaultTitle,
@@ -66,6 +68,7 @@ const TestCaseForm = ({
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
   locators: Locator[]
+  locatorGroups: LocatorGroup[]
   testSuites: TestSuite[]
   onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
   id?: string
@@ -266,6 +269,7 @@ const TestCaseForm = ({
           templateSteps={templateSteps}
           onNodeOrderChange={onNodeOrderChange}
           locators={locators}
+          locatorGroups={locatorGroups}
         />
       </div>
       <div className="mb-4 flex flex-col gap-2">

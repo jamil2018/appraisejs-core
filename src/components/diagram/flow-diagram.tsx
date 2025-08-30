@@ -23,7 +23,7 @@ import OptionsHeaderNode from './options-header-node'
 import NodeForm from './node-form'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
 import { NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import { Locator, TemplateStep, TemplateStepParameter, StepParameterType } from '@prisma/client'
+import { Locator, TemplateStep, TemplateStepParameter, StepParameterType, LocatorGroup } from '@prisma/client'
 
 const edgeTypes = {
   buttonEdge: ButtonEdge,
@@ -34,6 +34,7 @@ const FlowDiagram = ({
   templateStepParams,
   templateSteps,
   locators,
+  locatorGroups,
   onNodeOrderChange,
   defaultValueInput = false,
 }: {
@@ -41,6 +42,7 @@ const FlowDiagram = ({
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
   locators: Locator[]
+  locatorGroups: LocatorGroup[]
   defaultValueInput?: boolean
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
 }) => {
@@ -395,6 +397,7 @@ const FlowDiagram = ({
           setShowAddNodeDialog={setShowAddNodeDialog}
           locators={memoizedLocators}
           defaultValueInput={defaultValueInput}
+          locatorGroups={locatorGroups}
         />
       )}
 
@@ -413,6 +416,7 @@ const FlowDiagram = ({
           setShowAddNodeDialog={setShowEditNodeDialog}
           locators={memoizedLocators}
           defaultValueInput={defaultValueInput}
+          locatorGroups={locatorGroups}
         />
       )}
     </>
