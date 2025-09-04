@@ -1,5 +1,5 @@
 import { After, Before } from '@cucumber/cucumber'
-import { CustomWorld } from '../configs/world.js'
+import { CustomWorld } from '../config/world.js'
 import { chromium, firefox, webkit } from 'playwright'
 
 Before(async function (this: CustomWorld) {

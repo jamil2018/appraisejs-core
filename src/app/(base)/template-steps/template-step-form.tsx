@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 
-const getInitialFunctionDefinition = () => `When('', async function(this:World){});`
+const getInitialFunctionDefinition = () => `When('', async function(this:CustomWorld){});`
 
 export const TemplateStepForm = ({
   defaultValues,
@@ -111,11 +111,13 @@ export const TemplateStepForm = ({
       return code.replace(/(When|Then)\((['"`])(.*?)\2/, () => `When(${quoteType}${newSignature}${quoteType}`)
     }
 
-    const paramsString = params.map(param => `${param.name}: ${param.type.toLowerCase()}`).join(', ')
+    const paramsString = params
+      .map(param => `${param.name}: ${param.type.toLowerCase() === 'locator' ? 'Locator' : param.type.toLowerCase()}`)
+      .join(', ')
     let updatedFunctionDefinition = updateStepSignature(functionDefinition, signature, type)
     updatedFunctionDefinition = updatedFunctionDefinition.replace(
-      /async function\s*\(\s*this:World(?:,\s*.*?)?\s*\)/,
-      `async function(this:World${params.length > 0 ? ', ' : ''}${paramsString})`,
+      /async function\s*\(\s*this:CustomWorld(?:,\s*.*?)?\s*\)/,
+      `async function(this:CustomWorld${params.length > 0 ? ', ' : ''}${paramsString})`,
     )
     setFunctionDefinition(updatedFunctionDefinition)
   }, [signature, type, params, functionDefinition])
