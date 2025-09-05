@@ -43,7 +43,7 @@ export async function regenerateTemplateStepGroupFile(groupId: string): Promise<
  */
 export async function createTemplateStepGroupFile(groupName: string): Promise<void> {
   try {
-    // Create empty placeholder content
+    // Create empty placeholder content with required imports
     const placeholderContent =
       '// This file is generated automatically. Add template steps to this group to generate content.'
 

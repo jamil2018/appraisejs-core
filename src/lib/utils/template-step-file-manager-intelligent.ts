@@ -90,6 +90,25 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
 }
 
 /**
+ * Ensures required imports are present in the file content
+ */
+function ensureRequiredImports(content: string): string {
+  const requiredImports = `import { When } from '@cucumber/cucumber';
+import { CustomWorld } from '../config/world.js';
+import { Locator } from 'playwright';
+
+`
+
+  // Check if imports are already present
+  if (content.includes("import { When } from '@cucumber/cucumber'")) {
+    return content
+  }
+
+  // Add imports at the beginning
+  return requiredImports + content
+}
+
+/**
  * Intelligently adds a new template step to the file
  * Preserves existing content including imports, types, and other code
  */
@@ -105,6 +124,9 @@ export async function addTemplateStepToFile(groupName: string, templateStep: Tem
       // File doesn't exist, start with empty content
       existingContent = ''
     }
+
+    // Ensure required imports are present
+    existingContent = ensureRequiredImports(existingContent)
 
     // Check if step with this signature already exists
     const bounds = findStepFunctionBounds(existingContent, templateStep.signature)
@@ -153,6 +175,9 @@ export async function removeTemplateStepFromFile(groupName: string, templateStep
       // File doesn't exist, nothing to remove
       return
     }
+
+    // Ensure required imports are present
+    existingContent = ensureRequiredImports(existingContent)
 
     // Find the step to remove
     const bounds = findStepFunctionBounds(existingContent, templateStep.signature)
@@ -216,6 +241,9 @@ export async function updateTemplateStepInFile(
       return
     }
 
+    // Ensure required imports are present
+    existingContent = ensureRequiredImports(existingContent)
+
     // Find the step to update
     const bounds = findStepFunctionBounds(existingContent, oldStep!.signature)
 
@@ -251,8 +279,9 @@ export async function createTemplateStepGroupFile(groupName: string): Promise<vo
     await ensureStepsDirectory()
     const filePath = getFilePath(groupName)
 
-    const placeholderContent =
-      '// This file is generated automatically. Add template steps to this group to generate content.'
+    const placeholderContent = ensureRequiredImports(
+      '// This file is generated automatically. Add template steps to this group to generate content.',
+    )
 
     await fs.writeFile(filePath, placeholderContent, 'utf8')
 

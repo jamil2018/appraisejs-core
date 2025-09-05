@@ -50,11 +50,11 @@ model TemplateStep {
   functionDefinition   String?
   type                 TemplateStepType
   icon                 TemplateStepIcon
+  templateStepGroupId  String
+  templateStepGroup    TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
   parameters           TemplateStepParameter[]
   TemplateTestCaseStep TemplateTestCaseStep[]
   TestCaseStep         TestCaseStep[]
-  templateStepGroupId  String
-  templateStepGroup    TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
 }
 
 model TemplateStepParameter {

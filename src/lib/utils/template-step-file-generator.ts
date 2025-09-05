@@ -20,8 +20,17 @@ export function sanitizeFileName(groupName: string): string {
  * Concatenates all function definitions from template steps in the group
  */
 export function generateFileContent(templateSteps: TemplateStep[]): string {
+  // Required imports for all template step group files
+  const requiredImports = `import { When } from '@cucumber/cucumber';
+import { CustomWorld } from '../config/world.js';
+import { Locator } from 'playwright';
+
+`
+
   if (!templateSteps || templateSteps.length === 0) {
-    return '// This file is generated automatically. Add template steps to this group to generate content.'
+    return (
+      requiredImports + '// This file is generated automatically. Add template steps to this group to generate content.'
+    )
   }
 
   // Extract and concatenate function definitions
@@ -30,7 +39,7 @@ export function generateFileContent(templateSteps: TemplateStep[]): string {
     .filter(Boolean) // Remove undefined/null values
     .join('\n\n')
 
-  return functionDefinitions
+  return requiredImports + functionDefinitions
 }
 
 /**
