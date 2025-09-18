@@ -32,6 +32,7 @@ import {
   Group,
   LayoutDashboard,
   LayoutTemplate,
+  ListChecks,
   Puzzle,
   Settings,
   TestTubeDiagonal,
@@ -76,6 +77,12 @@ export default function RootLayout({
                       icon: <TestTubeDiagonal className="h-6 w-6 text-primary" />,
                       href: '/test-cases',
                       description: 'Create, modify, and run test cases',
+                    },
+                    {
+                      text: 'Test Runs',
+                      icon: <ListChecks className="h-6 w-6 text-primary" />,
+                      href: '/test-runs',
+                      description: 'Create, modify, and run test runs',
                     },
                   ]}
                 />

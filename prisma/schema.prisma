@@ -87,6 +87,7 @@ model TestCase {
   reviews           Review[]
   steps             TestCaseStep[]
   TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
+  TestRunTestCase   TestRunTestCase[]
 }
 
 model TestCaseStep {
@@ -181,6 +182,53 @@ model Module {
   parent        Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children      Module[]       @relation("ModuleHierarchy")
   testSuites    TestSuite[]
+}
+
+model TestRunTestCase {
+  id         String                @id @default(uuid())
+  testRunId  String
+  testCaseId String
+  status     TestRunTestCaseStatus @default(PENDING)
+  result     TestRunTestCaseResult @default(UNTESTED)
+  testRun    TestRun               @relation(fields: [testRunId], references: [id])
+  testCase   TestCase              @relation(fields: [testCaseId], references: [id])
+}
+
+model TestRun {
+  id          String            @id @default(uuid())
+  runId       String            @unique @default(uuid())
+  startedAt   DateTime          @default(now())
+  completedAt DateTime?
+  status      TestRunStatus     @default(QUEUED)
+  result      TestRunResult     @default(PENDING)
+  testCases   TestRunTestCase[]
+}
+
+enum TestRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum TestRunTestCaseStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum TestRunTestCaseResult {
+  PASSED
+  FAILED
+  UNTESTED
+}
+
+enum TestRunResult {
+  PENDING
+  PASSED
+  FAILED
+  CANCELLED
 }
 
 enum Role {
