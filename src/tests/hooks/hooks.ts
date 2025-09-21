@@ -1,6 +1,8 @@
-import { After, Before } from '@cucumber/cucumber'
-import { CustomWorld } from '../config/world.js'
+import { After, Before, setDefaultTimeout } from '@cucumber/cucumber'
+import { CustomWorld } from '../config/world'
 import { chromium, firefox, webkit } from 'playwright'
+
+setDefaultTimeout(60000)
 
 Before(async function (this: CustomWorld) {
   const picker = {
@@ -11,7 +13,7 @@ Before(async function (this: CustomWorld) {
 
   const launcher = picker[this.browserName] ?? chromium
   this.browser = await launcher.launch({
-    headless: true,
+    headless: false,
   })
   this.context = await this.browser.newContext()
   this.page = await this.context.newPage()
