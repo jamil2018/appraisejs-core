@@ -7,4 +7,4 @@ export type LocatorMap = {
   path: string
 }
 
-export type LocatorCollection = Record<string, Locator>
+export type LocatorCollection = Record<string, Selector>

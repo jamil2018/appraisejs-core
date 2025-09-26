@@ -23,7 +23,7 @@ export function generateFileContent(templateSteps: TemplateStep[]): string {
   // Required imports for all template step group files
   const requiredImports = `import { When } from '@cucumber/cucumber';
 import { CustomWorld } from '../config/world.js';
-import { Locator } from 'playwright';
+import { Locator } from '../../types/step/step.type';
 
 `
 

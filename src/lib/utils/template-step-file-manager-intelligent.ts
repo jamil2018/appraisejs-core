@@ -95,7 +95,7 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
 function ensureRequiredImports(content: string): string {
   const requiredImports = `import { When } from '@cucumber/cucumber';
 import { CustomWorld } from '../config/world.js';
-import { Locator } from 'playwright';
+import { Locator } from '../../types/step/step.type';
 
 `
 

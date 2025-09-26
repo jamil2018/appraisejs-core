@@ -1,18 +1,20 @@
 import { readFileSync } from 'fs'
 import { globSync } from 'glob'
-import { LocatorCollection, LocatorMap } from '../../types/locator/locator.type'
+import { LocatorCollection, LocatorMap } from '../../types/locator/locator.type.js'
 import * as path from 'path'
 
 export class LocatorCache {
   private static instance: LocatorCache
   private data: Record<string, LocatorCollection> = {}
-  private filePaths: Record<string, string> = {}
+  private fileMeta: Record<string, string> = {}
   private loadedFiles: Set<string> = new Set()
 
   private constructor() {
-    globSync(`${process.env.LOCATOR_LOCATION ?? 'src/locators'}/**/*.json`).forEach(file => {
+    globSync(
+      `${process.env.LOCATOR_LOCATION ?? `${path.join(process.cwd(), 'src', 'tests', 'locators')}/**/*.json`}`,
+    ).forEach(file => {
       const fileName = path.basename(file, path.extname(file))
-      this.filePaths[fileName ?? file] = file
+      this.fileMeta[fileName] = file
     })
   }
 
@@ -25,9 +27,9 @@ export class LocatorCache {
 
   public get(key: string) {
     // Lazy load the file if not already loaded
-    if (!this.loadedFiles.has(key) && this.filePaths[key]) {
+    if (!this.loadedFiles.has(key) && this.fileMeta[key]) {
       try {
-        const filePath = this.filePaths[key]
+        const filePath = this.fileMeta[key]
         const data = JSON.parse(readFileSync(filePath, 'utf8'))
         this.data[key] = data as LocatorCollection
         this.loadedFiles.add(key)
@@ -45,7 +47,7 @@ export class LocatorCache {
    * Useful when you want to ensure all files are loaded upfront
    */
   public preloadAll(): void {
-    Object.keys(this.filePaths).forEach(key => {
+    Object.keys(this.fileMeta).forEach(key => {
       if (!this.loadedFiles.has(key)) {
         this.get(key) // This will trigger lazy loading
       }
@@ -56,7 +58,7 @@ export class LocatorCache {
    * Get all available locator keys without loading the files
    */
   public getAvailableKeys(): string[] {
-    return Object.keys(this.filePaths)
+    return Object.keys(this.fileMeta)
   }
 
   /**
@@ -72,7 +74,13 @@ export class LocatorMapCache {
   private data: LocatorMap[] = []
 
   private constructor() {
-    this.data = JSON.parse(readFileSync(process.env.LOCATOR_MAP_LOCATION ?? 'src/mapping/locator-map.json', 'utf8'))
+    this.data = JSON.parse(
+      readFileSync(
+        process.env.LOCATOR_MAP_LOCATION ??
+          `${path.join(process.cwd(), 'src', 'tests', 'mapping', 'locator-map.json')}`,
+        'utf8',
+      ),
+    )
   }
 
   public static getInstance(): LocatorMapCache {

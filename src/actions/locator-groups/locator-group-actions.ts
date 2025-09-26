@@ -143,7 +143,7 @@ export async function updateLocatorGroupAction(
       await moveLocatorGroupFile(id!)
     } else if (nameChanged) {
       // Only name changed - rename the file
-      await renameLocatorGroupFile(id!, value.name)
+      await renameLocatorGroupFile(id!, value.name, currentLocatorGroup.name)
     } else if (moduleChanged) {
       // Only module changed - move the file
       await moveLocatorGroupFile(id!)

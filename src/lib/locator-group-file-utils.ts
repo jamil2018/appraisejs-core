@@ -109,17 +109,34 @@ export async function deleteLocatorGroupFile(locatorGroupId: string): Promise<bo
 /**
  * Renames a locator group file when the name changes
  */
-export async function renameLocatorGroupFile(oldLocatorGroupId: string, newName: string): Promise<boolean> {
+export async function renameLocatorGroupFile(
+  oldLocatorGroupId: string,
+  newName: string,
+  oldName?: string,
+): Promise<boolean> {
   try {
-    const oldFilePath = await getLocatorGroupFilePath(oldLocatorGroupId)
-    if (!oldFilePath) return false
+    // Get the current file path (with new name) for the directory
+    const currentFilePath = await getLocatorGroupFilePath(oldLocatorGroupId)
+    if (!currentFilePath) return false
 
-    const newFilePath = path.join(path.dirname(oldFilePath), `${newName}.json`)
+    // If oldName is provided, construct the old file path manually
+    // Otherwise, try to get it from the current path (fallback)
+    let oldFilePath: string
+    if (oldName) {
+      oldFilePath = path.join(path.dirname(currentFilePath), `${oldName}.json`)
+    } else {
+      oldFilePath = currentFilePath
+    }
+
+    const newFilePath = path.join(path.dirname(currentFilePath), `${newName}.json`)
 
     try {
       await fs.access(oldFilePath)
+      console.log('oldFilePath exists:', oldFilePath)
       await fs.rename(oldFilePath, newFilePath)
-    } catch {
+      console.log('File renamed successfully from', oldFilePath, 'to', newFilePath)
+    } catch (error) {
+      console.log('File not found at old path, creating new one:', error)
       // File doesn't exist, create new one
       return await createOrUpdateLocatorGroupFile(oldLocatorGroupId)
     }

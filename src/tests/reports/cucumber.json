@@ -1,0 +1,105 @@
+[
+  {
+    "description": "",
+    "elements": [
+      {
+        "description": "",
+        "id": "a-collection-of-test-scenarios-validating-authentication-functionality;[login]-validate-user-is-able-to-login-using-valid-credentials",
+        "keyword": "Scenario",
+        "line": 8,
+        "name": "[login] Validate user is able to login using valid credentials",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 958031166
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 9,
+            "name": "the user navigates to the \"https://demo-test-site-beta.vercel.app/login\" page",
+            "match": {
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/navigation.step.ts:2"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 722348708
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "the user fills in the \"email\" input field with value \"demo@example.com\"",
+            "match": {
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/keyboard.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 26976167
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 11,
+            "name": "the user fills in the \"password\" input field with value \"test1234\"",
+            "match": {
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/keyboard.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 30035707
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 12,
+            "name": "the user clicks on the \"login button\" element",
+            "match": {
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/mouse.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 23076000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 13,
+            "name": "the user should be navigated to the \"home\" page",
+            "match": {
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/navigation_validation.step.ts:2"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 720335916
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 109188208
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "a-collection-of-test-scenarios-validating-authentication-functionality",
+    "line": 6,
+    "keyword": "Feature",
+    "name": "A collection of test scenarios validating authentication functionality",
+    "tags": [],
+    "uri": "src/tests/features/auth/auth.feature"
+  }
+]
