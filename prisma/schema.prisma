@@ -164,8 +164,8 @@ model Locator {
 
 model LocatorGroup {
   id        String    @id @default(uuid())
-  name      String
-  route     String    @unique @default("/")
+  name      String    @unique
+  route     String    @default("/")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   moduleId  String

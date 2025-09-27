@@ -219,3 +219,152 @@ export async function readLocatorGroupFile(
     return null
   }
 }
+
+/**
+ * Updates the locator map file with locator group information
+ * Overload for updating existing entries (4 parameters)
+ */
+export async function updateLocatorMapFile(
+  currentLocatorGroupRoute: string,
+  newLocatorGroupRoute: string,
+  currentLocatorGroupName: string,
+  newLocatorGroupName: string,
+): Promise<boolean>
+
+/**
+ * Updates the locator map file with locator group information
+ * Overload for adding new entries (2 parameters)
+ */
+export async function updateLocatorMapFile(newLocatorGroupName: string, newLocatorGroupRoute: string): Promise<boolean>
+
+/**
+ * Implementation of updateLocatorMapFile with proper overload handling
+ */
+export async function updateLocatorMapFile(
+  param1: string,
+  param2: string,
+  param3?: string,
+  param4?: string,
+): Promise<boolean> {
+  try {
+    const locatorMapPath = path.join('src', 'tests', 'mapping', 'locator-map.json')
+
+    // Ensure the mapping directory exists
+    await ensureDirectoryExists(locatorMapPath)
+
+    let locatorMap: Array<{ name: string; path: string }> = []
+
+    // Read existing locator map or create empty array
+    try {
+      const fileContent = await fs.readFile(locatorMapPath, 'utf-8')
+      locatorMap = JSON.parse(fileContent)
+    } catch {
+      // File doesn't exist, start with empty array
+      locatorMap = []
+    }
+
+    // Determine if this is a 2-param call (new entry) or 4-param call (update)
+    const isNewEntry = param3 === undefined && param4 === undefined
+
+    if (isNewEntry) {
+      // 2 params: newLocatorGroupName, newLocatorGroupRoute
+      const name = param1
+      const route = param2
+
+      // Check for uniqueness
+      const existingEntry = locatorMap.find(entry => entry.name === name)
+      if (existingEntry) {
+        console.error(`Locator group with name "${name}" already exists in locator map`)
+        return false
+      }
+
+      // Add new entry
+      locatorMap.push({ name, path: route })
+    } else {
+      // 4 params: update existing entry
+      const currentLocatorGroupRoute = param1
+      const newLocatorGroupRoute = param2
+      const currentLocatorGroupName = param3!
+      const newLocatorGroupName = param4!
+
+      // Find the entry to update
+      const entryIndex = locatorMap.findIndex(entry => entry.name === currentLocatorGroupName)
+      if (entryIndex === -1) {
+        console.error(`Locator group with name "${currentLocatorGroupName}" not found in locator map`)
+        return false
+      }
+
+      // Check if new name is unique (if name is changing)
+      if (currentLocatorGroupName !== newLocatorGroupName) {
+        const existingEntry = locatorMap.find(entry => entry.name === newLocatorGroupName)
+        if (existingEntry) {
+          console.error(`Locator group with name "${newLocatorGroupName}" already exists in locator map`)
+          return false
+        }
+      }
+
+      // Update the entry
+      const updatedEntry = { ...locatorMap[entryIndex] }
+
+      // Update name if it changed
+      if (currentLocatorGroupName !== newLocatorGroupName) {
+        updatedEntry.name = newLocatorGroupName
+      }
+
+      // Update path if it changed
+      if (currentLocatorGroupRoute !== newLocatorGroupRoute) {
+        updatedEntry.path = newLocatorGroupRoute
+      }
+
+      locatorMap[entryIndex] = updatedEntry
+    }
+
+    // Write the updated locator map back to file
+    await fs.writeFile(locatorMapPath, JSON.stringify(locatorMap, null, 2))
+    return true
+  } catch (error) {
+    console.error('Error updating locator map file:', error)
+    return false
+  }
+}
+
+/**
+ * Removes locator group entries from the locator map file
+ * @param locatorGroupNames - Array of locator group names to remove
+ */
+export async function removeLocatorMapEntry(locatorGroupNames: string[]): Promise<boolean> {
+  try {
+    const locatorMapPath = path.join('src', 'tests', 'mapping', 'locator-map.json')
+
+    // Check if file exists
+    try {
+      await fs.access(locatorMapPath)
+    } catch {
+      // File doesn't exist, nothing to remove
+      return true
+    }
+
+    // Read existing locator map
+    const fileContent = await fs.readFile(locatorMapPath, 'utf-8')
+    let locatorMap: Array<{ name: string; path: string }> = JSON.parse(fileContent)
+
+    // Filter out the entries to be removed
+    const originalLength = locatorMap.length
+    locatorMap = locatorMap.filter(entry => !locatorGroupNames.includes(entry.name))
+
+    // Check if any entries were actually removed
+    const removedCount = originalLength - locatorMap.length
+    if (removedCount === 0) {
+      console.log('No matching locator group entries found in locator map')
+      return true
+    }
+
+    // Write the updated locator map back to file
+    await fs.writeFile(locatorMapPath, JSON.stringify(locatorMap, null, 2))
+    console.log(`Removed ${removedCount} locator group entry(ies) from locator map`)
+    return true
+  } catch (error) {
+    console.error('Error removing locator map entries:', error)
+    return false
+  }
+}

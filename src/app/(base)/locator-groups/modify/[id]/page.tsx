@@ -26,6 +26,7 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
       defaultValues={{
         name: locatorGroup.name ?? '',
         moduleId: locatorGroup.moduleId ?? '',
+        route: locatorGroup.route ?? '',
       }}
       successTitle="Locator Group updated"
       successMessage="Locator Group updated successfully"

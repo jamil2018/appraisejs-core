@@ -44,6 +44,10 @@ export const locatorGroupTableCols: ColumnDef<LocatorGroup>[] = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Module" />,
   },
   {
+    accessorKey: 'route',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Route" />,
+  },
+  {
     accessorKey: 'createdAt',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
     cell: ({ row }) => {

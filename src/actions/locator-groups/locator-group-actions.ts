@@ -5,6 +5,7 @@ import { locatorGroupSchema } from '@/constants/form-opts/locator-group-form-opt
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import {
   createOrUpdateLocatorGroupFile,
   deleteLocatorGroupFile,
@@ -12,6 +13,8 @@ import {
   moveLocatorGroupFile,
   createEmptyLocatorGroupFile,
   readLocatorGroupFile,
+  updateLocatorMapFile,
+  removeLocatorMapEntry,
 } from '@/lib/locator-group-file-utils'
 
 // Common include pattern for locator groups
@@ -20,6 +23,19 @@ const locatorGroupInclude = {
     select: { name: true },
   },
 } as const
+
+/**
+ * Check if a locator group name already exists
+ */
+async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
+  const existing = await prisma.locatorGroup.findFirst({
+    where: {
+      name: name,
+      ...(excludeId && { id: { not: excludeId } }),
+    },
+  })
+  return !!existing
+}
 
 /**
  * Get all locator groups
@@ -72,6 +88,15 @@ export async function createLocatorGroupAction(
   value: z.infer<typeof locatorGroupSchema>,
 ): Promise<ActionResponse> {
   try {
+    // Check if name already exists
+    const nameExists = await checkUniqueName(value.name)
+    if (nameExists) {
+      return {
+        status: 400,
+        error: 'A locator group with this name already exists. Please choose a different name.',
+      }
+    }
+
     const locatorGroup = await prisma.locatorGroup.create({
       data: {
         name: value.name,
@@ -84,6 +109,7 @@ export async function createLocatorGroupAction(
 
     // Create empty JSON file initially
     await createEmptyLocatorGroupFile(locatorGroup.id)
+    await updateLocatorMapFile(value.name, value.route ?? '/')
 
     revalidatePath('/locator-groups')
     return {
@@ -92,6 +118,13 @@ export async function createLocatorGroupAction(
       message: 'Locator group created successfully',
     }
   } catch (error) {
+    // Handle Prisma unique constraint error
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return {
+        status: 400,
+        error: 'A locator group with this name already exists. Please choose a different name.',
+      }
+    }
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
@@ -121,6 +154,17 @@ export async function updateLocatorGroupAction(
       }
     }
 
+    // Check if name already exists (only if name is changing)
+    if (currentLocatorGroup.name !== value.name) {
+      const nameExists = await checkUniqueName(value.name, id)
+      if (nameExists) {
+        return {
+          status: 400,
+          error: 'A locator group with this name already exists. Please choose a different name.',
+        }
+      }
+    }
+
     // Update the locator group
     const updatedLocatorGroup = await prisma.locatorGroup.update({
       where: { id },
@@ -130,6 +174,7 @@ export async function updateLocatorGroupAction(
         locators: {
           set: value.locators?.map(locator => ({ id: locator })) || [],
         },
+        route: value.route,
       },
       include: locatorGroupInclude,
     })
@@ -137,6 +182,7 @@ export async function updateLocatorGroupAction(
     // Handle file operations based on changes
     const nameChanged = currentLocatorGroup.name !== value.name
     const moduleChanged = currentLocatorGroup.moduleId !== value.moduleId
+    const routeChanged = currentLocatorGroup.route !== value.route
 
     if (nameChanged && moduleChanged) {
       // Both changed - move the file (this will handle both changes)
@@ -152,6 +198,9 @@ export async function updateLocatorGroupAction(
       await createOrUpdateLocatorGroupFile(id!)
     }
 
+    if (routeChanged || nameChanged) {
+      await updateLocatorMapFile(currentLocatorGroup.route, value.route ?? '/', currentLocatorGroup.name, value.name)
+    }
     revalidatePath('/locator-groups')
     return {
       status: 200,
@@ -159,6 +208,13 @@ export async function updateLocatorGroupAction(
       message: 'Locator group updated successfully',
     }
   } catch (error) {
+    // Handle Prisma unique constraint error
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return {
+        status: 400,
+        error: 'A locator group with this name already exists. Please choose a different name.',
+      }
+    }
     return {
       status: 500,
       error: `Server error occurred: ${error}`,
@@ -171,6 +227,17 @@ export async function updateLocatorGroupAction(
  */
 export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionResponse> {
   try {
+    // Get locator group names before deletion for locator map cleanup
+    const locatorGroupsToDelete = await prisma.locatorGroup.findMany({
+      where: { id: { in: ids } },
+      select: { name: true },
+    })
+
+    const locatorGroupNames = locatorGroupsToDelete.map(group => group.name)
+
+    // Remove entries from locator map
+    await removeLocatorMapEntry(locatorGroupNames)
+
     // Delete JSON files first
     await Promise.all(ids.map(id => deleteLocatorGroupFile(id)))
 
@@ -210,6 +277,24 @@ export async function getLocatorGroupFileContentAction(locatorGroupId: string): 
     return {
       status: 200,
       data: fileData,
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
+    }
+  }
+}
+
+/**
+ * Check if a locator group name is unique
+ */
+export async function checkLocatorGroupNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
+  try {
+    const nameExists = await checkUniqueName(name, excludeId)
+    return {
+      status: 200,
+      data: { isUnique: !nameExists },
     }
   } catch (error) {
     return {

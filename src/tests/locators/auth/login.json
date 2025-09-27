@@ -1,5 +1,0 @@
-{
-  "email": "input[data-test-id='email-input']",
-  "password": "input[data-test-id='password-input']",
-  "login button": "button[data-test-id='login-button']"
-}

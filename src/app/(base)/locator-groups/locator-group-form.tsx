@@ -8,10 +8,11 @@ import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
 import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
-import React from 'react'
+import React, { useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { Module } from '@prisma/client'
+import { checkLocatorGroupNameUniqueAction } from '@/actions/locator-groups/locator-group-actions'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -35,6 +36,40 @@ const LocatorGroupForm = ({
   ) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Debounced function to check name uniqueness
+  const checkNameUniqueness = useCallback(
+    async (name: string) => {
+      if (!name || name.length < 1) return true
+
+      try {
+        const response = await checkLocatorGroupNameUniqueAction(name, id)
+        return response.status === 200 && (response.data as { isUnique: boolean })?.isUnique
+      } catch (error) {
+        console.error('Error checking name uniqueness:', error)
+        return true // Allow submission if check fails
+      }
+    },
+    [id],
+  )
+
+  // Debounced validation function
+  const debouncedNameValidation = useCallback(
+    (name: string): Promise<boolean> => {
+      return new Promise(resolve => {
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current)
+        }
+
+        debounceTimeoutRef.current = setTimeout(async () => {
+          const isValid = await checkNameUniqueness(name)
+          resolve(isValid)
+        }, 500) // 500ms debounce
+      })
+    },
+    [checkNameUniqueness],
+  )
 
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
@@ -76,6 +111,13 @@ const LocatorGroupForm = ({
         name="name"
         validators={{
           onChange: z.string().min(1, { message: 'Name is required' }),
+          onChangeAsync: async ({ value }) => {
+            if (!value || value.length < 1) return undefined
+            const isValid = await debouncedNameValidation(value)
+            return isValid
+              ? undefined
+              : 'A locator group with this name already exists. Please choose a different name.'
+          },
         }}
       >
         {field => {
@@ -94,6 +136,9 @@ const LocatorGroupForm = ({
                     {error}
                   </p>
                 ))}
+              {field.state.meta.isTouched && field.state.meta.errors.length === 0 && field.state.meta.isValidating && (
+                <p className="text-xs text-blue-500">Checking name availability...</p>
+              )}
             </div>
           )
         }}
@@ -120,6 +165,32 @@ const LocatorGroupForm = ({
                   ))}
                 </SelectContent>
               </Select>
+              {field.state.meta.isTouched &&
+                field.state.meta.errors.map(error => (
+                  <p key={error as string} className="text-xs text-pink-500">
+                    {error}
+                  </p>
+                ))}
+            </div>
+          )
+        }}
+      </form.Field>
+      <form.Field
+        name="route"
+        validators={{
+          onChange: z.string().optional(),
+        }}
+      >
+        {field => {
+          return (
+            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+              <Label htmlFor={field.name}>Route</Label>
+              <Input
+                id={field.name}
+                value={field.state.value}
+                onChange={e => field.handleChange(e.target.value)}
+                placeholder="Enter the route of page the locator group is for. Default is '/' (root)"
+              />
               {field.state.meta.isTouched &&
                 field.state.meta.errors.map(error => (
                   <p key={error as string} className="text-xs text-pink-500">
