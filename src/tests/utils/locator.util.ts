@@ -1,8 +1,11 @@
 import { Page } from 'playwright'
 import { LocatorCache, LocatorMapCache } from './cache.util.js'
 
-export function resolveLocator(page: Page, locatorName: string) {
+export async function resolveLocator(page: Page, locatorName: string, timeout: number = 10000) {
   try {
+    // Wait for the page to be fully loaded before resolving locators
+    await page.waitForLoadState('networkidle', { timeout })
+
     const currentUrl = new URL(page.url()).pathname
     const LocatorMapCacheInstance = LocatorMapCache.getInstance()
     const locatorMapData = LocatorMapCacheInstance.get(currentUrl)

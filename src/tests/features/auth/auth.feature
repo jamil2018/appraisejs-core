@@ -3,11 +3,11 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: A collection of test scenarios validating authentication functionality
+Feature: A collection of tests validating the authentication feature
 
-  Scenario: [login] Validate user is able to login using valid credentials
-    Given the user navigates to the "https://demo-test-site-beta.vercel.app/login" page
+  Scenario: [Login] Validate user is able to login to app using valid credentials
+    Given the user is navigated to the "https://demo-test-site-beta.vercel.app/login" page
     When the user fills in the "email" input field with value "demo@example.com"
     And the user fills in the "password" input field with value "test1234"
-    And the user clicks on the "login button" element
-    Then the user should be navigated to the "home" page
+    And the user clicks on the "login" element
+    Then the "title" element should contain the text "Welcome to Home Page"

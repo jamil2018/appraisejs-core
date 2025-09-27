@@ -1,20 +1,23 @@
 import { When } from '@cucumber/cucumber'
 import { CustomWorld } from '../config/world.js'
-import { Locator } from '../../types/step/step.type.js'
+import { Locator } from '../../types/step/step.type'
 import { resolveLocator } from '../utils/locator.util.js'
+
+// This file is generated automatically. Add template steps to this group to generate content.
 
 When(
   'the user fills in the {string} input field with value {string}',
-  async function (this: CustomWorld, field_name: Locator, field_value: string) {
+  async function (this: CustomWorld, element_name: Locator, value: string) {
     try {
-      const fieldLocator = resolveLocator(this.page, field_name)
-      if (!fieldLocator) {
-        throw new Error(`Field locator not found for name ${field_name}`)
+      const elementLocator = await resolveLocator(this.page, element_name)
+      if (!elementLocator) {
+        throw new Error(`Element ${element_name} not found`)
       }
-      await this.page.fill(fieldLocator, field_value)
+      await this.page.locator(elementLocator).waitFor({ state: 'visible' })
+      await this.page.fill(elementLocator, value)
     } catch (error) {
       console.error(error)
-      throw new Error(`Error filling in the ${field_name} input field with value ${field_value}`)
+      throw new Error(`Error filling in the ${element_name} input field with value ${value}`)
     }
   },
 )

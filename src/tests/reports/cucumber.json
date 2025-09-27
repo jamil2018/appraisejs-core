@@ -4,30 +4,30 @@
     "elements": [
       {
         "description": "",
-        "id": "a-collection-of-test-scenarios-validating-authentication-functionality;[login]-validate-user-is-able-to-login-using-valid-credentials",
+        "id": "a-collection-of-tests-validating-the-authentication-feature;[login]-validate-user-is-able-to-login-to-app-using-valid-credentials",
         "keyword": "Scenario",
         "line": 8,
-        "name": "[login] Validate user is able to login using valid credentials",
+        "name": "[Login] Validate user is able to login to app using valid credentials",
         "steps": [
           {
             "keyword": "Before",
             "hidden": true,
             "result": {
               "status": "passed",
-              "duration": 958031166
+              "duration": 1336016916
             }
           },
           {
             "arguments": [],
             "keyword": "Given ",
             "line": 9,
-            "name": "the user navigates to the \"https://demo-test-site-beta.vercel.app/login\" page",
+            "name": "the user is navigated to the \"https://demo-test-site-beta.vercel.app/login\" page",
             "match": {
-              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/navigation.step.ts:2"
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/navigation.step.ts:3"
             },
             "result": {
               "status": "passed",
-              "duration": 722348708
+              "duration": 738457207
             }
           },
           {
@@ -36,11 +36,11 @@
             "line": 10,
             "name": "the user fills in the \"email\" input field with value \"demo@example.com\"",
             "match": {
-              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/keyboard.step.ts:3"
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/keyboard.step.ts:4"
             },
             "result": {
               "status": "passed",
-              "duration": 26976167
+              "duration": 627452250
             }
           },
           {
@@ -49,37 +49,37 @@
             "line": 11,
             "name": "the user fills in the \"password\" input field with value \"test1234\"",
             "match": {
-              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/keyboard.step.ts:3"
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/keyboard.step.ts:4"
             },
             "result": {
               "status": "passed",
-              "duration": 30035707
+              "duration": 35537291
             }
           },
           {
             "arguments": [],
             "keyword": "And ",
             "line": 12,
-            "name": "the user clicks on the \"login button\" element",
+            "name": "the user clicks on the \"login\" element",
             "match": {
-              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/mouse.step.ts:3"
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/mouse.step.ts:4"
             },
             "result": {
               "status": "passed",
-              "duration": 23076000
+              "duration": 186025416
             }
           },
           {
             "arguments": [],
             "keyword": "Then ",
             "line": 13,
-            "name": "the user should be navigated to the \"home\" page",
+            "name": "the \"title\" element should contain the text \"Welcome to Home Page\"",
             "match": {
-              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/navigation_validation.step.ts:2"
+              "location": "file:/Users/hasnat/Projects/appraise/src/tests/steps/string_validation.step.ts:4"
             },
             "result": {
               "status": "passed",
-              "duration": 720335916
+              "duration": 4246124
             }
           },
           {
@@ -87,7 +87,7 @@
             "hidden": true,
             "result": {
               "status": "passed",
-              "duration": 109188208
+              "duration": 114425624
             }
           }
         ],
@@ -95,10 +95,10 @@
         "type": "scenario"
       }
     ],
-    "id": "a-collection-of-test-scenarios-validating-authentication-functionality",
+    "id": "a-collection-of-tests-validating-the-authentication-feature",
     "line": 6,
     "keyword": "Feature",
-    "name": "A collection of test scenarios validating authentication functionality",
+    "name": "A collection of tests validating the authentication feature",
     "tags": [],
     "uri": "src/tests/features/auth/auth.feature"
   }

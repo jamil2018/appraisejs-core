@@ -1,7 +1,9 @@
 import { When } from '@cucumber/cucumber'
 import { CustomWorld } from '../config/world.js'
 
-When('the user navigates to the {string} page', async function (this: CustomWorld, page_url: string) {
+// This file is generated automatically. Add template steps to this group to generate content.
+
+When('the user is navigated to the {string} page', async function (this: CustomWorld, page_url: string) {
   try {
     await this.page.goto(page_url)
   } catch (error) {

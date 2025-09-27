@@ -1,6 +1,7 @@
 import { getTestCaseByIdAction, updateTestCaseAction } from '@/actions/test-case/test-case-actions'
 import {
   Locator,
+  LocatorGroup,
   TemplateStep,
   TemplateStepParameter,
   TestCase,
@@ -19,6 +20,7 @@ import {
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { NodeOrderMap } from '@/types/diagram/diagram'
+import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 
 const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
@@ -35,7 +37,8 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
   const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()
   const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
-  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError) {
+  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
+  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError) {
     return <div>Error: {templateStepParamsError || templateStepsError || locatorsError || testSuitesError}</div>
   }
   return (
@@ -53,6 +56,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         templateStepParams={templateStepParams as TemplateStepParameter[]}
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
+        locatorGroups={locatorGroups as LocatorGroup[]}
         testSuites={testSuites as TestSuite[]}
         defaultNodesOrder={testCase.steps.reduce((acc, step) => {
           acc[step.id] = {
