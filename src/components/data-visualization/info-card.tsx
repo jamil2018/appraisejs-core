@@ -1,62 +1,64 @@
 import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
-import { cn } from '@/lib/utils'
+import { Card, CardContent } from '../ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 
 const InfoCard = ({
-  title,
-  description,
-  value,
-  icon,
-  textAlign = 'left',
-  className,
+  showHighlightGroup,
+  highlight,
+  legend,
+  defaultText,
 }: {
-  title: string
-  description: string
-  value: string
-  icon: React.ReactNode
-  textAlign?: 'left' | 'right' | 'center'
-  className?: React.ComponentProps<'div'>['className']
+  showHighlightGroup: boolean
+  highlight: string
+  legend: string
+  defaultText: string
 }) => {
+  // Dynamic text size based on highlight text length
+  const getHighlightTextSize = (text: string) => {
+    const length = text.length
+    if (length <= 3) return 'text-4xl'
+    if (length <= 6) return 'text-3xl'
+    if (length <= 10) return 'text-2xl'
+    if (length <= 15) return 'text-xl'
+    return 'text-sm'
+  }
+
   return (
-    <Card className={cn(className)}>
-      <CardHeader>
-        <CardTitle>
-          <span
-            className={cn(
-              'flex items-center gap-2',
-              textAlign === 'left' && 'justify-start',
-              textAlign === 'right' && 'justify-end',
-              textAlign === 'center' && 'justify-center',
+    <>
+      <Card className="flex w-fit max-w-[20rem] items-center">
+        <CardContent className="p-2">
+          <div className="flex items-center">
+            {showHighlightGroup ? (
+              <>
+                <div
+                  className={`mr-2 h-full items-center font-mono text-primary ${getHighlightTextSize(highlight)} ${
+                    highlight.length > 15 ? 'w-[6rem] overflow-hidden text-ellipsis whitespace-nowrap' : ''
+                  }`}
+                >
+                  {highlight.length > 15 ? (
+                    <>
+                      <TooltipProvider>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <span>{highlight}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>{highlight}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </>
+                  ) : (
+                    highlight
+                  )}
+                </div>
+                <div className="flex h-full items-center text-sm text-muted-foreground">{legend}</div>
+              </>
+            ) : (
+              <div className="flex items-center text-xs text-muted-foreground">{defaultText}</div>
             )}
-          >
-            {icon}
-            {title}
-          </span>
-        </CardTitle>
-        <CardDescription
-          className={cn(
-            'text-sm',
-            textAlign === 'left' && 'text-left',
-            textAlign === 'right' && 'text-right',
-            textAlign === 'center' && 'text-center',
-          )}
-        >
-          {description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p
-          className={cn(
-            'text-2xl font-bold',
-            textAlign === 'left' && 'text-left',
-            textAlign === 'right' && 'text-right',
-            textAlign === 'center' && 'text-center',
-          )}
-        >
-          {value}
-        </p>
-      </CardContent>
-    </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   )
 }
 

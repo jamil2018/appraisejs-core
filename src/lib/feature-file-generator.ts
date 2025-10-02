@@ -1,7 +1,52 @@
 import { promises as fs } from 'fs'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import prisma from '@/config/db-config'
 import { buildModulePath } from '@/lib/path-helpers/module-path'
+
+/**
+ * Checks if a directory is empty (no files or subdirectories)
+ * @param dirPath - Path to the directory to check
+ * @returns Promise<boolean> - True if directory is empty, false otherwise
+ */
+async function isDirectoryEmpty(dirPath: string): Promise<boolean> {
+  try {
+    const entries = await fs.readdir(dirPath)
+    return entries.length === 0
+  } catch (error) {
+    // If directory doesn't exist or can't be read, consider it empty
+    return true
+  }
+}
+
+/**
+ * Removes empty directories up the hierarchy until a non-empty directory is found
+ * @param dirPath - Starting directory path to clean up
+ * @param basePath - Base path to stop cleaning (e.g., features directory)
+ * @returns Promise<void>
+ */
+async function removeEmptyDirectoriesUp(dirPath: string, basePath: string): Promise<void> {
+  let currentPath = dirPath
+
+  // Keep going up the directory tree until we reach the base path
+  while (currentPath !== basePath && currentPath !== dirname(currentPath)) {
+    try {
+      // Check if current directory is empty
+      if (await isDirectoryEmpty(currentPath)) {
+        await fs.rmdir(currentPath)
+        console.log(`Removed empty directory: ${currentPath}`)
+        // Move up one level
+        currentPath = dirname(currentPath)
+      } else {
+        // Directory is not empty, stop cleaning
+        break
+      }
+    } catch (error) {
+      // If we can't remove the directory or it doesn't exist, stop
+      console.warn(`Could not remove directory ${currentPath}:`, error)
+      break
+    }
+  }
+}
 
 /**
  * Generates a Gherkin feature file for a test suite
@@ -227,6 +272,10 @@ export async function deleteFeatureFile(testSuiteId: string): Promise<boolean> {
     try {
       await fs.unlink(featureFilePath)
       console.log(`Feature file deleted: ${featureFilePath}`)
+
+      // Clean up empty directories up the module hierarchy
+      await removeEmptyDirectoriesUp(moduleDir, featuresBaseDir)
+
       return true
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {

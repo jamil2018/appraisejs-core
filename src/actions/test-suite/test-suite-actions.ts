@@ -9,6 +9,14 @@ import { revalidatePath } from 'next/cache'
 import { z, ZodError } from 'zod'
 import { generateFeatureFile, deleteFeatureFile } from '@/lib/feature-file-generator'
 
+const generateSafeFileName = (testSuiteName: string): string => {
+  return testSuiteName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-')
+}
+
 /**
  * Get all test suites
  * @returns ActionResponse
@@ -18,6 +26,7 @@ export async function getAllTestSuitesAction(): Promise<ActionResponse> {
     const testSuites = await prisma.testSuite.findMany({
       include: {
         module: true,
+        testCases: true,
       },
     })
     return {
@@ -64,9 +73,10 @@ export async function createTestSuiteAction(
       },
     })
 
+    const sanitizedTestSuiteName = generateSafeFileName(newTestSuite.name)
     // Generate feature file for the new test suite
     try {
-      await generateFeatureFile(newTestSuite.id, newTestSuite.name, newTestSuite.description || undefined)
+      await generateFeatureFile(newTestSuite.id, sanitizedTestSuiteName, newTestSuite.description || undefined)
     } catch (featureFileError) {
       console.error('Error generating feature file:', featureFileError)
       // Don't fail the test suite creation if feature file generation fails
