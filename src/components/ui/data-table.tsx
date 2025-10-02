@@ -8,7 +8,9 @@ import {
   SortingState,
   getSortedRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   ColumnFiltersState,
+  PaginationState,
 } from '@tanstack/react-table'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -61,6 +63,10 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState({})
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
   const table = useReactTable({
     data,
@@ -70,11 +76,14 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       rowSelection,
+      pagination,
     },
     getRowId: () => {
       return randomBytes(16).toString('hex')
