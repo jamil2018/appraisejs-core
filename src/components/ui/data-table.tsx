@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableViewOptions } from './data-table-view-options'
-import { Pencil, PlusCircle, Search } from 'lucide-react'
+import { Eye, Pencil, PlusCircle, Search } from 'lucide-react'
 import { Button } from './button'
 import Link from 'next/link'
 import { toast } from '@/hooks/use-toast'
@@ -47,6 +47,7 @@ interface DataTableProps<TData, TValue> {
     link: string
     icon?: React.ReactNode
   }[]
+  viewLink?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -58,6 +59,7 @@ export function DataTable<TData, TValue>({
   multiOptionCreateButton,
   createButtonOptions,
   modifyLink,
+  viewLink,
   deleteAction,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -156,6 +158,27 @@ export function DataTable<TData, TValue>({
                 }`}
               >
                 <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          {viewLink && (
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={table.getSelectedRowModel().rows.length === 0 || table.getSelectedRowModel().rows.length > 1}
+            >
+              <Link
+                href={`${viewLink}/${
+                  table.getSelectedRowModel().rows.length > 0
+                    ? (
+                        table.getSelectedRowModel().rows[0].original as {
+                          id: string
+                        }
+                      ).id
+                    : ''
+                }`}
+              >
+                <Eye className="h-4 w-4" />
               </Link>
             </Button>
           )}

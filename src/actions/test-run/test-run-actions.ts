@@ -1,0 +1,40 @@
+'use server'
+
+import prisma from '@/config/db-config'
+import { ActionResponse } from '@/types/form/actionHandler'
+
+export async function getAllTestRunsAction(): Promise<ActionResponse> {
+  try {
+    const testRuns = await prisma.testRun.findMany({
+      include: {
+        testCases: true,
+      },
+    })
+    return {
+      status: 200,
+      data: testRuns,
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
+    }
+  }
+}
+
+export async function deleteTestRunAction(id: string[]): Promise<ActionResponse> {
+  try {
+    await prisma.testRun.deleteMany({
+      where: { id: { in: id } },
+    })
+    return {
+      status: 200,
+      message: 'Test run(s) deleted successfully',
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
+    }
+  }
+}

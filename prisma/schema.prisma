@@ -203,6 +203,7 @@ model TestRun {
   status      TestRunStatus     @default(QUEUED)
   result      TestRunResult     @default(PENDING)
   testCases   TestRunTestCase[]
+  updatedAt   DateTime          @updatedAt
 }
 
 enum TestRunStatus {
