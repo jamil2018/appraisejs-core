@@ -34,7 +34,7 @@ const TestSuites = async () => {
         <InfoGrid
           infoCards={[
             {
-              showHighlightGroup: emptyTestSuites.length > 0,
+              showHighlightGroup: testSuitesData.length > 0,
               highlight: emptyTestSuites.length.toString(),
               legend: 'Empty test suite(s)',
               defaultText: 'Empty test suites count. Will update when test suites are created.',
