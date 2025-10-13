@@ -196,14 +196,39 @@ model TestRunTestCase {
 }
 
 model TestRun {
-  id          String            @id @default(uuid())
-  runId       String            @unique @default(uuid())
-  startedAt   DateTime          @default(now())
-  completedAt DateTime?
-  status      TestRunStatus     @default(QUEUED)
-  result      TestRunResult     @default(PENDING)
-  testCases   TestRunTestCase[]
-  updatedAt   DateTime          @updatedAt
+  id               String            @id @default(uuid())
+  runId            String            @unique @default(uuid())
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  status           TestRunStatus     @default(QUEUED)
+  result           TestRunResult     @default(PENDING)
+  testCases        TestRunTestCase[]
+  updatedAt        DateTime          @updatedAt
+  environment      Environment       @relation(fields: [environmentId], references: [id])
+  environmentId    String
+  tags             Tag[]
+  testWorkersCount Int?              @default(1)
+  browserEngine    BrowserEngine     @default(CHROMIUM)
+}
+
+model Environment {
+  id         String    @id @default(uuid())
+  name       String
+  baseUrl    String
+  apiBaseUrl String?
+  username   String?
+  password   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  testRuns   TestRun[]
+}
+
+model Tag {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  testRuns  TestRun[]
 }
 
 enum TestRunStatus {
@@ -293,4 +318,10 @@ enum TemplateStepIcon {
   WAIT
   VALIDATION
   DEBUG
+}
+
+enum BrowserEngine {
+  CHROMIUM
+  FIREFOX
+  WEBKIT
 }

@@ -38,3 +38,22 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
     }
   }
 }
+
+export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> {
+  try {
+    const testSuiteTestCases = await prisma.testSuite.findMany({
+      include: {
+        testCases: true,
+      },
+    })
+    return {
+      status: 200,
+      data: testSuiteTestCases,
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
+    }
+  }
+}
