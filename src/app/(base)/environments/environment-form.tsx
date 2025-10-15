@@ -9,8 +9,9 @@ import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
 import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
-import React from 'react'
+import React, { useState } from 'react'
 import { z } from 'zod'
+import { Eye, EyeOff } from 'lucide-react'
 
 const EnvironmentForm = ({
   defaultValues,
@@ -30,6 +31,7 @@ const EnvironmentForm = ({
   ) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
+  const [showPassword, setShowPassword] = useState(false)
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
@@ -175,13 +177,25 @@ const EnvironmentForm = ({
           return (
             <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
               <Label htmlFor={field.name}>Password (Optional)</Label>
-              <Input
-                id={field.name}
-                type="password"
-                value={field.state.value}
-                onChange={e => field.handleChange(e.target.value)}
-                placeholder="Enter password"
-              />
+              <div className="relative">
+                <Input
+                  id={field.name}
+                  type={showPassword ? 'text' : 'password'}
+                  value={field.state.value}
+                  onChange={e => field.handleChange(e.target.value)}
+                  placeholder="Enter password"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
               {field.state.meta.isTouched &&
                 field.state.meta.errors.map(error => (
                   <p key={error as string} className="text-xs text-pink-500">

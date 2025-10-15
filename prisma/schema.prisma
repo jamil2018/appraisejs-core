@@ -213,7 +213,7 @@ model TestRun {
 
 model Environment {
   id         String    @id @default(uuid())
-  name       String
+  name       String    @unique
   baseUrl    String
   apiBaseUrl String?
   username   String?
