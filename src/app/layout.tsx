@@ -34,6 +34,7 @@ import {
   LayoutTemplate,
   ListChecks,
   Puzzle,
+  Server,
   Settings,
   TestTubeDiagonal,
   TestTubes,
@@ -131,6 +132,12 @@ export default function RootLayout({
                       icon: <Puzzle className="h-6 w-6 text-primary" />,
                       href: '/modules',
                       description: 'Create, modify, and run modules',
+                    },
+                    {
+                      text: 'Environments',
+                      icon: <Server className="h-6 w-6 text-primary" />,
+                      href: '/environments',
+                      description: 'Create, modify, and run environments',
                     },
                   ]}
                 />
