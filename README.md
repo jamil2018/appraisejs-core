@@ -2,19 +2,44 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ installed
+- No additional database setup required (uses SQLite)
+
+### Installation
+
+1. **Clone and install dependencies:**
+
+```bash
+git clone <your-repo>
+cd appraise
+npm install
+```
+
+2. **Setup environment and database (automatic):**
+
+```bash
+npm run setup
+```
+
+This will:
+
+- Install dependencies
+- Create `.env` file with SQLite configuration
+- Set up the database schema
+
+3. **Start the development server:**
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Database
+
+This application uses SQLite with Prisma ORM. The database file (`prisma/dev.db`) will be created automatically on first run. No additional database server or configuration is required.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

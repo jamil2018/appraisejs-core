@@ -33,6 +33,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# database files
+*.db
+*.sqlite
+*.sqlite3
+
 # vercel
 .vercel
 
@@ -41,3 +46,4 @@ yarn-error.log*
 next-env.d.ts
 
 tests/reports/*
+tests/config/environments.json
