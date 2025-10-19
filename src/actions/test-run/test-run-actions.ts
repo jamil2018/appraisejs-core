@@ -2,7 +2,6 @@
 
 import prisma from '@/config/db-config'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { TestRun } from '@prisma/client'
 import { z } from 'zod'
 
 export async function getAllTestRunsAction(): Promise<ActionResponse> {
@@ -10,6 +9,8 @@ export async function getAllTestRunsAction(): Promise<ActionResponse> {
     const testRuns = await prisma.testRun.findMany({
       include: {
         testCases: true,
+        tags: true,
+        environment: true,
       },
     })
     return {
@@ -51,27 +52,6 @@ export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> 
     return {
       status: 200,
       data: testSuiteTestCases,
-    }
-  } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
-  }
-}
-
-export async function createTestRunAction(
-  _prev: unknown,
-  value: z.infer<typeof testRunSchema>,
-): Promise<ActionResponse> {
-  try {
-    const testRun = await prisma.testRun.create({
-      data: value,
-    })
-    return {
-      status: 200,
-      message: 'Test run created successfully',
-      data: testRun,
     }
   } catch (error) {
     return {

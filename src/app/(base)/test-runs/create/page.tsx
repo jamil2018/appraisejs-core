@@ -1,4 +1,4 @@
-import { createTestRunAction, getAllTestSuiteTestCasesAction } from '@/actions/test-run/test-run-actions'
+import { getAllTestSuiteTestCasesAction } from '@/actions/test-run/test-run-actions'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { TestCase, TestSuite } from '@prisma/client'
@@ -18,12 +18,12 @@ const CreateTestRun = async () => {
     <>
       <PageHeader>Create Test Run</PageHeader>
       <HeaderSubtitle>Create a new test run to execute your test cases</HeaderSubtitle>
-      <TestRunForm
+      {/* <TestRunForm
         testSuiteTestCases={testSuiteTestCasesData}
         onSubmitAction={createTestRunAction}
         successTitle="Test Run Created"
         successMessage="The test run has been created successfully"
-      />
+      /> */}
     </>
   )
 }
