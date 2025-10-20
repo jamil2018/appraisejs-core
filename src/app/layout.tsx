@@ -36,6 +36,7 @@ import {
   Puzzle,
   Server,
   Settings,
+  Tag,
   TestTubeDiagonal,
   TestTubes,
 } from 'lucide-react'
@@ -138,6 +139,12 @@ export default function RootLayout({
                       icon: <Server className="h-6 w-6 text-primary" />,
                       href: '/environments',
                       description: 'Create, modify, and run environments',
+                    },
+                    {
+                      text: 'Tags',
+                      icon: <Tag className="h-6 w-6 text-primary" />,
+                      href: '/tags',
+                      description: 'Create, modify, and run tags',
                     },
                   ]}
                 />
