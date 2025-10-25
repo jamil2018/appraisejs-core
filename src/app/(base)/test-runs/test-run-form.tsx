@@ -3,10 +3,11 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formOpts } from '@/constants/form-opts/test-run-form-opts'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formOpts, TestRun } from '@/constants/form-opts/test-run-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { TestCase, TestRun, TestSuite } from '@prisma/client'
+import { Environment, TestCase, TestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
@@ -18,6 +19,7 @@ const TestRunForm = ({
   successTitle,
   successMessage,
   testSuiteTestCases,
+  environments,
   id,
   onSubmitAction,
 }: {
@@ -25,6 +27,7 @@ const TestRunForm = ({
   successTitle: string
   successMessage: string
   testSuiteTestCases: (TestSuite & { testCases: TestCase[] })[]
+  environments: Environment[]
   id?: string
   onSubmitAction: (initialFormState: ServerFormState<TestRun>, value: TestRun, id?: string) => Promise<ActionResponse>
 }) => {
@@ -66,16 +69,31 @@ const TestRunForm = ({
       }}
     >
       <form.Field
-        name="name"
+        name="environmentId"
         validators={{
-          onChange: z.string().min(1, { message: 'Name is required' }),
+          onChange: z.string().min(1, { message: 'Environment is required' }),
         }}
       >
         {field => {
           return (
             <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Name</Label>
-              <Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} />
+              <Label htmlFor={field.name}>Environment</Label>
+              <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an environment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {environments.length === 0 ? (
+                    <div className="p-2 text-sm">No environments available</div>
+                  ) : (
+                    environments.map(environment => (
+                      <SelectItem key={environment.id} value={environment.id}>
+                        {environment.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
               {field.state.meta.isTouched &&
                 field.state.meta.errors.map(error => (
                   <p key={error as string} className="text-xs text-pink-500">

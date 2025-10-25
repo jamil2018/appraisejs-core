@@ -1,9 +1,10 @@
-import { getAllTestSuiteTestCasesAction } from '@/actions/test-run/test-run-actions'
+import { createTestRunAction, getAllTestSuiteTestCasesAction } from '@/actions/test-run/test-run-actions'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { TestCase, TestSuite } from '@prisma/client'
+import { Environment, TestCase, TestSuite } from '@prisma/client'
 import React from 'react'
 import TestRunForm from '../test-run-form'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 
 const CreateTestRun = async () => {
   const { data: testSuiteTestCases, error: testSuiteTestCasesError } = await getAllTestSuiteTestCasesAction()
@@ -14,16 +15,24 @@ const CreateTestRun = async () => {
 
   const testSuiteTestCasesData = testSuiteTestCases as (TestSuite & { testCases: TestCase[] })[]
 
+  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
+
+  if (environmentsError) {
+    return <div>Error: {environmentsError}</div>
+  }
   return (
     <>
-      <PageHeader>Create Test Run</PageHeader>
-      <HeaderSubtitle>Create a new test run to execute your test cases</HeaderSubtitle>
-      {/* <TestRunForm
+      <div className="mb-8">
+        <PageHeader>Create Test Run</PageHeader>
+        <HeaderSubtitle>Create a new test run to execute your test cases</HeaderSubtitle>
+      </div>
+      <TestRunForm
         testSuiteTestCases={testSuiteTestCasesData}
+        environments={environments as Environment[]}
         onSubmitAction={createTestRunAction}
         successTitle="Test Run Created"
         successMessage="The test run has been created successfully"
-      /> */}
+      />
     </>
   )
 }
