@@ -4,7 +4,6 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { ListChecks } from 'lucide-react'
 import React, { Suspense } from 'react'
 import TestRunTable from './test-run-table'
-import { getAllTestRunsAction } from '@/actions/test-run/test-run-actions'
 
 const TestRuns = async () => {
   return (

@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { formOpts, TestRun } from '@/constants/form-opts/test-run-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { Environment, TestCase, TestSuite } from '@prisma/client'
+import { BrowserEngine, Environment, Tag, TestCase, TestRunTestCase, TestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
@@ -20,6 +21,7 @@ const TestRunForm = ({
   successMessage,
   testSuiteTestCases,
   environments,
+  tags,
   id,
   onSubmitAction,
 }: {
@@ -28,6 +30,7 @@ const TestRunForm = ({
   successMessage: string
   testSuiteTestCases: (TestSuite & { testCases: TestCase[] })[]
   environments: Environment[]
+  tags: Tag[]
   id?: string
   onSubmitAction: (initialFormState: ServerFormState<TestRun>, value: TestRun, id?: string) => Promise<ActionResponse>
 }) => {
@@ -94,6 +97,118 @@ const TestRunForm = ({
                   )}
                 </SelectContent>
               </Select>
+              {field.state.meta.isTouched &&
+                field.state.meta.errors.map(error => (
+                  <p key={error as string} className="text-xs text-pink-500">
+                    {error}
+                  </p>
+                ))}
+            </div>
+          )
+        }}
+      </form.Field>
+      <form.Field
+        name="tags"
+        validators={{
+          onChange: z.array(z.string()).min(1, { message: 'Tags are required' }),
+        }}
+      >
+        {field => {
+          return (
+            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+              <Label htmlFor={field.name}>Tags</Label>
+              <MultiSelect
+                options={tags.map(tag => ({ label: tag.name, value: tag.id }))}
+                selected={field.state.value}
+                onChange={field.handleChange}
+                placeholder="Select tags"
+                emptyMessage="No tags available"
+              />
+              {field.state.meta.isTouched &&
+                field.state.meta.errors.map(error => (
+                  <p key={error as string} className="text-xs text-pink-500">
+                    {error}
+                  </p>
+                ))}
+            </div>
+          )
+        }}
+      </form.Field>
+
+      <form.Field
+        name="testWorkersCount"
+        validators={{ onChange: z.number().min(1, { message: 'Test workers count must be at least 1' }) }}
+      >
+        {field => {
+          return (
+            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+              <Label htmlFor={field.name}>Test Workers Count</Label>
+              <Input
+                type="number"
+                value={field.state.value}
+                onChange={e => field.handleChange(Number(e.target.value))}
+              />
+              {field.state.meta.isTouched &&
+                field.state.meta.errors.map(error => (
+                  <p key={error as string} className="text-xs text-pink-500">
+                    {error}
+                  </p>
+                ))}
+            </div>
+          )
+        }}
+      </form.Field>
+      <form.Field name="browserEngine" validators={{ onChange: z.nativeEnum(BrowserEngine) }}>
+        {field => {
+          return (
+            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+              <Label htmlFor={field.name}>Browser Engine</Label>
+              <Select
+                value={field.state.value}
+                onValueChange={value => field.handleChange(value as unknown as BrowserEngine)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a browser engine" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={BrowserEngine.CHROMIUM}>Chromium</SelectItem>
+                  <SelectItem value={BrowserEngine.FIREFOX}>Firefox</SelectItem>
+                  <SelectItem value={BrowserEngine.WEBKIT}>WebKit</SelectItem>
+                </SelectContent>
+              </Select>
+              {field.state.meta.isTouched &&
+                field.state.meta.errors.map(error => (
+                  <p key={error as string} className="text-xs text-pink-500">
+                    {error}
+                  </p>
+                ))}
+            </div>
+          )
+        }}
+      </form.Field>
+      <form.Field
+        name="testCases"
+        validators={{
+          onChange: z.array(z.object({ testCaseId: z.string() })).min(1, { message: 'Test cases are required' }),
+        }}
+      >
+        {field => {
+          return (
+            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+              <Label htmlFor={field.name}>Test Cases</Label>
+              <MultiSelect
+                options={testSuiteTestCases.flatMap(testSuite =>
+                  testSuite.testCases.map(testCase => ({ label: testCase.title, value: testCase.id })),
+                )}
+                selected={field.state.value.map(testCase => testCase.testCaseId)}
+                onChange={value =>
+                  field.handleChange(
+                    value.map(testCaseId => ({ testCaseId: testCaseId }) as unknown as TestRunTestCase),
+                  )
+                }
+                placeholder="Select test cases"
+                emptyMessage="No test cases available"
+              />
               {field.state.meta.isTouched &&
                 field.state.meta.errors.map(error => (
                   <p key={error as string} className="text-xs text-pink-500">

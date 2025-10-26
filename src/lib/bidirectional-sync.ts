@@ -1,9 +1,15 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { scanFeatureFiles, ParsedFeature } from './gherkin-parser'
-import { syncFeaturesToDatabase, mergeScenariosWithExistingTestSuites } from './database-sync'
+import { scanFeatureFiles } from './gherkin-parser'
+import { mergeScenariosWithExistingTestSuites } from './database-sync'
 import { generateFeatureFile } from './feature-file-generator'
 import prisma from '@/config/db-config'
+import { Module, TestSuite } from '@prisma/client'
+
+// Type for TestSuite with included module relation
+type TestSuiteWithModule = TestSuite & {
+  module: Module
+}
 
 /**
  * Result of the bidirectional sync operation
@@ -254,17 +260,15 @@ async function checkModuleExists(modulePath: string): Promise<boolean> {
     let currentParentId: string | null = null
 
     for (const moduleName of pathParts) {
-      const module = await prisma.module.findFirst({
+      const foundModule: Module | null = await prisma.module.findFirst({
         where: {
           name: moduleName,
           parentId: currentParentId,
         },
       })
-
-      if (!module) return false
-      currentParentId = module.id
+      if (!foundModule) return false
+      currentParentId = foundModule.id
     }
-
     return true
   } catch {
     return false
@@ -276,14 +280,14 @@ async function checkTestSuiteExists(featureName: string, modulePath: string): Pr
     const moduleId = await findModuleIdByPath(modulePath)
     if (!moduleId) return false
 
-    const testSuite = await prisma.testSuite.findFirst({
+    const testSuite: TestSuite | null = await prisma.testSuite.findFirst({
       where: {
         name: featureName,
         moduleId: moduleId,
       },
     })
 
-    return !!testSuite
+    return testSuite !== null
   } catch {
     return false
   }
@@ -343,15 +347,15 @@ async function findModuleIdByPath(modulePath: string): Promise<string | null> {
     let currentParentId: string | null = null
 
     for (const moduleName of pathParts) {
-      const module = await prisma.module.findFirst({
+      const foundModule: Module | null = await prisma.module.findFirst({
         where: {
           name: moduleName,
           parentId: currentParentId,
         },
       })
 
-      if (!module) return null
-      currentParentId = module.id
+      if (!foundModule) return null
+      currentParentId = foundModule.id
     }
 
     return currentParentId
@@ -360,7 +364,7 @@ async function findModuleIdByPath(modulePath: string): Promise<string | null> {
   }
 }
 
-function buildExpectedFeatureFilePath(testSuite: any, featuresBaseDir: string): string {
+function buildExpectedFeatureFilePath(testSuite: TestSuiteWithModule, featuresBaseDir: string): string {
   // This is a simplified version - in practice, you'd use the same logic as generateFeatureFile
   const modulePath = buildModulePathFromTestSuite(testSuite)
   const safeFileName = testSuite.name
@@ -372,7 +376,7 @@ function buildExpectedFeatureFilePath(testSuite: any, featuresBaseDir: string): 
   return join(featuresBaseDir, modulePath.substring(1), `${safeFileName}.feature`)
 }
 
-function buildModulePathFromTestSuite(testSuite: any): string {
+function buildModulePathFromTestSuite(testSuite: TestSuiteWithModule): string {
   // Simplified module path building - in practice, you'd use the existing logic
   return `/${testSuite.module.name}`
 }

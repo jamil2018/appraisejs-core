@@ -1,7 +1,7 @@
 import prisma from '@/config/db-config'
-import { ParsedFeature, ParsedScenario, ParsedStep } from './gherkin-parser'
+import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
-import { TemplateStepType, TemplateStepIcon } from '@prisma/client'
+import { TemplateStepType, TemplateStepIcon, TestCase } from '@prisma/client'
 
 /**
  * Syncs feature files to the database by creating missing test suites and test cases
@@ -34,26 +34,28 @@ export async function syncFeaturesToDatabase(
 
       if (testSuiteId) {
         createdTestSuites++
-      }
 
-      // Process each scenario in the feature
-      for (const scenario of feature.scenarios) {
-        const testCaseId = await findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId)
+        // Process each scenario in the feature
+        for (const scenario of feature.scenarios) {
+          const testCaseId = await findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId)
 
-        if (testCaseId) {
-          createdTestCases++
-        }
+          if (testCaseId) {
+            createdTestCases++
 
-        // Process steps for this test case
-        for (const step of scenario.steps) {
-          const templateStepId = await findOrCreateTemplateStep(step)
+            // Process steps for this test case
+            for (const step of scenario.steps) {
+              const templateStepId = await findOrCreateTemplateStep(step)
 
-          if (templateStepId) {
-            createdTemplateSteps++
+              if (templateStepId) {
+                createdTemplateSteps++
+              }
+
+              // Create or update test case step
+              if (testCaseId && templateStepId) {
+                await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
+              }
+            }
           }
-
-          // Create or update test case step
-          await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
         }
       }
     }
@@ -129,7 +131,7 @@ async function findOrCreateTestSuite(
 async function findOrCreateTestCase(title: string, description: string, testSuiteId: string): Promise<string | null> {
   try {
     // Try to find existing test case
-    const existingTestCase = await prisma.testCase.findFirst({
+    const existingTestCase: TestCase | null = await prisma.testCase.findFirst({
       where: {
         title: title,
         TestSuite: {
@@ -330,7 +332,7 @@ export async function mergeScenariosWithExistingTestSuites(
               // Add steps for this test case
               for (const step of scenario.steps) {
                 const templateStepId = await findOrCreateTemplateStep(step)
-                if (templateStepId) {
+                if (templateStepId && testCaseId) {
                   await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
                 }
               }
@@ -352,7 +354,7 @@ export async function mergeScenariosWithExistingTestSuites(
 
               for (const step of scenario.steps) {
                 const templateStepId = await findOrCreateTemplateStep(step)
-                if (templateStepId) {
+                if (templateStepId && testCaseId) {
                   await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
                 }
               }

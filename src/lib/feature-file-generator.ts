@@ -14,6 +14,7 @@ async function isDirectoryEmpty(dirPath: string): Promise<boolean> {
     return entries.length === 0
   } catch (error) {
     // If directory doesn't exist or can't be read, consider it empty
+    console.warn(`Could not read directory ${dirPath}:`, error)
     return true
   }
 }
