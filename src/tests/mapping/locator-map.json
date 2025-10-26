@@ -10,5 +10,9 @@
   {
     "name": "Demo",
     "path": "/test"
+  },
+  {
+    "name": "test",
+    "path": "/test"
   }
 ]
