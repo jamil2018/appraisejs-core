@@ -1,8 +1,0 @@
-{
-  "staging": {
-    "baseUrl": "https://test.com",
-    "apiBaseUrl": "",
-    "email": "test@test.com",
-    "password": "test123"
-  }
-}

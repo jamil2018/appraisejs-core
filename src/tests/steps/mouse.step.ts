@@ -1,5 +1,5 @@
 import { When } from '@cucumber/cucumber'
-import { CustomWorld } from '../config/world.js'
+import { CustomWorld } from '../config/executor/world.js'
 import { Locator } from '../../types/step/step.type'
 import { resolveLocator } from '../utils/locator.util.js'
 

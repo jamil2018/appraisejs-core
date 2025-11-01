@@ -13,7 +13,7 @@ interface EnvironmentConfig {
  * Gets the file path for the environments.json file
  */
 export function getEnvironmentsFilePath(): string {
-  return path.join('src', 'tests', 'config', 'environments.json')
+  return path.join('src', 'tests', 'config', 'environments', 'environments.json')
 }
 
 /**

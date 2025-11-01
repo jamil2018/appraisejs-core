@@ -1,4 +1,0 @@
-{
-  "page title": "h1[data-test-id='home-page-title']",
-  "logout button": "button[data-test-id='logout-button']"
-}

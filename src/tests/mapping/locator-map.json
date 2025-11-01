@@ -6,13 +6,5 @@
   {
     "name": "home",
     "path": "/home"
-  },
-  {
-    "name": "Demo",
-    "path": "/test"
-  },
-  {
-    "name": "test",
-    "path": "/test"
   }
 ]

@@ -1,5 +1,5 @@
 import { When } from '@cucumber/cucumber'
-import { CustomWorld } from '../config/world.js'
+import { CustomWorld } from '../config/executor/world.js'
 
 // This file is generated automatically. Add template steps to this group to generate content.
 

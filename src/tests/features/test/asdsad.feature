@@ -3,9 +3,8 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: test
+Feature: asdsad
 
-  Scenario: [asdasdasd] test
-    Given test "test"
-    When test "asdad"
-    And And test "asdad"
+  Scenario: [asdasdsad] teaetaseda
+    Given asdasdasd
+    When asdasdasd
