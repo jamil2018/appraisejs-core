@@ -1,5 +1,5 @@
 import { Page } from 'playwright'
-import { LocatorCache, LocatorMapCache } from './cache.util'
+import { LocatorCache, LocatorMapCache } from './cache.util.js'
 
 /**
  * Resolves a Playwright locator for a given page and locator name by looking up

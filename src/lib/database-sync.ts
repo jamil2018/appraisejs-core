@@ -1,3 +1,4 @@
+import { relative } from 'path'
 import prisma from '@/config/db-config'
 import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
@@ -77,10 +78,15 @@ export async function syncFeaturesToDatabase(
 
 /**
  * Extracts module path from feature file path
+ * Works cross-platform (Windows, Mac, Linux)
  */
 function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  const relativePath = featureFilePath.replace(featuresBaseDir, '')
-  const pathParts = relativePath.split('/').filter(part => part && part !== '')
+  // Use path.relative for cross-platform path handling
+  const relativePath = relative(featuresBaseDir, featureFilePath)
+
+  // Normalize to forward slashes for module path format (database uses /)
+  const normalizedPath = relativePath.replace(/\\/g, '/')
+  const pathParts = normalizedPath.split('/').filter(part => part && part !== '')
 
   // Remove the filename and join the remaining parts
   const moduleParts = pathParts.slice(0, -1)

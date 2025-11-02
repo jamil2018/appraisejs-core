@@ -58,8 +58,29 @@ export async function buildModuleHierarchy(modulePath: string): Promise<string> 
     // Parse the module path
     const pathParts = modulePath.split('/').filter(part => part && part !== '')
 
+    // Handle empty path (root level) - create/find a default root module
     if (pathParts.length === 0) {
-      throw new Error('Invalid module path: empty path')
+      const rootModule = await prisma.module.findFirst({
+        where: {
+          name: 'root',
+          parentId: null,
+        },
+      })
+
+      if (rootModule) {
+        return rootModule.id
+      }
+
+      // Create default root module
+      const newRootModule = await prisma.module.create({
+        data: {
+          name: 'root',
+          parentId: null,
+        },
+      })
+
+      console.log(`Created root module for features without module path`)
+      return newRootModule.id
     }
 
     let currentParentId: string | undefined

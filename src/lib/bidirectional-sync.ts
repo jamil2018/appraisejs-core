@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs'
-import { join } from 'path'
+import { join, relative } from 'path'
 import { scanFeatureFiles } from './gherkin-parser'
 import { mergeScenariosWithExistingTestSuites } from './database-sync'
 import { generateFeatureFile } from './feature-file-generator'
@@ -246,8 +246,12 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
 // Helper functions for dry run
 
 function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  const relativePath = featureFilePath.replace(featuresBaseDir, '')
-  const pathParts = relativePath.split('/').filter(part => part && part !== '')
+  // Use path.relative for cross-platform path handling
+  const relativePath = relative(featuresBaseDir, featureFilePath)
+
+  // Normalize to forward slashes for module path format (database uses /)
+  const normalizedPath = relativePath.replace(/\\/g, '/')
+  const pathParts = normalizedPath.split('/').filter(part => part && part !== '')
   const moduleParts = pathParts.slice(0, -1)
   return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
 }
@@ -342,7 +346,16 @@ async function checkTemplateStepExists(step: { keyword: string; text: string }):
 async function findModuleIdByPath(modulePath: string): Promise<string | null> {
   try {
     const pathParts = modulePath.split('/').filter(part => part && part !== '')
-    if (pathParts.length === 0) return null
+    // Handle empty path (root level) - find the default root module
+    if (pathParts.length === 0) {
+      const rootModule = await prisma.module.findFirst({
+        where: {
+          name: 'root',
+          parentId: null,
+        },
+      })
+      return rootModule?.id || null
+    }
 
     let currentParentId: string | null = null
 

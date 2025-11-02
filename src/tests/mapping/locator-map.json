@@ -1,10 +1,10 @@
 [
   {
-    "name": "login",
-    "path": "/login"
-  },
-  {
     "name": "home",
     "path": "/home"
+  },
+  {
+    "name": "login",
+    "path": "/login"
   }
 ]

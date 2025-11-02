@@ -188,7 +188,9 @@ export class LocatorMapCache {
    * @private
    */
   private constructor() {
-    this.data = JSON.parse(readFileSync(process.env.LOCATOR_MAP_LOCATION ?? 'src/mapping/locator-map.json', 'utf8'))
+    this.data = JSON.parse(
+      readFileSync(process.env.LOCATOR_MAP_LOCATION ?? 'src/tests/mapping/locator-map.json', 'utf8'),
+    )
   }
 
   /**

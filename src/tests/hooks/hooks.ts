@@ -1,5 +1,5 @@
 import { After, AfterAll, Before, BeforeAll, setDefaultTimeout } from '@cucumber/cucumber'
-import { CustomWorld } from '@/tests/config/executor/world'
+import { CustomWorld } from '../config/executor/world.js'
 import { BrowserName } from '@/types/executor/browser.type'
 import { config } from 'dotenv'
 import { chromium, ChromiumBrowser, firefox, FirefoxBrowser, webkit, WebKitBrowser } from 'playwright'

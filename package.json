@@ -16,7 +16,8 @@
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\" \"*.{js,jsx,ts,tsx,json,md}\"",
     "format:check:src": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
     "format:src": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
-    "test": "cucumber-js"
+    "test": "cucumber-js",
+    "test:cli": "tsx ./src/tests/executor.ts"
   },
   "dependencies": {
     "@babel/parser": "^7.27.0",

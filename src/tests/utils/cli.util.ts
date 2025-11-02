@@ -7,16 +7,16 @@ import parseTagExpression from '@cucumber/tag-expressions'
  * @extends OptionValues - Extends Commander.js OptionValues for CLI integration
  */
 export interface CliOptions extends OptionValues {
-    /** The target environment to run tests against */
-    environment: string
-    /** Cucumber tag expression to filter test scenarios */
-    tags: string
-    /** Number of parallel workers to run tests with */
-    parallel: number
-    /** Browser engine to use for test execution */
-    browser: 'chromium' | 'firefox' | 'webkit'
-    /** Whether to run browser in headless mode */
-    headless: 'true' | 'false'
+  /** The target environment to run tests against */
+  environment: string
+  /** Cucumber tag expression to filter test scenarios */
+  tags: string
+  /** Number of parallel workers to run tests with */
+  parallel: number
+  /** Browser engine to use for test execution */
+  browser: 'chromium' | 'firefox' | 'webkit'
+  /** Whether to run browser in headless mode */
+  headless: 'true' | 'false'
 }
 
 /** Available browser choices for test execution */
@@ -46,16 +46,13 @@ const program = new Command()
  */
 let environmentNames: string[] = []
 try {
-    environmentNames = Object.keys(getAllEnvironments())
-    if (environmentNames.length === 0) {
-        console.warn('⚠️  No environments found in configuration')
-    }
+  environmentNames = Object.keys(getAllEnvironments())
+  if (environmentNames.length === 0) {
+    console.warn('⚠️  No environments found in configuration')
+  }
 } catch (error) {
-    console.error(
-        '❌ Failed to load environments:',
-        error instanceof Error ? error.message : 'Unknown error'
-    )
-    process.exit(1)
+  console.error('❌ Failed to load environments:', error instanceof Error ? error.message : 'Unknown error')
+  process.exit(1)
 }
 
 /**
@@ -76,11 +73,11 @@ try {
  * ```
  */
 function parsePositiveInt(val: string): number {
-    const n = Number(val)
-    if (!Number.isInteger(n) || n <= 0) {
-        throw new Error(`--parallel must be a positive integer, got "${val}"`)
-    }
-    return n
+  const n = Number(val)
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`--parallel must be a positive integer, got "${val}"`)
+  }
+  return n
 }
 
 /**
@@ -101,14 +98,12 @@ function parsePositiveInt(val: string): number {
  * ```
  */
 function validateCucumberTagExpression(val: string): string {
-    try {
-        parseTagExpression(val)
-        return val
-    } catch (error) {
-        throw new Error(
-            `Invalid tag expression: ${error instanceof Error ? error.message : 'Unknown error'}`
-        )
-    }
+  try {
+    parseTagExpression(val)
+    return val
+  } catch (error) {
+    throw new Error(`Invalid tag expression: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 /**
@@ -118,46 +113,35 @@ function validateCucumberTagExpression(val: string): string {
  * with their respective validation rules and default values.
  */
 program
-    .name('cucumber-cli')
-    .description(
-        'A CLI tool for running Cucumber tests with different configurations'
-    )
-    .version('1.0.0')
-    .addOption(
-        new Option(
-            '-e, --environment <environment>',
-            'The environment to run the tests on'
-        )
-            .choices(environmentNames)
-            .makeOptionMandatory()
-    )
-    .addOption(
-        new Option(
-            '-t, --tags <tags>',
-            'The tags to run the tests on (Cucumber tag expression)'
-        )
-            .argParser(validateCucumberTagExpression)
-            .makeOptionMandatory()
-    )
-    .option(
-        '-p, --parallel <parallel>',
-        'The number of parallel workers to run the tests on',
-        parsePositiveInt,
-        DEFAULT_PARALLEL_WORKERS
-    )
-    .addOption(
-        new Option('-b, --browser <browser>', 'The browser to run the tests on')
-            .choices(BROWSER_CHOICES)
-            .default(DEFAULT_BROWSER)
-    )
-    .addOption(
-        new Option(
-            '-h, --headless <headless>',
-            'The headless mode to run the tests on'
-        )
-            .choices(HEADLESS_CHOICES)
-            .default(DEFAULT_HEADLESS)
-    )
+  .name('cucumber-cli')
+  .description('A CLI tool for running Cucumber tests with different configurations')
+  .version('1.0.0')
+  .addOption(
+    new Option('-e, --environment <environment>', 'The environment to run the tests on')
+      .choices(environmentNames)
+      .makeOptionMandatory(),
+  )
+  .addOption(
+    new Option('-t, --tags <tags>', 'The tags to run the tests on (Cucumber tag expression)')
+      .argParser(validateCucumberTagExpression)
+      .makeOptionMandatory(),
+  )
+  .option(
+    '-p, --parallel <parallel>',
+    'The number of parallel workers to run the tests on',
+    parsePositiveInt,
+    DEFAULT_PARALLEL_WORKERS,
+  )
+  .addOption(
+    new Option('-b, --browser <browser>', 'The browser to run the tests on')
+      .choices(BROWSER_CHOICES)
+      .default(DEFAULT_BROWSER),
+  )
+  .addOption(
+    new Option('-h, --headless <headless>', 'The headless mode to run the tests on')
+      .choices(HEADLESS_CHOICES)
+      .default(DEFAULT_HEADLESS),
+  )
 
 /**
  * Starts the CLI and parses command line arguments
@@ -177,17 +161,17 @@ program
  * ```
  */
 export function startCli(): CliOptions {
-    try {
-        program.parse()
-        const options = program.opts() as CliOptions
+  try {
+    program.parse()
+    const options = program.opts() as CliOptions
 
-        return options
-    } catch (error) {
-        if (error instanceof Error) {
-            console.error('❌ CLI Error:', error.message)
-        } else {
-            console.error('❌ CLI Error: Unknown error occurred')
-        }
-        process.exit(1)
+    return options
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error('❌ CLI Error:', error.message)
+    } else {
+      console.error('❌ CLI Error: Unknown error occurred')
     }
+    process.exit(1)
+  }
 }

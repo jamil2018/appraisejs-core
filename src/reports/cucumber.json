@@ -1,1 +1,231 @@
-[]
+[
+  {
+    "description": "",
+    "elements": [
+      {
+        "description": "",
+        "id": "example;user-navigates-to-the-login-page",
+        "keyword": "Scenario",
+        "line": 4,
+        "name": "User navigates to the login page",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 208577299
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 5,
+            "name": "the user navigates to \"https://demo-test-site-beta.vercel.app/login\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\action\\navigation.action.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 3663029900
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 6,
+            "name": "the user should see \"Login\" in \"button[data-test-id='login-button']\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\validation\\text.validation.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 26614499
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 32551599
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@test",
+            "line": 1
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "example;user-navigates-to-the-home-page",
+        "keyword": "Scenario",
+        "line": 8,
+        "name": "User navigates to the home page",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 112377999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 9,
+            "name": "the user navigates to \"https://demo-test-site-beta.vercel.app/login\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\action\\navigation.action.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 470659399
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "the user fills in the \"email\" field with \"demo@example.com\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\action\\type.action.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 36297599
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 11,
+            "name": "the user fills in the \"password\" field with \"test1234\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\action\\type.action.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 10590000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 12,
+            "name": "the user clicks on \"loginButton\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\action\\click.action.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 29324499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 13,
+            "name": "the user should see \"Welcome to Home Page\" in \".container h1\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\validation\\text.validation.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 208650599
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 30159899
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@test",
+            "line": 1
+          }
+        ],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "example;user-navigates-to-the-home-page-using-environment-url",
+        "keyword": "Scenario",
+        "line": 15,
+        "name": "User navigates to the home page using environment url",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 101142800
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 16,
+            "name": "the user navigates to \"staging\" environment url",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\action\\navigation.action.step.ts:6"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1594956100
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 17,
+            "name": "the user should see \"Login\" in \"button[data-test-id='login-button']\"",
+            "match": {
+              "location": "file:\\G:\\codes\\appraise\\src\\tests\\steps\\validation\\text.validation.step.ts:3"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 839159800
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 30281899
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@test",
+            "line": 1
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "example",
+    "line": 2,
+    "keyword": "Feature",
+    "name": "Example",
+    "tags": [
+      {
+        "name": "@test",
+        "line": 1
+      }
+    ],
+    "uri": "src\\tests\\features\\example\\example.feature"
+  }
+]

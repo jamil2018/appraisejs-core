@@ -22,13 +22,10 @@ import { readFileSync } from 'fs'
  * @throws Will throw an error if the environments.json file cannot be read or parsed
  */
 export function getEnvironment(environment: string) {
-    const environmentConfig = JSON.parse(
-        readFileSync(
-            `${process.cwd()}/src/config/environments/environments.json`,
-            'utf8'
-        )
-    )
-    return environmentConfig[environment]
+  const environmentConfig = JSON.parse(
+    readFileSync(`${process.cwd()}/src/tests/config/environments/environments.json`, 'utf8'),
+  )
+  return environmentConfig[environment]
 }
 
 /**
@@ -54,11 +51,8 @@ export function getEnvironment(environment: string) {
  * @throws Will throw an error if the environments.json file cannot be read or parsed
  */
 export function getAllEnvironments() {
-    const environmentConfig = JSON.parse(
-        readFileSync(
-            `${process.cwd()}/src/config/environments/environments.json`,
-            'utf8'
-        )
-    )
-    return environmentConfig
+  const environmentConfig = JSON.parse(
+    readFileSync(`${process.cwd()}/src/tests/config/environments/environments.json`, 'utf8'),
+  )
+  return environmentConfig
 }

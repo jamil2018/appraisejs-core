@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs'
-import { join } from 'path'
+import { join, relative } from 'path'
 
 /**
  * Represents a parsed feature file with its scenarios and steps
@@ -168,13 +168,18 @@ export async function scanFeatureFiles(directoryPath: string): Promise<ParsedFea
 
 /**
  * Extracts module path from feature file path
+ * Works cross-platform (Windows, Mac, Linux)
  * @param featureFilePath - Full path to the feature file
  * @param featuresBaseDir - Base directory for features
  * @returns string - Module path (e.g., "/module1/submodule")
  */
 export function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  const relativePath = featureFilePath.replace(featuresBaseDir, '')
-  const pathParts = relativePath.split('/').filter(part => part && part !== '')
+  // Use path.relative for cross-platform path handling
+  const relativePath = relative(featuresBaseDir, featureFilePath)
+
+  // Normalize to forward slashes for module path format (database uses /)
+  const normalizedPath = relativePath.replace(/\\/g, '/')
+  const pathParts = normalizedPath.split('/').filter(part => part && part !== '')
 
   // Remove the filename and join the remaining parts
   const moduleParts = pathParts.slice(0, -1)
