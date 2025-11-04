@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs'
-import { TemplateStep } from '@prisma/client'
+import { TemplateStep, TemplateStepGroupType } from '@prisma/client'
 import { ensureStepsDirectory, getFilePath, formatFileContent } from './template-step-file-generator'
 
 /**
@@ -112,10 +112,14 @@ import { Locator } from '../../types/step/step.type';
  * Intelligently adds a new template step to the file
  * Preserves existing content including imports, types, and other code
  */
-export async function addTemplateStepToFile(groupName: string, templateStep: TemplateStep): Promise<void> {
+export async function addTemplateStepToFile(
+  groupName: string,
+  templateStep: TemplateStep,
+  type: TemplateStepGroupType | string,
+): Promise<void> {
   try {
     await ensureStepsDirectory()
-    const filePath = getFilePath(groupName)
+    const filePath = getFilePath(groupName, type)
 
     let existingContent = ''
     try {
@@ -163,10 +167,14 @@ export async function addTemplateStepToFile(groupName: string, templateStep: Tem
  * Intelligently removes a template step from the file
  * Only removes the specific step, preserves everything else including imports and types
  */
-export async function removeTemplateStepFromFile(groupName: string, templateStep: TemplateStep): Promise<void> {
+export async function removeTemplateStepFromFile(
+  groupName: string,
+  templateStep: TemplateStep,
+  type: TemplateStepGroupType | string,
+): Promise<void> {
   try {
     await ensureStepsDirectory()
-    const filePath = getFilePath(groupName)
+    const filePath = getFilePath(groupName, type)
 
     let existingContent = ''
     try {
@@ -220,6 +228,7 @@ export async function removeTemplateStepFromFile(groupName: string, templateStep
 export async function updateTemplateStepInFile(
   groupName: string,
   templateStep: TemplateStep,
+  type: TemplateStepGroupType | string,
   oldStep?: TemplateStep,
 ): Promise<void> {
   try {
@@ -230,14 +239,14 @@ export async function updateTemplateStepInFile(
     }
 
     await ensureStepsDirectory()
-    const filePath = getFilePath(groupName)
+    const filePath = getFilePath(groupName, type)
 
     let existingContent = ''
     try {
       existingContent = await fs.readFile(filePath, 'utf8')
     } catch {
       // File doesn't exist, create it with the updated step
-      await addTemplateStepToFile(groupName, templateStep)
+      await addTemplateStepToFile(groupName, templateStep, type)
       return
     }
 
@@ -263,7 +272,7 @@ export async function updateTemplateStepInFile(
       console.log(`Template step updated in file: ${filePath}`)
     } else {
       // Step not found, add it
-      await addTemplateStepToFile(groupName, templateStep)
+      await addTemplateStepToFile(groupName, templateStep, type)
     }
   } catch (error) {
     console.error(`Failed to update template step in file for group "${groupName}":`, error)
@@ -274,10 +283,13 @@ export async function updateTemplateStepInFile(
 /**
  * Creates a placeholder file for a new template step group
  */
-export async function createTemplateStepGroupFile(groupName: string): Promise<void> {
+export async function createTemplateStepGroupFile(
+  groupName: string,
+  type: TemplateStepGroupType | string,
+): Promise<void> {
   try {
     await ensureStepsDirectory()
-    const filePath = getFilePath(groupName)
+    const filePath = getFilePath(groupName, type)
 
     const placeholderContent = ensureRequiredImports(
       '// This file is generated automatically. Add template steps to this group to generate content.',
@@ -295,9 +307,12 @@ export async function createTemplateStepGroupFile(groupName: string): Promise<vo
 /**
  * Deletes the file for a template step group
  */
-export async function removeTemplateStepGroupFile(groupName: string): Promise<void> {
+export async function removeTemplateStepGroupFile(
+  groupName: string,
+  type: TemplateStepGroupType | string,
+): Promise<void> {
   try {
-    const filePath = getFilePath(groupName)
+    const filePath = getFilePath(groupName, type)
 
     try {
       await fs.access(filePath)
@@ -316,14 +331,20 @@ export async function removeTemplateStepGroupFile(groupName: string): Promise<vo
 }
 
 /**
- * Renames a template step group file when the group name changes
+ * Renames a template step group file when the group name or type changes
  * Preserves all existing content
+ * If type changed, moves file from old folder to new folder
  */
-export async function renameTemplateStepGroupFile(oldGroupName: string, newGroupName: string): Promise<void> {
+export async function renameTemplateStepGroupFile(
+  oldGroupName: string,
+  newGroupName: string,
+  oldType: TemplateStepGroupType | string,
+  newType: TemplateStepGroupType | string,
+): Promise<void> {
   try {
     await ensureStepsDirectory()
-    const oldFilePath = getFilePath(oldGroupName)
-    const newFilePath = getFilePath(newGroupName)
+    const oldFilePath = getFilePath(oldGroupName, oldType)
+    const newFilePath = getFilePath(newGroupName, newType)
 
     try {
       // Read the existing file content

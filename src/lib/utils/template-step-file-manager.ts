@@ -1,5 +1,28 @@
 import prisma from '@/config/db-config'
 import { writeTemplateStepFile, deleteTemplateStepFile, generateFileContent } from './template-step-file-generator'
+import { TemplateStepGroupType } from '@prisma/client'
+
+// TemplateStepGroupType helper - will be available from @prisma/client after migration
+type TemplateStepGroupTypeLocal = 'ACTION' | 'VALIDATION'
+
+// Type helper to safely extract type from Prisma templateStepGroup records
+type TemplateStepGroupWithType = {
+  id: string
+  name: string
+  description: string | null
+  type?: TemplateStepGroupTypeLocal
+  createdAt: Date
+  updatedAt: Date
+}
+
+function getGroupType(group: unknown): TemplateStepGroupTypeLocal {
+  const groupWithType = group as TemplateStepGroupWithType
+  const type = groupWithType.type
+  if (type === 'VALIDATION' || type === 'ACTION') {
+    return type
+  }
+  return 'ACTION' // default
+}
 
 /**
  * Regenerates the file for a specific template step group
@@ -28,7 +51,8 @@ export async function regenerateTemplateStepGroupFile(groupId: string): Promise<
     const content = generateFileContent(group.templateSteps)
 
     // Write the file
-    await writeTemplateStepFile(group.name, content)
+    const type = getGroupType(group)
+    await writeTemplateStepFile(group.name, content, type)
 
     console.log(`File regenerated for template step group: ${group.name}`)
   } catch (error) {
@@ -40,15 +64,19 @@ export async function regenerateTemplateStepGroupFile(groupId: string): Promise<
 /**
  * Creates a placeholder file for a new template step group
  * Called when a new group is created
+ * @deprecated Use createTemplateStepGroupFile from template-step-file-manager-intelligent.ts instead
  */
-export async function createTemplateStepGroupFile(groupName: string): Promise<void> {
+export async function createTemplateStepGroupFile(
+  groupName: string,
+  type: TemplateStepGroupType | string = 'ACTION',
+): Promise<void> {
   try {
     // Create empty placeholder content with required imports
     const placeholderContent =
       '// This file is generated automatically. Add template steps to this group to generate content.'
 
     // Write the placeholder file
-    await writeTemplateStepFile(groupName, placeholderContent)
+    await writeTemplateStepFile(groupName, placeholderContent, type)
 
     console.log(`Placeholder file created for template step group: ${groupName}`)
   } catch (error) {
@@ -60,10 +88,14 @@ export async function createTemplateStepGroupFile(groupName: string): Promise<vo
 /**
  * Deletes the file for a template step group
  * Called when a group is deleted
+ * @deprecated Use removeTemplateStepGroupFile from template-step-file-manager-intelligent.ts instead
  */
-export async function removeTemplateStepGroupFile(groupName: string): Promise<void> {
+export async function removeTemplateStepGroupFile(
+  groupName: string,
+  type: TemplateStepGroupType | string = 'ACTION',
+): Promise<void> {
   try {
-    await deleteTemplateStepFile(groupName)
+    await deleteTemplateStepFile(groupName, type)
 
     console.log(`File deleted for template step group: ${groupName}`)
   } catch (error) {

@@ -70,12 +70,13 @@ model TemplateStepParameter {
 }
 
 model TemplateStepGroup {
-  id            String         @id @default(uuid())
+  id            String                @id @default(uuid())
   name          String
   description   String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  templateSteps TemplateStep[] @relation("TemplateStepGroupSteps")
+  type          TemplateStepGroupType @default(ACTION)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  templateSteps TemplateStep[]        @relation("TemplateStepGroupSteps")
 }
 
 model TestCase {
@@ -290,7 +291,6 @@ enum TestCaseResult {
 enum TemplateStepType {
   ACTION
   ASSERTION
-  FLOW_CONTROL
 }
 
 enum StepParameterType {
@@ -326,4 +326,9 @@ enum BrowserEngine {
   CHROMIUM
   FIREFOX
   WEBKIT
+}
+
+enum TemplateStepGroupType {
+  ACTION
+  VALIDATION
 }
