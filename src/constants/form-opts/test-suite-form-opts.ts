@@ -6,6 +6,7 @@ export const testSuiteSchema = z.object({
   description: z.string().optional(),
   testCases: z.array(z.string()).optional(),
   moduleId: z.string().min(1, { message: 'Module is required' }),
+  tagIds: z.array(z.string()).optional(),
 })
 
 export type TestSuite = z.infer<typeof testSuiteSchema>
@@ -16,6 +17,7 @@ export const formOpts = formOptions({
     description: '',
     testCases: [],
     moduleId: '',
+    tagIds: [],
   } as TestSuite,
   validators: {
     onChange: testSuiteSchema,

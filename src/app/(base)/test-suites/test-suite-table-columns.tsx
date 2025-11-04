@@ -1,14 +1,14 @@
 'use client'
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { TestSuite } from '@prisma/client'
+import { TestSuite, Tag } from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
 import { deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { formatDateTime } from '@/lib/utils'
-export const testSuiteTableCols: ColumnDef<TestSuite>[] = [
+export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[] }>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -45,6 +45,15 @@ export const testSuiteTableCols: ColumnDef<TestSuite>[] = [
   {
     accessorKey: 'module.name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Module" />,
+  },
+  {
+    accessorKey: 'tags',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Tags" />,
+    cell: ({ row }) => {
+      const testSuite = row.original
+      const tags = testSuite.tags || []
+      return <div>{tags.length > 0 ? tags.map(tag => tag.name).join(', ') : '-'}</div>
+    },
   },
   {
     accessorKey: 'createdAt',

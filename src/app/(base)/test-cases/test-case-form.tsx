@@ -10,6 +10,7 @@ import {
   TemplateStepIcon,
   TemplateStepParameter,
   TestSuite,
+  Tag,
 } from '@prisma/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,6 +33,7 @@ const errorSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
   description: z.string().optional(),
   testSuiteIds: z.array(z.string()).min(1, { message: 'Test suites are required' }),
+  tagIds: z.array(z.string()).optional(),
   steps: z.array(
     z.object({
       gherkinStep: z.string(),
@@ -58,10 +60,12 @@ const TestCaseForm = ({
   locators,
   locatorGroups,
   testSuites,
+  tags,
   id,
   defaultTitle,
   defaultDescription,
   defaultTestSuiteIds,
+  defaultTagIds,
   onSubmitAction,
 }: {
   defaultNodesOrder: NodeOrderMap
@@ -70,11 +74,13 @@ const TestCaseForm = ({
   locators: Locator[]
   locatorGroups: LocatorGroup[]
   testSuites: TestSuite[]
+  tags: Tag[]
   onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
   id?: string
   defaultTitle?: string
   defaultDescription?: string
   defaultTestSuiteIds?: string[]
+  defaultTagIds?: string[]
 }) => {
   const router = useRouter()
   // states
@@ -82,6 +88,7 @@ const TestCaseForm = ({
   const [title, setTitle] = useState<string>(defaultTitle || '')
   const [description, setDescription] = useState<string>(defaultDescription || '')
   const [selectedTestSuites, setSelectedTestSuites] = useState<string[]>(defaultTestSuiteIds || [])
+  const [selectedTags, setSelectedTags] = useState<string[]>(defaultTagIds || [])
   console.log(`defaultTestSuiteIds`, defaultTestSuiteIds)
   const [errors, setErrors] = useState<{
     title?: string[]
@@ -174,11 +181,16 @@ const TestCaseForm = ({
     setSelectedTestSuites(selectedTestSuites)
   }, [])
 
+  const onTagChange = useCallback((selectedTags: string[]) => {
+    setSelectedTags(selectedTags)
+  }, [])
+
   const handleSubmit = useCallback(async () => {
     const result = errorSchema.safeParse({
       title,
       description,
       testSuiteIds: selectedTestSuites,
+      tagIds: selectedTags,
       steps: Object.entries(nodesOrder).map(([, value]) => ({
         gherkinStep: value.gherkinStep || '',
         label: value.label,
@@ -210,7 +222,7 @@ const TestCaseForm = ({
         variant: 'destructive',
       })
     }
-  }, [description, nodesOrder, selectedTestSuites, title, router, onSubmitAction, id])
+  }, [description, nodesOrder, selectedTestSuites, selectedTags, title, router, onSubmitAction, id])
 
   return (
     <div className="flex flex-col gap-4">
@@ -239,6 +251,19 @@ const TestCaseForm = ({
               onChange={onTestSuiteChange}
             />
             <ErrorMessage message={errors.testSuiteIds?.[0] || ''} visible={!!errors.testSuiteIds} />
+          </div>
+          <div className="mb-4 flex flex-col gap-2">
+            <Label htmlFor="tags">Tags</Label>
+            <MultiSelect
+              options={tags.map(tag => {
+                return {
+                  label: tag.name,
+                  value: tag.id,
+                }
+              })}
+              selected={selectedTags}
+              onChange={onTagChange}
+            />
           </div>
         </div>
         <div className="w-1/2">

@@ -6,6 +6,7 @@ export const testCaseSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
   description: z.string().optional(),
   testSuiteIds: z.array(z.string()),
+  tagIds: z.array(z.string()).optional(),
   steps: z
     .array(
       z.object({
@@ -34,6 +35,7 @@ export const formOpts = formOptions({
     title: '',
     description: '',
     testSuiteIds: [],
+    tagIds: [],
     steps: [],
   } as TestCase,
   validators: {

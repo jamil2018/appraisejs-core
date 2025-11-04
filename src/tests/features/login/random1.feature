@@ -3,9 +3,9 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: Example
+@demo
+Feature: test
 
-  @demo
   Scenario: [asdasd] asdsadasd
     Given Given the user navigates to "asdsad"
     When Given the user navigates to "asdasd"

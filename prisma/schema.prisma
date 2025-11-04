@@ -17,6 +17,7 @@ model TestSuite {
   moduleId    String
   module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   testCases   TestCase[] @relation("TestSuiteTestCases")
+  tags        Tag[]
 }
 
 model Review {
@@ -90,6 +91,7 @@ model TestCase {
   steps             TestCaseStep[]
   TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
   TestRunTestCase   TestRunTestCase[]
+  tags              Tag[]
 }
 
 model TestCaseStep {
@@ -226,12 +228,14 @@ model Environment {
 }
 
 model Tag {
-  id            String    @id @default(uuid())
+  id            String      @id @default(uuid())
   name          String
   tagExpression String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   testRuns      TestRun[]
+  testSuites    TestSuite[]
+  testCases     TestCase[]
 }
 
 enum TestRunStatus {

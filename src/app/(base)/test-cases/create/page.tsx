@@ -6,11 +6,12 @@ import {
   getAllTemplateStepParamsAction,
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
-import { Locator, LocatorGroup, TemplateStep, TemplateStepParameter, TestSuite } from '@prisma/client'
+import { Locator, LocatorGroup, TemplateStep, TemplateStepParameter, TestSuite, Tag } from '@prisma/client'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { createTestCaseAction } from '@/actions/test-case/test-case-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllTagsAction } from '@/actions/tags/tag-actions'
 
 const CreateTestCase = async () => {
   const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
@@ -23,10 +24,25 @@ const CreateTestCase = async () => {
 
   const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
 
-  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError) {
+  const { data: tags, error: tagsError } = await getAllTagsAction()
+
+  if (
+    templateStepParamsError ||
+    templateStepsError ||
+    locatorsError ||
+    testSuitesError ||
+    locatorGroupsError ||
+    tagsError
+  ) {
     return (
       <div>
-        Error: {templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError}
+        Error:{' '}
+        {templateStepParamsError ||
+          templateStepsError ||
+          locatorsError ||
+          testSuitesError ||
+          locatorGroupsError ||
+          tagsError}
       </div>
     )
   }
@@ -44,6 +60,7 @@ const CreateTestCase = async () => {
         locators={locators as Locator[]}
         locatorGroups={locatorGroups as LocatorGroup[]}
         testSuites={testSuites as TestSuite[]}
+        tags={tags as Tag[]}
         onSubmitAction={createTestCaseAction}
       />
     </div>

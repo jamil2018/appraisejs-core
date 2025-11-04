@@ -63,7 +63,7 @@ export async function generateFeatureFile(
   testSuiteDescription?: string,
 ): Promise<string> {
   try {
-    // Fetch test suite with test cases, steps, and all modules for path building
+    // Fetch test suite with test cases, steps, tags, and all modules for path building
     const [testSuite, allModules] = await Promise.all([
       prisma.testSuite.findUnique({
         where: { id: testSuiteId },
@@ -78,9 +78,11 @@ export async function generateFeatureFile(
                   order: 'asc',
                 },
               },
+              tags: true,
             },
           },
           module: true,
+          tags: true,
         },
       }),
       prisma.module.findMany(), // Get all modules to build hierarchy path
@@ -97,6 +99,7 @@ export async function generateFeatureFile(
     const featureContent = generateFeatureContent(
       testSuiteDescription || testSuiteName, // Use description as feature title, fallback to name
       testSuite.testCases,
+      testSuite.tags,
     )
 
     // Create the features directory with module path
@@ -130,6 +133,12 @@ function generateFeatureContent(
       gherkinStep: string
       order: number
     }>
+    tags?: Array<{
+      tagExpression: string
+    }>
+  }>,
+  testSuiteTags?: Array<{
+    tagExpression: string
   }>,
 ): string {
   const lines: string[] = []
@@ -141,9 +150,21 @@ function generateFeatureContent(
   lines.push('# To modify this feature, update the corresponding Test Suite in the application.')
   lines.push('')
 
+  // Add feature-level tags (one tag per line)
+  if (testSuiteTags && testSuiteTags.length > 0) {
+    testSuiteTags.forEach(tag => {
+      lines.push(tag.tagExpression)
+    })
+  }
+
   // Feature header - use description as feature title
   lines.push(`Feature: ${featureTitle}`)
   lines.push('')
+
+  // Get test suite tag expressions for deduplication
+  const testSuiteTagExpressions = new Set(
+    (testSuiteTags || []).map(tag => tag.tagExpression.toLowerCase()),
+  )
 
   // Generate scenarios for each test case that has steps
   let scenarioCount = 0
@@ -157,6 +178,16 @@ function generateFeatureContent(
       if (gherkinSteps.length > 0) {
         if (scenarioCount > 0) {
           lines.push('') // Add blank line between scenarios
+        }
+
+        // Add scenario-level tags (skip if already present at feature level)
+        if (testCase.tags && testCase.tags.length > 0) {
+          testCase.tags.forEach(tag => {
+            // Only add tag if it's not already present at feature level
+            if (!testSuiteTagExpressions.has(tag.tagExpression.toLowerCase())) {
+              lines.push(`  ${tag.tagExpression}`)
+            }
+          })
         }
 
         lines.push(`  Scenario: [${testCase.title}] ${testCase.description}`)
@@ -321,9 +352,11 @@ export async function regenerateAllFeatureFiles(): Promise<string[]> {
                 order: 'asc',
               },
             },
+            tags: true,
           },
         },
         module: true,
+        tags: true,
       },
     })
 
@@ -336,7 +369,11 @@ export async function regenerateAllFeatureFiles(): Promise<string[]> {
     for (const testSuite of testSuites) {
       try {
         const modulePath = buildModulePath(allModules, testSuite.module)
-        const featureContent = generateFeatureContent(testSuite.description || testSuite.name, testSuite.testCases)
+        const featureContent = generateFeatureContent(
+          testSuite.description || testSuite.name,
+          testSuite.testCases,
+          testSuite.tags,
+        )
 
         // Create the features directory with module path
         const moduleDir = join(featuresBaseDir, modulePath.substring(1)) // Remove leading slash

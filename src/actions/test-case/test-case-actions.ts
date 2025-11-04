@@ -23,6 +23,7 @@ export async function getAllTestCasesAction(): Promise<ActionResponse> {
           },
         },
         TestSuite: true,
+        tags: true,
       },
     })
     return {
@@ -118,32 +119,44 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
 export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>): Promise<ActionResponse> {
   try {
     testCaseSchema.parse(value)
-    const newTestCase = await prisma.testCase.create({
-      data: {
-        title: value.title,
-        description: value.description ?? '',
-
-        TestSuite: {
-          connect: value.testSuiteIds.map(id => ({ id })),
-        },
-        steps: {
-          create: value.steps.map(step => ({
-            gherkinStep: step.gherkinStep,
-            label: step.label,
-            icon: step.icon,
-            parameters: {
-              create: step.parameters.map(param => ({
-                name: param.name,
-                value: param.value,
-                type: param.type as StepParameterType,
-                order: param.order,
-              })),
-            },
-            templateStepId: step.templateStepId,
-            order: step.order,
-          })),
-        },
+    const baseData = {
+      title: value.title,
+      description: value.description ?? '',
+      TestSuite: {
+        connect: value.testSuiteIds.map(id => ({ id })),
       },
+      steps: {
+        create: value.steps.map(step => ({
+          gherkinStep: step.gherkinStep,
+          label: step.label,
+          icon: step.icon,
+          parameters: {
+            create: step.parameters.map(param => ({
+              name: param.name,
+              value: param.value,
+              type: param.type as StepParameterType,
+              order: param.order,
+            })),
+          },
+          templateStepId: step.templateStepId,
+          order: step.order,
+        })),
+      },
+    }
+
+    // Only include tags if there are tagIds provided
+    const data =
+      value.tagIds && value.tagIds.length > 0
+        ? {
+            ...baseData,
+            tags: {
+              connect: value.tagIds.map(id => ({ id })),
+            },
+          }
+        : baseData
+
+    const newTestCase = await prisma.testCase.create({
+      data,
       include: {
         TestSuite: {
           include: {
@@ -193,6 +206,11 @@ export async function getTestCaseByIdAction(id: string): Promise<ActionResponse>
             id: true,
           },
         },
+        tags: {
+          select: {
+            id: true,
+          },
+        },
       },
     })
     return {
@@ -200,6 +218,7 @@ export async function getTestCaseByIdAction(id: string): Promise<ActionResponse>
       data: {
         ...testCase,
         testSuiteIds: testCase?.TestSuite.map(suite => suite.id),
+        tagIds: testCase?.tags.map(tag => tag.id) || [],
       },
     }
   } catch (e) {
@@ -257,6 +276,9 @@ export async function updateTestCaseAction(
       data: {
         title: value.title,
         description: value.description ?? '',
+        tags: {
+          set: value.tagIds?.map(id => ({ id })) || [],
+        },
         steps: {
           create: value.steps.map(step => ({
             gherkinStep: step.gherkinStep,
