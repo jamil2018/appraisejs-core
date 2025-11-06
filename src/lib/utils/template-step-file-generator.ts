@@ -23,7 +23,8 @@ export function generateFileContent(templateSteps: TemplateStep[]): string {
   // Required imports for all template step group files
   const requiredImports = `import { When } from '@cucumber/cucumber';
 import { CustomWorld } from '../config/world.js';
-import { Locator } from '../../types/step/step.type';
+import { SelectorName } from '@/types/locator/locator.type';
+import { resolveLocator } from '../../utils/locator.util';
 
 `
 
@@ -143,10 +144,7 @@ export async function writeTemplateStepFile(
 /**
  * Deletes a template step group file
  */
-export async function deleteTemplateStepFile(
-  groupName: string,
-  type: TemplateStepGroupType | string,
-): Promise<void> {
+export async function deleteTemplateStepFile(groupName: string, type: TemplateStepGroupType | string): Promise<void> {
   try {
     const filePath = getFilePath(groupName, type)
 
