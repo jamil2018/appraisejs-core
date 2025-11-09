@@ -1,5 +1,12 @@
 import { readFileSync } from 'fs'
 
+interface EnvironmentConfig {
+  baseUrl: string
+  apiBaseUrl: string
+  email: string
+  password: string
+}
+
 /**
  * Retrieves the configuration for a specific environment from the environments.json file
  *
@@ -22,10 +29,10 @@ import { readFileSync } from 'fs'
  * @throws Will throw an error if the environments.json file cannot be read or parsed
  */
 export function getEnvironment(environment: string) {
-  const environmentConfig = JSON.parse(
+  const environmentConfig: { [key: string]: EnvironmentConfig } = JSON.parse(
     readFileSync(`${process.cwd()}/src/tests/config/environments/environments.json`, 'utf8'),
   )
-  return environmentConfig[environment]
+  return environmentConfig[environment] as EnvironmentConfig
 }
 
 /**

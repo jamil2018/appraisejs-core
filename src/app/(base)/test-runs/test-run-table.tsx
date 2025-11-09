@@ -20,7 +20,6 @@ const TestRunTable = async () => {
         filterPlaceholder="Filter by run ID..."
         deleteAction={deleteTestRunAction}
         createLink="/test-runs/create"
-        viewLink="/test-runs/view"
       />
     </>
   )

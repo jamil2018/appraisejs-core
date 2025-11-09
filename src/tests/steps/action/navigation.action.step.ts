@@ -8,5 +8,5 @@ Given('the user navigates to {string}', async function (this: CustomWorld, url: 
 
 Given('the user navigates to {string} environment url', async function (this: CustomWorld, environment: string) {
   const environmentConfig = getEnvironment(environment)
-  await this.page.goto(environmentConfig.url, { timeout: 600000 })
+  await this.page.goto(environmentConfig.baseUrl, { timeout: 600000 })
 })

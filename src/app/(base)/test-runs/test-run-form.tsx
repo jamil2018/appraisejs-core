@@ -45,7 +45,12 @@ const TestRunForm = ({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/test-runs')
+        // Redirect to test run detail page if test run ID is available
+        if (res.data && typeof res.data === 'object' && 'id' in res.data) {
+          router.push(`/test-runs/${res.data.id}`)
+        } else {
+          router.push('/test-runs')
+        }
       }
       if (res.status === 400) {
         toast({

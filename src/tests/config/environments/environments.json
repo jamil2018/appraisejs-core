@@ -1,7 +1,8 @@
 {
   "staging": {
-    "url": "https://demo-test-site-beta.vercel.app",
-    "username": "demo@example.com",
+    "baseUrl": "https://demo-test-site-beta.vercel.app/",
+    "apiBaseUrl": "",
+    "email": "demo@example.com",
     "password": "test1234"
   }
 }
