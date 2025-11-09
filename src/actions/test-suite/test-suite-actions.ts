@@ -27,6 +27,7 @@ export async function getAllTestSuitesAction(): Promise<ActionResponse> {
       include: {
         module: true,
         testCases: true,
+        tags: true,
       },
     })
     return {
@@ -66,6 +67,9 @@ export async function createTestSuiteAction(
         },
         testCases: {
           connect: value.testCases?.map(id => ({ id })),
+        },
+        tags: {
+          connect: value.tagIds?.map(id => ({ id })) || [],
         },
       },
       include: {
@@ -149,7 +153,7 @@ export async function getTestSuiteByIdAction(id: string): Promise<ActionResponse
   try {
     const testSuite = await prisma.testSuite.findUnique({
       where: { id },
-      include: { testCases: true },
+      include: { testCases: true, tags: true },
     })
     return {
       status: 200,
@@ -212,6 +216,9 @@ export async function updateTestSuiteAction(
         description: value.description,
         testCases: {
           set: value.testCases?.map(id => ({ id })),
+        },
+        tags: {
+          set: value.tagIds?.map(id => ({ id })) || [],
         },
         module: {
           connect: {

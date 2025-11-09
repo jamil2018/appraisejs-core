@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import prettier from 'prettier'
-import { TemplateStep } from '@prisma/client'
+import { TemplateStep, TemplateStepGroupType } from '@prisma/client'
 
 /**
  * Sanitizes a template step group name for file naming
@@ -23,7 +23,8 @@ export function generateFileContent(templateSteps: TemplateStep[]): string {
   // Required imports for all template step group files
   const requiredImports = `import { When } from '@cucumber/cucumber';
 import { CustomWorld } from '../config/world.js';
-import { Locator } from '../../types/step/step.type';
+import { SelectorName } from '@/types/locator/locator.type';
+import { resolveLocator } from '../../utils/locator.util';
 
 `
 
@@ -64,7 +65,15 @@ export async function formatFileContent(content: string): Promise<string> {
 }
 
 /**
- * Ensures the steps directory exists, creates it if it doesn't
+ * Gets the subdirectory name for a given template step group type
+ */
+export function getSubdirectoryName(type: TemplateStepGroupType | string): string {
+  const typeStr = String(type)
+  return typeStr === 'ACTION' ? 'actions' : 'validations'
+}
+
+/**
+ * Ensures the steps directory and subdirectories exist, creates them if they don't
  */
 export async function ensureStepsDirectory(): Promise<string> {
   const stepsDir = join(process.cwd(), 'src', 'tests', 'steps')
@@ -76,21 +85,42 @@ export async function ensureStepsDirectory(): Promise<string> {
     await fs.mkdir(stepsDir, { recursive: true })
   }
 
+  // Ensure both subdirectories exist
+  const actionsDir = join(stepsDir, 'actions')
+  const validationsDir = join(stepsDir, 'validations')
+
+  try {
+    await fs.access(actionsDir)
+  } catch {
+    await fs.mkdir(actionsDir, { recursive: true })
+  }
+
+  try {
+    await fs.access(validationsDir)
+  } catch {
+    await fs.mkdir(validationsDir, { recursive: true })
+  }
+
   return stepsDir
 }
 
 /**
  * Generates the full file path for a template step group
  */
-export function getFilePath(groupName: string): string {
+export function getFilePath(groupName: string, type: TemplateStepGroupType | string): string {
   const sanitizedName = sanitizeFileName(groupName)
-  return join(process.cwd(), 'src', 'tests', 'steps', `${sanitizedName}.step.ts`)
+  const subdirectory = getSubdirectoryName(type)
+  return join(process.cwd(), 'src', 'tests', 'steps', subdirectory, `${sanitizedName}.step.ts`)
 }
 
 /**
  * Writes content to a template step group file
  */
-export async function writeTemplateStepFile(groupName: string, content: string): Promise<void> {
+export async function writeTemplateStepFile(
+  groupName: string,
+  content: string,
+  type: TemplateStepGroupType | string,
+): Promise<void> {
   try {
     // Ensure directory exists
     await ensureStepsDirectory()
@@ -99,7 +129,7 @@ export async function writeTemplateStepFile(groupName: string, content: string):
     const formattedContent = await formatFileContent(content)
 
     // Get file path
-    const filePath = getFilePath(groupName)
+    const filePath = getFilePath(groupName, type)
 
     // Write file
     await fs.writeFile(filePath, formattedContent, 'utf8')
@@ -114,9 +144,9 @@ export async function writeTemplateStepFile(groupName: string, content: string):
 /**
  * Deletes a template step group file
  */
-export async function deleteTemplateStepFile(groupName: string): Promise<void> {
+export async function deleteTemplateStepFile(groupName: string, type: TemplateStepGroupType | string): Promise<void> {
   try {
-    const filePath = getFilePath(groupName)
+    const filePath = getFilePath(groupName, type)
 
     // Check if file exists before trying to delete
     try {

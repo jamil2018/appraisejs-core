@@ -21,6 +21,7 @@ import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { NodeOrderMap } from '@/types/diagram/diagram'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllTagsAction } from '@/actions/tags/tag-actions'
 
 const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
@@ -32,14 +33,28 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
   const testCase = data as TestCase & {
     steps: (TestCaseStep & { parameters: TestCaseStepParameter[] })[]
     testSuiteIds: string[]
+    tagIds: string[]
   }
   const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
   const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()
   const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
   const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
-  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError) {
-    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError || testSuitesError}</div>
+  const { data: tags, error: tagsError } = await getAllTagsAction()
+  if (
+    templateStepParamsError ||
+    templateStepsError ||
+    locatorsError ||
+    testSuitesError ||
+    locatorGroupsError ||
+    tagsError
+  ) {
+    return (
+      <div>
+        Error:{' '}
+        {templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError || tagsError}
+      </div>
+    )
   }
   return (
     <>
@@ -53,11 +68,13 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         defaultTitle={testCase.title}
         defaultDescription={testCase.description}
         defaultTestSuiteIds={testCase.testSuiteIds}
+        defaultTagIds={testCase.tagIds || []}
         templateStepParams={templateStepParams as TemplateStepParameter[]}
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
         locatorGroups={locatorGroups as LocatorGroup[]}
         testSuites={testSuites as TestSuite[]}
+        tags={tags as Tag[]}
         defaultNodesOrder={testCase.steps.reduce((acc, step) => {
           acc[step.id] = {
             order: step.order,

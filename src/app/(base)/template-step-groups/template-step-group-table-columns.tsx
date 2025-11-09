@@ -44,6 +44,10 @@ export const templateStepGroupTableCols: ColumnDef<TemplateStepGroup>[] = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
   },
   {
+    accessorKey: 'type',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+  },
+  {
     accessorKey: 'createdAt',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Created At" />,
     cell: ({ row }) => {

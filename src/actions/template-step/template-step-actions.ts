@@ -12,6 +12,28 @@ import {
   updateTemplateStepInFile,
 } from '@/lib/utils/template-step-file-manager-intelligent'
 
+// TemplateStepGroupType helper - will be available from @prisma/client after migration
+type TemplateStepGroupType = 'ACTION' | 'VALIDATION'
+
+// Type helper to safely extract type from Prisma templateStepGroup records
+type TemplateStepGroupWithType = {
+  id: string
+  name: string
+  description: string | null
+  type?: TemplateStepGroupType
+  createdAt: Date
+  updatedAt: Date
+}
+
+function getGroupTypeFromRelation(group: unknown): TemplateStepGroupType {
+  const groupWithType = group as TemplateStepGroupWithType
+  const type = groupWithType.type
+  if (type === 'VALIDATION' || type === 'ACTION') {
+    return type
+  }
+  return 'ACTION' // default
+}
+
 export async function getAllTemplateStepsAction(): Promise<ActionResponse> {
   try {
     const templateSteps = await prisma.templateStep.findMany({
@@ -64,7 +86,8 @@ export async function deleteTemplateStepAction(templateStepIds: string[]): Promi
     for (const step of stepsToDelete) {
       if (step.templateStepGroup) {
         try {
-          await removeTemplateStepFromFile(step.templateStepGroup.name, step)
+          const groupType = getGroupTypeFromRelation(step.templateStepGroup)
+          await removeTemplateStepFromFile(step.templateStepGroup.name, step, groupType)
         } catch (fileError) {
           console.error(`Failed to remove step from file for group "${step.templateStepGroup.name}":`, fileError)
           // Don't fail the entire operation if file update fails
@@ -120,7 +143,8 @@ export async function createTemplateStepAction(
     // If database creation succeeds, add the step to the group's file
     if (newTemplateStep.templateStepGroup) {
       try {
-        await addTemplateStepToFile(newTemplateStep.templateStepGroup.name, newTemplateStep)
+        const groupType = getGroupTypeFromRelation(newTemplateStep.templateStepGroup)
+        await addTemplateStepToFile(newTemplateStep.templateStepGroup.name, newTemplateStep, groupType)
       } catch (fileError) {
         console.error(`Failed to add step to file after creating template step:`, fileError)
         // Don't fail the entire operation if file update fails
@@ -209,15 +233,23 @@ export async function updateTemplateStepAction(
       if (groupChanged) {
         // If group changed, remove from old group and add to new group
         if (currentStep.templateStepGroup) {
-          await removeTemplateStepFromFile(currentStep.templateStepGroup.name, currentStep)
+          const oldGroupType = getGroupTypeFromRelation(currentStep.templateStepGroup)
+          await removeTemplateStepFromFile(currentStep.templateStepGroup.name, currentStep, oldGroupType)
         }
         if (updatedTemplateStep.templateStepGroup) {
-          await addTemplateStepToFile(updatedTemplateStep.templateStepGroup.name, updatedTemplateStep)
+          const newGroupType = getGroupTypeFromRelation(updatedTemplateStep.templateStepGroup)
+          await addTemplateStepToFile(updatedTemplateStep.templateStepGroup.name, updatedTemplateStep, newGroupType)
         }
       } else {
         // If group didn't change, just update the step in the current group
         if (updatedTemplateStep.templateStepGroup) {
-          await updateTemplateStepInFile(updatedTemplateStep.templateStepGroup.name, updatedTemplateStep, currentStep)
+          const groupType = getGroupTypeFromRelation(updatedTemplateStep.templateStepGroup)
+          await updateTemplateStepInFile(
+            updatedTemplateStep.templateStepGroup.name,
+            updatedTemplateStep,
+            groupType,
+            currentStep,
+          )
         }
       }
     } catch (fileError) {

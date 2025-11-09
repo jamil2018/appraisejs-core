@@ -6,6 +6,29 @@ import { ActionResponse } from '@/types/form/actionHandler'
 import { Prisma } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { z, ZodError } from 'zod'
+
+// TemplateStepGroupType will be available after Prisma migration
+type TemplateStepGroupType = 'ACTION' | 'VALIDATION'
+
+// Type helper to safely extract type from Prisma records
+type TemplateStepGroupWithType = {
+  id: string
+  name: string
+  description: string | null
+  type?: TemplateStepGroupType
+  createdAt: Date
+  updatedAt: Date
+}
+
+function getGroupType(group: unknown): TemplateStepGroupType {
+  const groupWithType = group as TemplateStepGroupWithType
+  const type = groupWithType.type
+  if (type === 'VALIDATION' || type === 'ACTION') {
+    return type
+  }
+  return 'ACTION' // default
+}
+
 import {
   createTemplateStepGroupFile,
   removeTemplateStepGroupFile,
@@ -44,15 +67,19 @@ export async function createTemplateStepGroupAction(
   try {
     templateStepGroupSchema.parse(value)
 
+    const type: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
+
     // First, try to create the file - if this fails, we won't create the database record
-    await createTemplateStepGroupFile(value.name)
+    await createTemplateStepGroupFile(value.name, type)
 
     // If file creation succeeds, create the database record
+    // Note: Using type assertion because Prisma client hasn't been regenerated yet
     await prisma.templateStepGroup.create({
       data: {
         name: value.name,
         description: value.description,
-      },
+        type: type,
+      } as Parameters<typeof prisma.templateStepGroup.create>[0]['data'],
     })
 
     revalidatePath('/template-step-groups')
@@ -87,10 +114,9 @@ export async function createTemplateStepGroupAction(
  */
 export async function deleteTemplateStepGroupAction(id: string[]): Promise<ActionResponse> {
   try {
-    // Get the group names before deletion for file cleanup
+    // Get the group names and types before deletion for file cleanup
     const groupsToDelete = await prisma.templateStepGroup.findMany({
       where: { id: { in: id } },
-      select: { id: true, name: true },
     })
 
     // With proper cascade deletes in the schema, we can now rely on the database
@@ -102,7 +128,8 @@ export async function deleteTemplateStepGroupAction(id: string[]): Promise<Actio
     // Clean up the files after successful database deletion
     for (const group of groupsToDelete) {
       try {
-        await removeTemplateStepGroupFile(group.name)
+        const groupType = getGroupType(group)
+        await removeTemplateStepGroupFile(group.name, groupType)
       } catch (fileError) {
         console.error(`Failed to delete file for group "${group.name}":`, fileError)
         // Don't fail the entire operation if file deletion fails
@@ -165,10 +192,9 @@ export async function updateTemplateStepGroupAction(
       }
     }
 
-    // Get the current group to check if name changed
+    // Get the current group to check if name or type changed
     const currentGroup = await prisma.templateStepGroup.findUnique({
       where: { id },
-      select: { name: true },
     })
 
     if (!currentGroup) {
@@ -178,26 +204,34 @@ export async function updateTemplateStepGroupAction(
       }
     }
 
-    // If name changed, we need to handle file renaming
+    const newType: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
+    const currentType = getGroupType(currentGroup)
     const nameChanged = currentGroup.name !== value.name
+    const typeChanged = currentType !== newType
 
-    if (nameChanged) {
-      // Rename the file to preserve all existing content
+    // If name or type changed, we need to handle file renaming/moving
+    if (nameChanged || typeChanged) {
+      // Rename/move the file to preserve all existing content
       try {
-        await renameTemplateStepGroupFile(currentGroup.name, value.name)
+        await renameTemplateStepGroupFile(currentGroup.name, value.name, currentType, newType)
       } catch (fileError) {
-        console.error(`Failed to rename file from "${currentGroup.name}" to "${value.name}":`, fileError)
+        console.error(
+          `Failed to rename/move file from "${currentGroup.name}" (${currentType}) to "${value.name}" (${newType}):`,
+          fileError,
+        )
         // Continue with the update even if file rename fails
       }
     }
 
     // Update the database record
+    // Note: Using type assertion because Prisma client hasn't been regenerated yet
     await prisma.templateStepGroup.update({
       where: { id },
       data: {
         name: value.name,
         description: value.description,
-      },
+        type: newType,
+      } as Parameters<typeof prisma.templateStepGroup.update>[0]['data'],
     })
 
     revalidatePath('/template-step-groups')

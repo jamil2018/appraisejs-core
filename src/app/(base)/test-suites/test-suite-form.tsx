@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formOpts, TestSuite } from '@/constants/form-opts/test-suite-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { Module, TestCase } from '@prisma/client'
+import { Module, TestCase, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { ServerFormState, initialFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
@@ -22,6 +22,7 @@ export const TestSuiteForm = ({
   onSubmitAction,
   testCases,
   moduleList,
+  tags,
 }: {
   defaultValues?: TestSuite
   successTitle: string
@@ -34,6 +35,7 @@ export const TestSuiteForm = ({
   ) => Promise<ActionResponse>
   testCases: TestCase[]
   moduleList: Module[]
+  tags: Tag[]
 }) => {
   const router = useRouter()
   const form = useForm({
@@ -159,6 +161,31 @@ export const TestSuiteForm = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )
+        }}
+      </form.Field>
+      <form.Field name="tagIds">
+        {field => {
+          const tagsOptions = tags.map(tag => ({
+            value: tag.id,
+            label: tag.name,
+          }))
+          return (
+            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+              <Label htmlFor={field.name}>Tags</Label>
+              <MultiSelectWithPreview
+                id={field.name}
+                options={tagsOptions}
+                onSelectChange={value => {
+                  field.handleChange(value)
+                }}
+                defaultSelectedValues={field.state.value || []}
+                placeholder="Select tag(s)"
+                emptyMessage="No tag(s) found"
+                selectedLabel="Selected tag(s)"
+                searchPlaceholder="Search tags..."
+              />
             </div>
           )
         }}

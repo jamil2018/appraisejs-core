@@ -112,7 +112,9 @@ export const TemplateStepForm = ({
     }
 
     const paramsString = params
-      .map(param => `${param.name}: ${param.type.toLowerCase() === 'locator' ? 'Locator' : param.type.toLowerCase()}`)
+      .map(
+        param => `${param.name}: ${param.type.toLowerCase() === 'locator' ? 'SelectorName' : param.type.toLowerCase()}`,
+      )
       .join(', ')
     let updatedFunctionDefinition = updateStepSignature(functionDefinition, signature, type)
     updatedFunctionDefinition = updatedFunctionDefinition.replace(

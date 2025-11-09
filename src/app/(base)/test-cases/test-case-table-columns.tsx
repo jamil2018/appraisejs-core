@@ -1,14 +1,14 @@
 'use client'
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { TestCase, TestCaseStep } from '@prisma/client'
+import { TestCase, TestCaseStep, Tag } from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { deleteTestCaseAction } from '@/actions/test-case/test-case-actions'
 import TableActions from '@/components/table/table-actions'
 import { formatDateTime } from '@/lib/utils'
 
-export const testCaseTableCols: ColumnDef<TestCase & { steps: TestCaseStep[] }>[] = [
+export const testCaseTableCols: ColumnDef<TestCase & { steps: TestCaseStep[]; tags?: Tag[] }>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -41,6 +41,15 @@ export const testCaseTableCols: ColumnDef<TestCase & { steps: TestCaseStep[] }>[
   {
     accessorKey: 'description',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
+  },
+  {
+    accessorKey: 'tags',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Tags" />,
+    cell: ({ row }) => {
+      const testCase = row.original
+      const tags = testCase.tags || []
+      return <div>{tags.length > 0 ? tags.map(tag => tag.name).join(', ') : '-'}</div>
+    },
   },
   {
     accessorKey: 'steps',
