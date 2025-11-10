@@ -7,6 +7,7 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { TestCase, TestSuite } from '@prisma/client'
 import InfoGrid from '@/components/data-visualization/info-grid'
+import EmptyState from '@/components/data-state/empty-state'
 
 const TestSuites = async () => {
   const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
@@ -19,6 +20,19 @@ const TestSuites = async () => {
   const emptyTestSuites = testSuitesData.filter(testSuite => testSuite.testCases.length === 0)
   const latestCreatedTestSuite = testSuitesData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
 
+  if (testSuitesData.length === 0) {
+    return (
+      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
+        <EmptyState
+          icon={<TestTubes className="h-8 w-8" />}
+          title="No test suites found"
+          description="Get started by creating a test suite and grouping tests together"
+          createRoute="/test-suites/create"
+          createText="Create Test Suite"
+        />
+      </div>
+    )
+  }
   return (
     <>
       <div className="mb-8">

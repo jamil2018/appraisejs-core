@@ -5,8 +5,33 @@ import { Server } from 'lucide-react'
 import EnvironmentTable from './environment-table'
 import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
+import EmptyState from '@/components/data-state/empty-state'
+import { Environment } from '@prisma/client'
 
-const Environments = () => {
+const Environments = async () => {
+  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
+
+  if (environmentsError) {
+    return <div>Error: {environmentsError}</div>
+  }
+
+  const environmentsData = environments as Environment[]
+
+  if (!environmentsData || environmentsData.length === 0) {
+    return (
+      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
+        <EmptyState
+          icon={<Server className="h-8 w-8" />}
+          title="No environments found"
+          description="Get started by creating an environment to manage your test configurations"
+          createRoute="/environments/create"
+          createText="Create Environment"
+        />
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="mb-8">

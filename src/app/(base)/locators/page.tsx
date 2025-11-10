@@ -5,8 +5,33 @@ import { Code } from 'lucide-react'
 import LocatorTable from './locator-table'
 import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
+import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import EmptyState from '@/components/data-state/empty-state'
+import { Locator, LocatorGroup } from '@prisma/client'
 
-const Locators = () => {
+const Locators = async () => {
+  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
+
+  if (locatorsError) {
+    return <div>Error: {locatorsError}</div>
+  }
+
+  const locatorsData = locators as (Locator & { locatorGroup: LocatorGroup })[]
+
+  if (!locatorsData || locatorsData.length === 0) {
+    return (
+      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
+        <EmptyState
+          icon={<Code className="h-8 w-8" />}
+          title="No locators found"
+          description="Get started by creating a locator to identify elements on your pages"
+          createRoute="/locators/create"
+          createText="Create Locator"
+        />
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="mb-8">
