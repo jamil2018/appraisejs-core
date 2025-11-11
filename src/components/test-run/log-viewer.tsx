@@ -27,32 +27,55 @@ export function LogViewer({ testRunId, className }: LogViewerProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const autoScrollRef = useRef(true)
+  const wasConnectedRef = useRef(false) // Track if we ever successfully connected
 
   useEffect(() => {
+    console.log(`[LogViewer] Connecting to SSE endpoint for testRunId: ${testRunId}`)
     // Create EventSource connection to SSE endpoint
     const eventSource = new EventSource(`/api/test-runs/${testRunId}/logs`)
     eventSourceRef.current = eventSource
 
     // Handle connection open
     eventSource.onopen = () => {
+      console.log(`[LogViewer] SSE connection opened for testRunId: ${testRunId}`)
+      wasConnectedRef.current = true
       setConnectionStatus('connected')
       setError(null)
     }
 
     // Handle connection error
-    eventSource.onerror = () => {
-      if (eventSource.readyState === EventSource.CLOSED) {
-        setConnectionStatus('disconnected')
+    eventSource.onerror = (err) => {
+      const readyState = eventSource.readyState
+      console.error(`[LogViewer] SSE error for testRunId: ${testRunId}`, err, 'readyState:', readyState)
+      
+      if (readyState === EventSource.CLOSED) {
+        console.log(`[LogViewer] SSE connection closed for testRunId: ${testRunId}`)
+        // Only set disconnected if we were previously connected
+        // If we never connected, it's likely a 404 or server error
+        if (wasConnectedRef.current) {
+          setConnectionStatus('disconnected')
+        } else {
+          setConnectionStatus('error')
+          setError('Failed to connect to log stream. The test run may not be running or the process has ended.')
+        }
+      } else if (readyState === EventSource.CONNECTING) {
+        // Still connecting, don't set error yet
+        console.log(`[LogViewer] SSE still connecting...`)
       } else {
         setConnectionStatus('error')
-        setError('Failed to connect to log stream')
+        setError(`Failed to connect to log stream (readyState: ${readyState})`)
       }
     }
 
     // Handle 'connected' event
     eventSource.addEventListener('connected', (event: MessageEvent) => {
       try {
+        if (!event.data) {
+          console.warn('[LogViewer] Received connected event with no data')
+          return
+        }
         const data = JSON.parse(event.data)
+        console.log(`[LogViewer] Received connected event:`, data)
         setLogs(prev => [
           ...prev,
           {
@@ -62,14 +85,19 @@ export function LogViewer({ testRunId, className }: LogViewerProps) {
           },
         ])
       } catch (error) {
-        console.error('Error parsing connected event:', error)
+        console.error('[LogViewer] Error parsing connected event:', error, 'event.data:', event.data)
       }
     })
 
     // Handle 'log' event (stdout/stderr)
     eventSource.addEventListener('log', (event: MessageEvent) => {
       try {
+        if (!event.data) {
+          console.warn('[LogViewer] Received log event with no data')
+          return
+        }
         const data = JSON.parse(event.data)
+        console.log(`[LogViewer] Received log event:`, data)
         setLogs(prev => [
           ...prev,
           {
@@ -79,13 +107,19 @@ export function LogViewer({ testRunId, className }: LogViewerProps) {
           },
         ])
       } catch (error) {
-        console.error('Error parsing log event:', error)
+        console.error('[LogViewer] Error parsing log event:', error, 'event.data:', event.data)
       }
     })
 
     // Handle 'exit' event
     eventSource.addEventListener('exit', (event: MessageEvent) => {
       try {
+        if (!event.data) {
+          console.warn('[LogViewer] Received exit event with no data')
+          setConnectionStatus('completed')
+          eventSource.close()
+          return
+        }
         const data = JSON.parse(event.data)
         const exitCode = data.code
         setLogs(prev => [
@@ -99,29 +133,38 @@ export function LogViewer({ testRunId, className }: LogViewerProps) {
         setConnectionStatus('completed')
         eventSource.close()
       } catch (error) {
-        console.error('Error parsing exit event:', error)
+        console.error('[LogViewer] Error parsing exit event:', error, 'event.data:', event.data)
+        setConnectionStatus('completed')
+        eventSource.close()
       }
     })
 
-    // Handle 'error' event
+    // Handle 'error' event (from SSE stream, not the onerror handler)
     eventSource.addEventListener('error', (event: MessageEvent) => {
       try {
+        if (!event.data) {
+          console.warn('[LogViewer] Received error event with no data')
+          return
+        }
         const data = JSON.parse(event.data)
         setLogs(prev => [
           ...prev,
           {
             type: 'stderr',
-            message: `Error: ${data.message || 'Unknown error'}`,
+            message: `Error: ${data.error || data.message || 'Unknown error'}`,
             timestamp: new Date(),
           },
         ])
+        setConnectionStatus('error')
+        // Don't close immediately - let user see the error
       } catch (error) {
-        console.error('Error parsing error event:', error)
+        console.error('[LogViewer] Error parsing error event:', error, 'event.data:', event.data)
       }
     })
 
     // Cleanup on unmount
     return () => {
+      wasConnectedRef.current = false
       eventSource.close()
       eventSourceRef.current = null
     }

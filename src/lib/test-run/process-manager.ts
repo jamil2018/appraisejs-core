@@ -5,9 +5,10 @@ import type { SpawnedProcess } from '@/tests/utils/spawner.util'
  * 
  * This manager maintains a registry of active test processes, allowing
  * the SSE route handler to look up processes and stream their logs.
+ * 
+ * Uses global variable pattern (like Prisma) to persist across Next.js runtime contexts
  */
 class ProcessManager {
-  private static instance: ProcessManager
   private processes: Map<string, SpawnedProcess> = new Map()
 
   private constructor() {
@@ -16,12 +17,18 @@ class ProcessManager {
 
   /**
    * Get the singleton instance of ProcessManager
+   * Uses global variable to persist across Next.js runtime contexts
    */
   static getInstance(): ProcessManager {
-    if (!ProcessManager.instance) {
-      ProcessManager.instance = new ProcessManager()
+    const globalForProcessManager = global as unknown as {
+      processManager: ProcessManager | undefined
     }
-    return ProcessManager.instance
+    
+    if (!globalForProcessManager.processManager) {
+      globalForProcessManager.processManager = new ProcessManager()
+    }
+    
+    return globalForProcessManager.processManager
   }
 
   /**
@@ -30,7 +37,9 @@ class ProcessManager {
    * @param process - The spawned process instance
    */
   register(testRunId: string, process: SpawnedProcess): void {
+    console.log(`[ProcessManager] Registering process for testRunId: ${testRunId}, process name: ${process.name}, isRunning: ${process.isRunning}`)
     this.processes.set(testRunId, process)
+    console.log(`[ProcessManager] Process registered. Total processes: ${this.processes.size}, All testRunIds:`, Array.from(this.processes.keys()))
   }
 
   /**
@@ -39,7 +48,13 @@ class ProcessManager {
    * @returns The spawned process or undefined if not found
    */
   get(testRunId: string): SpawnedProcess | undefined {
-    return this.processes.get(testRunId)
+    const process = this.processes.get(testRunId)
+    if (process) {
+      console.log(`[ProcessManager] Found process for testRunId: ${testRunId}, process name: ${process.name}, isRunning: ${process.isRunning}`)
+    } else {
+      console.log(`[ProcessManager] Process NOT found for testRunId: ${testRunId}. Available testRunIds:`, Array.from(this.processes.keys()))
+    }
+    return process
   }
 
   /**
@@ -48,7 +63,9 @@ class ProcessManager {
    * @returns True if the process was found and removed, false otherwise
    */
   unregister(testRunId: string): boolean {
-    return this.processes.delete(testRunId)
+    const deleted = this.processes.delete(testRunId)
+    console.log(`[ProcessManager] Unregistering process for testRunId: ${testRunId}, deleted: ${deleted}, remaining processes: ${this.processes.size}`)
+    return deleted
   }
 
   /**

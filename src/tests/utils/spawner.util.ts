@@ -99,8 +99,9 @@ export class TaskSpawner extends EventEmitter {
     }
 
     // Spawn the child process using execa
-    // Use 'inherit' for stdio when streaming logs to preserve colors and TTY detection
-    const stdioConfig = streamLogs ? 'inherit' : 'pipe'
+    // Always use 'pipe' when captureOutput is true to enable output capture
+    // streamLogs just controls whether we also log to console, not whether we can capture
+    const stdioConfig = captureOutput ? 'pipe' : (streamLogs ? 'inherit' : 'pipe')
     const childProcess = execa(command, args, {
       stdio: stdioConfig,
       ...spawnOptions,
@@ -393,6 +394,9 @@ export class TaskSpawner extends EventEmitter {
     for (const line of lines) {
       if (captureOutput) {
         spawnedProcess.output[stream].push(line + '\n')
+        // ROOT LEVEL LOG: Log the actual captured content
+        console.log(`[ROOT CAPTURE] ${stream.toUpperCase()} captured for ${processName}:`, line)
+        console.log(`[ROOT CAPTURE] Total ${stream} lines captured: ${spawnedProcess.output[stream].length}`)
       }
 
       if (streamLogs) {
@@ -404,6 +408,7 @@ export class TaskSpawner extends EventEmitter {
         }
       }
 
+      console.log(`[TaskSpawner] Emitting ${stream} event for processName: ${processName}, data length: ${(line + '\n').length} bytes`)
       this.emit(stream, { processName, data: line + '\n' })
     }
   }
@@ -429,27 +434,36 @@ export class TaskSpawner extends EventEmitter {
 
     // Only set up data listeners when stdio is 'pipe'
     if (stdioConfig === 'pipe') {
+      console.log(`[TaskSpawner] Setting up data listeners for process: ${name}, stdio: pipe`)
       // Handle stdout
       childProcess.stdout?.on('data', (data: Buffer) => {
         const output = data.toString()
+        console.log(`[TaskSpawner] Received stdout data for process: ${name}, length: ${data.length} bytes, output length: ${output.length} chars`)
         const buffer = this.outputBuffers.get(name)
 
         if (buffer) {
           buffer.stdout += output
           this.processBufferedOutput(name, 'stdout', streamLogs, prefixLogs, captureOutput, spawnedProcess)
+        } else {
+          console.warn(`[TaskSpawner] No output buffer found for process: ${name}`)
         }
       })
 
       // Handle stderr
       childProcess.stderr?.on('data', (data: Buffer) => {
         const output = data.toString()
+        console.log(`[TaskSpawner] Received stderr data for process: ${name}, length: ${data.length} bytes, output length: ${output.length} chars`)
         const buffer = this.outputBuffers.get(name)
 
         if (buffer) {
           buffer.stderr += output
           this.processBufferedOutput(name, 'stderr', streamLogs, prefixLogs, captureOutput, spawnedProcess)
+        } else {
+          console.warn(`[TaskSpawner] No output buffer found for process: ${name}`)
         }
       })
+    } else {
+      console.log(`[TaskSpawner] Skipping data listeners for process: ${name}, stdio: ${stdioConfig}`)
     }
 
     // Handle process exit
@@ -467,6 +481,7 @@ export class TaskSpawner extends EventEmitter {
               const prefix = prefixLogs ? `[${name}] ` : ''
               console.log(`${prefix}${buffer.stdout}`)
             }
+            console.log(`[TaskSpawner] Emitting final stdout event for process: ${name}, data length: ${buffer.stdout.length} chars`)
             this.emit('stdout', {
               processName: name,
               data: buffer.stdout,
@@ -482,6 +497,7 @@ export class TaskSpawner extends EventEmitter {
               const prefix = prefixLogs ? `[${name}] ` : ''
               console.error(`${prefix}${buffer.stderr}`)
             }
+            console.log(`[TaskSpawner] Emitting final stderr event for process: ${name}, data length: ${buffer.stderr.length} chars`)
             this.emit('stderr', {
               processName: name,
               data: buffer.stderr,
@@ -497,6 +513,7 @@ export class TaskSpawner extends EventEmitter {
       spawnedProcess.exitCode = code
       spawnedProcess.endTime = new Date()
 
+      console.log(`[TaskSpawner] Process exited: ${name}, code: ${code}, emitting exit event`)
       this.emit('exit', { processName: name, code })
     })
 

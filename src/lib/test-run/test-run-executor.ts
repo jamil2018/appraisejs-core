@@ -86,22 +86,64 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
     cucumberArgs.push('--parallel', testWorkersCount.toString())
   }
 
+  console.log(`[TestRunExecutor] Starting to spawn process for testRunId: ${testRunId}`)
+  console.log(`[TestRunExecutor] Command: npx cucumber-js ${cucumberArgs.join(' ')}`)
+  
   // Spawn the cucumber test process
+  // Enable streamLogs to see output in console for debugging
   // Use captureOutput: true to capture logs for streaming
-  // Use streamLogs: false to prevent console output (we'll stream via SSE)
   const process = await spawnTask('npx', ['cucumber-js', ...cucumberArgs], {
-    streamLogs: false, // Don't stream to console, we'll stream via SSE
-    prefixLogs: false,
+    streamLogs: true, // Enable console output to verify logs are being generated
+    prefixLogs: true, // Add prefix to identify logs
     logPrefix: `test-run-${testRunId}`,
     captureOutput: true, // Capture output for streaming
   })
 
+  console.log(`[TestRunExecutor] Process spawned successfully. Process name: ${process.name}, isRunning: ${process.isRunning}, PID: ${process.process.pid}`)
+
   // Register the process in ProcessManager
   processManager.register(testRunId, process)
+  console.log(`[TestRunExecutor] Process registered in ProcessManager for testRunId: ${testRunId}`)
 
-  // Set up exit handler to unregister process when it completes
-  process.process.on('exit', () => {
-    processManager.unregister(testRunId)
+  // Set up stdout/stderr listeners to log when data is received
+  process.process.stdout?.on('data', (data: Buffer) => {
+    console.log(`[TestRunExecutor] Received stdout data for testRunId: ${testRunId}, length: ${data.length} bytes`)
+  })
+
+  process.process.stderr?.on('data', (data: Buffer) => {
+    console.log(`[TestRunExecutor] Received stderr data for testRunId: ${testRunId}, length: ${data.length} bytes`)
+  })
+
+  // Set up exit handler - Log captured output and keep process in ProcessManager
+  process.process.on('exit', (code) => {
+    console.log(`[TestRunExecutor] Process exited with code: ${code} for testRunId: ${testRunId}`)
+    
+    // ROOT LEVEL LOG: Log all captured output when process exits
+    console.log(`\n[ROOT VERIFY] ========== FINAL CAPTURED OUTPUT FOR ${testRunId} ==========`)
+    console.log(`[ROOT VERIFY] stdout lines: ${process.output.stdout.length}, stderr lines: ${process.output.stderr.length}`)
+    
+    if (process.output.stdout.length > 0) {
+      console.log(`\n[ROOT VERIFY] ========== STDOUT OUTPUT ==========`)
+      process.output.stdout.forEach((line, index) => {
+        console.log(`[ROOT VERIFY] stdout[${index}]:`, line.trim())
+      })
+    }
+    
+    if (process.output.stderr.length > 0) {
+      console.log(`\n[ROOT VERIFY] ========== STDERR OUTPUT ==========`)
+      process.output.stderr.forEach((line, index) => {
+        console.log(`[ROOT VERIFY] stderr[${index}]:`, line.trim())
+      })
+    }
+    console.log(`[ROOT VERIFY] ========== END CAPTURED OUTPUT ==========\n`)
+    
+    // Keep process in ProcessManager so SSE endpoint can access captured logs
+    // Don't unregister immediately - SSE endpoint needs access to completed processes
+    // Unregister after a delay to allow SSE connections to retrieve logs
+    setTimeout(() => {
+      console.log(`[TestRunExecutor] Cleaning up process from ProcessManager for testRunId: ${testRunId} after delay`)
+      processManager.unregister(testRunId)
+    }, 300000) // Keep for 5 minutes to allow log retrieval
   })
 
   return process

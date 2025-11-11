@@ -143,43 +143,65 @@ export async function createTestRunAction(
     })
 
     // Execute test run asynchronously (don't await, let it run in background)
-    executeTestRun({
+    console.log(`[TestRunAction] About to execute test run for testRunId: ${testRun.runId}`)
+    console.log(`[TestRunAction] Config:`, {
       testRunId: testRun.runId,
-      environment,
-      tags,
+      environment: environment.name,
+      tags: tags.map(t => t.name),
       testWorkersCount: value.testWorkersCount || 1,
       browserEngine: value.browserEngine,
-      headless: true, // Default to headless
     })
-      .then(async process => {
-        // Wait for process to complete
-        const exitCode = await waitForTask(process.name)
-
-        // Update TestRun status based on exit code
-        const status = exitCode === 0 ? TestRunStatus.COMPLETED : TestRunStatus.COMPLETED
-        const result = exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED
-
-        await prisma.testRun.update({
-          where: { id: testRun.id },
-          data: {
-            status,
-            result,
-            completedAt: new Date(),
-          },
-        })
+    
+    try {
+      const executePromise = executeTestRun({
+        testRunId: testRun.runId,
+        environment,
+        tags,
+        testWorkersCount: value.testWorkersCount || 1,
+        browserEngine: value.browserEngine,
+        headless: true, // Default to headless
       })
-      .catch(async error => {
-        console.error('Error executing test run:', error)
-        // Update TestRun status to indicate failure
-        await prisma.testRun.update({
-          where: { id: testRun.id },
-          data: {
-            status: TestRunStatus.COMPLETED,
-            result: TestRunResult.FAILED,
-            completedAt: new Date(),
-          },
+      
+      console.log(`[TestRunAction] executeTestRun promise created for testRunId: ${testRun.runId}`)
+      
+      executePromise
+        .then(async process => {
+          console.log(`[TestRunAction] Test run execution started successfully for testRunId: ${testRun.runId}, process name: ${process.name}`)
+          // Wait for process to complete
+          const exitCode = await waitForTask(process.name)
+
+          // Update TestRun status based on exit code
+          const status = exitCode === 0 ? TestRunStatus.COMPLETED : TestRunStatus.COMPLETED
+          const result = exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED
+
+          await prisma.testRun.update({
+            where: { id: testRun.id },
+            data: {
+              status,
+              result,
+              completedAt: new Date(),
+            },
+          })
+          console.log(`[TestRunAction] Test run completed for testRunId: ${testRun.runId}, exitCode: ${exitCode}`)
         })
-      })
+        .catch(async error => {
+          console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)
+          console.error(`[TestRunAction] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
+          // Update TestRun status to indicate failure
+          await prisma.testRun.update({
+            where: { id: testRun.id },
+            data: {
+              status: TestRunStatus.COMPLETED,
+              result: TestRunResult.FAILED,
+              completedAt: new Date(),
+            },
+          })
+        })
+    } catch (error) {
+      // Catch any synchronous errors
+      console.error(`[TestRunAction] Synchronous error calling executeTestRun for testRunId: ${testRun.runId}:`, error)
+      console.error(`[TestRunAction] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
+    }
 
     return {
       status: 200,
