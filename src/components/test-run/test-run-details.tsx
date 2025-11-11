@@ -1,8 +1,12 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { TestRun, TestRunStatus, TestRunResult, Environment, Tag, TestRunTestCase } from '@prisma/client'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/utils'
 import { CheckCircle, XCircle, LoaderCircle, Clock, ListEnd } from 'lucide-react'
+import { getTestRunByIdAction } from '@/actions/test-run/test-run-actions'
 
 interface TestRunDetailsProps {
   testRun: TestRun & {
@@ -12,7 +16,41 @@ interface TestRunDetailsProps {
   }
 }
 
-export function TestRunDetails({ testRun }: TestRunDetailsProps) {
+export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps) {
+  const [testRun, setTestRun] = useState(initialTestRun)
+
+  // Poll for status updates while test run is running
+  useEffect(() => {
+    // Only poll if test run is not completed
+    if (testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED) {
+      return
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: updatedTestRun, error } = await getTestRunByIdAction(testRun.id)
+        if (error || !updatedTestRun) {
+          console.error('Error polling test run status:', error)
+          return
+        }
+        // TypeScript now knows updatedTestRun is defined - cast to proper type
+        const typedTestRun = updatedTestRun as TestRun & {
+          testCases: (TestRunTestCase & { testCase: { title: string } })[]
+          tags: Tag[]
+          environment: Environment
+        }
+        setTestRun(typedTestRun)
+        // Stop polling if test run is completed
+        if (typedTestRun.status === TestRunStatus.COMPLETED || typedTestRun.status === TestRunStatus.CANCELLED) {
+          clearInterval(pollInterval)
+        }
+      } catch (error) {
+        console.error('Error polling test run status:', error)
+      }
+    }, 2000) // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval)
+  }, [testRun.id, testRun.status])
   const getStatusIcon = () => {
     switch (testRun.status) {
       case TestRunStatus.QUEUED:

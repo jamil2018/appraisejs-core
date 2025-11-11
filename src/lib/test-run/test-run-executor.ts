@@ -140,10 +140,13 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
     // Keep process in ProcessManager so SSE endpoint can access captured logs
     // Don't unregister immediately - SSE endpoint needs access to completed processes
     // Unregister after a delay to allow SSE connections to retrieve logs
+    // Failed processes are cleaned up faster (1 min) to free memory sooner
+    // Successful processes are kept longer (5 min) to allow log retrieval
+    const retentionTime = code === 0 ? 300000 : 60000 // 5 min for success, 1 min for failure
     setTimeout(() => {
-      console.log(`[TestRunExecutor] Cleaning up process from ProcessManager for testRunId: ${testRunId} after delay`)
+      console.log(`[TestRunExecutor] Cleaning up process from ProcessManager for testRunId: ${testRunId} after ${retentionTime / 1000}s delay (exitCode: ${code})`)
       processManager.unregister(testRunId)
-    }, 300000) // Keep for 5 minutes to allow log retrieval
+    }, retentionTime)
   })
 
   return process

@@ -7,6 +7,12 @@ import type { SpawnedProcess } from '@/tests/utils/spawner.util'
  * the SSE route handler to look up processes and stream their logs.
  * 
  * Uses global variable pattern (like Prisma) to persist across Next.js runtime contexts
+ * 
+ * Security: Currently stores processes by testRunId only.
+ * TODO: When user authentication is implemented, consider adding user isolation:
+ * - Option 1: Use composite keys like `${userId}:${testRunId}`
+ * - Option 2: Store userId in process metadata and filter by userId in get() method
+ * - Option 3: Create separate ProcessManager instances per user (more complex)
  */
 class ProcessManager {
   private processes: Map<string, SpawnedProcess> = new Map()
@@ -39,7 +45,7 @@ class ProcessManager {
   register(testRunId: string, process: SpawnedProcess): void {
     console.log(`[ProcessManager] Registering process for testRunId: ${testRunId}, process name: ${process.name}, isRunning: ${process.isRunning}`)
     this.processes.set(testRunId, process)
-    console.log(`[ProcessManager] Process registered. Total processes: ${this.processes.size}, All testRunIds:`, Array.from(this.processes.keys()))
+    console.log(`[ProcessManager] Process registered. Total processes: ${this.processes.size}`)
   }
 
   /**
@@ -52,7 +58,7 @@ class ProcessManager {
     if (process) {
       console.log(`[ProcessManager] Found process for testRunId: ${testRunId}, process name: ${process.name}, isRunning: ${process.isRunning}`)
     } else {
-      console.log(`[ProcessManager] Process NOT found for testRunId: ${testRunId}. Available testRunIds:`, Array.from(this.processes.keys()))
+      console.log(`[ProcessManager] Process NOT found for testRunId: ${testRunId}. Total processes: ${this.processes.size}`)
     }
     return process
   }
@@ -78,10 +84,11 @@ class ProcessManager {
   }
 
   /**
-   * Get all registered test run IDs
+   * Get all registered test run IDs (private method for internal use only)
    * @returns Array of test run IDs
+   * @private
    */
-  getAllTestRunIds(): string[] {
+  private getAllTestRunIds(): string[] {
     return Array.from(this.processes.keys())
   }
 

@@ -548,8 +548,17 @@ export class TaskSpawner extends EventEmitter {
 /**
  * Default TaskSpawner instance for convenience
  * Use this when you don't need multiple spawner instances
+ * Uses global variable pattern (like Prisma) to persist across Next.js runtime contexts
  */
-export const taskSpawner = new TaskSpawner()
+const globalForTaskSpawner = global as unknown as {
+  taskSpawner: TaskSpawner | undefined
+}
+
+export const taskSpawner = globalForTaskSpawner.taskSpawner ?? new TaskSpawner()
+
+if (!globalForTaskSpawner.taskSpawner) {
+  globalForTaskSpawner.taskSpawner = taskSpawner
+}
 
 /**
  * Convenience function to spawn a single task using the default spawner

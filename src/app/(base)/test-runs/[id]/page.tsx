@@ -5,6 +5,7 @@ import { TestRunDetails } from '@/components/test-run/test-run-details'
 import { LogViewer } from '@/components/test-run/log-viewer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { TestRun, TestRunTestCase, Tag, Environment } from '@prisma/client'
 
 interface TestRunDetailPageProps {
   params: Promise<{ id: string }>
@@ -12,17 +13,26 @@ interface TestRunDetailPageProps {
 
 export default async function TestRunDetailPage({ params }: TestRunDetailPageProps) {
   const { id } = await params
-  const { data: testRun, error } = await getTestRunByIdAction(id)
+  const response = await getTestRunByIdAction(id)
 
-  if (error || !testRun) {
+  if (response.error || !response.data) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Test Run Not Found</h2>
-          <p className="text-muted-foreground mt-2">{error || 'The test run you are looking for does not exist.'}</p>
+          <p className="mt-2 text-muted-foreground">
+            {response.error || 'The test run you are looking for does not exist.'}
+          </p>
         </div>
       </div>
     )
+  }
+
+  // TypeScript now knows response.data is defined
+  const testRun = response.data as TestRun & {
+    testCases: (TestRunTestCase & { testCase: { title: string } })[]
+    tags: Tag[]
+    environment: Environment
   }
 
   return (
@@ -49,4 +59,3 @@ export default async function TestRunDetailPage({ params }: TestRunDetailPagePro
     </>
   )
 }
-
