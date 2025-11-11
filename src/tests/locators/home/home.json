@@ -1,5 +1,0 @@
-{
-  "username": "input[name='username']",
-  "email": "input[name='email']",
-  "saveChangesButton": "button[type='submit']"
-}

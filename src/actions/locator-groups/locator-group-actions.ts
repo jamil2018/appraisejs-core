@@ -96,11 +96,11 @@ export async function createLocatorGroupAction(
         error: 'A locator group with this name already exists. Please choose a different name.',
       }
     }
-
     const locatorGroup = await prisma.locatorGroup.create({
       data: {
         name: value.name,
         moduleId: value.moduleId,
+        route: value.route ?? '/',
         locators: {
           connect: value.locators?.map(locator => ({ id: locator })) || [],
         },
