@@ -86,9 +86,6 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
     cucumberArgs.push('--parallel', testWorkersCount.toString())
   }
 
-  console.log(`[TestRunExecutor] Starting to spawn process for testRunId: ${testRunId}`)
-  console.log(`[TestRunExecutor] Command: npx cucumber-js ${cucumberArgs.join(' ')}`)
-  
   // Spawn the cucumber test process
   // Enable streamLogs to see output in console for debugging
   // Use captureOutput: true to capture logs for streaming
@@ -99,44 +96,11 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
     captureOutput: true, // Capture output for streaming
   })
 
-  console.log(`[TestRunExecutor] Process spawned successfully. Process name: ${process.name}, isRunning: ${process.isRunning}, PID: ${process.process.pid}`)
-
   // Register the process in ProcessManager
   processManager.register(testRunId, process)
-  console.log(`[TestRunExecutor] Process registered in ProcessManager for testRunId: ${testRunId}`)
 
-  // Set up stdout/stderr listeners to log when data is received
-  process.process.stdout?.on('data', (data: Buffer) => {
-    console.log(`[TestRunExecutor] Received stdout data for testRunId: ${testRunId}, length: ${data.length} bytes`)
-  })
-
-  process.process.stderr?.on('data', (data: Buffer) => {
-    console.log(`[TestRunExecutor] Received stderr data for testRunId: ${testRunId}, length: ${data.length} bytes`)
-  })
-
-  // Set up exit handler - Log captured output and keep process in ProcessManager
+  // Set up exit handler - Keep process in ProcessManager for log access
   process.process.on('exit', (code) => {
-    console.log(`[TestRunExecutor] Process exited with code: ${code} for testRunId: ${testRunId}`)
-    
-    // ROOT LEVEL LOG: Log all captured output when process exits
-    console.log(`\n[ROOT VERIFY] ========== FINAL CAPTURED OUTPUT FOR ${testRunId} ==========`)
-    console.log(`[ROOT VERIFY] stdout lines: ${process.output.stdout.length}, stderr lines: ${process.output.stderr.length}`)
-    
-    if (process.output.stdout.length > 0) {
-      console.log(`\n[ROOT VERIFY] ========== STDOUT OUTPUT ==========`)
-      process.output.stdout.forEach((line, index) => {
-        console.log(`[ROOT VERIFY] stdout[${index}]:`, line.trim())
-      })
-    }
-    
-    if (process.output.stderr.length > 0) {
-      console.log(`\n[ROOT VERIFY] ========== STDERR OUTPUT ==========`)
-      process.output.stderr.forEach((line, index) => {
-        console.log(`[ROOT VERIFY] stderr[${index}]:`, line.trim())
-      })
-    }
-    console.log(`[ROOT VERIFY] ========== END CAPTURED OUTPUT ==========\n`)
-    
     // Keep process in ProcessManager so SSE endpoint can access captured logs
     // Don't unregister immediately - SSE endpoint needs access to completed processes
     // Unregister after a delay to allow SSE connections to retrieve logs
@@ -144,7 +108,6 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
     // Successful processes are kept longer (5 min) to allow log retrieval
     const retentionTime = code === 0 ? 300000 : 60000 // 5 min for success, 1 min for failure
     setTimeout(() => {
-      console.log(`[TestRunExecutor] Cleaning up process from ProcessManager for testRunId: ${testRunId} after ${retentionTime / 1000}s delay (exitCode: ${code})`)
       processManager.unregister(testRunId)
     }, retentionTime)
   })

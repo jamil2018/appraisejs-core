@@ -14,7 +14,7 @@
             "hidden": true,
             "result": {
               "status": "passed",
-              "duration": 51354417
+              "duration": 40260249
             }
           },
           {
@@ -27,7 +27,7 @@
             },
             "result": {
               "status": "passed",
-              "duration": 320663792
+              "duration": 523987957
             }
           },
           {
@@ -39,8 +39,9 @@
               "location": "src/tests/steps/validations/navigation_valiation.step.ts:6"
             },
             "result": {
-              "status": "passed",
-              "duration": 608666667
+              "status": "failed",
+              "duration": 611881375,
+              "error_message": "AssertionError: expected '/login' to not include '/login'\n    at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/validations/navigation_valiation.step.ts:9:29)"
             }
           },
           {
@@ -48,7 +49,7 @@
             "hidden": true,
             "result": {
               "status": "passed",
-              "duration": 7643207
+              "duration": 4668624
             }
           }
         ],

@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { TestRunStatus, TestRunResult } from '@prisma/client'
 import { executeTestRun } from '@/lib/test-run/test-run-executor'
 import { waitForTask } from '@/tests/utils/spawner.util'
+import { revalidatePath } from 'next/cache'
 
 export async function getAllTestRunsAction(): Promise<ActionResponse> {
   try {
@@ -68,6 +69,7 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
     await prisma.testRun.deleteMany({
       where: { id: { in: id } },
     })
+    revalidatePath('/test-runs')
     return {
       status: 200,
       message: 'Test run(s) deleted successfully',
@@ -143,15 +145,6 @@ export async function createTestRunAction(
     })
 
     // Execute test run asynchronously (don't await, let it run in background)
-    console.log(`[TestRunAction] About to execute test run for testRunId: ${testRun.runId}`)
-    console.log(`[TestRunAction] Config:`, {
-      testRunId: testRun.runId,
-      environment: environment.name,
-      tags: tags.map(t => t.name),
-      testWorkersCount: value.testWorkersCount || 1,
-      browserEngine: value.browserEngine,
-    })
-    
     try {
       const executePromise = executeTestRun({
         testRunId: testRun.runId,
@@ -161,12 +154,9 @@ export async function createTestRunAction(
         browserEngine: value.browserEngine,
         headless: true, // Default to headless
       })
-      
-      console.log(`[TestRunAction] executeTestRun promise created for testRunId: ${testRun.runId}`)
-      
+
       executePromise
         .then(async process => {
-          console.log(`[TestRunAction] Test run execution started successfully for testRunId: ${testRun.runId}, process name: ${process.name}`)
           // Wait for process to complete
           const exitCode = await waitForTask(process.name)
 
@@ -182,11 +172,9 @@ export async function createTestRunAction(
               completedAt: new Date(),
             },
           })
-          console.log(`[TestRunAction] Test run completed for testRunId: ${testRun.runId}, exitCode: ${exitCode}`)
         })
         .catch(async error => {
           console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)
-          console.error(`[TestRunAction] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
           // Update TestRun status to indicate failure
           await prisma.testRun.update({
             where: { id: testRun.id },

@@ -43,7 +43,7 @@ const TestRuns = async () => {
         <HeaderSubtitle>Test runs are the runs of the test cases.</HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
-        <TestRunTable />
+        <TestRunTable initialData={testRunsData} />
       </Suspense>
     </>
   )

@@ -112,26 +112,40 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
   }
 
-  console.log(
-    `[SSE] Found process for runId: ${runId} after ${waited}ms, process name: ${process.name}, isRunning: ${process.isRunning}`,
-  )
+  // Process found, proceed with SSE connection
 
   // Create a ReadableStream for SSE
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
+      let isClosed = false
+
+      /**
+       * Helper function to safely close the controller
+       */
+      const safeClose = () => {
+        if (!isClosed) {
+          try {
+            controller.close()
+            isClosed = true
+          } catch (error) {
+            // Controller may already be closed
+          }
+        }
+      }
 
       /**
        * Helper function to send SSE message
        * Flushes immediately to ensure real-time streaming
        */
       const sendSSE = (event: string, data: string) => {
+        if (isClosed) return
         try {
           const message = `event: ${event}\ndata: ${data}\n\n`
           controller.enqueue(encoder.encode(message))
-          console.log(`[SSE] Sent ${event} event for runId: ${runId}`)
         } catch (error) {
           console.error(`[SSE] Error sending ${event} event:`, error)
+          isClosed = true
         }
       }
 
@@ -139,9 +153,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        * Handler for stdout events
        */
       const onStdout = ({ processName, data }: { processName: string; data: string }) => {
-        console.log(
-          `[SSE] Received stdout event - processName: ${processName}, expected: ${process.name}, match: ${processName === process.name}`,
-        )
         if (processName === process.name) {
           sendSSE('log', JSON.stringify({ type: 'stdout', message: data }))
         }
@@ -151,9 +162,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        * Handler for stderr events
        */
       const onStderr = ({ processName, data }: { processName: string; data: string }) => {
-        console.log(
-          `[SSE] Received stderr event - processName: ${processName}, expected: ${process.name}, match: ${processName === process.name}`,
-        )
         if (processName === process.name) {
           sendSSE('log', JSON.stringify({ type: 'stderr', message: data }))
         }
@@ -167,7 +175,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           sendSSE('exit', JSON.stringify({ code }))
           // Close the stream after sending exit event
           setTimeout(() => {
-            controller.close()
+            cleanup()
+            safeClose()
           }, 100)
         }
       }
@@ -189,30 +198,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         taskSpawner.removeListener('error', onError)
       }
 
-      // Log current listener count before adding
-      const stdoutListeners = taskSpawner.listenerCount('stdout')
-      const stderrListeners = taskSpawner.listenerCount('stderr')
-      console.log(`[SSE] Current listeners - stdout: ${stdoutListeners}, stderr: ${stderrListeners}`)
-
       // Set up event listeners on TaskSpawner
       taskSpawner.on('stdout', onStdout)
       taskSpawner.on('stderr', onStderr)
       taskSpawner.on('exit', onExit)
       taskSpawner.on('error', onError)
 
-      console.log(`[SSE] Event listeners set up for process: ${process.name}`)
-      console.log(
-        `[SSE] After setup - stdout listeners: ${taskSpawner.listenerCount('stdout')}, stderr listeners: ${taskSpawner.listenerCount('stderr')}`,
-      )
+      console.log(`[SSE] Connected to log stream for runId: ${runId}`)
 
       // Send initial connection message
       sendSSE('connected', JSON.stringify({ message: 'Connected to log stream' }))
 
       // Send any already captured output immediately
       if (process.output && (process.output.stdout.length > 0 || process.output.stderr.length > 0)) {
-        console.log(
-          `[SSE] Sending buffered output - stdout: ${process.output.stdout.length} lines, stderr: ${process.output.stderr.length} lines`,
-        )
         process.output.stdout.forEach(line => {
           sendSSE('log', JSON.stringify({ type: 'stdout', message: line }))
         })
@@ -224,17 +222,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       // Check if process has already exited (race condition check after listeners are set up)
       // We check this after setting up listeners in case exit event was emitted during setup
       if (!process.isRunning && process.exitCode !== null) {
-        console.log(`[SSE] Process already exited with code: ${process.exitCode}, sending exit event`)
         sendSSE('exit', JSON.stringify({ code: process.exitCode }))
         // Don't close immediately - let any pending events be sent first
         setTimeout(() => {
           cleanup()
-          try {
-            controller.close()
-          } catch (error) {
-            // Stream may already be closed
-            console.error(`[SSE] Error closing controller:`, error)
-          }
+          safeClose()
         }, 500)
         return
       }
@@ -242,12 +234,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       // Handle client disconnect
       request.signal.addEventListener('abort', () => {
         cleanup()
-        try {
-          controller.close()
-        } catch (error) {
-          // Stream may already be closed
-          console.error(`[SSE] Error closing controller:`, error)
-        }
+        safeClose()
       })
     },
   })

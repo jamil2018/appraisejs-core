@@ -43,9 +43,7 @@ class ProcessManager {
    * @param process - The spawned process instance
    */
   register(testRunId: string, process: SpawnedProcess): void {
-    console.log(`[ProcessManager] Registering process for testRunId: ${testRunId}, process name: ${process.name}, isRunning: ${process.isRunning}`)
     this.processes.set(testRunId, process)
-    console.log(`[ProcessManager] Process registered. Total processes: ${this.processes.size}`)
   }
 
   /**
@@ -54,13 +52,7 @@ class ProcessManager {
    * @returns The spawned process or undefined if not found
    */
   get(testRunId: string): SpawnedProcess | undefined {
-    const process = this.processes.get(testRunId)
-    if (process) {
-      console.log(`[ProcessManager] Found process for testRunId: ${testRunId}, process name: ${process.name}, isRunning: ${process.isRunning}`)
-    } else {
-      console.log(`[ProcessManager] Process NOT found for testRunId: ${testRunId}. Total processes: ${this.processes.size}`)
-    }
-    return process
+    return this.processes.get(testRunId)
   }
 
   /**

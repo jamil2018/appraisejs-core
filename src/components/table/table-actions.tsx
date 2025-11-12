@@ -74,7 +74,7 @@ const TableActions = ({
                 })
               } else {
                 toast({
-                  title: 'Error deleting item(s)',
+                  title: `${res.message}`,
                   description: res.error,
                 })
               }
