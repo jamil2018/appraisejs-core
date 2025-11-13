@@ -213,6 +213,16 @@ model TestRun {
   tags             Tag[]
   testWorkersCount Int?              @default(1)
   browserEngine    BrowserEngine     @default(CHROMIUM)
+  logs             TestRunLog?
+}
+
+model TestRunLog {
+  id        String   @id @default(uuid())
+  testRunId String   @unique
+  logs      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  testRun   TestRun  @relation(fields: [testRunId], references: [runId], onDelete: Cascade)
 }
 
 model Environment {

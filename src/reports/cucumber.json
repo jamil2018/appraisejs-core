@@ -14,7 +14,7 @@
             "hidden": true,
             "result": {
               "status": "passed",
-              "duration": 40260249
+              "duration": 40223292
             }
           },
           {
@@ -27,7 +27,7 @@
             },
             "result": {
               "status": "passed",
-              "duration": 523987957
+              "duration": 553535542
             }
           },
           {
@@ -36,12 +36,11 @@
             "line": 11,
             "name": "the user should be navigated to the \"/login\" route",
             "match": {
-              "location": "src/tests/steps/validations/navigation_valiation.step.ts:6"
+              "location": "src/tests/steps/validations/navigation_validation.step.ts:6"
             },
             "result": {
-              "status": "failed",
-              "duration": 611881375,
-              "error_message": "AssertionError: expected '/login' to not include '/login'\n    at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/validations/navigation_valiation.step.ts:9:29)"
+              "status": "passed",
+              "duration": 616694625
             }
           },
           {
@@ -49,7 +48,7 @@
             "hidden": true,
             "result": {
               "status": "passed",
-              "duration": 4668624
+              "duration": 8437000
             }
           }
         ],

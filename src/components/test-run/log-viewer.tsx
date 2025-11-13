@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoaderCircle, Wifi, WifiOff, CheckCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getTestRunLogsAction } from '@/actions/test-run/test-run-actions'
+import { TestRunStatus } from '@prisma/client'
 
 interface LogMessage {
   type: 'stdout' | 'stderr' | 'status'
@@ -15,12 +17,13 @@ interface LogMessage {
 
 interface LogViewerProps {
   testRunId: string
+  status?: TestRunStatus
   className?: string
 }
 
-type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error' | 'completed'
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error' | 'completed' | 'loading'
 
-export function LogViewer({ testRunId, className }: LogViewerProps) {
+export function LogViewer({ testRunId, status, className }: LogViewerProps) {
   const [logs, setLogs] = useState<LogMessage[]>([])
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +32,42 @@ export function LogViewer({ testRunId, className }: LogViewerProps) {
   const autoScrollRef = useRef(true)
   const wasConnectedRef = useRef(false) // Track if we ever successfully connected
 
+  // Load logs from database if test run is completed
   useEffect(() => {
+    if (status === TestRunStatus.COMPLETED || status === TestRunStatus.CANCELLED) {
+      setConnectionStatus('loading')
+      getTestRunLogsAction(testRunId)
+        .then(response => {
+          if (response.error) {
+            setError(response.error)
+            setConnectionStatus('error')
+          } else {
+            const loadedLogs = (response.data as LogMessage[]) || []
+            // Convert timestamp strings to Date objects if needed
+            const parsedLogs = loadedLogs.map(log => ({
+              ...log,
+              timestamp: log.timestamp instanceof Date ? log.timestamp : new Date(log.timestamp),
+            }))
+            setLogs(parsedLogs)
+            setConnectionStatus('completed')
+          }
+        })
+        .catch(err => {
+          console.error('[LogViewer] Error loading logs from database:', err)
+          setError('Failed to load logs from database')
+          setConnectionStatus('error')
+        })
+      return
+    }
+  }, [testRunId, status])
+
+  // Use SSE for running/queued test runs
+  useEffect(() => {
+    // Skip SSE if test run is completed
+    if (status === TestRunStatus.COMPLETED || status === TestRunStatus.CANCELLED) {
+      return
+    }
+
     console.log(`[LogViewer] Connecting to SSE endpoint for testRunId: ${testRunId}`)
     // Create EventSource connection to SSE endpoint
     const eventSource = new EventSource(`/api/test-runs/${testRunId}/logs`)
@@ -168,7 +206,7 @@ export function LogViewer({ testRunId, className }: LogViewerProps) {
       eventSource.close()
       eventSourceRef.current = null
     }
-  }, [testRunId])
+  }, [testRunId, status])
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -254,13 +292,13 @@ export function LogViewer({ testRunId, className }: LogViewerProps) {
         className="h-[600px] w-full rounded-md border bg-muted/50 p-4 font-mono text-sm"
         onScroll={handleScroll}
       >
-        {logs.length === 0 && connectionStatus === 'connecting' && (
+        {logs.length === 0 && (connectionStatus === 'connecting' || connectionStatus === 'loading') && (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-            Connecting to log stream...
+            {connectionStatus === 'loading' ? 'Loading logs...' : 'Connecting to log stream...'}
           </div>
         )}
-        {logs.length === 0 && connectionStatus !== 'connecting' && (
+        {logs.length === 0 && connectionStatus !== 'connecting' && connectionStatus !== 'loading' && (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             No logs available
           </div>

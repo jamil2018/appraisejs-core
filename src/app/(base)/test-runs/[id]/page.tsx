@@ -52,7 +52,7 @@ export default async function TestRunDetailPage({ params }: TestRunDetailPagePro
             <CardTitle>Live Logs</CardTitle>
           </CardHeader>
           <CardContent>
-            <LogViewer testRunId={testRun.runId} />
+            <LogViewer testRunId={testRun.runId} status={testRun.status} />
           </CardContent>
         </Card>
       </div>

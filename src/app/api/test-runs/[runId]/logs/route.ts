@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { processManager } from '@/lib/test-run/process-manager'
 import { taskSpawner } from '@/tests/utils/spawner.util'
 import prisma from '@/config/db-config'
+import { TestRunStatus } from '@prisma/client'
 
 // Ensure this route runs in Node.js runtime (not Edge) for singleton to work
 export const runtime = 'nodejs'
@@ -19,13 +20,13 @@ export const runtime = 'nodejs'
 export async function GET(request: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params
 
-  // Verify test run exists in database before allowing access
+  // Verify test run exists in database and check status
   // TODO: Add user authentication check here when authentication is implemented
   // Example: where: { runId, userId: currentUser.id }
   try {
     const testRun = await prisma.testRun.findUnique({
       where: { runId },
-      select: { id: true }, // Only need to verify existence
+      select: { id: true, status: true }, // Need status to check if completed
     })
 
     if (!testRun) {
@@ -43,6 +44,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       return new Response(errorStream, {
         status: 404,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+        },
+      })
+    }
+
+    // If test run is completed, reject SSE connection - logs should be loaded from DB
+    if (testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED) {
+      console.log(`[SSE] Test run ${runId} is ${testRun.status}, rejecting SSE connection`)
+      const errorStream = new ReadableStream({
+        start(controller) {
+          const encoder = new TextEncoder()
+          const message = `event: error\ndata: ${JSON.stringify({ error: 'Test run has completed. Logs are available in the database.' })}\n\n`
+          controller.enqueue(encoder.encode(message))
+          setTimeout(() => {
+            controller.close()
+          }, 100)
+        },
+      })
+
+      return new Response(errorStream, {
+        status: 200, // Return 200 but with error event so client can handle it
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache, no-transform',

@@ -8,6 +8,7 @@ import { TestRunStatus, TestRunResult } from '@prisma/client'
 import { executeTestRun } from '@/lib/test-run/test-run-executor'
 import { waitForTask } from '@/tests/utils/spawner.util'
 import { revalidatePath } from 'next/cache'
+import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 
 export async function getAllTestRunsAction(): Promise<ActionResponse> {
   try {
@@ -101,6 +102,81 @@ export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> 
   }
 }
 
+/**
+ * Stores test run logs in the database
+ * @param testRunId - The test run ID (runId, not id)
+ * @param logs - Array of log entries to store
+ */
+export async function storeTestRunLogsAction(testRunId: string, logs: LogEntry[]): Promise<ActionResponse> {
+  try {
+    if (logs.length === 0) {
+      return {
+        status: 200,
+        message: 'No logs to store',
+      }
+    }
+
+    // Format logs for storage
+    const formattedLogs = formatLogsForStorage(logs)
+
+    // Upsert logs in TestRunLog table
+    await prisma.testRunLog.upsert({
+      where: { testRunId },
+      create: {
+        testRunId,
+        logs: formattedLogs,
+      },
+      update: {
+        logs: formattedLogs,
+      },
+    })
+
+    return {
+      status: 200,
+      message: 'Logs stored successfully',
+    }
+  } catch (error) {
+    console.error(`[TestRunAction] Error storing logs for testRunId: ${testRunId}:`, error)
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+/**
+ * Retrieves test run logs from the database
+ * @param testRunId - The test run ID (runId, not id)
+ */
+export async function getTestRunLogsAction(testRunId: string): Promise<ActionResponse> {
+  try {
+    const testRunLog = await prisma.testRunLog.findUnique({
+      where: { testRunId },
+    })
+
+    if (!testRunLog) {
+      return {
+        status: 200,
+        data: [],
+      }
+    }
+
+    // Parse logs from storage
+    const logs = parseLogsFromStorage(testRunLog.logs)
+
+    return {
+      status: 200,
+      data: logs,
+    }
+  } catch (error) {
+    console.error(`[TestRunAction] Error retrieving logs for testRunId: ${testRunId}:`, error)
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
 export async function createTestRunAction(
   _prev: unknown,
   value: z.infer<typeof testRunSchema>,
@@ -159,6 +235,48 @@ export async function createTestRunAction(
         .then(async process => {
           // Wait for process to complete
           const exitCode = await waitForTask(process.name)
+
+          // Collect all logs from the process output
+          const logEntries: LogEntry[] = []
+          
+          // Add stdout logs
+          if (process.output.stdout.length > 0) {
+            const stdoutText = process.output.stdout.join('')
+            const stdoutLines = stdoutText.split('\n').filter(line => line.trim() !== '')
+            stdoutLines.forEach((line, index) => {
+              const timestamp = new Date(process.startTime.getTime() + index * 10)
+              logEntries.push({
+                type: 'stdout',
+                message: line,
+                timestamp,
+              })
+            })
+          }
+          
+          // Add stderr logs
+          if (process.output.stderr.length > 0) {
+            const stderrText = process.output.stderr.join('')
+            const stderrLines = stderrText.split('\n').filter(line => line.trim() !== '')
+            const stdoutCount = logEntries.filter(e => e.type === 'stdout').length
+            stderrLines.forEach((line, index) => {
+              const timestamp = new Date(process.startTime.getTime() + stdoutCount * 10 + index * 10)
+              logEntries.push({
+                type: 'stderr',
+                message: line,
+                timestamp,
+              })
+            })
+          }
+          
+          // Add exit status log
+          logEntries.push({
+            type: 'status',
+            message: `Process exited with code ${exitCode}`,
+            timestamp: process.endTime || new Date(),
+          })
+
+          // Store logs in database
+          await storeTestRunLogsAction(testRun.runId, logEntries)
 
           // Update TestRun status based on exit code
           const status = exitCode === 0 ? TestRunStatus.COMPLETED : TestRunStatus.COMPLETED
