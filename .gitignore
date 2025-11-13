@@ -45,5 +45,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-tests/reports/*
-tests/config/environments.json
+src/tests/reports/*
+src/tests/config/environments.json
