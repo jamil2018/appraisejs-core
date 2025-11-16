@@ -3,6 +3,12 @@ import { Locator, LocatorGroup } from '@prisma/client'
 import React from 'react'
 import LocatorForm from '../../locator-form'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Locator',
+  description: 'Update locator configuration',
+}
 
 const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

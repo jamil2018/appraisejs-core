@@ -7,6 +7,12 @@ import TagTable from './tag-table'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Tag as TagModel } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Tags',
+  description: 'Manage tags for categorizing test cases and test runs',
+}
 
 const Tags = async () => {
   const { data: tags, error: tagsError } = await getAllTagsAction()

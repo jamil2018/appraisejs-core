@@ -7,6 +7,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { TestCase, TestCaseStep } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Test Cases',
+  description: 'Manage test cases and their configurations',
+}
 
 const TestCases = async () => {
   const { data: testCases, error: testCasesError } = await getAllTestCasesAction()

@@ -25,6 +25,12 @@ import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Test Case From Template',
+  description: 'Create a new test from a template to execute against your application',
+}
 
 const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

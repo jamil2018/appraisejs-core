@@ -6,6 +6,12 @@ import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { Module, TestCase } from '@prisma/client'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Test Suite',
+  description: 'Update test suite configuration',
+}
 
 const ModifyTestSuite = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

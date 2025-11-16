@@ -5,6 +5,12 @@ import LocatorForm from '../locator-form'
 import { createLocatorAction } from '@/actions/locator/locator-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { LocatorGroup } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Locator',
+  description: 'Create a new locator to be used in your test cases',
+}
 
 const CreateLocator = async () => {
   const { data: locatorGroupList, error: locatorGroupListError } = await getAllLocatorGroupsAction()

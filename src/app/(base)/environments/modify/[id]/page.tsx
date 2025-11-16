@@ -3,6 +3,12 @@ import { Environment } from '@prisma/client'
 import EnvironmentForm from '../../environment-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Environment',
+  description: 'Update the environment configuration',
+}
 
 const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

@@ -5,6 +5,12 @@ import TagForm from '../../tag-form'
 import { getTagByIdAction, updateTagAction } from '@/actions/tags/tag-actions'
 import { Tag } from 'lucide-react'
 import { Tag as TagType } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Tag',
+  description: 'Modify a tag',
+}
 
 const ModifyTag = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

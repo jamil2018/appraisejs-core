@@ -6,6 +6,12 @@ import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { Module, TestCase, Tag } from '@prisma/client'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Test Suite',
+  description: 'Create a new test suite to run your tests against',
+}
 
 const CreateTestSuite = async () => {
   const { data: testCases, error: testCasesError } = await getAllTestCasesAction()

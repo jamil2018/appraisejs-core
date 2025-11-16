@@ -1,10 +1,16 @@
 // Modify review page temporarily commented out - will be reworked later
 import React from 'react'
+import { Metadata } from 'next'
 
 /*
 Modify review functionality temporarily disabled
 Will be re-implemented without user dependencies
 */
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Review',
+  description: 'Review modification will be implemented later',
+}
 
 const ModifyReview = () => {
   return (

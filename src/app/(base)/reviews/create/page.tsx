@@ -1,10 +1,16 @@
 // Create review page temporarily commented out - will be reworked later
 import React from 'react'
+import { Metadata } from 'next'
 
 /*
 Create review functionality temporarily disabled
 Will be re-implemented without user dependencies
 */
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Review',
+  description: 'Review creation will be implemented later',
+}
 
 const CreateReview = () => {
   return (

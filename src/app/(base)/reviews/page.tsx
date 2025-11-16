@@ -1,10 +1,16 @@
 // Reviews page temporarily commented out - will be reworked later
 import React from 'react'
+import { Metadata } from 'next'
 
 /*
 Reviews functionality temporarily disabled
 Will be re-implemented without user dependencies
 */
+
+export const metadata: Metadata = {
+  title: 'Appraise | Reviews',
+  description: 'Review functionality will be implemented later',
+}
 
 const Reviews = () => {
   return (

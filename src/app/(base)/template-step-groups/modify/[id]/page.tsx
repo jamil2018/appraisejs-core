@@ -5,6 +5,12 @@ import {
 import { TemplateStepGroupForm } from '../../template-step-group-form'
 import React from 'react'
 import { TemplateStepGroup } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Template Step Group',
+  description: 'Update template step group configuration',
+}
 
 const TemplateStepGroupType = {
   ACTION: 'ACTION',

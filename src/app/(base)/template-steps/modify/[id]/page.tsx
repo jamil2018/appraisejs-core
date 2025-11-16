@@ -3,6 +3,12 @@ import { getTemplateStepByIdAction } from '@/actions/template-step/template-step
 import { TemplateStepForm } from '../../template-step-form'
 import { TemplateStep, TemplateStepParameter } from '@prisma/client'
 import { getAllTemplateStepGroupsAction } from '@/actions/template-step-group/template-step-group-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Template Step',
+  description: 'Update template step configuration',
+}
 
 export default async function ModifyTemplateStepPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

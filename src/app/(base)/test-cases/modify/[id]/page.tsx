@@ -22,6 +22,12 @@ import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { NodeOrderMap } from '@/types/diagram/diagram'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Test Case',
+  description: 'Modify a test case',
+}
 
 const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

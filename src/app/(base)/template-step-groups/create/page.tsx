@@ -2,6 +2,12 @@ import { createTemplateStepGroupAction } from '@/actions/template-step-group/tem
 import { TemplateStepGroupForm } from '../template-step-group-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Template Step Group',
+  description: 'Create a new template step group to organize related template steps',
+}
 
 const CreateTemplateStepGroup = async () => {
   return (

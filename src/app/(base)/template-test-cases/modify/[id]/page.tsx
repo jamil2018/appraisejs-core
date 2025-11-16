@@ -22,6 +22,12 @@ import {
   updateTemplateTestCaseAction,
 } from '@/actions/template-test-case/template-test-case-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Template Test Case',
+  description: 'Modify a template test case',
+}
 
 const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

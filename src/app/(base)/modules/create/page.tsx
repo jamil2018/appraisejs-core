@@ -3,6 +3,12 @@ import ModuleForm from '../module-form'
 import { Module } from '@prisma/client'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Module',
+  description: 'Create a new module to be used in your test cases',
+}
 
 const CreateModule = async () => {
   const { data: modules } = await getAllModulesAction()

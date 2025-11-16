@@ -8,6 +8,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Locator, LocatorGroup } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Locators',
+  description: 'Manage locators for identifying elements on pages',
+}
 
 const Locators = async () => {
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()

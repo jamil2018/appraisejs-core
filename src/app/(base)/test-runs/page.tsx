@@ -7,6 +7,12 @@ import TestRunTable from './test-run-table'
 import { getAllTestRunsAction } from '@/actions/test-run/test-run-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Environment, Tag, TestRun, TestRunTestCase } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Test Runs',
+  description: 'Manage test runs and their execution results',
+}
 
 const TestRuns = async () => {
   const { data: testRuns, error: testRunsError } = await getAllTestRunsAction()

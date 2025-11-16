@@ -5,6 +5,12 @@ import { LayoutPanelTop } from 'lucide-react'
 import React from 'react'
 import TemplateSelectionForm from './template-selection-form'
 import { TemplateTestCase } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Test Case From Template',
+  description: 'Select a template test case to create a new test case from',
+}
 
 const CreateTestCaseFromTemplate = async () => {
   const { data: templateTestCases, status } = await getAllTemplateTestCasesAction()

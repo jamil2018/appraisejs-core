@@ -2,6 +2,12 @@ import { createEnvironmentAction } from '@/actions/environments/environment-acti
 import EnvironmentForm from '../environment-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Environment',
+  description: 'Create a new environment configuration for your test runs',
+}
 
 const CreateEnvironment = async () => {
   return (

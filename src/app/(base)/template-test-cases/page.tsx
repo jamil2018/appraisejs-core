@@ -7,6 +7,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllTemplateTestCasesAction } from '@/actions/template-test-case/template-test-case-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { TemplateTestCase, TemplateTestCaseStep } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Template Test Cases',
+  description: 'Manage template test cases for quickly creating test cases',
+}
 
 const TemplateTestCasesPage = async () => {
   const { data: templateTestCases, error: templateTestCasesError } = await getAllTemplateTestCasesAction()

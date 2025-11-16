@@ -8,6 +8,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Environment } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Environments',
+  description: 'Manage test environments and their configurations',
+}
 
 const Environments = async () => {
   const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()

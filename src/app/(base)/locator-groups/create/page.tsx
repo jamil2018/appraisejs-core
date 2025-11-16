@@ -6,6 +6,12 @@ import React from 'react'
 import LocatorGroupForm from '../locator-group-form'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { Module } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Locator Group',
+  description: 'Create a new locator group',
+}
 
 const CreateLocatorGroup = async () => {
   const { data: moduleList, error: moduleListError } = await getAllModulesAction()

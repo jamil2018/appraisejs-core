@@ -8,6 +8,12 @@ import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { TestCase, TestSuite } from '@prisma/client'
 import InfoGrid from '@/components/data-visualization/info-grid'
 import EmptyState from '@/components/data-state/empty-state'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Test Suites',
+  description: 'Manage test suites and their configurations',
+}
 
 const TestSuites = async () => {
   const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()

@@ -8,6 +8,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { LocatorGroup } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Locator Groups',
+  description: 'Manage locator groups for organizing locators',
+}
 
 const LocatorGroups = async () => {
   const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()

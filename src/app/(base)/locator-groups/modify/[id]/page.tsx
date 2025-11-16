@@ -4,6 +4,12 @@ import React from 'react'
 import LocatorGroupForm from '../../locator-group-form'
 import { updateLocatorGroupAction } from '@/actions/locator-groups/locator-group-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Locator Group',
+  description: 'Update locator group configuration',
+}
 
 const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

@@ -2,6 +2,12 @@ import { getAllModulesAction, getModuleByIdAction, updateModuleAction } from '@/
 import { Module } from '@prisma/client'
 import ModuleForm from '../../module-form'
 import { ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modify Module',
+  description: 'Update module configuration',
+}
 
 const ModifyModule = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

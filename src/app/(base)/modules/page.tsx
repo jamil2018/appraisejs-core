@@ -8,6 +8,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Module } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Modules',
+  description: 'Manage application modules and their configurations',
+}
 
 const Modules = async () => {
   const { data: modules, error: modulesError } = await getAllModulesAction()

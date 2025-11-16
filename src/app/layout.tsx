@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Appraise',
-  description: 'Next generation test case management for professionals',
+  title: 'Appraise | Dashboard',
+  description: 'Welcome to the dashboard. Here you can see your test suites and run them.',
 }
 
 import Logo from '@/components/logo'

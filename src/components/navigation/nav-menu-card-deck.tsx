@@ -1,6 +1,7 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import React, { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '../ui/card'
@@ -20,14 +21,8 @@ const NavMenuCardDeck = ({
     description: string
   }[]
 }) => {
-  const router = useRouter()
   const pathname = usePathname()
   const [isHovered, setIsHovered] = useState(false)
-
-  const handleDropdownItemClick = (href: string) => {
-    setIsHovered(false)
-    router.push(href)
-  }
 
   const checkIfTriggerActive = (href: string) => {
     return dropdownItems.some(item => item.href === href || pathname.startsWith(item.href))
@@ -68,10 +63,11 @@ const NavMenuCardDeck = ({
             )}
           >
             {dropdownItems.map(item => (
-              <div
+              <Link
                 key={item.href}
+                href={item.href}
                 className="transition-colors hover:cursor-pointer"
-                onClick={() => handleDropdownItemClick(item.href)}
+                onClick={() => setIsHovered(false)}
               >
                 <Card
                   className={cn(
@@ -90,7 +86,7 @@ const NavMenuCardDeck = ({
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

@@ -62,6 +62,34 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
     })
 
     await prisma.$transaction(async tx => {
+      // Delete all test run test cases associated with the test cases
+      // Note: This has RESTRICT constraint in the database, so must be deleted first
+      await tx.testRunTestCase.deleteMany({
+        where: {
+          testCaseId: {
+            in: id,
+          },
+        },
+      })
+
+      // Delete all reviews associated with the test cases
+      await tx.review.deleteMany({
+        where: {
+          testCaseId: {
+            in: id,
+          },
+        },
+      })
+
+      // Delete all linked Jira tickets associated with the test cases
+      await tx.linkedJiraTicket.deleteMany({
+        where: {
+          testCaseId: {
+            in: id,
+          },
+        },
+      })
+
       // Delete all step parameters associated with the test case steps
       await tx.testCaseStepParameter.deleteMany({
         where: {
@@ -104,6 +132,7 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
       message: 'Test case(s) deleted successfully',
     }
   } catch (e) {
+    console.error('Error deleting test case(s):', e)
     return {
       status: 500,
       error: `Server error occurred: ${e}`,

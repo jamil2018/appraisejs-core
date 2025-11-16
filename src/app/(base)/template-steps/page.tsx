@@ -8,6 +8,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { TemplateStep } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Template Steps',
+  description: 'Manage template steps for reusable test steps',
+}
 
 const TemplateSteps = async () => {
   const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()

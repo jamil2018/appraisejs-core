@@ -4,6 +4,12 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Tag } from 'lucide-react'
 import React from 'react'
 import TagForm from '../tag-form'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Tag',
+  description: 'Create a new tag to be used in your test cases',
+}
 
 const CreateTag = () => {
   return (

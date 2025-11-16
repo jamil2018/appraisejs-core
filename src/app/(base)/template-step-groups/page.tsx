@@ -7,6 +7,12 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import { getAllTemplateStepGroupsAction } from '@/actions/template-step-group/template-step-group-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { TemplateStepGroup } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Template Step Groups',
+  description: 'Manage template step groups for organizing related template steps',
+}
 
 const TemplateStepGroups = async () => {
   const { data: templateStepGroups, error: templateStepGroupsError } = await getAllTemplateStepGroupsAction()

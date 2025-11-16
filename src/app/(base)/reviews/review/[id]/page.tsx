@@ -1,10 +1,16 @@
 // Review view page temporarily commented out - will be reworked later
 import React from 'react'
+import { Metadata } from 'next'
 
 /*
 Review view functionality temporarily disabled
 Will be re-implemented without user dependencies
 */
+
+export const metadata: Metadata = {
+  title: 'Appraise | Review Details',
+  description: 'Review viewing will be implemented later',
+}
 
 const ReviewView = () => {
   return (

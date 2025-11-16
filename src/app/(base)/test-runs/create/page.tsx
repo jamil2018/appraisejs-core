@@ -6,6 +6,12 @@ import React from 'react'
 import TestRunForm from '../test-run-form'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Test Run',
+  description: 'Create a new test run to execute your test cases',
+}
 
 const CreateTestRun = async () => {
   const { data: testSuiteTestCases, error: testSuiteTestCasesError } = await getAllTestSuiteTestCasesAction()

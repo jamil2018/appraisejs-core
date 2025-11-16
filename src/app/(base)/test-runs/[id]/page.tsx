@@ -6,6 +6,12 @@ import { LogViewer } from '@/components/test-run/log-viewer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { TestRun, TestRunTestCase, Tag, Environment } from '@prisma/client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Test Run Details',
+  description: 'View test run execution details and live logs',
+}
 
 interface TestRunDetailPageProps {
   params: Promise<{ id: string }>

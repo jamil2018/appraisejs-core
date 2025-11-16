@@ -9,6 +9,12 @@ import { getAllTemplateStepParamsAction } from '@/actions/template-step/template
 import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import { createTemplateTestCaseAction } from '@/actions/template-test-case/template-test-case-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Template Test Case',
+  description: 'Create a new template test case to quickly create test cases',
+}
 
 const CreateTemplateTestCase = async () => {
   const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
