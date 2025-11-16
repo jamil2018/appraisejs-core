@@ -63,8 +63,8 @@ export const testRunTableCols: ColumnDef<
       }
       return (
         <Badge variant="outline" className={`${statusColorMap[status]} py-1`}>
-          <span className="mr-1">{statusIconMap[status]}</span>
-          <span>{statusTextMap[status]}</span>
+          <span className="mr-1 text-white">{statusIconMap[status]}</span>
+          <span className="text-white">{statusTextMap[status]}</span>
         </Badge>
       )
     },
@@ -94,8 +94,8 @@ export const testRunTableCols: ColumnDef<
       }
       return (
         <Badge variant="outline" className={`${resultColorMap[result]} py-1`}>
-          <span className="mr-1">{resultIconMap[result]}</span>
-          <span>{resultTextMap[result]}</span>
+          <span className="mr-1 text-white">{resultIconMap[result]}</span>
+          <span className="text-white">{resultTextMap[result]}</span>
         </Badge>
       )
     },

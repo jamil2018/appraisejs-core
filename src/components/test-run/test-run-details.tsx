@@ -224,8 +224,8 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Status</span>
             <Badge variant="outline" className={`${getStatusColor()} py-1`}>
-              <span className="mr-1">{getStatusIcon()}</span>
-              <span>{getStatusText()}</span>
+              <span className="mr-1 text-white">{getStatusIcon()}</span>
+              <span className="text-white">{getStatusText()}</span>
             </Badge>
           </div>
           <div className="flex items-center justify-between">
@@ -291,8 +291,8 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
           {testRun.tags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {testRun.tags.map(tag => (
-                <Badge key={tag.id} variant="outline" className="bg-gray-700">
-                  <TagIcon className="mr-2 h-4 w-4" />
+                <Badge key={tag.id} variant="outline" className="bg-gray-700 text-white">
+                  <TagIcon className="mr-2 h-4 w-4 text-white" />
                   <span className="text-sm">{tag.name}</span>
                 </Badge>
               ))}
@@ -318,7 +318,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                   <div className="flex items-center gap-2">
                     <TestTubeDiagonal
                       className={cn(
-                        'mr-2 h-6 w-6',
+                        'mr-2 h-6 w-6 text-white',
                         testCase.result === TestRunTestCaseResult.PASSED
                           ? 'text-green-500'
                           : testCase.result === TestRunTestCaseResult.FAILED
@@ -334,10 +334,10 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Badge variant="outline" className="bg-gray-700 text-xs">
+                    <Badge variant="outline" className="bg-gray-700 text-xs text-white">
                       {getFormattedTestRunTestCaseStatus(testCase.status)}
                     </Badge>
-                    <Badge variant="outline" className="bg-gray-700 text-xs">
+                    <Badge variant="outline" className="bg-gray-700 text-xs text-white">
                       {getFormattedTestRunTestCaseResult(testCase.result)}
                     </Badge>
                   </div>
