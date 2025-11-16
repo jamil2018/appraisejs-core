@@ -156,7 +156,6 @@ export const testRunTableCols: ColumnDef<
       return (
         <TableActions
           viewLink={`/test-runs/${testRunData.id}`}
-          modifyLink={`/test-runs/modify/${testRunData.id}`}
           deleteHandler={() => deleteTestRunAction([testRunData.id])}
         />
       )

@@ -1,16 +1,39 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TestRun, TestRunStatus, TestRunResult, Environment, Tag, TestRunTestCase } from '@prisma/client'
+import {
+  TestRun,
+  TestRunStatus,
+  TestRunResult,
+  Environment,
+  Tag,
+  TestRunTestCase,
+  TestRunTestCaseStatus,
+  TestRunTestCaseResult,
+} from '@prisma/client'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatDateTime } from '@/lib/utils'
-import { CheckCircle, XCircle, LoaderCircle, Clock, ListEnd } from 'lucide-react'
+import { cn, formatDateTime } from '@/lib/utils'
+import {
+  CheckCircle,
+  XCircle,
+  LoaderCircle,
+  Clock,
+  ListEnd,
+  ClipboardCheck,
+  ClipboardX,
+  TestTubeDiagonal,
+  TestTubes,
+  Tag as TagIcon,
+  Tags,
+  Info,
+  Timer,
+} from 'lucide-react'
 import { getTestRunByIdAction } from '@/actions/test-run/test-run-actions'
 
 interface TestRunDetailsProps {
   testRun: TestRun & {
-    testCases: (TestRunTestCase & { testCase: { title: string } })[]
+    testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
     tags: Tag[]
     environment: Environment
   }
@@ -35,7 +58,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
         }
         // TypeScript now knows updatedTestRun is defined - cast to proper type
         const typedTestRun = updatedTestRun as TestRun & {
-          testCases: (TestRunTestCase & { testCase: { title: string } })[]
+          testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
           tags: Tag[]
           environment: Environment
         }
@@ -115,11 +138,87 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
     }
   }
 
+  const getFormattedTestRunTestCaseStatus = (status: TestRunTestCaseStatus) => {
+    switch (status) {
+      case TestRunTestCaseStatus.PENDING:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <span>Pending</span>
+          </div>
+        )
+      case TestRunTestCaseStatus.RUNNING:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <span>Running</span>
+          </div>
+        )
+      case TestRunTestCaseStatus.COMPLETED:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span>Completed</span>
+          </div>
+        )
+      case TestRunTestCaseStatus.CANCELLED:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <XCircle className="h-4 w-4" />
+            <span>Cancelled</span>
+          </div>
+        )
+      default:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <Clock className="h-4 w-4" />
+            <span>Unknown</span>
+          </div>
+        )
+    }
+  }
+
+  const getFormattedTestRunTestCaseResult = (result: TestRunTestCaseResult) => {
+    switch (result) {
+      case TestRunTestCaseResult.PASSED:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <ClipboardCheck className="h-4 w-4 text-green-500" />
+            <span>Passed</span>
+          </div>
+        )
+      case TestRunTestCaseResult.FAILED:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <ClipboardX className="h-4 w-4 text-red-500" />
+            <span>Failed</span>
+          </div>
+        )
+      case TestRunTestCaseResult.UNTESTED:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <Clock className="h-4 w-4" />
+            <span>Untested</span>
+          </div>
+        )
+      default:
+        return (
+          <div className="flex min-w-20 items-center gap-2 p-1.5">
+            <Clock className="h-4 w-4" />
+            <span>Unknown</span>
+          </div>
+        )
+    }
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Test Run Information</CardTitle>
+          <CardTitle className="flex items-center">
+            <Info className="mr-2 h-6 w-6" />
+            <h3 className="text-lg font-semibold">Test Run Information</h3>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -154,7 +253,10 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
 
       <Card>
         <CardHeader>
-          <CardTitle>Timing</CardTitle>
+          <CardTitle className="flex items-center">
+            <Timer className="mr-2 h-6 w-6" />
+            <h3 className="text-lg font-semibold">Timing</h3>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -180,14 +282,18 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
 
       <Card className="md:col-span-2">
         <CardHeader>
-          <CardTitle>Tags</CardTitle>
+          <CardTitle className="flex items-center">
+            <Tags className="mr-2 h-6 w-6" />
+            <h3 className="text-lg font-semibold">Tags</h3>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {testRun.tags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {testRun.tags.map(tag => (
-                <Badge key={tag.id} variant="outline">
-                  {tag.name}
+                <Badge key={tag.id} variant="outline" className="bg-gray-700">
+                  <TagIcon className="mr-2 h-4 w-4" />
+                  <span className="text-sm">{tag.name}</span>
                 </Badge>
               ))}
             </div>
@@ -199,20 +305,40 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
 
       <Card className="md:col-span-2">
         <CardHeader>
-          <CardTitle>Test Cases ({testRun.testCases.length})</CardTitle>
+          <CardTitle className="flex items-center">
+            <TestTubes className="mr-2 h-6 w-6" />
+            <h3 className="text-lg font-semibold">Test Cases ({testRun.testCases.length})</h3>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {testRun.testCases.length > 0 ? (
             <div className="space-y-2">
-              {testRun.testCases.map(testRunCase => (
-                <div key={testRunCase.id} className="flex items-center justify-between rounded-md border p-2">
-                  <span className="text-sm">{testRunCase.testCase.title}</span>
+              {testRun.testCases.map(testCase => (
+                <div key={testCase.id} className="flex items-center justify-between rounded-md bg-muted p-2 shadow-md">
+                  <div className="flex items-center gap-2">
+                    <TestTubeDiagonal
+                      className={cn(
+                        'mr-2 h-6 w-6',
+                        testCase.result === TestRunTestCaseResult.PASSED
+                          ? 'text-green-500'
+                          : testCase.result === TestRunTestCaseResult.FAILED
+                            ? 'text-red-500'
+                            : testCase.result === TestRunTestCaseResult.UNTESTED
+                              ? 'text-blue-500'
+                              : 'text-gray-500',
+                      )}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-semibold">{testCase.testCase.title}</span>
+                      <span className="text-xs text-muted-foreground">{testCase.testCase.description}</span>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {testRunCase.status}
+                    <Badge variant="outline" className="bg-gray-700 text-xs">
+                      {getFormattedTestRunTestCaseStatus(testCase.status)}
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {testRunCase.result}
+                    <Badge variant="outline" className="bg-gray-700 text-xs">
+                      {getFormattedTestRunTestCaseResult(testCase.result)}
                     </Badge>
                   </div>
                 </div>
@@ -226,4 +352,3 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
     </div>
   )
 }
-

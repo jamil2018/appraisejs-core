@@ -4,7 +4,7 @@ import prisma from '@/config/db-config'
 import { testRunSchema } from '@/constants/form-opts/test-run-form-opts'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { z } from 'zod'
-import { TestRunStatus, TestRunResult } from '@prisma/client'
+import { TestRunStatus, TestRunResult, TestRunTestCaseStatus, TestRunTestCaseResult } from '@prisma/client'
 import { executeTestRun } from '@/lib/test-run/test-run-executor'
 import { waitForTask } from '@/tests/utils/spawner.util'
 import { revalidatePath } from 'next/cache'
@@ -316,6 +316,115 @@ export async function createTestRunAction(
     }
   } catch (error) {
     console.error('Error creating test run:', error)
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+/**
+ * Updates a test case status and result in a test run based on scenario completion
+ * @param testRunId - The test run ID (runId, not id)
+ * @param scenarioName - The scenario name from cucumber (format: "[Test Case Title] Description")
+ * @param status - The scenario status (passed, failed, skipped)
+ */
+export async function updateTestRunTestCaseStatusAction(
+  testRunId: string,
+  scenarioName: string,
+  status: 'passed' | 'failed' | 'skipped' | 'unknown',
+): Promise<ActionResponse> {
+  try {
+    // Find the test run by runId
+    const testRun = await prisma.testRun.findUnique({
+      where: { runId: testRunId },
+      include: {
+        testCases: {
+          include: {
+            testCase: true,
+          },
+        },
+      },
+    })
+
+    if (!testRun) {
+      return {
+        status: 404,
+        error: 'Test run not found',
+      }
+    }
+
+    // Parse scenario name to extract test case title
+    // Format: "[Test Case Title] Description" or just "Test Case Title"
+    let testCaseTitle: string | null = null
+    
+    // Try to extract title from [brackets]
+    const bracketMatch = scenarioName.match(/^\[([^\]]+)\]/)
+    if (bracketMatch) {
+      testCaseTitle = bracketMatch[1].trim()
+    } else {
+      // If no brackets, use the full scenario name (might be just the title)
+      testCaseTitle = scenarioName.trim()
+    }
+
+    if (!testCaseTitle) {
+      return {
+        status: 400,
+        error: 'Could not extract test case title from scenario name',
+      }
+    }
+
+    // Find matching test case by title
+    const matchingTestCase = testRun.testCases.find(
+      trtc => trtc.testCase.title === testCaseTitle
+    )
+
+    if (!matchingTestCase) {
+      console.warn(
+        `[TestRunAction] No matching test case found for scenario: ${scenarioName} (extracted title: ${testCaseTitle})`
+      )
+      return {
+        status: 404,
+        error: `Test case not found for scenario: ${scenarioName}`,
+      }
+    }
+
+    // Map status to TestRunTestCaseStatus and TestRunTestCaseResult
+    const testCaseStatus: TestRunTestCaseStatus = TestRunTestCaseStatus.COMPLETED
+    let testCaseResult: TestRunTestCaseResult
+
+    switch (status) {
+      case 'passed':
+        testCaseResult = TestRunTestCaseResult.PASSED
+        break
+      case 'failed':
+        testCaseResult = TestRunTestCaseResult.FAILED
+        break
+      case 'skipped':
+        testCaseResult = TestRunTestCaseResult.UNTESTED // Skipped is treated as untested
+        break
+      default:
+        testCaseResult = TestRunTestCaseResult.UNTESTED
+    }
+
+    // Update the TestRunTestCase
+    await prisma.testRunTestCase.update({
+      where: { id: matchingTestCase.id },
+      data: {
+        status: testCaseStatus,
+        result: testCaseResult,
+      },
+    })
+
+    return {
+      status: 200,
+      message: 'Test case status updated successfully',
+    }
+  } catch (error) {
+    console.error(
+      `[TestRunAction] Error updating test case status for testRunId: ${testRunId}, scenario: ${scenarioName}:`,
+      error
+    )
     return {
       status: 500,
       error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,

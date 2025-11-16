@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoaderCircle, Wifi, WifiOff, CheckCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTestRunLogsAction } from '@/actions/test-run/test-run-actions'
+import { getTestRunLogsAction, updateTestRunTestCaseStatusAction } from '@/actions/test-run/test-run-actions'
 import { TestRunStatus } from '@prisma/client'
 
 interface LogMessage {
@@ -84,7 +84,12 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
     // Handle connection error
     eventSource.onerror = (err) => {
       const readyState = eventSource.readyState
-      console.error(`[LogViewer] SSE error for testRunId: ${testRunId}`, err, 'readyState:', readyState)
+      
+      if (readyState === EventSource.CONNECTING) {
+        // Still connecting, don't log error or set error state yet
+        // This is normal during initial connection attempts
+        return
+      }
       
       if (readyState === EventSource.CLOSED) {
         console.log(`[LogViewer] SSE connection closed for testRunId: ${testRunId}`)
@@ -94,14 +99,13 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           setConnectionStatus('disconnected')
         } else {
           setConnectionStatus('error')
-          setError('Failed to connect to log stream. The test run may not be running or the process has ended.')
+          setError('Failed to connect to log stream. The test run may not be running or the process has ended. Please check the server logs for more details.')
         }
-      } else if (readyState === EventSource.CONNECTING) {
-        // Still connecting, don't set error yet
-        console.log(`[LogViewer] SSE still connecting...`)
       } else {
+        // readyState === EventSource.OPEN (unlikely to be an error) or unknown state
+        console.error(`[LogViewer] SSE error for testRunId: ${testRunId}`, err, 'readyState:', readyState)
         setConnectionStatus('error')
-        setError(`Failed to connect to log stream (readyState: ${readyState})`)
+        setError(`Failed to connect to log stream (readyState: ${readyState}). Check server logs for details.`)
       }
     }
 
@@ -135,7 +139,10 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           return
         }
         const data = JSON.parse(event.data)
-        console.log(`[LogViewer] Received log event:`, data)
+        // Only log first few events to avoid spam
+        if (logs.length < 5) {
+          console.log(`[LogViewer] Received log event:`, data)
+        }
         setLogs(prev => [
           ...prev,
           {
@@ -197,6 +204,40 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
         // Don't close immediately - let user see the error
       } catch (error) {
         console.error('[LogViewer] Error parsing error event:', error, 'event.data:', event.data)
+      }
+    })
+
+    // Handle 'scenario::end' event - update test case status
+    eventSource.addEventListener('scenario::end', async (event: MessageEvent) => {
+      try {
+        if (!event.data) {
+          console.warn('[LogViewer] Received scenario::end event with no data')
+          return
+        }
+        const data = JSON.parse(event.data)
+        const { scenarioName, status } = data
+
+        console.log(`[LogViewer] Scenario ended: ${scenarioName} with status: ${status}`)
+
+        // Update test case status in database
+        const response = await updateTestRunTestCaseStatusAction(testRunId, scenarioName, status)
+        if (response.error) {
+          console.error('[LogViewer] Error updating test case status:', response.error)
+        } else {
+          console.log(`[LogViewer] Successfully updated test case status for scenario: ${scenarioName}`)
+        }
+
+        // Also add to logs for visibility
+        setLogs(prev => [
+          ...prev,
+          {
+            type: 'status',
+            message: `Scenario completed: ${scenarioName} - ${status}`,
+            timestamp: new Date(),
+          },
+        ])
+      } catch (error) {
+        console.error('[LogViewer] Error handling scenario::end event:', error, 'event.data:', event.data)
       }
     })
 

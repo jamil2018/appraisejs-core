@@ -36,7 +36,7 @@ export default async function TestRunDetailPage({ params }: TestRunDetailPagePro
 
   // TypeScript now knows response.data is defined
   const testRun = response.data as TestRun & {
-    testCases: (TestRunTestCase & { testCase: { title: string } })[]
+    testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
     tags: Tag[]
     environment: Environment
   }

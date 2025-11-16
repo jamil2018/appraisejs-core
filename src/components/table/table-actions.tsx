@@ -27,7 +27,7 @@ const TableActions = ({
   deleteActionIcon = <Trash className="h-4 w-4" />,
   viewActionIcon = <Eye className="h-4 w-4" />,
 }: {
-  modifyLink: string
+  modifyLink?: string
   deleteHandler: () => Promise<ActionResponse>
   editActionText?: string
   deleteActionText?: string
@@ -58,13 +58,15 @@ const TableActions = ({
               </Link>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem>
-            <Link href={modifyLink}>
-              <span className="flex items-center gap-2">
-                {editActionIcon} {editActionText}
-              </span>
-            </Link>
-          </DropdownMenuItem>
+          {modifyLink && (
+            <DropdownMenuItem>
+              <Link href={modifyLink}>
+                <span className="flex items-center gap-2">
+                  {editActionIcon} {editActionText}
+                </span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={async () => {
               const res = await deleteHandler()

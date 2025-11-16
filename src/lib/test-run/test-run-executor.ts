@@ -97,7 +97,9 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
   })
 
   // Register the process in ProcessManager
+  console.log(`[TestRunExecutor] Registering process for testRunId: ${testRunId}, process name: ${process.name}`)
   processManager.register(testRunId, process)
+  console.log(`[TestRunExecutor] Process registered. ProcessManager now has ${processManager.size()} processes`)
 
   // Set up exit handler - Immediately unregister process to free up memory
   process.process.on('exit', (code) => {

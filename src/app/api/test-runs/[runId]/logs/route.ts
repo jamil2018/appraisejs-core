@@ -101,26 +101,46 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // Wait for process to be registered (with timeout)
   // This handles the race condition where the page loads before the process is spawned
   let process = processManager.get(runId)
-  const maxWaitTime = 5000 // 5 seconds
-  const checkInterval = 100 // Check every 100ms
+  const maxWaitTime = 10000 // Increase to 10 seconds
+  const checkInterval = 200 // Check every 200ms
   let waited = 0
+
+  console.log(`[SSE] Looking for process with runId: ${runId}, current processes: ${processManager.size()}`)
+  
+  // Log all available process IDs for debugging
+  if (processManager.size() > 0) {
+    const availableProcesses = processManager.getAllTestRunIds()
+    console.log(`[SSE] Available process IDs:`, availableProcesses)
+    console.log(`[SSE] Looking for runId: "${runId}", available:`, availableProcesses.map(id => `"${id}"`).join(', '))
+  } else {
+    console.log(`[SSE] No processes registered yet. ProcessManager size: ${processManager.size()}`)
+  }
 
   while (!process && waited < maxWaitTime) {
     await new Promise(resolve => setTimeout(resolve, checkInterval))
     waited += checkInterval
     process = processManager.get(runId)
+    
+    // Log progress every 2 seconds
+    if (waited % 2000 === 0) {
+      console.log(`[SSE] Still waiting for process ${runId}... (${waited}ms elapsed)`)
+    }
   }
 
   if (!process) {
-    console.error(
-      `[SSE] Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}`,
-    )
+    const availableProcesses = processManager.getAllTestRunIds()
+    const errorMessage = `Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}. Available IDs: ${availableProcesses.join(', ') || 'none'}`
+    console.error(`[SSE] ${errorMessage}`)
+    
     // Return an SSE stream with an error event instead of JSON response
     // This allows EventSource to properly handle the error
     const errorStream = new ReadableStream({
       start(controller) {
         const encoder = new TextEncoder()
-        const message = `event: error\ndata: ${JSON.stringify({ error: 'Test run not found or process not running. The process may not have started yet.' })}\n\n`
+        const message = `event: error\ndata: ${JSON.stringify({ 
+          error: 'Test run process not found. The process may not have started yet or may have already completed.',
+          details: `Looking for: ${runId}, Available: ${availableProcesses.join(', ') || 'none'}`,
+        })}\n\n`
         controller.enqueue(encoder.encode(message))
         setTimeout(() => {
           controller.close()
@@ -175,11 +195,36 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
 
       /**
+       * Check if a line is an event JSON (should not be displayed in logs)
+       */
+      const isEventJson = (line: string): boolean => {
+        try {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('{') || !trimmed.includes('"event"')) {
+            return false
+          }
+          const parsed = JSON.parse(trimmed)
+          return parsed.event === 'scenario::end' || parsed.event !== undefined
+        } catch {
+          return false
+        }
+      }
+
+      /**
        * Handler for stdout events
        */
       const onStdout = ({ processName, data }: { processName: string; data: string }) => {
         if (processName === process.name) {
-          sendSSE('log', JSON.stringify({ type: 'stdout', message: data }))
+          // Filter out event JSON lines - they're for internal processing only
+          const lines = data.split('\n')
+          const filteredLines = lines.filter(line => {
+            const trimmed = line.trim()
+            return trimmed && !isEventJson(trimmed)
+          })
+          
+          if (filteredLines.length > 0) {
+            sendSSE('log', JSON.stringify({ type: 'stdout', message: filteredLines.join('\n') }))
+          }
         }
       }
 
@@ -188,7 +233,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        */
       const onStderr = ({ processName, data }: { processName: string; data: string }) => {
         if (processName === process.name) {
-          sendSSE('log', JSON.stringify({ type: 'stderr', message: data }))
+          // Filter out event JSON lines - they're for internal processing only
+          const lines = data.split('\n')
+          const filteredLines = lines.filter(line => {
+            const trimmed = line.trim()
+            return trimmed && !isEventJson(trimmed)
+          })
+          
+          if (filteredLines.length > 0) {
+            sendSSE('log', JSON.stringify({ type: 'stderr', message: filteredLines.join('\n') }))
+          }
         }
       }
 
@@ -215,12 +269,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
 
+      /**
+       * Handler for scenario::end events from ProcessManager
+       */
+      const onScenarioEnd = (eventData: { testRunId: string; scenarioName: string; status: string }) => {
+        console.log(`[SSE] Received scenario::end event for testRunId: ${eventData.testRunId}, runId: ${runId}`, eventData)
+        if (eventData.testRunId === runId) {
+          console.log(`[SSE] Sending scenario::end SSE event for scenario: ${eventData.scenarioName}`)
+          sendSSE('scenario::end', JSON.stringify({
+            scenarioName: eventData.scenarioName,
+            status: eventData.status,
+          }))
+        } else {
+          console.log(`[SSE] Ignoring scenario::end event - testRunId mismatch: ${eventData.testRunId} !== ${runId}`)
+        }
+      }
+
       // Clean up listeners helper (defined before use)
       const cleanup = () => {
         taskSpawner.removeListener('stdout', onStdout)
         taskSpawner.removeListener('stderr', onStderr)
         taskSpawner.removeListener('exit', onExit)
         taskSpawner.removeListener('error', onError)
+        processManager.removeListener('scenario::end', onScenarioEnd)
       }
 
       // Set up event listeners on TaskSpawner
@@ -228,19 +299,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       taskSpawner.on('stderr', onStderr)
       taskSpawner.on('exit', onExit)
       taskSpawner.on('error', onError)
+      
+      // Listen for scenario::end events from ProcessManager
+      processManager.on('scenario::end', onScenarioEnd)
 
       console.log(`[SSE] Connected to log stream for runId: ${runId}`)
 
       // Send initial connection message
       sendSSE('connected', JSON.stringify({ message: 'Connected to log stream' }))
 
-      // Send any already captured output immediately
+      // Send any already captured output immediately (filter out event JSON)
       if (process.output && (process.output.stdout.length > 0 || process.output.stderr.length > 0)) {
         process.output.stdout.forEach(line => {
-          sendSSE('log', JSON.stringify({ type: 'stdout', message: line }))
+          const trimmed = line.trim()
+          // Skip event JSON lines
+          if (trimmed && !isEventJson(trimmed)) {
+            sendSSE('log', JSON.stringify({ type: 'stdout', message: line }))
+          }
         })
         process.output.stderr.forEach(line => {
-          sendSSE('log', JSON.stringify({ type: 'stderr', message: line }))
+          const trimmed = line.trim()
+          // Skip event JSON lines
+          if (trimmed && !isEventJson(trimmed)) {
+            sendSSE('log', JSON.stringify({ type: 'stderr', message: line }))
+          }
         })
       }
 
