@@ -12,8 +12,15 @@ import { BrowserEngine, Environment, Tag, TestCase, TestRunTestCase, TestSuite }
 import { useForm } from '@tanstack/react-form'
 import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
-import React from 'react'
+import React, { useState } from 'react'
 import { z } from 'zod'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+enum TestSelectionType {
+  TAGS = 'tags',
+  TEST_CASES = 'testCases',
+}
 
 const TestRunForm = ({
   defaultValues,
@@ -35,6 +42,8 @@ const TestRunForm = ({
   onSubmitAction: (initialFormState: ServerFormState<TestRun>, value: TestRun, id?: string) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
+  const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(TestSelectionType.TAGS)
+
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
@@ -76,158 +85,199 @@ const TestRunForm = ({
         form.handleSubmit()
       }}
     >
-      <form.Field
-        name="environmentId"
-        validators={{
-          onChange: z.string().min(1, { message: 'Environment is required' }),
-        }}
-      >
-        {field => {
-          return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Environment</Label>
-              <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an environment" />
-                </SelectTrigger>
-                <SelectContent>
-                  {environments.length === 0 ? (
-                    <div className="p-2 text-sm">No environments available</div>
-                  ) : (
-                    environments.map(environment => (
-                      <SelectItem key={environment.id} value={environment.id}>
-                        {environment.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
-                  </p>
-                ))}
+      <Card className="mb-4 lg:w-1/3">
+        <CardHeader>
+          <CardTitle>Filter Tests</CardTitle>
+          <CardDescription>Select how would you like to filter your tests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            defaultValue={testSelectionType}
+            onValueChange={value => setTestSelectionType(value as TestSelectionType)}
+            className="mb-4 flex gap-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value={TestSelectionType.TAGS} id={TestSelectionType.TAGS} />
+              <Label htmlFor={TestSelectionType.TAGS}>By Tags</Label>
             </div>
-          )
-        }}
-      </form.Field>
-      <form.Field
-        name="tags"
-        validators={{
-          onChange: z.array(z.string()).min(1, { message: 'Tags are required' }),
-        }}
-      >
-        {field => {
-          return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Tags</Label>
-              <MultiSelect
-                options={tags.map(tag => ({ label: tag.name, value: tag.id }))}
-                selected={field.state.value}
-                onChange={field.handleChange}
-                placeholder="Select tags"
-                emptyMessage="No tags available"
-              />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
-                  </p>
-                ))}
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value={TestSelectionType.TEST_CASES} id={TestSelectionType.TEST_CASES} />
+              <Label htmlFor={TestSelectionType.TEST_CASES}>By Test Cases</Label>
             </div>
-          )
-        }}
-      </form.Field>
+          </RadioGroup>
 
-      <form.Field
-        name="testWorkersCount"
-        validators={{ onChange: z.number().min(1, { message: 'Test workers count must be at least 1' }) }}
-      >
-        {field => {
-          return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Test Workers Count</Label>
-              <Input
-                type="number"
-                value={field.state.value}
-                onChange={e => field.handleChange(Number(e.target.value))}
-              />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
-                  </p>
-                ))}
-            </div>
-          )
-        }}
-      </form.Field>
-      <form.Field name="browserEngine" validators={{ onChange: z.nativeEnum(BrowserEngine) }}>
-        {field => {
-          return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Browser Engine</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={value => field.handleChange(value as unknown as BrowserEngine)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a browser engine" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={BrowserEngine.CHROMIUM}>Chromium</SelectItem>
-                  <SelectItem value={BrowserEngine.FIREFOX}>Firefox</SelectItem>
-                  <SelectItem value={BrowserEngine.WEBKIT}>WebKit</SelectItem>
-                </SelectContent>
-              </Select>
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
-                  </p>
-                ))}
-            </div>
-          )
-        }}
-      </form.Field>
-      <form.Field
-        name="testCases"
-        validators={{
-          onChange: z.array(z.object({ testCaseId: z.string() })).min(1, { message: 'Test cases are required' }),
-        }}
-      >
-        {field => {
-          return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Test Cases</Label>
-              <MultiSelect
-                options={testSuiteTestCases.flatMap(testSuite =>
-                  testSuite.testCases.map(testCase => ({ label: testCase.title, value: testCase.id })),
-                )}
-                selected={field.state.value.map(testCase => testCase.testCaseId)}
-                onChange={value =>
-                  field.handleChange(
-                    value.map(testCaseId => ({ testCaseId: testCaseId }) as unknown as TestRunTestCase),
-                  )
-                }
-                placeholder="Select test cases"
-                emptyMessage="No test cases available"
-              />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
-                  </p>
-                ))}
-            </div>
-          )
-        }}
-      </form.Field>
+          {testSelectionType === TestSelectionType.TAGS && (
+            <form.Field
+              name="tags"
+              validators={{
+                onChange: z
+                  .array(z.string())
+                  .min(testSelectionType === TestSelectionType.TAGS ? 1 : 0, { message: 'Tags are required' }),
+              }}
+            >
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2">
+                    <MultiSelect
+                      options={tags.map(tag => ({ label: tag.name, value: tag.id }))}
+                      selected={field.state.value}
+                      onChange={field.handleChange}
+                      placeholder="Select tags"
+                      emptyMessage="No tags available"
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors.map(error => (
+                        <p key={error as string} className="text-xs text-pink-500">
+                          {error}
+                        </p>
+                      ))}
+                  </div>
+                )
+              }}
+            </form.Field>
+          )}
+
+          {testSelectionType === TestSelectionType.TEST_CASES && (
+            <form.Field
+              name="testCases"
+              validators={{
+                onChange: z
+                  .array(z.object({ testCaseId: z.string() }))
+                  .min(testSelectionType === TestSelectionType.TEST_CASES ? 1 : 0, {
+                    message: 'Test cases are required',
+                  }),
+              }}
+            >
+              {field => {
+                return (
+                  <div className="mb-4 flex flex-col gap-2">
+                    <MultiSelect
+                      options={testSuiteTestCases.flatMap(testSuite =>
+                        testSuite.testCases.map(testCase => ({ label: testCase.title, value: testCase.id })),
+                      )}
+                      selected={field.state.value.map(testCase => testCase.testCaseId)}
+                      onChange={value =>
+                        field.handleChange(
+                          value.map(testCaseId => ({ testCaseId: testCaseId }) as unknown as TestRunTestCase),
+                        )
+                      }
+                      placeholder="Select test cases"
+                      emptyMessage="No test cases available"
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors.map(error => (
+                        <p key={error as string} className="text-xs text-pink-500">
+                          {error}
+                        </p>
+                      ))}
+                  </div>
+                )
+              }}
+            </form.Field>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-4 lg:w-1/3">
+        <CardHeader>
+          <CardTitle>Test Configuration</CardTitle>
+          <CardDescription>Set the configuration for your test run</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form.Field
+            name="environmentId"
+            validators={{
+              onChange: z.string().min(1, { message: 'Environment is required' }),
+            }}
+          >
+            {field => {
+              return (
+                <div className="mb-4 flex flex-col gap-2">
+                  <Label htmlFor={field.name}>Environment</Label>
+                  <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an environment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {environments.length === 0 ? (
+                        <div className="p-2 text-sm">No environments available</div>
+                      ) : (
+                        environments.map(environment => (
+                          <SelectItem key={environment.id} value={environment.id}>
+                            {environment.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                </div>
+              )
+            }}
+          </form.Field>
+
+          <form.Field
+            name="testWorkersCount"
+            validators={{ onChange: z.number().min(1, { message: 'Test workers count must be at least 1' }) }}
+          >
+            {field => {
+              return (
+                <div className="mb-4 flex flex-col gap-2">
+                  <Label htmlFor={field.name}>Test Workers Count</Label>
+                  <Input
+                    type="number"
+                    value={field.state.value}
+                    onChange={e => field.handleChange(Number(e.target.value))}
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                </div>
+              )
+            }}
+          </form.Field>
+          <form.Field name="browserEngine" validators={{ onChange: z.nativeEnum(BrowserEngine) }}>
+            {field => {
+              return (
+                <div className="mb-4 flex flex-col gap-2">
+                  <Label htmlFor={field.name}>Browser Engine</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={value => field.handleChange(value as unknown as BrowserEngine)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a browser engine" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={BrowserEngine.CHROMIUM}>Chromium</SelectItem>
+                      <SelectItem value={BrowserEngine.FIREFOX}>Firefox</SelectItem>
+                      <SelectItem value={BrowserEngine.WEBKIT}>WebKit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                </div>
+              )
+            }}
+          </form.Field>
+        </CardContent>
+      </Card>
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (
           <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? '...' : 'Save'}
+            {isSubmitting ? '...' : 'Start'}
           </Button>
         )}
       </form.Subscribe>
