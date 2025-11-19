@@ -4,7 +4,14 @@ import prisma from '@/config/db-config'
 import { testRunSchema } from '@/constants/form-opts/test-run-form-opts'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { z } from 'zod'
-import { TestRunStatus, TestRunResult, TestRunTestCaseStatus, TestRunTestCaseResult } from '@prisma/client'
+import {
+  TestRunStatus,
+  TestRunResult,
+  TestRunTestCaseStatus,
+  TestRunTestCaseResult,
+  TagType,
+  Tag,
+} from '@prisma/client'
 import { executeTestRun } from '@/lib/test-run/test-run-executor'
 import { waitForTask } from '@/tests/utils/spawner.util'
 import { revalidatePath } from 'next/cache'
@@ -197,21 +204,88 @@ export async function createTestRunAction(
       }
     }
 
-    const tags = await prisma.tag.findMany({
-      where: { id: { in: value.tags } },
-    })
+    // Determine if we're filtering by tags or test cases
+    const isFilteringByTags = value.tags.length > 0
+    const isFilteringByTestCases = value.testCases.length > 0 && value.tags.length === 0
 
-    const tagFilteredTestCases = await prisma.testCase.findMany({
-      where: {
-        tags: {
-          some: { id: { in: value.tags } },
+    // Validate that at least one filtering option is provided
+    if (!isFilteringByTags && !isFilteringByTestCases) {
+      return {
+        status: 400,
+        error: 'Either tags or test cases must be provided to filter the test run.',
+      }
+    }
+
+    let tags: Tag[] = []
+    let testRunTestCases: Array<{ testCaseId: string }> = []
+
+    if (isFilteringByTags) {
+      // Existing behavior: filter by tags
+      tags = await prisma.tag.findMany({
+        where: { id: { in: value.tags } },
+      })
+
+      const tagFilteredTestCases = await prisma.testCase.findMany({
+        where: {
+          tags: {
+            some: { id: { in: value.tags } },
+          },
         },
-      },
-    })
+      })
 
-    const testRunTestCases = tagFilteredTestCases.map(tc => ({
-      testCaseId: tc.id,
-    }))
+      testRunTestCases = tagFilteredTestCases.map(tc => ({
+        testCaseId: tc.id,
+      }))
+    } else if (isFilteringByTestCases) {
+      // New behavior: filter by test cases - extract identifier tags
+      const selectedTestCases = await prisma.testCase.findMany({
+        where: {
+          id: { in: value.testCases.map(tc => tc.testCaseId) },
+        },
+        include: {
+          tags: true,
+        },
+      })
+
+      // Extract identifier tags from selected test cases
+      const identifierTags = selectedTestCases
+        .flatMap(tc => tc.tags)
+        .filter(tag => tag.type === TagType.IDENTIFIER)
+        // Remove duplicates by id
+        .filter((tag, index, self) => index === self.findIndex(t => t.id === tag.id))
+
+      // Safety check: if no identifier tags found, this would run all tests
+      // which is not what the user expects when they select specific test cases
+      if (identifierTags.length === 0) {
+        return {
+          status: 400,
+          error: 'Selected test cases do not have identifier tags. Cannot execute specific test cases.',
+        }
+      }
+
+      // Filter to only include test cases that have identifier tags
+      // Test cases without identifier tags cannot be executed and should be excluded
+      const testCasesWithIdentifierTags = selectedTestCases.filter(tc =>
+        tc.tags.some(tag => tag.type === TagType.IDENTIFIER),
+      )
+
+      // Log warning if some test cases don't have identifier tags
+      const testCasesWithoutIdentifierTags = selectedTestCases.filter(
+        tc => !tc.tags.some(tag => tag.type === TagType.IDENTIFIER),
+      )
+      if (testCasesWithoutIdentifierTags.length > 0) {
+        console.warn(
+          `[TestRunAction] Some selected test cases (${testCasesWithoutIdentifierTags.length}) do not have identifier tags and will not be executed.`,
+        )
+      }
+
+      tags = identifierTags
+
+      // Only include test cases that have identifier tags
+      testRunTestCases = testCasesWithIdentifierTags.map(tc => ({
+        testCaseId: tc.id,
+      }))
+    }
 
     // Create TestRun record in database with RUNNING status
     const testRun = await prisma.testRun.create({
@@ -225,14 +299,9 @@ export async function createTestRunAction(
           connect: tags.map(tag => ({ id: tag.id })),
         },
         testCases: {
-          create:
-            value.tags.length > 0
-              ? testRunTestCases.map(tc => ({
-                  testCaseId: tc.testCaseId,
-                }))
-              : value.testCases.map(tc => ({
-                  testCaseId: tc.testCaseId,
-                })),
+          create: testRunTestCases.map(tc => ({
+            testCaseId: tc.testCaseId,
+          })),
         },
       },
     })

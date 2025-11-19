@@ -6,6 +6,11 @@
 @run
 Feature: Collection of test cases covering login scenarios
 
+  @tc_ue4qwoml
+  Scenario: [Failing Login] Validate failure scenario for login validation step
+    Given the user navigates to the "staging" environment
+    Then the user should be navigated to the "/test" route
+
   @tc_qng7yehh
   Scenario: [Login] Verify the user is able to navigate to the login page of staging environmnet
     Given the user navigates to the "staging" environment
