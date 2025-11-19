@@ -7,7 +7,8 @@ import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { z } from 'zod'
 import { generateFeatureFile } from '@/lib/feature-file-generator'
 
-import { StepParameterType } from '@prisma/client'
+import { StepParameterType, TagType } from '@prisma/client'
+import { generateUniqueTestCaseIdentifier } from '@/lib/test-case-utils'
 
 /**
  * Get all test cases
@@ -61,6 +62,22 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
       },
     })
 
+    const testCaseIdentifierTags = await prisma.tag.findMany({
+      where: {
+        type: TagType.IDENTIFIER,
+        testCases: {
+          some: {
+            id: {
+              in: id,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+
     await prisma.$transaction(async tx => {
       // Delete all test run test cases associated with the test cases
       // Note: This has RESTRICT constraint in the database, so must be deleted first
@@ -110,6 +127,13 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
         },
       })
 
+      // Delete all test case identifier tags associated with the test cases
+      await tx.tag.deleteMany({
+        where: {
+          id: { in: testCaseIdentifierTags.map(tag => tag.id) },
+        },
+      })
+
       // Delete the test cases
       await tx.testCase.deleteMany({
         where: { id: { in: id } },
@@ -148,6 +172,14 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
 export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>): Promise<ActionResponse> {
   try {
     testCaseSchema.parse(value)
+    const uniqueTestCaseIdentifier = generateUniqueTestCaseIdentifier()
+    const testCaseIdentifierTag = await prisma.tag.create({
+      data: {
+        name: uniqueTestCaseIdentifier,
+        type: TagType.IDENTIFIER,
+        tagExpression: `@${uniqueTestCaseIdentifier}`,
+      },
+    })
     const baseData = {
       title: value.title,
       description: value.description ?? '',
@@ -179,10 +211,15 @@ export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>
         ? {
             ...baseData,
             tags: {
-              connect: value.tagIds.map(id => ({ id })),
+              connect: [{ id: testCaseIdentifierTag.id }, ...value.tagIds.map(id => ({ id }))],
             },
           }
-        : baseData
+        : {
+            ...baseData,
+            tags: {
+              connect: [{ id: testCaseIdentifierTag.id }],
+            },
+          }
 
     const newTestCase = await prisma.testCase.create({
       data,

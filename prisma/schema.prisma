@@ -241,11 +241,17 @@ model Tag {
   id            String      @id @default(uuid())
   name          String
   tagExpression String
+  type          TagType     @default(FILTER)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   testRuns      TestRun[]
   testSuites    TestSuite[]
   testCases     TestCase[]
+}
+
+enum TagType {
+  IDENTIFIER
+  FILTER
 }
 
 enum TestRunStatus {

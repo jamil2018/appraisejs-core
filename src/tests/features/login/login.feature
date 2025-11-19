@@ -6,14 +6,7 @@
 @run
 Feature: Collection of test cases covering login scenarios
 
-  Scenario: [login 2] Duplicate of login
+  @tc_qng7yehh
+  Scenario: [Login] Verify the user is able to navigate to the login page of staging environmnet
     Given the user navigates to the "staging" environment
     Then the user should be navigated to the "/login" route
-
-  Scenario: [login] Verify user is able to navigate to the login url
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/login" route
-
-  Scenario: [Login Copy] This is a copy 3 of login test
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/test" route
