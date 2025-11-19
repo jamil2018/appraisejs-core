@@ -48,7 +48,14 @@ const TestRunForm = ({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(initialFormState, value, id)
+      // Ensure only the selected filter type is submitted
+      console.log(`value: ${JSON.stringify(value)}`)
+      const submitValue = {
+        ...value,
+        tags: testSelectionType === TestSelectionType.TAGS ? value.tags : [],
+        testCases: testSelectionType === TestSelectionType.TEST_CASES ? value.testCases : [],
+      }
+      const res = await onSubmitAction(initialFormState, submitValue, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -93,7 +100,16 @@ const TestRunForm = ({
         <CardContent>
           <RadioGroup
             defaultValue={testSelectionType}
-            onValueChange={value => setTestSelectionType(value as TestSelectionType)}
+            onValueChange={value => {
+              const newType = value as TestSelectionType
+              setTestSelectionType(newType)
+              // Clear the other field when switching filter types
+              if (newType === TestSelectionType.TAGS) {
+                form.setFieldValue('testCases', [])
+              } else {
+                form.setFieldValue('tags', [])
+              }
+            }}
             className="mb-4 flex gap-4"
           >
             <div className="flex items-center space-x-2">
@@ -106,75 +122,75 @@ const TestRunForm = ({
             </div>
           </RadioGroup>
 
-          {testSelectionType === TestSelectionType.TAGS && (
-            <form.Field
-              name="tags"
-              validators={{
-                onChange: z
-                  .array(z.string())
-                  .min(testSelectionType === TestSelectionType.TAGS ? 1 : 0, { message: 'Tags are required' }),
-              }}
-            >
-              {field => {
-                return (
-                  <div className="mb-4 flex flex-col gap-2">
-                    <MultiSelect
-                      options={tags.map(tag => ({ label: tag.name, value: tag.id }))}
-                      selected={field.state.value}
-                      onChange={field.handleChange}
-                      placeholder="Select tags"
-                      emptyMessage="No tags available"
-                    />
-                    {field.state.meta.isTouched &&
-                      field.state.meta.errors.map(error => (
-                        <p key={error as string} className="text-xs text-pink-500">
-                          {error}
-                        </p>
-                      ))}
-                  </div>
-                )
-              }}
-            </form.Field>
-          )}
+          <form.Field
+            name="tags"
+            validators={{
+              onChange: z
+                .array(z.string())
+                .min(testSelectionType === TestSelectionType.TAGS ? 1 : 0, { message: 'Tags are required' }),
+            }}
+          >
+            {field => {
+              return (
+                <div
+                  className={`mb-4 flex flex-col gap-2 ${testSelectionType === TestSelectionType.TAGS ? 'block' : 'hidden'}`}
+                >
+                  <MultiSelect
+                    options={tags.map(tag => ({ label: tag.name, value: tag.id }))}
+                    selected={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder="Select tags"
+                    emptyMessage="No tags available"
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                </div>
+              )
+            }}
+          </form.Field>
 
-          {testSelectionType === TestSelectionType.TEST_CASES && (
-            <form.Field
-              name="testCases"
-              validators={{
-                onChange: z
-                  .array(z.object({ testCaseId: z.string() }))
-                  .min(testSelectionType === TestSelectionType.TEST_CASES ? 1 : 0, {
-                    message: 'Test cases are required',
-                  }),
-              }}
-            >
-              {field => {
-                return (
-                  <div className="mb-4 flex flex-col gap-2">
-                    <MultiSelect
-                      options={testSuiteTestCases.flatMap(testSuite =>
-                        testSuite.testCases.map(testCase => ({ label: testCase.title, value: testCase.id })),
-                      )}
-                      selected={field.state.value.map(testCase => testCase.testCaseId)}
-                      onChange={value =>
-                        field.handleChange(
-                          value.map(testCaseId => ({ testCaseId: testCaseId }) as unknown as TestRunTestCase),
-                        )
-                      }
-                      placeholder="Select test cases"
-                      emptyMessage="No test cases available"
-                    />
-                    {field.state.meta.isTouched &&
-                      field.state.meta.errors.map(error => (
-                        <p key={error as string} className="text-xs text-pink-500">
-                          {error}
-                        </p>
-                      ))}
-                  </div>
-                )
-              }}
-            </form.Field>
-          )}
+          <form.Field
+            name="testCases"
+            validators={{
+              onChange: z
+                .array(z.object({ testCaseId: z.string() }))
+                .min(testSelectionType === TestSelectionType.TEST_CASES ? 1 : 0, {
+                  message: 'Test cases are required',
+                }),
+            }}
+          >
+            {field => {
+              return (
+                <div
+                  className={`mb-4 flex flex-col gap-2 ${testSelectionType === TestSelectionType.TEST_CASES ? 'block' : 'hidden'}`}
+                >
+                  <MultiSelect
+                    options={testSuiteTestCases.flatMap(testSuite =>
+                      testSuite.testCases.map(testCase => ({ label: testCase.title, value: testCase.id })),
+                    )}
+                    selected={field.state.value.map(testCase => testCase.testCaseId)}
+                    onChange={value =>
+                      field.handleChange(
+                        value.map(testCaseId => ({ testCaseId: testCaseId }) as unknown as TestRunTestCase),
+                      )
+                    }
+                    placeholder="Select test cases"
+                    emptyMessage="No test cases available"
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.map(error => (
+                      <p key={error as string} className="text-xs text-pink-500">
+                        {error}
+                      </p>
+                    ))}
+                </div>
+              )
+            }}
+          </form.Field>
         </CardContent>
       </Card>
 

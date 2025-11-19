@@ -59,7 +59,7 @@ function setEnvironmentVariables(environment: Environment, headless: boolean, br
 
 /**
  * Executes a test run by spawning a cucumber process
- * 
+ *
  * @param config - Test run execution configuration
  * @returns Promise that resolves to the spawned process
  */
@@ -102,13 +102,14 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
   console.log(`[TestRunExecutor] Process registered. ProcessManager now has ${processManager.size()} processes`)
 
   // Set up exit handler - Immediately unregister process to free up memory
-  process.process.on('exit', (code) => {
+  process.process.on('exit', code => {
     // Immediately unregister the process to free up memory
     // Log storage will be handled in createTestRunAction after process completion
     processManager.unregister(testRunId)
-    console.log(`[TestRunExecutor] Process exited for testRunId: ${testRunId} with code ${code}, unregistered from ProcessManager`)
+    console.log(
+      `[TestRunExecutor] Process exited for testRunId: ${testRunId} with code ${code}, unregistered from ProcessManager`,
+    )
   })
 
   return process
 }
-

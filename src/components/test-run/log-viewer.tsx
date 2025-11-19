@@ -220,11 +220,13 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
         console.log(`[LogViewer] Scenario ended: ${scenarioName} with status: ${status}`)
 
         // Update test case status in database
+        // This will gracefully handle test runs filtered by tags (no test cases)
         const response = await updateTestRunTestCaseStatusAction(testRunId, scenarioName, status)
-        if (response.error) {
+        if (response.error && response.status !== 200) {
+          // Only log as error if it's not a 200 status (which means it was skipped gracefully)
           console.error('[LogViewer] Error updating test case status:', response.error)
         } else {
-          console.log(`[LogViewer] Successfully updated test case status for scenario: ${scenarioName}`)
+          console.log(`[LogViewer] ${response.message || `Successfully updated test case status for scenario: ${scenarioName}`}`)
         }
 
         // Also add to logs for visibility

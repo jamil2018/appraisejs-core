@@ -201,6 +201,18 @@ export async function createTestRunAction(
       where: { id: { in: value.tags } },
     })
 
+    const tagFilteredTestCases = await prisma.testCase.findMany({
+      where: {
+        tags: {
+          some: { id: { in: value.tags } },
+        },
+      },
+    })
+
+    const testRunTestCases = tagFilteredTestCases.map(tc => ({
+      testCaseId: tc.id,
+    }))
+
     // Create TestRun record in database with RUNNING status
     const testRun = await prisma.testRun.create({
       data: {
@@ -213,9 +225,14 @@ export async function createTestRunAction(
           connect: tags.map(tag => ({ id: tag.id })),
         },
         testCases: {
-          create: value.testCases.map(tc => ({
-            testCaseId: tc.testCaseId,
-          })),
+          create:
+            value.tags.length > 0
+              ? testRunTestCases.map(tc => ({
+                  testCaseId: tc.testCaseId,
+                }))
+              : value.testCases.map(tc => ({
+                  testCaseId: tc.testCaseId,
+                })),
         },
       },
     })
@@ -238,7 +255,7 @@ export async function createTestRunAction(
 
           // Collect all logs from the process output
           const logEntries: LogEntry[] = []
-          
+
           // Add stdout logs
           if (process.output.stdout.length > 0) {
             const stdoutText = process.output.stdout.join('')
@@ -252,7 +269,7 @@ export async function createTestRunAction(
               })
             })
           }
-          
+
           // Add stderr logs
           if (process.output.stderr.length > 0) {
             const stderrText = process.output.stderr.join('')
@@ -267,7 +284,7 @@ export async function createTestRunAction(
               })
             })
           }
-          
+
           // Add exit status log
           logEntries.push({
             type: 'status',
@@ -357,7 +374,7 @@ export async function updateTestRunTestCaseStatusAction(
     // Parse scenario name to extract test case title
     // Format: "[Test Case Title] Description" or just "Test Case Title"
     let testCaseTitle: string | null = null
-    
+
     // Try to extract title from [brackets]
     const bracketMatch = scenarioName.match(/^\[([^\]]+)\]/)
     if (bracketMatch) {
@@ -375,13 +392,11 @@ export async function updateTestRunTestCaseStatusAction(
     }
 
     // Find matching test case by title
-    const matchingTestCase = testRun.testCases.find(
-      trtc => trtc.testCase.title === testCaseTitle
-    )
+    const matchingTestCase = testRun.testCases.find(trtc => trtc.testCase.title === testCaseTitle)
 
     if (!matchingTestCase) {
       console.warn(
-        `[TestRunAction] No matching test case found for scenario: ${scenarioName} (extracted title: ${testCaseTitle})`
+        `[TestRunAction] No matching test case found for scenario: ${scenarioName} (extracted title: ${testCaseTitle})`,
       )
       return {
         status: 404,
@@ -423,7 +438,7 @@ export async function updateTestRunTestCaseStatusAction(
   } catch (error) {
     console.error(
       `[TestRunAction] Error updating test case status for testRunId: ${testRunId}, scenario: ${scenarioName}:`,
-      error
+      error,
     )
     return {
       status: 500,
