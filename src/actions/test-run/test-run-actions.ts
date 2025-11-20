@@ -16,6 +16,7 @@ import { executeTestRun } from '@/lib/test-run/test-run-executor'
 import { waitForTask } from '@/tests/utils/spawner.util'
 import { revalidatePath } from 'next/cache'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
+import { processManager } from '@/lib/test-run/process-manager'
 
 export async function getAllTestRunsAction(): Promise<ActionResponse> {
   try {
@@ -317,6 +318,36 @@ export async function createTestRunAction(
         headless: true, // Default to headless
       })
 
+      // Set up server-side listener for scenario::end events to update test case statuses
+      // This ensures status updates happen even if no client is connected
+      const onScenarioEnd = async (eventData: { testRunId: string; scenarioName: string; status: string }) => {
+        // Only process events for this test run
+        if (eventData.testRunId === testRun.runId) {
+          console.log(
+            `[TestRunAction] Server-side scenario::end event for testRunId: ${testRun.runId}, scenario: ${eventData.scenarioName}, status: ${eventData.status}`,
+          )
+          // Map the status string to the expected format
+          const statusMap: Record<string, 'passed' | 'failed' | 'skipped' | 'unknown'> = {
+            passed: 'passed',
+            failed: 'failed',
+            skipped: 'skipped',
+          }
+          const mappedStatus = statusMap[eventData.status] || 'unknown'
+          // Update test case status in database
+          await updateTestRunTestCaseStatusAction(testRun.runId, eventData.scenarioName, mappedStatus)
+        }
+      }
+
+      // Register the server-side listener
+      processManager.on('scenario::end', onScenarioEnd)
+      console.log(`[TestRunAction] Registered server-side scenario::end listener for testRunId: ${testRun.runId}`)
+
+      // Cleanup function to remove the listener
+      const cleanupListener = () => {
+        processManager.removeListener('scenario::end', onScenarioEnd)
+        console.log(`[TestRunAction] Removed server-side scenario::end listener for testRunId: ${testRun.runId}`)
+      }
+
       executePromise
         .then(async process => {
           // Wait for process to complete
@@ -376,6 +407,9 @@ export async function createTestRunAction(
               completedAt: new Date(),
             },
           })
+
+          // Clean up the server-side event listener
+          cleanupListener()
         })
         .catch(async error => {
           console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)
@@ -388,11 +422,15 @@ export async function createTestRunAction(
               completedAt: new Date(),
             },
           })
+
+          // Clean up the server-side event listener
+          cleanupListener()
         })
     } catch (error) {
       // Catch any synchronous errors
       console.error(`[TestRunAction] Synchronous error calling executeTestRun for testRunId: ${testRun.runId}:`, error)
       console.error(`[TestRunAction] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
+      // Note: If executeTestRun throws synchronously, the listener won't be set up, so no cleanup needed
     }
 
     return {
