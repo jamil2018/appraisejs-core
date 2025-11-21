@@ -8,6 +8,7 @@ import {
   Locator,
   TestSuite,
   LocatorGroup,
+  Tag,
 } from '@prisma/client'
 import React from 'react'
 import {
@@ -25,6 +26,7 @@ import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -40,11 +42,12 @@ const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: 
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()
   const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
   const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
+  const { data: tags, error: tagsError } = await getAllTagsAction()
 
-  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError) {
+  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError || tagsError) {
     return (
       <div>
-        Error: {templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError}
+        Error: {templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError || tagsError}
       </div>
     )
   }
@@ -80,6 +83,7 @@ const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: 
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
         testSuites={testSuites as TestSuite[]}
+        tags={tags as Tag[]}
         defaultTitle={templateTestCaseData.name || ''}
         defaultDescription={templateTestCaseData.description || ''}
         defaultTestSuiteIds={convertedData.testSuiteIds}

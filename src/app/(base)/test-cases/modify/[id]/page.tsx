@@ -8,6 +8,7 @@ import {
   TestCaseStep,
   TestCaseStepParameter,
   TestSuite,
+  Tag,
 } from '@prisma/client'
 import React from 'react'
 import TestCaseForm from '../../test-case-form'
