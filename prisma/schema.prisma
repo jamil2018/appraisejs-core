@@ -163,6 +163,7 @@ model Locator {
   locatorGroup                  LocatorGroup?                   @relation(fields: [locatorGroupId], references: [id], onDelete: Cascade)
   TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
   stepParameters                TestCaseStepParameter[]
+  conflicts                     ConflictResolution[]
 }
 
 model LocatorGroup {
@@ -350,4 +351,25 @@ enum BrowserEngine {
 enum TemplateStepGroupType {
   ACTION
   VALIDATION
+}
+
+model ConflictResolution {
+  id                  String       @id @default(uuid())
+  entityType          EntityType
+  entityId            String
+  conflictType        ConflictType
+  conflictingEntityId String?
+  resolved            Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  locator             Locator?     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+enum EntityType {
+  LOCATOR
+}
+
+enum ConflictType {
+  DUPLICATE_NAME
+  DUPLICATE_VALUE
 }

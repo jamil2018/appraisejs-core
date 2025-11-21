@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
-import { MoreHorizontal, Pencil, Trash, Eye } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash, Eye, CheckCircleIcon } from 'lucide-react'
 import { Button } from '../ui/button'
 import Link from 'next/link'
 
@@ -18,6 +18,7 @@ import { toast } from '@/hooks/use-toast'
 
 const TableActions = ({
   modifyLink,
+  resolveConflictsHandler,
   deleteHandler,
   viewLink,
   viewActionText = 'View',
@@ -29,6 +30,7 @@ const TableActions = ({
 }: {
   modifyLink?: string
   deleteHandler: () => Promise<ActionResponse>
+  resolveConflictsHandler?: () => Promise<ActionResponse>
   editActionText?: string
   deleteActionText?: string
   editActionIcon?: React.ReactNode
@@ -67,6 +69,7 @@ const TableActions = ({
               </Link>
             </DropdownMenuItem>
           )}
+
           <DropdownMenuItem
             onClick={async () => {
               const res = await deleteHandler()
@@ -86,6 +89,13 @@ const TableActions = ({
               {deleteActionIcon} {deleteActionText}
             </span>
           </DropdownMenuItem>
+          {resolveConflictsHandler && (
+            <DropdownMenuItem>
+              <span className="flex items-center gap-2" onClick={resolveConflictsHandler}>
+                <CheckCircleIcon className="h-4 w-4" /> Mark conflicts as resolved
+              </span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>

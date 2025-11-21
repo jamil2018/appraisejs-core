@@ -6,6 +6,10 @@ import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createOrUpdateLocatorGroupFile } from '@/lib/locator-group-file-utils'
+import { promises as fs } from 'fs'
+import path from 'path'
+import { glob } from 'glob'
+import { buildModuleHierarchy } from '@/lib/module-hierarchy-builder'
 
 // Helper function to update locator group JSON file when locators change
 async function updateLocatorGroupFile(locatorGroupId: string | null): Promise<void> {
@@ -25,6 +29,11 @@ export async function getAllLocatorsAction(): Promise<ActionResponse> {
         locatorGroup: {
           select: {
             name: true,
+          },
+        },
+        conflicts: {
+          where: {
+            resolved: false,
           },
         },
       },
@@ -212,6 +221,245 @@ export async function getUngroupedLocatorsAction(): Promise<ActionResponse> {
     return {
       status: 200,
       data: locators,
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
+    }
+  }
+}
+
+/**
+ * Extracts module path from locator file path
+ */
+function extractModulePathFromLocatorFile(filePath: string): string {
+  const testsDir = path.join(process.cwd(), 'src', 'tests')
+  const relativePath = path.relative(testsDir, filePath)
+  const pathParts = relativePath.split(/[/\\]/).filter(p => p && p !== 'locators')
+  const moduleParts = pathParts.slice(0, -1) // Remove filename
+  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+}
+
+/**
+ * Extracts locator group name from file path
+ * The group name is just the filename without extension
+ */
+function extractLocatorGroupName(filePath: string): string {
+  const fileName = path.basename(filePath, '.json')
+  return fileName
+}
+
+/**
+ * Detects and creates conflict resolution entries for locators
+ */
+async function detectAndCreateConflicts(
+  locatorId: string,
+  locatorName: string,
+  locatorValue: string,
+  locatorGroupId: string,
+): Promise<number> {
+  let conflictCount = 0
+
+  // Find existing locators in the same group
+  const existingLocators = await prisma.locator.findMany({
+    where: {
+      locatorGroupId,
+      id: { not: locatorId },
+    },
+  })
+
+  for (const existingLocator of existingLocators) {
+    // Check for duplicate name conflict
+    if (existingLocator.name === locatorName) {
+      // Check if conflict already exists for this locator
+      const existingConflict = await prisma.conflictResolution.findFirst({
+        where: {
+          entityType: 'LOCATOR',
+          entityId: locatorId,
+          conflictType: 'DUPLICATE_NAME',
+          conflictingEntityId: existingLocator.id,
+          resolved: false,
+        },
+      })
+
+      if (!existingConflict) {
+        // Create conflict for both locators
+        await prisma.conflictResolution.create({
+          data: {
+            entityType: 'LOCATOR',
+            entityId: locatorId,
+            conflictType: 'DUPLICATE_NAME',
+            conflictingEntityId: existingLocator.id,
+            resolved: false,
+          },
+        })
+        await prisma.conflictResolution.create({
+          data: {
+            entityType: 'LOCATOR',
+            entityId: existingLocator.id,
+            conflictType: 'DUPLICATE_NAME',
+            conflictingEntityId: locatorId,
+            resolved: false,
+          },
+        })
+        conflictCount++
+      }
+    }
+    // Check for duplicate value conflict (different name)
+    else if (existingLocator.value === locatorValue && existingLocator.name !== locatorName) {
+      // Check if conflict already exists for this locator
+      const existingConflict = await prisma.conflictResolution.findFirst({
+        where: {
+          entityType: 'LOCATOR',
+          entityId: locatorId,
+          conflictType: 'DUPLICATE_VALUE',
+          conflictingEntityId: existingLocator.id,
+          resolved: false,
+        },
+      })
+
+      if (!existingConflict) {
+        // Create conflict for both locators
+        await prisma.conflictResolution.create({
+          data: {
+            entityType: 'LOCATOR',
+            entityId: locatorId,
+            conflictType: 'DUPLICATE_VALUE',
+            conflictingEntityId: existingLocator.id,
+            resolved: false,
+          },
+        })
+        await prisma.conflictResolution.create({
+          data: {
+            entityType: 'LOCATOR',
+            entityId: existingLocator.id,
+            conflictType: 'DUPLICATE_VALUE',
+            conflictingEntityId: locatorId,
+            resolved: false,
+          },
+        })
+        conflictCount++
+      }
+    }
+  }
+
+  return conflictCount
+}
+
+/**
+ * Syncs locators from JSON files to database
+ */
+export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
+  try {
+    const locatorsDir = path.join(process.cwd(), 'src', 'tests', 'locators')
+    const pattern = path.join(locatorsDir, '**', '*.json')
+    const files = await glob(pattern)
+
+    let synced = 0
+    let totalConflicts = 0
+    const errors: string[] = []
+    const affectedLocatorGroupIds = new Set<string>()
+
+    for (const filePath of files) {
+      try {
+        // Read locator file
+        const content = await fs.readFile(filePath, 'utf-8')
+        const locators = JSON.parse(content) as Record<string, string>
+
+        // Extract module path and group name
+        const modulePath = extractModulePathFromLocatorFile(filePath)
+        const moduleId = await buildModuleHierarchy(modulePath)
+        const groupName = extractLocatorGroupName(filePath)
+
+        // Find or create locator group
+        let locatorGroup = await prisma.locatorGroup.findFirst({
+          where: {
+            name: groupName,
+            moduleId: moduleId,
+          },
+        })
+
+        if (!locatorGroup) {
+          locatorGroup = await prisma.locatorGroup.create({
+            data: {
+              name: groupName,
+              route: `/${groupName}`,
+              moduleId: moduleId,
+            },
+          })
+        }
+
+        // Track this locator group as affected
+        affectedLocatorGroupIds.add(locatorGroup.id)
+
+        // Sync locators
+        for (const [locatorName, locatorValue] of Object.entries(locators)) {
+          // Check if locator already exists
+          const existingLocator = await prisma.locator.findFirst({
+            where: {
+              name: locatorName,
+              locatorGroupId: locatorGroup.id,
+            },
+          })
+
+          let locatorId: string
+
+          if (existingLocator) {
+            // Update existing locator value if different
+            if (existingLocator.value !== locatorValue) {
+              await prisma.locator.update({
+                where: { id: existingLocator.id },
+                data: { value: locatorValue },
+              })
+            }
+            locatorId = existingLocator.id
+          } else {
+            // Create new locator
+            const newLocator = await prisma.locator.create({
+              data: {
+                name: locatorName,
+                value: locatorValue,
+                locatorGroupId: locatorGroup.id,
+              },
+            })
+            locatorId = newLocator.id
+            synced++
+          }
+
+          // Detect and create conflicts
+          const conflictCount = await detectAndCreateConflicts(locatorId, locatorName, locatorValue, locatorGroup.id)
+          totalConflicts += conflictCount
+        }
+      } catch (error) {
+        const errorMessage = `Error syncing locator file ${filePath}: ${error}`
+        console.error(errorMessage)
+        errors.push(errorMessage)
+      }
+    }
+
+    // Update locator group files for all locator groups in the database
+    // This ensures files reflect the current database state, including changes to existing records
+    try {
+      const allLocatorGroups = await prisma.locatorGroup.findMany({
+        select: { id: true },
+      })
+      await Promise.all(allLocatorGroups.map(group => updateLocatorGroupFile(group.id)))
+    } catch (error) {
+      const errorMessage = `Error updating locator group files: ${error}`
+      console.error(errorMessage)
+      errors.push(errorMessage)
+    }
+    revalidatePath('/locators')
+
+    return {
+      status: 200,
+      data: {
+        synced,
+        conflicts: totalConflicts,
+        errors,
+      },
+      message: `Synced ${synced} locators, ${totalConflicts} conflicts detected`,
     }
   } catch (error) {
     return {
