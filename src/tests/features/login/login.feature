@@ -11,6 +11,12 @@ Feature: Collection of test cases covering login scenarios
     Given the user navigates to the "staging" environment
     Then the user should be navigated to the "/test" route
 
+  @tc_fkkymair
+  Scenario: [Login Long] Long wait validation for login
+    Given the user navigates to the "staging" environment
+    When the user waits for 15 seconds
+    Then the user should be navigated to the "/login" route
+
   @tc_qng7yehh
   Scenario: [Login] Verify the user is able to navigate to the login page of staging environmnet
     Given the user navigates to the "staging" environment

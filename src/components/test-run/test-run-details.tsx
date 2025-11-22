@@ -13,6 +13,7 @@ import {
 } from '@prisma/client'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { cn, formatDateTime } from '@/lib/utils'
 import {
   CheckCircle,
@@ -211,144 +212,173 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
     }
   }
 
+  // Calculate progress
+  const totalTests = testRun.testCases.length
+  const completedTests = testRun.testCases.filter(
+    testCase =>
+      testCase.status === TestRunTestCaseStatus.COMPLETED || testCase.status === TestRunTestCaseStatus.CANCELLED,
+  ).length
+  const progressPercentage = totalTests > 0 ? (completedTests / totalTests) * 100 : 0
+
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Info className="mr-2 h-6 w-6" />
-            <h3 className="text-lg font-semibold">Test Run Information</h3>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Status</span>
-            <Badge variant="outline" className={`${getStatusColor()} py-1`}>
-              <span className="mr-1 text-white">{getStatusIcon()}</span>
-              <span className="text-white">{getStatusText()}</span>
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Result</span>
-            <Badge variant="outline">{getResultText()}</Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Run ID</span>
-            <span className="font-mono text-sm">{testRun.runId}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Environment</span>
-            <span className="text-sm">{testRun.environment.name}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Browser</span>
-            <span className="text-sm">{testRun.browserEngine}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Workers</span>
-            <span className="text-sm">{testRun.testWorkersCount || 1}</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Timer className="mr-2 h-6 w-6" />
-            <h3 className="text-lg font-semibold">Timing</h3>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Started At</span>
-            <span className="text-sm">{formatDateTime(testRun.startedAt)}</span>
-          </div>
-          {testRun.completedAt && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Completed At</span>
-              <span className="text-sm">{formatDateTime(testRun.completedAt)}</span>
-            </div>
-          )}
-          {testRun.completedAt && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Duration</span>
-              <span className="text-sm">
-                {Math.round((testRun.completedAt.getTime() - testRun.startedAt.getTime()) / 1000)}s
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Tags className="mr-2 h-6 w-6" />
-            <h3 className="text-lg font-semibold">Tags</h3>
-          </CardTitle>
+          <CardTitle>Progress</CardTitle>
         </CardHeader>
         <CardContent>
-          {testRun.tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {testRun.tags.map(tag => (
-                <Badge key={tag.id} variant="outline" className="bg-gray-700 text-white">
-                  <TagIcon className="mr-2 h-4 w-4 text-white" />
-                  <span className="text-sm">{tag.name}</span>
-                </Badge>
-              ))}
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Progress value={progressPercentage} />
             </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">No tags</span>
-          )}
+            <div className="whitespace-nowrap text-sm font-medium">
+              {completedTests} of {totalTests} tests finished
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <TestTubes className="mr-2 h-6 w-6" />
-            <h3 className="text-lg font-semibold">Test Cases ({testRun.testCases.length})</h3>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {testRun.testCases.length > 0 ? (
-            <div className="space-y-2">
-              {testRun.testCases.map(testCase => (
-                <div key={testCase.id} className="flex items-center justify-between rounded-md bg-muted p-2 shadow-md">
-                  <div className="flex items-center gap-2">
-                    <TestTubeDiagonal
-                      className={cn(
-                        'mr-2 h-6 w-6 text-white',
-                        testCase.result === TestRunTestCaseResult.PASSED
-                          ? 'text-green-500'
-                          : testCase.result === TestRunTestCaseResult.FAILED
-                            ? 'text-red-500'
-                            : testCase.result === TestRunTestCaseResult.UNTESTED
-                              ? 'text-blue-500'
-                              : 'text-gray-500',
-                      )}
-                    />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-semibold">{testCase.testCase.title}</span>
-                      <span className="text-xs text-muted-foreground">{testCase.testCase.description}</span>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Info className="mr-2 h-6 w-6" />
+              <h3 className="text-lg font-semibold">Test Run Information</h3>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Status</span>
+              <Badge variant="outline" className={`${getStatusColor()} py-1`}>
+                <span className="mr-1 text-white">{getStatusIcon()}</span>
+                <span className="text-white">{getStatusText()}</span>
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Result</span>
+              <Badge variant="outline">{getResultText()}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Run ID</span>
+              <span className="font-mono text-sm">{testRun.runId}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Environment</span>
+              <span className="text-sm">{testRun.environment.name}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Browser</span>
+              <span className="text-sm">{testRun.browserEngine}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Workers</span>
+              <span className="text-sm">{testRun.testWorkersCount || 1}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Timer className="mr-2 h-6 w-6" />
+              <h3 className="text-lg font-semibold">Timing</h3>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Started At</span>
+              <span className="text-sm">{formatDateTime(testRun.startedAt)}</span>
+            </div>
+            {testRun.completedAt && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Completed At</span>
+                <span className="text-sm">{formatDateTime(testRun.completedAt)}</span>
+              </div>
+            )}
+            {testRun.completedAt && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Duration</span>
+                <span className="text-sm">
+                  {Math.round((testRun.completedAt.getTime() - testRun.startedAt.getTime()) / 1000)}s
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Tags className="mr-2 h-6 w-6" />
+              <h3 className="text-lg font-semibold">Tags</h3>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {testRun.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {testRun.tags.map(tag => (
+                  <Badge key={tag.id} variant="outline" className="bg-gray-700 text-white">
+                    <TagIcon className="mr-2 h-4 w-4 text-white" />
+                    <span className="text-sm">{tag.name}</span>
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">No tags</span>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <TestTubes className="mr-2 h-6 w-6" />
+              <h3 className="text-lg font-semibold">Test Cases ({testRun.testCases.length})</h3>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {testRun.testCases.length > 0 ? (
+              <div className="space-y-2">
+                {testRun.testCases.map(testCase => (
+                  <div
+                    key={testCase.id}
+                    className="flex items-center justify-between rounded-md bg-muted p-2 shadow-md"
+                  >
+                    <div className="flex items-center gap-2">
+                      <TestTubeDiagonal
+                        className={cn(
+                          'mr-2 h-6 w-6 text-white',
+                          testCase.result === TestRunTestCaseResult.PASSED
+                            ? 'text-green-500'
+                            : testCase.result === TestRunTestCaseResult.FAILED
+                              ? 'text-red-500'
+                              : testCase.result === TestRunTestCaseResult.UNTESTED
+                                ? 'text-blue-500'
+                                : 'text-gray-500',
+                        )}
+                      />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-semibold">{testCase.testCase.title}</span>
+                        <span className="text-xs text-muted-foreground">{testCase.testCase.description}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge variant="outline" className="bg-gray-700 text-xs text-white">
+                        {getFormattedTestRunTestCaseStatus(testCase.status)}
+                      </Badge>
+                      <Badge variant="outline" className="bg-gray-700 text-xs text-white">
+                        {getFormattedTestRunTestCaseResult(testCase.result)}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className="bg-gray-700 text-xs text-white">
-                      {getFormattedTestRunTestCaseStatus(testCase.status)}
-                    </Badge>
-                    <Badge variant="outline" className="bg-gray-700 text-xs text-white">
-                      {getFormattedTestRunTestCaseResult(testCase.result)}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">No test cases</span>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">No test cases</span>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
