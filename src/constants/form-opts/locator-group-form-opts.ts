@@ -1,4 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const locatorGroupSchema = z.object({
@@ -16,7 +15,7 @@ export const locatorGroupUniqueNameSchema = z.object({
 
 export type LocatorGroup = z.infer<typeof locatorGroupSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     name: '',
     moduleId: '',
@@ -26,4 +25,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: locatorGroupSchema,
   },
-})
+}

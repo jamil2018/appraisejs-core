@@ -8,7 +8,6 @@ import { formOpts, type Module, ROOT_MODULE_UUID } from '@/constants/form-opts/m
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
-import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
 import React from 'react'
 import { z } from 'zod'
@@ -26,14 +25,14 @@ const ModuleForm = ({
   successMessage: string
   parentOptions: { id: string; name: string }[]
   id?: string
-  onSubmitAction: (initialFormState: ServerFormState<Module>, value: Module, id?: string) => Promise<ActionResponse>
+  onSubmitAction: (_prev: unknown, value: Module, id?: string) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(initialFormState, value, id)
+      const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -77,9 +76,9 @@ const ModuleForm = ({
               <Label htmlFor={field.name}>Name</Label>
               <Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} />
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
             </div>

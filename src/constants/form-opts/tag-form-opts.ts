@@ -1,4 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const tagSchema = z.object({
@@ -32,7 +31,7 @@ export const tagSchema = z.object({
 
 export type Tag = z.infer<typeof tagSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     name: '',
     tagExpression: '',
@@ -40,4 +39,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: tagSchema,
   },
-})
+}

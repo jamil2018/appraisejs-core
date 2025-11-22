@@ -9,7 +9,6 @@ import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { StepParameterType, TemplateStepType, TemplateStepParameter, TemplateStepIcon } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
-import { ServerFormState, initialFormState } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 import CodeMirror, { EditorView } from '@uiw/react-codemirror'
 import { langs } from '@uiw/codemirror-extensions-langs'
@@ -36,7 +35,7 @@ export const TemplateStepForm = ({
   successMessage: string
   id?: string
   onSubmitAction: (
-    initialFormState: ServerFormState<TemplateStep>,
+    _prev: unknown,
     value: TemplateStep,
     id?: string,
   ) => Promise<ActionResponse>
@@ -59,7 +58,7 @@ export const TemplateStepForm = ({
     validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
       value.functionDefinition = functionDefinition
-      const res = await onSubmitAction(initialFormState, value, id)
+      const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -163,9 +162,9 @@ export const TemplateStepForm = ({
                       value={field.state.value}
                       onChange={e => field.handleChange(e.target.value)}
                     />
-                    {field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                   </div>
@@ -183,9 +182,9 @@ export const TemplateStepForm = ({
                       value={field.state.value}
                       onChange={e => field.handleChange(e.target.value)}
                     />
-                    {field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                   </div>
@@ -245,9 +244,9 @@ export const TemplateStepForm = ({
                         ))}
                       </SelectContent>
                     </Select>
-                    {field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                   </div>
@@ -282,9 +281,9 @@ export const TemplateStepForm = ({
                         ))}
                       </SelectContent>
                     </Select>
-                    {field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                   </div>
@@ -310,9 +309,9 @@ export const TemplateStepForm = ({
                         setSignature(e.target.value)
                       }}
                     />
-                    {field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                   </div>

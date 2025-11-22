@@ -10,7 +10,6 @@ import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { BrowserEngine, Environment, Tag, TestCase, TestRunTestCase, TestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
-import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { z } from 'zod'
@@ -39,7 +38,7 @@ const TestRunForm = ({
   environments: Environment[]
   tags: Tag[]
   id?: string
-  onSubmitAction: (initialFormState: ServerFormState<TestRun>, value: TestRun, id?: string) => Promise<ActionResponse>
+  onSubmitAction: (_prev: unknown, value: TestRun, id?: string) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
   const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(TestSelectionType.TAGS)
@@ -55,7 +54,7 @@ const TestRunForm = ({
         tags: testSelectionType === TestSelectionType.TAGS ? value.tags : [],
         testCases: testSelectionType === TestSelectionType.TEST_CASES ? value.testCases : [],
       }
-      const res = await onSubmitAction(initialFormState, submitValue, id)
+      const res = await onSubmitAction(undefined, submitValue, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -143,9 +142,9 @@ const TestRunForm = ({
                     emptyMessage="No tags available"
                   />
                   {field.state.meta.isTouched &&
-                    field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                 </div>
@@ -182,9 +181,9 @@ const TestRunForm = ({
                     emptyMessage="No test cases available"
                   />
                   {field.state.meta.isTouched &&
-                    field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                 </div>
@@ -227,9 +226,9 @@ const TestRunForm = ({
                     </SelectContent>
                   </Select>
                   {field.state.meta.isTouched &&
-                    field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                 </div>
@@ -251,9 +250,9 @@ const TestRunForm = ({
                     onChange={e => field.handleChange(Number(e.target.value))}
                   />
                   {field.state.meta.isTouched &&
-                    field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                 </div>
@@ -279,9 +278,9 @@ const TestRunForm = ({
                     </SelectContent>
                   </Select>
                   {field.state.meta.isTouched &&
-                    field.state.meta.errors.map(error => (
-                      <p key={error as string} className="text-xs text-pink-500">
-                        {error}
+                    field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
                       </p>
                     ))}
                 </div>

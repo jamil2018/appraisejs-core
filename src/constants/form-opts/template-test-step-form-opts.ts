@@ -1,5 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
-
 import { z } from 'zod'
 
 export const templateStepSchema = z.object({
@@ -21,7 +19,7 @@ export const templateStepSchema = z.object({
 
 export type TemplateStep = z.infer<typeof templateStepSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     name: '',
     description: '',
@@ -32,4 +30,7 @@ export const formOpts = formOptions({
     icon: 'MOUSE',
     templateStepGroupId: '',
   } as TemplateStep,
-})
+  validators: {
+    onChange: templateStepSchema,
+  },
+}

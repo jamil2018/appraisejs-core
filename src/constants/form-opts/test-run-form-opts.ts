@@ -1,5 +1,4 @@
 import { BrowserEngine } from '@prisma/client'
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const testRunSchema = z.object({
@@ -16,7 +15,7 @@ export const testRunSchema = z.object({
 
 export type TestRun = z.infer<typeof testRunSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     environmentId: '',
     tags: [],
@@ -27,4 +26,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: testRunSchema,
   },
-})
+}

@@ -10,7 +10,6 @@ import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { Module, TestCase, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
-import { ServerFormState, initialFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -29,7 +28,7 @@ export const TestSuiteForm = ({
   successMessage: string
   id?: string
   onSubmitAction: (
-    initialFormState: ServerFormState<TestSuite>,
+    _prev: unknown,
     value: TestSuite,
     id?: string,
   ) => Promise<ActionResponse>
@@ -42,7 +41,7 @@ export const TestSuiteForm = ({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(initialFormState, value, id)
+      const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -90,9 +89,9 @@ export const TestSuiteForm = ({
                 value={field.state.value}
                 onChange={e => field.handleChange(e.target.value)}
               />
-              {field.state.meta.errors.map(error => (
-                <p key={error as string} className="text-xs text-pink-500">
-                  {error}
+              {field.state.meta.errors.map((error, index) => (
+                <p key={index} className="text-xs text-pink-500">
+                  {typeof error === 'string' ? error : error?.message || String(error)}
                 </p>
               ))}
             </div>
@@ -110,9 +109,9 @@ export const TestSuiteForm = ({
                 value={field.state.value}
                 onChange={e => field.handleChange(e.target.value)}
               />
-              {field.state.meta.errors.map(error => (
-                <p key={error as string} className="text-xs text-pink-500">
-                  {error}
+              {field.state.meta.errors.map((error, index) => (
+                <p key={index} className="text-xs text-pink-500">
+                  {typeof error === 'string' ? error : error?.message || String(error)}
                 </p>
               ))}
             </div>

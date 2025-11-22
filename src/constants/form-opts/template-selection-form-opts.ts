@@ -1,4 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const templateSelectionSchema = z.object({
@@ -7,11 +6,11 @@ export const templateSelectionSchema = z.object({
 
 export type TemplateSelection = z.infer<typeof templateSelectionSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     templateTestCaseId: '',
   },
   validators: {
     onChange: templateSelectionSchema,
   },
-})
+}

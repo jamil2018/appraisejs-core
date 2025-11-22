@@ -1,4 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const testSuiteSchema = z.object({
@@ -11,7 +10,7 @@ export const testSuiteSchema = z.object({
 
 export type TestSuite = z.infer<typeof testSuiteSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     name: '',
     description: '',
@@ -22,4 +21,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: testSuiteSchema,
   },
-})
+}

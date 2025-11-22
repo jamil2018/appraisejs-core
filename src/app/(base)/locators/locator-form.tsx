@@ -7,7 +7,6 @@ import { formOpts, Locator } from '@/constants/form-opts/locator-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
-import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import React from 'react'
 import { z } from 'zod'
 import { LocatorGroup } from '@prisma/client'
@@ -27,14 +26,14 @@ const LocatorForm = ({
   successMessage: string
   locatorGroupList: LocatorGroup[]
   id?: string
-  onSubmitAction: (initialFormState: ServerFormState<Locator>, value: Locator, id?: string) => Promise<ActionResponse>
+  onSubmitAction: (_prev: unknown, value: Locator, id?: string) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(initialFormState, value, id)
+      const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -83,9 +82,9 @@ const LocatorForm = ({
                 placeholder="Enter locator name"
               />
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
             </div>
@@ -109,9 +108,9 @@ const LocatorForm = ({
                 placeholder="CSS or XPath Selector"
               />
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
             </div>
@@ -141,9 +140,9 @@ const LocatorForm = ({
                 </SelectContent>
               </Select>
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
             </div>

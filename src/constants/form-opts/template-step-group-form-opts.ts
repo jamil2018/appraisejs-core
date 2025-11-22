@@ -1,4 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 // TemplateStepGroupType enum - will be available from @prisma/client after migration
@@ -13,7 +12,7 @@ export const templateStepGroupSchema = z.object({
 
 export type TemplateStepGroup = z.infer<typeof templateStepGroupSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     name: '',
     description: '',
@@ -22,4 +21,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: templateStepGroupSchema,
   },
-})
+}

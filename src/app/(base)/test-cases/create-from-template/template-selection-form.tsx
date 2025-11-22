@@ -50,9 +50,9 @@ const TemplateSelectionForm = ({ templateTestCases }: { templateTestCases: Templ
                     ))}
                   </SelectContent>
                 </Select>
-                {field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                {field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
               </div>

@@ -1,4 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 // Special UUID to represent root (no parent) in the form
@@ -11,7 +10,7 @@ export const moduleSchema = z.object({
 
 export type Module = z.infer<typeof moduleSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     name: '',
     parentId: ROOT_MODULE_UUID,
@@ -19,4 +18,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: moduleSchema,
   },
-})
+}

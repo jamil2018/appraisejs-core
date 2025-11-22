@@ -8,7 +8,6 @@ import { formOpts, TemplateStepGroup } from '@/constants/form-opts/template-step
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
-import { ServerFormState, initialFormState } from '@tanstack/react-form/nextjs'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -33,7 +32,7 @@ export const TemplateStepGroupForm = ({
   successMessage: string
   id?: string
   onSubmitAction: (
-    initialFormState: ServerFormState<TemplateStepGroup>,
+    _prev: unknown,
     value: TemplateStepGroup,
     id?: string,
   ) => Promise<ActionResponse>
@@ -43,7 +42,7 @@ export const TemplateStepGroupForm = ({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(initialFormState, value, id)
+      const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -91,9 +90,9 @@ export const TemplateStepGroupForm = ({
                 value={field.state.value}
                 onChange={e => field.handleChange(e.target.value)}
               />
-              {field.state.meta.errors.map(error => (
-                <p key={error as string} className="text-xs text-pink-500">
-                  {error}
+              {field.state.meta.errors.map((error, index) => (
+                <p key={index} className="text-xs text-pink-500">
+                  {typeof error === 'string' ? error : error?.message || String(error)}
                 </p>
               ))}
             </div>
@@ -111,9 +110,9 @@ export const TemplateStepGroupForm = ({
                 value={field.state.value}
                 onChange={e => field.handleChange(e.target.value)}
               />
-              {field.state.meta.errors.map(error => (
-                <p key={error as string} className="text-xs text-pink-500">
-                  {error}
+              {field.state.meta.errors.map((error, index) => (
+                <p key={index} className="text-xs text-pink-500">
+                  {typeof error === 'string' ? error : error?.message || String(error)}
                 </p>
               ))}
             </div>
@@ -147,9 +146,9 @@ export const TemplateStepGroupForm = ({
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors.map(error => (
-                <p key={error as string} className="text-xs text-pink-500">
-                  {error}
+              {field.state.meta.errors.map((error, index) => (
+                <p key={index} className="text-xs text-pink-500">
+                  {typeof error === 'string' ? error : error?.message || String(error)}
                 </p>
               ))}
             </div>

@@ -1,5 +1,4 @@
 import { StepParameterType } from '@prisma/client'
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const nodeDataSchema = z.object({
@@ -18,7 +17,7 @@ export const nodeDataSchema = z.object({
 
 export type NodeData = z.infer<typeof nodeDataSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     label: '',
     gherkinStep: '',
@@ -28,4 +27,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: nodeDataSchema,
   },
-})
+}

@@ -1,5 +1,4 @@
 import { StepParameterType, TemplateStepIcon } from '@prisma/client'
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const templateTestCaseSchema = z.object({
@@ -28,7 +27,7 @@ export const templateTestCaseSchema = z.object({
 
 export type TemplateTestCase = z.infer<typeof templateTestCaseSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     title: '',
     description: '',
@@ -37,4 +36,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: templateTestCaseSchema,
   },
-})
+}

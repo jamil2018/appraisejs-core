@@ -1,5 +1,4 @@
 import { ReviewStatus } from '@prisma/client'
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const reviewSchema = z.object({
@@ -11,7 +10,7 @@ export const reviewSchema = z.object({
 
 export type Review = z.infer<typeof reviewSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     testCaseId: '',
     status: 'PENDING',
@@ -21,4 +20,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: reviewSchema,
   },
-})
+}

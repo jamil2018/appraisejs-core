@@ -1,4 +1,3 @@
-import { formOptions } from '@tanstack/react-form/nextjs'
 import { z } from 'zod'
 
 export const environmentSchema = z.object({
@@ -11,7 +10,7 @@ export const environmentSchema = z.object({
 
 export type Environment = z.infer<typeof environmentSchema>
 
-export const formOpts = formOptions({
+export const formOpts = {
   defaultValues: {
     name: '',
     baseUrl: '',
@@ -22,4 +21,4 @@ export const formOpts = formOptions({
   validators: {
     onChange: environmentSchema,
   },
-})
+}

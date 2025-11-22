@@ -7,7 +7,6 @@ import { formOpts, LocatorGroup } from '@/constants/form-opts/locator-group-form
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
-import { initialFormState, ServerFormState } from '@tanstack/react-form/nextjs'
 import React, { useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
@@ -30,7 +29,7 @@ const LocatorGroupForm = ({
   moduleList: Module[]
   id?: string
   onSubmitAction: (
-    initialFormState: ServerFormState<LocatorGroup>,
+    _prev: unknown,
     value: LocatorGroup,
     id?: string,
   ) => Promise<ActionResponse>
@@ -75,7 +74,7 @@ const LocatorGroupForm = ({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(initialFormState, value, id)
+      const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
         toast({
           title: successTitle,
@@ -131,9 +130,9 @@ const LocatorGroupForm = ({
                 placeholder="Enter locator group name"
               />
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
               {field.state.meta.isTouched && field.state.meta.errors.length === 0 && field.state.meta.isValidating && (
@@ -166,9 +165,9 @@ const LocatorGroupForm = ({
                 </SelectContent>
               </Select>
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
             </div>
@@ -192,9 +191,9 @@ const LocatorGroupForm = ({
                 placeholder="Enter the route of page the locator group is for. Default is '/' (root)"
               />
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map(error => (
-                  <p key={error as string} className="text-xs text-pink-500">
-                    {error}
+                field.state.meta.errors.map((error, index) => (
+                  <p key={index} className="text-xs text-pink-500">
+                    {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
             </div>
