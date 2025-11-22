@@ -266,7 +266,11 @@ export async function getTestCaseByIdAction(id: string): Promise<ActionResponse>
     const testCase = await prisma.testCase.findUnique({
       where: { id },
       include: {
-        steps: true,
+        steps: {
+          include: {
+            parameters: true,
+          },
+        },
         TestSuite: {
           select: {
             id: true,

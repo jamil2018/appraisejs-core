@@ -14,7 +14,7 @@ Feature: Collection of test cases covering login scenarios
   @tc_fkkymair
   Scenario: [Login Long] Long wait validation for login
     Given the user navigates to the "staging" environment
-    When the user waits for 15 seconds
+    When the user waits for 10 seconds
     Then the user should be navigated to the "/login" route
 
   @tc_qng7yehh
