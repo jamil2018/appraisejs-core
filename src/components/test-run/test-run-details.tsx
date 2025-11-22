@@ -224,7 +224,26 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Progress</CardTitle>
+          <CardTitle>
+            {testRun.status === TestRunStatus.RUNNING && (
+              <div className="flex items-center gap-2">
+                <LoaderCircle className="h-6 w-6 animate-spin text-blue-500" />
+                <span>Executing</span>
+              </div>
+            )}
+            {testRun.status === TestRunStatus.COMPLETED && (
+              <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
+                <CheckCircle className="h-6 w-6 text-green-500" />
+                <span>Finished</span>
+              </div>
+            )}
+            {testRun.status === TestRunStatus.CANCELLED && (
+              <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
+                <XCircle className="h-6 w-6 text-red-500 duration-300 animate-in fade-in-0" />
+                <span>Interrupted</span>
+              </div>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
