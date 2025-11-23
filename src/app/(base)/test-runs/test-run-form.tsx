@@ -11,7 +11,7 @@ import { ActionResponse } from '@/types/form/actionHandler'
 import { BrowserEngine, Environment, Tag, TestCase, TestRunTestCase, TestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { z } from 'zod'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,10 +42,15 @@ const TestRunForm = ({
 }) => {
   const router = useRouter()
   const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(TestSelectionType.TAGS)
+  const testSelectionTypeRef = useRef<TestSelectionType>(testSelectionType)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    testSelectionTypeRef.current = testSelectionType
+  }, [testSelectionType])
 
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
-    validators: formOpts?.validators,
     onSubmit: async ({ value }) => {
       // Ensure only the selected filter type is submitted
       console.log(`value: ${JSON.stringify(value)}`)
@@ -101,12 +106,20 @@ const TestRunForm = ({
             defaultValue={testSelectionType}
             onValueChange={value => {
               const newType = value as TestSelectionType
+              // Update ref first so validators have the correct value
+              testSelectionTypeRef.current = newType
               setTestSelectionType(newType)
               // Clear the other field when switching filter types
               if (newType === TestSelectionType.TAGS) {
                 form.setFieldValue('testCases', [])
+                // Validate both fields to clear any errors
+                form.validateField('tags', 'change')
+                form.validateField('testCases', 'change')
               } else {
                 form.setFieldValue('tags', [])
+                // Validate both fields to clear any errors
+                form.validateField('tags', 'change')
+                form.validateField('testCases', 'change')
               }
             }}
             className="mb-4 flex gap-4"
@@ -124,9 +137,15 @@ const TestRunForm = ({
           <form.Field
             name="tags"
             validators={{
-              onChange: z
-                .array(z.string())
-                .min(testSelectionType === TestSelectionType.TAGS ? 1 : 0, { message: 'Tags are required' }),
+              onChange: ({ value }) => {
+                const currentSelectionType = testSelectionTypeRef.current
+                if (currentSelectionType === TestSelectionType.TAGS) {
+                  if (!Array.isArray(value) || value.length === 0) {
+                    return 'Tags are required'
+                  }
+                }
+                return undefined
+              },
             }}
           >
             {field => {
@@ -144,7 +163,7 @@ const TestRunForm = ({
                   {field.state.meta.isTouched &&
                     field.state.meta.errors.map((error, index) => (
                       <p key={index} className="text-xs text-pink-500">
-                        {typeof error === 'string' ? error : error?.message || String(error)}
+                        {typeof error === 'string' ? error : String(error)}
                       </p>
                     ))}
                 </div>
@@ -155,11 +174,15 @@ const TestRunForm = ({
           <form.Field
             name="testCases"
             validators={{
-              onChange: z
-                .array(z.object({ testCaseId: z.string() }))
-                .min(testSelectionType === TestSelectionType.TEST_CASES ? 1 : 0, {
-                  message: 'Test cases are required',
-                }),
+              onChange: ({ value }) => {
+                const currentSelectionType = testSelectionTypeRef.current
+                if (currentSelectionType === TestSelectionType.TEST_CASES) {
+                  if (!Array.isArray(value) || value.length === 0) {
+                    return 'Test cases are required'
+                  }
+                }
+                return undefined
+              },
             }}
           >
             {field => {
@@ -183,7 +206,7 @@ const TestRunForm = ({
                   {field.state.meta.isTouched &&
                     field.state.meta.errors.map((error, index) => (
                       <p key={index} className="text-xs text-pink-500">
-                        {typeof error === 'string' ? error : error?.message || String(error)}
+                        {typeof error === 'string' ? error : String(error)}
                       </p>
                     ))}
                 </div>
@@ -252,7 +275,7 @@ const TestRunForm = ({
                   {field.state.meta.isTouched &&
                     field.state.meta.errors.map((error, index) => (
                       <p key={index} className="text-xs text-pink-500">
-                        {typeof error === 'string' ? error : error?.message || String(error)}
+                        {typeof error === 'string' ? error : String(error)}
                       </p>
                     ))}
                 </div>
@@ -280,7 +303,7 @@ const TestRunForm = ({
                   {field.state.meta.isTouched &&
                     field.state.meta.errors.map((error, index) => (
                       <p key={index} className="text-xs text-pink-500">
-                        {typeof error === 'string' ? error : error?.message || String(error)}
+                        {typeof error === 'string' ? error : String(error)}
                       </p>
                     ))}
                 </div>
@@ -290,10 +313,13 @@ const TestRunForm = ({
         </CardContent>
       </Card>
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => (
-          <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? '...' : 'Start'}
-          </Button>
+        {([canSubmit, isSubmitting, errors]) => (
+          <>
+            <span>{errors}</span>
+            <Button type="submit" disabled={!canSubmit}>
+              {isSubmitting ? '...' : 'Start'}
+            </Button>
+          </>
         )}
       </form.Subscribe>
     </form>

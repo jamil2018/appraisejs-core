@@ -8,6 +8,7 @@ export interface ParsedFeature {
   filePath: string
   featureName: string
   featureDescription?: string
+  tags: string[]
   scenarios: ParsedScenario[]
 }
 
@@ -17,6 +18,7 @@ export interface ParsedFeature {
 export interface ParsedScenario {
   name: string
   description?: string
+  tags: string[]
   steps: ParsedStep[]
 }
 
@@ -44,8 +46,30 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
 
     let featureName = ''
     let featureDescription = ''
+    let featureTags: string[] = []
     let currentScenario: ParsedScenario | null = null
     let stepOrder = 1
+
+    // Find feature line and extract tags before it
+    let featureLineIndex = -1
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith('Feature:')) {
+        featureLineIndex = i
+        // Look backwards for tags (skip comments and empty lines)
+        for (let j = i - 1; j >= 0; j--) {
+          const prevLine = lines[j]
+          if (prevLine === '' || prevLine.startsWith('#')) {
+            continue
+          }
+          if (prevLine.startsWith('@')) {
+            featureTags.unshift(prevLine) // Add to beginning to maintain order
+          } else {
+            break // Stop when we hit a non-tag line
+          }
+        }
+        break
+      }
+    }
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
@@ -76,6 +100,20 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
           scenarios.push(currentScenario)
         }
 
+        // Extract tags before this scenario
+        const scenarioTags: string[] = []
+        for (let j = i - 1; j >= 0; j--) {
+          const prevLine = lines[j]
+          if (prevLine === '' || prevLine.startsWith('#')) {
+            continue
+          }
+          if (prevLine.startsWith('@')) {
+            scenarioTags.unshift(prevLine) // Add to beginning to maintain order
+          } else {
+            break // Stop when we hit a non-tag line
+          }
+        }
+
         const scenarioText = line.replace('Scenario:', '').trim()
         const [name, description] =
           scenarioText.split(']').length > 1
@@ -85,6 +123,7 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
         currentScenario = {
           name: name,
           description: description || undefined,
+          tags: scenarioTags,
           steps: [],
         }
         stepOrder = 1
@@ -125,6 +164,7 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
       filePath,
       featureName,
       featureDescription: featureDescription || undefined,
+      tags: featureTags,
       scenarios,
     }
   } catch (error) {

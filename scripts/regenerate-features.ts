@@ -50,6 +50,11 @@ async function main() {
         console.log(`   ${index + 1}. ${item}`)
       })
 
+      console.log(`\n🏷️  Would create ${dryRunResult.wouldCreate.tags.length} tags:`)
+      dryRunResult.wouldCreate.tags.forEach((tag, index) => {
+        console.log(`   ${index + 1}. ${tag}`)
+      })
+
       console.log('\n💡 To perform the actual sync, run without --dry-run flag')
     } else {
       console.log('🔄 Starting bidirectional sync between database and feature files...')

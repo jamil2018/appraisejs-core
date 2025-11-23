@@ -2,7 +2,7 @@ import { relative } from 'path'
 import prisma from '@/config/db-config'
 import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
-import { TemplateStepType, TemplateStepIcon, TestCase } from '@prisma/client'
+import { TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
 
 /**
  * Syncs feature files to the database by creating missing test suites and test cases
@@ -31,14 +31,24 @@ export async function syncFeaturesToDatabase(
       const moduleId = await buildModuleHierarchy(modulePath)
 
       // Find or create test suite
-      const testSuiteId = await findOrCreateTestSuite(feature.featureName, feature.featureDescription, moduleId)
+      const testSuiteId = await findOrCreateTestSuite(
+        feature.featureName,
+        feature.featureDescription,
+        moduleId,
+        feature.tags,
+      )
 
       if (testSuiteId) {
         createdTestSuites++
 
         // Process each scenario in the feature
         for (const scenario of feature.scenarios) {
-          const testCaseId = await findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId)
+          const testCaseId = await findOrCreateTestCase(
+            scenario.name,
+            scenario.description || '',
+            testSuiteId,
+            scenario.tags,
+          )
 
           if (testCaseId) {
             createdTestCases++
@@ -77,6 +87,78 @@ export async function syncFeaturesToDatabase(
 }
 
 /**
+ * Determines the tag type based on the tag expression pattern
+ * Pattern: @xx_id_xxxxxxxx where xx is any 2 chars, xxxxxxxx is any chars
+ * @param tagExpression - The tag expression (e.g., "@tc_id_ue4qwoml" or "@smoke")
+ * @returns TagType - IDENTIFIER if matches pattern, FILTER otherwise
+ */
+function determineTagType(tagExpression: string): TagType {
+  // Pattern: @xx_id_xxxxxxxx where:
+  // - @ = literal @
+  // - xx = any 2 characters
+  // - _id_ = literal string
+  // - xxxxxxxx = any characters
+  const identifierPattern = /^@.{2}_id_.+$/
+  return identifierPattern.test(tagExpression) ? TagType.IDENTIFIER : TagType.FILTER
+}
+
+/**
+ * Derives the tag name from the tag expression by removing the @ symbol
+ * @param tagExpression - The tag expression (e.g., "@smoke")
+ * @returns string - The tag name without @ (e.g., "smoke")
+ */
+function deriveTagName(tagExpression: string): string {
+  return tagExpression.startsWith('@') ? tagExpression.substring(1) : tagExpression
+}
+
+/**
+ * Finds or creates a tag in the database
+ * If the tag exists, updates its type if it differs from the expected type
+ * @param tagExpression - The tag expression (e.g., "@smoke")
+ * @returns Promise<string> - The tag ID
+ */
+async function findOrCreateTag(tagExpression: string): Promise<string> {
+  try {
+    // Find existing tag by tagExpression
+    const existingTag = await prisma.tag.findFirst({
+      where: {
+        tagExpression: tagExpression,
+      },
+    })
+
+    const expectedType = determineTagType(tagExpression)
+    const tagName = deriveTagName(tagExpression)
+
+    if (existingTag) {
+      // Update type if it differs from expected type
+      if (existingTag.type !== expectedType) {
+        await prisma.tag.update({
+          where: { id: existingTag.id },
+          data: { type: expectedType },
+        })
+        console.log(`Updated tag type for ${tagExpression} from ${existingTag.type} to ${expectedType}`)
+      }
+      return existingTag.id
+    }
+
+    // Create new tag
+    const newTag = await prisma.tag.create({
+      data: {
+        name: tagName,
+        tagExpression: tagExpression,
+        type: expectedType,
+      },
+    })
+
+    console.log(`Created tag: ${tagExpression} (${expectedType})`)
+    return newTag.id
+  } catch (error) {
+    console.error(`Error finding/creating tag ${tagExpression}:`, error)
+    throw error
+  }
+}
+
+/**
  * Extracts module path from feature file path
  * Works cross-platform (Windows, Mac, Linux)
  */
@@ -100,6 +182,7 @@ async function findOrCreateTestSuite(
   name: string,
   description: string | undefined,
   moduleId: string,
+  tags?: string[],
 ): Promise<string | null> {
   try {
     // Try to find existing test suite
@@ -108,18 +191,36 @@ async function findOrCreateTestSuite(
         name: name,
         moduleId: moduleId,
       },
+      include: {
+        tags: true,
+      },
     })
 
     if (existingTestSuite) {
+      // Associate tags if provided
+      if (tags && tags.length > 0) {
+        const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag)))
+        await prisma.testSuite.update({
+          where: { id: existingTestSuite.id },
+          data: {
+            tags: {
+              connect: tagIds.map(id => ({ id })),
+            },
+          },
+        })
+      }
       return existingTestSuite.id
     }
 
-    // Create new test suite
+    // Create new test suite with tags
+    const tagIds = tags && tags.length > 0 ? await Promise.all(tags.map(tag => findOrCreateTag(tag))) : []
+
     const newTestSuite = await prisma.testSuite.create({
       data: {
         name: name,
         description: description || null,
         moduleId: moduleId,
+        tags: tagIds.length > 0 ? { connect: tagIds.map(id => ({ id })) } : undefined,
       },
     })
 
@@ -134,7 +235,12 @@ async function findOrCreateTestSuite(
 /**
  * Finds or creates a test case
  */
-async function findOrCreateTestCase(title: string, description: string, testSuiteId: string): Promise<string | null> {
+async function findOrCreateTestCase(
+  title: string,
+  description: string,
+  testSuiteId: string,
+  tags?: string[],
+): Promise<string | null> {
   try {
     // Try to find existing test case
     const existingTestCase: TestCase | null = await prisma.testCase.findFirst({
@@ -146,13 +252,30 @@ async function findOrCreateTestCase(title: string, description: string, testSuit
           },
         },
       },
+      include: {
+        tags: true,
+      },
     })
 
     if (existingTestCase) {
+      // Associate tags if provided
+      if (tags && tags.length > 0) {
+        const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag)))
+        await prisma.testCase.update({
+          where: { id: existingTestCase.id },
+          data: {
+            tags: {
+              connect: tagIds.map(id => ({ id })),
+            },
+          },
+        })
+      }
       return existingTestCase.id
     }
 
-    // Create new test case
+    // Create new test case with tags
+    const tagIds = tags && tags.length > 0 ? await Promise.all(tags.map(tag => findOrCreateTag(tag))) : []
+
     const newTestCase = await prisma.testCase.create({
       data: {
         title: title,
@@ -162,6 +285,7 @@ async function findOrCreateTestCase(title: string, description: string, testSuit
             id: testSuiteId,
           },
         },
+        tags: tagIds.length > 0 ? { connect: tagIds.map(id => ({ id })) } : undefined,
       },
     })
 
@@ -320,6 +444,19 @@ export async function mergeScenariosWithExistingTestSuites(
       if (existingTestSuite) {
         mergedTestSuites++
 
+        // Associate feature-level tags with existing test suite
+        if (feature.tags && feature.tags.length > 0) {
+          const tagIds = await Promise.all(feature.tags.map(tag => findOrCreateTag(tag)))
+          await prisma.testSuite.update({
+            where: { id: existingTestSuite.id },
+            data: {
+              tags: {
+                connect: tagIds.map(id => ({ id })),
+              },
+            },
+          })
+        }
+
         // Check each scenario and add if it doesn't exist
         for (const scenario of feature.scenarios) {
           const existingTestCase = existingTestSuite.testCases.find(tc => tc.title === scenario.name)
@@ -330,6 +467,7 @@ export async function mergeScenariosWithExistingTestSuites(
               scenario.name,
               scenario.description || '',
               existingTestSuite.id,
+              scenario.tags,
             )
 
             if (testCaseId) {
@@ -347,13 +485,23 @@ export async function mergeScenariosWithExistingTestSuites(
         }
       } else {
         // Create new test suite with all scenarios
-        const testSuiteId = await findOrCreateTestSuite(feature.featureName, feature.featureDescription, moduleId)
+        const testSuiteId = await findOrCreateTestSuite(
+          feature.featureName,
+          feature.featureDescription,
+          moduleId,
+          feature.tags,
+        )
 
         if (testSuiteId) {
           mergedTestSuites++
 
           for (const scenario of feature.scenarios) {
-            const testCaseId = await findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId)
+            const testCaseId = await findOrCreateTestCase(
+              scenario.name,
+              scenario.description || '',
+              testSuiteId,
+              scenario.tags,
+            )
 
             if (testCaseId) {
               addedScenarios++

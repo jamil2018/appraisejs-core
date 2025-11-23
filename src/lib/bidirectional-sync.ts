@@ -155,6 +155,7 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
     testSuites: string[]
     testCases: string[]
     templateSteps: string[]
+    tags: string[]
   }
 }> {
   const wouldGenerate: string[] = []
@@ -163,6 +164,7 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
     testSuites: [] as string[],
     testCases: [] as string[],
     templateSteps: [] as string[],
+    tags: [] as string[],
   }
 
   try {
@@ -200,6 +202,26 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
             wouldCreate.templateSteps.push(`Template Step: ${step.keyword} ${step.text}`)
           }
         }
+
+        // Check scenario-level tags
+        for (const tag of scenario.tags) {
+          const tagExists = await checkTagExists(tag)
+          if (!tagExists) {
+            if (!wouldCreate.tags.includes(tag)) {
+              wouldCreate.tags.push(tag)
+            }
+          }
+        }
+      }
+
+      // Check feature-level tags
+      for (const tag of feature.tags) {
+        const tagExists = await checkTagExists(tag)
+        if (!tagExists) {
+          if (!wouldCreate.tags.includes(tag)) {
+            wouldCreate.tags.push(tag)
+          }
+        }
       }
     }
 
@@ -231,6 +253,7 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
     console.log(`Would create ${wouldCreate.testSuites.length} test suites`)
     console.log(`Would create ${wouldCreate.testCases.length} test cases`)
     console.log(`Would create ${wouldCreate.templateSteps.length} template steps`)
+    console.log(`Would create ${wouldCreate.tags.length} tags`)
 
     return {
       wouldGenerate,
@@ -338,6 +361,20 @@ async function checkTemplateStepExists(step: { keyword: string; text: string }):
     })
 
     return !!templateStep
+  } catch {
+    return false
+  }
+}
+
+async function checkTagExists(tagExpression: string): Promise<boolean> {
+  try {
+    const tag = await prisma.tag.findFirst({
+      where: {
+        tagExpression: tagExpression,
+      },
+    })
+
+    return !!tag
   } catch {
     return false
   }

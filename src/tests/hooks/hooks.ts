@@ -39,6 +39,11 @@ BeforeAll(async function () {
 
 Before(async function (this: CustomWorld) {
   this.context = await browser.newContext()
+  await this.context.tracing.start({
+    screenshots: true,
+    snapshots: true,
+    sources: true,
+  })
   this.page = await this.context.newPage()
 })
 
@@ -57,6 +62,12 @@ AfterStep(async function (this: CustomWorld, result) {
 After(async function (this: CustomWorld, scenario) {
   // Emit scenario end event as JSON to stdout
   // ProcessManager will parse this and re-emit it as an event
+
+  if (scenario.result?.status === 'FAILED') {
+    await this.context.tracing.stop({
+      path: `${process.cwd()}/src/tests/reports/traces/${crypto.randomUUID()}.zip`,
+    })
+  }
   const eventData = {
     event: 'scenario::end',
     data: {
