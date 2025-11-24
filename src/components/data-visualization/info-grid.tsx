@@ -6,6 +6,7 @@ interface InfoCards {
   highlight: string
   legend: string
   defaultText: string
+  icon: React.ReactNode
 }
 
 const InfoGrid = ({ infoCards }: { infoCards: InfoCards[] }) => {

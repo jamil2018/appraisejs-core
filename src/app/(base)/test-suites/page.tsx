@@ -9,6 +9,8 @@ import { TestCase, TestSuite } from '@prisma/client'
 import InfoGrid from '@/components/data-visualization/info-grid'
 import EmptyState from '@/components/data-state/empty-state'
 import { Metadata } from 'next'
+import { TubePlus } from '@/assets/icons/tube-plus'
+import EmptyTube from '@/assets/icons/empty-tube'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Suites',
@@ -58,12 +60,14 @@ const TestSuites = async () => {
               highlight: emptyTestSuites.length.toString(),
               legend: 'Empty test suite(s)',
               defaultText: 'Empty test suites count. Will update when test suites are created.',
+              icon: <EmptyTube className="h-12 w-12 rounded-sm bg-muted p-2" />,
             },
             {
               showHighlightGroup: testSuitesData.length > 0,
               highlight: latestCreatedTestSuite ? latestCreatedTestSuite.name : 'N/A',
-              legend: 'Latest created test suite',
+              legend: 'Latest test suite',
               defaultText: 'Latest created test suite. Will update when test suites are created.',
+              icon: <TubePlus className="h-12 w-12 rounded-sm bg-muted p-2" />,
             },
           ]}
         />
