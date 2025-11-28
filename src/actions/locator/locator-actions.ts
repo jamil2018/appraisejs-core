@@ -5,11 +5,12 @@ import { locatorSchema } from '@/constants/form-opts/locator-form-opts'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { createOrUpdateLocatorGroupFile } from '@/lib/locator-group-file-utils'
+import { createOrUpdateLocatorGroupFile, getLocatorGroupFilePath } from '@/lib/locator-group-file-utils'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { glob } from 'glob'
 import { buildModuleHierarchy } from '@/lib/module-hierarchy-builder'
+import { buildModulePath } from '@/lib/path-helpers/module-path'
 
 // Helper function to update locator group JSON file when locators change
 async function updateLocatorGroupFile(locatorGroupId: string | null): Promise<void> {
@@ -352,9 +353,14 @@ async function detectAndCreateConflicts(
  */
 export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
   try {
-    const locatorsDir = path.join(process.cwd(), 'src', 'tests', 'locators')
-    const pattern = path.join(locatorsDir, '**', '*.json')
-    const files = await glob(pattern)
+    // Use relative pattern with forward slashes for cross-platform compatibility
+    // glob library requires forward slashes in patterns on all platforms
+    const pattern = 'src/tests/locators/**/*.json'
+    const relativeFiles = await glob(pattern, {
+      cwd: process.cwd(),
+    })
+    // Resolve to absolute paths for file operations
+    const files = relativeFiles.map(file => path.resolve(process.cwd(), file))
 
     let synced = 0
     let totalConflicts = 0
@@ -393,7 +399,7 @@ export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
         // Track this locator group as affected
         affectedLocatorGroupIds.add(locatorGroup.id)
 
-        // Sync locators
+        // Sync locators FROM FILE TO DATABASE
         for (const [locatorName, locatorValue] of Object.entries(locators)) {
           // Check if locator already exists
           const existingLocator = await prisma.locator.findFirst({
@@ -406,7 +412,7 @@ export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
           let locatorId: string
 
           if (existingLocator) {
-            // Update existing locator value if different
+            // Update existing locator value if different (file takes precedence)
             if (existingLocator.value !== locatorValue) {
               await prisma.locator.update({
                 where: { id: existingLocator.id },
@@ -415,7 +421,7 @@ export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
             }
             locatorId = existingLocator.id
           } else {
-            // Create new locator
+            // Create new locator from file
             const newLocator = await prisma.locator.create({
               data: {
                 name: locatorName,
@@ -431,6 +437,26 @@ export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
           const conflictCount = await detectAndCreateConflicts(locatorId, locatorName, locatorValue, locatorGroup.id)
           totalConflicts += conflictCount
         }
+
+        // Sync locators FROM DATABASE TO FILE (bidirectional sync)
+        // Get all locators from database for this group
+        const dbLocators = await prisma.locator.findMany({
+          where: { locatorGroupId: locatorGroup.id },
+          select: { name: true, value: true },
+        })
+
+        // Merge: file values take precedence, but add DB locators that aren't in file
+        const mergedLocators: Record<string, string> = { ...locators }
+        for (const dbLocator of dbLocators) {
+          // Only add if not already in file (file values take precedence)
+          if (!(dbLocator.name in mergedLocators)) {
+            mergedLocators[dbLocator.name] = dbLocator.value
+            synced++
+          }
+        }
+
+        // Write merged content back to file
+        await fs.writeFile(filePath, JSON.stringify(mergedLocators, null, 2) + '\n', 'utf-8')
       } catch (error) {
         const errorMessage = `Error syncing locator file ${filePath}: ${error}`
         console.error(errorMessage)
@@ -438,18 +464,70 @@ export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
       }
     }
 
-    // Update locator group files for all locator groups in the database
-    // This ensures files reflect the current database state, including changes to existing records
+    // Handle locator groups that exist in DB but don't have files yet
+    // Create files for these groups with their DB locators
     try {
       const allLocatorGroups = await prisma.locatorGroup.findMany({
-        select: { id: true },
+        include: {
+          locators: {
+            select: { name: true, value: true },
+          },
+          module: true,
+        },
       })
-      await Promise.all(allLocatorGroups.map(group => updateLocatorGroupFile(group.id)))
+
+      for (const locatorGroup of allLocatorGroups) {
+        // Skip if we already processed this group (it has a file)
+        if (affectedLocatorGroupIds.has(locatorGroup.id)) {
+          continue
+        }
+
+        try {
+          // Get the file path for this locator group
+          const relativeFilePath = await getLocatorGroupFilePath(locatorGroup.id)
+          if (!relativeFilePath) {
+            // If we can't determine the path, skip this group
+            continue
+          }
+
+          const fullPath = path.join(process.cwd(), relativeFilePath)
+
+          // Check if file exists
+          try {
+            await fs.access(fullPath)
+            // File exists, merge DB locators into it
+            const fileContent = await fs.readFile(fullPath, 'utf-8')
+            const fileLocators = JSON.parse(fileContent) as Record<string, string>
+
+            // Merge: file values take precedence, but add DB locators that aren't in file
+            const mergedLocators: Record<string, string> = { ...fileLocators }
+            for (const dbLocator of locatorGroup.locators) {
+              if (!(dbLocator.name in mergedLocators)) {
+                mergedLocators[dbLocator.name] = dbLocator.value
+              }
+            }
+
+            await fs.writeFile(fullPath, JSON.stringify(mergedLocators, null, 2) + '\n', 'utf-8')
+          } catch {
+            // File doesn't exist, create it with DB locators
+            await fs.mkdir(path.dirname(fullPath), { recursive: true })
+            const dbLocators: Record<string, string> = Object.fromEntries(
+              locatorGroup.locators.map(loc => [loc.name, loc.value]),
+            )
+            await fs.writeFile(fullPath, JSON.stringify(dbLocators, null, 2) + '\n', 'utf-8')
+          }
+        } catch (error) {
+          const errorMessage = `Error syncing locator group ${locatorGroup.id} to file: ${error}`
+          console.error(errorMessage)
+          errors.push(errorMessage)
+        }
+      }
     } catch (error) {
-      const errorMessage = `Error updating locator group files: ${error}`
+      const errorMessage = `Error syncing database locators to files: ${error}`
       console.error(errorMessage)
       errors.push(errorMessage)
     }
+
     revalidatePath('/locators')
 
     return {
