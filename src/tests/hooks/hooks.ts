@@ -62,17 +62,20 @@ AfterStep(async function (this: CustomWorld, result) {
 After(async function (this: CustomWorld, scenario) {
   // Emit scenario end event as JSON to stdout
   // ProcessManager will parse this and re-emit it as an event
-
+  let tracePath: string | undefined
   if (scenario.result?.status === 'FAILED') {
+    tracePath = `${process.cwd()}/src/tests/reports/traces/${crypto.randomUUID()}.zip`
     await this.context.tracing.stop({
-      path: `${process.cwd()}/src/tests/reports/traces/${crypto.randomUUID()}.zip`,
+      path: tracePath,
     })
   }
+
   const eventData = {
     event: 'scenario::end',
     data: {
       scenarioName: scenario.pickle.name,
       status: currentScenarioStatus,
+      tracePath: tracePath,
     },
   }
 
