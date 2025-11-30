@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   TestRun,
   TestRunStatus,
@@ -30,7 +30,12 @@ import {
   Info,
   Timer,
 } from 'lucide-react'
-import { getTestRunByIdAction } from '@/actions/test-run/test-run-actions'
+import {
+  getTestRunByIdAction,
+  spawnTraceViewerAction,
+  checkTraceViewerStatusAction,
+} from '@/actions/test-run/test-run-actions'
+import { Button } from '@/components/ui/button'
 
 interface TestRunDetailsProps {
   testRun: TestRun & {
@@ -42,6 +47,14 @@ interface TestRunDetailsProps {
 
 export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps) {
   const [testRun, setTestRun] = useState(initialTestRun)
+  const [loadingTraceViewer, setLoadingTraceViewer] = useState<string | null>(null)
+  const [runningTraceViewers, setRunningTraceViewers] = useState<Set<string>>(new Set())
+  const runningTraceViewersRef = useRef<Set<string>>(new Set())
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    runningTraceViewersRef.current = runningTraceViewers
+  }, [runningTraceViewers])
 
   // Poll for status updates while test run is running
   useEffect(() => {
@@ -220,6 +233,104 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
   ).length
   const progressPercentage = totalTests > 0 ? (completedTests / totalTests) * 100 : 0
 
+  const handleViewTrace = async (testCaseId: string) => {
+    setLoadingTraceViewer(testCaseId)
+    try {
+      const response = await spawnTraceViewerAction(testRun.runId, testCaseId)
+      if (response.error) {
+        console.error('Error spawning trace viewer:', response.error)
+        // TODO: Show error toast/notification to user
+        setLoadingTraceViewer(null)
+      } else {
+        // Trace viewer spawned successfully, mark it as running
+        setRunningTraceViewers(prev => new Set(prev).add(testCaseId))
+        setLoadingTraceViewer(null)
+      }
+    } catch (error) {
+      console.error('Error spawning trace viewer:', error)
+      // TODO: Show error toast/notification to user
+      setLoadingTraceViewer(null)
+    }
+  }
+
+  // Poll for trace viewer status for test cases that have trace viewers
+  useEffect(() => {
+    const failedTestCasesWithTraces = testRun.testCases.filter(
+      tc => tc.result === TestRunTestCaseResult.FAILED && tc.tracePath,
+    )
+
+    if (failedTestCasesWithTraces.length === 0) {
+      return
+    }
+
+    let isMounted = true
+
+    const checkTraceViewers = async () => {
+      // Get current running trace viewers from ref
+      const currentRunning = runningTraceViewersRef.current
+
+      if (!currentRunning || currentRunning.size === 0) {
+        return
+      }
+
+      // Check each test case asynchronously
+      const checkPromises = Array.from(currentRunning).map(async testCaseId => {
+        const testCase = failedTestCasesWithTraces.find(tc => tc.id === testCaseId)
+        if (!testCase) {
+          return { testCaseId, isRunning: false }
+        }
+
+        try {
+          const response = await checkTraceViewerStatusAction(testRun.runId, testCase.id)
+          const isRunning = response.data && (response.data as { isRunning: boolean }).isRunning
+          return { testCaseId, isRunning: isRunning ?? false }
+        } catch (error) {
+          console.error(`Error checking trace viewer status for test case ${testCase.id}:`, error)
+          // If we can't check, assume it's still running if we thought it was
+          return { testCaseId, isRunning: true }
+        }
+      })
+
+      const results = await Promise.all(checkPromises)
+      if (!isMounted) return
+
+      const actuallyRunning = new Set<string>()
+      results.forEach(({ testCaseId, isRunning }) => {
+        if (isRunning) {
+          actuallyRunning.add(testCaseId)
+        }
+      })
+
+      setRunningTraceViewers(prev => {
+        // Only update if there's a change
+        if (actuallyRunning.size === prev.size && Array.from(actuallyRunning).every(id => prev.has(id))) {
+          return prev
+        }
+        return actuallyRunning
+      })
+    }
+
+    // Only start polling if we have running trace viewers
+    if (runningTraceViewers.size === 0) {
+      return
+    }
+
+    // Check immediately
+    checkTraceViewers()
+
+    // Then poll every 2 seconds
+    const interval = setInterval(() => {
+      if (isMounted) {
+        checkTraceViewers()
+      }
+    }, 2000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [testRun.runId, runningTraceViewers.size])
+
   return (
     <div className="space-y-4">
       <Card>
@@ -381,13 +492,36 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                         <span className="text-xs text-muted-foreground">{testCase.testCase.description}</span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Badge variant="outline" className="bg-gray-700 text-xs text-white">
                         {getFormattedTestRunTestCaseStatus(testCase.status)}
                       </Badge>
                       <Badge variant="outline" className="bg-gray-700 text-xs text-white">
                         {getFormattedTestRunTestCaseResult(testCase.result)}
                       </Badge>
+                      {testCase.result === TestRunTestCaseResult.FAILED && testCase.tracePath && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewTrace(testCase.id)}
+                          disabled={loadingTraceViewer === testCase.id || runningTraceViewers.has(testCase.id)}
+                          className="text-xs"
+                        >
+                          {loadingTraceViewer === testCase.id ? (
+                            <>
+                              <LoaderCircle className="mr-1 h-3 w-3 animate-spin" />
+                              Opening...
+                            </>
+                          ) : runningTraceViewers.has(testCase.id) ? (
+                            <>
+                              <LoaderCircle className="mr-1 h-3 w-3 animate-spin" />
+                              Running
+                            </>
+                          ) : (
+                            'View Trace'
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

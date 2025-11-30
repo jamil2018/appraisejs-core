@@ -102,6 +102,7 @@ class ProcessManager extends EventEmitter {
               testRunId,
               scenarioName: eventData.data?.scenarioName,
               status: eventData.data?.status,
+              tracePath: eventData.data?.tracePath,
               ...eventData.data,
             })
             console.log(`[ProcessManager] Emitted scenario::end event for testRunId: ${testRunId}`)

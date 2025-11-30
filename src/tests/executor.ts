@@ -41,7 +41,7 @@ async function bootstrap(): Promise<void> {
 
     // Spawn the cucumber test process
     console.log('🚀 Starting cucumber test process...')
-    await spawnTask('npx', ['cucumber-js', ...cucumberArgs], {
+    await spawnTask('npm', ['run', 'test', ...cucumberArgs], {
       streamLogs: true,
       prefixLogs: true,
       logPrefix: 'cucumber-test',

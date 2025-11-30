@@ -215,13 +215,13 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           return
         }
         const data = JSON.parse(event.data)
-        const { scenarioName, status } = data
+        const { scenarioName, status, tracePath } = data
 
-        console.log(`[LogViewer] Scenario ended: ${scenarioName} with status: ${status}`)
+        console.log(`[LogViewer] Scenario ended: ${scenarioName} with status: ${status}${tracePath ? `, tracePath: ${tracePath}` : ''}`)
 
         // Update test case status in database
         // This will gracefully handle test runs filtered by tags (no test cases)
-        const response = await updateTestRunTestCaseStatusAction(testRunId, scenarioName, status)
+        const response = await updateTestRunTestCaseStatusAction(testRunId, scenarioName, status, tracePath)
         if (response.error && response.status !== 200) {
           // Only log as error if it's not a 200 status (which means it was skipped gracefully)
           console.error('[LogViewer] Error updating test case status:', response.error)
@@ -234,7 +234,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           ...prev,
           {
             type: 'status',
-            message: `Scenario completed: ${scenarioName} - ${status}`,
+            message: `Scenario completed: ${scenarioName} - ${status}${tracePath ? ` (trace available)` : ''}`,
             timestamp: new Date(),
           },
         ])

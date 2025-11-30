@@ -272,13 +272,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       /**
        * Handler for scenario::end events from ProcessManager
        */
-      const onScenarioEnd = (eventData: { testRunId: string; scenarioName: string; status: string }) => {
+      const onScenarioEnd = (eventData: { testRunId: string; scenarioName: string; status: string; tracePath?: string }) => {
         console.log(`[SSE] Received scenario::end event for testRunId: ${eventData.testRunId}, runId: ${runId}`, eventData)
         if (eventData.testRunId === runId) {
           console.log(`[SSE] Sending scenario::end SSE event for scenario: ${eventData.scenarioName}`)
           sendSSE('scenario::end', JSON.stringify({
             scenarioName: eventData.scenarioName,
             status: eventData.status,
+            tracePath: eventData.tracePath,
           }))
         } else {
           console.log(`[SSE] Ignoring scenario::end event - testRunId mismatch: ${eventData.testRunId} !== ${runId}`)

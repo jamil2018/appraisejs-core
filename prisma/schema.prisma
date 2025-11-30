@@ -195,6 +195,7 @@ model TestRunTestCase {
   testCaseId String
   status     TestRunTestCaseStatus @default(PENDING)
   result     TestRunTestCaseResult @default(UNTESTED)
+  tracePath  String?
   testRun    TestRun               @relation(fields: [testRunId], references: [id], onDelete: Cascade)
   testCase   TestCase              @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
 }

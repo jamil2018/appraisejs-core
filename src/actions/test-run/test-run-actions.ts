@@ -13,10 +13,12 @@ import {
   Tag,
 } from '@prisma/client'
 import { executeTestRun } from '@/lib/test-run/test-run-executor'
-import { waitForTask } from '@/tests/utils/spawner.util'
+import { waitForTask, taskSpawner } from '@/tests/utils/spawner.util'
 import { revalidatePath } from 'next/cache'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 import { processManager } from '@/lib/test-run/process-manager'
+import { promises as fs } from 'fs'
+import path from 'path'
 
 export async function getAllTestRunsAction(): Promise<ActionResponse> {
   try {
@@ -320,11 +322,16 @@ export async function createTestRunAction(
 
       // Set up server-side listener for scenario::end events to update test case statuses
       // This ensures status updates happen even if no client is connected
-      const onScenarioEnd = async (eventData: { testRunId: string; scenarioName: string; status: string }) => {
+      const onScenarioEnd = async (eventData: {
+        testRunId: string
+        scenarioName: string
+        status: string
+        tracePath?: string
+      }) => {
         // Only process events for this test run
         if (eventData.testRunId === testRun.runId) {
           console.log(
-            `[TestRunAction] Server-side scenario::end event for testRunId: ${testRun.runId}, scenario: ${eventData.scenarioName}, status: ${eventData.status}`,
+            `[TestRunAction] Server-side scenario::end event for testRunId: ${testRun.runId}, scenario: ${eventData.scenarioName}, status: ${eventData.status}${eventData.tracePath ? `, tracePath: ${eventData.tracePath}` : ''}`,
           )
           // Map the status string to the expected format
           const statusMap: Record<string, 'passed' | 'failed' | 'skipped' | 'unknown'> = {
@@ -334,7 +341,7 @@ export async function createTestRunAction(
           }
           const mappedStatus = statusMap[eventData.status] || 'unknown'
           // Update test case status in database
-          await updateTestRunTestCaseStatusAction(testRun.runId, eventData.scenarioName, mappedStatus)
+          await updateTestRunTestCaseStatusAction(testRun.runId, eventData.scenarioName, mappedStatus, eventData.tracePath)
         }
       }
 
@@ -452,11 +459,13 @@ export async function createTestRunAction(
  * @param testRunId - The test run ID (runId, not id)
  * @param scenarioName - The scenario name from cucumber (format: "[Test Case Title] Description")
  * @param status - The scenario status (passed, failed, skipped)
+ * @param tracePath - Optional trace path for failed scenarios
  */
 export async function updateTestRunTestCaseStatusAction(
   testRunId: string,
   scenarioName: string,
   status: 'passed' | 'failed' | 'skipped' | 'unknown',
+  tracePath?: string,
 ): Promise<ActionResponse> {
   try {
     // Find the test run by runId
@@ -535,6 +544,7 @@ export async function updateTestRunTestCaseStatusAction(
       data: {
         status: testCaseStatus,
         result: testCaseResult,
+        tracePath: tracePath || null,
       },
     })
 
@@ -545,6 +555,161 @@ export async function updateTestRunTestCaseStatusAction(
   } catch (error) {
     console.error(
       `[TestRunAction] Error updating test case status for testRunId: ${testRunId}, scenario: ${scenarioName}:`,
+      error,
+    )
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+/**
+ * Checks if a trace viewer is currently running for a test case
+ * @param testRunId - The test run ID (runId, not id)
+ * @param testCaseId - The test case ID (TestRunTestCase id, not TestCase id)
+ * @returns ActionResponse with isRunning status
+ */
+export async function checkTraceViewerStatusAction(
+  testRunId: string,
+  testCaseId: string,
+): Promise<ActionResponse> {
+  try {
+    // Verify test run exists
+    const testRun = await prisma.testRun.findUnique({
+      where: { runId: testRunId },
+      include: {
+        testCases: {
+          where: { id: testCaseId },
+        },
+      },
+    })
+
+    if (!testRun) {
+      return {
+        status: 404,
+        error: 'Test run not found',
+      }
+    }
+
+    // Verify test case belongs to this test run
+    const testRunTestCase = testRun.testCases.find(tc => tc.id === testCaseId)
+    if (!testRunTestCase) {
+      return {
+        status: 404,
+        error: 'Test case not found in this test run',
+      }
+    }
+
+    // Check if trace viewer process is running
+    const processName = `trace-viewer-${testCaseId}`
+    const process = taskSpawner.getProcess(processName)
+    const isRunning = process?.isRunning ?? false
+
+    return {
+      status: 200,
+      data: {
+        isRunning,
+        processName: isRunning ? processName : null,
+      },
+    }
+  } catch (error) {
+    console.error(
+      `[TestRunAction] Error checking trace viewer status for testRunId: ${testRunId}, testCaseId: ${testCaseId}:`,
+      error,
+    )
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+/**
+ * Spawns Playwright trace viewer for a failed test case
+ * @param testRunId - The test run ID (runId, not id)
+ * @param testCaseId - The test case ID (TestRunTestCase id, not TestCase id)
+ * @returns ActionResponse indicating success or failure
+ */
+export async function spawnTraceViewerAction(
+  testRunId: string,
+  testCaseId: string,
+): Promise<ActionResponse> {
+  try {
+    // Verify test run exists
+    const testRun = await prisma.testRun.findUnique({
+      where: { runId: testRunId },
+      include: {
+        testCases: {
+          where: { id: testCaseId },
+          include: {
+            testCase: true,
+          },
+        },
+      },
+    })
+
+    if (!testRun) {
+      return {
+        status: 404,
+        error: 'Test run not found',
+      }
+    }
+
+    // Verify test case belongs to this test run
+    const testRunTestCase = testRun.testCases.find(tc => tc.id === testCaseId)
+    if (!testRunTestCase) {
+      return {
+        status: 404,
+        error: 'Test case not found in this test run',
+      }
+    }
+
+    // Get trace path from database
+    const tracePath = testRunTestCase.tracePath
+    if (!tracePath) {
+      return {
+        status: 400,
+        error: 'No trace path available for this test case',
+      }
+    }
+
+    // Validate trace file exists
+    try {
+      await fs.access(tracePath)
+    } catch {
+      return {
+        status: 404,
+        error: `Trace file not found at path: ${tracePath}`,
+      }
+    }
+
+    // Resolve absolute path if relative
+    const absoluteTracePath = path.isAbsolute(tracePath) ? tracePath : path.join(process.cwd(), tracePath)
+
+    // Spawn playwright show-trace command
+    // The process is self-closing when the user closes the trace viewer
+    const spawnedProcess = await taskSpawner.spawn('npx', ['playwright', 'show-trace', absoluteTracePath], {
+      streamLogs: true,
+      prefixLogs: true,
+      logPrefix: `trace-viewer-${testCaseId}`,
+      captureOutput: false, // No need to capture output for trace viewer
+    })
+
+    console.log(
+      `[TestRunAction] Spawned trace viewer process for testCaseId: ${testCaseId}, tracePath: ${absoluteTracePath}`,
+    )
+
+    return {
+      status: 200,
+      message: 'Trace viewer launched successfully',
+      data: {
+        processName: spawnedProcess.name,
+      },
+    }
+  } catch (error) {
+    console.error(
+      `[TestRunAction] Error spawning trace viewer for testRunId: ${testRunId}, testCaseId: ${testCaseId}:`,
       error,
     )
     return {

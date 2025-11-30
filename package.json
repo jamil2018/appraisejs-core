@@ -17,7 +17,8 @@
     "format:check:src": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
     "format:src": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "test": "cucumber-js",
-    "test:cli": "tsx ./src/tests/executor.ts"
+    "test:cli": "tsx ./src/tests/executor.ts",
+    "test:clean": "rimraf ./src/tests/reports"
   },
   "dependencies": {
     "@babel/parser": "^7.27.0",
@@ -90,6 +91,7 @@
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "prisma": "^6.2.1",
+    "rimraf": "^6.1.2",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
