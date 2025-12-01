@@ -29,6 +29,8 @@ import {
   Tags,
   Info,
   Timer,
+  Binoculars,
+  ExternalLink,
 } from 'lucide-react'
 import {
   getTestRunByIdAction,
@@ -36,6 +38,7 @@ import {
   checkTraceViewerStatusAction,
 } from '@/actions/test-run/test-run-actions'
 import { Button } from '@/components/ui/button'
+import { AnimatePresence, motion } from 'motion/react'
 
 interface TestRunDetailsProps {
   testRun: TestRun & {
@@ -492,7 +495,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                         <span className="text-xs text-muted-foreground">{testCase.testCase.description}</span>
                       </div>
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex items-center gap-2">
                       <Badge variant="outline" className="bg-gray-700 text-xs text-white">
                         {getFormattedTestRunTestCaseStatus(testCase.status)}
                       </Badge>
@@ -505,21 +508,41 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                           size="sm"
                           onClick={() => handleViewTrace(testCase.id)}
                           disabled={loadingTraceViewer === testCase.id || runningTraceViewers.has(testCase.id)}
-                          className="text-xs"
+                          className="w-28 bg-transparent text-xs"
                         >
-                          {loadingTraceViewer === testCase.id ? (
-                            <>
-                              <LoaderCircle className="mr-1 h-3 w-3 animate-spin" />
-                              Opening...
-                            </>
-                          ) : runningTraceViewers.has(testCase.id) ? (
-                            <>
-                              <LoaderCircle className="mr-1 h-3 w-3 animate-spin" />
-                              Running
-                            </>
-                          ) : (
-                            'View Trace'
-                          )}
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.div
+                              key={
+                                loadingTraceViewer === testCase.id
+                                  ? 'opening'
+                                  : runningTraceViewers.has(testCase.id)
+                                    ? 'running'
+                                    : 'idle'
+                              }
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              transition={{ duration: 0.15 }}
+                              className="flex w-full items-center justify-center gap-1"
+                            >
+                              {loadingTraceViewer === testCase.id ? (
+                                <>
+                                  <ExternalLink className="h-3 w-3 animate-pulse text-gray-500" />
+                                  Opening
+                                </>
+                              ) : runningTraceViewers.has(testCase.id) ? (
+                                <>
+                                  <LoaderCircle className="text-white-500 h-3 w-3 animate-spin" />
+                                  Running
+                                </>
+                              ) : (
+                                <>
+                                  <Binoculars className="h-3 w-3 text-blue-500" />
+                                  View Trace
+                                </>
+                              )}
+                            </motion.div>
+                          </AnimatePresence>
                         </Button>
                       )}
                     </div>
