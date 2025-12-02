@@ -68,23 +68,23 @@ export default function RootLayout({
                   </NavLink>
                   <NavMenuCardDeck
                     containerButtonText="Automate"
-                    containerButtonIcon={<Bot className="h-5 w-5 text-primary" />}
+                    containerButtonIcon={<Bot className="h-5 w-5 text-orange-600" />}
                     dropdownItems={[
                       {
                         text: 'Test Suites',
-                        icon: <TestTubes className="h-6 w-6 text-primary" />,
+                        icon: <TestTubes className="h-6 w-6 text-blue-600 text-primary" />,
                         href: '/test-suites',
                         description: 'Create, modify, and run test suites',
                       },
                       {
                         text: 'Test Cases',
-                        icon: <TestTubeDiagonal className="h-6 w-6 text-primary" />,
+                        icon: <TestTubeDiagonal className="h-6 w-6 text-yellow-600" />,
                         href: '/test-cases',
                         description: 'Create, modify, and run test cases',
                       },
                       {
                         text: 'Test Runs',
-                        icon: <ListChecks className="h-6 w-6 text-primary" />,
+                        icon: <ListChecks className="h-6 w-6 text-purple-600" />,
                         href: '/test-runs',
                         description: 'Create, modify, and run test runs',
                       },
@@ -92,23 +92,23 @@ export default function RootLayout({
                   />
                   <NavMenuCardDeck
                     containerButtonText="Template"
-                    containerButtonIcon={<BrickWall className="h-5 w-5 text-primary" />}
+                    containerButtonIcon={<BrickWall className="h-5 w-5 text-sky-600" />}
                     dropdownItems={[
                       {
                         text: 'Template Steps',
-                        icon: <LayoutTemplate className="h-6 w-6 text-primary" />,
+                        icon: <LayoutTemplate className="h-6 w-6 text-cyan-600" />,
                         href: '/template-steps',
                         description: 'Create, modify, and run template steps',
                       },
                       {
                         text: 'Template Step Groups',
-                        icon: <Component className="h-6 w-6 text-primary" />,
+                        icon: <Component className="h-6 w-6 text-amber-600" />,
                         href: '/template-step-groups',
                         description: 'Create, modify, and run template step groups',
                       },
                       {
                         text: 'Template Test Cases',
-                        icon: <Blocks className="h-6 w-6 text-primary" />,
+                        icon: <Blocks className="h-6 w-6 text-emerald-600" />,
                         href: '/template-test-cases',
                         description: 'Create, modify, and run template test cases',
                       },
@@ -116,35 +116,35 @@ export default function RootLayout({
                   />
                   <NavMenuCardDeck
                     containerButtonText="Configuration"
-                    containerButtonIcon={<FileSliders className="h-5 w-5 text-primary" />}
+                    containerButtonIcon={<FileSliders className="h-5 w-5 text-indigo-600" />}
                     dropdownItems={[
                       {
                         text: 'Locators',
-                        icon: <Code className="h-6 w-6 text-primary" />,
+                        icon: <Code className="h-6 w-6 text-teal-600" />,
                         href: '/locators',
                         description: 'Create, modify, and run locators',
                       },
                       {
                         text: 'Locator Groups',
-                        icon: <Group className="h-6 w-6 text-primary" />,
+                        icon: <Group className="h-6 w-6 text-pink-600" />,
                         href: '/locator-groups',
                         description: 'Create, modify, and run locator groups',
                       },
                       {
                         text: 'Modules',
-                        icon: <Puzzle className="h-6 w-6 text-primary" />,
+                        icon: <Puzzle className="h-6 w-6 text-fuchsia-600" />,
                         href: '/modules',
                         description: 'Create, modify, and run modules',
                       },
                       {
                         text: 'Environments',
-                        icon: <Server className="h-6 w-6 text-primary" />,
+                        icon: <Server className="h-6 w-6 text-rose-600" />,
                         href: '/environments',
                         description: 'Create, modify, and run environments',
                       },
                       {
                         text: 'Tags',
-                        icon: <Tag className="h-6 w-6 text-primary" />,
+                        icon: <Tag className="h-6 w-6 text-violet-600" />,
                         href: '/tags',
                         description: 'Create, modify, and run tags',
                       },
