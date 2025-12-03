@@ -258,6 +258,7 @@ enum TagType {
 enum TestRunStatus {
   QUEUED
   RUNNING
+  CANCELLING
   COMPLETED
   CANCELLED
 }

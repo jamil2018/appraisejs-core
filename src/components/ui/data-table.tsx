@@ -24,7 +24,6 @@ import Link from 'next/link'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import DeletePrompt from '../user-prompt/delete-prompt'
-import { randomBytes } from 'crypto'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,8 +86,19 @@ export function DataTable<TData, TValue>({
       rowSelection,
       pagination,
     },
-    getRowId: () => {
-      return randomBytes(16).toString('hex')
+    getRowId: (row, index) => {
+      // getRowId receives the raw data object directly, not a row object with .original
+      // Handle case where row might be undefined or null
+      if (!row || typeof row !== 'object') {
+        console.error('DataTable: getRowId received invalid row data', { row, index })
+        return `row-${index}` // Fallback using index
+      }
+      const id = (row as unknown as { id: string }).id
+      if (!id) {
+        console.error('DataTable: row data missing id property', { row, index })
+        return `row-${index}` // Fallback using index
+      }
+      return id
     },
   })
 

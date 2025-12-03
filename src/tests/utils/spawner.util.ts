@@ -23,6 +23,8 @@ export interface SpawnerOptions extends ExecaOptions {
 export interface SpawnedProcess {
   /** The underlying Node.js ChildProcess instance (returned by execa) */
   process: ChildProcess
+  /** Process ID (PID) of the spawned process */
+  pid: number | undefined
   /** Unique name identifier for the process */
   name: string
   /** Captured output from the process */
@@ -87,6 +89,7 @@ export class TaskSpawner extends EventEmitter {
     // Create the spawned process object
     const spawnedProcess: SpawnedProcess = {
       process: null as unknown as ChildProcess, // Will be set below
+      pid: undefined, // Will be set below
       name: processName,
       output: {
         stdout: [],
@@ -108,6 +111,7 @@ export class TaskSpawner extends EventEmitter {
     })
 
     spawnedProcess.process = childProcess
+    spawnedProcess.pid = childProcess.pid
     spawnedProcess.isRunning = true
 
     // Store the process
@@ -187,7 +191,7 @@ export class TaskSpawner extends EventEmitter {
     if (!spawnedProcess || !spawnedProcess.isRunning) {
       return false
     }
-
+    console.log(`[TaskSpawner] Killing process: ${processName}, PID: ${spawnedProcess.pid}, signal: ${signal}`)
     spawnedProcess.process.kill(signal)
     return true
   }

@@ -17,9 +17,15 @@ const TestRunTable = ({ initialData }: TestRunTableProps) => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
   // Memoize running test run IDs to avoid unnecessary effect re-runs
+  // Include RUNNING, QUEUED, and CANCELLING statuses for polling
   const runningTestRunIds = useMemo(() => {
     return testRuns
-      .filter(tr => tr.status !== TestRunStatus.COMPLETED && tr.status !== TestRunStatus.CANCELLED)
+      .filter(
+        tr =>
+          tr.status === TestRunStatus.RUNNING ||
+          tr.status === TestRunStatus.QUEUED ||
+          tr.status === TestRunStatus.CANCELLING,
+      )
       .map(tr => tr.id)
   }, [testRuns])
 
@@ -77,9 +83,12 @@ const TestRunTable = ({ initialData }: TestRunTableProps) => {
           }),
         )
 
-        // Check if any are still running
+        // Check if any are still running (including CANCELLING)
         const stillRunning = validUpdates.filter(
-          u => u.status !== TestRunStatus.COMPLETED && u.status !== TestRunStatus.CANCELLED,
+          u =>
+            u.status === TestRunStatus.RUNNING ||
+            u.status === TestRunStatus.QUEUED ||
+            u.status === TestRunStatus.CANCELLING,
         )
 
         // If no test runs are running anymore, stop polling

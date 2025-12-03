@@ -13,7 +13,7 @@ import {
   Tag,
 } from '@prisma/client'
 import { executeTestRun } from '@/lib/test-run/test-run-executor'
-import { waitForTask, taskSpawner } from '@/tests/utils/spawner.util'
+import { waitForTask, taskSpawner, killTask } from '@/tests/utils/spawner.util'
 import { revalidatePath } from 'next/cache'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 import { processManager } from '@/lib/test-run/process-manager'
@@ -341,7 +341,12 @@ export async function createTestRunAction(
           }
           const mappedStatus = statusMap[eventData.status] || 'unknown'
           // Update test case status in database
-          await updateTestRunTestCaseStatusAction(testRun.runId, eventData.scenarioName, mappedStatus, eventData.tracePath)
+          await updateTestRunTestCaseStatusAction(
+            testRun.runId,
+            eventData.scenarioName,
+            mappedStatus,
+            eventData.tracePath,
+          )
         }
       }
 
@@ -402,33 +407,80 @@ export async function createTestRunAction(
           // Store logs in database
           await storeTestRunLogsAction(testRun.runId, logEntries)
 
-          // Update TestRun status based on exit code
-          const status = exitCode === 0 ? TestRunStatus.COMPLETED : TestRunStatus.COMPLETED
-          const result = exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED
-
-          await prisma.testRun.update({
+          // Check current status before updating - preserve CANCELLED status if already set
+          const currentTestRun = await prisma.testRun.findUnique({
             where: { id: testRun.id },
-            data: {
-              status,
-              result,
-              completedAt: new Date(),
-            },
+            select: { status: true, result: true },
           })
+
+          // Only update to COMPLETED if not already CANCELLED or CANCELLING
+          if (
+            currentTestRun &&
+            currentTestRun.status !== TestRunStatus.CANCELLED &&
+            currentTestRun.status !== TestRunStatus.CANCELLING
+          ) {
+            // Update TestRun status based on exit code
+            const status = exitCode === 0 ? TestRunStatus.COMPLETED : TestRunStatus.COMPLETED
+            const result = exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED
+
+            await prisma.testRun.update({
+              where: { id: testRun.id },
+              data: {
+                status,
+                result,
+                completedAt: new Date(),
+              },
+            })
+          } else {
+            // Status is already CANCELLED or CANCELLING, just update completedAt if not set
+            if (currentTestRun && !currentTestRun.result) {
+              await prisma.testRun.update({
+                where: { id: testRun.id },
+                data: {
+                  completedAt: new Date(),
+                },
+              })
+            }
+          }
 
           // Clean up the server-side event listener
           cleanupListener()
         })
         .catch(async error => {
           console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)
-          // Update TestRun status to indicate failure
-          await prisma.testRun.update({
+
+          // Check current status before updating - preserve CANCELLED status if already set
+          const currentTestRun = await prisma.testRun.findUnique({
             where: { id: testRun.id },
-            data: {
-              status: TestRunStatus.COMPLETED,
-              result: TestRunResult.FAILED,
-              completedAt: new Date(),
-            },
+            select: { status: true, result: true },
           })
+
+          // Only update to COMPLETED if not already CANCELLED or CANCELLING
+          if (
+            currentTestRun &&
+            currentTestRun.status !== TestRunStatus.CANCELLED &&
+            currentTestRun.status !== TestRunStatus.CANCELLING
+          ) {
+            // Update TestRun status to indicate failure
+            await prisma.testRun.update({
+              where: { id: testRun.id },
+              data: {
+                status: TestRunStatus.COMPLETED,
+                result: TestRunResult.FAILED,
+                completedAt: new Date(),
+              },
+            })
+          } else {
+            // Status is already CANCELLED or CANCELLING, just update completedAt if not set
+            if (currentTestRun && !currentTestRun.result) {
+              await prisma.testRun.update({
+                where: { id: testRun.id },
+                data: {
+                  completedAt: new Date(),
+                },
+              })
+            }
+          }
 
           // Clean up the server-side event listener
           cleanupListener()
@@ -570,10 +622,7 @@ export async function updateTestRunTestCaseStatusAction(
  * @param testCaseId - The test case ID (TestRunTestCase id, not TestCase id)
  * @returns ActionResponse with isRunning status
  */
-export async function checkTraceViewerStatusAction(
-  testRunId: string,
-  testCaseId: string,
-): Promise<ActionResponse> {
+export async function checkTraceViewerStatusAction(testRunId: string, testCaseId: string): Promise<ActionResponse> {
   try {
     // Verify test run exists
     const testRun = await prisma.testRun.findUnique({
@@ -631,10 +680,7 @@ export async function checkTraceViewerStatusAction(
  * @param testCaseId - The test case ID (TestRunTestCase id, not TestCase id)
  * @returns ActionResponse indicating success or failure
  */
-export async function spawnTraceViewerAction(
-  testRunId: string,
-  testCaseId: string,
-): Promise<ActionResponse> {
+export async function spawnTraceViewerAction(testRunId: string, testCaseId: string): Promise<ActionResponse> {
   try {
     // Verify test run exists
     const testRun = await prisma.testRun.findUnique({
@@ -712,6 +758,111 @@ export async function spawnTraceViewerAction(
       `[TestRunAction] Error spawning trace viewer for testRunId: ${testRunId}, testCaseId: ${testCaseId}:`,
       error,
     )
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+export async function cancelTestRunAction(testRunId: string): Promise<ActionResponse> {
+  try {
+    const testRun = await prisma.testRun.findUnique({
+      where: { runId: testRunId },
+    })
+    if (!testRun) {
+      return {
+        status: 404,
+        error: 'Test run not found',
+      }
+    }
+
+    if (
+      testRun.status !== TestRunStatus.RUNNING &&
+      testRun.status !== TestRunStatus.QUEUED &&
+      testRun.status !== TestRunStatus.CANCELLING
+    ) {
+      return {
+        status: 400,
+        error: 'Test run is not running, queued, or already being cancelled',
+      }
+    }
+
+    // If already cancelling, don't proceed
+    if (testRun.status === TestRunStatus.CANCELLING) {
+      return {
+        status: 200,
+        message: 'Test run cancellation is already in progress',
+      }
+    }
+
+    // Set status to CANCELLING immediately
+    await prisma.testRun.update({
+      where: { id: testRun.id },
+      data: {
+        status: TestRunStatus.CANCELLING,
+      },
+    })
+
+    const process = processManager.get(testRunId)
+    console.log(`[TestRunAction] Process: ${JSON.stringify(process)}`)
+
+    if (!process) {
+      console.warn(`[TestRunAction] No process found for testRunId: ${testRunId}`)
+      await prisma.testRun.update({
+        where: { id: testRun.id },
+        data: {
+          status: TestRunStatus.CANCELLED,
+          result: TestRunResult.CANCELLED,
+          completedAt: new Date(),
+        },
+      })
+      return {
+        status: 200,
+        message: 'Test run cancelled successfully',
+      }
+    }
+
+    const killed = killTask(process.name, 'SIGTERM')
+    console.log(`[TestRunAction] Killed: ${killed}`)
+    if (!killed) {
+      const forceKilled = killTask(process.name, 'SIGKILL')
+      if (!forceKilled) {
+        console.warn(`[TestRunAction] Failed to force kill process for testRunId: ${testRunId}`)
+      }
+    }
+
+    await prisma.testRun.update({
+      where: { id: testRun.id },
+      data: {
+        status: TestRunStatus.CANCELLED,
+        result: TestRunResult.CANCELLED,
+        completedAt: new Date(),
+      },
+    })
+
+    await prisma.testRunTestCase.updateMany({
+      where: {
+        testRunId: testRun.id,
+        status: {
+          in: [TestRunTestCaseStatus.PENDING, TestRunTestCaseStatus.RUNNING],
+        },
+      },
+      data: {
+        status: TestRunTestCaseStatus.CANCELLED,
+        result: TestRunTestCaseResult.UNTESTED,
+      },
+    })
+
+    revalidatePath('/test-runs')
+    revalidatePath(`/test-runs/${testRunId}`)
+
+    return {
+      status: 200,
+      message: 'Test run stopped successfully',
+    }
+  } catch (error) {
+    console.error(`[TestRunAction] Error stopping test run ${testRunId}:`, error)
     return {
       status: 500,
       error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,

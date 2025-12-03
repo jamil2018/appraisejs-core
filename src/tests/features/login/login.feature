@@ -6,12 +6,18 @@
 @run
 Feature: Collection of test cases covering login scenarios
 
-  @tc_4rswpaiw
-  Scenario: [Failing Login] Validate user is failing to login
+  @tc_ue4qwoml
+  Scenario: [Failing Login] Validate failure scenario for login validation step
     Given the user navigates to the "staging" environment
     Then the user should be navigated to the "/test" route
 
-  @tc_suzrlmyb
-  Scenario: [Failing Login 2] Testing failing login 
+  @tc_fkkymair
+  Scenario: [Login Long] Long wait validation for login
     Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/test" route
+    When the user waits for 1000 seconds
+    Then the user should be navigated to the "/login" route
+
+  @tc_qng7yehh
+  Scenario: [Login] Verify the user is able to navigate to the login page of staging environmnet
+    Given the user navigates to the "staging" environment
+    Then the user should be navigated to the "/login" route

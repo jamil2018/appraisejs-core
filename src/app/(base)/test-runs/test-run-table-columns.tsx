@@ -5,10 +5,11 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
 import { Environment, Tag, TestRun, TestRunResult, TestRunStatus, TestRunTestCase } from '@prisma/client'
-import { deleteTestRunAction } from '@/actions/test-run/test-run-actions'
+import { cancelTestRunAction, deleteTestRunAction } from '@/actions/test-run/test-run-actions'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export const testRunTableCols: ColumnDef<
   TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment }
@@ -46,18 +47,21 @@ export const testRunTableCols: ColumnDef<
       const statusColorMap = {
         [TestRunStatus.QUEUED]: 'bg-gray-500',
         [TestRunStatus.RUNNING]: 'bg-blue-500',
+        [TestRunStatus.CANCELLING]: 'bg-orange-500',
         [TestRunStatus.COMPLETED]: 'bg-green-700',
         [TestRunStatus.CANCELLED]: 'bg-red-500',
       }
       const statusIconMap = {
         [TestRunStatus.QUEUED]: <ListEnd className="h-4 w-4" />,
         [TestRunStatus.RUNNING]: <LoaderCircle className="h-4 w-4 animate-spin" />,
+        [TestRunStatus.CANCELLING]: <LoaderCircle className="h-4 w-4 animate-spin" />,
         [TestRunStatus.COMPLETED]: <CheckCircle className="h-4 w-4" />,
         [TestRunStatus.CANCELLED]: <XCircle className="h-4 w-4" />,
       }
       const statusTextMap = {
         [TestRunStatus.QUEUED]: 'Queued',
         [TestRunStatus.RUNNING]: 'Running',
+        [TestRunStatus.CANCELLING]: 'Cancelling',
         [TestRunStatus.COMPLETED]: 'Completed',
         [TestRunStatus.CANCELLED]: 'Cancelled',
       }
@@ -154,10 +158,22 @@ export const testRunTableCols: ColumnDef<
     cell: ({ row }) => {
       const testRunData = row.original
       return (
-        <TableActions
-          viewLink={`/test-runs/${testRunData.id}`}
-          deleteHandler={() => deleteTestRunAction([testRunData.id])}
-        />
+        <div>
+          <TableActions
+            viewLink={`/test-runs/${testRunData.id}`}
+            deleteHandler={() => deleteTestRunAction([testRunData.id])}
+            cancelHandler={() => cancelTestRunAction(testRunData.runId)}
+            showCancelButton={
+              testRunData.status === TestRunStatus.RUNNING ||
+              testRunData.status === TestRunStatus.QUEUED ||
+              testRunData.status === TestRunStatus.CANCELLING
+            }
+            cancelButtonDisabled={testRunData.status === TestRunStatus.CANCELLING}
+            deleteButtonDisabled={
+              testRunData.status === TestRunStatus.CANCELLING || testRunData.status === TestRunStatus.RUNNING
+            }
+          />
+        </div>
       )
     },
   },
