@@ -28,6 +28,7 @@ import {
   BrickWall,
   Code,
   Component,
+  FileCheck,
   FileSliders,
   Group,
   LayoutDashboard,
@@ -74,19 +75,25 @@ export default function RootLayout({
                         text: 'Test Suites',
                         icon: <TestTubes className="h-6 w-6 text-primary" />,
                         href: '/test-suites',
-                        description: 'Create, modify, and run test suites',
+                        description: 'Group tests into logical units',
                       },
                       {
                         text: 'Test Cases',
                         icon: <TestTubeDiagonal className="h-6 w-6 text-primary" />,
                         href: '/test-cases',
-                        description: 'Create, modify, and run test cases',
+                        description: 'Define test scenarios',
                       },
                       {
                         text: 'Test Runs',
                         icon: <ListChecks className="h-6 w-6 text-primary" />,
                         href: '/test-runs',
-                        description: 'Create, modify, and run test runs',
+                        description: 'Execute test scenarios',
+                      },
+                      {
+                        text: 'Reports',
+                        icon: <FileCheck className="h-6 w-6 text-primary" />,
+                        href: '/reports',
+                        description: 'Analyze test results',
                       },
                     ]}
                   />
@@ -98,19 +105,19 @@ export default function RootLayout({
                         text: 'Template Steps',
                         icon: <LayoutTemplate className="h-6 w-6 text-primary" />,
                         href: '/template-steps',
-                        description: 'Create, modify, and run template steps',
+                        description: 'Define reusable test steps',
                       },
                       {
                         text: 'Template Step Groups',
                         icon: <Component className="h-6 w-6 text-primary" />,
                         href: '/template-step-groups',
-                        description: 'Create, modify, and run template step groups',
+                        description: 'Organize template steps into logical groups',
                       },
                       {
                         text: 'Template Test Cases',
                         icon: <Blocks className="h-6 w-6 text-primary" />,
                         href: '/template-test-cases',
-                        description: 'Create, modify, and run template test cases',
+                        description: 'Define reusable test scenario templates',
                       },
                     ]}
                   />
@@ -122,31 +129,31 @@ export default function RootLayout({
                         text: 'Locators',
                         icon: <Code className="h-6 w-6 text-primary" />,
                         href: '/locators',
-                        description: 'Create, modify, and run locators',
+                        description: 'Define reusable locators',
                       },
                       {
                         text: 'Locator Groups',
                         icon: <Group className="h-6 w-6 text-primary" />,
                         href: '/locator-groups',
-                        description: 'Create, modify, and run locator groups',
+                        description: 'Organize locators into logical groups',
                       },
                       {
                         text: 'Modules',
                         icon: <Puzzle className="h-6 w-6 text-primary" />,
                         href: '/modules',
-                        description: 'Create, modify, and run modules',
+                        description: 'Organize tests into logical units',
                       },
                       {
                         text: 'Environments',
                         icon: <Server className="h-6 w-6 text-primary" />,
                         href: '/environments',
-                        description: 'Create, modify, and run environments',
+                        description: 'Define test environment configurations',
                       },
                       {
                         text: 'Tags',
                         icon: <Tag className="h-6 w-6 text-primary" />,
                         href: '/tags',
-                        description: 'Create, modify, and run tags',
+                        description: 'Define tags for test scenarios and suites',
                       },
                     ]}
                   />
