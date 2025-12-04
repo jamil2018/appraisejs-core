@@ -29,11 +29,11 @@ const InfoCard = ({
     <>
       <Card className="flex w-[10vw] max-w-[20rem] items-center bg-inherit">
         <CardContent className="p-2">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 text-primary">
             {showHighlightGroup ? (
               <>
                 {icon}
-                <div>
+                <div className="flex h-full flex-col">
                   <div className="flex h-full items-center text-xs text-muted-foreground">{legend}</div>
                   <div
                     className={`mr-2 h-full items-center font-mono text-primary ${getHighlightTextSize(highlight)} ${
