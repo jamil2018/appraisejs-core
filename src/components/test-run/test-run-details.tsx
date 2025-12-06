@@ -31,14 +31,17 @@ import {
   Timer,
   Binoculars,
   ExternalLink,
+  Trash,
 } from 'lucide-react'
 import {
   getTestRunByIdAction,
   spawnTraceViewerAction,
   checkTraceViewerStatusAction,
+  cancelTestRunAction,
 } from '@/actions/test-run/test-run-actions'
 import { Button } from '@/components/ui/button'
 import { AnimatePresence, motion } from 'motion/react'
+import { toast } from '@/hooks/use-toast'
 
 interface TestRunDetailsProps {
   testRun: TestRun & {
@@ -52,6 +55,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
   const [testRun, setTestRun] = useState(initialTestRun)
   const [loadingTraceViewer, setLoadingTraceViewer] = useState<string | null>(null)
   const [runningTraceViewers, setRunningTraceViewers] = useState<Set<string>>(new Set())
+  const [isCancelling, setIsCancelling] = useState(false)
   const runningTraceViewersRef = useRef<Set<string>>(new Set())
 
   // Keep ref in sync with state
@@ -334,11 +338,35 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
     }
   }, [testRun.runId, runningTraceViewers.size])
 
+  const handleCancelRun = async () => {
+    setIsCancelling(true)
+    try {
+      const response = await cancelTestRunAction(testRun.runId)
+      if (response.error) {
+        throw new Error(response.error)
+      } else {
+        toast({
+          title: 'Test run cancelled',
+          description: response.message,
+        })
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        setIsCancelling(false)
+      }
+    } catch (error) {
+      toast({
+        title: 'Error canceling test run',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      })
+      setIsCancelling(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="flex items-center justify-between">
             {testRun.status === TestRunStatus.RUNNING && (
               <div className="flex items-center gap-2">
                 <LoaderCircle className="h-6 w-6 animate-spin text-blue-500" />
@@ -356,6 +384,26 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                 <XCircle className="h-6 w-6 text-red-500 duration-300 animate-in fade-in-0" />
                 <span>Interrupted</span>
               </div>
+            )}
+            {testRun.status === TestRunStatus.RUNNING && (
+              <Button
+                onClick={handleCancelRun}
+                disabled={isCancelling}
+                className="bg-red-500 font-bold text-white hover:bg-red-600"
+                size="sm"
+              >
+                {isCancelling ? (
+                  <>
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <Trash className="h-4 w-4" />
+                    <span>Cancel Run</span>
+                  </>
+                )}
+              </Button>
             )}
           </CardTitle>
         </CardHeader>
