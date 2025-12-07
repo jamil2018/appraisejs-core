@@ -2,7 +2,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import React from 'react'
 
 const TableSkeleton = () => {
-  return <Skeleton className="h-40 w-full" />
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+    </div>
+  )
 }
 
 export default TableSkeleton
