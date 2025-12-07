@@ -20,22 +20,35 @@ export default function DeletePrompt({
   dialogDescription,
   confirmationText,
   deleteHandler,
+  open,
+  onOpenChange,
 }: {
-  isDisabled: boolean
+  isDisabled?: boolean
   dialogTitle: string
   dialogDescription: string
   confirmationText: string
   deleteHandler: () => Promise<void>
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = open !== undefined ? open : internalOpen
+  const setIsOpen = onOpenChange || setInternalOpen
+  
+  // Determine if we're in controlled mode (open prop provided)
+  const isControlled = open !== undefined
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild disabled={isDisabled}>
-        <Button variant="outline" size="icon">
-          <Trash className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild disabled={isDisabled}>
+          <Button variant="outline" size="icon">
+            <Trash className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-end gap-2">
@@ -50,8 +63,8 @@ export default function DeletePrompt({
         <DialogFooter>
           <Button
             variant="destructive"
-            onClick={() => {
-              deleteHandler()
+            onClick={async () => {
+              await deleteHandler()
               setIsOpen(false)
             }}
           >

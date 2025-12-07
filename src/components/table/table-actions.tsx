@@ -15,6 +15,7 @@ import Link from 'next/link'
 
 import { ActionResponse } from '@/types/form/actionHandler'
 import { toast } from '@/hooks/use-toast'
+import DeletePrompt from '../user-prompt/delete-prompt'
 
 const TableActions = ({
   modifyLink,
@@ -52,8 +53,34 @@ const TableActions = ({
   deleteButtonDisabled?: boolean
 }) => {
   const [isCancelling, setIsCancelling] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  
+  const handleDelete = async () => {
+    const res = await deleteHandler()
+    if (res.status === 200) {
+      toast({
+        title: 'Item(s) deleted successfully',
+      })
+      setIsDeleteDialogOpen(false)
+    } else {
+      toast({
+        title: `${res.message}`,
+        description: res.error,
+        variant: 'destructive',
+      })
+    }
+  }
+  
   return (
     <>
+      <DeletePrompt
+        dialogTitle="Delete Item"
+        dialogDescription="Please confirm your action"
+        confirmationText="Are you sure you want to delete this item?"
+        deleteHandler={handleDelete}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -121,18 +148,8 @@ const TableActions = ({
 
           <DropdownMenuItem
             disabled={deleteButtonDisabled}
-            onClick={async () => {
-              const res = await deleteHandler()
-              if (res.status === 200) {
-                toast({
-                  title: 'Item(s) deleted successfully',
-                })
-              } else {
-                toast({
-                  title: `${res.message}`,
-                  description: res.error,
-                })
-              }
+            onClick={() => {
+              setIsDeleteDialogOpen(true)
             }}
           >
             <span className="flex items-center gap-2">

@@ -253,7 +253,7 @@ const TestCaseForm = ({
             <ErrorMessage message={errors.testSuiteIds?.[0] || ''} visible={!!errors.testSuiteIds} />
           </div>
           <div className="mb-4 flex flex-col gap-2">
-            <Label htmlFor="tags">Tags</Label>
+            <Label htmlFor="tags">Filter Tags</Label>
             <MultiSelect
               options={tags.map(tag => {
                 return {

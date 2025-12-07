@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { deleteTestCaseAction } from '@/actions/test-case/test-case-actions'
 import TableActions from '@/components/table/table-actions'
 import { formatDateTime } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 
 export const testCaseTableCols: ColumnDef<TestCase & { steps: TestCaseStep[]; tags?: Tag[] }>[] = [
   {
@@ -31,10 +32,6 @@ export const testCaseTableCols: ColumnDef<TestCase & { steps: TestCaseStep[]; ta
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-  },
-  {
     accessorKey: 'title',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
   },
@@ -48,7 +45,11 @@ export const testCaseTableCols: ColumnDef<TestCase & { steps: TestCaseStep[]; ta
     cell: ({ row }) => {
       const testCase = row.original
       const tags = testCase.tags || []
-      return <div>{tags.length > 0 ? tags.map(tag => tag.name).join(', ') : '-'}</div>
+      return (
+        <div className="flex flex-wrap gap-1">
+          {tags.length > 0 ? tags.map(tag => <Badge key={tag.id}>{tag.name}</Badge>) : '-'}
+        </div>
+      )
     },
   },
   {

@@ -280,6 +280,9 @@ export async function getTestCaseByIdAction(id: string): Promise<ActionResponse>
           select: {
             id: true,
           },
+          where: {
+            type: TagType.FILTER,
+          },
         },
       },
     })
@@ -340,14 +343,34 @@ export async function updateTestCaseAction(
       where: { testCaseId: id },
     })
 
-    // 4. Then, update the test case with new steps
+    // 4. Get existing IDENTIFIER tags to preserve them
+    const existingTestCase = await prisma.testCase.findUnique({
+      where: { id },
+      include: {
+        tags: {
+          where: {
+            type: TagType.IDENTIFIER,
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+    })
+
+    // 5. Combine IDENTIFIER tags with FILTER tags from the form
+    const identifierTagIds = existingTestCase?.tags.map(tag => tag.id) || []
+    const filterTagIds = value.tagIds || []
+    const allTagIds = [...identifierTagIds, ...filterTagIds]
+
+    // 6. Then, update the test case with new steps
     const testCase = await prisma.testCase.update({
       where: { id },
       data: {
         title: value.title,
         description: value.description ?? '',
         tags: {
-          set: value.tagIds?.map(id => ({ id })) || [],
+          set: allTagIds.map(id => ({ id })),
         },
         steps: {
           create: value.steps.map(step => ({

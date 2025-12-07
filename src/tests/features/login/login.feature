@@ -12,11 +12,10 @@ Feature: Collection of test cases covering login scenarios
     Then the user should be navigated to the "/login" route
 
   @tc_4rswpaiw
-  Scenario: [Failing Login] Validate user is failing to login
+  Scenario: [Failing Login] Validate user is failing to login when being navigated to incorrect route
     Given the user navigates to the "staging" environment
     Then the user should be navigated to the "/test" route
 
-  @tc_suzrlmyb
-  Scenario: [Failing Login 2] Testing failing login 
+  Scenario: [Failing Login Duplicate] Testing failing login 
     Given the user navigates to the "staging" environment
     Then the user should be navigated to the "/test" route
