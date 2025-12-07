@@ -65,11 +65,11 @@ const NavMenuCardDeck = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="absolute left-0 top-full z-50 mt-1 rounded-md border bg-popover p-1 shadow-md"
+              className="absolute left-0 top-full z-50 mt-1 rounded-md border border-none bg-popover p-2 shadow-md"
             >
               <div
                 className={cn(
-                  'grid gap-0.5',
+                  'grid gap-1',
                   dropdownItems.length === 1 ? 'w-[300px] grid-cols-1' : 'w-[600px] grid-cols-2',
                 )}
               >
@@ -82,8 +82,8 @@ const NavMenuCardDeck = ({
                   >
                     <Card
                       className={cn(
-                        'h-24 w-full border-none outline-none transition-colors hover:bg-accent hover:text-accent-foreground',
-                        checkIfItemActive(item.href) && 'bg-accent text-accent-foreground',
+                        'h-24 w-full border-none outline-none transition-colors hover:bg-primary-foreground hover:text-accent-foreground',
+                        checkIfItemActive(item.href) && 'bg-primary-foreground text-accent-foreground',
                         'hover:cursor-pointer',
                       )}
                     >
@@ -93,7 +93,7 @@ const NavMenuCardDeck = ({
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col justify-center">
                           <span className="truncate text-sm font-medium">{item.text}</span>
-                          <span className="line-clamp-2 text-xs text-muted-foreground">{item.description}</span>
+                          <span className="line-clamp-2 text-xs text-accent-foreground">{item.description}</span>
                         </div>
                       </CardContent>
                     </Card>
