@@ -3,12 +3,17 @@
 import prisma from '@/config/db-config'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
 import { ActionResponse } from '@/types/form/actionHandler'
+import { TagType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 export async function getAllTagsAction(): Promise<ActionResponse> {
   try {
-    const tags = await prisma.tag.findMany()
+    const tags = await prisma.tag.findMany({
+      where: {
+        type: TagType.FILTER,
+      },
+    })
     return {
       status: 200,
       data: tags,
