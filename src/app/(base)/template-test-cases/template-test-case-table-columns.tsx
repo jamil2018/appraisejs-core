@@ -32,10 +32,6 @@ export const templateTestCaseTableCols: ColumnDef<TemplateTestCase & { steps: Te
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-  },
-  {
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
   },

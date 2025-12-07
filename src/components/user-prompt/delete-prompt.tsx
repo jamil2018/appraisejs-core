@@ -32,11 +32,11 @@ export default function DeletePrompt({
   onOpenChange?: (open: boolean) => void
 }) {
   const [internalOpen, setInternalOpen] = useState(false)
-  
+
   // Use controlled state if provided, otherwise use internal state
   const isOpen = open !== undefined ? open : internalOpen
   const setIsOpen = onOpenChange || setInternalOpen
-  
+
   // Determine if we're in controlled mode (open prop provided)
   const isControlled = open !== undefined
 
@@ -49,7 +49,7 @@ export default function DeletePrompt({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent>
+      <DialogContent className="border-none">
         <DialogHeader>
           <DialogTitle className="flex items-end gap-2">
             <AlertCircle className="h-5 w-5" />
@@ -63,17 +63,18 @@ export default function DeletePrompt({
         <DialogFooter>
           <Button
             variant="destructive"
+            className="bg-red-500 hover:bg-red-600"
             onClick={async () => {
               await deleteHandler()
               setIsOpen(false)
             }}
           >
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-white">
               <Trash className="h-4 w-4" />
               Delete
             </span>
           </Button>
-          <DialogClose asChild>
+          <DialogClose asChild className="bg-gray-700 text-white hover:bg-gray-800">
             <Button variant="secondary">
               <X className="h-4 w-4" />
               Cancel

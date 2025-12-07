@@ -33,10 +33,6 @@ export const moduleTableCols: ColumnDef<Module & { parent: { name: string } }>[]
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-  },
-  {
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
   },

@@ -35,10 +35,6 @@ export const locatorTableCols: ColumnDef<Locator & { locatorGroup: LocatorGroup;
       enableHiding: false,
     },
     {
-      accessorKey: 'id',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-    },
-    {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       cell: ({ row }) => {
