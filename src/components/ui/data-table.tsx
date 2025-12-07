@@ -217,12 +217,12 @@ export function DataTable<TData, TValue>({
       </div>
       <div className="mb-4">
         <Table>
-          <TableHeader className="bg-muted">
+          <TableHeader className="bg-white dark:bg-muted">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => {
                   return (
-                    <TableHead key={header.id} className="font-bold text-white">
+                    <TableHead key={header.id} className="font-bold dark:text-white">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   )
