@@ -129,7 +129,11 @@ export const testRunTableCols: ColumnDef<
     header: ({ column }) => <DataTableColumnHeader column={column} title="Tags" />,
     cell: ({ row }) => {
       const tags = row.original.tags
-      return <div>{tags.map(tag => tag.name).join(', ')}</div>
+      return (
+        <div className="flex flex-wrap gap-1">
+          {tags.length > 0 ? tags.map(tag => <Badge key={tag.id}>{tag.name}</Badge>) : '-'}
+        </div>
+      )
     },
   },
   {
@@ -137,13 +141,6 @@ export const testRunTableCols: ColumnDef<
     header: ({ column }) => <DataTableColumnHeader column={column} title="Started At" />,
     cell: ({ row }) => {
       return formatDateTime(row.original.startedAt)
-    },
-  },
-  {
-    accessorKey: 'updatedAt',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Updated At" />,
-    cell: ({ row }) => {
-      return formatDateTime(row.original.updatedAt)
     },
   },
   {
