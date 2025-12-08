@@ -225,7 +225,8 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
         if (response.error && response.status !== 200) {
           // Only log as error if it's not a 200 status (which means it was skipped gracefully)
           console.error('[LogViewer] Error updating test case status:', response.error)
-        } else {
+        } else if (response.status === 200) {
+          // Log success or graceful skip (200 status means it was handled correctly)
           console.log(`[LogViewer] ${response.message || `Successfully updated test case status for scenario: ${scenarioName}`}`)
         }
 

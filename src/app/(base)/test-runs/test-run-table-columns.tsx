@@ -4,12 +4,36 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
-import { Environment, Tag, TestRun, TestRunResult, TestRunStatus, TestRunTestCase } from '@prisma/client'
+import { BrowserEngine, Environment, Tag, TestRun, TestRunResult, TestRunStatus, TestRunTestCase } from '@prisma/client'
 import { cancelTestRunAction, deleteTestRunAction } from '@/actions/test-run/test-run-actions'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { CheckCircle, Compass, Flame, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
+
+const BrowserEngineIcon = {
+  [BrowserEngine.CHROMIUM]: (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+    >
+      <path d="M10.88 21.94 15.46 14" />
+      <path d="M21.17 8H12" />
+      <path d="M3.95 6.06 8.54 14" />
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" />
+    </svg>
+  ),
+  [BrowserEngine.FIREFOX]: <Flame className="h-4 w-4" />,
+  [BrowserEngine.WEBKIT]: <Compass className="h-4 w-4" />,
+}
 
 export const testRunTableCols: ColumnDef<
   TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment }
@@ -45,11 +69,11 @@ export const testRunTableCols: ColumnDef<
     cell: ({ row }) => {
       const status = row.original.status
       const statusColorMap = {
-        [TestRunStatus.QUEUED]: 'bg-gray-500',
-        [TestRunStatus.RUNNING]: 'bg-blue-500',
-        [TestRunStatus.CANCELLING]: 'bg-orange-500',
-        [TestRunStatus.COMPLETED]: 'bg-green-700',
-        [TestRunStatus.CANCELLED]: 'bg-red-500',
+        [TestRunStatus.QUEUED]: 'bg-gray-500 text-white',
+        [TestRunStatus.RUNNING]: 'bg-blue-500 text-white',
+        [TestRunStatus.CANCELLING]: 'bg-orange-500 text-white',
+        [TestRunStatus.COMPLETED]: 'bg-primary',
+        [TestRunStatus.CANCELLED]: 'bg-pink-500 text-white',
       }
       const statusIconMap = {
         [TestRunStatus.QUEUED]: <ListEnd className="h-4 w-4" />,
@@ -66,9 +90,9 @@ export const testRunTableCols: ColumnDef<
         [TestRunStatus.CANCELLED]: 'Cancelled',
       }
       return (
-        <Badge variant="outline" className={`${statusColorMap[status]} py-1`}>
-          <span className="mr-1 text-white">{statusIconMap[status]}</span>
-          <span className="text-white">{statusTextMap[status]}</span>
+        <Badge className={`${statusColorMap[status]} w-full text-center`}>
+          <span className="mr-1">{statusIconMap[status]}</span>
+          <span>{statusTextMap[status]}</span>
         </Badge>
       )
     },
@@ -79,10 +103,10 @@ export const testRunTableCols: ColumnDef<
     cell: ({ row }) => {
       const result = row.original.result
       const resultColorMap = {
-        [TestRunResult.PASSED]: 'bg-green-700',
-        [TestRunResult.FAILED]: 'bg-red-500',
-        [TestRunResult.CANCELLED]: 'bg-gray-500',
-        [TestRunResult.PENDING]: 'bg-gray-500',
+        [TestRunResult.PASSED]: 'bg-primary',
+        [TestRunResult.FAILED]: 'bg-pink-500 text-white',
+        [TestRunResult.CANCELLED]: 'bg-gray-500 text-white',
+        [TestRunResult.PENDING]: 'bg-yellow-500 text-white',
       }
       const resultIconMap = {
         [TestRunResult.PASSED]: <CheckCircle className="h-4 w-4" />,
@@ -97,9 +121,9 @@ export const testRunTableCols: ColumnDef<
         [TestRunResult.PENDING]: 'Pending',
       }
       return (
-        <Badge variant="outline" className={`${resultColorMap[result]} py-1`}>
-          <span className="mr-1 text-white">{resultIconMap[result]}</span>
-          <span className="text-white">{resultTextMap[result]}</span>
+        <Badge className={`${resultColorMap[result]} w-full text-center`}>
+          <span className="mr-1">{resultIconMap[result]}</span>
+          <span>{resultTextMap[result]}</span>
         </Badge>
       )
     },
@@ -119,6 +143,20 @@ export const testRunTableCols: ColumnDef<
   {
     accessorKey: 'browserEngine',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Browser Engine" />,
+    cell: ({ row }) => {
+      const browserEngine = row.original.browserEngine
+      const browserEngineColorMap = {
+        [BrowserEngine.CHROMIUM]: 'bg-blue-500 text-white',
+        [BrowserEngine.FIREFOX]: 'bg-red-500 text-white',
+        [BrowserEngine.WEBKIT]: 'bg-purple-500 text-white',
+      }
+      return (
+        <Badge className={`${browserEngineColorMap[browserEngine]} w-fit`}>
+          <span className="mr-2">{BrowserEngineIcon[browserEngine]}</span>
+          <span>{browserEngine.charAt(0).toUpperCase() + browserEngine.slice(1).toLowerCase()}</span>
+        </Badge>
+      )
+    },
   },
   {
     accessorKey: 'environment.name',

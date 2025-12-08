@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
 import { deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { formatDateTime } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: Module; testCases: TestCase[] }>[] = [
   {
     id: 'select',
@@ -56,7 +57,11 @@ export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: M
     cell: ({ row }) => {
       const testSuite = row.original
       const tags = testSuite.tags || []
-      return <div>{tags.length > 0 ? tags.map(tag => tag.name).join(', ') : '-'}</div>
+      return (
+        <div className="flex flex-wrap gap-1">
+          {tags.length > 0 ? tags.map(tag => <Badge key={tag.id}>{tag.name}</Badge>) : '-'}
+        </div>
+      )
     },
   },
   {

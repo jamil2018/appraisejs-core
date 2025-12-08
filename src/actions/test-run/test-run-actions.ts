@@ -563,12 +563,14 @@ export async function updateTestRunTestCaseStatusAction(
     const matchingTestCase = testRun.testCases.find(trtc => trtc.testCase.title === testCaseTitle)
 
     if (!matchingTestCase) {
-      console.warn(
-        `[TestRunAction] No matching test case found for scenario: ${scenarioName} (extracted title: ${testCaseTitle})`,
+      // This is expected when scenarios run without corresponding test cases (e.g., when filtered by tags)
+      // Return success status to indicate this was handled gracefully
+      console.log(
+        `[TestRunAction] No matching test case found for scenario: ${scenarioName} (extracted title: ${testCaseTitle}). This is expected when scenarios run without corresponding test cases.`,
       )
       return {
-        status: 404,
-        error: `Test case not found for scenario: ${scenarioName}`,
+        status: 200,
+        message: `Scenario "${scenarioName}" completed but has no corresponding test case in this test run (likely filtered by tags)`,
       }
     }
 
