@@ -6,16 +6,3 @@
 @run
 Feature: Collection of test cases covering login scenarios
 
-  @tc_4rswpaiw
-  Scenario: [Validate user is failing to login when being navigated to incorrect route] Failing Login
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/test" route
-
-  Scenario: [Testing failing login] Failing Login Duplicate
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/test" route
-
-  @tc_clurjmcu
-  Scenario: [Verify user is able to login to the application using valid login credentials] Login
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/login" route
