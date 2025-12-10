@@ -42,6 +42,10 @@ export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: M
   {
     accessorKey: 'module.name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Module" />,
+    cell: ({ row }) => {
+      const testSuite = row.original
+      return <Badge variant="outline">{testSuite.module.name}</Badge>
+    },
   },
   {
     accessorKey: 'testCases.length',

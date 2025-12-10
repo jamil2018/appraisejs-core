@@ -5,11 +5,12 @@ import { ColumnDef } from '@tanstack/react-table'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
-import { LocatorGroup } from '@prisma/client'
+import { LocatorGroup, Module } from '@prisma/client'
 import { formatDateTime } from '@/lib/utils'
 import { deleteLocatorGroupAction } from '@/actions/locator-groups/locator-group-actions'
+import { Badge } from '@/components/ui/badge'
 
-export const locatorGroupTableCols: ColumnDef<LocatorGroup>[] = [
+export const locatorGroupTableCols: ColumnDef<LocatorGroup & { module: Module }>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -38,6 +39,10 @@ export const locatorGroupTableCols: ColumnDef<LocatorGroup>[] = [
   {
     accessorKey: 'module.name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Module" />,
+    cell: ({ row }) => {
+      const locatorGroup = row.original
+      return <Badge variant="outline">{locatorGroup.module?.name}</Badge>
+    },
   },
   {
     accessorKey: 'route',
