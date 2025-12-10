@@ -11,6 +11,7 @@ import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { CheckCheck, MousePointer2 } from 'lucide-react'
 import { KeyToIconTransformer } from '@/lib/transformers/key-to-icon-transformer'
+import { Kbd, KbdGroup } from '@/components/ui/kbd'
 
 export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
   {
@@ -80,12 +81,50 @@ export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
       const parameters = row.original as TemplateStep & {
         parameters: TemplateStepParameter[]
       }
-      return parameters.parameters.map((parameter: TemplateStepParameter) => parameter.name).join(', ')
+      return (
+        <KbdGroup className="flex flex-wrap gap-1">
+          {parameters.parameters.map((parameter: TemplateStepParameter) => (
+            <Kbd key={crypto.randomUUID()} className="bg-gray-700/55 px-2 text-xs text-gray-400">
+              {parameter.name}
+            </Kbd>
+          ))}
+        </KbdGroup>
+      )
     },
   },
   {
     accessorKey: 'signature',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Signature" />,
+    cell: ({ row }) => {
+      const templateStep = row.original
+      const signature = templateStep.signature || ''
+      const parts: (string | React.ReactElement)[] = []
+      const regex = /\{(string|int)\}/g
+      let lastIndex = 0
+      let match
+
+      while ((match = regex.exec(signature)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(signature.slice(lastIndex, match.index))
+        }
+
+        parts.push(
+          <Badge key={match.index} variant="outline" className="mx-1 px-1.5">
+            {match[0]}
+          </Badge>,
+        )
+
+        lastIndex = regex.lastIndex
+      }
+
+      if (lastIndex < signature.length) {
+        parts.push(signature.slice(lastIndex))
+      }
+
+      return (
+        <div className="inline-flex flex-wrap items-center gap-0 text-sm">{parts.length > 0 ? parts : signature}</div>
+      )
+    },
   },
   {
     accessorKey: 'createdAt',
