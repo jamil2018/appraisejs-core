@@ -6,8 +6,11 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
 import { deleteTemplateStepAction } from '@/actions/template-step/template-step-actions'
-import { TemplateStep, TemplateStepParameter } from '@prisma/client'
+import { TemplateStep, TemplateStepParameter, TemplateStepType } from '@prisma/client'
 import { formatDateTime } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { CheckCheck, MousePointer2 } from 'lucide-react'
+import { KeyToIconTransformer } from '@/lib/transformers/key-to-icon-transformer'
 
 export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
   {
@@ -42,10 +45,33 @@ export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
   {
     accessorKey: 'icon',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Icon" />,
+    cell: ({ row }) => {
+      const templateStep = row.original
+      return (
+        <Badge variant="outline" className="flex w-fit items-center gap-1">
+          {KeyToIconTransformer(templateStep.icon, 'h-4 w-4')}
+          {templateStep.icon.charAt(0).toUpperCase() + templateStep.icon.slice(1).toLowerCase()}
+        </Badge>
+      )
+    },
   },
   {
     accessorKey: 'type',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+    cell: ({ row }) => {
+      const templateStep = row.original
+      const icon =
+        templateStep.type === TemplateStepType.ACTION ? (
+          <MousePointer2 className="h-4 w-4" />
+        ) : (
+          <CheckCheck className="h-4 w-4" />
+        )
+      return (
+        <Badge variant="outline" className="flex w-fit items-center gap-1">
+          {icon} {templateStep.type.charAt(0).toUpperCase() + templateStep.type.slice(1).toLowerCase()}
+        </Badge>
+      )
+    },
   },
   {
     accessorKey: 'parameters',

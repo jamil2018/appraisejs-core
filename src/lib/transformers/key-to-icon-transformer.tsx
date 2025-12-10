@@ -16,32 +16,32 @@ import {
 } from 'lucide-react'
 import { ReactElement } from 'react'
 
-export const KeyToIconTransformer = (key: TemplateStepIcon) => {
+export const KeyToIconTransformer = (key: TemplateStepIcon, className?: string) => {
   switch (key) {
     case 'MOUSE':
-      return <MousePointerClick />
+      return <MousePointerClick className={className} />
     case 'NAVIGATION':
-      return <Globe />
+      return <Globe className={className} />
     case 'INPUT':
-      return <Keyboard />
+      return <Keyboard className={className} />
     case 'DOWNLOAD':
-      return <Download />
+      return <Download className={className} />
     case 'API':
-      return <Server />
+      return <Server className={className} />
     case 'STORE':
-      return <Save />
+      return <Save className={className} />
     case 'FORMAT':
-      return <ALargeSmall />
+      return <ALargeSmall className={className} />
     case 'DATA':
-      return <Database />
+      return <Database className={className} />
     case 'UPLOAD':
-      return <Upload />
+      return <Upload className={className} />
     case 'WAIT':
-      return <Loader />
+      return <Loader className={className} />
     case 'VALIDATION':
-      return <CheckCheck />
+      return <CheckCheck className={className} />
     case 'DEBUG':
-      return <BugPlay />
+      return <BugPlay className={className} />
   }
 }
 
