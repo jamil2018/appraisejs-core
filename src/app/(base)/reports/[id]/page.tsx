@@ -102,12 +102,12 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
   return (
     <>
       <div className="mb-8">
-        <PageHeader className="mb-4 flex items-center gap-2">
+        <PageHeader className="mb-2 flex items-center gap-2">
           <span>Test Run Report</span>
           {testRunResultToBadge(sampleReportDetails.result)}
         </PageHeader>
         {sampleReportDetails.completedAt && (
-          <div className="flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-1 text-sm text-gray-400">
             <Calendar className="h-4 w-4" />
             {formatDateTime(sampleReportDetails.completedAt)}
           </div>
