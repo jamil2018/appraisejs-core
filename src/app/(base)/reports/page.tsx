@@ -2,7 +2,13 @@ import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Button } from '@/components/ui/button'
 import { FileCheck } from 'lucide-react'
+import { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Reports',
+  description: 'Manage reports for test runs',
+}
 
 const Reports = () => {
   return (
