@@ -44,6 +44,7 @@ import {
 import Link from 'next/link'
 import NavMenuCardDeck from '@/components/navigation/nav-menu-card-deck'
 import { DevtoolsProviders } from '@/components/devtools/providers'
+import NavCommand from '@/components/navigation/nav-command'
 
 export default function RootLayout({
   children,
@@ -157,12 +158,8 @@ export default function RootLayout({
                       },
                     ]}
                   />
-                  <NavLink
-                    href="/settings"
-                    icon={<Settings className="h-5 w-5 text-primary" />}
-                    className="ml-auto"
-                    isIconOnly
-                  />
+                  <NavCommand className="ml-auto" />
+                  <NavLink href="/settings" icon={<Settings className="h-5 w-5 text-primary" />} isIconOnly />
                 </div>
               </nav>
 
