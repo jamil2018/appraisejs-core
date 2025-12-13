@@ -162,9 +162,7 @@ function generateFeatureContent(
   lines.push('')
 
   // Get test suite tag expressions for deduplication
-  const testSuiteTagExpressions = new Set(
-    (testSuiteTags || []).map(tag => tag.tagExpression.toLowerCase()),
-  )
+  const testSuiteTagExpressions = new Set((testSuiteTags || []).map(tag => tag.tagExpression.toLowerCase()))
 
   // Generate scenarios for each test case that has steps
   let scenarioCount = 0

@@ -52,8 +52,6 @@ const TestRunForm = ({
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     onSubmit: async ({ value }) => {
-      // Ensure only the selected filter type is submitted
-      console.log(`value: ${JSON.stringify(value)}`)
       const submitValue = {
         ...value,
         tags: testSelectionType === TestSelectionType.TAGS ? value.tags : [],
@@ -222,6 +220,27 @@ const TestRunForm = ({
           <CardDescription>Set the configuration for your test run</CardDescription>
         </CardHeader>
         <CardContent>
+          <form.Field name="name" validators={{ onChange: z.string().min(1, { message: 'Name is required' }) }}>
+            {field => {
+              return (
+                <div className="mb-4 flex flex-col gap-2">
+                  <Label htmlFor={field.name}>Name</Label>
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onChange={e => field.handleChange(e.target.value)}
+                    placeholder="Enter name for your test run"
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
+                      </p>
+                    ))}
+                </div>
+              )
+            }}
+          </form.Field>
           <form.Field
             name="environmentId"
             validators={{

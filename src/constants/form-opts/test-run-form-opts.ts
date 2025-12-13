@@ -2,6 +2,7 @@ import { BrowserEngine } from '@prisma/client'
 import { z } from 'zod'
 
 export const testRunSchema = z.object({
+  name: z.string().min(1, { message: 'Name is required' }),
   environmentId: z.string().min(1, { message: 'Environment is required' }),
   tags: z.array(z.string()),
   testWorkersCount: z.number().min(1, { message: 'Test workers count must be at least 1' }).optional(),
@@ -17,6 +18,7 @@ export type TestRun = z.infer<typeof testRunSchema>
 
 export const formOpts = {
   defaultValues: {
+    name: '',
     environmentId: '',
     tags: [],
     testWorkersCount: 1,

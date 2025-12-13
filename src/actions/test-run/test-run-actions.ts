@@ -294,6 +294,7 @@ export async function createTestRunAction(
     // Create TestRun record in database with RUNNING status
     const testRun = await prisma.testRun.create({
       data: {
+        name: value.name,
         environmentId: value.environmentId,
         testWorkersCount: value.testWorkersCount || 1,
         browserEngine: value.browserEngine,
@@ -471,13 +472,13 @@ export async function createTestRunAction(
         })
         .catch(async error => {
           console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)
-          
+
           // Log error to Winston logger
           logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
           if (error instanceof Error && error.stack) {
             logger.error(error.stack)
           }
-          
+
           // Close Winston logger
           await closeLogger(logger).catch(err => {
             console.error(`[TestRunAction] Error closing logger for testRunId: ${testRun.runId}:`, err)

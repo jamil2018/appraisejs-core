@@ -60,6 +60,10 @@ export const testRunTableCols: ColumnDef<
     enableHiding: false,
   },
   {
+    accessorKey: 'name',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+  },
+  {
     accessorKey: 'runId',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Run ID" />,
   },

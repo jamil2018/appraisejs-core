@@ -114,8 +114,8 @@ const TestRunTable = ({ initialData }: TestRunTableProps) => {
       <DataTable
         columns={testRunTableCols}
         data={testRuns}
-        filterColumn="runId"
-        filterPlaceholder="Filter by run ID..."
+        filterColumn="name"
+        filterPlaceholder="Filter by name..."
         deleteAction={deleteTestRunAction}
         createLink="/test-runs/create"
       />
