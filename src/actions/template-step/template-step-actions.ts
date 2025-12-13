@@ -40,6 +40,7 @@ export async function getAllTemplateStepsAction(): Promise<ActionResponse> {
       include: {
         parameters: {
           select: {
+            id: true,
             name: true,
           },
         },

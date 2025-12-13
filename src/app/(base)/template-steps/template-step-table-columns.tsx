@@ -85,7 +85,7 @@ export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
         <KbdGroup className="flex flex-wrap gap-1">
           {parameters.parameters.map((parameter: TemplateStepParameter) => (
             <Kbd
-              key={crypto.randomUUID()}
+              key={parameter.id}
               className="bg-gray-200 px-2 text-xs text-gray-600 dark:bg-gray-700/55 dark:text-gray-400"
             >
               {parameter.name}
