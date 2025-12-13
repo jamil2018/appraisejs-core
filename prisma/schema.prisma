@@ -215,6 +215,7 @@ model TestRun {
   testWorkersCount Int?              @default(1)
   browserEngine    BrowserEngine     @default(CHROMIUM)
   logs             TestRunLog?
+  logPath          String?
 }
 
 model TestRunLog {

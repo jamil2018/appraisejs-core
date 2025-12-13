@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { LoaderCircle, Wifi, WifiOff, CheckCircle, XCircle } from 'lucide-react'
+import { LoaderCircle, Wifi, WifiOff, CheckCircle, XCircle, Logs } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTestRunLogsAction, updateTestRunTestCaseStatusAction } from '@/actions/test-run/test-run-actions'
 import { TestRunStatus } from '@prisma/client'
+import { DownloadLogsButton } from './download-logs-button'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 
 interface LogMessage {
   type: 'stdout' | 'stderr' | 'status'
@@ -82,15 +84,15 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
     }
 
     // Handle connection error
-    eventSource.onerror = (err) => {
+    eventSource.onerror = err => {
       const readyState = eventSource.readyState
-      
+
       if (readyState === EventSource.CONNECTING) {
         // Still connecting, don't log error or set error state yet
         // This is normal during initial connection attempts
         return
       }
-      
+
       if (readyState === EventSource.CLOSED) {
         console.log(`[LogViewer] SSE connection closed for testRunId: ${testRunId}`)
         // Only set disconnected if we were previously connected
@@ -99,7 +101,9 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           setConnectionStatus('disconnected')
         } else {
           setConnectionStatus('error')
-          setError('Failed to connect to log stream. The test run may not be running or the process has ended. Please check the server logs for more details.')
+          setError(
+            'Failed to connect to log stream. The test run may not be running or the process has ended. Please check the server logs for more details.',
+          )
         }
       } else {
         // readyState === EventSource.OPEN (unlikely to be an error) or unknown state
@@ -217,7 +221,9 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
         const data = JSON.parse(event.data)
         const { scenarioName, status, tracePath } = data
 
-        console.log(`[LogViewer] Scenario ended: ${scenarioName} with status: ${status}${tracePath ? `, tracePath: ${tracePath}` : ''}`)
+        console.log(
+          `[LogViewer] Scenario ended: ${scenarioName} with status: ${status}${tracePath ? `, tracePath: ${tracePath}` : ''}`,
+        )
 
         // Update test case status in database
         // This will gracefully handle test runs filtered by tags (no test cases)
@@ -227,7 +233,9 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           console.error('[LogViewer] Error updating test case status:', response.error)
         } else if (response.status === 200) {
           // Log success or graceful skip (200 status means it was handled correctly)
-          console.log(`[LogViewer] ${response.message || `Successfully updated test case status for scenario: ${scenarioName}`}`)
+          console.log(
+            `[LogViewer] ${response.message || `Successfully updated test case status for scenario: ${scenarioName}`}`,
+          )
         }
 
         // Also add to logs for visibility
@@ -309,65 +317,75 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
   }
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      {/* Connection Status */}
-      <div className="flex items-center justify-between">
-        <Badge variant="outline" className="flex items-center gap-2">
-          {getStatusIcon()}
-          <span>{getStatusText()}</span>
-        </Badge>
-        {logs.length > 0 && (
-          <Badge variant="outline" className="font-mono text-xs">
-            {logs.length} log{logs.length !== 1 ? 's' : ''}
-          </Badge>
-        )}
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Log Display */}
-      <ScrollArea
-        ref={scrollAreaRef}
-        className="h-[600px] w-full rounded-md border bg-muted/50 p-4 font-mono text-sm"
-        onScroll={handleScroll}
-      >
-        {logs.length === 0 && (connectionStatus === 'connecting' || connectionStatus === 'loading') && (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-            {connectionStatus === 'loading' ? 'Loading logs...' : 'Connecting to log stream...'}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Logs className="h-6 w-6" />
+            Live Logs
+          </span>
+          {connectionStatus === 'completed' || connectionStatus === 'disconnected' ? (
+            <DownloadLogsButton testRunId={testRunId} />
+          ) : null}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className={cn('flex flex-col gap-2', className)}>
+          {/* Connection Status */}
+          <div className="flex items-center justify-between">
+            <Badge variant="outline" className="flex items-center gap-2">
+              {getStatusIcon()}
+              <span>{getStatusText()}</span>
+            </Badge>
+            <div className="flex items-center gap-2">
+              {logs.length > 0 && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {logs.length} log{logs.length !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
           </div>
-        )}
-        {logs.length === 0 && connectionStatus !== 'connecting' && connectionStatus !== 'loading' && (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            No logs available
-          </div>
-        )}
-        {logs.map((log, index) => (
-          <div
-            key={index}
-            className={cn(
-              'mb-1 flex items-start gap-2 whitespace-pre-wrap break-words',
-              log.type === 'stderr' && 'text-red-400',
-              log.type === 'stdout' && 'text-foreground',
-              log.type === 'status' && 'text-blue-400 font-semibold',
-            )}
+
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Log Display */}
+          <ScrollArea
+            ref={scrollAreaRef}
+            className="bg-muted/50 h-[600px] w-full rounded-md border p-4 font-mono text-sm"
+            onScroll={handleScroll}
           >
-            <span className="shrink-0 text-muted-foreground text-xs">
-              {log.timestamp.toLocaleTimeString()}
-            </span>
-            <span className="shrink-0 text-muted-foreground text-xs w-16">
-              [{log.type.toUpperCase()}]
-            </span>
-            <span className="flex-1">{log.message}</span>
-          </div>
-        ))}
-      </ScrollArea>
-    </div>
+            {logs.length === 0 && (connectionStatus === 'connecting' || connectionStatus === 'loading') && (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                {connectionStatus === 'loading' ? 'Loading logs...' : 'Connecting to log stream...'}
+              </div>
+            )}
+            {logs.length === 0 && connectionStatus !== 'connecting' && connectionStatus !== 'loading' && (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">No logs available</div>
+            )}
+            {logs.map((log, index) => (
+              <div
+                key={index}
+                className={cn(
+                  'mb-1 flex items-start gap-2 whitespace-pre-wrap break-words',
+                  log.type === 'stderr' && 'text-red-400',
+                  log.type === 'stdout' && 'text-foreground',
+                  log.type === 'status' && 'font-semibold text-blue-400',
+                )}
+              >
+                <span className="shrink-0 text-xs text-muted-foreground">{log.timestamp.toLocaleTimeString()}</span>
+                <span className="w-16 shrink-0 text-xs text-muted-foreground">[{log.type.toUpperCase()}]</span>
+                <span className="flex-1">{log.message}</span>
+              </div>
+            ))}
+          </ScrollArea>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
-

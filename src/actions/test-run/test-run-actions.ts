@@ -17,6 +17,7 @@ import { waitForTask, taskSpawner, killTask } from '@/tests/utils/spawner.util'
 import { revalidatePath } from 'next/cache'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 import { processManager } from '@/lib/test-run/process-manager'
+import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
 import { promises as fs } from 'fs'
 import path from 'path'
 
@@ -309,6 +310,18 @@ export async function createTestRunAction(
       },
     })
 
+    // Initialize Winston logger for this test run
+    const logger = await createTestRunLogger(testRun.runId)
+    const logFilePath = getLogFilePath(testRun.runId)
+
+    // Store log file path in database
+    await prisma.testRun.update({
+      where: { id: testRun.id },
+      data: {
+        logPath: logFilePath,
+      },
+    })
+
     // Execute test run asynchronously (don't await, let it run in background)
     try {
       const executePromise = executeTestRun({
@@ -379,6 +392,8 @@ export async function createTestRunAction(
                 message: line,
                 timestamp,
               })
+              // Log to Winston logger
+              logger.info(line)
             })
           }
 
@@ -394,18 +409,26 @@ export async function createTestRunAction(
                 message: line,
                 timestamp,
               })
+              // Log to Winston logger
+              logger.error(line)
             })
           }
 
           // Add exit status log
+          const exitMessage = `Process exited with code ${exitCode}`
           logEntries.push({
             type: 'status',
-            message: `Process exited with code ${exitCode}`,
+            message: exitMessage,
             timestamp: process.endTime || new Date(),
           })
+          // Log exit status to Winston logger
+          logger.info(exitMessage)
 
           // Store logs in database
           await storeTestRunLogsAction(testRun.runId, logEntries)
+
+          // Close Winston logger
+          await closeLogger(logger)
 
           // Check current status before updating - preserve CANCELLED status if already set
           const currentTestRun = await prisma.testRun.findUnique({
@@ -448,6 +471,17 @@ export async function createTestRunAction(
         })
         .catch(async error => {
           console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)
+          
+          // Log error to Winston logger
+          logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
+          if (error instanceof Error && error.stack) {
+            logger.error(error.stack)
+          }
+          
+          // Close Winston logger
+          await closeLogger(logger).catch(err => {
+            console.error(`[TestRunAction] Error closing logger for testRunId: ${testRun.runId}:`, err)
+          })
 
           // Check current status before updating - preserve CANCELLED status if already set
           const currentTestRun = await prisma.testRun.findUnique({

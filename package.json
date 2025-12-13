@@ -45,10 +45,12 @@
     "@tanstack/react-form": "^1.25.0",
     "@tanstack/react-form-devtools": "^0.2.1",
     "@tanstack/react-table": "^8.20.6",
+    "@types/archiver": "^7.0.0",
     "@uiw/codemirror-extensions-langs": "^4.23.10",
     "@uiw/codemirror-theme-github": "^4.23.10",
     "@uiw/react-codemirror": "^4.23.10",
     "@xyflow/react": "^12.4.4",
+    "archiver": "^7.0.1",
     "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -64,6 +66,7 @@
     "recharts": "^2.15.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "winston": "^3.19.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

@@ -3,9 +3,10 @@ import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { TestRunDetails } from '@/components/test-run/test-run-details'
 import { LogViewer } from '@/components/test-run/log-viewer'
+import { DownloadLogsButton } from '@/components/test-run/download-logs-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TestRun, TestRunTestCase, Tag, Environment } from '@prisma/client'
+import { TestRun, TestRunTestCase, Tag, Environment, TestRunStatus } from '@prisma/client'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -53,14 +54,7 @@ export default async function TestRunDetailPage({ params }: TestRunDetailPagePro
 
         <Separator />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Live Logs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <LogViewer testRunId={testRun.runId} status={testRun.status} />
-          </CardContent>
-        </Card>
+        <LogViewer testRunId={testRun.runId} status={testRun.status} />
       </div>
     </>
   )
