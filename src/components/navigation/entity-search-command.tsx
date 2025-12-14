@@ -10,10 +10,8 @@ export interface EntitySearchCommandProps<T extends { id: string }> {
   entityName: string
   fetchAction: () => Promise<ActionResponse>
   searchKey: keyof T
-  getNavigationPath: (entity: T) => string
   icon?: React.ReactNode
   onSelect?: (entity: T) => void
-  emptyMessage?: string
 }
 
 export function EntitySearchCommand<T extends { id: string }>({
@@ -21,10 +19,8 @@ export function EntitySearchCommand<T extends { id: string }>({
   entityName,
   fetchAction,
   searchKey,
-  getNavigationPath,
   icon,
   onSelect,
-  emptyMessage = `No ${entityName.toLowerCase()} found.`,
 }: EntitySearchCommandProps<T>) {
   const [entities, setEntities] = useState<T[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -95,7 +91,7 @@ export function EntitySearchCommand<T extends { id: string }>({
   }
 
   if (filteredEntities.length === 0) {
-    return <CommandEmpty>{emptyMessage}</CommandEmpty>
+    return <></>
   }
 
   return (

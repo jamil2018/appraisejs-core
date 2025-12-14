@@ -29,18 +29,26 @@ import { useRouter } from 'next/navigation'
 import { CommandChainInput } from './command-chain-input'
 import { EntitySearchCommand } from './entity-search-command'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
-import { TestSuite, TestCase, TemplateStep, TestRun } from '@prisma/client'
+import { TestSuite, TestCase, TemplateStep, TestRun, TemplateTestCase } from '@prisma/client'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import { getAllTestRunsAction } from '@/actions/test-run/test-run-actions'
+import { getAllTemplateTestCasesAction } from '@/actions/template-test-case/template-test-case-actions'
 
-type CommandMode = null | 'search-test-suite' | 'search-test-case' | 'search-template-step' | 'search-test-run'
+type CommandMode =
+  | null
+  | 'search-test-suite'
+  | 'search-test-case'
+  | 'search-template-step'
+  | 'search-test-run'
+  | 'search-template-test-case'
 
 const commandModeToPlaceholder = {
   'search-test-suite': 'Search Test Suite by Name...',
   'search-test-case': 'Search Test Case by Title...',
   'search-template-step': 'Search Template Step by Name...',
   'search-test-run': 'Search Test Run by Name...',
+  'search-template-test-case': 'Search Template Test Case by Name...',
 }
 
 export default function NavCommand({ className }: { className?: string }) {
@@ -86,6 +94,10 @@ export default function NavCommand({ className }: { className?: string }) {
     router.push(`/test-runs/${testRun.id}`)
     setOpen(false)
   }
+  const handleTemplateTestCaseSelect = (templateTestCase: TemplateTestCase) => {
+    router.push(`/template-test-cases/modify/${templateTestCase.id}`)
+    setOpen(false)
+  }
 
   const getBadgeConfig = () => {
     if (commandMode === 'search-test-suite') {
@@ -118,6 +130,15 @@ export default function NavCommand({ className }: { className?: string }) {
     if (commandMode === 'search-test-run') {
       return {
         label: 'Search Test Run',
+        onClose: () => {
+          setCommandMode(null)
+          setSearchQuery('')
+        },
+      }
+    }
+    if (commandMode === 'search-template-test-case') {
+      return {
+        label: 'Search Template Test Case',
         onClose: () => {
           setCommandMode(null)
           setSearchQuery('')
@@ -160,7 +181,6 @@ export default function NavCommand({ className }: { className?: string }) {
               entityName="Test Suite"
               fetchAction={getAllTestSuitesAction}
               searchKey="name"
-              getNavigationPath={testSuite => `/test-suites/modify/${testSuite.id}`}
               icon={<TestTubes className="h-4 w-4" />}
               onSelect={handleTestSuiteSelect}
             />
@@ -170,7 +190,6 @@ export default function NavCommand({ className }: { className?: string }) {
               entityName="Test Case"
               fetchAction={getAllTestCasesAction}
               searchKey="title"
-              getNavigationPath={testCase => `/test-cases/modify/${testCase.id}`}
               icon={<TestTubeDiagonal className="h-4 w-4" />}
               onSelect={handleTestCaseSelect}
             />
@@ -180,7 +199,6 @@ export default function NavCommand({ className }: { className?: string }) {
               entityName="Template Step"
               fetchAction={getAllTemplateStepsAction}
               searchKey="name"
-              getNavigationPath={templateStep => `/template-steps/modify/${templateStep.id}`}
               icon={<LayoutTemplate className="h-4 w-4" />}
               onSelect={handleTemplateStepSelect}
             />
@@ -190,9 +208,17 @@ export default function NavCommand({ className }: { className?: string }) {
               entityName="Test Run"
               fetchAction={getAllTestRunsAction}
               searchKey="name"
-              getNavigationPath={testRun => `/test-runs/${testRun.id}`}
               icon={<ListChecks className="h-4 w-4" />}
               onSelect={handleTestRunSelect}
+            />
+          ) : commandMode === 'search-template-test-case' ? (
+            <EntitySearchCommand
+              searchQuery={searchQuery}
+              entityName="Template Test Case"
+              fetchAction={getAllTemplateTestCasesAction}
+              searchKey="name"
+              icon={<Blocks className="h-4 w-4" />}
+              onSelect={handleTemplateTestCaseSelect}
             />
           ) : (
             <>
@@ -346,6 +372,18 @@ export default function NavCommand({ className }: { className?: string }) {
                     Create Template Step
                   </Link>
                 </CommandItem>
+                <CommandItem
+                  asChild
+                  onSelect={() => {
+                    setOpen(false)
+                    router.push('/template-test-cases/create')
+                  }}
+                >
+                  <Link href="/template-test-cases/create" onClick={() => setOpen(false)}>
+                    <Blocks className="h-4 w-4" />
+                    Create Template Test Case
+                  </Link>
+                </CommandItem>
               </CommandGroup>
               <CommandGroup heading="Configuration">
                 <CommandItem
@@ -459,6 +497,15 @@ export default function NavCommand({ className }: { className?: string }) {
                 >
                   <ListChecks className="h-4 w-4" />
                   Search Test Runs
+                </CommandItem>
+                <CommandItem
+                  onSelect={() => {
+                    setCommandMode('search-template-test-case')
+                    setSearchQuery('')
+                  }}
+                >
+                  <Blocks className="h-4 w-4" />
+                  Search Template Test Cases
                 </CommandItem>
               </CommandGroup>
             </>
