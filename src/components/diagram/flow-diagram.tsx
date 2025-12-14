@@ -24,6 +24,7 @@ import NodeForm from './node-form'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
 import { NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import { Locator, TemplateStep, TemplateStepParameter, StepParameterType, LocatorGroup } from '@prisma/client'
+import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
 
 const edgeTypes = {
   buttonEdge: ButtonEdge,
@@ -48,68 +49,86 @@ const FlowDiagram = ({
 }) => {
   const handleEditNodeRef = useRef<(nodeId: string) => void>(() => {})
 
-  const generateInitialNodesAndEdges = useCallback((nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => {
-    const nodes: Node[] = []
-    const edges: Edge[] = []
+  const generateInitialNodesAndEdges = useCallback(
+    (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => {
+      const nodes: Node[] = []
+      const edges: Edge[] = []
 
-    // Sort entries by order value
-    const sortedEntries = Object.entries(nodeOrder).sort(
-      ([, nodeDataA], [, nodeDataB]) => nodeDataA.order - nodeDataB.order,
-    )
+      // Sort entries by order value
+      const sortedEntries = Object.entries(nodeOrder).sort(
+        ([, nodeDataA], [, nodeDataB]) => nodeDataA.order - nodeDataB.order,
+      )
 
-    // Create nodes
-    sortedEntries.forEach(([id, nodeData], index) => {
-      const baseNodeData = {
-        label: nodeData.label,
-        gherkinStep: nodeData.gherkinStep ?? '',
-        isFirstNode: nodeData.isFirstNode ?? false,
-        icon: nodeData.icon ?? '',
-        parameters: (nodeData.parameters ?? []).map(
-          (p: NodeData['parameters'][number] | TemplateTestCaseNodeData['parameters'][number]) => ({
-            name: p.name,
-            value: 'value' in p ? p.value : p.defaultValue,
-            type: p.type ?? StepParameterType.STRING,
-            order: p.order,
-          }),
-        ),
-        templateStepId: nodeData.templateStepId ?? '',
-      }
+      // Create nodes
+      sortedEntries.forEach(([id, nodeData], index) => {
+        const baseNodeData = {
+          label: nodeData.label,
+          gherkinStep: nodeData.gherkinStep ?? '',
+          isFirstNode: nodeData.isFirstNode ?? false,
+          icon: nodeData.icon ?? '',
+          parameters: (nodeData.parameters ?? []).map(
+            (p: NodeData['parameters'][number] | TemplateTestCaseNodeData['parameters'][number]) => ({
+              name: p.name,
+              value: 'value' in p ? p.value : p.defaultValue,
+              type: p.type ?? StepParameterType.STRING,
+              order: p.order,
+            }),
+          ),
+          templateStepId: nodeData.templateStepId ?? '',
+        }
 
-      // Skip isolated nodes (order === -1)
-      if (nodeData.order === -1) {
+        // Check for missing mandatory parameters (only when defaultValueInput is false)
+        const isMissingParams = checkMissingMandatoryParams(
+          {
+            parameters: baseNodeData.parameters,
+            templateStepId: baseNodeData.templateStepId,
+          },
+          templateStepParams,
+          defaultValueInput,
+        )
+
+        const nodeDataWithValidation = {
+          ...baseNodeData,
+          ...(isMissingParams ? { isMissingParams: true } : {}),
+        }
+
+        // Skip isolated nodes (order === -1)
+        if (nodeData.order === -1) {
+          nodes.push({
+            id,
+            data: nodeDataWithValidation,
+            position: { x: 0, y: index * 100 }, // Stack isolated nodes vertically
+            type: 'optionsHeaderNode',
+          })
+          return
+        }
+
         nodes.push({
           id,
-          data: baseNodeData,
-          position: { x: 0, y: index * 100 }, // Stack isolated nodes vertically
+          data: nodeDataWithValidation,
+          position: { x: nodeData.order * 500, y: 0 }, // Space nodes horizontally based on order
           type: 'optionsHeaderNode',
         })
-        return
-      }
 
-      nodes.push({
-        id,
-        data: baseNodeData,
-        position: { x: nodeData.order * 500, y: 0 }, // Space nodes horizontally based on order
-        type: 'optionsHeaderNode',
+        // Create edges between consecutive nodes
+        if (index < sortedEntries.length - 1) {
+          const nextEntry = sortedEntries[index + 1]
+          // Only create edge if both nodes have valid orders (not -1)
+          if (nodeData.order !== -1 && nextEntry[1].order !== -1 && nodeData.order === nextEntry[1].order - 1) {
+            edges.push({
+              id: `${id}-${nextEntry[0]}`,
+              source: id,
+              target: nextEntry[0],
+              type: 'buttonEdge',
+            })
+          }
+        }
       })
 
-      // Create edges between consecutive nodes
-      if (index < sortedEntries.length - 1) {
-        const nextEntry = sortedEntries[index + 1]
-        // Only create edge if both nodes have valid orders (not -1)
-        if (nodeData.order !== -1 && nextEntry[1].order !== -1 && nodeData.order === nextEntry[1].order - 1) {
-          edges.push({
-            id: `${id}-${nextEntry[0]}`,
-            source: id,
-            target: nextEntry[0],
-            type: 'buttonEdge',
-          })
-        }
-      }
-    })
-
-    return { nodes, edges }
-  }, [])
+      return { nodes, edges }
+    },
+    [templateStepParams, defaultValueInput],
+  )
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => generateInitialNodesAndEdges(nodeOrder),
@@ -153,12 +172,24 @@ const FlowDiagram = ({
       // Lookup the icon from the template step
       const templateStep = templateSteps.find(ts => ts.id === formData.templateStepId)
       const icon = templateStep?.icon ?? 'MOUSE'
+
+      // Check for missing mandatory parameters (only when defaultValueInput is false)
+      const isMissingParams = checkMissingMandatoryParams(
+        {
+          parameters: formData.parameters,
+          templateStepId: formData.templateStepId,
+        },
+        templateStepParams,
+        defaultValueInput,
+      )
+
       const newNode: Node = {
         id: crypto.randomUUID(),
         data: {
           ...formData,
           icon, // Add icon here
           isFirstNode: nodes.length === 0,
+          ...(isMissingParams ? { isMissingParams: true } : {}),
         },
         position: { x: 0, y: 0 },
         type: 'optionsHeaderNode',
@@ -166,7 +197,7 @@ const FlowDiagram = ({
       setNodes(nds => nds.concat(newNode))
       setShowAddNodeDialog(false)
     },
-    [setNodes, setShowAddNodeDialog, nodes, templateSteps],
+    [setNodes, setShowAddNodeDialog, nodes, templateSteps, templateStepParams, defaultValueInput],
   )
 
   const handleEditNodeSubmit = useCallback(
@@ -174,6 +205,17 @@ const FlowDiagram = ({
       if (!editNodeId) return
       const templateStep = templateSteps.find(ts => ts.id === formData.templateStepId)
       const icon = templateStep?.icon ?? 'MOUSE'
+
+      // Check for missing mandatory parameters (only when defaultValueInput is false)
+      const isMissingParams = checkMissingMandatoryParams(
+        {
+          parameters: formData.parameters,
+          templateStepId: formData.templateStepId,
+        },
+        templateStepParams,
+        defaultValueInput,
+      )
+
       setNodes(nds =>
         nds.map(node =>
           node.id === editNodeId
@@ -183,6 +225,8 @@ const FlowDiagram = ({
                   ...node.data,
                   ...formData,
                   icon, // Update icon here
+                  // Remove isMissingParams if all params are present, add it if missing
+                  ...(isMissingParams ? { isMissingParams: true } : { isMissingParams: false }),
                 },
               }
             : node,
@@ -190,7 +234,7 @@ const FlowDiagram = ({
       )
       setShowEditNodeDialog(false)
     },
-    [editNodeId, setNodes, setShowEditNodeDialog, templateSteps],
+    [editNodeId, setNodes, setShowEditNodeDialog, templateSteps, templateStepParams, defaultValueInput],
   )
 
   const determineNodeOrders = useCallback((nodes: Node[], edges: Edge[]) => {

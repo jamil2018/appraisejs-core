@@ -28,6 +28,7 @@ import { langs } from '@uiw/codemirror-extensions-langs'
 import { githubDark } from '@uiw/codemirror-theme-github'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
+import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
 
 const errorSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
@@ -186,6 +187,35 @@ const TestCaseForm = ({
   }, [])
 
   const handleSubmit = useCallback(async () => {
+    // Validate that all nodes have mandatory parameters filled
+    const nodesWithMissingParams: string[] = []
+    Object.entries(nodesOrder).forEach(([nodeId, nodeData]) => {
+      // Skip isolated nodes (order === -1)
+      if (nodeData.order === -1) return
+
+      const isMissingParams = checkMissingMandatoryParams(
+        {
+          parameters: nodeData.parameters,
+          templateStepId: nodeData.templateStepId,
+        },
+        templateStepParams,
+        false, // defaultValueInput is always false for test cases
+      )
+
+      if (isMissingParams) {
+        nodesWithMissingParams.push(nodeData.label || nodeId)
+      }
+    })
+
+    if (nodesWithMissingParams.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: `The following nodes have missing mandatory parameters: ${nodesWithMissingParams.join(', ')}. Please fill in all required parameters before saving.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
     const result = errorSchema.safeParse({
       title,
       description,
@@ -222,7 +252,18 @@ const TestCaseForm = ({
         variant: 'destructive',
       })
     }
-  }, [description, nodesOrder, selectedTestSuites, selectedTags, title, router, onSubmitAction, id])
+  }, [
+    description,
+    nodesOrder,
+    selectedTestSuites,
+    selectedTags,
+    title,
+    router,
+    onSubmitAction,
+    id,
+    templateStepParams,
+    toast,
+  ])
 
   return (
     <div className="flex flex-col gap-4">
