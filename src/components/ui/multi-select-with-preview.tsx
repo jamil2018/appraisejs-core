@@ -16,6 +16,7 @@ interface Option {
 
 interface MultiSelectWithPreviewProps {
   id: string
+  className?: string
   options: Option[]
   placeholder?: string
   emptyMessage?: string
@@ -27,6 +28,7 @@ interface MultiSelectWithPreviewProps {
 
 export function MultiSelectWithPreview({
   id,
+  className,
   options,
   placeholder = 'Select options...',
   emptyMessage = 'No option found.',
@@ -54,24 +56,24 @@ export function MultiSelectWithPreview({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-fit max-w-[600px] justify-between"
+            className={cn('w-full justify-between text-muted-foreground', className)}
           >
             {selectedValues.length > 0 ? `${selectedValues.length} ${selectedLabel.toLowerCase()}` : placeholder}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full max-w-[600px] p-0" align="start">
-          <Command className="w-full">
+        <PopoverContent className={cn('w-full max-w-[600px] p-0', className)} align="start">
+          <Command className={cn('w-full', className)}>
             <CommandInput placeholder={searchPlaceholder ?? `Search item(s)...`} className="w-full" />
-            <CommandList className="w-full">
+            <CommandList className={cn('w-full', className)}>
               <CommandEmpty>{emptyMessage}</CommandEmpty>
-              <CommandGroup>
+              <CommandGroup className={cn('w-full', className)}>
                 {options.map(option => (
                   <CommandItem
                     key={option.value}
                     id={id}
                     onSelect={() => handleSelect(option.value)}
-                    className="w-full"
+                    className={cn('w-full', className)}
                   >
                     <Check
                       className={cn(
@@ -88,17 +90,14 @@ export function MultiSelectWithPreview({
         </PopoverContent>
       </Popover>
       {selectedValues.length > 0 && (
-        <div className="mt-4">
+        <div className={cn('mt-4', className)}>
           <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{selectedLabel}</h3>
           <ul className="space-y-2">
             {selectedValues.map(value => {
               const option = options.find(opt => opt.value === value)
               if (!option) return null
               return (
-                <li
-                  key={value}
-                  className="flex max-w-screen-sm items-center justify-between rounded-md bg-secondary p-2"
-                >
+                <li key={value} className="flex items-center justify-between rounded-md bg-secondary p-2">
                   <span className="text-sm">{option.label}</span>
                   <Button variant="ghost" size="sm" onClick={() => handleSelect(value)} className="h-auto p-1">
                     <X className="h-4 w-4" />

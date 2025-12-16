@@ -15,3 +15,8 @@ Feature: Collection of test cases covering login scenarios
   Scenario: [Failing Login] Validate user is failing to login when being navigated to incorrect route
     Given the user navigates to the "staging" environment
     Then the user should be navigated to the "/test" route
+
+  @tc_bfa82c21e6495781
+  Scenario: [Login Navigation] Validate user is able to navigate to the login page
+    Given the user navigates to the "staging" environment
+    Then the user should be navigated to the "/login" route
