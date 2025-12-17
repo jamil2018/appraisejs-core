@@ -22,13 +22,14 @@ import { z } from 'zod'
 import { toast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
 import { IconToKeyTransformer } from '@/lib/transformers/key-to-icon-transformer'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import CodeMirror, { EditorView } from '@uiw/react-codemirror'
 import { langs } from '@uiw/codemirror-extensions-langs'
 import { githubDark } from '@uiw/codemirror-theme-github'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
+import { Info } from 'lucide-react'
 
 const errorSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
@@ -269,75 +270,129 @@ const TestCaseForm = ({
     <div className="flex flex-col gap-4">
       <div className="flex justify-between gap-8" id="meta">
         <div className="w-1/2">
-          <div className="mb-4 flex flex-col gap-2">
-            <Label htmlFor="title">Title</Label>
-            <Input id="title" name="title" value={title} onChange={onTitleChange} />
-            <ErrorMessage message={errors.title?.[0] || ''} visible={!!errors.title} />
-          </div>
-          <div className="mb-4 flex flex-col gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" name="description" value={description} onChange={onDescriptionChange} />
-            <ErrorMessage message={errors.description?.[0] || ''} visible={!!errors.description} />
-          </div>
-          <div className="mb-4 flex flex-col gap-2">
-            <Label htmlFor="test-suites">Test Suites</Label>
-            <MultiSelect
-              options={testSuites.map(testSuite => {
-                return {
-                  label: testSuite.name,
-                  value: testSuite.id,
-                }
-              })}
-              selected={selectedTestSuites}
-              onChange={onTestSuiteChange}
-            />
-            <ErrorMessage message={errors.testSuiteIds?.[0] || ''} visible={!!errors.testSuiteIds} />
-          </div>
-          <div className="mb-4 flex flex-col gap-2">
-            <Label htmlFor="tags">Filter Tags</Label>
-            <MultiSelect
-              options={tags.map(tag => {
-                return {
-                  label: tag.name,
-                  value: tag.id,
-                }
-              })}
-              selected={selectedTags}
-              onChange={onTagChange}
-            />
-          </div>
+          <Card className="h-full dark:border-gray-700 dark:bg-gray-500/10">
+            <CardHeader className="mb-4">
+              <CardTitle className="text-xl font-bold text-primary">Test Case Details</CardTitle>
+              <CardDescription>Enter the core details of your test scenario</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-6 flex flex-col gap-2">
+                <Label htmlFor="title">Title</Label>
+                <Input id="title" name="title" value={title} onChange={onTitleChange} />
+                <ErrorMessage message={errors.title?.[0] || ''} visible={!!errors.title} />
+              </div>
+              <div className="mb-6 flex flex-col gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={description}
+                  onChange={onDescriptionChange}
+                  className="bg-background"
+                />
+                <ErrorMessage message={errors.description?.[0] || ''} visible={!!errors.description} />
+              </div>
+              <div className="mb-6 flex flex-col gap-2">
+                <Label htmlFor="test-suites">Test Suites</Label>
+                <MultiSelect
+                  options={testSuites.map(testSuite => {
+                    return {
+                      label: testSuite.name,
+                      value: testSuite.id,
+                    }
+                  })}
+                  selected={selectedTestSuites}
+                  onChange={onTestSuiteChange}
+                />
+                <ErrorMessage message={errors.testSuiteIds?.[0] || ''} visible={!!errors.testSuiteIds} />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="tags">Filter Tags</Label>
+                <MultiSelect
+                  options={tags.map(tag => {
+                    return {
+                      label: tag.name,
+                      value: tag.id,
+                    }
+                  })}
+                  selected={selectedTags}
+                  onChange={onTagChange}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
         <div className="w-1/2">
-          <div className="mb-4 flex flex-col gap-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Test Scenario(Preview)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CodeMirror
-                  editable={false}
-                  value={generateGherkinSyntax()}
-                  onChange={() => {}}
-                  height="200px"
-                  extensions={[langs.gherkin(), EditorView.lineWrapping]}
-                  theme={githubDark}
-                />
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="mb-4 border-gray-700 bg-gray-500/10">
+            <CardHeader className="mb-2">
+              <CardTitle className="flex items-center gap-2 text-xl text-primary">
+                <Info className="h-5 w-5" />
+                <span className="font-bold">Quick Tips</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex items-start gap-4">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                  1
+                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-base font-bold">Provide a clear and descriptive title & description</span>
+                  <span className="text-sm text-muted-foreground">
+                    Use clear, specific terms that indicate the purpose of the test scenario
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                  2
+                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-base font-bold">Build your test scenario step by step</span>
+                  <span className="text-sm text-muted-foreground">
+                    Build your test scenario step by step visually to help others understand the flow of the test
+                    scenario
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-gray-700 bg-gray-500/10">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-primary">Test Scenario(Preview)</CardTitle>
+              <CardDescription>Preview of the test scenario in Gherkin syntax</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CodeMirror
+                editable={false}
+                value={generateGherkinSyntax()}
+                onChange={() => {}}
+                height="200px"
+                extensions={[langs.gherkin(), EditorView.lineWrapping]}
+                theme={githubDark}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
-      <div className="mb-4 flex h-[500px] flex-col gap-2">
-        <Label htmlFor="test-case-flow">Test Case Flow</Label>
-        <TestCaseFlow
-          initialNodesOrder={nodesOrder}
-          templateStepParams={templateStepParams}
-          templateSteps={templateSteps}
-          onNodeOrderChange={onNodeOrderChange}
-          locators={locators}
-          locatorGroups={locatorGroups}
-        />
-      </div>
+      <Card className="mb-4 border-gray-700 bg-gray-500/10">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+          <CardDescription>Build your test scenario step by step visually</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex h-[500px] flex-col gap-2">
+            <Label htmlFor="test-case-flow">Test Case Flow</Label>
+            <TestCaseFlow
+              initialNodesOrder={nodesOrder}
+              templateStepParams={templateStepParams}
+              templateSteps={templateSteps}
+              onNodeOrderChange={onNodeOrderChange}
+              locators={locators}
+              locatorGroups={locatorGroups}
+            />
+          </div>
+        </CardContent>
+      </Card>
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={handleSubmit} className="w-fit px-6">
           Save
