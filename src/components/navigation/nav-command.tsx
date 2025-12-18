@@ -52,12 +52,17 @@ const commandModeToPlaceholder = {
 }
 
 export default function NavCommand({ className }: { className?: string }) {
-  const platform = navigator.userAgent.toLowerCase().includes('mac') ? 'Mac' : 'Windows'
   const router = useRouter()
 
   const [open, setOpen] = useState(false)
   const [commandMode, setCommandMode] = useState<CommandMode>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isMac, setIsMac] = useState(false)
+
+  useEffect(() => {
+    // Only detect platform on client side to avoid hydration mismatch
+    setIsMac(navigator.userAgent.toLowerCase().includes('mac'))
+  }, [])
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -158,7 +163,7 @@ export default function NavCommand({ className }: { className?: string }) {
         <span>Open Command Palette</span>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <kbd className="rounded-md bg-muted px-1 text-xs text-gray-400">
-            {platform === 'Mac' ? <Command className="h-2 w-2 text-gray-400" /> : 'Ctrl'}
+            {isMac ? <Command className="h-2 w-2 text-gray-400" /> : 'Ctrl'}
           </kbd>
           <Plus className="h-2 w-2 text-gray-400" />
           <kbd className="rounded-md bg-muted px-1 text-xs text-gray-400">K</kbd>
