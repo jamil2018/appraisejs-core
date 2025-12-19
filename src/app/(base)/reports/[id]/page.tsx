@@ -39,6 +39,8 @@ const sampleReportDetails: ReportDetails = {
   },
   updatedAt: new Date(),
   environmentId: '1',
+  name: '',
+  logPath: null,
 }
 
 const testRunResultToBadge = (result: TestRunResult) => {

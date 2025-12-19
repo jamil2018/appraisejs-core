@@ -1,6 +1,6 @@
 import { deleteLocatorGroupAction, getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { DataTable } from '@/components/ui/data-table'
-import { LocatorGroup } from '@prisma/client'
+import { LocatorGroup, Module } from '@prisma/client'
 import { locatorGroupTableCols } from './locator-group-table-columns'
 
 const LocatorGroupTable = async () => {
@@ -14,7 +14,7 @@ const LocatorGroupTable = async () => {
     <>
       <DataTable
         columns={locatorGroupTableCols}
-        data={locatorGroups as LocatorGroup[]}
+        data={locatorGroups as (LocatorGroup & { module: Module })[]}
         filterColumn="name"
         filterPlaceholder="Filter by name..."
         createLink="/locator-groups/create"
