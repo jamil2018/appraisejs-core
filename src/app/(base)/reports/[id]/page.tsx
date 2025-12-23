@@ -90,21 +90,37 @@ const sampleResultByFeatureBarChartConfig = {
   feature: {
     label: 'Feature',
   },
+  passed: {
+    label: 'Passed',
+    color: colorMap.passed,
+  },
+  failed: {
+    label: 'Failed',
+    color: colorMap.failed,
+  },
+  cancelled: {
+    label: 'Cancelled',
+    color: colorMap.cancelled,
+  },
+  unknown: {
+    label: 'Unknown',
+    color: colorMap.unknown,
+  },
 } satisfies ChartConfig
 
 const sampleResultByFeatureBarChartData = [
-  { feature: 'Feature 1', passed: 10, fill: colorMap.default },
-  { feature: 'Feature 2', passed: 5, fill: colorMap.default },
-  { feature: 'Feature 3', passed: 3, fill: colorMap.default },
-  { feature: 'Feature 4', passed: 2, fill: colorMap.default },
-  { feature: 'Feature 5', passed: 10, fill: colorMap.default },
-  { feature: 'Feature 6', passed: 5, fill: colorMap.default },
-  { feature: 'Feature 7', passed: 3, fill: colorMap.default },
-  { feature: 'Feature 8', passed: 2, fill: colorMap.default },
-  { feature: 'Feature 9', passed: 10, fill: colorMap.default },
-  { feature: 'Feature 10', passed: 5, fill: colorMap.default },
-  { feature: 'Feature 11', passed: 3, fill: colorMap.default },
-  { feature: 'Feature 12', passed: 2, fill: colorMap.default },
+  { feature: 'Feature 1', passed: 10, failed: 3, cancelled: 2, unknown: 1, total: 16 },
+  { feature: 'Feature 2', passed: 5, failed: 2, cancelled: 1, unknown: 0, total: 8 },
+  { feature: 'Feature 3', passed: 3, failed: 1, cancelled: 0, unknown: 1, total: 5 },
+  { feature: 'Feature 4', passed: 2, failed: 0, cancelled: 1, unknown: 0, total: 3 },
+  { feature: 'Feature 5', passed: 10, failed: 2, cancelled: 3, unknown: 2, total: 17 },
+  { feature: 'Feature 6', passed: 5, failed: 1, cancelled: 0, unknown: 1, total: 7 },
+  { feature: 'Feature 7', passed: 3, failed: 2, cancelled: 1, unknown: 0, total: 6 },
+  { feature: 'Feature 8', passed: 2, failed: 1, cancelled: 0, unknown: 1, total: 4 },
+  { feature: 'Feature 9', passed: 10, failed: 4, cancelled: 1, unknown: 2, total: 17 },
+  { feature: 'Feature 10', passed: 5, failed: 3, cancelled: 2, unknown: 0, total: 10 },
+  { feature: 'Feature 11', passed: 3, failed: 0, cancelled: 1, unknown: 1, total: 5 },
+  { feature: 'Feature 12', passed: 2, failed: 2, cancelled: 0, unknown: 0, total: 4 },
 ]
 
 const testRunResultToBadge = (result: TestRunResult) => {

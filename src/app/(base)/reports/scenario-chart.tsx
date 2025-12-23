@@ -5,7 +5,14 @@ import { Bar, BarChart, XAxis, YAxis } from 'recharts'
 
 interface ScenarioChartProps {
   config: ChartConfig
-  data: Array<{ feature: string; passed: number; fill: string }>
+  data: Array<{
+    feature: string
+    passed: number
+    failed: number
+    cancelled: number
+    unknown: number
+    total: number
+  }>
 }
 
 export default function ScenarioChart({ config, data }: ScenarioChartProps) {
@@ -23,9 +30,36 @@ export default function ScenarioChart({ config, data }: ScenarioChartProps) {
         }}
       >
         <YAxis dataKey="feature" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} />
-        <XAxis dataKey="passed" type="number" hide />
+        <XAxis dataKey="total" type="number" hide />
         <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-        <Bar dataKey="passed" layout="vertical" radius={5} fill={config['passed']?.color as string} />
+        <Bar
+          dataKey="passed"
+          stackId="scenarios"
+          radius={[0, 0, 0, 0]}
+          fill={config['passed']?.color as string}
+          stroke="none"
+        />
+        <Bar
+          dataKey="failed"
+          stackId="scenarios"
+          radius={[0, 0, 0, 0]}
+          fill={config['failed']?.color as string}
+          stroke="none"
+        />
+        <Bar
+          dataKey="cancelled"
+          stackId="scenarios"
+          radius={[0, 0, 0, 0]}
+          fill={config['cancelled']?.color as string}
+          stroke="none"
+        />
+        <Bar
+          dataKey="unknown"
+          stackId="scenarios"
+          radius={[0, 0, 0, 0]}
+          fill={config['unknown']?.color as string}
+          stroke="none"
+        />
       </BarChart>
     </ChartContainer>
   )
