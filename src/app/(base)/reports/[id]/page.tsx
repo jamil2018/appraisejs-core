@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChartConfig } from '@/components/ui/chart'
 import OverviewChart from '../overview-chart'
-import ScenarioChart from '../scenario-chart'
+import FeatureChart from '../feature-chart'
 import DurationChart from '../duration-chart'
 
 export const metadata: Metadata = {
@@ -346,7 +346,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
       </div>
       <Separator className="my-4 bg-muted" />
       <div className="flex gap-6">
-        <Card className="flex h-[400px] min-w-0 flex-1 flex-col">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <Info className="h-6 w-6" />
@@ -380,7 +380,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             </div>
           </CardContent>
         </Card>
-        <Card className="flex h-[400px] min-w-0 flex-1 flex-col">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col">
           <CardHeader className="flex-shrink-0">
             <CardTitle>Visualizations</CardTitle>
           </CardHeader>
@@ -395,7 +395,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
                 <OverviewChart config={overViewPieChartConfig} data={sampleOverViewPieChartData} />
               </TabsContent>
               <TabsContent value="feature" className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
-                <ScenarioChart config={sampleResultByFeatureBarChartConfig} data={sampleResultByFeatureBarChartData} />
+                <FeatureChart config={sampleResultByFeatureBarChartConfig} data={sampleResultByFeatureBarChartData} />
               </TabsContent>
               <TabsContent value="duration" className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
                 <DurationChart config={durationByFeatureBarChartConfig} data={sampleDurationByFeatureBarChartData} />
