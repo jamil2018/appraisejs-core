@@ -11,6 +11,7 @@ import { ChartConfig } from '@/components/ui/chart'
 import OverviewChart from '../overview-chart'
 import FeatureChart from '../feature-chart'
 import DurationChart from '../duration-chart'
+import ReportTable from '../report-table'
 
 export const metadata: Metadata = {
   title: 'Appraise | View Report',
@@ -404,6 +405,8 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </CardContent>
         </Card>
       </div>
+      <Separator className="my-4 bg-muted" />
+      <ReportTable />
     </>
   )
 }

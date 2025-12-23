@@ -198,6 +198,7 @@ model TestRunTestCase {
   tracePath  String?
   testRun    TestRun               @relation(fields: [testRunId], references: [id], onDelete: Cascade)
   testCase   TestCase              @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  reportTestCases ReportTestCase[]
 }
 
 model TestRun {
@@ -217,6 +218,7 @@ model TestRun {
   browserEngine    BrowserEngine     @default(CHROMIUM)
   logs             TestRunLog?
   logPath          String?
+  reports          Report[]
 }
 
 model TestRunLog {
@@ -250,6 +252,40 @@ model Tag {
   testRuns      TestRun[]
   testSuites    TestSuite[]
   testCases     TestCase[]
+}
+
+
+model ConflictResolution {
+  id                  String       @id @default(uuid())
+  entityType          EntityType
+  entityId            String
+  conflictType        ConflictType
+  conflictingEntityId String?
+  resolved            Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  locator             Locator?     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model ReportTestCase {
+  id String @id @default(uuid())
+  reportId String
+  testCaseId String
+  testRunTestCaseId String
+  testRunTestCase TestRunTestCase @relation(fields: [testRunTestCaseId], references: [id], onDelete: Cascade)
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  duration Int
+}
+
+model Report {
+  id String @id @default(uuid())
+  name String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  testRunId   String
+  testRun     TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCases   ReportTestCase[]
 }
 
 enum TagType {
@@ -357,17 +393,7 @@ enum TemplateStepGroupType {
   VALIDATION
 }
 
-model ConflictResolution {
-  id                  String       @id @default(uuid())
-  entityType          EntityType
-  entityId            String
-  conflictType        ConflictType
-  conflictingEntityId String?
-  resolved            Boolean      @default(false)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  locator             Locator?     @relation(fields: [entityId], references: [id], onDelete: Cascade)
-}
+
 
 enum EntityType {
   LOCATOR
