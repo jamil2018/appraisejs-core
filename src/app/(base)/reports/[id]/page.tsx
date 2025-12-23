@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChartConfig } from '@/components/ui/chart'
 import OverviewChart from '../overview-chart'
 import ScenarioChart from '../scenario-chart'
+import DurationChart from '../duration-chart'
 
 export const metadata: Metadata = {
   title: 'Appraise | View Report',
@@ -121,6 +122,25 @@ const sampleResultByFeatureBarChartData = [
   { feature: 'Feature 10', passed: 5, failed: 3, cancelled: 2, unknown: 0, total: 10 },
   { feature: 'Feature 11', passed: 3, failed: 0, cancelled: 1, unknown: 1, total: 5 },
   { feature: 'Feature 12', passed: 2, failed: 2, cancelled: 0, unknown: 0, total: 4 },
+]
+
+const durationByFeatureBarChartConfig = {
+  feature: {
+    label: 'Feature',
+  },
+  duration: {
+    label: 'Duration',
+  },
+} satisfies ChartConfig
+
+const sampleDurationByFeatureBarChartData = [
+  { feature: 'Feature 1', duration: 400 },
+  { feature: 'Feature 2', duration: 300 },
+  { feature: 'Feature 3', duration: 300 },
+  { feature: 'Feature 4', duration: 200 },
+  { feature: 'Feature 5', duration: 100 },
+  { feature: 'Feature 6', duration: 500 },
+  { feature: 'Feature 7', duration: 1000 },
 ]
 
 const testRunResultToBadge = (result: TestRunResult) => {
@@ -378,7 +398,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
                 <ScenarioChart config={sampleResultByFeatureBarChartConfig} data={sampleResultByFeatureBarChartData} />
               </TabsContent>
               <TabsContent value="duration" className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
-                Change your password here.
+                <DurationChart config={durationByFeatureBarChartConfig} data={sampleDurationByFeatureBarChartData} />
               </TabsContent>
             </Tabs>
           </CardContent>
