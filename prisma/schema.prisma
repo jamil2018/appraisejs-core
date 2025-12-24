@@ -218,6 +218,7 @@ model TestRun {
   browserEngine    BrowserEngine     @default(CHROMIUM)
   logs             TestRunLog?
   logPath          String?
+  reportPath       String?
   reports          Report[]
 }
 
@@ -272,8 +273,10 @@ model ReportTestCase {
   reportId String
   testCaseId String
   testRunTestCaseId String
+  reportScenarioId String?
   testRunTestCase TestRunTestCase @relation(fields: [testRunTestCaseId], references: [id], onDelete: Cascade)
   report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportScenario ReportScenario? @relation(fields: [reportScenarioId], references: [id], onDelete: SetNull)
   duration Int
 }
 
@@ -281,11 +284,96 @@ model Report {
   id String @id @default(uuid())
   name String
   description String?
+  reportPath String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   testRunId   String
   testRun     TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
   testCases   ReportTestCase[]
+  features    ReportFeature[]
+}
+
+model ReportFeature {
+  id String @id @default(uuid())
+  reportId String
+  name String
+  description String?
+  uri String
+  line Int
+  keyword String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  tags ReportFeatureTag[]
+  scenarios ReportScenario[]
+}
+
+model ReportFeatureTag {
+  id String @id @default(uuid())
+  reportFeatureId String
+  tagName String
+  line Int
+  createdAt DateTime @default(now())
+  reportFeature ReportFeature @relation(fields: [reportFeatureId], references: [id], onDelete: Cascade)
+}
+
+model ReportScenario {
+  id String @id @default(uuid())
+  reportFeatureId String
+  name String
+  description String?
+  line Int
+  keyword String
+  type String
+  cucumberId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reportFeature ReportFeature @relation(fields: [reportFeatureId], references: [id], onDelete: Cascade)
+  tags ReportScenarioTag[]
+  steps ReportStep[]
+  hooks ReportHook[]
+  reportTestCases ReportTestCase[]
+}
+
+model ReportScenarioTag {
+  id String @id @default(uuid())
+  reportScenarioId String
+  tagName String
+  line Int
+  createdAt DateTime @default(now())
+  reportScenario ReportScenario @relation(fields: [reportScenarioId], references: [id], onDelete: Cascade)
+}
+
+model ReportStep {
+  id String @id @default(uuid())
+  reportScenarioId String
+  keyword StepKeyword
+  line Int?
+  name String
+  matchLocation String?
+  status StepStatus
+  duration Int
+  errorMessage String?
+  errorTrace String?
+  hidden Boolean @default(false)
+  order Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reportScenario ReportScenario @relation(fields: [reportScenarioId], references: [id], onDelete: Cascade)
+}
+
+model ReportHook {
+  id String @id @default(uuid())
+  reportScenarioId String
+  keyword StepKeyword
+  status StepStatus
+  duration Int
+  errorMessage String?
+  errorTrace String?
+  hidden Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reportScenario ReportScenario @relation(fields: [reportScenarioId], references: [id], onDelete: Cascade)
 }
 
 enum TagType {
@@ -402,4 +490,22 @@ enum EntityType {
 enum ConflictType {
   DUPLICATE_NAME
   DUPLICATE_VALUE
+}
+
+enum StepStatus {
+  PASSED
+  FAILED
+  SKIPPED
+  PENDING
+  UNDEFINED
+}
+
+enum StepKeyword {
+  GIVEN
+  WHEN
+  THEN
+  AND
+  BUT
+  BEFORE
+  AFTER
 }

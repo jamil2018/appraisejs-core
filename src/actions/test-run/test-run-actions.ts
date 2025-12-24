@@ -325,7 +325,7 @@ export async function createTestRunAction(
 
     // Execute test run asynchronously (don't await, let it run in background)
     try {
-      const executePromise = executeTestRun({
+      const { process: spawnedProcess, reportPath } = await executeTestRun({
         testRunId: testRun.runId,
         environment,
         tags,
@@ -333,6 +333,16 @@ export async function createTestRunAction(
         browserEngine: value.browserEngine,
         headless: true, // Default to headless
       })
+
+      // Store report path in TestRun record
+      await prisma.testRun.update({
+        where: { id: testRun.id },
+        data: {
+          reportPath,
+        },
+      })
+
+      const executePromise = Promise.resolve(spawnedProcess)
 
       // Set up server-side listener for scenario::end events to update test case statuses
       // This ensures status updates happen even if no client is connected
@@ -375,19 +385,19 @@ export async function createTestRunAction(
       }
 
       executePromise
-        .then(async process => {
+        .then(async spawnedProcess => {
           // Wait for process to complete
-          const exitCode = await waitForTask(process.name)
+          const exitCode = await waitForTask(spawnedProcess.name)
 
           // Collect all logs from the process output
           const logEntries: LogEntry[] = []
 
           // Add stdout logs
-          if (process.output.stdout.length > 0) {
-            const stdoutText = process.output.stdout.join('')
+          if (spawnedProcess.output.stdout.length > 0) {
+            const stdoutText = spawnedProcess.output.stdout.join('')
             const stdoutLines = stdoutText.split('\n').filter(line => line.trim() !== '')
             stdoutLines.forEach((line, index) => {
-              const timestamp = new Date(process.startTime.getTime() + index * 10)
+              const timestamp = new Date(spawnedProcess.startTime.getTime() + index * 10)
               logEntries.push({
                 type: 'stdout',
                 message: line,
@@ -399,12 +409,12 @@ export async function createTestRunAction(
           }
 
           // Add stderr logs
-          if (process.output.stderr.length > 0) {
-            const stderrText = process.output.stderr.join('')
+          if (spawnedProcess.output.stderr.length > 0) {
+            const stderrText = spawnedProcess.output.stderr.join('')
             const stderrLines = stderrText.split('\n').filter(line => line.trim() !== '')
             const stdoutCount = logEntries.filter(e => e.type === 'stdout').length
             stderrLines.forEach((line, index) => {
-              const timestamp = new Date(process.startTime.getTime() + stdoutCount * 10 + index * 10)
+              const timestamp = new Date(spawnedProcess.startTime.getTime() + stdoutCount * 10 + index * 10)
               logEntries.push({
                 type: 'stderr',
                 message: line,
@@ -420,7 +430,7 @@ export async function createTestRunAction(
           logEntries.push({
             type: 'status',
             message: exitMessage,
-            timestamp: process.endTime || new Date(),
+            timestamp: spawnedProcess.endTime || new Date(),
           })
           // Log exit status to Winston logger
           logger.info(exitMessage)
@@ -469,6 +479,29 @@ export async function createTestRunAction(
 
           // Clean up the server-side event listener
           cleanupListener()
+
+          // Store report in database if report path exists
+          if (reportPath) {
+            try {
+              const { storeReportFromFile } = await import('@/actions/reports/report-actions')
+              const reportResult = await storeReportFromFile(testRun.runId, reportPath)
+              if (reportResult.status === 200) {
+                console.log(`[TestRunAction] Report stored successfully for testRunId: ${testRun.runId}`)
+              } else {
+                console.warn(
+                  `[TestRunAction] Failed to store report for testRunId: ${testRun.runId}: ${reportResult.error}`,
+                )
+              }
+            } catch (error) {
+              console.error(
+                `[TestRunAction] Error storing report for testRunId: ${testRun.runId}:`,
+                error,
+              )
+              // Don't fail the test run if report storage fails
+            }
+          } else {
+            console.warn(`[TestRunAction] No report path available for testRunId: ${testRun.runId}`)
+          }
         })
         .catch(async error => {
           console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)

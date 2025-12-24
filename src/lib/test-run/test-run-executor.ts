@@ -2,6 +2,7 @@ import { BrowserEngine, Environment, Tag } from '@prisma/client'
 import { spawnTask } from '@/tests/utils/spawner.util'
 import { processManager } from './process-manager'
 import type { SpawnedProcess } from '@/tests/utils/spawner.util'
+import { join } from 'path'
 
 /**
  * Configuration for executing a test run
@@ -49,28 +50,56 @@ function combineTagExpressions(tags: Tag[]): string | null {
 }
 
 /**
+ * Generates a unique report path for a test run
+ * Format: src/tests/reports/cucumber-{testRunId}-{timestamp}.json
+ *
+ * @param testRunId - The test run ID (runId, not id)
+ * @returns The full path to the report file
+ */
+export function generateReportPath(testRunId: string): string {
+  const timestamp = Date.now()
+  const reportFileName = `cucumber-${testRunId}-${timestamp}.json`
+  const reportPath = join(process.cwd(), 'src', 'tests', 'reports', reportFileName)
+  return reportPath
+}
+
+/**
  * Sets environment variables for the test execution
  */
-function setEnvironmentVariables(environment: Environment, headless: boolean, browser: string): void {
+function setEnvironmentVariables(
+  environment: Environment,
+  headless: boolean,
+  browser: string,
+  reportPath?: string,
+): void {
   process.env.ENVIRONMENT = environment.name
   process.env.HEADLESS = headless.toString()
   process.env.BROWSER = browser
+  if (reportPath) {
+    process.env.REPORT_PATH = reportPath
+  }
 }
 
 /**
  * Executes a test run by spawning a cucumber process
  *
  * @param config - Test run execution configuration
- * @returns Promise that resolves to the spawned process
+ * @returns Promise that resolves to an object containing the spawned process and report path
  */
-export async function executeTestRun(config: TestRunExecutionConfig): Promise<SpawnedProcess> {
+export async function executeTestRun(config: TestRunExecutionConfig): Promise<{
+  process: SpawnedProcess
+  reportPath: string
+}> {
   const { testRunId, environment, tags, testWorkersCount, browserEngine, headless = true } = config
+
+  // Generate unique report path
+  const reportPath = generateReportPath(testRunId)
 
   // Map browser engine to browser name
   const browserName = mapBrowserEngineToName(browserEngine)
 
-  // Set environment variables
-  setEnvironmentVariables(environment, headless, browserName)
+  // Set environment variables including report path
+  setEnvironmentVariables(environment, headless, browserName, reportPath)
 
   // Build cucumber command arguments
   const cucumberArgs: string[] = []
@@ -111,5 +140,5 @@ export async function executeTestRun(config: TestRunExecutionConfig): Promise<Sp
     )
   })
 
-  return process
+  return { process, reportPath }
 }
