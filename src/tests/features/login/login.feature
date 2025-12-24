@@ -3,20 +3,10 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-@run
-Feature: Collection of test cases covering login scenarios
+@smoke
+Feature: Collection of test scenarios validating the login feature
 
-  @tc_clurjmcu
-  Scenario: [Login] Verify user is able to login to the application using valid login credentials
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/login" route
-
-  @tc_4rswpaiw
-  Scenario: [Failing Login] Validate user is failing to login when being navigated to incorrect route
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/test" route
-
-  @tc_bfa82c21e6495781
-  Scenario: [Login Navigation] Validate user is able to navigate to the login page
-    Given the user navigates to the "staging" environment
+  @tc_62ae9865740294ee
+  Scenario: [Login Navigation] Validate that the user can navigate to the login window
+    Given the user navigates to the "demo" environment
     Then the user should be navigated to the "/login" route
