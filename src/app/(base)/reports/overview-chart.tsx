@@ -8,6 +8,12 @@ interface OverviewChartProps {
   data: Array<{ result: string; value: number; fill: string }>
 }
 
+const calculatePassRate = (data: Array<{ result: string; value: number; fill: string }>) => {
+  const total = data.reduce((acc, curr) => acc + curr.value, 0)
+  const passed = data.find(item => item.result === 'passed')?.value || 0
+  return Math.round((passed / total) * 100)
+}
+
 export default function OverviewChart({ config, data }: OverviewChartProps) {
   return (
     <>
@@ -22,11 +28,7 @@ export default function OverviewChart({ config, data }: OverviewChartProps) {
                   return (
                     <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
                       <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
-                        {(
-                          data.find(item => item.result === 'passed')?.value ||
-                          (0 / data.reduce((acc, curr) => acc + curr.value, 0)) * 100
-                        ).toFixed(1)}
-                        %
+                        {calculatePassRate(data)}%
                       </tspan>
                       <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground">
                         Pass Rate
