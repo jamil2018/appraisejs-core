@@ -198,7 +198,7 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
               name: step.name,
               matchLocation: step.matchLocation,
               status: getStepStatusEnum(step.status),
-              duration: step.duration,
+              duration: String(step.duration),
               errorMessage: step.errorMessage,
               errorTrace: step.errorTrace,
               hidden: step.hidden,
@@ -214,7 +214,7 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
               reportScenarioId: reportScenario.id,
               keyword: getStepKeywordEnum(hook.keyword),
               status: getStepStatusEnum(hook.status),
-              duration: hook.duration,
+              duration: String(hook.duration),
               errorMessage: hook.errorMessage,
               errorTrace: hook.errorTrace,
               hidden: hook.hidden,
@@ -256,7 +256,7 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
               testCaseId: matchedTestCase.testCaseId,
               testRunTestCaseId: matchedTestCase.id,
               reportScenarioId: reportScenario.id,
-              duration: scenarioDuration,
+              duration: String(scenarioDuration),
             },
           })
         }

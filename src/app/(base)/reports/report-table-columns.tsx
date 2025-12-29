@@ -69,13 +69,14 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
     id: 'duration',
     accessorFn: row => {
       const reportTestCase = row.testCases?.[0]
-      return reportTestCase?.duration || 0
+      return reportTestCase?.duration ? Number(reportTestCase.duration) : 0
     },
     header: ({ column }) => <DataTableColumnHeader column={column} title="Duration" />,
     cell: ({ row }) => {
       const reportTestCase = row.original.testCases?.[0]
       if (!reportTestCase) return <div>-</div>
-      return <div>{reportTestCase.duration}ms</div>
+      const durationMs = Math.round(Number(reportTestCase.duration) / 1000000)
+      return <div>{durationMs}ms</div>
     },
   },
   {

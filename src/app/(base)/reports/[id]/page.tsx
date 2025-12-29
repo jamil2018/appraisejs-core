@@ -431,8 +431,8 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
   const durationData = report.features.map(feature => {
     const totalDuration = feature.scenarios.reduce((total, scenario) => {
       const scenarioDuration =
-        scenario.steps.reduce((stepTotal, step) => stepTotal + step.duration, 0) +
-        scenario.hooks.reduce((hookTotal, hook) => hookTotal + hook.duration, 0)
+        scenario.steps.reduce((stepTotal, step) => stepTotal + Number(step.duration), 0) +
+        scenario.hooks.reduce((hookTotal, hook) => hookTotal + Number(hook.duration), 0)
       return total + scenarioDuration
     }, 0)
     return {
