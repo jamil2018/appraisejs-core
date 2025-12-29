@@ -2,5 +2,9 @@
   {
     "name": "login",
     "path": "/login"
+  },
+  {
+    "name": "home",
+    "path": "/home"
   }
 ]

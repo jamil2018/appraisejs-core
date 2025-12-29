@@ -1,7 +1,5 @@
 import { When } from '@cucumber/cucumber'
-import { CustomWorld } from '../../config/executor/world'
-import { SelectorName } from '@/types/locator/locator.type'
-import { resolveLocator } from '../../utils/locator.util'
+import { CustomWorld } from '../../config/executor/world.js'
 
 // This file is generated automatically. Add template steps to this group to generate content.
 

@@ -3,15 +3,12 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-@run
-Feature: Collection of test scenarios validating login scenarios
+Feature: A collection of test scenarios for validating login scenarios
 
-  @tc_3f971cb27c8b7a92
-  Scenario: [Login] Validate user can navigate to the login route
+  @tc_40e940abe11aa9b1
+  Scenario: [Login Validation] Verify user is able to login to the app
     Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/login" route
-
-  @tc_f7842cdd05aa5fd7
-  Scenario: [Failing Login] Failing login scenario
-    Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/test" route
+    When the user fills in the "username" field with value "demo@example.com"
+    And the user fills in the "password" field with value "test1234"
+    And the user clicks the "login button" element
+    Then the "home title" element should contain the text "Welcome to Home Page"
