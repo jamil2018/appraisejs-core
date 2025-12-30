@@ -203,7 +203,7 @@ model TestRunTestCase {
 
 model TestRun {
   id               String            @id @default(uuid())
-  name             String
+  name             String            @unique
   runId            String            @unique @default(uuid())
   startedAt        DateTime          @default(now())
   completedAt      DateTime?

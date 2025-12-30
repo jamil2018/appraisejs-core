@@ -11,10 +11,11 @@ import { ActionResponse } from '@/types/form/actionHandler'
 import { BrowserEngine, Environment, Tag, TestCase, TestRunTestCase, TestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { z } from 'zod'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { checkTestRunNameUniqueAction } from '@/actions/test-run/test-run-actions'
 
 enum TestSelectionType {
   TAGS = 'tags',
@@ -43,11 +44,72 @@ const TestRunForm = ({
   const router = useRouter()
   const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(TestSelectionType.TAGS)
   const testSelectionTypeRef = useRef<TestSelectionType>(testSelectionType)
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Keep ref in sync with state
   useEffect(() => {
     testSelectionTypeRef.current = testSelectionType
   }, [testSelectionType])
+
+  // Debounced function to check name uniqueness
+  // Returns: { isValid: boolean, error?: string }
+  // isValid: false only if name is confirmed to be duplicate
+  // error: error message to display (only returned when isValid is false to block submission)
+  const checkNameUniqueness = useCallback(
+    async (name: string): Promise<{ isValid: boolean; error?: string }> => {
+      if (!name || name.length < 1) return { isValid: true }
+
+      try {
+        const response = await checkTestRunNameUniqueAction(name, id)
+
+        // Handle server errors - allow submission but log the error
+        if (response.status === 500) {
+          console.error('Server error checking name uniqueness:', response.error)
+          // Return valid to allow submission (server will handle validation)
+          return { isValid: true }
+        }
+
+        // Handle successful response
+        if (response.status === 200) {
+          const isUnique = (response.data as { isUnique: boolean })?.isUnique ?? true
+          if (!isUnique) {
+            return {
+              isValid: false,
+              error: 'A test run with this name already exists. Please choose a different name.',
+            }
+          }
+          return { isValid: true }
+        }
+
+        // Unexpected status code - allow submission
+        console.warn('Unexpected response status when checking name uniqueness:', response.status)
+        return { isValid: true }
+      } catch (error) {
+        console.error('Error checking name uniqueness:', error)
+        // Allow submission if check fails (network error, etc.)
+        // Server will handle validation on submit
+        return { isValid: true }
+      }
+    },
+    [id],
+  )
+
+  // Debounced validation function
+  const debouncedNameValidation = useCallback(
+    (name: string): Promise<{ isValid: boolean; error?: string }> => {
+      return new Promise(resolve => {
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current)
+        }
+
+        debounceTimeoutRef.current = setTimeout(async () => {
+          const result = await checkNameUniqueness(name)
+          resolve(result)
+        }, 500) // 500ms debounce
+      })
+    },
+    [checkNameUniqueness],
+  )
 
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
@@ -220,7 +282,22 @@ const TestRunForm = ({
           <CardDescription>Set the configuration for your test run</CardDescription>
         </CardHeader>
         <CardContent>
-          <form.Field name="name" validators={{ onChange: z.string().min(1, { message: 'Name is required' }) }}>
+          <form.Field
+            name="name"
+            validators={{
+              onChange: z.string().min(1, { message: 'Name is required' }),
+              onChangeAsync: async ({ value }) => {
+                if (!value || value.length < 1) return undefined
+                const result = await debouncedNameValidation(value)
+                // Only return error if validation explicitly failed (duplicate name)
+                // Server errors are handled by allowing submission and letting server validate
+                if (!result.isValid && result.error) {
+                  return result.error
+                }
+                return undefined
+              },
+            }}
+          >
             {field => {
               return (
                 <div className="mb-4 flex flex-col gap-2">

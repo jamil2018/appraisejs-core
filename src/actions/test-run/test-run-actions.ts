@@ -20,6 +20,20 @@ import { processManager } from '@/lib/test-run/process-manager'
 import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { Prisma } from '@prisma/client'
+
+/**
+ * Check if a test run name already exists
+ */
+async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
+  const existing = await prisma.testRun.findFirst({
+    where: {
+      name: name,
+      ...(excludeId && { id: { not: excludeId } }),
+    },
+  })
+  return !!existing
+}
 
 export async function getAllTestRunsAction(): Promise<ActionResponse> {
   try {
@@ -195,6 +209,15 @@ export async function createTestRunAction(
   try {
     // Validate input
     testRunSchema.parse(value)
+
+    // Check if name already exists
+    const nameExists = await checkUniqueName(value.name)
+    if (nameExists) {
+      return {
+        status: 400,
+        error: 'A test run with this name already exists. Please choose a different name.',
+      }
+    }
 
     // Fetch environment and tags from database
     const environment = await prisma.environment.findUnique({
@@ -567,6 +590,13 @@ export async function createTestRunAction(
     }
   } catch (error) {
     console.error('Error creating test run:', error)
+    // Handle Prisma unique constraint error
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return {
+        status: 400,
+        error: 'A test run with this name already exists. Please choose a different name.',
+      }
+    }
     return {
       status: 500,
       error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -936,6 +966,24 @@ export async function cancelTestRunAction(testRunId: string): Promise<ActionResp
     return {
       status: 500,
       error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+/**
+ * Check if a test run name is unique
+ */
+export async function checkTestRunNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
+  try {
+    const nameExists = await checkUniqueName(name, excludeId)
+    return {
+      status: 200,
+      data: { isUnique: !nameExists },
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
