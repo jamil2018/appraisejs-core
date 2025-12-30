@@ -49,10 +49,10 @@ async function waitForUrlStable(page: Page, stabilityDuration: number = 100): Pr
     if (currentUrl === lastUrl) {
       stableCount++
     } else {
-      // URL changed, wait for DOM to be ready and reset stability counter
+      // URL changed, wait for networkidle and reset stability counter
       stableCount = 0
       lastUrl = currentUrl
-      await page.waitForLoadState('domcontentloaded', { timeout: 600000 })
+      await page.waitForLoadState('networkidle', { timeout: 600000 })
     }
   }
 
