@@ -10,6 +10,7 @@ import {
   TestRunTestCase,
   TestRunTestCaseStatus,
   TestRunTestCaseResult,
+  Report,
 } from '@prisma/client'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,6 +49,7 @@ interface TestRunDetailsProps {
     testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
     tags: Tag[]
     environment: Environment
+    reports: Report[]
   }
 }
 
@@ -82,6 +84,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
           testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
           tags: Tag[]
           environment: Environment
+          reports: Report[]
         }
         setTestRun(typedTestRun)
         // Stop polling if test run is completed

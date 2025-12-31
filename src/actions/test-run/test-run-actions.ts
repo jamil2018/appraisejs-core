@@ -68,6 +68,7 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
         },
         tags: true,
         environment: true,
+        reports: true,
       },
     })
 

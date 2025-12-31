@@ -1,12 +1,10 @@
 import { getTestRunByIdAction } from '@/actions/test-run/test-run-actions'
-import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { TestRunDetails } from '@/components/test-run/test-run-details'
+import { TestRunHeader } from '@/components/test-run/test-run-header'
 import { LogViewer } from '@/components/test-run/log-viewer'
-import { DownloadLogsButton } from '@/components/test-run/download-logs-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TestRun, TestRunTestCase, Tag, Environment, TestRunStatus } from '@prisma/client'
+import { TestRun, TestRunTestCase, Tag, Environment, TestRunStatus, Report } from '@prisma/client'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -40,14 +38,12 @@ export default async function TestRunDetailPage({ params }: TestRunDetailPagePro
     testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
     tags: Tag[]
     environment: Environment
+    reports: Report[]
   }
 
   return (
     <>
-      <div className="mb-8">
-        <PageHeader>Test Run Details</PageHeader>
-        <HeaderSubtitle>View test run execution details and live logs</HeaderSubtitle>
-      </div>
+      <TestRunHeader initialTestRun={testRun} />
 
       <div className="space-y-6">
         <TestRunDetails testRun={testRun} />
