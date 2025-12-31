@@ -1,17 +1,19 @@
 'use client'
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { Report, Tag, ReportTestCase, TestRun, TestRunTestCase, TestCase } from '@prisma/client'
+import { Report, Tag, ReportTestCase, TestRun, TestRunTestCase, TestCase, TestRunStatus, TestRunResult, Environment } from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 
-import { Checkbox } from '@/components/ui/checkbox'
-import TableActions from '@/components/table/table-actions'
-import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { CheckCircle, Clock, XCircle, Eye } from 'lucide-react'
+import Link from 'next/link'
 
 type ReportWithRelations = Report & {
-  testRun: TestRun
-  tags?: Tag[]
+  testRun: TestRun & {
+    environment: Environment
+    tags: Tag[]
+  }
   testCases: (ReportTestCase & {
     testRunTestCase: TestRunTestCase & {
       testCase: TestCase & { tags?: Tag[] }
@@ -19,45 +21,123 @@ type ReportWithRelations = Report & {
   })[]
 }
 
+const formatDuration = (startDate: Date, endDate: Date | null) => {
+  if (!endDate) return '-'
+  const diffInMs = endDate.getTime() - startDate.getTime()
+  const totalSeconds = Math.floor(diffInMs / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
+}
+
+const testRunStatusToBadge = (status: TestRunStatus) => {
+  switch (status) {
+    case TestRunStatus.COMPLETED:
+      return (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
+        >
+          <CheckCircle className="h-4 w-4" />
+          Completed
+        </Badge>
+      )
+    case TestRunStatus.CANCELLED:
+      return (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
+        >
+          <XCircle className="h-4 w-4" />
+          Cancelled
+        </Badge>
+      )
+    default:
+      return (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
+        >
+          <Clock className="h-4 w-4" />
+          {status}
+        </Badge>
+      )
+  }
+}
+
+const testRunResultToBadge = (result: TestRunResult) => {
+  switch (result) {
+    case TestRunResult.PASSED:
+      return (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
+        >
+          <CheckCircle className="h-4 w-4" />
+          PASSED
+        </Badge>
+      )
+    case TestRunResult.FAILED:
+      return (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-2 rounded-xl border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
+        >
+          <XCircle className="h-4 w-4" />
+          FAILED
+        </Badge>
+      )
+    case TestRunResult.CANCELLED:
+      return (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/35 py-1 text-sm text-gray-300"
+        >
+          <XCircle className="h-4 w-4" />
+          CANCELLED
+        </Badge>
+      )
+    default:
+      return (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
+        >
+          <Clock className="h-4 w-4" />
+          {result}
+        </Badge>
+      )
+  }
+}
+
 export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
   {
-    id: 'status',
-    accessorFn: row => {
-      const reportTestCase = row.testCases?.[0]
-      return reportTestCase?.testRunTestCase?.status || ''
-    },
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    id: 'testRunName',
+    accessorFn: row => row.testRun.name || '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Test Run Name" />,
     cell: ({ row }) => {
-      const reportTestCase = row.original.testCases?.[0]
-      if (!reportTestCase) return <Badge variant="outline">-</Badge>
-      return <Badge variant="outline">{reportTestCase.testRunTestCase.status}</Badge>
+      return <div className="font-medium">{row.original.testRun.name}</div>
     },
   },
   {
-    id: 'testCase',
-    accessorFn: row => {
-      const reportTestCase = row.testCases?.[0]
-      return reportTestCase?.testRunTestCase?.testCase?.title || ''
-    },
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Test Case" />,
+    id: 'testRunStatus',
+    accessorFn: row => row.testRun.status || '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Test Run Status" />,
     cell: ({ row }) => {
-      const reportTestCase = row.original.testCases?.[0]
-      if (!reportTestCase || !reportTestCase.testRunTestCase?.testCase) return <div>-</div>
-      return <div>{reportTestCase.testRunTestCase.testCase.title}</div>
+      return testRunStatusToBadge(row.original.testRun.status)
     },
   },
   {
     id: 'tags',
     accessorFn: row => {
-      const reportTestCase = row.testCases?.[0]
-      const tags = reportTestCase?.testRunTestCase?.testCase?.tags || []
+      const tags = row.testRun.tags || []
       return tags.map(tag => tag.name).join(' ')
     },
     header: ({ column }) => <DataTableColumnHeader column={column} title="Tags" />,
     cell: ({ row }) => {
-      const reportTestCase = row.original.testCases?.[0]
-      if (!reportTestCase || !reportTestCase.testRunTestCase?.testCase) return <div>-</div>
-      const tags = reportTestCase.testRunTestCase.testCase.tags || []
+      const tags = row.original.testRun.tags || []
       return (
         <div className="flex flex-wrap gap-1">
           {tags.length > 0 ? tags.map(tag => <Badge key={tag.id}>{tag.name}</Badge>) : '-'}
@@ -66,17 +146,40 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
     },
   },
   {
+    id: 'environment',
+    accessorFn: row => row.testRun.environment?.name || '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Environment" />,
+    cell: ({ row }) => {
+      return <div>{row.original.testRun.environment.name}</div>
+    },
+  },
+  {
     id: 'duration',
     accessorFn: row => {
-      const reportTestCase = row.testCases?.[0]
-      return reportTestCase?.duration ? Number(reportTestCase.duration) : 0
+      const testRun = row.testRun
+      if (!testRun.completedAt) return 0
+      return testRun.completedAt.getTime() - testRun.startedAt.getTime()
     },
     header: ({ column }) => <DataTableColumnHeader column={column} title="Duration" />,
     cell: ({ row }) => {
-      const reportTestCase = row.original.testCases?.[0]
-      if (!reportTestCase) return <div>-</div>
-      const durationMs = Math.round(Number(reportTestCase.duration) / 1000000)
-      return <div>{durationMs}ms</div>
+      const testRun = row.original.testRun
+      return <div>{formatDuration(testRun.startedAt, testRun.completedAt)}</div>
+    },
+  },
+  {
+    id: 'totalTestCases',
+    accessorFn: row => row.testCases.length,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Test Cases Executed" />,
+    cell: ({ row }) => {
+      return <div>{row.original.testCases.length}</div>
+    },
+  },
+  {
+    id: 'testRunResult',
+    accessorFn: row => row.testRun.result || '',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Test Run Result" />,
+    cell: ({ row }) => {
+      return testRunResultToBadge(row.original.testRun.result)
     },
   },
   {
@@ -84,16 +187,12 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
     cell: ({ row }) => {
       const report = row.original
       return (
-        <div>
-          <TableActions
-            viewLink={`/reports/${report.id}`}
-            deleteHandler={async () => {
-              // Reports are read-only, deletion not implemented
-              return { status: 400, error: 'Reports cannot be deleted' }
-            }}
-            deleteButtonDisabled={true}
-          />
-        </div>
+        <Link href={`/reports/${report.id}`}>
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            View
+          </Button>
+        </Link>
       )
     },
   },

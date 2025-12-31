@@ -371,6 +371,13 @@ export const getReportByIdAction = async (reportId: string): Promise<ActionRespo
             reportScenario: {
               include: {
                 reportFeature: true,
+                tags: true,
+                steps: {
+                  orderBy: {
+                    order: 'asc',
+                  },
+                },
+                hooks: true,
               },
             },
           },

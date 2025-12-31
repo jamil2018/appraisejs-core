@@ -63,8 +63,8 @@ const ReportTable = async () => {
       <DataTable
         columns={reportTableCols}
         data={reports}
-        filterColumn="testCase"
-        filterPlaceholder="Filter by test case title..."
+        filterColumn="testRunName"
+        filterPlaceholder="Filter by test run name..."
       />
     </>
   )

@@ -21,7 +21,7 @@ import { ChartConfig } from '@/components/ui/chart'
 import OverviewChart from '../overview-chart'
 import FeatureChart from '../feature-chart'
 import DurationChart from '../duration-chart'
-import ReportTable from '../report-table'
+import ReportViewTable from '../report-view-table'
 import { getReportByIdAction } from '@/actions/reports/report-actions'
 import { notFound } from 'next/navigation'
 
@@ -62,6 +62,13 @@ type ReportDetailWithRelations = Prisma.ReportGetPayload<{
         reportScenario: {
           include: {
             reportFeature: true
+            tags: true
+            steps: {
+              orderBy: {
+                order: 'asc'
+              }
+            }
+            hooks: true
           }
         }
       }
@@ -531,7 +538,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
         </Card>
       </div>
       <Separator className="my-4 bg-muted" />
-      <ReportTable />
+      <ReportViewTable report={report} />
     </>
   )
 }
