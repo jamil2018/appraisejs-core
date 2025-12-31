@@ -452,8 +452,11 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
     <>
       <div className="flex justify-between">
         <div>
-          <PageHeader className="mb-2 flex items-center gap-2">
-            <span>Test Run Report</span>
+          <PageHeader className="mb-2 flex items-center gap-2 text-3xl">
+            <div>
+              <span>Test Run Report: </span>
+              <span>{report.testRun.name}</span>
+            </div>
             {testRunResultToBadge(testRun.result)}
           </PageHeader>
           <div className="flex gap-2">
