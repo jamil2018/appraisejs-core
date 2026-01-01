@@ -20,3 +20,11 @@ Feature: A collection of test scenarios for validating login scenarios
     And the user fills in the "password" field with value "test1234"
     And the user clicks the "login button" element
     Then the "home title" element should contain the text "Welcome to Test Page"
+
+  @tc_61eef153e45b133e
+  Scenario: [Demo Test] This is a demo
+    Given the user navigates to the "staging" environment
+    When the user fills in the "username" field with value "demo@example.com"
+    And the user fills in the "password" field with value "test1234"
+    And the user clicks the "login button" element
+    Then the "home title" element should contain the text "Welcome to Home Page"
