@@ -15,6 +15,7 @@
     "setup": "npm run install-dependencies && npm run setup-env && npm run migrate-db && npm run sync-features && npm run install-playwright",
     "sync-features": "npx tsx scripts/regenerate-features.ts",
     "sync-features:dry-run": "npx tsx scripts/regenerate-features.ts --dry-run",
+    "sync-locator-maps": "npx tsx scripts/sync-locator-maps.ts",
     "test": "cucumber-js"
   },
   "dependencies": {
