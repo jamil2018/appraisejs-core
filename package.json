@@ -17,6 +17,7 @@
     "sync-features:dry-run": "npx tsx scripts/regenerate-features.ts --dry-run",
     "sync-locator-maps": "npx tsx scripts/sync-locator-maps.ts",
     "sync-environments": "npx tsx scripts/sync-environments.ts",
+    "sync-locators": "npx tsx scripts/sync-locators.ts",
     "test": "cucumber-js"
   },
   "dependencies": {
