@@ -47,6 +47,7 @@ interface DataTableProps<TData, TValue> {
     icon?: React.ReactNode
   }[]
   viewLink?: string
+  showSelectedRows?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -60,6 +61,7 @@ export function DataTable<TData, TValue>({
   modifyLink,
   viewLink,
   deleteAction,
+  showSelectedRows = true,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -258,7 +260,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
+      <DataTablePagination table={table} showSelectedRows={showSelectedRows} />
     </div>
   )
 }

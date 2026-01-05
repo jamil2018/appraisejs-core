@@ -3,10 +3,13 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-@run
-Feature: test 12313021sada
+@smoke
+Feature: Collection of Demo Tests
 
-  @tc_4rswpaiw
-  Scenario: [Failing Login] Validate user is failing to login when being navigated to incorrect route
+  @tc_61eef153e45b133e
+  Scenario: [Demo Test] This is a demo
     Given the user navigates to the "staging" environment
-    Then the user should be navigated to the "/test" route
+    When the user fills in the "username" field with value "demo@example.com"
+    And the user fills in the "password" field with value "test1234"
+    And the user clicks the "login button" element
+    Then the "home title" element should contain the text "Welcome to Home Page"

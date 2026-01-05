@@ -4,7 +4,16 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
-import { BrowserEngine, Environment, Tag, TestRun, TestRunResult, TestRunStatus, TestRunTestCase } from '@prisma/client'
+import {
+  BrowserEngine,
+  Environment,
+  Tag,
+  TagType,
+  TestRun,
+  TestRunResult,
+  TestRunStatus,
+  TestRunTestCase,
+} from '@prisma/client'
 import { cancelTestRunAction, deleteTestRunAction } from '@/actions/test-run/test-run-actions'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -171,9 +180,10 @@ export const testRunTableCols: ColumnDef<
     header: ({ column }) => <DataTableColumnHeader column={column} title="Tags" />,
     cell: ({ row }) => {
       const tags = row.original.tags
+      const filterTags = tags.filter(tag => tag.type === TagType.FILTER)
       return (
         <div className="flex flex-wrap gap-1">
-          {tags.length > 0 ? tags.map(tag => <Badge key={tag.id}>{tag.name}</Badge>) : '-'}
+          {filterTags.length > 0 ? filterTags.map(tag => <Badge key={tag.id}>{tag.name}</Badge>) : '-'}
         </div>
       )
     },

@@ -6,6 +6,7 @@
 Feature: A collection of test scenarios for validating login scenarios
 
   @tc_40e940abe11aa9b1
+  @smoke
   Scenario: [Login Validation] Verify user is able to login to the app
     Given the user navigates to the "staging" environment
     When the user fills in the "username" field with value "demo@example.com"
@@ -13,6 +14,7 @@ Feature: A collection of test scenarios for validating login scenarios
     And the user clicks the "login button" element
     Then the "home title" element should contain the text "Welcome to Home Page"
 
+  @smoke
   @tc_d67100fcb7bea82d
   Scenario: [Failing Test] Random failure
     Given the user navigates to the "staging" environment
@@ -20,11 +22,3 @@ Feature: A collection of test scenarios for validating login scenarios
     And the user fills in the "password" field with value "test1234"
     And the user clicks the "login button" element
     Then the "home title" element should contain the text "Welcome to Test Page"
-
-  @tc_61eef153e45b133e
-  Scenario: [Demo Test] This is a demo
-    Given the user navigates to the "staging" environment
-    When the user fills in the "username" field with value "demo@example.com"
-    And the user fills in the "password" field with value "test1234"
-    And the user clicks the "login button" element
-    Then the "home title" element should contain the text "Welcome to Home Page"

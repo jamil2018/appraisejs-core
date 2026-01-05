@@ -58,12 +58,7 @@ const ReportViewTable = ({ report }: ReportViewTableProps) => {
   const isValidReportTestCaseData = (testCases: unknown): testCases is ReportDetailWithRelations['testCases'] => {
     if (!Array.isArray(testCases)) return false
     return testCases.every(
-      item =>
-        item &&
-        typeof item === 'object' &&
-        'id' in item &&
-        'testRunTestCase' in item &&
-        'reportScenario' in item
+      item => item && typeof item === 'object' && 'id' in item && 'testRunTestCase' in item && 'reportScenario' in item,
     )
   }
 
@@ -78,10 +73,10 @@ const ReportViewTable = ({ report }: ReportViewTableProps) => {
         data={report.testCases}
         filterColumn="testCaseTitle"
         filterPlaceholder="Filter by test case title..."
+        showSelectedRows={false}
       />
     </>
   )
 }
 
 export default ReportViewTable
-

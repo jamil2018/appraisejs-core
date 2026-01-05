@@ -1,7 +1,17 @@
 'use client'
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { Report, Tag, ReportTestCase, TestRun, TestRunTestCase, TestCase, TestRunStatus, TestRunResult, Environment } from '@prisma/client'
+import {
+  Report,
+  Tag,
+  ReportTestCase,
+  TestRun,
+  TestRunTestCase,
+  TestCase,
+  TestRunStatus,
+  TestRunResult,
+  Environment,
+} from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
@@ -36,32 +46,23 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
   switch (status) {
     case TestRunStatus.COMPLETED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
-        >
-          <CheckCircle className="h-4 w-4" />
+        <Badge className="bg-primary">
+          <CheckCircle className="mr-1 h-4 w-4" />
           Completed
         </Badge>
       )
     case TestRunStatus.CANCELLED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
-        >
-          <XCircle className="h-4 w-4" />
+        <Badge className="bg-pink-500 text-white">
+          <XCircle className="mr-1 h-4 w-4" />
           Cancelled
         </Badge>
       )
     default:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
-        >
-          <Clock className="h-4 w-4" />
-          {status}
+        <Badge className="bg-gray-500 text-white">
+          <Clock className="mr-1 h-4 w-4" />
+          Unknown
         </Badge>
       )
   }
@@ -71,42 +72,30 @@ const testRunResultToBadge = (result: TestRunResult) => {
   switch (result) {
     case TestRunResult.PASSED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
-        >
-          <CheckCircle className="h-4 w-4" />
-          PASSED
+        <Badge className="bg-primary text-white">
+          <CheckCircle className="mr-1 h-4 w-4" />
+          Passed
         </Badge>
       )
     case TestRunResult.FAILED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
-        >
-          <XCircle className="h-4 w-4" />
-          FAILED
+        <Badge className="bg-pink-500 text-white">
+          <XCircle className="mr-1 h-4 w-4" />
+          Failed
         </Badge>
       )
     case TestRunResult.CANCELLED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/35 py-1 text-sm text-gray-300"
-        >
-          <XCircle className="h-4 w-4" />
-          CANCELLED
+        <Badge className="bg-gray-500 text-white">
+          <XCircle className="mr-1 h-4 w-4" />
+          Cancelled
         </Badge>
       )
     default:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
-        >
-          <Clock className="h-4 w-4" />
-          {result}
+        <Badge className="bg-gray-500 text-white">
+          <Clock className="mr-1 h-4 w-4" />
+          Unknown
         </Badge>
       )
   }

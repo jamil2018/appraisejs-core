@@ -48,42 +48,30 @@ const testRunTestCaseResultToBadge = (result: TestRunTestCaseResult) => {
   switch (result) {
     case TestRunTestCaseResult.PASSED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
-        >
-          <CheckCircle className="h-4 w-4" />
-          PASSED
+        <Badge className="bg-primary">
+          <CheckCircle className="mr-1 h-4 w-4" />
+          Passed
         </Badge>
       )
     case TestRunTestCaseResult.FAILED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
-        >
-          <XCircle className="h-4 w-4" />
-          FAILED
+        <Badge className="bg-pink-500 text-white">
+          <XCircle className="mr-1 h-4 w-4" />
+          Failed
         </Badge>
       )
     case TestRunTestCaseResult.UNTESTED:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-yellow-700 bg-yellow-700/10 py-1 text-sm text-yellow-500"
-        >
-          <Clock className="h-4 w-4" />
-          UNTESTED
+        <Badge className="bg-yellow-500 text-white">
+          <Clock className="mr-1 h-4 w-4" />
+          Untested
         </Badge>
       )
     default:
       return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-orange-700 bg-orange-700/10 py-1 text-sm text-orange-500"
-        >
-          <Clock className="h-4 w-4" />
-          UNKNOWN
+        <Badge className="bg-gray-500 text-white">
+          <Clock className="mr-1 h-4 w-4" />
+          Unknown
         </Badge>
       )
   }
@@ -113,7 +101,8 @@ export const reportViewTableCols: ColumnDef<ReportTestCaseWithRelations>[] = [
     cell: ({ row }) => {
       if (!row.original.duration) return <div>-</div>
       const durationMs = Math.round(Number(row.original.duration) / 1000000)
-      return <div>{durationMs}ms</div>
+      const durationSeconds = (durationMs / 1000).toFixed(2)
+      return <div>{durationSeconds}s</div>
     },
   },
   {
