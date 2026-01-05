@@ -18,6 +18,7 @@
     "sync-locator-maps": "npx tsx scripts/sync-locator-maps.ts",
     "sync-environments": "npx tsx scripts/sync-environments.ts",
     "sync-locators": "npx tsx scripts/sync-locators.ts",
+    "sync-tags": "npx tsx scripts/sync-tags.ts",
     "test": "cucumber-js"
   },
   "dependencies": {
