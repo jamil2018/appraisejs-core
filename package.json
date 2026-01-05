@@ -15,7 +15,7 @@
     "setup": "npm run install-dependencies && npm run setup-env && npm run migrate-db && npm run sync-features && npm run install-playwright",
     "sync-features": "npx tsx scripts/regenerate-features.ts",
     "sync-features:dry-run": "npx tsx scripts/regenerate-features.ts --dry-run",
-    "sync-locator-maps": "npx tsx scripts/sync-locator-maps.ts",
+    "sync-locator-groups": "npx tsx scripts/sync-locator-groups.ts",
     "sync-environments": "npx tsx scripts/sync-environments.ts",
     "sync-locators": "npx tsx scripts/sync-locators.ts",
     "sync-tags": "npx tsx scripts/sync-tags.ts",
