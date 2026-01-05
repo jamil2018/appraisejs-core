@@ -167,6 +167,12 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           console.warn('[LogViewer] Received exit event with no data')
           setConnectionStatus('completed')
           eventSource.close()
+          // Dispatch custom event for TestRunHeader to listen to
+          window.dispatchEvent(
+            new CustomEvent('testrun:exit', {
+              detail: { testRunId },
+            }),
+          )
           return
         }
         const data = JSON.parse(event.data)
@@ -181,10 +187,22 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
         ])
         setConnectionStatus('completed')
         eventSource.close()
+        // Dispatch custom event for TestRunHeader to listen to
+        window.dispatchEvent(
+          new CustomEvent('testrun:exit', {
+            detail: { testRunId },
+          }),
+        )
       } catch (error) {
         console.error('[LogViewer] Error parsing exit event:', error, 'event.data:', event.data)
         setConnectionStatus('completed')
         eventSource.close()
+        // Dispatch custom event even on error so TestRunHeader can refresh
+        window.dispatchEvent(
+          new CustomEvent('testrun:exit', {
+            detail: { testRunId },
+          }),
+        )
       }
     })
 
