@@ -72,7 +72,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
   switch (result) {
     case TestRunResult.PASSED:
       return (
-        <Badge className="bg-primary text-white">
+        <Badge className="bg-primary">
           <CheckCircle className="mr-1 h-4 w-4" />
           Passed
         </Badge>
