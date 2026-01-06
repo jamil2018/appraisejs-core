@@ -33,7 +33,10 @@ import {
   createTemplateStepGroupFile,
   removeTemplateStepGroupFile,
   renameTemplateStepGroupFile,
+  ensureGroupJSDoc,
 } from '@/lib/utils/template-step-file-manager-intelligent'
+import { promises as fs } from 'fs'
+import { getFilePath, formatFileContent } from '@/lib/utils/template-step-file-generator'
 
 /**
  * Get all template step groups
@@ -70,7 +73,7 @@ export async function createTemplateStepGroupAction(
     const type: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
 
     // First, try to create the file - if this fails, we won't create the database record
-    await createTemplateStepGroupFile(value.name, type)
+    await createTemplateStepGroupFile(value.name, type, value.description)
 
     // If file creation succeeds, create the database record
     // Note: Using type assertion because Prisma client hasn't been regenerated yet
@@ -208,18 +211,33 @@ export async function updateTemplateStepGroupAction(
     const currentType = getGroupType(currentGroup)
     const nameChanged = currentGroup.name !== value.name
     const typeChanged = currentType !== newType
+    const descriptionChanged = currentGroup.description !== value.description
 
     // If name or type changed, we need to handle file renaming/moving
     if (nameChanged || typeChanged) {
-      // Rename/move the file to preserve all existing content
+      // Rename/move the file to preserve all existing content and update JSDoc
       try {
-        await renameTemplateStepGroupFile(currentGroup.name, value.name, currentType, newType)
+        await renameTemplateStepGroupFile(currentGroup.name, value.name, currentType, newType, value.description)
       } catch (fileError) {
         console.error(
           `Failed to rename/move file from "${currentGroup.name}" (${currentType}) to "${value.name}" (${newType}):`,
           fileError,
         )
         // Continue with the update even if file rename fails
+      }
+    } else if (descriptionChanged) {
+      // Only description changed, update JSDoc in place
+      try {
+        const filePath = getFilePath(value.name, newType)
+
+        let fileContent = await fs.readFile(filePath, 'utf8')
+        fileContent = ensureGroupJSDoc(fileContent, value.name, value.description || null, newType)
+
+        const formattedContent = await formatFileContent(fileContent)
+        await fs.writeFile(filePath, formattedContent, 'utf8')
+      } catch (fileError) {
+        console.error(`Failed to update JSDoc for group "${value.name}":`, fileError)
+        // Continue with the update even if file update fails
       }
     }
 

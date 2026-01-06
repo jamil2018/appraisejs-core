@@ -3,6 +3,101 @@ import { TemplateStep, TemplateStepGroupType } from '@prisma/client'
 import { ensureStepsDirectory, getFilePath, formatFileContent } from './template-step-file-generator'
 
 /**
+ * Generates JSDoc comments for a template step group
+ */
+function generateGroupJSDocComment(
+  name: string,
+  description: string | null,
+  type: TemplateStepGroupType | string,
+): string {
+  const lines = ['/**']
+  lines.push(` * @name ${name}`)
+  if (description) {
+    lines.push(` * @description ${description}`)
+  }
+  lines.push(` * @type ${type}`)
+  lines.push(' */')
+  return lines.join('\n')
+}
+
+/**
+ * Extracts the bounds of the group JSDoc comment block at the top of the file
+ * Returns null if no group JSDoc is found
+ * Group JSDoc must be at the very top (line 0) and contain @type (which distinguishes it from step JSDoc)
+ */
+function extractGroupJSDocBounds(content: string): { startLine: number; endLine: number } | null {
+  const lines = content.split('\n')
+
+  // Look for JSDoc comment at the very top of the file
+  if (lines.length === 0) {
+    return null
+  }
+
+  const firstLine = lines[0].trim()
+  if (!firstLine.startsWith('/**')) {
+    return null
+  }
+
+  // Check if this JSDoc contains group metadata (@type distinguishes group from step JSDoc)
+  let hasType = false
+  let endLine = -1
+
+  // Look through the JSDoc block (should end within first few lines)
+  for (let i = 0; i < lines.length && i < 10; i++) {
+    const line = lines[i].trim()
+
+    if (line === '*/') {
+      // Found end of JSDoc
+      endLine = i
+      break
+    } else if (line.startsWith('* @type') || line.startsWith('*@type')) {
+      // Found @type - this is group metadata (steps have @icon, not @type)
+      hasType = true
+    }
+  }
+
+  // If we found a JSDoc block at the top with @type, return its bounds
+  if (hasType && endLine >= 0) {
+    return { startLine: 0, endLine }
+  }
+
+  return null
+}
+
+/**
+ * Ensures group JSDoc exists and is up-to-date at the top of the file
+ * Preserves all other content including imports and template steps
+ */
+export function ensureGroupJSDoc(
+  content: string,
+  name: string,
+  description: string | null,
+  type: TemplateStepGroupType | string,
+): string {
+  const jsdocBounds = extractGroupJSDocBounds(content)
+  const newJSDoc = generateGroupJSDocComment(name, description, type)
+
+  if (jsdocBounds) {
+    // Replace existing group JSDoc
+    const lines = content.split('\n')
+    const afterJSDoc = lines.slice(jsdocBounds.endLine + 1).join('\n')
+
+    // Combine: new JSDoc + content after old JSDoc
+    // Handle spacing - ensure there's proper spacing after JSDoc
+    if (afterJSDoc.trim()) {
+      return `${newJSDoc}\n${afterJSDoc.trimStart()}`
+    }
+    return `${newJSDoc}\n${afterJSDoc}`
+  } else {
+    // No existing group JSDoc, add it at the very top
+    if (content.trim()) {
+      return `${newJSDoc}\n${content.trimStart()}`
+    }
+    return `${newJSDoc}\n${content}`
+  }
+}
+
+/**
  * Generates JSDoc comments for a template step
  */
 function generateJSDocComment(templateStep: TemplateStep): string {
@@ -168,6 +263,7 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
 
 /**
  * Ensures required imports are present in the file content
+ * Preserves group JSDoc at the top if it exists
  */
 function ensureRequiredImports(content: string): string {
   const requiredImports = `import { When } from '@cucumber/cucumber';
@@ -182,7 +278,18 @@ import { resolveLocator } from '../../utils/locator.util';
     return content
   }
 
-  // Add imports at the beginning
+  // Check if there's a group JSDoc at the top
+  const jsdocBounds = extractGroupJSDocBounds(content)
+
+  if (jsdocBounds) {
+    // Preserve JSDoc, add imports after it
+    const lines = content.split('\n')
+    const jsdoc = lines.slice(jsdocBounds.startLine, jsdocBounds.endLine + 1).join('\n')
+    const afterJSDoc = lines.slice(jsdocBounds.endLine + 1).join('\n')
+    return `${jsdoc}\n${requiredImports}${afterJSDoc.trimStart()}`
+  }
+
+  // No JSDoc, add imports at the beginning
   return requiredImports + content
 }
 
@@ -375,16 +482,29 @@ export async function updateTemplateStepInFile(
 export async function createTemplateStepGroupFile(
   groupName: string,
   type: TemplateStepGroupType | string,
+  description?: string | null,
 ): Promise<void> {
   try {
     await ensureStepsDirectory()
     const filePath = getFilePath(groupName, type)
 
-    const placeholderContent = ensureRequiredImports(
-      '// This file is generated automatically. Add template steps to this group to generate content.',
-    )
+    // Generate content with JSDoc at the top, then imports, then placeholder comment
+    const groupJSDoc = generateGroupJSDocComment(groupName, description || null, type)
+    const requiredImports = `import { When } from '@cucumber/cucumber';
+import { CustomWorld } from '../../config/executor/world';
+import { SelectorName } from '@/types/locator/locator.type';
+import { resolveLocator } from '../../utils/locator.util';
 
-    await fs.writeFile(filePath, placeholderContent, 'utf8')
+`
+    const placeholderComment =
+      '// This file is generated automatically. Add template steps to this group to generate content.'
+
+    // Combine: JSDoc + imports + placeholder comment
+    const placeholderContent = `${groupJSDoc}\n${requiredImports}${placeholderComment}`
+
+    // Format and write the file
+    const formattedContent = await formatFileContent(placeholderContent)
+    await fs.writeFile(filePath, formattedContent, 'utf8')
 
     console.log(`Placeholder file created for template step group: ${groupName}`)
   } catch (error) {
@@ -421,7 +541,7 @@ export async function removeTemplateStepGroupFile(
 
 /**
  * Renames a template step group file when the group name or type changes
- * Preserves all existing content
+ * Preserves all existing content and updates JSDoc metadata
  * If type changed, moves file from old folder to new folder
  */
 export async function renameTemplateStepGroupFile(
@@ -429,6 +549,7 @@ export async function renameTemplateStepGroupFile(
   newGroupName: string,
   oldType: TemplateStepGroupType | string,
   newType: TemplateStepGroupType | string,
+  newDescription?: string | null,
 ): Promise<void> {
   try {
     await ensureStepsDirectory()
@@ -437,10 +558,14 @@ export async function renameTemplateStepGroupFile(
 
     try {
       // Read the existing file content
-      const existingContent = await fs.readFile(oldFilePath, 'utf8')
+      let existingContent = await fs.readFile(oldFilePath, 'utf8')
 
-      // Write the content to the new file
-      await fs.writeFile(newFilePath, existingContent, 'utf8')
+      // Update the group JSDoc with new metadata
+      existingContent = ensureGroupJSDoc(existingContent, newGroupName, newDescription || null, newType)
+
+      // Format and write the content to the new file
+      const formattedContent = await formatFileContent(existingContent)
+      await fs.writeFile(newFilePath, formattedContent, 'utf8')
 
       // Remove the old file
       await fs.unlink(oldFilePath)
