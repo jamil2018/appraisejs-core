@@ -1,88 +1,103 @@
 #!/usr/bin/env tsx
 
 /**
- * Script to synchronize module hierarchy from filesystem to database
- * Scans locators and features directories to ensure all modules exist in DB
- * Run this after merging changes to ensure module sync
+ * Script to synchronize locator groups from filesystem to database
+ * Scans locator-map.json and locators directory to ensure all locator groups exist in DB
+ * Filesystem is the source of truth - locator groups in DB but not in FS will be deleted
+ * Run this after merging changes to ensure locator group sync
  *
- * Usage: npx tsx scripts/sync-locator-maps.ts
+ * Usage: npx tsx scripts/sync-locator-groups.ts
  */
 
-import { buildModuleHierarchy, findModuleByPath } from '../src/lib/module-hierarchy-builder'
-import { join } from 'path'
 import { promises as fs } from 'fs'
+import { join } from 'path'
 import { glob } from 'glob'
 import prisma from '../src/config/db-config'
+import { findModuleByPath, buildModuleHierarchy } from '../src/lib/module-hierarchy-builder'
 
+/**
+ * Represents a locator group from the filesystem
+ */
+interface LocatorGroupFromFS {
+  name: string
+  route: string
+  modulePath: string
+  filePath: string
+}
+
+/**
+ * Represents a locator group entry from locator-map.json
+ */
+interface LocatorMapEntry {
+  name: string
+  path: string
+}
+
+/**
+ * Sync result summary
+ */
 interface SyncResult {
-  modulesScanned: number
-  modulesExisting: number
-  modulesCreated: number
+  locatorGroupsScanned: number
+  locatorGroupsExisting: number
+  locatorGroupsCreated: number
+  locatorGroupsUpdated: number
+  locatorGroupsDeleted: number
   errors: string[]
-  createdModules: string[]
-  existingModules: string[]
+  createdLocatorGroups: string[]
+  updatedLocatorGroups: string[]
+  deletedLocatorGroups: Array<{ name: string; locatorCount: number }>
 }
 
 /**
- * Scans locator directories and extracts module paths
+ * Reads and parses the locator-map.json file
  */
-async function scanLocatorDirectories(baseDir: string): Promise<string[]> {
-  const locatorsDir = join(baseDir, 'src', 'tests', 'locators')
-  const modulePaths = new Set<string>()
+async function readLocatorMap(baseDir: string): Promise<LocatorMapEntry[]> {
+  const locatorMapPath = join(baseDir, 'src', 'tests', 'mapping', 'locator-map.json')
 
   try {
-    // Get all JSON files in locators directory
-    const pattern = 'src/tests/locators/**/*.json'
-    const files = await glob(pattern, {
-      cwd: baseDir,
-    })
-
-    for (const file of files) {
-      const filePath = join(baseDir, file)
-      const modulePath = extractModulePathFromLocatorFile(filePath, baseDir)
-      if (modulePath) {
-        modulePaths.add(modulePath)
-      }
-    }
+    await fs.access(locatorMapPath)
   } catch (error) {
-    console.error('Error scanning locator directories:', error)
-    throw error
+    console.warn(`   ⚠️  Locator map file not found at ${locatorMapPath}, continuing without it`)
+    return []
   }
 
-  return Array.from(modulePaths)
+  try {
+    const fileContent = await fs.readFile(locatorMapPath, 'utf-8')
+    const locatorMap = JSON.parse(fileContent) as LocatorMapEntry[]
+
+    if (!Array.isArray(locatorMap)) {
+      throw new Error('Invalid locator map format: expected an array')
+    }
+
+    return locatorMap
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`Invalid JSON in locator map file: ${error.message}`)
+    }
+    throw error
+  }
 }
 
 /**
- * Scans feature directories and extracts module paths
+ * Scans the locators directory to find all locator group files
  */
-async function scanFeatureDirectories(baseDir: string): Promise<string[]> {
-  const featuresDir = join(baseDir, 'src', 'tests', 'features')
-  const modulePaths = new Set<string>()
+async function scanLocatorGroupFiles(baseDir: string): Promise<string[]> {
+  const pattern = 'src/tests/locators/**/*.json'
 
   try {
-    // Get all feature files
-    const pattern = 'src/tests/features/**/*.feature'
     const files = await glob(pattern, {
       cwd: baseDir,
     })
-
-    for (const file of files) {
-      const filePath = join(baseDir, file)
-      const modulePath = extractModulePathFromFeatureFile(filePath, baseDir)
-      if (modulePath) {
-        modulePaths.add(modulePath)
-      }
-    }
+    return files.map(file => join(baseDir, file))
   } catch (error) {
-    console.error('Error scanning feature directories:', error)
-    throw error
+    throw new Error(`Error scanning locator group files: ${error}`)
   }
-
-  return Array.from(modulePaths)
 }
 
 /**
  * Extracts module path from locator file path
+ * Example: src/tests/locators/home/home.json -> /home
+ * Example: src/tests/locators/users/admins/directors.json -> /users/admins
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
   const testsDir = join(baseDir, 'src', 'tests')
@@ -93,109 +108,197 @@ function extractModulePathFromLocatorFile(filePath: string, baseDir: string): st
 }
 
 /**
- * Extracts module path from feature file path
+ * Extracts locator group name from file path
+ * The group name is the filename without extension
  */
-function extractModulePathFromFeatureFile(filePath: string, baseDir: string): string {
-  const featuresBaseDir = join(baseDir, 'src', 'tests', 'features')
-  const relativePath = filePath.replace(featuresBaseDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(part => part && part !== '')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+function extractLocatorGroupName(filePath: string): string {
+  const fileName = filePath.split(/[/\\]/).pop() || ''
+  return fileName.replace('.json', '')
 }
 
 /**
- * Builds a module tree from discovered paths
- * Returns a map of module paths to their parent paths
+ * Builds a map of locator group names to routes from locator-map.json
  */
-function buildModuleTree(modulePaths: string[]): Map<string, string | null> {
-  const tree = new Map<string, string | null>()
-  const allPaths = new Set<string>()
+function buildLocatorMapRouteMap(locatorMap: LocatorMapEntry[]): Map<string, string> {
+  const routeMap = new Map<string, string>()
 
-  // Add all paths and their parent paths
-  for (const modulePath of modulePaths) {
-    if (modulePath === '/') {
-      tree.set('/', null)
-      continue
-    }
+  for (const entry of locatorMap) {
+    routeMap.set(entry.name, entry.path)
+  }
 
-    const pathParts = modulePath.split('/').filter(p => p)
-    let currentPath = ''
+  return routeMap
+}
 
-    for (let i = 0; i < pathParts.length; i++) {
-      currentPath += '/' + pathParts[i]
-      allPaths.add(currentPath)
+/**
+ * Builds locator groups from filesystem
+ * Combines information from locator-map.json and directory structure
+ */
+async function buildLocatorGroupsFromFS(
+  baseDir: string,
+  locatorMap: LocatorMapEntry[],
+): Promise<LocatorGroupFromFS[]> {
+  const locatorGroups: LocatorGroupFromFS[] = []
+  const routeMap = buildLocatorMapRouteMap(locatorMap)
 
-      if (i === 0) {
-        tree.set(currentPath, null)
+  // Scan all locator group files
+  const files = await scanLocatorGroupFiles(baseDir)
+
+  for (const filePath of files) {
+    const modulePath = extractModulePathFromLocatorFile(filePath, baseDir)
+    const groupName = extractLocatorGroupName(filePath)
+
+    // Get route from locator-map.json, or default to /{groupName}
+    const route = routeMap.get(groupName) || `/${groupName}`
+
+    locatorGroups.push({
+      name: groupName,
+      route,
+      modulePath,
+      filePath,
+    })
+  }
+
+  return locatorGroups
+}
+
+/**
+ * Creates or updates a locator group in the database
+ */
+async function createOrUpdateLocatorGroup(
+  locatorGroup: LocatorGroupFromFS,
+  moduleId: string,
+  result: SyncResult,
+): Promise<void> {
+  try {
+    // Check if locator group already exists
+    const existingGroup = await prisma.locatorGroup.findUnique({
+      where: { name: locatorGroup.name },
+    })
+
+    if (existingGroup) {
+      // Check if update is needed
+      const needsUpdate = existingGroup.route !== locatorGroup.route || existingGroup.moduleId !== moduleId
+
+      if (needsUpdate) {
+        await prisma.locatorGroup.update({
+          where: { id: existingGroup.id },
+          data: {
+            route: locatorGroup.route,
+            moduleId: moduleId,
+          },
+        })
+
+        result.locatorGroupsUpdated++
+        result.updatedLocatorGroups.push(locatorGroup.name)
+        console.log(`   🔄 Updated locator group '${locatorGroup.name}' (route: ${locatorGroup.route})`)
       } else {
-        const parentPath = '/' + pathParts.slice(0, i).join('/')
-        tree.set(currentPath, parentPath)
+        result.locatorGroupsExisting++
+        console.log(`   ✓ Locator group '${locatorGroup.name}' already exists and is up to date`)
       }
-    }
-  }
+    } else {
+      // Create new locator group
+      await prisma.locatorGroup.create({
+        data: {
+          name: locatorGroup.name,
+          route: locatorGroup.route,
+          moduleId: moduleId,
+        },
+      })
 
-  return tree
+      result.locatorGroupsCreated++
+      result.createdLocatorGroups.push(locatorGroup.name)
+      console.log(`   ➕ Created locator group '${locatorGroup.name}' (route: ${locatorGroup.route})`)
+    }
+  } catch (error) {
+    const errorMsg = `Error syncing locator group '${locatorGroup.name}': ${error}`
+    result.errors.push(errorMsg)
+    console.error(`   ❌ ${errorMsg}`)
+  }
 }
 
 /**
- * Syncs modules to database
+ * Syncs locator groups from filesystem to database
  */
-async function syncModulesToDatabase(moduleTree: Map<string, string | null>): Promise<SyncResult> {
-  const result: SyncResult = {
-    modulesScanned: moduleTree.size,
-    modulesExisting: 0,
-    modulesCreated: 0,
-    errors: [],
-    createdModules: [],
-    existingModules: [],
-  }
+async function syncLocatorGroupsToDatabase(
+  locatorGroups: LocatorGroupFromFS[],
+  result: SyncResult,
+): Promise<void> {
+  console.log('\n✅ Syncing locator groups to database...')
 
-  // Sort paths by depth (shallowest first) to ensure parents are created before children
-  const sortedPaths = Array.from(moduleTree.keys()).sort((a, b) => {
-    const depthA = a.split('/').filter(p => p).length
-    const depthB = b.split('/').filter(p => p).length
-    return depthA - depthB
-  })
-
-  for (const modulePath of sortedPaths) {
+  for (const locatorGroup of locatorGroups) {
     try {
-      // Check if module already exists
-      const existingModuleId = await findModuleByPath(modulePath)
+      // Ensure module exists (create if needed)
+      let moduleId = await findModuleByPath(locatorGroup.modulePath)
 
-      if (existingModuleId) {
-        result.modulesExisting++
-        result.existingModules.push(modulePath)
-        console.log(`   ✓ Module '${modulePath}' already exists`)
-      } else {
-        // Get parent path and find/create parent module first
-        const parentPath = moduleTree.get(modulePath)
-        let parentId: string | undefined
-
-        if (parentPath) {
-          const parentModuleId = await findModuleByPath(parentPath)
-          if (!parentModuleId) {
-            // Parent should have been created already due to sorting
-            // But if not, create it now
-            parentId = await buildModuleHierarchy(parentPath)
-          } else {
-            parentId = parentModuleId
-          }
-        }
-
-        // Build the hierarchy for this path (which will create it if needed)
-        const moduleId = await buildModuleHierarchy(modulePath)
-        result.modulesCreated++
-        result.createdModules.push(modulePath)
-        console.log(`   ➕ Created module '${modulePath}'`)
+      if (!moduleId) {
+        console.log(`   📦 Creating module hierarchy for path: ${locatorGroup.modulePath}`)
+        moduleId = await buildModuleHierarchy(locatorGroup.modulePath)
       }
+
+      // Create or update locator group
+      await createOrUpdateLocatorGroup(locatorGroup, moduleId, result)
     } catch (error) {
-      const errorMsg = `Error syncing module '${modulePath}': ${error}`
+      const errorMsg = `Error processing locator group '${locatorGroup.name}': ${error}`
       result.errors.push(errorMsg)
       console.error(`   ❌ ${errorMsg}`)
     }
   }
+}
 
-  return result
+/**
+ * Deletes orphaned locator groups (groups in DB but not in FS)
+ */
+async function deleteOrphanedLocatorGroups(
+  fsLocatorGroupNames: Set<string>,
+  result: SyncResult,
+): Promise<void> {
+  console.log('\n🔍 Checking for orphaned locator groups (not in filesystem)...')
+
+  try {
+    // Get all locator groups from database
+    const dbLocatorGroups = await prisma.locatorGroup.findMany({
+      include: {
+        locators: {
+          select: { id: true },
+        },
+      },
+    })
+
+    for (const dbGroup of dbLocatorGroups) {
+      // Check if locator group exists in filesystem
+      if (!fsLocatorGroupNames.has(dbGroup.name)) {
+        try {
+          const locatorCount = dbGroup.locators.length
+
+          if (locatorCount > 0) {
+            console.log(
+              `   ⚠️  Locator group '${dbGroup.name}' has ${locatorCount} locator(s) - will be cascade deleted`,
+            )
+          }
+
+          // Delete the locator group (Prisma cascade will handle locators)
+          await prisma.locatorGroup.delete({
+            where: { id: dbGroup.id },
+          })
+
+          result.locatorGroupsDeleted++
+          result.deletedLocatorGroups.push({
+            name: dbGroup.name,
+            locatorCount,
+          })
+          console.log(`   🗑️  Deleted locator group '${dbGroup.name}' (not in filesystem)`)
+        } catch (error) {
+          const errorMsg = `Error deleting locator group '${dbGroup.name}': ${error}`
+          result.errors.push(errorMsg)
+          console.error(`   ❌ ${errorMsg}`)
+        }
+      }
+    }
+  } catch (error) {
+    const errorMsg = `Error checking for orphaned locator groups: ${error}`
+    result.errors.push(errorMsg)
+    console.error(`   ❌ ${errorMsg}`)
+  }
 }
 
 /**
@@ -203,15 +306,33 @@ async function syncModulesToDatabase(moduleTree: Map<string, string | null>): Pr
  */
 function generateSummary(result: SyncResult): void {
   console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Modules scanned: ${result.modulesScanned}`)
-  console.log(`   ✅ Modules existing: ${result.modulesExisting}`)
-  console.log(`   ➕ Modules created: ${result.modulesCreated}`)
-  console.log(`   ⚠️  Errors: ${result.errors.length}`)
+  console.log(`   📁 Locator groups scanned: ${result.locatorGroupsScanned}`)
+  console.log(`   ✅ Locator groups existing: ${result.locatorGroupsExisting}`)
+  console.log(`   ➕ Locator groups created: ${result.locatorGroupsCreated}`)
+  console.log(`   🔄 Locator groups updated: ${result.locatorGroupsUpdated}`)
+  console.log(`   🗑️  Locator groups deleted: ${result.locatorGroupsDeleted}`)
+  console.log(`   ❌ Errors: ${result.errors.length}`)
 
-  if (result.createdModules.length > 0) {
-    console.log('\n   Created modules:')
-    result.createdModules.forEach((path, index) => {
-      console.log(`      ${index + 1}. ${path}`)
+  if (result.createdLocatorGroups.length > 0) {
+    console.log('\n   Created locator groups:')
+    result.createdLocatorGroups.forEach((name, index) => {
+      console.log(`      ${index + 1}. ${name}`)
+    })
+  }
+
+  if (result.updatedLocatorGroups.length > 0) {
+    console.log('\n   Updated locator groups:')
+    result.updatedLocatorGroups.forEach((name, index) => {
+      console.log(`      ${index + 1}. ${name}`)
+    })
+  }
+
+  if (result.deletedLocatorGroups.length > 0) {
+    console.log('\n   Deleted locator groups:')
+    result.deletedLocatorGroups.forEach((group, index) => {
+      console.log(
+        `      ${index + 1}. ${group.name} (${group.locatorCount} locator(s) cascade deleted)`,
+      )
     })
   }
 
@@ -228,30 +349,49 @@ function generateSummary(result: SyncResult): void {
  */
 async function main() {
   try {
-    console.log('🔄 Starting locator maps sync...')
-    console.log('This will scan filesystem directories and sync module hierarchy to database.\n')
+    console.log('🔄 Starting locator groups sync...')
+    console.log('This will scan filesystem directories and sync locator groups to database.')
+    console.log('Filesystem is the source of truth - locator groups in DB but not in FS will be deleted.\n')
 
     const baseDir = process.cwd()
 
-    // Scan directories
-    console.log('📁 Scanning src/tests/locators...')
-    const locatorModulePaths = await scanLocatorDirectories(baseDir)
-    console.log(`   Found ${locatorModulePaths.length} module path(s): ${locatorModulePaths.join(', ') || 'none'}`)
+    // Initialize result
+    const result: SyncResult = {
+      locatorGroupsScanned: 0,
+      locatorGroupsExisting: 0,
+      locatorGroupsCreated: 0,
+      locatorGroupsUpdated: 0,
+      locatorGroupsDeleted: 0,
+      errors: [],
+      createdLocatorGroups: [],
+      updatedLocatorGroups: [],
+      deletedLocatorGroups: [],
+    }
 
-    console.log('\n📁 Scanning src/tests/features...')
-    const featureModulePaths = await scanFeatureDirectories(baseDir)
-    console.log(`   Found ${featureModulePaths.length} module path(s): ${featureModulePaths.join(', ') || 'none'}`)
+    // Read locator map
+    console.log('📄 Reading locator-map.json...')
+    const locatorMap = await readLocatorMap(baseDir)
+    console.log(`   Found ${locatorMap.length} entry(ies) in locator map`)
 
-    // Combine and deduplicate
-    const allModulePaths = Array.from(new Set([...locatorModulePaths, ...featureModulePaths]))
-    console.log(`\n🔍 Building module hierarchy from ${allModulePaths.length} unique module path(s)...`)
+    // Build locator groups from filesystem
+    console.log('\n📁 Scanning src/tests/locators directory...')
+    const locatorGroups = await buildLocatorGroupsFromFS(baseDir, locatorMap)
+    result.locatorGroupsScanned = locatorGroups.length
+    console.log(`   Found ${locatorGroups.length} locator group(s) in filesystem`)
 
-    // Build module tree
-    const moduleTree = buildModuleTree(allModulePaths)
+    if (locatorGroups.length > 0) {
+      console.log('\n   Locator groups found:')
+      locatorGroups.forEach((group, index) => {
+        console.log(`      ${index + 1}. ${group.name} (route: ${group.route}, module: ${group.modulePath})`)
+      })
+    }
 
     // Sync to database
-    console.log('\n✅ Syncing modules to database...')
-    const result = await syncModulesToDatabase(moduleTree)
+    await syncLocatorGroupsToDatabase(locatorGroups, result)
+
+    // Delete orphaned locator groups
+    const fsLocatorGroupNames = new Set(locatorGroups.map(g => g.name))
+    await deleteOrphanedLocatorGroups(fsLocatorGroupNames, result)
 
     // Generate summary
     generateSummary(result)
@@ -271,4 +411,3 @@ async function main() {
 }
 
 main()
-
