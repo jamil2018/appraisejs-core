@@ -1,3 +1,8 @@
+/**
+ * @name wait
+ * @description Template steps that handles waiting actions
+ * @type ACTION
+ */
 import { When } from '@cucumber/cucumber'
 import { CustomWorld } from '../../config/executor/world'
 

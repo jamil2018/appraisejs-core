@@ -20,6 +20,7 @@
     "sync-locators": "npx tsx scripts/sync-locators.ts",
     "sync-modules": "npx tsx scripts/sync-modules.ts",
     "sync-tags": "npx tsx scripts/sync-tags.ts",
+    "sync-template-step-groups": "npx tsx scripts/template-step-group-sync.ts",
     "test": "cucumber-js"
   },
   "dependencies": {
