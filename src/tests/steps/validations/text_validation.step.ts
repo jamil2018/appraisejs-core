@@ -3,7 +3,7 @@
  * @description Template steps that handles text validation
  * @type VALIDATION
  */
-import { Then, When } from '@cucumber/cucumber'
+import { Then } from '@cucumber/cucumber'
 import { CustomWorld } from '../../config/executor/world.js'
 import { SelectorName } from '@/types/locator/locator.type'
 import { resolveLocator } from '../../utils/locator.util.js'

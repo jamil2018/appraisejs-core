@@ -262,35 +262,166 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
 }
 
 /**
- * Ensures required imports are present in the file content
- * Preserves group JSDoc at the top if it exists
+ * Required import definitions
  */
-function ensureRequiredImports(content: string): string {
-  const requiredImports = `import { When } from '@cucumber/cucumber';
-import { CustomWorld } from '../../config/executor/world';
-import { SelectorName } from '@/types/locator/locator.type';
-import { resolveLocator } from '../../utils/locator.util';
+interface RequiredImport {
+  module: string
+  namedExports: string[]
+  from: string
+}
 
-`
+const REQUIRED_IMPORTS: RequiredImport[] = [
+  {
+    module: '@cucumber/cucumber',
+    namedExports: ['When'],
+    from: '@cucumber/cucumber',
+  },
+  {
+    module: '../../config/executor/world',
+    namedExports: ['CustomWorld'],
+    from: '../../config/executor/world.js',
+  },
+  {
+    module: '@/types/locator/locator.type',
+    namedExports: ['SelectorName'],
+    from: '@/types/locator/locator.type',
+  },
+  {
+    module: '../../utils/locator.util',
+    namedExports: ['resolveLocator'],
+    from: '../../utils/locator.util.js',
+  },
+]
 
-  // Check if imports are already present
-  if (content.includes("import { When } from '@cucumber/cucumber'")) {
+/**
+ * Parses import statements from file content
+ * Returns an array of import objects with their line numbers
+ */
+interface ParsedImport {
+  line: number
+  fullLine: string
+  namedExports: string[]
+  from: string
+}
+
+function parseImports(content: string): ParsedImport[] {
+  const lines = content.split('\n')
+  const imports: ParsedImport[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    // Match import statements: import { ... } from '...'
+    const importMatch = line.match(/^import\s+{([^}]+)}\s+from\s+['"]([^'"]+)['"];?$/)
+    if (importMatch) {
+      const namedExportsStr = importMatch[1]
+      const fromPath = importMatch[2]
+      // Parse named exports, handling whitespace
+      const namedExports = namedExportsStr
+        .split(',')
+        .map(exp => exp.trim())
+        .filter(Boolean)
+
+      imports.push({
+        line: i,
+        fullLine: line,
+        namedExports,
+        from: fromPath,
+      })
+    }
+  }
+
+  return imports
+}
+
+/**
+ * Checks if a required import is present in the parsed imports
+ * Handles variations like with/without .js extension, different import styles
+ */
+function hasRequiredImport(parsedImports: ParsedImport[], required: RequiredImport): boolean {
+  for (const parsed of parsedImports) {
+    // Normalize paths for comparison (remove .js extension if present)
+    const normalizedParsedFrom = parsed.from.replace(/\.js$/, '')
+    const normalizedRequiredFrom = required.from.replace(/\.js$/, '')
+
+    // Check if the module path matches (with or without .js)
+    if (normalizedParsedFrom === normalizedRequiredFrom || parsed.from === required.from) {
+      // Check if all required named exports are present
+      const hasAllExports = required.namedExports.every(exp => parsed.namedExports.includes(exp))
+      if (hasAllExports) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+/**
+ * Generates an import statement string for a required import
+ */
+function generateImportStatement(required: RequiredImport): string {
+  return `import { ${required.namedExports.join(', ')} } from '${required.from}';`
+}
+
+/**
+ * Ensures required imports are present in the file content
+ * Only adds missing imports, preserves existing imports and their order
+ * Preserves group JSDoc at the top if it exists
+ * @internal - exported for testing purposes
+ */
+export function ensureRequiredImports(content: string): string {
+  // Parse existing imports
+  const parsedImports = parseImports(content)
+
+  // Check which required imports are missing
+  const missingImports: RequiredImport[] = []
+  for (const required of REQUIRED_IMPORTS) {
+    if (!hasRequiredImport(parsedImports, required)) {
+      missingImports.push(required)
+    }
+  }
+
+  // If all imports are present, return content unchanged
+  if (missingImports.length === 0) {
     return content
   }
+
+  // Generate import statements for missing imports
+  const newImportStatements = missingImports.map(generateImportStatement).join('\n') + '\n'
 
   // Check if there's a group JSDoc at the top
   const jsdocBounds = extractGroupJSDocBounds(content)
 
   if (jsdocBounds) {
-    // Preserve JSDoc, add imports after it
+    // Preserve JSDoc, add missing imports after it
     const lines = content.split('\n')
     const jsdoc = lines.slice(jsdocBounds.startLine, jsdocBounds.endLine + 1).join('\n')
     const afterJSDoc = lines.slice(jsdocBounds.endLine + 1).join('\n')
-    return `${jsdoc}\n${requiredImports}${afterJSDoc.trimStart()}`
+
+    // Check if there are already imports after JSDoc
+    const afterJSDocTrimmed = afterJSDoc.trimStart()
+    if (afterJSDocTrimmed.startsWith('import ')) {
+      // Imports already exist, add missing ones right after JSDoc (before existing imports)
+      // This preserves the existing import order
+      return `${jsdoc}\n${newImportStatements}${afterJSDoc}`
+    } else {
+      // No imports after JSDoc, add them
+      return `${jsdoc}\n${newImportStatements}${afterJSDocTrimmed}`
+    }
   }
 
-  // No JSDoc, add imports at the beginning
-  return requiredImports + content
+  // No JSDoc, check if there are existing imports
+  if (parsedImports.length > 0) {
+    // Find the first import line
+    const firstImportLine = parsedImports[0].line
+    const lines = content.split('\n')
+    const beforeImports = lines.slice(0, firstImportLine).join('\n')
+    const afterImports = lines.slice(firstImportLine).join('\n')
+    // Add missing imports before existing imports
+    return `${beforeImports}${beforeImports ? '\n' : ''}${newImportStatements}${afterImports}`
+  }
+
+  // No JSDoc, no existing imports, add imports at the beginning
+  return newImportStatements + content
 }
 
 /**
@@ -491,9 +622,9 @@ export async function createTemplateStepGroupFile(
     // Generate content with JSDoc at the top, then imports, then placeholder comment
     const groupJSDoc = generateGroupJSDocComment(groupName, description || null, type)
     const requiredImports = `import { When } from '@cucumber/cucumber';
-import { CustomWorld } from '../../config/executor/world';
+import { CustomWorld } from '../../config/executor/world.js';
 import { SelectorName } from '@/types/locator/locator.type';
-import { resolveLocator } from '../../utils/locator.util';
+import { resolveLocator } from '../../utils/locator.util.js';
 
 `
     const placeholderComment =
