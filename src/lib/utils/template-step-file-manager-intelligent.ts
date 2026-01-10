@@ -203,10 +203,12 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
       }
 
       if (signatureFound) {
-        // Found the start, now find the end using bracket counting
+        // Found the start, now find the end using bracket and parenthesis counting
         // Also check backwards for JSDoc comments to include them in the bounds
         let functionStartLine = i
         let braceCount = 0
+        let parenCount = 0
+        let startParenFound = false
         let startBraceFound = false
 
         // Check if there are JSDoc comments before this function
@@ -235,9 +237,14 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
         for (let j = i; j < lines.length; j++) {
           const currentLine = lines[j]
 
-          // Count opening braces
+          // Count opening and closing parentheses and braces
           for (const char of currentLine) {
-            if (char === '{') {
+            if (char === '(') {
+              parenCount++
+              startParenFound = true
+            } else if (char === ')') {
+              parenCount--
+            } else if (char === '{') {
               braceCount++
               startBraceFound = true
             } else if (char === '}') {
@@ -245,8 +252,9 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
             }
           }
 
-          // If we found the opening brace and closed all braces, we're done
-          if (startBraceFound && braceCount === 0) {
+          // If we found the opening parenthesis and both parentheses and braces are balanced, we're done
+          // This ensures we capture the complete When(...) or Then(...) call including the closing )
+          if (startParenFound && parenCount === 0 && braceCount === 0) {
             return { startLine: functionStartLine, endLine: j }
           }
         }
