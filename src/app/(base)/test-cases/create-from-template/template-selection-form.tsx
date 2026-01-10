@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formOpts } from '@/constants/form-opts/template-selection-form-opts'
 import { TemplateTestCase } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
+import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React from 'react'
 import { z } from 'zod'
@@ -60,7 +61,10 @@ const TemplateSelectionForm = ({ templateTestCases }: { templateTestCases: Templ
           }}
         </form.Field>
 
-        <Button type="submit">Next</Button>
+        <Button type="submit" className="w-fit hover:bg-emerald-500">
+          <span className="font-bold">Next</span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
       </form>
     </div>
   )

@@ -29,7 +29,7 @@ import { githubDark } from '@uiw/codemirror-theme-github'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
-import { Info } from 'lucide-react'
+import { Info, Save } from 'lucide-react'
 
 const errorSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
@@ -394,8 +394,9 @@ const TestCaseForm = ({
         </CardContent>
       </Card>
       <div className="mb-4 flex flex-col gap-2">
-        <Button onClick={handleSubmit} className="w-fit px-6">
-          Save
+        <Button onClick={handleSubmit} className="w-fit px-6 hover:bg-emerald-500">
+          <Save className="h-4 w-4" />
+          <span className="font-bold">Save</span>
         </Button>
       </div>
     </div>

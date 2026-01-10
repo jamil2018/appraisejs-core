@@ -221,7 +221,7 @@ export const TestSuiteForm = ({
           </form>
         </CardContent>
       </Card>
-      <div className="w-1/3">
+      <div className="lg:w-1/3">
         <Card className="border-gray-700 bg-gray-500/10">
           <CardHeader className="mb-2">
             <CardTitle className="flex items-center gap-2 text-xl text-primary">
