@@ -21,6 +21,7 @@
     "sync-modules": "npx tsx scripts/sync-modules.ts",
     "sync-tags": "npx tsx scripts/sync-tags.ts",
     "sync-template-step-groups": "npx tsx scripts/template-step-group-sync.ts",
+    "sync-template-steps": "npx tsx scripts/template-step-sync.ts",
     "test": "cucumber-js"
   },
   "dependencies": {
@@ -73,10 +74,12 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@babel/traverse": "^7.28.5",
     "@cucumber/cucumber": "^12.1.0",
     "@cucumber/pretty-formatter": "^2.4.0",
     "@cucumber/tag-expressions": "^8.0.0",
     "@eslint/eslintrc": "^3",
+    "@types/babel__traverse": "^7.28.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/chai": "^5.2.2",
     "@types/chai-as-promised": "^8.0.2",

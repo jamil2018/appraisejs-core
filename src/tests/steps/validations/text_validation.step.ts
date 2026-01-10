@@ -4,9 +4,10 @@
  * @type VALIDATION
  */
 import { Then, When } from '@cucumber/cucumber'
-import { CustomWorld, expect } from '../../config/executor/world.js'
+import { CustomWorld } from '../../config/executor/world.js'
 import { SelectorName } from '@/types/locator/locator.type'
 import { resolveLocator } from '../../utils/locator.util.js'
+import { expect } from 'chai'
 
 // This file is generated automatically. Add template steps to this group to generate content.
 
