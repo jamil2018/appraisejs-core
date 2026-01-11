@@ -599,19 +599,70 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
   console.log('\n🔍 Checking for orphaned test cases (not in filesystem)...')
   const allDbTestCases = await prisma.testCase.findMany({
     include: {
-      tags: {
-        where: {
-          type: TagType.IDENTIFIER,
-        },
-      },
+      tags: true, // Include all tags, not just identifier tags
     },
   })
 
   for (const dbTestCase of allDbTestCases) {
     try {
       const identifierTag = dbTestCase.tags.find(t => t.type === TagType.IDENTIFIER)
+
+      // Test cases without identifier tags cannot be synced from filesystem
+      // and should be deleted as orphaned
       if (!identifierTag) {
-        // Test case without identifier tag - skip (shouldn't happen but handle gracefully)
+        console.log(`   ⚠️  Test case '${dbTestCase.title}' has no identifier tag - will be deleted as orphaned`)
+
+        // Delete the test case and all related records in a transaction
+        await prisma.$transaction(async tx => {
+          // Delete all test run test cases (has RESTRICT constraint, must be deleted first)
+          await tx.testRunTestCase.deleteMany({
+            where: {
+              testCaseId: dbTestCase.id,
+            },
+          })
+
+          // Delete all reviews
+          await tx.review.deleteMany({
+            where: {
+              testCaseId: dbTestCase.id,
+            },
+          })
+
+          // Delete all linked Jira tickets
+          await tx.linkedJiraTicket.deleteMany({
+            where: {
+              testCaseId: dbTestCase.id,
+            },
+          })
+
+          // Delete all step parameters
+          await tx.testCaseStepParameter.deleteMany({
+            where: {
+              testCaseStep: {
+                testCaseId: dbTestCase.id,
+              },
+            },
+          })
+
+          // Delete all test case steps
+          await tx.testCaseStep.deleteMany({
+            where: {
+              testCaseId: dbTestCase.id,
+            },
+          })
+
+          // Delete the test case
+          await tx.testCase.delete({
+            where: { id: dbTestCase.id },
+          })
+        })
+
+        result.testCasesDeleted++
+        result.deletedTestCases.push({
+          identifierTag: '(no identifier tag)',
+          title: dbTestCase.title,
+        })
+        console.log(`   🗑️  Deleted test case '${dbTestCase.title}' (no identifier tag)`)
         continue
       }
 
