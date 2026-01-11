@@ -24,6 +24,7 @@
     "sync-test-cases": "npx tsx scripts/sync-test-cases.ts",
     "sync-template-step-groups": "npx tsx scripts/sync-template-step-groups.ts",
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
+    "sync-all": "npx tsx scripts/sync-all.ts",
     "test": "cucumber-js"
   },
   "dependencies": {

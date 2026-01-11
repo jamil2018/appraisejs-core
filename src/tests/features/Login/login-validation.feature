@@ -9,3 +9,8 @@ Feature: login-validation
   Scenario: [Login] Validate login page navigation
     Given the user navigates to the "staging" environment
     Then the user should be navigated to the "/login" route
+
+  @tc_a4f7b511675fd12x
+  Scenario: [Login] Validate login page navigation 2
+    Given the user navigates to the "staging" environment
+    Then the user should be navigated to the "/login" route
