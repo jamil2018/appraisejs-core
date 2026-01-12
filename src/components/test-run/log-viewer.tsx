@@ -33,6 +33,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
   const eventSourceRef = useRef<EventSource | null>(null)
   const autoScrollRef = useRef(true)
   const wasConnectedRef = useRef(false) // Track if we ever successfully connected
+  const shouldStopReconnectingRef = useRef(false) // Track if we should stop auto-reconnecting
 
   // Load logs from database if test run is completed
   useEffect(() => {
@@ -90,26 +91,40 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
       if (readyState === EventSource.CONNECTING) {
         // Still connecting, don't log error or set error state yet
         // This is normal during initial connection attempts
+        // Allow EventSource to continue trying to connect
         return
       }
 
       if (readyState === EventSource.CLOSED) {
         console.log(`[LogViewer] SSE connection closed for testRunId: ${testRunId}`)
-        // Only set disconnected if we were previously connected
-        // If we never connected, it's likely a 404 or server error
-        if (wasConnectedRef.current) {
-          setConnectionStatus('disconnected')
-        } else {
+        
+        // If we never connected, it's likely a fatal error (404, 500, etc.)
+        // Close EventSource to prevent auto-reconnection
+        if (!wasConnectedRef.current) {
+          console.log(`[LogViewer] Fatal error: never connected, closing EventSource to prevent reconnection`)
+          shouldStopReconnectingRef.current = true
+          eventSource.close()
           setConnectionStatus('error')
           setError(
             'Failed to connect to log stream. The test run may not be running or the process has ended. Please check the server logs for more details.',
           )
+        } else {
+          // We were connected before, so this is a normal disconnection
+          setConnectionStatus('disconnected')
+          // Don't close EventSource here - let it try to reconnect if needed
+          // But if we've been told to stop reconnecting, close it
+          if (shouldStopReconnectingRef.current) {
+            eventSource.close()
+          }
         }
       } else {
         // readyState === EventSource.OPEN (unlikely to be an error) or unknown state
         console.error(`[LogViewer] SSE error for testRunId: ${testRunId}`, err, 'readyState:', readyState)
         setConnectionStatus('error')
         setError(`Failed to connect to log stream (readyState: ${readyState}). Check server logs for details.`)
+        // For OPEN state errors, close to prevent reconnection attempts
+        shouldStopReconnectingRef.current = true
+        eventSource.close()
       }
     }
 
@@ -214,16 +229,36 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           return
         }
         const data = JSON.parse(event.data)
+        const errorMessage = data.error || data.message || 'Unknown error'
+        
         setLogs(prev => [
           ...prev,
           {
             type: 'stderr',
-            message: `Error: ${data.error || data.message || 'Unknown error'}`,
+            message: `Error: ${errorMessage}`,
             timestamp: new Date(),
           },
         ])
         setConnectionStatus('error')
-        // Don't close immediately - let user see the error
+        
+        // Check if this is a fatal error that should stop reconnection
+        // Fatal errors include: "Test run not found", "Test run has completed", "Internal server error"
+        const fatalErrorPatterns = [
+          'Test run not found',
+          'Test run has completed',
+          'Internal server error',
+          'Test run process not found',
+        ]
+        
+        const isFatalError = fatalErrorPatterns.some(pattern => 
+          errorMessage.toLowerCase().includes(pattern.toLowerCase())
+        )
+        
+        if (isFatalError) {
+          console.log(`[LogViewer] Fatal error received, closing EventSource to prevent reconnection: ${errorMessage}`)
+          shouldStopReconnectingRef.current = true
+          eventSource.close()
+        }
       } catch (error) {
         console.error('[LogViewer] Error parsing error event:', error, 'event.data:', event.data)
       }
@@ -273,6 +308,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
     // Cleanup on unmount
     return () => {
       wasConnectedRef.current = false
+      shouldStopReconnectingRef.current = false
       eventSource.close()
       eventSourceRef.current = null
     }

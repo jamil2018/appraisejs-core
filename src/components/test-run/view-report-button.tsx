@@ -2,7 +2,7 @@
 
 import { TestRunStatus, Report } from '@prisma/client'
 import { Button } from '@/components/ui/button'
-import { FileText, LoaderCircle } from 'lucide-react'
+import { FileText, LoaderCircle, XCircle } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import Link from 'next/link'
 
@@ -17,7 +17,34 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
   const shouldShowReportButton =
     (testRunStatus === TestRunStatus.COMPLETED || testRunStatus === TestRunStatus.CANCELLED) && reports.length > 0
 
-  if (!shouldShowReportButton) {
+  // Show cancelled status if test run is cancelled and no report exists
+  if (testRunStatus === TestRunStatus.CANCELLED && reports.length === 0) {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        >
+          <Button variant="outline" size="sm" className={className} disabled>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              className="flex items-center gap-2"
+            >
+              <XCircle className="h-4 w-4" />
+              Report Not Available
+            </motion.div>
+          </Button>
+        </motion.div>
+      </AnimatePresence>
+    )
+  }
+
+  // Show generating report message only for completed (not cancelled) runs without reports
+  if (testRunStatus === TestRunStatus.COMPLETED && reports.length === 0) {
     return (
       <AnimatePresence mode="wait">
         <motion.div
@@ -40,6 +67,10 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
         </motion.div>
       </AnimatePresence>
     )
+  }
+
+  if (!shouldShowReportButton) {
+    return null
   }
 
   const reportId = reports[0].id

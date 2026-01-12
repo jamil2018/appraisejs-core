@@ -504,8 +504,22 @@ export async function createTestRunAction(
           // Clean up the server-side event listener
           cleanupListener()
 
-          // Store report in database if report path exists
-          if (reportPath) {
+          // Store report in database if report path exists and test run is not cancelled
+          // Check current status again to ensure we don't generate reports for cancelled runs
+          const finalTestRunStatus = await prisma.testRun.findUnique({
+            where: { id: testRun.id },
+            select: { status: true },
+          })
+
+          if (
+            finalTestRunStatus &&
+            (finalTestRunStatus.status === TestRunStatus.CANCELLED ||
+              finalTestRunStatus.status === TestRunStatus.CANCELLING)
+          ) {
+            console.log(
+              `[TestRunAction] Skipping report generation for testRunId: ${testRun.runId} - test run was cancelled`,
+            )
+          } else if (reportPath) {
             try {
               const { storeReportFromFile } = await import('@/actions/reports/report-actions')
               const reportResult = await storeReportFromFile(testRun.runId, reportPath)

@@ -106,7 +106,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   let waited = 0
 
   console.log(`[SSE] Looking for process with runId: ${runId}, current processes: ${processManager.size()}`)
-  
+
   // Log all available process IDs for debugging
   if (processManager.size() > 0) {
     const availableProcesses = processManager.getAllTestRunIds()
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     await new Promise(resolve => setTimeout(resolve, checkInterval))
     waited += checkInterval
     process = processManager.get(runId)
-    
+
     // Log progress every 2 seconds
     if (waited % 2000 === 0) {
       console.log(`[SSE] Still waiting for process ${runId}... (${waited}ms elapsed)`)
@@ -131,13 +131,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const availableProcesses = processManager.getAllTestRunIds()
     const errorMessage = `Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}. Available IDs: ${availableProcesses.join(', ') || 'none'}`
     console.error(`[SSE] ${errorMessage}`)
-    
+
     // Return an SSE stream with an error event instead of JSON response
     // This allows EventSource to properly handle the error
     const errorStream = new ReadableStream({
       start(controller) {
         const encoder = new TextEncoder()
-        const message = `event: error\ndata: ${JSON.stringify({ 
+        const message = `event: error\ndata: ${JSON.stringify({
           error: 'Test run process not found. The process may not have started yet or may have already completed.',
           details: `Looking for: ${runId}, Available: ${availableProcesses.join(', ') || 'none'}`,
         })}\n\n`
@@ -159,11 +159,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   // Process found, proceed with SSE connection
 
+  // Store cleanup function reference for cancel handler
+  let cleanupRef: (() => void) | null = null
+
   // Create a ReadableStream for SSE
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       let isClosed = false
+      let errorOccurred = false
+      let errorLogged = false // Track if we've already logged the error to avoid spam
 
       /**
        * Helper function to safely close the controller
@@ -184,13 +189,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        * Flushes immediately to ensure real-time streaming
        */
       const sendSSE = (event: string, data: string) => {
-        if (isClosed) return
+        // Early return if stream is closed or error occurred
+        if (isClosed || errorOccurred) return
+
         try {
           const message = `event: ${event}\ndata: ${data}\n\n`
           controller.enqueue(encoder.encode(message))
         } catch (error) {
-          console.error(`[SSE] Error sending ${event} event:`, error)
+          // Only log error once to avoid infinite spam
+          if (!errorLogged) {
+            console.error(`[SSE] Error sending ${event} event:`, error)
+            errorLogged = true
+          }
+
+          // Mark error occurred and immediately cleanup
+          errorOccurred = true
           isClosed = true
+
+          // Immediately cleanup listeners to prevent further events
+          cleanup()
+          safeClose()
         }
       }
 
@@ -214,6 +232,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        * Handler for stdout events
        */
       const onStdout = ({ processName, data }: { processName: string; data: string }) => {
+        // Early return if error occurred to prevent infinite loops
+        if (errorOccurred) return
+
         if (processName === process.name) {
           // Filter out event JSON lines - they're for internal processing only
           const lines = data.split('\n')
@@ -221,7 +242,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             const trimmed = line.trim()
             return trimmed && !isEventJson(trimmed)
           })
-          
+
           if (filteredLines.length > 0) {
             sendSSE('log', JSON.stringify({ type: 'stdout', message: filteredLines.join('\n') }))
           }
@@ -232,6 +253,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        * Handler for stderr events
        */
       const onStderr = ({ processName, data }: { processName: string; data: string }) => {
+        // Early return if error occurred to prevent infinite loops
+        if (errorOccurred) return
+
         if (processName === process.name) {
           // Filter out event JSON lines - they're for internal processing only
           const lines = data.split('\n')
@@ -239,7 +263,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             const trimmed = line.trim()
             return trimmed && !isEventJson(trimmed)
           })
-          
+
           if (filteredLines.length > 0) {
             sendSSE('log', JSON.stringify({ type: 'stderr', message: filteredLines.join('\n') }))
           }
@@ -250,6 +274,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        * Handler for process exit
        */
       const onExit = ({ processName, code }: { processName: string; code: number | null }) => {
+        // Early return if error occurred to prevent infinite loops
+        if (errorOccurred) {
+          // Still cleanup on exit even if error occurred
+          cleanup()
+          safeClose()
+          return
+        }
+
         if (processName === process.name) {
           sendSSE('exit', JSON.stringify({ code }))
           // Close the stream after sending exit event
@@ -264,6 +296,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
        * Handler for process errors
        */
       const onError = ({ processName, error }: { processName: string; error: Error }) => {
+        // Early return if error occurred to prevent infinite loops
+        if (errorOccurred) return
+
         if (processName === process.name) {
           sendSSE('error', JSON.stringify({ message: error.message }))
         }
@@ -272,15 +307,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       /**
        * Handler for scenario::end events from ProcessManager
        */
-      const onScenarioEnd = (eventData: { testRunId: string; scenarioName: string; status: string; tracePath?: string }) => {
-        console.log(`[SSE] Received scenario::end event for testRunId: ${eventData.testRunId}, runId: ${runId}`, eventData)
+      const onScenarioEnd = (eventData: {
+        testRunId: string
+        scenarioName: string
+        status: string
+        tracePath?: string
+      }) => {
+        // Early return if error occurred to prevent infinite loops
+        if (errorOccurred) return
+
+        console.log(
+          `[SSE] Received scenario::end event for testRunId: ${eventData.testRunId}, runId: ${runId}`,
+          eventData,
+        )
         if (eventData.testRunId === runId) {
           console.log(`[SSE] Sending scenario::end SSE event for scenario: ${eventData.scenarioName}`)
-          sendSSE('scenario::end', JSON.stringify({
-            scenarioName: eventData.scenarioName,
-            status: eventData.status,
-            tracePath: eventData.tracePath,
-          }))
+          sendSSE(
+            'scenario::end',
+            JSON.stringify({
+              scenarioName: eventData.scenarioName,
+              status: eventData.status,
+              tracePath: eventData.tracePath,
+            }),
+          )
         } else {
           console.log(`[SSE] Ignoring scenario::end event - testRunId mismatch: ${eventData.testRunId} !== ${runId}`)
         }
@@ -295,12 +344,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         processManager.removeListener('scenario::end', onScenarioEnd)
       }
 
+      // Store cleanup reference for cancel handler
+      cleanupRef = cleanup
+
       // Set up event listeners on TaskSpawner
       taskSpawner.on('stdout', onStdout)
       taskSpawner.on('stderr', onStderr)
       taskSpawner.on('exit', onExit)
       taskSpawner.on('error', onError)
-      
+
       // Listen for scenario::end events from ProcessManager
       processManager.on('scenario::end', onScenarioEnd)
 
@@ -341,9 +393,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       // Handle client disconnect
       request.signal.addEventListener('abort', () => {
+        errorOccurred = true
         cleanup()
         safeClose()
       })
+    },
+    cancel() {
+      // Handle stream cancellation (client closes connection)
+      // Cleanup listeners if they were set up
+      if (cleanupRef) {
+        cleanupRef()
+        cleanupRef = null
+      }
     },
   })
 

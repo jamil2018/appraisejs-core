@@ -90,10 +90,9 @@ export function TestRunHeader({ initialTestRun }: TestRunHeaderProps) {
 
   // Poll for report updates after test run completes
   useEffect(() => {
-    // Only poll if test run is completed/cancelled but no report exists yet
-    const shouldPoll =
-      (testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED) &&
-      testRun.reports.length === 0
+    // Only poll if test run is completed (not cancelled) but no report exists yet
+    // Cancelled runs won't generate reports, so we don't poll for them
+    const shouldPoll = testRun.status === TestRunStatus.COMPLETED && testRun.reports.length === 0
 
     if (!shouldPoll) {
       return

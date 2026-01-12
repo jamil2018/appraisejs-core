@@ -3,7 +3,15 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 @smoke @demo
-Feature: Collection of Demo Tests
+Feature: demo
+
+  @tc_dd16aebf48bba74a
+  Scenario: [Demo x1] Demo Test Login Flow
+    Given the user navigates to the "staging" environment
+    When the user fills in the "username" field with value "demo@example.com"
+    And the user fills in the "password" field with value "test1234"
+    And the user clicks the "login button" element
+    Then the user should be navigated to the "/home" route
 
   @tc_61eef153e45b133e
   Scenario: [Demo Test] This is a demo
