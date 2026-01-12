@@ -9,7 +9,6 @@ import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Locator, LocatorGroup } from '@prisma/client'
 import { Metadata } from 'next'
-import { SyncLocatorsButton } from './sync-locators-button'
 
 export const metadata: Metadata = {
   title: 'Appraise | Locators',
@@ -50,9 +49,10 @@ const Locators = async () => {
                 Locators
               </span>
             </PageHeader>
-            <HeaderSubtitle>Locators are the elements that are used to identify the elements on the page</HeaderSubtitle>
+            <HeaderSubtitle>
+              Locators are the elements that are used to identify the elements on the page
+            </HeaderSubtitle>
           </div>
-          <SyncLocatorsButton />
         </div>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>

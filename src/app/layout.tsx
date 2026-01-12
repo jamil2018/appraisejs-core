@@ -159,10 +159,8 @@ export default function RootLayout({
                     ]}
                   />
                   <NavCommand className="ml-auto" />
-                  <NavLink href="/settings" icon={<Settings className="h-5 w-5 text-primary" />} isIconOnly />
                 </div>
               </nav>
-
               {children}
               <Toaster />
             </div>

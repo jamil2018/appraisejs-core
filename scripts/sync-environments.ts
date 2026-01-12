@@ -70,6 +70,17 @@ async function readEnvironmentsFromFile(baseDir: string): Promise<Record<string,
 }
 
 /**
+ * Normalizes environment name to title case for consistent comparison
+ * e.g., "staging" -> "Staging", "STAGING" -> "Staging", "Staging" -> "Staging"
+ */
+function normalizeEnvironmentName(name: string): string {
+  if (!name || name.trim() === '') {
+    return name
+  }
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+}
+
+/**
  * Builds Environment objects from JSON content
  * Maps JSON structure to Prisma Environment model
  */
@@ -79,9 +90,8 @@ function buildEnvironmentObjects(
   const environments: EnvironmentData[] = []
 
   for (const [key, config] of Object.entries(jsonContent)) {
-    // Use the JSON key as the environment name
-    // Convert to a more readable format (e.g., "staging" -> "Staging")
-    const name = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase()
+    // Normalize the environment name to title case for consistency
+    const name = normalizeEnvironmentName(key)
 
     // Map email to username
     const username = config.email && config.email.trim() !== '' ? config.email.trim() : null
@@ -124,17 +134,30 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
     skippedEnvironments: [],
   }
 
-  // Get set of environment names from JSON file (normalized to title case)
-  const jsonEnvironmentNames = new Set(environments.map(env => env.name))
+  // Get set of normalized environment names from JSON file (for case-insensitive comparison)
+  const jsonEnvironmentNamesNormalized = new Set(
+    environments.map(env => normalizeEnvironmentName(env.name))
+  )
 
   // Get all environments from database
   const allDbEnvironments = await prisma.environment.findMany({
     select: { id: true, name: true },
   })
 
-  // Delete environments from DB that are not in JSON file
+  // Create a case-insensitive map: normalized name -> actual DB name
+  const dbEnvironmentsByNormalizedName = new Map<string, { id: string; name: string }>()
   for (const dbEnv of allDbEnvironments) {
-    if (!jsonEnvironmentNames.has(dbEnv.name)) {
+    const normalizedName = normalizeEnvironmentName(dbEnv.name)
+    // If we find a duplicate normalized name, keep the first one
+    if (!dbEnvironmentsByNormalizedName.has(normalizedName)) {
+      dbEnvironmentsByNormalizedName.set(normalizedName, dbEnv)
+    }
+  }
+
+  // Delete environments from DB that are not in JSON file (case-insensitive comparison)
+  for (const dbEnv of allDbEnvironments) {
+    const normalizedDbName = normalizeEnvironmentName(dbEnv.name)
+    if (!jsonEnvironmentNamesNormalized.has(normalizedDbName)) {
       try {
         // Check if environment has test runs (foreign key constraint prevents deletion)
         const testRunCount = await prisma.testRun.count({
@@ -164,12 +187,20 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
   // Create or update environments from JSON file
   for (const env of environments) {
     try {
-      // Check if environment already exists by name (unique constraint)
-      const existing = await prisma.environment.findUnique({
-        where: { name: env.name },
-      })
+      const normalizedName = normalizeEnvironmentName(env.name)
+      // Check if environment already exists by normalized name (case-insensitive)
+      const existingDbEnv = dbEnvironmentsByNormalizedName.get(normalizedName)
 
-      if (existing) {
+      if (existingDbEnv) {
+        // Environment exists, check if name needs to be updated to normalized form
+        if (existingDbEnv.name !== env.name) {
+          // Update the name to normalized form
+          await prisma.environment.update({
+            where: { id: existingDbEnv.id },
+            data: { name: env.name },
+          })
+          console.log(`   🔄 Updated environment name from '${existingDbEnv.name}' to '${env.name}'`)
+        }
         result.environmentsExisting++
         result.existingEnvironments.push(env.name)
         console.log(`   ✓ Environment '${env.name}' already exists`)
