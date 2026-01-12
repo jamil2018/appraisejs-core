@@ -11,6 +11,7 @@ import {
   TestRunStatus,
   TestRunResult,
   Environment,
+  TagType,
 } from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 
@@ -126,7 +127,7 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
     },
     header: ({ column }) => <DataTableColumnHeader column={column} title="Tags" />,
     cell: ({ row }) => {
-      const tags = row.original.testRun.tags || []
+      const tags = row.original.testRun.tags.filter(tag => tag.type === TagType.FILTER) || []
       return (
         <div className="flex flex-wrap gap-1">
           {tags.length > 0 ? tags.map(tag => <Badge key={tag.id}>{tag.name}</Badge>) : '-'}
