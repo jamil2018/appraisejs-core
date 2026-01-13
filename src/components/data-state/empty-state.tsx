@@ -2,6 +2,7 @@ import React from 'react'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '../ui/empty'
 import { Button } from '../ui/button'
 import Link from 'next/link'
+import { SquarePen } from 'lucide-react'
 
 const EmptyState = ({
   icon,
@@ -25,7 +26,11 @@ const EmptyState = ({
       </EmptyHeader>
       <EmptyContent>
         <Button asChild>
-          <Link href={createRoute}>{createText}</Link>
+          <Link href={createRoute}>
+            <SquarePen className="h-4 w-4" />
+            <span className="sr-only">{createText}</span>
+            {createText}
+          </Link>
         </Button>
       </EmptyContent>
     </Empty>

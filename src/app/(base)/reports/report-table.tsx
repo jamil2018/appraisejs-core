@@ -1,8 +1,9 @@
 import { DataTable } from '@/components/ui/data-table'
 import { reportTableCols } from './report-table-columns'
 import { getAllReportsAction } from '@/actions/reports/report-actions'
-import { TestCase, Tag, TestRun, ReportTestCase, TestRunTestCase, Report } from '@prisma/client'
 import { Prisma } from '@prisma/client'
+import { FileCheck } from 'lucide-react'
+import EmptyState from '@/components/data-state/empty-state'
 
 type ReportWithRelations = Prisma.ReportGetPayload<{
   include: {
