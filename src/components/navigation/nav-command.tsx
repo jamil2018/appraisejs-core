@@ -452,20 +452,6 @@ export default function NavCommand({ className }: { className?: string }) {
                   </Link>
                 </CommandItem>
               </CommandGroup>
-              <CommandGroup heading="Customization">
-                <CommandItem
-                  asChild
-                  onSelect={() => {
-                    setOpen(false)
-                    router.push('/settings')
-                  }}
-                >
-                  <Link href="/settings" onClick={() => setOpen(false)}>
-                    <Settings className="h-4 w-4" />
-                    Settings
-                  </Link>
-                </CommandItem>
-              </CommandGroup>
               <CommandGroup heading="Search">
                 <CommandItem
                   onSelect={() => {
