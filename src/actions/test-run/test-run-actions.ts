@@ -253,11 +253,27 @@ export async function createTestRunAction(
         where: { id: { in: value.tags } },
       })
 
+      // Find test cases that have tags directly OR belong to test suites with tags
       const tagFilteredTestCases = await prisma.testCase.findMany({
         where: {
-          tags: {
-            some: { id: { in: value.tags } },
-          },
+          OR: [
+            // Test cases with tags directly
+            {
+              tags: {
+                some: { id: { in: value.tags } },
+              },
+            },
+            // Test cases in test suites with tags
+            {
+              TestSuite: {
+                some: {
+                  tags: {
+                    some: { id: { in: value.tags } },
+                  },
+                },
+              },
+            },
+          ],
         },
       })
 

@@ -78,6 +78,14 @@ function splitTagLine(tagLine: string): string[] {
 }
 
 /**
+ * Normalizes a tag expression to ensure it has the @ prefix
+ * Example: "tc_123" -> "@tc_123", "@tc_123" -> "@tc_123"
+ */
+function normalizeTagExpression(tagExpression: string): string {
+  return tagExpression.startsWith('@') ? tagExpression : `@${tagExpression}`
+}
+
+/**
  * Parses scenario title to extract title and description
  * Note: The gherkin parser already extracts these but swaps them
  * Format: [Title] Description
@@ -287,6 +295,7 @@ function determineStepTypeAndIcon(keyword: string): { type: TemplateStepType; ic
 
 /**
  * Finds or creates a tag by tag expression
+ * If the tag exists but has a different type, updates it to the correct type
  */
 async function findOrCreateTag(tagExpression: string, type: TagType): Promise<string | null> {
   try {
@@ -297,6 +306,15 @@ async function findOrCreateTag(tagExpression: string, type: TagType): Promise<st
     })
 
     if (existingTag) {
+      // If the tag exists but has a different type, update it
+      // This is important because tags might have been created with the wrong type previously
+      if (existingTag.type !== type) {
+        await prisma.tag.update({
+          where: { id: existingTag.id },
+          data: { type },
+        })
+        console.log(`   🔄 Updated tag '${tagExpression}' type from ${existingTag.type} to ${type}`)
+      }
       return existingTag.id
     }
 
@@ -576,7 +594,21 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
               connect: [{ id: testSuite.id }],
             },
           },
+          include: {
+            tags: true,
+          },
         })
+
+        // Verify identifier tag is associated
+        const hasIdentifierTag = newTestCase.tags.some(t => t.type === TagType.IDENTIFIER)
+        if (!hasIdentifierTag) {
+          result.errors.push(
+            `Test case '${testCase.title}' was created but identifier tag '${testCase.identifierTag}' was not associated`,
+          )
+          console.error(
+            `   ❌ Test case '${testCase.title}' was created but identifier tag '${testCase.identifierTag}' was not associated`,
+          )
+        }
 
         result.testCasesCreated++
         result.createdTestCases.push({
@@ -666,7 +698,10 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
         continue
       }
 
-      const identifierTagExpr = identifierTag.tagExpression
+      // Normalize tagExpression to ensure consistent format comparison
+      // fsTestCaseTags contains normalized tags (with @ prefix), so we need to normalize
+      // the database tagExpression before comparing
+      const identifierTagExpr = normalizeTagExpression(identifierTag.tagExpression)
       if (!fsTestCaseTags.has(identifierTagExpr)) {
         // Check if test case has test runs (for logging)
         const testRunTestCases = await prisma.testRunTestCase.findMany({

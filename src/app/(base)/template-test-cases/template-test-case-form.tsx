@@ -102,7 +102,7 @@ const TemplateTestCaseForm = ({
     const gherkinSteps = validSteps.map((step, index) => {
       const gherkinStep = step.gherkinStep?.trim() || ''
       const firstWord = gherkinStep.split(' ')[0].toLowerCase()
-      const hasGherkinKeyword = ['given', 'when', 'then'].includes(firstWord)
+      const hasGherkinKeyword = ['given', 'when', 'then', 'and', 'but'].includes(firstWord)
       const stepWithoutKeyword = hasGherkinKeyword ? gherkinStep.split(' ').slice(1).join(' ') : gherkinStep
 
       // First step always starts with Given

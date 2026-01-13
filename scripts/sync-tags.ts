@@ -155,8 +155,20 @@ async function syncTagsToDatabase(tagObjects: TagData[]): Promise<SyncResult> {
       })
 
       if (existing) {
-        result.tagsExisting++
-        console.log(`   ✓ Tag '${tagData.name}' already exists`)
+        // If tag exists but has wrong type, update it
+        // This fixes tags that were created with wrong type (e.g., via UI or old code)
+        if (existing.type !== tagData.type) {
+          await prisma.tag.update({
+            where: { id: existing.id },
+            data: { type: tagData.type },
+          })
+          result.tagsCreated++ // Count as created since we're fixing it
+          result.createdTags.push(tagData.name)
+          console.log(`   🔄 Updated tag '${tagData.name}' type from ${existing.type} to ${tagData.type}`)
+        } else {
+          result.tagsExisting++
+          console.log(`   ✓ Tag '${tagData.name}' already exists`)
+        }
       } else {
         // Create the tag
         await prisma.tag.create({

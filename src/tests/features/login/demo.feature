@@ -3,7 +3,7 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 @smoke @demo
-Feature: demo
+Feature: Validate demo tests
 
   @tc_dd16aebf48bba74a
   Scenario: [Demo x1] Demo Test Login Flow
