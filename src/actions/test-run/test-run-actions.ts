@@ -94,6 +94,37 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
 
 export async function deleteTestRunAction(id: string[]): Promise<ActionResponse> {
   try {
+    // find all trace paths for the test runs
+    const tracePaths = await prisma.testRunTestCase.findMany({
+      where: {
+        testRunId: { in: id },
+      },
+      select: {
+        tracePath: true,
+      },
+    })
+    // delete the trace paths
+    for (const tracePath of tracePaths) {
+      if (tracePath.tracePath) {
+        await fs.unlink(tracePath.tracePath)
+      }
+    }
+
+    //  find all report paths for the test runs
+    const reportPaths = await prisma.testRun.findMany({
+      where: { id: { in: id } },
+      select: {
+        reportPath: true,
+      },
+    })
+    // delete the report paths
+    for (const reportPath of reportPaths) {
+      if (reportPath.reportPath) {
+        await fs.unlink(reportPath.reportPath)
+      }
+    }
+
+    // delete the test runs
     await prisma.testRun.deleteMany({
       where: { id: { in: id } },
     })
