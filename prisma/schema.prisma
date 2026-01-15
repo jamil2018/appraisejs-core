@@ -8,15 +8,16 @@ datasource db {
 }
 
 model TestSuite {
-  id          String     @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String
   description String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   moduleId    String
-  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  testCases   TestCase[] @relation("TestSuiteTestCases")
+  module      Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  testCases   TestCase[]        @relation("TestSuiteTestCases")
   tags        Tag[]
+  metrics     TestSuiteMetrics?
 }
 
 model Review {
@@ -91,6 +92,7 @@ model TestCase {
   TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
   TestRunTestCase   TestRunTestCase[]
   tags              Tag[]
+  metrics           TestCaseMetrics?
 }
 
 model TestCaseStep {
@@ -220,6 +222,9 @@ model TestRun {
   logPath          String?
   reportPath       String?
   reports          Report[]
+
+  @@index([completedAt])
+  @@index([result])
 }
 
 model TestRunLog {
@@ -373,6 +378,47 @@ model ReportHook {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   reportScenario   ReportScenario @relation(fields: [reportScenarioId], references: [id], onDelete: Cascade)
+}
+
+model TestCaseMetrics {
+  id                  String    @id @default(uuid())
+  testCaseId          String    @unique
+  isRepeatedlyFailing Boolean   @default(false)
+  isFlaky             Boolean   @default(false)
+  consecutiveFailures Int       @default(0)
+  failureRate         Float     @default(0)
+  totalRecentRuns     Int       @default(0)
+  failedRecentRuns    Int       @default(0)
+  lastExecutedAt      DateTime?
+  lastFailedAt        DateTime?
+  lastPassedAt        DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  testCase            TestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@index([isRepeatedlyFailing])
+  @@index([isFlaky])
+}
+
+model TestSuiteMetrics {
+  id             String    @id @default(uuid())
+  testSuiteId    String    @unique
+  lastExecutedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  testSuite      TestSuite @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+
+  @@index([lastExecutedAt])
+}
+
+model DashboardMetrics {
+  id                             String   @id @default(uuid())
+  failedRecentRunsCount          Int      @default(0)
+  repeatedlyFailingTestsCount    Int      @default(0)
+  flakyTestsCount                Int      @default(0)
+  suitesNotExecutedRecentlyCount Int      @default(0)
+  lastUpdatedAt                  DateTime @default(now())
+  createdAt                      DateTime @default(now())
 }
 
 enum TagType {

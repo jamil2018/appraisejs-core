@@ -21,6 +21,7 @@ import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run
 import { promises as fs } from 'fs'
 import path from 'path'
 import { Prisma } from '@prisma/client'
+import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
 
 /**
  * Check if a test run name already exists
@@ -505,6 +506,14 @@ export async function createTestRunAction(
                 completedAt: new Date(),
               },
             })
+
+            // Update metrics for the completed test run
+            try {
+              await updateMetricsForTestRun(testRun.id)
+            } catch (error) {
+              console.error(`[TestRunAction] Error updating metrics for test run ${testRun.id}:`, error)
+              // Don't fail the test run if metrics update fails
+            }
           } else {
             // Status is already CANCELLED or CANCELLING, just update completedAt if not set
             if (currentTestRun && !currentTestRun.result) {
@@ -547,10 +556,7 @@ export async function createTestRunAction(
                 )
               }
             } catch (error) {
-              console.error(
-                `[TestRunAction] Error storing report for testRunId: ${testRun.runId}:`,
-                error,
-              )
+              console.error(`[TestRunAction] Error storing report for testRunId: ${testRun.runId}:`, error)
               // Don't fail the test run if report storage fails
             }
           } else {
@@ -730,6 +736,18 @@ export async function updateTestRunTestCaseStatusAction(
         tracePath: tracePath || null,
       },
     })
+
+    // Update test case metrics
+    try {
+      await updateTestCaseMetrics(
+        matchingTestCase.testCaseId,
+        testCaseResult,
+        testRun.completedAt || testRun.startedAt || new Date(),
+      )
+    } catch (error) {
+      console.error(`[TestRunAction] Error updating metrics for test case ${matchingTestCase.testCaseId}:`, error)
+      // Don't fail the action if metrics update fails
+    }
 
     return {
       status: 200,
@@ -997,6 +1015,48 @@ export async function cancelTestRunAction(testRunId: string): Promise<ActionResp
     return {
       status: 500,
       error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+export async function getMostRecentTestRunAction(): Promise<ActionResponse> {
+  try {
+    const testRun = await prisma.testRun.findFirst({
+      orderBy: { completedAt: 'desc' },
+      where: {
+        completedAt: { not: null },
+        status: TestRunStatus.COMPLETED,
+      },
+      include: {
+        testCases: {
+          include: {
+            testCase: {
+              include: {
+                metrics: true, // Include metrics if needed
+              },
+            },
+          },
+        },
+        environment: true,
+        tags: true,
+      },
+    })
+
+    if (!testRun) {
+      return {
+        status: 404,
+        error: 'No completed test run found',
+      }
+    }
+
+    return {
+      status: 200,
+      data: testRun,
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
