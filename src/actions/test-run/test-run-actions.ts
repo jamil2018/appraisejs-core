@@ -36,9 +36,25 @@ async function checkUniqueName(name: string, excludeId?: string): Promise<boolea
   return !!existing
 }
 
-export async function getAllTestRunsAction(): Promise<ActionResponse> {
+export async function getAllTestRunsAction(filter?: string): Promise<ActionResponse> {
   try {
+    // Build the where clause based on filter
+    const whereClause: Prisma.TestRunWhereInput = {}
+
+    if (filter === 'recentFailed') {
+      // Calculate the date 7 days ago
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+      whereClause.result = TestRunResult.FAILED
+      whereClause.completedAt = {
+        not: null,
+        gte: sevenDaysAgo,
+      }
+    }
+
     const testRuns = await prisma.testRun.findMany({
+      where: whereClause,
       include: {
         testCases: true,
         tags: true,

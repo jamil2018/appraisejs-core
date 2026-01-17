@@ -14,8 +14,10 @@ export const metadata: Metadata = {
   description: 'Manage test runs and their execution results',
 }
 
-const TestRuns = async () => {
-  const { data: testRuns, error: testRunsError } = await getAllTestRunsAction()
+const TestRuns = async ({searchParams}: {searchParams: Promise<{filter?: string}>}) => {
+  const resolvedSearchParams = await searchParams
+  const filter = resolvedSearchParams?.filter
+  const { data: testRuns, error: testRunsError } = await getAllTestRunsAction(filter)
 
   if (testRunsError) {
     return <div>Error: {testRunsError}</div>

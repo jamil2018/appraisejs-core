@@ -1,13 +1,16 @@
+'use client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, AlertTriangle, Clock, XCircle } from 'lucide-react'
 import { DashboardMetrics } from '@prisma/client'
+import { useRouter } from 'next/navigation'
 
 type AppDrawerItem = {
   title: string
   icon: React.ReactNode
   color: keyof typeof AppDrawerItemColor
   count: number
+  onClick?: () => void
 }
 
 export const AppDrawerItemColor = {
@@ -71,6 +74,11 @@ export const AppDrawerItemColor = {
     iconColor: 'text-sky-500',
     badgeColor: 'bg-sky-400 text-sky-800',
   },
+  orange: {
+    buttonColor: 'bg-orange-500/20 hover:bg-orange-500/25',
+    iconColor: 'text-orange-500',
+    badgeColor: 'bg-orange-400 text-orange-800',
+  },
 }
 
 export const AppDrawerItem = ({
@@ -78,20 +86,23 @@ export const AppDrawerItem = ({
   icon,
   colorKey,
   count,
+  onClick,
 }: {
   title: string
   icon: React.ReactNode
   colorKey: keyof typeof AppDrawerItemColor
   count: number
+  onClick?: () => void
 }) => {
   const color = AppDrawerItemColor[colorKey]
   return (
     <Button
       variant="outline"
-      className={`relative flex h-fit w-full flex-col items-center justify-center border-none hover:text-gray-200 ${color.buttonColor}`}
+      className={`relative flex h-fit w-full flex-col items-center justify-center border-none hover:text-gray-200 ${color.buttonColor} px-2`}
+      onClick={onClick}
     >
-      <div className={color.iconColor}>{icon}</div>
-      <div className="text-sm font-medium text-gray-200">{title}</div>
+      <div className={`${color.iconColor} [&_svg]:!h-6 [&_svg]:!w-6`}>{icon}</div>
+      <div className="text-xs font-medium text-gray-200">{title}</div>
       <div
         className={`absolute right-[-8px] top-[-8px] flex h-4 w-4 items-center justify-center rounded-full ${color.badgeColor} p-2.5 text-xs`}
       >
@@ -101,39 +112,52 @@ export const AppDrawerItem = ({
   )
 }
 
-export default function AppDrawer({ metrics }: { metrics: DashboardMetrics | null }) {
+export default function AppDrawer({ metrics, title, description }: { metrics: DashboardMetrics | null, title: string, description: string }) {
+  const router = useRouter()
   const items: AppDrawerItem[] = [
     {
       title: 'Failed Runs',
-      icon: <XCircle className="h-8 w-8" />,
-      color: 'purple',
+      icon: <XCircle className="h-4 w-4" />,
+      color: 'orange',
       count: metrics?.failedRecentRunsCount ?? 0,
+      onClick: () => {
+        router.push('/test-runs?filter=recentFailed')
+      },
     },
     {
       title: 'Failing Tests',
-      icon: <AlertCircle className="h-8 w-8" />,
+      icon: <AlertCircle className="h-4 w-4" />,
       color: 'rose',
       count: metrics?.repeatedlyFailingTestsCount ?? 0,
+      onClick: () => {
+        router.push('/executions/test-cases?filter=repeatedlyFailing')
+      },
     },
     {
       title: 'Flaky Tests',
-      icon: <AlertTriangle className="h-8 w-8" />,
+      icon: <AlertTriangle className="h-4 w-4" />,
       color: 'yellow',
       count: metrics?.flakyTestsCount ?? 0,
+      onClick: () => {
+        router.push('/executions/test-cases?filter=flaky')
+      },
     },
     {
-      title: 'Suites Not Executed',
-      icon: <Clock className="h-8 w-8" />,
+      title: 'Unexecuted Suites',
+      icon: <Clock className="h-4 w-4" />,
       color: 'blue',
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
+      onClick: () => {
+        router.push('/executions/test-suites?filter=unexecuted')
+      },
     },
   ]
 
   return (
     <Card id="container" className="w-fit border-gray-600/10 bg-gray-600/10">
       <CardHeader id="header">
-        <CardTitle className="text-primary">Dashboard Metrics</CardTitle>
-        <CardDescription>Overview of your test execution metrics</CardDescription>
+        <CardTitle className="text-primary">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent id="content">
         <div className="grid grid-cols-2 gap-4">
@@ -144,6 +168,7 @@ export default function AppDrawer({ metrics }: { metrics: DashboardMetrics | nul
               icon={item.icon}
               colorKey={item.color}
               count={item.count}
+              onClick={item.onClick}
             />
           ))}
         </div>
