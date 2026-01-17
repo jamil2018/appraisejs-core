@@ -46,4 +46,4 @@ yarn-error.log*
 next-env.d.ts
 
 src/tests/reports/*
-src/tests/config/environments.json
+src/tests/config/environments/environments.json
