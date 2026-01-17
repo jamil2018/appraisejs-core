@@ -130,7 +130,7 @@ export default function AppDrawer({ metrics, title, description }: { metrics: Da
       color: 'rose',
       count: metrics?.repeatedlyFailingTestsCount ?? 0,
       onClick: () => {
-        router.push('/executions/test-cases?filter=repeatedlyFailing')
+        router.push('/reports/test-cases?filter=repeatedlyFailing')
       },
     },
     {
@@ -139,7 +139,7 @@ export default function AppDrawer({ metrics, title, description }: { metrics: Da
       color: 'yellow',
       count: metrics?.flakyTestsCount ?? 0,
       onClick: () => {
-        router.push('/executions/test-cases?filter=flaky')
+        router.push('/reports/test-cases?filter=flaky')
       },
     },
     {
@@ -148,7 +148,7 @@ export default function AppDrawer({ metrics, title, description }: { metrics: Da
       color: 'blue',
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
       onClick: () => {
-        router.push('/executions/test-suites?filter=unexecuted')
+        router.push('/reports/test-suites?filter=unexecuted')
       },
     },
   ]
