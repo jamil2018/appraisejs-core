@@ -489,3 +489,35 @@ export const getReportByTestRunIdAction = async (testRunId: string): Promise<Act
     }
   }
 }
+
+/**
+ * Gets the test case metrics for a report
+ */
+export const getAllTestCaseMetricsAction = async (filter: string): Promise<ActionResponse> => {
+  try {
+    let testCaseMetrics = await prisma.testCaseMetrics.findMany({
+      include: {
+        testCase: {
+          include: {
+            tags: true,
+          },
+        },
+      },
+    })
+    if (filter === 'repeatedlyFailing') {
+      testCaseMetrics = testCaseMetrics.filter(tc => tc.isRepeatedlyFailing)
+    } else if (filter === 'flaky') {
+      testCaseMetrics = testCaseMetrics.filter(tc => tc.isFlaky)
+    }
+    return {
+      status: 200,
+      data: testCaseMetrics,
+    }
+  } catch (error) {
+    console.error(`[ReportActions] Error fetching all test case metrics:`, error)
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}

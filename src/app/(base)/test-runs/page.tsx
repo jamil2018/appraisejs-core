@@ -51,7 +51,7 @@ const TestRuns = async ({searchParams}: {searchParams: Promise<{filter?: string}
         <HeaderSubtitle>Test runs are the runs of the test cases.</HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
-        <TestRunTable initialData={testRunsData} />
+        <TestRunTable initialData={testRunsData} filter={filter as 'recentFailed' | 'all'} />
       </Suspense>
     </>
   )

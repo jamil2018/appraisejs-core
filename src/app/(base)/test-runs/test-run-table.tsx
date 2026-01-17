@@ -10,9 +10,10 @@ type TestRunData = TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; enviro
 
 interface TestRunTableProps {
   initialData: TestRunData[]
+  filter: 'recentFailed' | 'all'
 }
 
-const TestRunTable = ({ initialData }: TestRunTableProps) => {
+const TestRunTable = ({ initialData, filter = 'all' }: TestRunTableProps) => {
   const [testRuns, setTestRuns] = useState<TestRunData[]>(initialData)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -117,7 +118,7 @@ const TestRunTable = ({ initialData }: TestRunTableProps) => {
         filterColumn="name"
         filterPlaceholder="Filter by name..."
         deleteAction={deleteTestRunAction}
-        createLink="/test-runs/create"
+        createLink={filter === 'all' ? '/test-runs/create' : undefined}
       />
     </>
   )
