@@ -79,6 +79,11 @@ export const AppDrawerItemColor = {
     iconColor: 'text-orange-500',
     badgeColor: 'bg-orange-400 text-orange-800',
   },
+  gray: {
+    buttonColor: 'bg-gray-500/20 hover:bg-gray-500/25',
+    iconColor: 'text-gray-500',
+    badgeColor: 'bg-gray-400 text-gray-800',
+  },
 }
 
 export const AppDrawerItem = ({
@@ -87,19 +92,22 @@ export const AppDrawerItem = ({
   colorKey,
   count,
   onClick,
+  isActive,
 }: {
   title: string
   icon: React.ReactNode
   colorKey: keyof typeof AppDrawerItemColor
   count: number
+  isActive?: boolean
   onClick?: () => void
 }) => {
-  const color = AppDrawerItemColor[colorKey]
+  const color = !isActive ? AppDrawerItemColor.gray : AppDrawerItemColor[colorKey]
   return (
     <Button
       variant="outline"
       className={`relative flex h-fit w-full flex-col items-center justify-center border-none hover:text-gray-200 ${color.buttonColor} px-2`}
       onClick={onClick}
+      disabled={!isActive}
     >
       <div className={`${color.iconColor} [&_svg]:!h-6 [&_svg]:!w-6`}>{icon}</div>
       <div className="text-xs font-medium text-gray-200">{title}</div>
@@ -169,6 +177,7 @@ export default function AppDrawer({ metrics, title, description }: { metrics: Da
               colorKey={item.color}
               count={item.count}
               onClick={item.onClick}
+              isActive={item.count > 0 ? true : false}
             />
           ))}
         </div>

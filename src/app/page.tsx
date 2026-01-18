@@ -3,6 +3,7 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import AppDrawer from './(dashboard-components)/app-drawer'
 import { getDashboardMetricsAction } from '@/actions/dashboard/dashboard-actions'
 import { DashboardMetrics } from '@prisma/client'
+import QuickActionsDrawer from './(dashboard-components)/quick-actions-drawer'
 
 const Dashboard = async () => {
   const metricsResponse = await getDashboardMetricsAction()
@@ -14,7 +15,10 @@ const Dashboard = async () => {
         <PageHeader>Dashboard</PageHeader>
         <HeaderSubtitle>Welcome to the dashboard. Here you can see your test suites and run them.</HeaderSubtitle>
       </div>
-      <AppDrawer metrics={metrics} title="Attention Needed" description="Issues that require immediate action" />
+      <div className="flex gap-4">
+        <AppDrawer metrics={metrics} title="Attention Needed" description="Issues that require immediate action" />
+        <QuickActionsDrawer />
+      </div>
     </div>
   )
 }
