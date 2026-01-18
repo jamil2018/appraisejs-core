@@ -10,7 +10,7 @@ export default function QuickActionsDrawer() {
         <Card id="container" className="w-fit border-gray-600/10 bg-gray-600/10 h-fit">
             <CardHeader id="header">
                 <CardTitle className="text-primary">Quick Actions</CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">Quickly create new entities to get started</CardDescription>
+                <CardDescription>Quickly create new entities to get started</CardDescription>
             </CardHeader>
             <CardContent id="content">
                 <div className="grid grid-cols-4 gap-4">
