@@ -5,6 +5,7 @@ import prisma from '@/config/db-config'
 import { parseCucumberReport, getStepStatusEnum, getStepKeywordEnum } from '@/lib/test-run/report-parser'
 import { StepStatus, StepKeyword, TagType, Prisma } from '@prisma/client'
 import { existsSync } from 'fs'
+import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
 
 /**
  * Type for report with all relations from getAllReportsAction
@@ -137,6 +138,9 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
       },
     })
 
+    // Track test case IDs that were matched and executed
+    const executedTestCaseIds = new Set<string>()
+
     // Process each feature
     for (const feature of parsedReport.features) {
       // Create ReportFeature
@@ -245,6 +249,9 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
 
         // If we found a matching test case, create ReportTestCase link
         if (matchedTestCase) {
+          // Track this test case as executed
+          executedTestCaseIds.add(matchedTestCase.testCaseId)
+
           // Calculate scenario duration
           const scenarioDuration =
             scenario.steps.reduce((total, step) => total + step.duration, 0) +
@@ -260,6 +267,52 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
             },
           })
         }
+      }
+    }
+
+    // Update test suite metrics for all test suites that had test cases executed
+    // This serves as a backup to ensure metrics are updated even if updateTestSuitesForTestRun missed some
+    if (executedTestCaseIds.size > 0) {
+      try {
+        const executedAt = testRun.completedAt || testRun.startedAt || new Date()
+
+        // Get all test cases that were executed and their associated test suites
+        const testCases = await prisma.testCase.findMany({
+          where: {
+            id: {
+              in: Array.from(executedTestCaseIds),
+            },
+          },
+          include: {
+            TestSuite: true,
+          },
+        })
+
+        // Extract unique test suite IDs
+        const testSuiteIds = new Set<string>()
+        testCases.forEach(testCase => {
+          if (testCase.TestSuite) {
+            testCase.TestSuite.forEach(suite => {
+              testSuiteIds.add(suite.id)
+            })
+          }
+        })
+
+        // Update lastExecutedAt for each suite
+        for (const suiteId of testSuiteIds) {
+          await updateTestSuiteMetrics(suiteId, executedAt)
+        }
+
+        if (testSuiteIds.size > 0) {
+          console.log(
+            `[ReportActions] Updated test suite metrics for ${testSuiteIds.size} test suite(s) based on executed test cases`,
+          )
+        }
+      } catch (error) {
+        console.error(
+          `[ReportActions] Error updating test suite metrics after storing report: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+        // Don't fail the report storage if metrics update fails
       }
     }
 
@@ -515,6 +568,44 @@ export const getAllTestCaseMetricsAction = async (filter: string): Promise<Actio
     }
   } catch (error) {
     console.error(`[ReportActions] Error fetching all test case metrics:`, error)
+    return {
+      status: 500,
+      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
+/**
+ * Gets the test suite metrics for a report
+ */
+export const getAllTestSuiteMetricsAction = async (filter: string): Promise<ActionResponse> => {
+  try {
+    let testSuiteMetrics = await prisma.testSuiteMetrics.findMany({
+      include: {
+        testSuite: {
+          include: {
+            tags: true,
+            testCases: true,
+          },
+        },
+      },
+    })
+    if (filter === 'notExecutedRecently') {
+      // Calculate the date threshold for recent runs (7 days ago)
+      const recentPeriodDate = new Date()
+      recentPeriodDate.setDate(recentPeriodDate.getDate() - 7)
+
+      // Filter for suites that have never been executed OR were executed more than 7 days ago
+      testSuiteMetrics = testSuiteMetrics.filter(
+        ts => ts.lastExecutedAt === null || ts.lastExecutedAt < recentPeriodDate,
+      )
+    }
+    return {
+      status: 200,
+      data: testSuiteMetrics,
+    }
+  } catch (error) {
+    console.error(`[ReportActions] Error fetching all test suite metrics:`, error)
     return {
       status: 500,
       error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,

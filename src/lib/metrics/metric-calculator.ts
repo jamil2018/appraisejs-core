@@ -189,10 +189,23 @@ export async function updateTestSuitesForTestRun(
     // Extract unique test suite IDs
     const testSuiteIds = new Set<string>()
     testRunTestCases.forEach(trtc => {
-      trtc.testCase.TestSuite.forEach(suite => {
-        testSuiteIds.add(suite.id)
-      })
+      if (trtc.testCase && trtc.testCase.TestSuite) {
+        trtc.testCase.TestSuite.forEach(suite => {
+          testSuiteIds.add(suite.id)
+        })
+      }
     })
+
+    // Log for debugging
+    if (testSuiteIds.size === 0) {
+      console.warn(
+        `[MetricCalculator] No test suites found for test run ${testRunId}. Test cases: ${testRunTestCases.length}`,
+      )
+    } else {
+      console.log(
+        `[MetricCalculator] Updating metrics for ${testSuiteIds.size} test suite(s) for test run ${testRunId}`,
+      )
+    }
 
     // Update lastExecutedAt for each suite
     for (const suiteId of testSuiteIds) {

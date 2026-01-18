@@ -148,7 +148,7 @@ export default function AppDrawer({ metrics, title, description }: { metrics: Da
       color: 'blue',
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
       onClick: () => {
-        router.push('/reports/test-suites?filter=unexecuted')
+        router.push('/reports/test-suites?filter=notExecutedRecently')
       },
     },
   ]
