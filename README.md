@@ -59,3 +59,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## License
+
+The code in this repository (AppraiseJS Core) is licensed under the
+Apache License 2.0.
+
+This repository contains the local-first, single-tenant core of AppraiseJS,
+including test management, execution, file synchronization, and UI
+components.
+
+Other components of the AppraiseJS platform—such as hosted cloud services
+and AI-powered features—are separate products and are not included in
+this repository.
+
+For the terms governing use of the code in this repository, see the
+LICENSE file.
