@@ -111,14 +111,7 @@ const overViewPieChartConfig = {
   },
 } satisfies ChartConfig
 
-const sampleOverViewPieChartData = [
-  { result: 'passed', value: 40, fill: colorMap.passed },
-  { result: 'failed', value: 30, fill: colorMap.failed },
-  { result: 'cancelled', value: 20, fill: colorMap.cancelled },
-  { result: 'unknown', value: 10, fill: colorMap.unknown },
-]
-
-const sampleResultByFeatureBarChartConfig = {
+const resultByFeatureBarChartConfig = {
   feature: {
     label: 'Feature',
   },
@@ -510,7 +503,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
                 <OverviewChart config={overViewPieChartConfig} data={overviewData} />
               </TabsContent>
               <TabsContent value="feature" className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
-                <FeatureChart config={sampleResultByFeatureBarChartConfig} data={featureData} />
+                <FeatureChart config={resultByFeatureBarChartConfig} data={featureData} />
               </TabsContent>
               <TabsContent value="duration" className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
                 <DurationChart config={durationByFeatureBarChartConfig} data={durationData} />

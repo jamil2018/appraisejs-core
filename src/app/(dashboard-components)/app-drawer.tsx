@@ -168,7 +168,7 @@ export default function AppDrawer({ metrics, title, description }: { metrics: Da
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent id="content">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 gap-y-6">
           {items.map(item => (
             <AppDrawerItem
               key={item.title}
