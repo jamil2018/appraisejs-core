@@ -1,7 +1,13 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import AppDrawer from './(dashboard-components)/app-drawer'
-import { EntityMetrics, getDashboardMetricsAction, getEntityMetricsAction } from '@/actions/dashboard/dashboard-actions'
+import {
+  EntityMetrics,
+  getDashboardMetricsAction,
+  getEntityMetricsAction,
+  getTestSuiteExecutionDataAction,
+  TestSuiteExecutionData,
+} from '@/actions/dashboard/dashboard-actions'
 import { DashboardMetrics } from '@prisma/client'
 import QuickActionsDrawer from './(dashboard-components)/quick-actions-drawer'
 import DataCard from './(dashboard-components)/data-card'
@@ -19,6 +25,13 @@ const Dashboard = async () => {
   }
 
   const { testCasesCount, testSuitesCount, templateStepsCount, runningTestRunsCount } = entityMetrics
+
+  // Fetch test suite execution data
+  const testSuiteExecutionResponse = await getTestSuiteExecutionDataAction()
+  const testSuiteExecutionData =
+    testSuiteExecutionResponse.status === 200
+      ? (testSuiteExecutionResponse.data as TestSuiteExecutionData)
+      : []
 
   return (
     <div>
@@ -40,7 +53,7 @@ const Dashboard = async () => {
           <QuickActionsDrawer />
         </div>
         <div className="flex-1">
-          <ExecutionHealthPanel />
+          <ExecutionHealthPanel featureData={testSuiteExecutionData} />
         </div>
       </div>
     </div>

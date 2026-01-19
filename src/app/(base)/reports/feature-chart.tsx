@@ -16,17 +16,26 @@ interface FeatureChartProps {
 }
 
 export default function FeatureChart({ config, data }: FeatureChartProps) {
-  // Calculate minimum height based on number of items (each bar needs ~40px)
-  const minHeight = Math.max(data.length * 40, 300)
+  // Calculate height based on number of items (each bar needs ~40px)
+  // Set a maximum height to prevent bars from becoming too thick when there are few items
+  const barHeight = 40
+  const maxHeight = 300 // Maximum height to prevent bars from becoming too thick
+  const calculatedHeight = data.length * barHeight
+  const minHeight = Math.min(Math.max(calculatedHeight, 200), maxHeight) // Cap at maxHeight
 
   return (
     <>
       <p className="mb-6 mt-2 text-center text-xs text-muted-foreground">Results by Feature</p>
-      <ChartContainer config={config} className="min-h-[300px] w-full" style={{ minHeight: `${minHeight}px` }}>
+      <ChartContainer
+        config={config}
+        className="min-h-[200px] w-full"
+        style={{ minHeight: `${minHeight}px`, maxHeight: `${maxHeight}px` }}
+      >
         <BarChart
           accessibilityLayer
           data={data}
           layout="vertical"
+          barCategoryGap="20%"
           margin={{
             left: 5,
           }}
