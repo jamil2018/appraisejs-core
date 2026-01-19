@@ -13,7 +13,7 @@ export default function QuickActionsDrawer() {
                 <CardDescription>Quickly create new entities to get started</CardDescription>
             </CardHeader>
             <CardContent id="content">
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-5 gap-4">
                     <Button variant="outline" className="flex flex-col items-center gap-2 h-fit [&_svg]:!h-6 [&_svg]:!w-6 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-500 hover:text-emerald-400 border-none" onClick={() => router.push('/test-suites/create')}>
                         <TestTubes />
                         <span className="text-xs font-medium">Create Suite</span>

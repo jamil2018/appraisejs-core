@@ -5,6 +5,7 @@ import { EntityMetrics, getDashboardMetricsAction, getEntityMetricsAction } from
 import { DashboardMetrics } from '@prisma/client'
 import QuickActionsDrawer from './(dashboard-components)/quick-actions-drawer'
 import DataCard from './(dashboard-components)/data-card'
+import { DataCardGrid } from './(dashboard-components)/data-card-grid'
 
 const Dashboard = async () => {
   const metricsResponse = await getDashboardMetricsAction()
@@ -24,12 +25,14 @@ const Dashboard = async () => {
         <PageHeader>Dashboard</PageHeader>
         <HeaderSubtitle>Welcome to the dashboard. Here you can see your test suites and run them.</HeaderSubtitle>
       </div>
-      <div className="grid grid-cols-5 gap-4 mb-4">
+      <div className="flex gap-7 mb-4">
         <AppDrawer metrics={metrics} title="Attention Needed" description="Issues that require immediate action" />
-        <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />
-        <DataCard title="Test Suites" value={testSuitesCount} link="/test-suites" />
-        <DataCard title="Template Steps" value={templateStepsCount} link="/template-steps" />
-        <DataCard title="Running Test Runs" value={runningTestRunsCount} link="/test-runs" />
+        <DataCardGrid>
+          <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />
+          <DataCard title="Test Suites" value={testSuitesCount} link="/test-suites" />
+          <DataCard title="Template Steps" value={templateStepsCount} link="/template-steps" />
+          <DataCard title="Ongoing Test Runs" value={runningTestRunsCount} link="/test-runs" />
+        </DataCardGrid>
       </div>
       <QuickActionsDrawer />
     </div>
