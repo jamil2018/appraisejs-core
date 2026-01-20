@@ -35,25 +35,19 @@ Before you begin, ensure you have the following installed:
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/appraise.git
+   git clone https://github.com/YOUR_USERNAME/appraisejs-core.git
    cd appraise
    ```
 3. Add the upstream repository:
    ```bash
-   git remote add upstream https://github.com/ORIGINAL_OWNER/appraise.git
+   git remote add upstream https://github.com/ORIGINAL_OWNER/appraisejs-core.git
    ```
 
 ## Development Setup
 
 ### Initial Setup
 
-1. **Install dependencies:**
-   ```bash
-   npm run install-dependencies
-   ```
-   Note: This uses `--legacy-peer-deps` flag to handle peer dependency conflicts.
-
-2. **Run the setup script:**
+1. **Run the setup script:**
    ```bash
    npm run setup
    ```
@@ -63,7 +57,7 @@ Before you begin, ensure you have the following installed:
    - Set up the database schema (Prisma migrations)
    - Install Playwright browsers and dependencies
 
-3. **Start the development server:**
+2. **Start the development server:**
    ```bash
    npm run dev
    ```
@@ -100,9 +94,15 @@ appraise/
 │   ├── actions/        # Server actions
 │   ├── components/     # React components
 │   ├── lib/            # Utility functions and libraries
-│   └── tests/          # Test files (Cucumber features and steps)
-│       ├── features/   # Gherkin feature files
-│       └── steps/      # Step definitions (generated)
+│   └── tests/          # Generated Test files (Cucumber features and steps)
+│       ├── config/     # Configuration files (environment, executor scripts)
+│       ├── features/   # Generated Gherkin feature files
+│       ├── hooks/      # Cucumber hooks
+│       ├── locators/   # Test locators (generated)
+│       ├── mapping/    # Locator group to route maps (generated)
+│       ├── reports/    # Test reports (generated)
+│       ├── steps/      # Step definitions (generated)
+│       └── utils/      # Utility scripts
 ├── public/             # Static assets
 └── package.json        # Dependencies and scripts
 ```
@@ -146,9 +146,8 @@ npm run lint -- --fix
 
 ### File Naming
 
-- React components: `PascalCase.tsx` (e.g., `UserProfile.tsx`)
+- React components: `kebab-case.tsx` (e.g., `data-card.tsx`)
 - Utility files: `kebab-case.ts` (e.g., `date-utils.ts`)
-- Test files: Match the file being tested with `.test.ts` or `.spec.ts` suffix
 
 ### Import Organization
 
@@ -260,7 +259,6 @@ This project includes various sync scripts that synchronize data between the fil
 ### Available Sync Scripts
 
 - `npm run sync-features` - Regenerate feature files from database
-- `npm run sync-features:dry-run` - Preview feature file changes without writing
 - `npm run sync-locator-groups` - Sync locator groups
 - `npm run sync-environments` - Sync environments
 - `npm run sync-locators` - Sync locators
@@ -270,7 +268,7 @@ This project includes various sync scripts that synchronize data between the fil
 - `npm run sync-test-cases` - Sync test cases
 - `npm run sync-template-step-groups` - Sync template step groups
 - `npm run sync-template-steps` - Sync template steps
-- `npm run sync-all` - Run all sync scripts
+- `npm run sync-all` - Run all sync scripts in order for sync with test file changes
 
 ### When to Use Sync Scripts
 
@@ -296,7 +294,6 @@ This project includes various sync scripts that synchronize data between the fil
 2. **Ensure all checks pass:**
    - Code lints without errors
    - Build succeeds
-   - Tests pass (if applicable)
    - No TypeScript errors
 
 3. **Update documentation** if your changes affect:
@@ -325,7 +322,6 @@ This project includes various sync scripts that synchronize data between the fil
 ### PR Checklist
 
 - [ ] Code follows project coding standards
-- [ ] All tests pass
 - [ ] Linting passes
 - [ ] Build succeeds
 - [ ] Documentation updated (if needed)
@@ -339,10 +335,9 @@ This project includes various sync scripts that synchronize data between the fil
 ### Adding a New Component
 
 1. Create component file in `src/components/`
-2. Follow naming conventions (PascalCase)
+2. Follow naming conventions (kebab-case.tsx)
 3. Add TypeScript types
 4. Export from appropriate index file if needed
-5. Add to storybook/docs if applicable
 
 ### Modifying Database Schema
 
