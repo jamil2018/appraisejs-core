@@ -12,10 +12,9 @@ AppraiseJS Core is designed to help teams manage, organize, and execute automate
 - **Test Suites**: Organize test cases into logical collections for specific features or functionality
 - **Test Cases**: Create and manage individual test scenarios with step-by-step definitions
 - **Template Test Cases**: Build reusable test templates that can be instantiated into concrete test cases
+- **Template Steps**: Build reusable test steps for defining test cases and templates
 - **Modules**: Hierarchical organization structure for grouping related test suites
 - **Tags**: Flexible categorization and filtering of tests
-- **Reviews**: Test case review workflow with reviewer assignments and status tracking
-- **Linked Jira Tickets**: Integration with Jira for tracking test cases against tickets
 
 #### Test Execution
 - **Test Runs**: Execute test suites or individual test cases with configurable options
@@ -27,7 +26,6 @@ AppraiseJS Core is designed to help teams manage, organize, and execute automate
 #### Locator Management
 - **Locator Groups**: Organize element locators by page or component
 - **Locators**: Manage element selectors (CSS, XPath, etc.) for test automation
-- **Locator Inspector**: Visual tool for inspecting and generating locators from web pages
 
 #### Template Steps
 - **Template Step Groups**: Organize reusable step definitions by category (Actions, Validations, etc.)
@@ -132,22 +130,20 @@ The project follows a structured approach with generated test files:
 
 ### Synchronization
 
-AppraiseJS Core maintains bidirectional synchronization between:
-- **Database** (SQLite via Prisma) - Primary source of truth for test definitions
-- **Filesystem** - Generated test files (Gherkin features, step definitions, locators)
+AppraiseJS Core maintains bidirectional synchronization between while keeping the file system as the source of truth:
+- **Database** (SQLite via Prisma) - Primary data collection for the app
+- **Filesystem** - Generated test files (Gherkin features, step definitions, locators). Considered the primary source of truth. 
 
 Sync scripts ensure consistency between database and filesystem:
-- `npm run sync-all` - Sync all entities
-- `npm run sync-features` - Regenerate feature files from database
-- Individual sync scripts for each entity type
+- `npm run sync-all` - Sync all entities in order
 
 ## Usage
 
 ### Creating Test Cases
 
 1. Navigate to **Test Cases** in the web interface
-2. Create a new test case with a title and description
-3. Add steps using template steps or custom step definitions
+2. Create a new test case from scratch with a title and description
+3. Build test flow utilizing template steps
 4. Assign tags and link to test suites
 5. Optionally create from template test cases for faster setup
 
@@ -156,21 +152,20 @@ Sync scripts ensure consistency between database and filesystem:
 1. Navigate to **Test Runs**
 2. Create a new test run
 3. Select test suites or specific test cases
-4. Choose an environment
-5. Execute and view results in real-time
-6. Review detailed reports with metrics and logs
+4. Name the test run
+5. Choose an environment
+6. Execute and view results in real-time
+7. Review detailed reports with metrics and logs
 
 ### Managing Locators
 
-1. Create **Locator Groups** for organizing locators by page/component
+1. Create **Locator Groups** for organizing locators by page/component with a particular app route
 2. Add **Locators** with selectors (CSS, XPath, etc.)
-3. Use the **Locator Inspector** to visually inspect and generate locators
-4. Sync locators to filesystem for use in test execution
 
 ### Working with Templates
 
 1. Create **Template Step Groups** to organize reusable steps
-2. Define **Template Steps** with parameters
+2. Define **Template Steps** with parameters that will be utilized by the test cases(this only scaffolds the template step, you still have to modify the step definition from file system)
 3. Create **Template Test Cases** for common test patterns
 4. Generate concrete test cases from templates
 
