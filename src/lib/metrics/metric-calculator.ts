@@ -80,17 +80,18 @@ export async function updateTestCaseMetrics(
     // Determine if flaky (failure rate > 5% but < 100%)
     const isFlaky = failureRate > FLAKY_THRESHOLD && failureRate < 1.0
 
-    // Calculate consecutive failures
+    // Calculate consecutive failures by examining the actual sequence of results
+    // Start from the most recent and count backwards
+    // This ensures accuracy even if test runs are processed out of order
     let consecutiveFailures = 0
-    if (existingMetrics) {
-      consecutiveFailures = existingMetrics.consecutiveFailures
-    }
-
-    // Update consecutive failures based on result
-    if (result === TestRunTestCaseResult.FAILED) {
-      consecutiveFailures += 1
-    } else if (result === TestRunTestCaseResult.PASSED) {
-      consecutiveFailures = 0
+    for (const trtc of recentTestRunTestCases) {
+      if (trtc.result === TestRunTestCaseResult.FAILED) {
+        consecutiveFailures++
+      } else if (trtc.result === TestRunTestCaseResult.PASSED) {
+        // Once we hit a pass, stop counting consecutive failures
+        break
+      }
+      // UNTESTED results don't break the consecutive failure count
     }
 
     // Determine if repeatedly failing (3+ consecutive failures)
@@ -291,6 +292,275 @@ export async function updateDashboardMetrics(): Promise<void> {
     }
   } catch (error) {
     console.error('[MetricCalculator] Error updating dashboard metrics:', error)
+    // Don't throw - metrics are non-critical
+  }
+}
+
+/**
+ * Recalculates metrics for a single test case from scratch based on current database state
+ * This is used when test runs are deleted and we need to recalculate metrics without
+ * the deleted test run data.
+ * @param testCaseId - The test case ID
+ */
+export async function recalculateTestCaseMetrics(testCaseId: string): Promise<void> {
+  try {
+    const recentPeriodDate = getRecentPeriodDate()
+
+    // Query all recent test run test cases for this test case (last 7 days)
+    const recentTestRunTestCases = await prisma.testRunTestCase.findMany({
+      where: {
+        testCaseId,
+        status: TestRunTestCaseStatus.COMPLETED,
+        testRun: {
+          completedAt: {
+            gte: recentPeriodDate,
+          },
+        },
+      },
+      include: {
+        testRun: {
+          select: {
+            completedAt: true,
+          },
+        },
+      },
+      orderBy: {
+        testRun: {
+          completedAt: 'desc',
+        },
+      },
+    })
+
+    const totalRecentRuns = recentTestRunTestCases.length
+    const failedRecentRuns = recentTestRunTestCases.filter(
+      trtc => trtc.result === TestRunTestCaseResult.FAILED,
+    ).length
+
+    // Calculate failure rate
+    const failureRate = totalRecentRuns > 0 ? failedRecentRuns / totalRecentRuns : 0
+
+    // Determine if flaky (failure rate > 5% but < 100%)
+    const isFlaky = failureRate > FLAKY_THRESHOLD && failureRate < 1.0
+
+    // Calculate consecutive failures by examining the actual sequence of results
+    // Start from the most recent and count backwards
+    let consecutiveFailures = 0
+    for (const trtc of recentTestRunTestCases) {
+      if (trtc.result === TestRunTestCaseResult.FAILED) {
+        consecutiveFailures++
+      } else if (trtc.result === TestRunTestCaseResult.PASSED) {
+        // Once we hit a pass, stop counting consecutive failures
+        break
+      }
+      // UNTESTED results don't break the consecutive failure count
+    }
+
+    // Determine if repeatedly failing (3+ consecutive failures)
+    const isRepeatedlyFailing = consecutiveFailures >= REPEATEDLY_FAILING_THRESHOLD
+
+    // Determine last executed, last failed, and last passed dates
+    let lastExecutedAt: Date | null = null
+    let lastFailedAt: Date | null = null
+    let lastPassedAt: Date | null = null
+
+    if (recentTestRunTestCases.length > 0) {
+      // Most recent execution
+      lastExecutedAt = recentTestRunTestCases[0].testRun.completedAt || new Date()
+
+      // Find most recent failure
+      const mostRecentFailure = recentTestRunTestCases.find(
+        trtc => trtc.result === TestRunTestCaseResult.FAILED,
+      )
+      if (mostRecentFailure) {
+        lastFailedAt = mostRecentFailure.testRun.completedAt || new Date()
+      }
+
+      // Find most recent pass
+      const mostRecentPass = recentTestRunTestCases.find(
+        trtc => trtc.result === TestRunTestCaseResult.PASSED,
+      )
+      if (mostRecentPass) {
+        lastPassedAt = mostRecentPass.testRun.completedAt || new Date()
+      }
+    }
+
+    // If no recent runs, check if there are any older runs to get last executed/failed/passed dates
+    if (!lastExecutedAt || !lastFailedAt || !lastPassedAt) {
+      const olderTestRunTestCases = await prisma.testRunTestCase.findMany({
+        where: {
+          testCaseId,
+          status: TestRunTestCaseStatus.COMPLETED,
+          testRun: {
+            completedAt: {
+              lt: recentPeriodDate,
+            },
+          },
+        },
+        include: {
+          testRun: {
+            select: {
+              completedAt: true,
+            },
+          },
+        },
+        orderBy: {
+          testRun: {
+            completedAt: 'desc',
+          },
+        },
+        take: 1, // Only need the most recent one
+      })
+
+      if (olderTestRunTestCases.length > 0) {
+        const mostRecentOlder = olderTestRunTestCases[0]
+        const olderCompletedAt = mostRecentOlder.testRun.completedAt || new Date()
+
+        if (!lastExecutedAt) {
+          lastExecutedAt = olderCompletedAt
+        }
+
+        // Find most recent failure from older runs if not found in recent runs
+        if (!lastFailedAt) {
+          const olderFailure = olderTestRunTestCases.find(
+            trtc => trtc.result === TestRunTestCaseResult.FAILED,
+          )
+          if (!olderFailure) {
+            // Check all older runs for failures
+            const allOlderFailures = await prisma.testRunTestCase.findFirst({
+              where: {
+                testCaseId,
+                status: TestRunTestCaseStatus.COMPLETED,
+                result: TestRunTestCaseResult.FAILED,
+                testRun: {
+                  completedAt: {
+                    lt: recentPeriodDate,
+                  },
+                },
+              },
+              include: {
+                testRun: {
+                  select: {
+                    completedAt: true,
+                  },
+                },
+              },
+              orderBy: {
+                testRun: {
+                  completedAt: 'desc',
+                },
+              },
+            })
+            if (allOlderFailures) {
+              lastFailedAt = allOlderFailures.testRun.completedAt || new Date()
+            }
+          } else {
+            lastFailedAt = olderFailure.testRun.completedAt || new Date()
+          }
+        }
+
+        // Find most recent pass from older runs if not found in recent runs
+        if (!lastPassedAt) {
+          const olderPass = olderTestRunTestCases.find(
+            trtc => trtc.result === TestRunTestCaseResult.PASSED,
+          )
+          if (!olderPass) {
+            // Check all older runs for passes
+            const allOlderPasses = await prisma.testRunTestCase.findFirst({
+              where: {
+                testCaseId,
+                status: TestRunTestCaseStatus.COMPLETED,
+                result: TestRunTestCaseResult.PASSED,
+                testRun: {
+                  completedAt: {
+                    lt: recentPeriodDate,
+                  },
+                },
+              },
+              include: {
+                testRun: {
+                  select: {
+                    completedAt: true,
+                  },
+                },
+              },
+              orderBy: {
+                testRun: {
+                  completedAt: 'desc',
+                },
+              },
+            })
+            if (allOlderPasses) {
+              lastPassedAt = allOlderPasses.testRun.completedAt || new Date()
+            }
+          } else {
+            lastPassedAt = olderPass.testRun.completedAt || new Date()
+          }
+        }
+      }
+    }
+
+    // Prepare update data
+    const updateData: {
+      lastExecutedAt?: Date
+      lastFailedAt?: Date | null
+      lastPassedAt?: Date | null
+      isRepeatedlyFailing: boolean
+      isFlaky: boolean
+      consecutiveFailures: number
+      failureRate: number
+      totalRecentRuns: number
+      failedRecentRuns: number
+    } = {
+      isRepeatedlyFailing,
+      isFlaky,
+      consecutiveFailures,
+      failureRate,
+      totalRecentRuns,
+      failedRecentRuns,
+    }
+
+    if (lastExecutedAt) {
+      updateData.lastExecutedAt = lastExecutedAt
+    }
+    if (lastFailedAt !== null) {
+      updateData.lastFailedAt = lastFailedAt
+    }
+    if (lastPassedAt !== null) {
+      updateData.lastPassedAt = lastPassedAt
+    }
+
+    // Upsert the metrics
+    await prisma.testCaseMetrics.upsert({
+      where: { testCaseId },
+      create: {
+        testCaseId,
+        lastExecutedAt: lastExecutedAt || undefined,
+        lastFailedAt: lastFailedAt || undefined,
+        lastPassedAt: lastPassedAt || undefined,
+        ...updateData,
+      },
+      update: updateData,
+    })
+  } catch (error) {
+    console.error(`[MetricCalculator] Error recalculating test case metrics for ${testCaseId}:`, error)
+    // Don't throw - metrics are non-critical
+  }
+}
+
+/**
+ * Recalculates metrics for multiple test cases
+ * @param testCaseIds - Array of test case IDs to recalculate
+ */
+export async function recalculateMetricsForTestCases(testCaseIds: string[]): Promise<void> {
+  try {
+    // Remove duplicates
+    const uniqueTestCaseIds = [...new Set(testCaseIds)]
+
+    for (const testCaseId of uniqueTestCaseIds) {
+      await recalculateTestCaseMetrics(testCaseId)
+    }
+  } catch (error) {
+    console.error(`[MetricCalculator] Error recalculating metrics for test cases:`, error)
     // Don't throw - metrics are non-critical
   }
 }

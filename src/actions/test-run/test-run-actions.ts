@@ -110,6 +110,18 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
 
 export async function deleteTestRunAction(id: string[]): Promise<ActionResponse> {
   try {
+    // Get all unique test case IDs from test runs being deleted (before deletion)
+    // This is needed to recalculate metrics after deletion
+    const testRunTestCases = await prisma.testRunTestCase.findMany({
+      where: {
+        testRunId: { in: id },
+      },
+      select: {
+        testCaseId: true,
+      },
+    })
+    const affectedTestCaseIds = [...new Set(testRunTestCases.map(trtc => trtc.testCaseId))]
+
     // find all trace paths for the test runs
     const tracePaths = await prisma.testRunTestCase.findMany({
       where: {
@@ -144,7 +156,53 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
     await prisma.testRun.deleteMany({
       where: { id: { in: id } },
     })
+
+    // Recalculate metrics for affected test cases and dashboard metrics
+    // Note: We recalculate all test case metrics, not just affected ones, because
+    // deleting a test run might affect consecutive failure counts for any test case
+    // that had recent runs (e.g., if a test case had 3 consecutive failures and we
+    // delete one of those failures, it might no longer be "repeatedly failing")
+    const { recalculateMetricsForTestCases, updateDashboardMetrics } = await import(
+      '@/lib/metrics/metric-calculator'
+    )
+
+    // Get all test case IDs that have recent test runs (last 7 days)
+    // These are the ones that might be affected by the deletion
+    // We recalculate all of them because deleting a test run might affect
+    // consecutive failure counts for any test case
+    const recentPeriodDate = new Date()
+    recentPeriodDate.setDate(recentPeriodDate.getDate() - 7)
+
+    const allRecentTestRunTestCases = await prisma.testRunTestCase.findMany({
+      where: {
+        status: TestRunTestCaseStatus.COMPLETED,
+        testRun: {
+          completedAt: {
+            gte: recentPeriodDate,
+          },
+        },
+      },
+      select: {
+        testCaseId: true,
+      },
+    })
+
+    // Get unique test case IDs
+    const allAffectedTestCaseIds = [
+      ...new Set(allRecentTestRunTestCases.map(trtc => trtc.testCaseId)),
+    ]
+
+    // Recalculate metrics for all test cases with recent runs
+    if (allAffectedTestCaseIds.length > 0) {
+      await recalculateMetricsForTestCases(allAffectedTestCaseIds)
+    }
+
+    // Always update dashboard metrics (e.g., failedRecentRunsCount might change)
+    await updateDashboardMetrics()
+
+    // Revalidate paths
     revalidatePath('/test-runs')
+    revalidatePath('/')
     return {
       status: 200,
       message: 'Test run(s) deleted successfully',
