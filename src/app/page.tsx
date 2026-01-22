@@ -11,6 +11,7 @@ import {
 import { DashboardMetrics } from '@prisma/client'
 import QuickActionsDrawer from './(dashboard-components)/quick-actions-drawer'
 import DataCard from './(dashboard-components)/data-card'
+import OngoingTestRunsCard from './(dashboard-components)/ongoing-test-runs-card'
 import { DataCardGrid } from './(dashboard-components)/data-card-grid'
 import { ExecutionHealthPanel } from './(dashboard-components)/execution-health-panel'
 
@@ -47,7 +48,7 @@ const Dashboard = async () => {
               <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />
               <DataCard title="Test Suites" value={testSuitesCount} link="/test-suites" />
               <DataCard title="Template Steps" value={templateStepsCount} link="/template-steps" />
-              <DataCard title="Ongoing Test Runs" value={runningTestRunsCount} link="/test-runs" />
+              <OngoingTestRunsCard initialCount={runningTestRunsCount} link="/test-runs" />
             </DataCardGrid>
           </div>
           <QuickActionsDrawer />

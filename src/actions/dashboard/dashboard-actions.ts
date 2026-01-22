@@ -1,3 +1,5 @@
+'use server'
+
 import prisma from '@/config/db-config'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { TestRunStatus, TestRunTestCaseResult } from '@prisma/client'
@@ -31,7 +33,9 @@ export async function getEntityMetricsAction(): Promise<ActionResponse> {
     const templateSteps = await prisma.templateStep.count()
     const runningTestRuns = await prisma.testRun.count({
       where: {
-        status: 'RUNNING',
+        status: {
+          in: [TestRunStatus.RUNNING, TestRunStatus.QUEUED, TestRunStatus.CANCELLING],
+        },
       },
     })
     return {
@@ -42,6 +46,31 @@ export async function getEntityMetricsAction(): Promise<ActionResponse> {
         templateStepsCount: templateSteps,
         runningTestRunsCount: runningTestRuns,
       },
+    }
+  } catch (error) {
+    return {
+      status: 500,
+      error: `Server error occurred: ${error}`,
+    }
+  }
+}
+
+/**
+ * Gets the count of ongoing test runs (RUNNING, QUEUED, or CANCELLING)
+ * Used for live tracking on the dashboard
+ */
+export async function getRunningTestRunsCountAction(): Promise<ActionResponse> {
+  try {
+    const count = await prisma.testRun.count({
+      where: {
+        status: {
+          in: [TestRunStatus.RUNNING, TestRunStatus.QUEUED, TestRunStatus.CANCELLING],
+        },
+      },
+    })
+    return {
+      status: 200,
+      data: count,
     }
   } catch (error) {
     return {
