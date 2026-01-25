@@ -1,0 +1,4 @@
+{
+  "click me": "//button[text()='Click Me']",
+  "dynamic click message": "#dynamicClickMessage"
+}

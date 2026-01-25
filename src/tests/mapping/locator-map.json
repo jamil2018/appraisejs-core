@@ -2,5 +2,13 @@
   {
     "name": "home",
     "path": "/"
+  },
+  {
+    "name": "elements",
+    "path": "/elements"
+  },
+  {
+    "name": "buttons",
+    "path": "/buttons"
   }
 ]

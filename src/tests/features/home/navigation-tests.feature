@@ -3,9 +3,13 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: Test suite for validating navigation template steps
+Feature: navigation-tests
 
-  @tc_bc9132db12068735
-  Scenario: [Navigation by url] Test case for validating navigation to page by direct url
-    Given the user navigates to the "https://demoqa.com/" url
-    Then the element "header" should be visible
+  @tc_cf6f0e29eefa9299
+  Scenario: [Click] Testing Click step functionality
+    Given the user navigates to the base url of the "demoqa" environment
+    When the user clicks on the "elements" element
+    And the user clicks on the "buttons" element
+    And the user clicks on the "click me" element
+    And the user waits for the element "dynamic click message" to become visible
+    Then the element "dynamic click message" should be visible
