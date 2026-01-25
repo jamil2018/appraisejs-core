@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StepParameterType, TemplateStepParameter, Locator, LocatorGroup } from '@prisma/client'
 import { format } from 'date-fns'
 import ErrorMessage from '@/components/form/error-message'
@@ -421,15 +421,15 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
   return (
     <Card className="border-none shadow-none" key={resetKey}>
-      <CardContent className="p-0">
-        <fieldset className="rounded-md border p-4">
-          <legend className="px-2 text-sm font-medium">Parameters</legend>
-          <div className="space-y-6">
-            {templateStepParams.map(param => (
-              <div key={param.name}>{renderInputField(param)}</div>
-            ))}
-          </div>
-        </fieldset>
+      <CardHeader className='py-3'>
+        <CardTitle className='text-xs font-bold text-primary'>Parameters</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {templateStepParams.map(param => (
+            <div key={param.name}>{renderInputField(param)}</div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
