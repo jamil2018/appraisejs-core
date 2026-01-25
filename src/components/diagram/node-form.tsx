@@ -11,11 +11,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
 import { Locator, LocatorGroup, StepParameterType, TemplateStep, TemplateStepIcon } from '@prisma/client'
 import { TemplateStepParameter } from '@prisma/client'
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import TemplateStepCombobox from './template-step-combobox'
+import { type TemplateStepWithGroup } from '@/types/diagram/template-step'
 import DynamicFormFields, { DynamicFormFieldsRef } from './dynamic-parameters'
 import { generateGherkinStep } from '@/lib/transformers/gherkin-converter'
 import { z } from 'zod'
@@ -85,6 +86,57 @@ const NodeForm = ({
     templateStepParams,
   ])
 
+  const handleTemplateStepChange = useCallback(
+    (value: string) => {
+      setErrors(prev => ({
+        ...prev,
+        templateStepId: value ? undefined : ['Template step is required'],
+      }))
+      setSelectedTemplateId(value)
+      const step = templateSteps.find(s => s.id === value)
+      if (step) {
+        setSelectedTemplateStep(step)
+        const newParams = templateStepParams.filter(param => param.templateStepId === step.id)
+        setSelectedTemplateStepParams(newParams)
+        const initialParamsForStep = newParams.map(param => {
+          let defaultValue = ''
+          switch (param.type) {
+            case 'NUMBER':
+              defaultValue = '0'
+              break
+            case 'STRING':
+              defaultValue = ''
+              break
+            case 'LOCATOR':
+              defaultValue = ''
+              break
+            case 'BOOLEAN':
+              defaultValue = 'false'
+              break
+            case 'DATE':
+              defaultValue = format(new Date(), 'PPP')
+              break
+          }
+          return {
+            name: param.name,
+            value: defaultValue,
+            type: param.type,
+            order: param.order,
+          }
+        })
+        setParameters(initialParamsForStep)
+        if (step.signature) {
+          const gherkin = generateGherkinStep(step.type, step.signature, initialParamsForStep)
+          setGherkinStep(gherkin)
+        }
+      }
+    },
+    [
+      templateSteps,
+      templateStepParams,
+    ],
+  )
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -149,67 +201,14 @@ const NodeForm = ({
             </div>
             <div className="mb-4 flex flex-col gap-2">
               <Label htmlFor="templateStepId">Template Step</Label>
-              <Select
-                name="templateStepId"
+              <TemplateStepCombobox
+                id="templateStepId"
                 value={selectedTemplateId}
-                onValueChange={value => {
-                  setErrors(prev => ({
-                    ...prev,
-                    templateStepId: value ? undefined : ['Template step is required'],
-                  }))
-                  setSelectedTemplateId(value)
-                  const step = templateSteps.find(step => step.id === value)
-                  if (step) {
-                    setSelectedTemplateStep(step)
-                    const newParams = templateStepParams.filter(param => param.templateStepId === step.id)
-                    setSelectedTemplateStepParams(newParams)
-                    const initialParamsForStep = newParams.map(param => {
-                      let defaultValue = ''
-                      switch (param.type) {
-                        case 'NUMBER':
-                          defaultValue = '0'
-                          break
-                        case 'STRING':
-                          defaultValue = ''
-                          break
-                        case 'LOCATOR':
-                          defaultValue = ''
-                          break
-                        case 'BOOLEAN':
-                          defaultValue = 'false'
-                          break
-                        case 'DATE':
-                          defaultValue = format(new Date(), 'PPP')
-                          break
-                      }
-                      return {
-                        name: param.name,
-                        value: defaultValue,
-                        type: param.type,
-                        order: param.order,
-                      }
-                    })
-                    setParameters(initialParamsForStep)
-
-                    // Generate gherkin step immediately when template step is selected
-                    if (step.signature) {
-                      const gherkin = generateGherkinStep(step.type, step.signature, initialParamsForStep)
-                      setGherkinStep(gherkin)
-                    }
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a template step" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templateSteps.map(step => (
-                    <SelectItem key={step.id} value={step.id}>
-                      {step.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onValueChange={handleTemplateStepChange}
+                templateSteps={templateSteps as TemplateStepWithGroup[]}
+                placeholder="Select a template step"
+              />
+              <input type="hidden" name="templateStepId" value={selectedTemplateId} />
               <ErrorMessage message={errors.templateStepId?.[0] ?? ''} visible={!!errors.templateStepId} />
             </div>
             <div className="mb-4 flex flex-col gap-2">
