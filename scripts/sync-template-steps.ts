@@ -612,8 +612,28 @@ async function syncStepsToDatabase(
   for (const dbStep of allDbSteps) {
     if (!fsSignatures.has(dbStep.signature)) {
       try {
-        await prisma.templateStep.delete({
-          where: { id: dbStep.id },
+        // Delete in order: child records first. TemplateTestCaseStepParameter and
+        // TestCaseStepParameter have no onDelete cascade, so they must be removed
+        // before TemplateTestCaseStep/TestCaseStep (which are cascade-deleted from TemplateStep).
+        await prisma.$transaction(async tx => {
+          await tx.templateTestCaseStepParameter.deleteMany({
+            where: { templateTestCaseStep: { templateStepId: dbStep.id } },
+          })
+          await tx.templateTestCaseStep.deleteMany({
+            where: { templateStepId: dbStep.id },
+          })
+          await tx.testCaseStepParameter.deleteMany({
+            where: { testCaseStep: { templateStepId: dbStep.id } },
+          })
+          await tx.testCaseStep.deleteMany({
+            where: { templateStepId: dbStep.id },
+          })
+          await tx.templateStepParameter.deleteMany({
+            where: { templateStepId: dbStep.id },
+          })
+          await tx.templateStep.delete({
+            where: { id: dbStep.id },
+          })
         })
         result.stepsDeleted++
         result.deletedSteps.push({
