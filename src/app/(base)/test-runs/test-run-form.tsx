@@ -254,9 +254,23 @@ const TestRunForm = ({
                       className={`mb-4 flex flex-col gap-2 ${testSelectionType === TestSelectionType.TEST_CASES ? 'block' : 'hidden'}`}
                     >
                       <MultiSelect
-                        options={testSuiteTestCases.flatMap(testSuite =>
-                          testSuite.testCases.map(testCase => ({ label: testCase.title, value: testCase.id })),
-                        )}
+                        options={(() => {
+                          const seen = new Set<string | number>()
+                          return testSuiteTestCases.flatMap(testSuite =>
+                            testSuite.testCases
+                              .filter(testCase => {
+                                if (!seen.has(testCase.id)) {
+                                  seen.add(testCase.id)
+                                  return true
+                                }
+                                return false
+                              })
+                              .map(testCase => ({
+                                label: testCase.title,
+                                value: testCase.id,
+                              })),
+                          )
+                        })()}
                         selected={field.state.value.map(testCase => testCase.testCaseId)}
                         onChange={value =>
                           field.handleChange(
