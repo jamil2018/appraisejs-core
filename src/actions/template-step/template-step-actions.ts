@@ -69,18 +69,41 @@ export async function deleteTemplateStepAction(templateStepIds: string[]): Promi
       },
     })
 
-    // Delete the template step parameters first
-    await prisma.templateStepParameter.deleteMany({
-      where: {
-        templateStepId: { in: templateStepIds },
-      },
-    })
+    // Delete in order: child records first. TemplateTestCaseStepParameter and
+    // TestCaseStepParameter must be removed before TemplateTestCaseStep/TestCaseStep
+    // (which are cascade-deleted from TemplateStep).
+    await prisma.$transaction(async tx => {
+      // Delete TemplateTestCaseStepParameter records first
+      await tx.templateTestCaseStepParameter.deleteMany({
+        where: {
+          templateTestCaseStep: {
+            templateStepId: { in: templateStepIds },
+          },
+        },
+      })
 
-    // Delete the template steps
-    await prisma.templateStep.deleteMany({
-      where: {
-        id: { in: templateStepIds },
-      },
+      // Delete TestCaseStepParameter records
+      await tx.testCaseStepParameter.deleteMany({
+        where: {
+          testCaseStep: {
+            templateStepId: { in: templateStepIds },
+          },
+        },
+      })
+
+      // Delete the template step parameters
+      await tx.templateStepParameter.deleteMany({
+        where: {
+          templateStepId: { in: templateStepIds },
+        },
+      })
+
+      // Delete the template steps (this will cascade delete TemplateTestCaseStep and TestCaseStep)
+      await tx.templateStep.deleteMany({
+        where: {
+          id: { in: templateStepIds },
+        },
+      })
     })
 
     // Remove the deleted steps from their respective group files

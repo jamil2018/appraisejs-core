@@ -140,7 +140,7 @@ model TemplateTestCaseStepParameter {
   type                 StepParameterType
   defaultLocatorId     String?
   defaultLocator       Locator?             @relation(fields: [defaultLocatorId], references: [id])
-  templateTestCaseStep TemplateTestCaseStep @relation(fields: [testCaseStepId], references: [id])
+  templateTestCaseStep TemplateTestCaseStep @relation(fields: [testCaseStepId], references: [id], onDelete: Cascade)
 }
 
 model TestCaseStepParameter {
@@ -152,7 +152,7 @@ model TestCaseStepParameter {
   locatorId      String?
   type           StepParameterType
   Locator        Locator?          @relation(fields: [locatorId], references: [id])
-  testCaseStep   TestCaseStep      @relation(fields: [testCaseStepId], references: [id])
+  testCaseStep   TestCaseStep      @relation(fields: [testCaseStepId], references: [id], onDelete: Cascade)
 }
 
 model Locator {

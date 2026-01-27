@@ -3,22 +3,5 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: Suite for testing click actions
+Feature: click
 
-  @tc_c34ff824d80d179a
-  Scenario: [Double click] Test for validating double click actions
-    Given the user navigates to the base url of the "demoqa" environment
-    When the user clicks on the "elements" element
-    And the user clicks on the "buttons" element
-    And the user double clicks on the "double click" element
-    And the user waits for the element "double click message" to become visible
-    Then the element "double click message" should be visible
-
-  @tc_cf6f0e29eefa9299
-  Scenario: [Click] Testing Click step functionality
-    Given the user navigates to the base url of the "demoqa" environment
-    When the user clicks on the "elements" element
-    And the user clicks on the "buttons" element
-    And the user clicks on the "click me" element
-    And the user waits for the element "dynamic click message" to become visible
-    Then the element "dynamic click message" should be visible

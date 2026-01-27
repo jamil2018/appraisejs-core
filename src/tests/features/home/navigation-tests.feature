@@ -5,11 +5,3 @@
 
 Feature: navigation-tests
 
-  @tc_cf6f0e29eefa9299
-  Scenario: [Click] Testing Click step functionality
-    Given the user navigates to the base url of the "demoqa" environment
-    When the user clicks on the "elements" element
-    And the user clicks on the "buttons" element
-    And the user clicks on the "click me" element
-    And the user waits for the element "dynamic click message" to become visible
-    Then the element "dynamic click message" should be visible
