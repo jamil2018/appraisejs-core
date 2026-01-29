@@ -5,3 +5,7 @@
 
 Feature: click
 
+  @tc_048bb41f23da9e92
+  Scenario: [store test] test scenario for validating store step
+    Given the user navigates to the base url of the "demoqa" environment
+    When the user stores the "elements text" element text and stores it in variable "test"

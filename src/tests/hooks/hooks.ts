@@ -38,6 +38,7 @@ BeforeAll(async function () {
 })
 
 Before(async function (this: CustomWorld) {
+  this.clearVars()
   this.context = await browser.newContext()
   await this.context.tracing.start({
     screenshots: true,
