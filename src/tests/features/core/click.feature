@@ -5,7 +5,10 @@
 
 Feature: click
 
-  @tc_048bb41f23da9e92
-  Scenario: [store test] test scenario for validating store step
+  @tc_de5872210197f95f
+  Scenario: [Click Test] Test for validating click actions
     Given the user navigates to the base url of the "demoqa" environment
-    When the user stores the "elements text" element text and stores it in variable "test"
+    When the user clicks on the "elements" element
+    And the user clicks on the "buttons" element
+    And the user clicks on the "click me" element
+    Then the visibility status of the "dynamic click message" element should be true
