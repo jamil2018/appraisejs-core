@@ -78,7 +78,7 @@
   },
   "devDependencies": {
     "@babel/traverse": "^7.28.5",
-    "@cucumber/cucumber": "^12.1.0",
+    "@cucumber/cucumber": "^12.6.0",
     "@cucumber/pretty-formatter": "^2.4.0",
     "@cucumber/tag-expressions": "^8.0.0",
     "@eslint/eslintrc": "^3",
@@ -100,7 +100,7 @@
     "glob": "^11.0.3",
     "globals": "^16.4.0",
     "jiti": "^2.6.1",
-    "playwright": "^1.54.2",
+    "playwright": "^1.58.0",
     "postcss": "^8",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",

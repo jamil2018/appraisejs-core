@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-anonymous-default-export
 export default {
   paths: ['src/tests/features/**/*.feature'],
-  import: ['src/tests/steps/**/*.ts', 'src/tests/hooks/hooks.ts', 'src/tests/config/world.ts'],
+  import: ['src/tests/steps/**/*.ts', 'src/tests/hooks/hooks.ts', 'src/tests/config/executor/world.ts'],
   loader: ['ts-node/esm'],
   format: [
     'pretty',

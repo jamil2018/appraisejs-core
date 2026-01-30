@@ -22,7 +22,7 @@ export function sanitizeFileName(groupName: string): string {
 export function generateFileContent(templateSteps: TemplateStep[]): string {
   // Required imports for all template step group files
   const requiredImports = `import { When } from '@cucumber/cucumber';
-import { CustomWorld } from '../config/world.js';
+import { CustomWorld } from '../../config/executor/world.js';
 import { SelectorName } from '@/types/locator/locator.type';
 import { resolveLocator } from '../../utils/locator.util';
 
