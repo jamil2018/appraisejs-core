@@ -10,5 +10,13 @@
   {
     "name": "buttons",
     "path": "/buttons"
+  },
+  {
+    "name": "forms",
+    "path": "/forms"
+  },
+  {
+    "name": "text box",
+    "path": "/text-box"
   }
 ]

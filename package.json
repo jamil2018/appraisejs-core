@@ -30,6 +30,7 @@
   "dependencies": {
     "@babel/parser": "^7.27.0",
     "@babel/types": "^7.27.0",
+    "@faker-js/faker": "^10.2.0",
     "@prisma/client": "^6.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-avatar": "^1.1.10",
