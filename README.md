@@ -59,6 +59,13 @@ AppraiseJS Core is designed to help teams manage, organize, and execute automate
 
 ## Getting Started
 
+For full documentation, see `docs/README.md`.
+
+Quick links:
+- `docs/quick-start.md`
+- `docs/architecture.md`
+- `docs/syncing.md`
+
 ### Prerequisites
 
 - Node.js 18+ installed
