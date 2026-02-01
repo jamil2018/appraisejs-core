@@ -1,0 +1,5 @@
+{
+  "full name": "input[id='userName']",
+  "email": "input[id='userEmail']",
+  "form output": "div#output"
+}

@@ -18,7 +18,7 @@ import { resolveLocator } from '../../utils/locator.util.js'
 When('the user clicks on the {string} element', async function (this: CustomWorld, elementName: SelectorName) {
   const selector = await resolveLocator(this.page, elementName)
   if (!selector) {
-    throw new Error(`Selector ${elementName} not found`)
+    throw new Error(`Selector ${elementName} not found. Current url: ${this.page.url()}`)
   }
   try {
     await this.page.locator(selector).click()
@@ -35,7 +35,7 @@ When('the user clicks on the {string} element', async function (this: CustomWorl
 When('the user double clicks on the {string} element', async function (this: CustomWorld, elementName: SelectorName) {
   const selector = await resolveLocator(this.page, elementName)
   if (!selector) {
-    throw new Error(`Selector ${elementName} not found`)
+    throw new Error(`Selector ${elementName} not found. Current url: ${this.page.url()}`)
   }
   try {
     await this.page.locator(selector).dblclick()
@@ -52,7 +52,7 @@ When('the user double clicks on the {string} element', async function (this: Cus
 When('the user right clicks on the {string} element', async function (this: CustomWorld, elementName: SelectorName) {
   const selector = await resolveLocator(this.page, elementName)
   if (!selector) {
-    throw new Error(`Selector ${elementName} not found`)
+    throw new Error(`Selector ${elementName} not found. Current url: ${this.page.url()}`)
   }
   try {
     await this.page.locator(selector).click({ button: 'right' })

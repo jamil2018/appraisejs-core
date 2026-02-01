@@ -18,5 +18,9 @@
   {
     "name": "text box",
     "path": "/text-box"
+  },
+  {
+    "name": "text-box",
+    "path": "/text-box"
   }
 ]

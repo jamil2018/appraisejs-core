@@ -5,3 +5,13 @@
 
 Feature: navigation-tests
 
+  @tc_d7ba67225ae3d18d
+  Scenario: [form test] Scenario validating random data generation and storage
+    Given the user navigates to the base url of the "demoqa" environment
+    When the user clicks on the "forms button" element
+    And the user clicks on the "form elements" element
+    And the user clicks on the "form text box" element
+    And the user generates a random full name and stores it inside the variable "fullName"
+    And the user fills in the "full name" input with data from the stored variable "fullName"
+    And the user clicks on the "submit" element
+    Then the element "form output" should contain the text inside the stored variable "fullName"

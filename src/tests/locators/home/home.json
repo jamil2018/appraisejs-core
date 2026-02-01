@@ -1,5 +1,6 @@
 {
   "header": "header",
   "elements": "//h5[text()='Elements']",
-  "elements text": "//h5[text()='Elements']"
+  "elements text": "//h5[text()='Elements']",
+  "forms button": "//h5[text()='Forms']"
 }

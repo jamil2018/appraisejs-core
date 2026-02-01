@@ -5,7 +5,7 @@
  */
 import { When } from '@cucumber/cucumber';
 import { CustomWorld } from '../../config/executor/world.js';
-import { generateRandomData, RandomDataType } from '@/tests/utils/random-data.util.js';
+import { generateRandomData, RandomDataType } from '../../utils/random-data.util.js';
 
 // This file is generated automatically. Add template steps to this group to generate content.
 
