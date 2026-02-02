@@ -11,7 +11,7 @@ The application is built with **Next.js 16** (App Router), **React 19**, **Prism
 - **Web app:** Next.js app under `src/app` (dashboard and entity CRUD for modules, environments, tags, locator-groups, locators, template-step-groups, template-steps, template-test-cases, test-suites, test-cases, test-runs, reports, reviews). Server actions in `src/actions`; shared UI in `src/components`; single Prisma client in `src/config/db-config.ts`.
 - **Database:** SQLite via Prisma. Main entity groups: module hierarchy (Module, LocatorGroup, Locator); test authoring (TemplateStepGroup, TemplateStep, TemplateTestCase, TestSuite, TestCase, Tag); environments (Environment); runs and reports (TestRun, Report and nested ReportFeature, ReportScenario, ReportStep, ReportHook); conflict resolution (ConflictResolution); and metrics (TestCaseMetrics, TestSuiteMetrics, DashboardMetrics).
 - **Filesystem:** Feature files (`src/tests/features/**/*.feature`), locator JSON (`src/tests/locators/**/*.json`), config files (e.g. `src/tests/config/environments/environments.json`), and report output directory (`src/tests/reports/`).
-- **Sync pipeline:** CLI scripts (sync-all: one-way FS → DB only) and optional UI-triggered locator sync. No bidirectional sync script is in use; the filesystem plus git is the source of truth.
+- **Sync pipeline:** CLI scripts (sync-all: one-way FS → DB) plus optional UI-triggered locator sync. A bidirectional feature sync script exists for feature files, but the filesystem remains the primary source of truth.
 - **Test runner:** Cucumber process spawned by the Next server; reads feature files and step definitions from the filesystem, writes Cucumber JSON reports; report files are parsed and ingested into the database on run completion.
 
 ```mermaid
@@ -35,7 +35,7 @@ flowchart LR
 
 **Authoring:** Content is authored in the filesystem (versioned with git). Sync scripts (FS → DB) bring that content into the database for the app to use. Optionally, the UI can create or update test suites and test cases, writing to both the database and to feature files so the file remains the source of truth and can be committed to git.
 
-**Sync:** Sync is **one-way FS → DB** for all entities via sync-all (modules, environments, tags, template steps, locator-groups, locators, test-suites, test-cases). "Sync Locators" is the only in-app sync trigger; the bidirectional sync script (regenerate-features) is no longer used.
+**Sync:** Sync is primarily **one-way FS → DB** via sync-all (modules, environments, tags, template steps, locator-groups, locators, test-suites, test-cases). "Sync Locators" is the only in-app sync trigger and performs a merge; `sync-features` exists for bidirectional feature file sync when needed.
 
 **Test execution:** The user creates a test run in the UI; the app persists a TestRun, spawns Cucumber with environment and report path, and Cucumber runs feature files and step definitions from the filesystem. It writes a JSON report; on process exit the app parses the report and stores Report and related rows; `scenario::end` events update TestRunTestCase status in real time.
 
@@ -62,7 +62,7 @@ See also: [Syncing](syncing.md), [Runner and Reports](runner-and-reports.md).
 
 ## Source of Truth
 
-**Filesystem is the only source of truth** for authored content; **git** is used for version control. Feature files, locators, environments, tags, modules, template-step-groups, template-steps, locator-groups, test-suites, and test-cases are all defined in files. Sync scripts (FS → DB) align the database with the files; deleting or changing files and re-running sync-all (or the relevant script) can remove or update database rows.
+**Filesystem is the primary source of truth** for authored content; **git** is used for version control. Feature files, locators, environments, tags, modules, template-step-groups, template-steps, locator-groups, test-suites, and test-cases are defined in files. Sync scripts (FS → DB) align the database with the files; deleting or changing files and re-running sync-all (or the relevant script) can remove or update database rows. The UI can regenerate feature files when suites or cases change.
 
 **Database-authoritative (runtime only):** Test run state, report data (after a run completes), reviews, conflict resolution (ConflictResolution), and dashboard/entity metrics. No bulk DB → FS sync is used; the bidirectional sync script is deprecated.
 
@@ -88,15 +88,15 @@ Order is required by dependencies (e.g. locator-groups depend on modules; test-c
 
 | Entity               | Script                    | Direction | UI trigger |
 | -------------------- | ------------------------- | --------- | ---------- |
-| Modules              | sync-modules              | FS→DB     | Planned    |
-| Environments         | sync-environments         | FS→DB     | Planned    |
-| Tags                 | sync-tags                 | FS→DB     | Planned    |
-| Template step groups | sync-template-step-groups | FS→DB     | Planned    |
-| Template steps       | sync-template-steps       | FS→DB     | Planned    |
-| Locator groups       | sync-locator-groups       | FS→DB     | Planned    |
-| Locators             | sync-locators             | FS→DB     | Planned    |
-| Test suites          | sync-test-suites          | FS→DB     | Planned    |
-| Test cases           | sync-test-cases           | FS→DB     | Planned    |
+| Modules              | sync-modules              | FS→DB     | No         |
+| Environments         | sync-environments         | FS→DB     | No         |
+| Tags                 | sync-tags                 | FS→DB     | No         |
+| Template step groups | sync-template-step-groups | FS→DB     | No         |
+| Template steps       | sync-template-steps       | FS→DB     | No         |
+| Locator groups       | sync-locator-groups       | FS→DB     | No         |
+| Locators             | sync-locators             | FS→DB     | Yes (merge)|
+| Test suites          | sync-test-suites          | FS→DB     | No         |
+| Test cases           | sync-test-cases           | FS→DB     | No         |
 
 See also: [Syncing](syncing.md).
 

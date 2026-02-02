@@ -4,21 +4,41 @@ This document provides the shortest path to getting AppraiseJS Core running loca
 
 ## Prerequisites
 
-TODO: List required tools and versions (Node.js, Git, etc.).
+- Node.js (LTS recommended)
+- npm
+- Git
 
 ## Install
 
-TODO: Add clone + install steps.
+```bash
+git clone <your-repo-url>
+cd appraise
+npm run install-dependencies
+```
 
 ## Setup
 
-TODO: Add setup script steps and what it does.
+```bash
+npm run setup
+```
+
+What the setup script does:
+
+- Installs dependencies
+- Creates a local `.env` with a SQLite `DATABASE_URL`
+- Runs Prisma migrations
+- Installs Playwright browsers and OS dependencies
 
 ## Run
 
-TODO: Add dev server start steps and expected URL.
+```bash
+npm run dev
+```
+
+Then open `http://localhost:3000`.
 
 ## Next Steps
 
-TODO: Link to architecture, configuration, and testing docs.
-
+- Read the [Overview](overview.md) for concepts and scope
+- Review [Architecture](architecture.md) and [Configuration](configuration.md)
+- Run tests via [Testing](testing.md)
