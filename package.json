@@ -52,7 +52,7 @@
     "@tanstack/react-devtools": "^0.8.1",
     "@tanstack/react-form": "^1.25.0",
     "@tanstack/react-form-devtools": "^0.2.1",
-    "@tanstack/react-table": "^8.20.6",
+    "@tanstack/react-table": "^8.21.3",
     "@types/archiver": "^7.0.0",
     "@uiw/codemirror-extensions-langs": "^4.23.10",
     "@uiw/codemirror-theme-github": "^4.23.10",
