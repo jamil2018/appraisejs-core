@@ -81,7 +81,7 @@
     "@babel/traverse": "^7.28.5",
     "@cucumber/cucumber": "^12.6.0",
     "@cucumber/pretty-formatter": "^2.4.0",
-    "@cucumber/tag-expressions": "^8.0.0",
+    "@cucumber/tag-expressions": "^9.0.0",
     "@eslint/eslintrc": "^3",
     "@types/babel__traverse": "^7.28.0",
     "@types/better-sqlite3": "^7.6.13",
