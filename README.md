@@ -8,6 +8,46 @@ Appraisejs is a visual test development, management and execution platform built
 
 ---
 
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Local setup
+
+```bash
+npm run setup
+npm run sync-all
+npm run dev
+```
+
+Open `http://localhost:3000` after the server starts.
+
+### Environment configuration
+
+- Copy `.env.example` to `.env`, or let `npm run setup` create it.
+- Default local database: `DATABASE_URL="file:./prisma/dev.db"`.
+
+### Common scripts
+
+- `npm run dev` - Start the Next.js development server
+- `npm run build` - Build production assets
+- `npm run lint` - Run lint checks
+- `npm run test` - Run Cucumber test suite
+
+---
+
+## Community
+
+- Contribution guide: `CONTRIBUTING.md`
+- Code of conduct: `CODE_OF_CONDUCT.md`
+- Security policy: `SECURITY.md`
+- Support: `SUPPORT.md`
+
+---
+
 ## Why Appraisejs?
 
 #### Test management, orchestration and execution all in one place without any coding.

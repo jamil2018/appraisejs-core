@@ -19,6 +19,7 @@ Thank you for your interest in contributing to AppraiseJS Core! This document pr
 ## Code of Conduct
 
 By participating in this project, you agree to maintain a respectful and inclusive environment for all contributors.
+Please review `CODE_OF_CONDUCT.md` before contributing.
 
 ## Getting Started
 

@@ -2,6 +2,26 @@
   "name": "create-appraise",
   "version": "0.1.0",
   "description": "Scaffold a new Appraise app in your directory",
+  "license": "Apache-2.0",
+  "author": "Hasnat Jamil",
+  "homepage": "https://github.com/jamil2018/appraise#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamil2018/appraise.git",
+    "directory": "packages/create-appraise"
+  },
+  "bugs": {
+    "url": "https://github.com/jamil2018/appraise/issues"
+  },
+  "keywords": [
+    "appraise",
+    "testing",
+    "qa",
+    "cucumber",
+    "playwright",
+    "nextjs",
+    "scaffold"
+  ],
   "type": "module",
   "main": "./dist/cli.js",
   "bin": {
@@ -17,14 +37,14 @@
   "scripts": {
     "build": "npm run sync-templates && tsc",
     "sync-templates": "node scripts/sync-templates.mjs",
-    "prepare": "npm run build",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.2.0",
     "cli-progress": "^3.12.0",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "tar": "^7.0.0"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",

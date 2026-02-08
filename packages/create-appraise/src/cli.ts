@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import path from 'path';
+import fs from 'fs-extra';
 import { runPrompts } from './prompts.js';
 import { copyTemplate } from './copy-template.js';
 import { runInstall, getInstallCommand } from './install.js';
+import { getConfig } from './config.js';
+import { downloadRepo } from './download-repo.js';
 
 function printSuccessMessage(targetDir: string, packageManager: string, didInstall: boolean): void {
   const relativePath = path.relative(process.cwd(), targetDir);
@@ -39,14 +42,36 @@ async function main(): Promise<void> {
   }
 
   const { directory, packageManager, runInstall: shouldRunInstall } = answers;
+  const config = getConfig();
 
   try {
     console.log('\n  Validating target directory...');
     console.log(`  Creating project at: ${directory}\n`);
 
-    console.log('  Copying template files...');
-    await copyTemplate(directory);
-    console.log('  Template files copied.\n');
+    if (config.useBundled) {
+      console.log('  Copying template files...');
+      await copyTemplate(directory);
+      console.log('  Template files copied.\n');
+    } else {
+      let cleanupDir: string | null = null;
+      try {
+        console.log('  Downloading template from', config.repoBase, '...');
+        const { repoRoot, cleanupDir: dir } = await downloadRepo(
+          config.repoBase,
+          config.branch,
+          config.templateSubpath
+        );
+        cleanupDir = dir;
+        const templatePathOverride = path.join(repoRoot, config.templateSubpath);
+        console.log('  Copying template files...');
+        await copyTemplate(directory, undefined, templatePathOverride);
+        console.log('  Template files copied.\n');
+      } finally {
+        if (cleanupDir) {
+          await fs.remove(cleanupDir).catch(() => {});
+        }
+      }
+    }
 
     if (shouldRunInstall) {
       console.log('  Installing dependencies...');

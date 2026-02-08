@@ -16,6 +16,19 @@ The CLI will prompt you for:
 
 Progress is shown while copying the template. When finished, you'll see the project path and next steps (e.g. `cd <dir>`, `npm run setup`, `npm run dev`).
 
+By default, the template is **downloaded from the official Appraise GitHub repository** (tarball first, then git clone if the tarball fails). You can override this with environment variables or use the bundled template for offline use.
+
+### Template source and environment variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CREATE_APPRAISE_REPO_URL` | Git repository base URL (e.g. `https://github.com/owner/appraise`). Used for both tarball and clone. | `https://github.com/jamil2018/appraise` |
+| `CREATE_APPRAISE_BRANCH` | Branch or ref to use. | `main` |
+| `CREATE_APPRAISE_TEMPLATE_SUBPATH` | Path inside the repo to the template directory (relative to repo root). | `templates/default` |
+| `CREATE_APPRAISE_USE_BUNDLED` | Set to `1`, `true`, or `yes` to skip download and use the template bundled in the package. Use for offline or when both download methods fail. | not set (download from repo) |
+
+Download order: the CLI tries the GitHub tarball URL first (no git required); if that fails, it falls back to `git clone`. If both fail, set `CREATE_APPRAISE_USE_BUNDLED=1` to use the bundled template instead.
+
 ## After scaffolding
 
 From the new project directory:
