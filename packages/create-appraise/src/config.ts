@@ -1,4 +1,4 @@
-const DEFAULT_REPO_BASE = 'https://github.com/jamil2018/appraise';
+const DEFAULT_REPO_BASE = 'https://github.com/jamil2018/appraisejs-core.git';
 const DEFAULT_BRANCH = 'main';
 const DEFAULT_TEMPLATE_SUBPATH = 'templates/default';
 

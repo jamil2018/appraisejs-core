@@ -22,7 +22,7 @@ By default, the template is **downloaded from the official Appraise GitHub repos
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CREATE_APPRAISE_REPO_URL` | Git repository base URL (e.g. `https://github.com/owner/appraise`). Used for both tarball and clone. | `https://github.com/jamil2018/appraise` |
+| `CREATE_APPRAISE_REPO_URL` | Git repository base URL (e.g. `https://github.com/owner/appraisejs-core`). Used for both tarball and clone. | `https://github.com/jamil2018/appraisejs-core` |
 | `CREATE_APPRAISE_BRANCH` | Branch or ref to use. | `main` |
 | `CREATE_APPRAISE_TEMPLATE_SUBPATH` | Path inside the repo to the template directory (relative to repo root). | `templates/default` |
 | `CREATE_APPRAISE_USE_BUNDLED` | Set to `1`, `true`, or `yes` to skip download and use the template bundled in the package. Use for offline or when both download methods fail. | not set (download from repo) |
