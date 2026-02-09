@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "install-playwright": "npx playwright install && npx playwright install-deps",
     "install-dependencies": "npm install --legacy-peer-deps",
     "setup-env": "npx tsx scripts/setup-env.ts",
