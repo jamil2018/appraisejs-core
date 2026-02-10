@@ -71,6 +71,7 @@ export function DataTable<TData, TValue>({
     pageSize: 10,
   })
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table's useReactTable returns unstable refs; React Compiler skips memoization
   const table = useReactTable({
     data,
     columns,
@@ -235,7 +236,7 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map(row => {
-                const rowData = row.original as any
+                const rowData = row.original as TData & { conflicts?: unknown[] }
                 const hasConflicts =
                   rowData.conflicts && Array.isArray(rowData.conflicts) && rowData.conflicts.length > 0
                 return (

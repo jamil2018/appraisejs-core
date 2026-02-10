@@ -11,7 +11,7 @@
 
 import { join } from 'path'
 import prisma from '../src/config/db-config'
-import { scanFeatureFiles, parseFeatureFile, extractModulePathFromFilePath, ParsedFeature } from '../src/lib/gherkin-parser'
+import { scanFeatureFiles, extractModulePathFromFilePath, ParsedFeature } from '../src/lib/gherkin-parser'
 import { buildModuleHierarchy, findModuleByPath, getAllModulesWithPaths } from '../src/lib/module-hierarchy-builder'
 
 interface TestSuiteFromFS {
@@ -264,8 +264,8 @@ async function syncTestSuitesToDatabase(
   // Get all modules with their paths
   const modulesWithPaths = await getAllModulesWithPaths()
   const modulePathMap = new Map<string, string>()
-  for (const module of modulesWithPaths) {
-    modulePathMap.set(module.id, module.path)
+  for (const mod of modulesWithPaths) {
+    modulePathMap.set(mod.id, mod.path)
   }
   
   for (const dbTestSuite of allDbTestSuites) {

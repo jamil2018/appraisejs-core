@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useEffect, useState, useMemo } from 'react'
-import { CommandEmpty, CommandGroup, CommandItem } from '../ui/command'
+import { CommandGroup, CommandItem } from '../ui/command'
 import { ActionResponse } from '@/types/form/actionHandler'
 
 export interface EntitySearchCommandProps<T extends { id: string }> {

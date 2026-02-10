@@ -204,7 +204,7 @@ export async function getTestSuiteExecutionDataAction(): Promise<ActionResponse>
     // Convert counts to percentages and format for chart
     const result: TestSuiteExecutionData = []
 
-    for (const [suiteId, data] of suiteDataMap.entries()) {
+    for (const [_suiteId, data] of suiteDataMap.entries()) {
       const total = data.total
       if (total === 0) continue
 

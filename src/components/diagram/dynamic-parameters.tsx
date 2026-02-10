@@ -118,7 +118,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    setErrors({})
+    queueMicrotask(() => setErrors({}))
   }, [templateStepParams])
 
   useImperativeHandle(ref, () => ({

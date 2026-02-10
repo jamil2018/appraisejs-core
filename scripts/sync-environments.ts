@@ -48,7 +48,7 @@ async function readEnvironmentsFromFile(baseDir: string): Promise<Record<string,
 
   try {
     await fs.access(filePath)
-  } catch (error) {
+  } catch {
     throw new Error(`Environments file not found at ${filePath}`)
   }
 

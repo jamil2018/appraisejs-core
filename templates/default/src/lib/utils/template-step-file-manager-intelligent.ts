@@ -209,7 +209,6 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
         let braceCount = 0
         let parenCount = 0
         let startParenFound = false
-        let startBraceFound = false
 
         // Check if there are JSDoc comments before this function
         if (i > 0) {
@@ -246,7 +245,6 @@ function findStepFunctionBounds(content: string, signature: string): { startLine
               parenCount--
             } else if (char === '{') {
               braceCount++
-              startBraceFound = true
             } else if (char === '}') {
               braceCount--
             }

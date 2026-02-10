@@ -23,9 +23,9 @@ Then(
       if (!selector) throw new Error(`Selector ${elementName} not found`)
       const elementActiveStatus = await this.page.locator(selector).isEnabled({ timeout: 10000 })
       if (isActive) {
-        expect(elementActiveStatus, `Expected ${elementName} to be active`).to.be.true
+        void expect(elementActiveStatus, `Expected ${elementName} to be active`).to.be.true
       } else {
-        expect(elementActiveStatus, `Expected ${elementName} NOT to be active`).to.be.false
+        void expect(elementActiveStatus, `Expected ${elementName} NOT to be active`).to.be.false
       }
     } catch (error) {
       throw new Error(`Failed to validate the active status of the element ${elementName}: ${error}`)

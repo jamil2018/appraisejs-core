@@ -3,11 +3,8 @@
  * @description Template steps that handles navigation validations
  * @type VALIDATION
  */
-import { When } from '@cucumber/cucumber'
 import { Then } from '@cucumber/cucumber'
 import { CustomWorld, expect } from '../../config/executor/world.js'
-import { SelectorName } from '@/types/locator/locator.type'
-import { resolveLocator } from '../../utils/locator.util.js'
 
 // This file is generated automatically. Add template steps to this group to generate content.
 

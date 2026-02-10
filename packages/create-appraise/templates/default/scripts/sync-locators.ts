@@ -16,14 +16,6 @@ import prisma from '../src/config/db-config'
 import { buildModuleHierarchy } from '../src/lib/module-hierarchy-builder'
 import { getLocatorGroupFilePath } from '../src/lib/locator-group-file-utils'
 
-interface LocatorData {
-  name: string
-  value: string
-  locatorGroupId: string
-  locatorGroupName: string
-  modulePath: string
-}
-
 interface SyncResult {
   locatorsScanned: number
   locatorsExisting: number
@@ -80,7 +72,7 @@ function extractLocatorGroupName(filePath: string): string {
 async function readLocatorFile(filePath: string): Promise<Record<string, string>> {
   try {
     await fs.access(filePath)
-  } catch (error) {
+  } catch {
     throw new Error(`Locator file not found at ${filePath}`)
   }
 
@@ -107,7 +99,7 @@ async function readLocatorFile(filePath: string): Promise<Record<string, string>
 async function findOrCreateLocatorGroup(
   groupName: string,
   moduleId: string,
-  modulePath: string,
+  _modulePath: string,
 ): Promise<string> {
   // Try to find existing locator group
   const existingGroup = await prisma.locatorGroup.findFirst({
@@ -174,7 +166,6 @@ async function syncLocatorsFromFile(
     })
 
     const dbLocatorMap = new Map(dbLocators.map(loc => [loc.name, loc]))
-    const dbLocatorNames = new Set(dbLocators.map(loc => loc.name))
 
     // Add or update locators from file
     for (const [locatorName, locatorValue] of Object.entries(fileLocators)) {

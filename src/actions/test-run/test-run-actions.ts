@@ -120,7 +120,7 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
         testCaseId: true,
       },
     })
-    const affectedTestCaseIds = [...new Set(testRunTestCases.map(trtc => trtc.testCaseId))]
+    const _affectedTestCaseIds = [...new Set(testRunTestCases.map(trtc => trtc.testCaseId))]
 
     // find all trace paths for the test runs
     const tracePaths = await prisma.testRunTestCase.findMany({

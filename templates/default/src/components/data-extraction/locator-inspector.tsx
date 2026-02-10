@@ -150,30 +150,6 @@ export default function LocatorInspector({ iframeUrl = '/sample-page' }: Locator
     }
   }
 
-  // Listen for messages from iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'SELECTION_MODE_OFF') {
-        setIsSelectionMode(false)
-      } else if (event.data.type === 'ELEMENT_SELECTED') {
-        const { elementData } = event.data
-        setSelectedElementDetails({
-          tag: elementData.tagName.toLowerCase(),
-          id: elementData.id || undefined,
-          className: elementData.className || undefined,
-          name: elementData.name || undefined,
-          text: elementData.textContent || undefined,
-          cssPath: generateCSSPath(elementData),
-          xpath: generateXPath(elementData),
-          html: elementData.outerHTML,
-        })
-      }
-    }
-
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
-
   // Generate CSS selector
   const generateCSSPath = (element: { tagName: string; className?: string; id?: string }) => {
     if (element.id) return `#${element.id}`
@@ -198,6 +174,30 @@ export default function LocatorInspector({ iframeUrl = '/sample-page' }: Locator
     }
     return path
   }
+
+  // Listen for messages from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'SELECTION_MODE_OFF') {
+        setIsSelectionMode(false)
+      } else if (event.data.type === 'ELEMENT_SELECTED') {
+        const { elementData } = event.data
+        setSelectedElementDetails({
+          tag: elementData.tagName.toLowerCase(),
+          id: elementData.id || undefined,
+          className: elementData.className || undefined,
+          name: elementData.name || undefined,
+          text: elementData.textContent || undefined,
+          cssPath: generateCSSPath(elementData),
+          xpath: generateXPath(elementData),
+          html: elementData.outerHTML,
+        })
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)

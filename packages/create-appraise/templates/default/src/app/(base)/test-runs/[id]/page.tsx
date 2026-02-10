@@ -2,9 +2,8 @@ import { getTestRunByIdAction } from '@/actions/test-run/test-run-actions'
 import { TestRunDetails } from '@/components/test-run/test-run-details'
 import { TestRunHeader } from '@/components/test-run/test-run-header'
 import { LogViewer } from '@/components/test-run/log-viewer'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TestRun, TestRunTestCase, Tag, Environment, TestRunStatus, Report } from '@prisma/client'
+import { TestRun, TestRunTestCase, Tag, Environment, Report } from '@prisma/client'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {

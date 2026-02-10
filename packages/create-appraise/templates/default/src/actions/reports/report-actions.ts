@@ -3,7 +3,7 @@
 import { ActionResponse } from '@/types/form/actionHandler'
 import prisma from '@/config/db-config'
 import { parseCucumberReport, getStepStatusEnum, getStepKeywordEnum } from '@/lib/test-run/report-parser'
-import { StepStatus, StepKeyword, TagType, Prisma } from '@prisma/client'
+import { TagType, Prisma } from '@prisma/client'
 import { existsSync } from 'fs'
 import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
 

@@ -10,7 +10,6 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { glob } from 'glob'
 import { buildModuleHierarchy } from '@/lib/module-hierarchy-builder'
-import { buildModulePath } from '@/lib/path-helpers/module-path'
 
 // Helper function to update locator group JSON file when locators change
 async function updateLocatorGroupFile(locatorGroupId: string | null): Promise<void> {

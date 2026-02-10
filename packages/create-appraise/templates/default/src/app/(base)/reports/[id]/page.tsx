@@ -3,12 +3,8 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
   BrowserEngine,
-  Environment,
-  Tag,
-  TestRun,
   TestRunResult,
   TestRunStatus,
-  TestRunTestCase,
   StepStatus,
   Prisma,
 } from '@prisma/client'

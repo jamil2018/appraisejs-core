@@ -36,7 +36,6 @@ import {
   ListChecks,
   Puzzle,
   Server,
-  Settings,
   Tag,
   TestTubeDiagonal,
   TestTubes,

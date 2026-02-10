@@ -81,10 +81,10 @@ export function TestRunHeader({ initialTestRun }: TestRunHeaderProps) {
     }
 
     // Listen for custom event dispatched by LogViewer
-    window.addEventListener('testrun:exit' as any, handleTestRunExit as EventListener)
+    window.addEventListener('testrun:exit', handleTestRunExit as EventListener)
 
     return () => {
-      window.removeEventListener('testrun:exit' as any, handleTestRunExit as EventListener)
+      window.removeEventListener('testrun:exit', handleTestRunExit as EventListener)
     }
   }, [testRun.id, testRun.runId])
 

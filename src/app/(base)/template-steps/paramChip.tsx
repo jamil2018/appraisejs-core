@@ -40,9 +40,9 @@ export default function ParamChip({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [items, setItems] = useState<Param[]>(defaultValues || [])
-  // Add this useEffect to sync items with defaultValues
+  // Sync items when defaultValues changes (defer setState to avoid sync setState in effect)
   useEffect(() => {
-    setItems(defaultValues || [])
+    queueMicrotask(() => setItems(defaultValues || []))
   }, [defaultValues])
 
   // Form state

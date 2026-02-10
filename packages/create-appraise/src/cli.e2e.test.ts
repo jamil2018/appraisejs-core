@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 import fs from 'fs-extra';
 import os from 'os';
-import { spawn } from 'child_process';
 import { getTemplatePath } from './copy-template.js';
 
 describe('CLI E2E', () => {

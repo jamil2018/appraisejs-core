@@ -3,7 +3,6 @@
  * @description Template steps for asserting text inside elements
  * @type VALIDATION
  */
-import { When } from '@cucumber/cucumber';
 import { Then } from '@cucumber/cucumber';
 import { CustomWorld, expect } from '../../config/executor/world.js';
 import { SelectorName } from '@/types/locator/locator.type';
@@ -106,7 +105,7 @@ Then(
   'the element {string} should contain the text inside the stored variable {string}',
   async function (
     this: CustomWorld,
-    elementName: SelectorName,
-    variableName: string
+    _elementName: SelectorName,
+    _variableName: string
   ) {}
 );

@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -108,7 +107,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                 <div>
                   <h4 className="mb-2 text-sm font-medium">Tags</h4>
                   <div className="flex flex-wrap gap-1">
-                    {reportScenario.tags.map((tag, index) => (
+                    {reportScenario.tags.map((tag, _index) => (
                       <Badge key={index} variant="outline">
                         {tag.tagName}
                       </Badge>
@@ -122,7 +121,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                 <h4 className="mb-3 text-sm font-medium">Steps</h4>
                 <div className="space-y-3">
                   {sortedSteps.length > 0 ? (
-                    sortedSteps.map((step, index) => (
+                    sortedSteps.map((step, _index) => (
                       <div key={step.id} className="space-y-2 rounded-lg border p-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
@@ -181,7 +180,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                   <Separator className="my-4" />
                   <h4 className="mb-3 text-sm font-medium">Hooks</h4>
                   <div className="space-y-3">
-                    {reportScenario.hooks.map((hook, index) => (
+                    {reportScenario.hooks.map((hook, _index) => (
                       <div key={hook.id} className="space-y-2 rounded-lg border p-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">

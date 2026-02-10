@@ -363,11 +363,11 @@ export default function SmoothTab({
                             <motion.div
                                 key={`card-${selected}`}
                                 custom={direction}
-                                variants={slideVariants as any}
+                                variants={slideVariants as React.ComponentProps<typeof motion.div>['variants']}
                                 initial="enter"
                                 animate="center"
                                 exit="exit"
-                                transition={transition as any}
+                                transition={transition as React.ComponentProps<typeof motion.div>['transition']}
                                 className="absolute inset-0 w-full h-full will-change-transform bg-card"
                                 style={{
                                     backfaceVisibility: "hidden",

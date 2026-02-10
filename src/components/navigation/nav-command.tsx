@@ -13,9 +13,7 @@ import {
   Plus,
   Puzzle,
   Server,
-  Settings,
   Tag,
-  TestTube,
   TestTubeDiagonal,
   TestTubes,
 } from 'lucide-react'
@@ -59,9 +57,9 @@ export default function NavCommand({ className }: { className?: string }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isMac, setIsMac] = useState(false)
 
+  // Detect platform only after mount to avoid hydration mismatch (server has no navigator)
   useEffect(() => {
-    // Only detect platform on client side to avoid hydration mismatch
-    setIsMac(navigator.userAgent.toLowerCase().includes('mac'))
+    queueMicrotask(() => setIsMac(navigator.userAgent.toLowerCase().includes('mac')))
   }, [])
 
   useEffect(() => {
@@ -75,11 +73,13 @@ export default function NavCommand({ className }: { className?: string }) {
     return () => document.removeEventListener('keydown', down)
   }, [])
 
-  // Reset command mode and search query when dialog closes
+  // Reset command mode and search query when dialog closes (defer setState to avoid sync setState in effect)
   useEffect(() => {
     if (!open) {
-      setCommandMode(null)
-      setSearchQuery('')
+      queueMicrotask(() => {
+        setCommandMode(null)
+        setSearchQuery('')
+      })
     }
   }, [open])
 

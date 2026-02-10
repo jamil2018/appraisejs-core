@@ -46,15 +46,15 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
 
     let featureName = ''
     let featureDescription = ''
-    let featureTags: string[] = []
+    const featureTags: string[] = []
     let currentScenario: ParsedScenario | null = null
     let stepOrder = 1
 
     // Find feature line and extract tags before it
-    let featureLineIndex = -1
+    let _featureLineIndex = -1
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].startsWith('Feature:')) {
-        featureLineIndex = i
+        _featureLineIndex = i
         // Look backwards for tags (skip comments and empty lines)
         for (let j = i - 1; j >= 0; j--) {
           const prevLine = lines[j]

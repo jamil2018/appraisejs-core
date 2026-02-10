@@ -56,7 +56,7 @@ async function readLocatorMap(baseDir: string): Promise<LocatorMapEntry[]> {
 
   try {
     await fs.access(locatorMapPath)
-  } catch (error) {
+  } catch {
     console.warn(`   ⚠️  Locator map file not found at ${locatorMapPath}, continuing without it`)
     return []
   }

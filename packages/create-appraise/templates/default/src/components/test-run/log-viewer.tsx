@@ -38,7 +38,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
   // Load logs from database if test run is completed
   useEffect(() => {
     if (status === TestRunStatus.COMPLETED || status === TestRunStatus.CANCELLED) {
-      setConnectionStatus('loading')
+      queueMicrotask(() => setConnectionStatus('loading'))
       getTestRunLogsAction(testRunId)
         .then(response => {
           if (response.error) {
@@ -312,7 +312,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
       eventSource.close()
       eventSourceRef.current = null
     }
-  }, [testRunId, status])
+  }, [testRunId, status]) // eslint-disable-line react-hooks/exhaustive-deps -- SSE must not depend on logs
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -322,7 +322,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight
       }
     }
-  }, [logs])
+  }, [logs, logs.length])
 
   // Handle manual scroll to detect user scrolling up
   const handleScroll = () => {

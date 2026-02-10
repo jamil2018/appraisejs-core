@@ -178,7 +178,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           try {
             controller.close()
             isClosed = true
-          } catch (error) {
+          } catch {
             // Controller may already be closed
           }
         }

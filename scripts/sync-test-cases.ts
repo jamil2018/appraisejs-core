@@ -13,9 +13,7 @@ import { join } from 'path'
 import prisma from '../src/config/db-config'
 import {
   scanFeatureFiles,
-  parseFeatureFile,
   extractModulePathFromFilePath,
-  ParsedFeature,
   ParsedStep,
 } from '../src/lib/gherkin-parser'
 import { buildModuleHierarchy, findModuleByPath } from '../src/lib/module-hierarchy-builder'

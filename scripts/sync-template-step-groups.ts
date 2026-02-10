@@ -143,7 +143,7 @@ function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
  * Scans step definition files in actions and validations directories
  */
 async function scanStepFiles(baseDir: string): Promise<string[]> {
-  const stepsDir = join(baseDir, 'src', 'tests', 'steps')
+  const _stepsDir = join(baseDir, 'src', 'tests', 'steps')
   const stepFiles: string[] = []
 
   try {

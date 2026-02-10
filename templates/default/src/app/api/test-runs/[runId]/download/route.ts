@@ -3,7 +3,6 @@ import prisma from '@/config/db-config'
 import archiver from 'archiver'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { Readable } from 'stream'
 
 // Ensure this route runs in Node.js runtime (not Edge) for file system access
 export const runtime = 'nodejs'
@@ -54,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const logFileName = path.basename(testRun.logPath)
         archive.file(testRun.logPath, { name: `logs/${logFileName}` })
         hasFiles = true
-      } catch (error) {
+      } catch {
         // Log file doesn't exist, skip it
         console.warn(`[Download] Log file not found at path: ${testRun.logPath}`)
       }
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const traceFileName = path.basename(tracePath)
         archive.file(tracePath, { name: `traces/${traceFileName}` })
         hasFiles = true
-      } catch (error) {
+      } catch {
         // Trace file doesn't exist, skip it
         console.warn(`[Download] Trace file not found at path: ${tracePath}`)
       }

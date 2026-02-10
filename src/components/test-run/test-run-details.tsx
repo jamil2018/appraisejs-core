@@ -339,7 +339,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
       isMounted = false
       clearInterval(interval)
     }
-  }, [testRun.runId, runningTraceViewers.size])
+  }, [testRun.runId, testRun.testCases, runningTraceViewers.size])
 
   const handleCancelRun = async () => {
     setIsCancelling(true)

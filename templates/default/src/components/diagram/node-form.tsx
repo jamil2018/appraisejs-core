@@ -68,16 +68,18 @@ const NodeForm = ({
   >(initialValues.parameters ?? [])
   const [gherkinStep, setGherkinStep] = useState<string>(initialValues.gherkinStep ?? '')
   const [errors, setErrors] = useState<z.inferFlattenedErrors<typeof errorSchema>['fieldErrors']>({})
-  // Synchronize state with initialValues when they change
+  // Synchronize state with initialValues when they change (defer setState to avoid sync setState in effect)
   useEffect(() => {
-    setSelectedTemplateId(initialValues.templateStepId)
-    const step = templateSteps.find(step => step.id === initialValues.templateStepId) ?? null
-    setSelectedTemplateStep(step)
-    setSelectedTemplateStepParams(
-      templateStepParams.filter(param => param.templateStepId === initialValues.templateStepId),
-    )
-    setParameters(initialValues.parameters ?? [])
-    setGherkinStep(initialValues.gherkinStep ?? '')
+    queueMicrotask(() => {
+      setSelectedTemplateId(initialValues.templateStepId)
+      const step = templateSteps.find(s => s.id === initialValues.templateStepId) ?? null
+      setSelectedTemplateStep(step)
+      setSelectedTemplateStepParams(
+        templateStepParams.filter(param => param.templateStepId === initialValues.templateStepId),
+      )
+      setParameters(initialValues.parameters ?? [])
+      setGherkinStep(initialValues.gherkinStep ?? '')
+    })
   }, [
     initialValues.templateStepId,
     initialValues.parameters,

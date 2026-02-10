@@ -263,7 +263,6 @@ const TestCaseForm = ({
     onSubmitAction,
     id,
     templateStepParams,
-    toast,
   ])
 
   return (

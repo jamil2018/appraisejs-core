@@ -105,6 +105,7 @@ const TemplateStepCombobox = ({
         id={id}
         role="combobox"
         aria-expanded={open}
+        aria-controls={open ? `${id}-listbox` : undefined}
         aria-haspopup="listbox"
         aria-label={placeholder}
         disabled={disabled}
@@ -122,7 +123,7 @@ const TemplateStepCombobox = ({
         <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1">
+        <div id={`${id}-listbox`} role="listbox" className="absolute left-0 right-0 top-full z-50 mt-1">
           <Command shouldFilter className="rounded-md border border-input bg-popover shadow-md">
             <CommandInput ref={searchInputRef} placeholder="Search template steps…" />
             <CommandList>

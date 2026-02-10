@@ -18,7 +18,7 @@ import _traverse from '@babel/traverse'
 import type { NodePath } from '@babel/traverse'
 
 // Handle both ESM and CJS exports
-const traverse = (_traverse as any).default || _traverse
+const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
 import prisma from '../src/config/db-config'
 import { TemplateStepGroupType, TemplateStepType, TemplateStepIcon, StepParameterType } from '@prisma/client'
 
@@ -334,7 +334,6 @@ function parseStepFile(content: string, filePath: string): StepData | null {
   }
 
   const steps: ParsedStep[] = []
-  const lines = content.split('\n')
 
   // Traverse the AST to find When/Then/Given calls
   traverse(ast, {
@@ -474,7 +473,7 @@ async function scanStepFiles(baseDir: string): Promise<string[]> {
  */
 async function syncStepsToDatabase(
   allSteps: Array<{ step: ParsedStep; groupName: string; filePath: string }>,
-  baseDir: string,
+  _baseDir: string,
 ): Promise<SyncResult> {
   const result: SyncResult = {
     stepsScanned: 0,
