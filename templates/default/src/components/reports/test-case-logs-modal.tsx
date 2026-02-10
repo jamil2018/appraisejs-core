@@ -126,7 +126,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                   <h4 className="mb-2 text-sm font-medium">Tags</h4>
                   <div className="flex flex-wrap gap-1">
                     {reportScenario.tags.map((tag, _index) => (
-                      <Badge key={index} variant="outline">
+                      <Badge key={_index} variant="outline">
                         {tag.tagName}
                       </Badge>
                     ))}

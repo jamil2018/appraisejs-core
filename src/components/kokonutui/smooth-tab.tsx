@@ -367,7 +367,7 @@ export default function SmoothTab({
                                 initial="enter"
                                 animate="center"
                                 exit="exit"
-                                transition={transition as React.ComponentProps<typeof motion.div>['transition']}
+                                transition={transition as unknown as React.ComponentProps<typeof motion.div>['transition']}
                                 className="absolute inset-0 w-full h-full will-change-transform bg-card"
                                 style={{
                                     backfaceVisibility: "hidden",

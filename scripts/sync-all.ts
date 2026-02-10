@@ -167,7 +167,7 @@ async function executeSyncScript(scriptName: string): Promise<ScriptResult> {
       name: scriptName,
       description: SYNC_SCRIPTS.find(s => s.name === scriptName)?.description || scriptName,
       success,
-      exitCode: result.exitCode,
+      exitCode: result.exitCode ?? null,
       duration,
       stdout: result.stdout,
       stderr: result.stderr,

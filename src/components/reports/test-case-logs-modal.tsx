@@ -3,14 +3,32 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { StepStatus, StepKeyword, ReportScenario, ReportStep, ReportHook } from '@prisma/client'
+import { StepStatus, ReportScenario } from '@prisma/client'
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { ScrollArea } from '../ui/scroll-area'
 
+/** Minimal shape so both full Prisma and report-table select types are accepted */
 type ReportScenarioWithDetails = ReportScenario & {
   tags: Array<{ tagName: string }>
-  steps: ReportStep[]
-  hooks: ReportHook[]
+  steps: Array<{
+    id: string
+    keyword: string
+    name: string
+    status: StepStatus
+    duration: string
+    errorMessage: string | null
+    errorTrace: string | null
+    order: number
+    matchLocation?: string | null
+  }>
+  hooks: Array<{
+    id: string
+    keyword: string
+    status: StepStatus
+    duration: string
+    errorMessage: string | null
+    errorTrace: string | null
+  }>
 }
 
 interface TestCaseLogsModalProps {
@@ -75,7 +93,7 @@ const formatDuration = (duration: string) => {
   return `${seconds}.${String(milliseconds).padStart(3, '0')}s`
 }
 
-const formatKeyword = (keyword: StepKeyword) => {
+const formatKeyword = (keyword: string) => {
   return keyword.charAt(0) + keyword.slice(1).toLowerCase()
 }
 
@@ -108,7 +126,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                   <h4 className="mb-2 text-sm font-medium">Tags</h4>
                   <div className="flex flex-wrap gap-1">
                     {reportScenario.tags.map((tag, _index) => (
-                      <Badge key={index} variant="outline">
+                      <Badge key={_index} variant="outline">
                         {tag.tagName}
                       </Badge>
                     ))}
