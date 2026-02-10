@@ -16,18 +16,19 @@ const ModuleForm = ({
   defaultValues,
   successTitle,
   successMessage,
-  parentOptions,
+  parentOptions = [],
   id,
   onSubmitAction,
 }: {
   defaultValues?: Module
   successTitle: string
   successMessage: string
-  parentOptions: { id: string; name: string }[]
+  parentOptions?: { id: string; name: string }[]
   id?: string
   onSubmitAction: (_prev: unknown, value: Module, id?: string) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
+  const options = Array.isArray(parentOptions) ? parentOptions : []
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
     validators: formOpts?.validators,
@@ -93,13 +94,13 @@ const ModuleForm = ({
               <Select value={field.state.value || ROOT_MODULE_UUID} onValueChange={value => field.handleChange(value)}>
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={parentOptions.length === 0 ? 'No parent modules available' : 'Select a parent or Root'}
+                    placeholder={options.length === 0 ? 'No parent modules available' : 'Select a parent or Root'}
                   />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ROOT_MODULE_UUID}>Root (No Parent)</SelectItem>
-                  {parentOptions.length > 0
-                    ? parentOptions.map(option => (
+                  {options.length > 0
+                    ? options.map(option => (
                         <SelectItem key={option.id} value={option.id}>
                           {option.name}
                         </SelectItem>

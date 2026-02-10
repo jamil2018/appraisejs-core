@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 const CreateModule = async () => {
   const { data: modules } = await getAllModulesAction()
 
-  const parentOptions = modules as (Module & { parent: { name: string } })[]
+  const parentOptions = (Array.isArray(modules) ? modules : []) as (Module & { parent: { name: string } })[]
 
   return (
     <>
