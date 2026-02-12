@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import os from 'os';
 import { getTemplatePath } from './copy-template.js';
+import { patchPackageJsonScripts } from './install.js';
 
 describe('CLI E2E', () => {
   let tempDir: string;
@@ -36,5 +37,54 @@ describe('CLI E2E', () => {
     const pkg = await fs.readJson(pkgJsonPath);
     expect(pkg.name).toBe('appraise');
     expect(pkg.scripts?.dev).toBeDefined();
+  });
+
+  it('patchPackageJsonScripts rewrites real template scripts for chosen package manager', async () => {
+    const templatePath = getTemplatePath();
+    if (!(await fs.pathExists(templatePath))) {
+      console.warn('Skipping E2E: template not found (run npm run build first)');
+      return;
+    }
+
+    const { copyTemplate } = await import('./copy-template.js');
+    await copyTemplate(destDir);
+
+    const pkgBefore = await fs.readJson(path.join(destDir, 'package.json'));
+    expect(pkgBefore.scripts['install-dependencies']).toBe('npm install --legacy-peer-deps');
+    expect(pkgBefore.scripts.setup).toMatch(/npm run /);
+
+    await patchPackageJsonScripts(destDir, 'pnpm');
+
+    const pkgAfter = await fs.readJson(path.join(destDir, 'package.json'));
+    expect(pkgAfter.scripts['install-dependencies']).toBe('pnpm install');
+    expect(pkgAfter.scripts.setup).toBe(
+      'pnpm run install-dependencies && pnpm run setup-env && pnpm run migrate-db && pnpm run install-playwright'
+    );
+    expect(pkgAfter.scripts['appraise:setup']).toBe('pnpm run setup');
+    expect(pkgAfter.scripts['appraise:sync']).toBe('pnpm run sync-all');
+    expect(pkgAfter.scripts['setup-env']).toContain('pnpm exec ');
+    expect(pkgAfter.scripts['setup-env']).not.toContain('npx ');
+    expect(pkgAfter.scripts['sync-all']).toContain('pnpm exec ');
+    expect(pkgAfter.scripts['install-playwright']).toContain('pnpm exec ');
+    expect(pkgAfter.scripts['install-playwright']).not.toContain('npx ');
+  });
+
+  it('patchPackageJsonScripts rewrites npx-using scripts for bun', async () => {
+    const templatePath = getTemplatePath();
+    if (!(await fs.pathExists(templatePath))) {
+      console.warn('Skipping E2E: template not found (run npm run build first)');
+      return;
+    }
+
+    const { copyTemplate } = await import('./copy-template.js');
+    await copyTemplate(destDir);
+
+    await patchPackageJsonScripts(destDir, 'bun');
+
+    const pkgAfter = await fs.readJson(path.join(destDir, 'package.json'));
+    expect(pkgAfter.scripts['setup-env']).toContain('bunx ');
+    expect(pkgAfter.scripts['sync-all']).toContain('bunx ');
+    expect(pkgAfter.scripts['install-playwright']).toContain('bunx ');
+    expect(pkgAfter.scripts['setup-env']).not.toContain('npx ');
   });
 });

@@ -25,7 +25,7 @@
     "sync-template-step-groups": "npx tsx scripts/sync-template-step-groups.ts",
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",
-    "sync-template": "node scripts/sync-template-from-base.mjs",
+    "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
     "test": "cucumber-js",
     "appraise:setup": "npm run setup",
     "appraise:sync": "npm run sync-all"

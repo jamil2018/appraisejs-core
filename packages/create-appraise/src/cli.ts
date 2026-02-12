@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { runPrompts } from './prompts.js';
 import { copyTemplate } from './copy-template.js';
-import { runInstall, getInstallCommand } from './install.js';
+import { runSetup, getInstallCommand, patchPackageJsonScripts } from './install.js';
 import { getConfig } from './config.js';
 import { downloadRepo } from './download-repo.js';
 
@@ -14,16 +14,15 @@ function printSuccessMessage(targetDir: string, packageManager: string, didInsta
   console.log('\n\u2713 Appraise app created successfully!\n');
   console.log(`  Location: ${targetDir}\n`);
   console.log('  Next steps:\n');
+  const pm = packageManager as 'npm' | 'pnpm' | 'yarn' | 'bun';
   if (!didInstall) {
-    const { command, args } = getInstallCommand(packageManager as 'npm' | 'pnpm' | 'yarn' | 'bun');
+    const { command, args } = getInstallCommand(pm);
     console.log(`  1. cd ${cdPath}`);
     console.log(`  2. ${command} ${args.join(' ')}`);
-    console.log('  3. npm run setup');
-    console.log('  4. npm run dev\n');
+    console.log(`  3. ${pm} run dev\n`);
   } else {
     console.log(`  1. cd ${cdPath}`);
-    console.log('  2. npm run setup');
-    console.log('  3. npm run dev\n');
+    console.log(`  2. ${pm} run dev\n`);
   }
   console.log('  See README.md in the project for more details.\n');
 }
@@ -73,10 +72,12 @@ async function main(): Promise<void> {
       }
     }
 
+    await patchPackageJsonScripts(directory, packageManager);
+
     if (shouldRunInstall) {
-      console.log('  Installing dependencies...');
-      await runInstall(directory, packageManager);
-      console.log('  Dependencies installed.\n');
+      console.log('  Running setup (dependencies, env, db, Playwright)...');
+      await runSetup(directory, packageManager);
+      console.log('  Setup complete.\n');
     }
 
     printSuccessMessage(directory, packageManager, shouldRunInstall);
