@@ -1,6 +1,6 @@
 {
   "name": "create-appraise",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "Scaffold a new Appraise app in your directory",
   "license": "Apache-2.0",
   "author": "Hasnat Jamil",
