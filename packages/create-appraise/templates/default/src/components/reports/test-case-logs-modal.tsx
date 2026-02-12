@@ -3,11 +3,11 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { StepStatus, StepKeyword, ReportScenario } from '@prisma/client'
+import { StepStatus, ReportScenario } from '@prisma/client'
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { ScrollArea } from '../ui/scroll-area'
 
-/** Minimal shape (matches include from report-view-table-columns and view-logs-button) */
+/** Minimal shape so both full Prisma and report-table select types are accepted */
 type ReportScenarioWithDetails = ReportScenario & {
   tags: Array<{ tagName: string }>
   steps: Array<{
@@ -93,7 +93,7 @@ const formatDuration = (duration: string) => {
   return `${seconds}.${String(milliseconds).padStart(3, '0')}s`
 }
 
-const formatKeyword = (keyword: StepKeyword | string) => {
+const formatKeyword = (keyword: string) => {
   return keyword.charAt(0) + keyword.slice(1).toLowerCase()
 }
 

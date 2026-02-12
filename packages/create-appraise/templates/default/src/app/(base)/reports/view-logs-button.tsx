@@ -6,7 +6,6 @@ import { Eye } from 'lucide-react'
 import { TestCaseLogsModal } from '@/components/reports/test-case-logs-modal'
 import { ReportScenario, StepStatus } from '@prisma/client'
 
-/** Minimal shape for report scenario (matches Prisma include from report-view-table-columns) */
 type ReportScenarioWithDetails = (ReportScenario & {
   tags: Array<{ tagName: string }>
   steps: Array<{

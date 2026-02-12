@@ -237,7 +237,7 @@ function displaySummary(summary: SyncSummary): void {
     const status = result.success ? '✅' : '❌'
     const duration = `${(result.duration / 1000).toFixed(2)}s`
     console.log(`   ${index + 1}. ${status} ${result.name} (${result.description}) - ${duration}`)
-
+    
     if (!result.success) {
       if (result.exitCode !== null) {
         console.log(`      Exit code: ${result.exitCode}`)
@@ -250,11 +250,11 @@ function displaySummary(summary: SyncSummary): void {
   })
 
   // Display database changes summary
-  const hasChanges = summary.totalDbChanges.created > 0 ||
-    summary.totalDbChanges.updated > 0 ||
-    summary.totalDbChanges.deleted > 0 ||
-    summary.totalDbChanges.existing > 0 ||
-    summary.totalDbChanges.scanned > 0
+  const hasChanges = summary.totalDbChanges.created > 0 || 
+                     summary.totalDbChanges.updated > 0 || 
+                     summary.totalDbChanges.deleted > 0 ||
+                     summary.totalDbChanges.existing > 0 ||
+                     summary.totalDbChanges.scanned > 0
 
   if (hasChanges) {
     console.log(`\n💾 Database Changes Summary:`)
@@ -304,7 +304,7 @@ async function main(): Promise<void> {
   for (const script of SYNC_SCRIPTS) {
     const result = await executeSyncScript(script.name)
     results.push(result)
-
+    
     // Continue execution even if script failed (as per user requirement)
     // The script will log the failure but continue with remaining scripts
   }

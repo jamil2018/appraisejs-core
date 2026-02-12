@@ -110,8 +110,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
     const filename = `test-run-${runId}-${timestamp}.zip`
 
-    // Return the zip file as a downloadable response
-    return new NextResponse(zipBuffer, {
+    // Return the zip file as a downloadable response (Uint8Array for BodyInit)
+    return new NextResponse(new Uint8Array(zipBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',

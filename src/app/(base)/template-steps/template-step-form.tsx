@@ -367,7 +367,7 @@ export const TemplateStepForm = ({
                             setFunctionDefinition(value)
                           }}
                           height="200px"
-                          extensions={[langs.typescript(), EditorView.lineWrapping]}
+                          extensions={[langs.ts(), EditorView.lineWrapping]}
                           theme={githubDark}
                         />
                       </div>

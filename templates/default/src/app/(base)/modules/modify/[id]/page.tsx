@@ -23,7 +23,8 @@ const ModifyModule = async ({ params }: { params: Promise<{ id: string }> }) => 
     parent: { name: string }
   }
 
-  const parentOptions = (modulesData as (Module & { parent: { name: string } })[]).filter(
+  const modulesList = Array.isArray(modulesData) ? modulesData : []
+  const parentOptions = (modulesList as (Module & { parent: { name: string } })[]).filter(
     (module: Module & { parent: { name: string } }) => module.id !== moduleData.id,
   ) as (Module & { parent: { name: string } })[]
 

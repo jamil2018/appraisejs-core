@@ -227,9 +227,9 @@ const TemplateTestCaseForm = ({
                 <CodeMirror
                   editable={false}
                   value={generateGherkinSyntax()}
-                  onChange={() => { }}
+                  onChange={() => {}}
                   height="200px"
-                  extensions={[langs.gherkin(), EditorView.lineWrapping]}
+                  extensions={[langs.feature(), EditorView.lineWrapping]}
                   theme={githubDark}
                 />
               </CardContent>

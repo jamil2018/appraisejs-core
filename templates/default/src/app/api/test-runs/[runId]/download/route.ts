@@ -83,7 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Create a readable stream to collect the archive data
     const chunks: Buffer[] = []
-
+    
     // Set up event handlers before finalizing
     const archivePromise = new Promise<Buffer>((resolve, reject) => {
       archive.on('data', (chunk: Buffer) => {

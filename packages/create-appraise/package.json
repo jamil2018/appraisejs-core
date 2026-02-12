@@ -1,4 +1,63 @@
-{"name":"create-appraise","version":"0.1.0","description":"Scaffold a new Appraise app in your directory","license":"Apache-2.0","author":"Hasnat Jamil","homepage":"https://github.com/jamil2018/appraise#readme","repository":{"type":"git","url":"git+https://github.com/jamil2018/appraise.git","directory":"packages/create-appraise"},"bugs":{"url":"https://github.com/jamil2018/appraise/issues"},"keywords":["appraise","testing","qa","cucumber","playwright","nextjs","scaffold"],"type":"module","main":"./dist/cli.js","bin":{"create-appraise":"./dist/cli.js"},"exports":{".":"./dist/cli.js"},"files":["dist","templates"],"scripts":{"build":"npm run sync-templates && tsc","sync-templates":"node scripts/sync-templates.mjs","test":"vitest run","test:e2e":"vitest run --config vitest.e2e.config.ts"},"dependencies":{"@inquirer/prompts":"^7.2.0","cli-progress":"^3.12.0","fs-extra":"^11.2.0","tar":"^7.0.0"},"devDependencies":{"@types/cli-progress":"^3.11.6","@types/fs-extra":"^11.0.4","@types/node":"^20.17.16","typescript":"^5.7.3","vitest":"^2.1.8"},"engines":{"node":">=18"},
+{
+  "name": "create-appraise",
+  "version": "0.1.0",
+  "description": "Scaffold a new Appraise app in your directory",
+  "license": "Apache-2.0",
+  "author": "Hasnat Jamil",
+  "homepage": "https://github.com/jamil2018/appraise#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamil2018/appraise.git",
+    "directory": "packages/create-appraise"
+  },
+  "bugs": {
+    "url": "https://github.com/jamil2018/appraise/issues"
+  },
+  "keywords": [
+    "appraise",
+    "testing",
+    "qa",
+    "cucumber",
+    "playwright",
+    "nextjs",
+    "scaffold"
+  ],
+  "type": "module",
+  "main": "./dist/cli.js",
+  "bin": {
+    "create-appraise": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "npm run sync-templates && tsc",
+    "sync-templates": "tsx scripts/sync-templates.ts",
+    "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.2.0",
+    "cli-progress": "^3.12.0",
+    "fs-extra": "^11.2.0",
+    "tar": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.17.16",
+    "tsx": "^4.20.4",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "overrides": {
     "esbuild": "^0.25.0"
-  }}
+  }
+}

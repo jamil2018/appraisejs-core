@@ -13,8 +13,8 @@
     "setup-env": "npx tsx scripts/setup-env.ts",
     "migrate-db": "npx prisma migrate dev",
     "setup": "npm run install-dependencies && npm run setup-env && npm run migrate-db && npm run install-playwright",
-    "appraise:setup": "npm run setup",
-    "appraise:sync": "npm run sync-all",
+    "sync-features": "npx tsx scripts/regenerate-features.ts",
+    "sync-features:dry-run": "npx tsx scripts/regenerate-features.ts --dry-run",
     "sync-locator-groups": "npx tsx scripts/sync-locator-groups.ts",
     "sync-environments": "npx tsx scripts/sync-environments.ts",
     "sync-locators": "npx tsx scripts/sync-locators.ts",
@@ -25,7 +25,10 @@
     "sync-template-step-groups": "npx tsx scripts/sync-template-step-groups.ts",
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",
-    "test": "cucumber-js"
+    "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
+    "test": "cucumber-js",
+    "appraise:setup": "npm run setup",
+    "appraise:sync": "npm run sync-all"
   },
   "dependencies": {
     "@babel/parser": "^7.27.0",
@@ -87,6 +90,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/chai": "^5.2.2",
     "@types/chai-as-promised": "^8.0.2",
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.17.16",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
