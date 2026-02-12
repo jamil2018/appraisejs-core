@@ -41,7 +41,7 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.2.0",
+    "@inquirer/prompts": "^8.2.0",
     "cli-progress": "^3.12.0",
     "fs-extra": "^11.2.0",
     "tar": "^7.0.0"
