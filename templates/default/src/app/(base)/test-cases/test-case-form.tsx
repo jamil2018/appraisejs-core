@@ -253,17 +253,7 @@ const TestCaseForm = ({
         variant: 'destructive',
       })
     }
-  }, [
-    description,
-    nodesOrder,
-    selectedTestSuites,
-    selectedTags,
-    title,
-    router,
-    onSubmitAction,
-    id,
-    templateStepParams,
-  ])
+  }, [description, nodesOrder, selectedTestSuites, selectedTags, title, router, onSubmitAction, id, templateStepParams])
 
   return (
     <div className="flex flex-col gap-4">
@@ -366,7 +356,7 @@ const TestCaseForm = ({
                 value={generateGherkinSyntax()}
                 onChange={() => {}}
                 height="200px"
-                extensions={[langs.feature(), EditorView.lineWrapping]}
+                extensions={[langs.gherkin(), EditorView.lineWrapping]}
                 theme={githubDark}
               />
             </CardContent>
