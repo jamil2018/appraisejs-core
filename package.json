@@ -29,7 +29,7 @@
     "test": "cucumber-js"
   },
   "dependencies": {
-    "@babel/parser": "^7.27.0",
+    "@babel/parser": "^7.29.0",
     "@babel/types": "^7.27.0",
     "@faker-js/faker": "^10.2.0",
     "@prisma/client": "^6.2.1",
