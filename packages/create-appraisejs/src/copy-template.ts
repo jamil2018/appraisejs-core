@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cliProgress from 'cli-progress';
+import type { PackageManager } from './prompts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -17,10 +18,18 @@ const EXCLUDED_FILES = new Set([
 ]);
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3']);
 
-function shouldExclude(relativePath: string, name: string, stat: fs.Stats): boolean {
+function shouldExclude(
+  relativePath: string,
+  name: string,
+  stat: fs.Stats,
+  packageManager?: PackageManager
+): boolean {
   if (EXCLUDED_DIRS.has(name)) return true;
   if (stat.isFile()) {
-    if (EXCLUDED_FILES.has(name)) return true;
+    if (EXCLUDED_FILES.has(name)) {
+      if (packageManager === 'npm' && name === 'package-lock.json') return false;
+      return true;
+    }
     const ext = path.extname(name);
     if (EXCLUDED_EXTENSIONS.has(ext)) return true;
     if (name.startsWith('.env') && name !== '.env.example') return true;
@@ -28,7 +37,7 @@ function shouldExclude(relativePath: string, name: string, stat: fs.Stats): bool
   return false;
 }
 
-function collectFiles(src: string, base = ''): string[] {
+function collectFiles(src: string, base = '', packageManager?: PackageManager): string[] {
   const resolvedSrc = path.resolve(src);
   let entries: fs.Dirent[];
   try {
@@ -46,13 +55,13 @@ function collectFiles(src: string, base = ''): string[] {
     } catch {
       continue;
     }
-    if (shouldExclude(rel, ent.name, stat)) continue;
+    if (shouldExclude(rel, ent.name, stat, packageManager)) continue;
     if (stat.isSymbolicLink()) {
       files.push(rel);
       continue;
     }
     if (stat.isDirectory()) {
-      files.push(...collectFiles(full, rel));
+      files.push(...collectFiles(full, rel, packageManager));
     } else if (stat.isFile()) {
       files.push(rel);
     }
@@ -72,7 +81,8 @@ export function getTemplatePath(): string {
 export async function copyTemplate(
   destDir: string,
   onProgress?: (current: number, total: number, filename: string) => void,
-  templatePathOverride?: string
+  templatePathOverride?: string,
+  packageManager?: PackageManager
 ): Promise<void> {
   const templatePath = templatePathOverride ?? getTemplatePath();
   if (!(await fs.pathExists(templatePath))) {
@@ -80,7 +90,7 @@ export async function copyTemplate(
   }
 
   await fs.ensureDir(destDir);
-  const files = collectFiles(templatePath);
+  const files = collectFiles(templatePath, '', packageManager);
   const total = files.length;
 
   const progressBar = new cliProgress.SingleBar(

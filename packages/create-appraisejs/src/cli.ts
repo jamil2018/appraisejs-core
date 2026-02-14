@@ -49,7 +49,7 @@ async function main(): Promise<void> {
 
     if (config.useBundled) {
       console.log('  Copying template files...');
-      await copyTemplate(directory);
+      await copyTemplate(directory, undefined, undefined, packageManager);
       console.log('  Template files copied.\n');
     } else {
       let cleanupDir: string | null = null;
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
         cleanupDir = dir;
         const templatePathOverride = path.join(repoRoot, config.templateSubpath);
         console.log('  Copying template files...');
-        await copyTemplate(directory, undefined, templatePathOverride);
+        await copyTemplate(directory, undefined, templatePathOverride, packageManager);
         console.log('  Template files copied.\n');
       } finally {
         if (cleanupDir) {

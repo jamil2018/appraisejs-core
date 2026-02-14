@@ -57,5 +57,32 @@ describe('copy-template', () => {
       expect(hasEnv).toBe(false);
       expect(hasLock).toBe(false);
     });
+
+    it('copies package-lock.json when packageManager is npm', async () => {
+      const fixtureDir = path.join(tempDir, 'fixture');
+      await fs.ensureDir(path.join(fixtureDir, 'src'));
+      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' });
+      await fs.writeFile(path.join(fixtureDir, 'package-lock.json'), '{"lockfileVersion": 3}');
+      await fs.writeFile(path.join(fixtureDir, 'src', 'index.ts'), '// empty');
+
+      await copyTemplate(destDir, undefined, fixtureDir, 'npm');
+
+      expect(await fs.pathExists(path.join(destDir, 'package-lock.json'))).toBe(true);
+      expect(await fs.readFile(path.join(destDir, 'package-lock.json'), 'utf-8')).toBe(
+        '{"lockfileVersion": 3}'
+      );
+    });
+
+    it('does not copy package-lock.json when packageManager is not npm', async () => {
+      const fixtureDir = path.join(tempDir, 'fixture');
+      await fs.ensureDir(path.join(fixtureDir, 'src'));
+      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' });
+      await fs.writeFile(path.join(fixtureDir, 'package-lock.json'), '{}');
+      await fs.writeFile(path.join(fixtureDir, 'src', 'index.ts'), '// empty');
+
+      await copyTemplate(destDir, undefined, fixtureDir, 'yarn');
+
+      expect(await fs.pathExists(path.join(destDir, 'package-lock.json'))).toBe(false);
+    });
   });
 });
