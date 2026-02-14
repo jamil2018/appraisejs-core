@@ -19,7 +19,7 @@ describe('getConfig', () => {
   it('returns default repo base, branch, template subpath, and useBundled false when no env set', () => {
     const config = getConfig();
     expect(config.repoBase).toContain('github.com');
-    expect(config.repoBase).toContain('appraise');
+    expect(config.repoBase).toContain('appraisejs');
     expect(config.branch).toBe('main');
     expect(config.templateSubpath).toBe('templates/default');
     expect(config.useBundled).toBe(false);

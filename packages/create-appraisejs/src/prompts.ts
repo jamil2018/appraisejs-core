@@ -10,7 +10,7 @@ export interface PromptAnswers {
   runInstall: boolean;
 }
 
-const DEFAULT_DIR = './my-appraise-app';
+const DEFAULT_DIR = './my-appraisejs-app';
 
 function isDirEmpty(dirPath: string): boolean {
   if (!fs.existsSync(dirPath)) return true;

@@ -2,7 +2,7 @@
 /**
  * Sync the default template from the base app (repo root).
  * Copies src/, prisma/, public/, scripts/, and root config files into templates/default/,
- * preserves template-only README.md and appraise.config.json, and merges package.json scripts.
+ * preserves template-only README.md and appraisejs.config.json, and merges package.json scripts.
  *
  * Usage: npx tsx scripts/sync-appraise-base-template.ts
  * Or: npm run sync-template
@@ -49,10 +49,10 @@ function copyFile(src: string, dest: string): void {
 
 // 1. Preserve template-only files
 const readmePath = join(target, 'README.md');
-const appraiseConfigPath = join(target, 'appraise.config.json');
+const appraisejsConfigPath = join(target, 'appraisejs.config.json');
 const savedReadme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : null;
-const savedAppraiseConfig = existsSync(appraiseConfigPath)
-  ? readFileSync(appraiseConfigPath, 'utf8')
+const savedAppraisejsConfig = existsSync(appraisejsConfigPath)
+  ? readFileSync(appraisejsConfigPath, 'utf8')
   : null;
 
 // 2. Copy directories
@@ -88,19 +88,19 @@ const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
   scripts: Record<string, string>;
   [key: string]: unknown;
 };
-rootPkg.scripts['appraise:setup'] = 'npm run setup';
-rootPkg.scripts['appraise:sync'] = 'npm run sync-all';
+rootPkg.scripts['appraisejs:setup'] = 'npm run setup';
+rootPkg.scripts['appraisejs:sync'] = 'npm run sync-all';
 writeFileSync(join(target, 'package.json'), JSON.stringify(rootPkg, null, 2) + '\n');
-console.log('Wrote package.json with appraise:setup and appraise:sync.');
+console.log('Wrote package.json with appraisejs:setup and appraisejs:sync.');
 
 // 5. Restore template-only files
 if (savedReadme) {
   writeFileSync(readmePath, savedReadme);
   console.log('Restored README.md');
 }
-if (savedAppraiseConfig) {
-  writeFileSync(appraiseConfigPath, savedAppraiseConfig);
-  console.log('Restored appraise.config.json');
+if (savedAppraisejsConfig) {
+  writeFileSync(appraisejsConfigPath, savedAppraisejsConfig);
+  console.log('Restored appraisejs.config.json');
 }
 
 console.log('Synced base app to templates/default.');

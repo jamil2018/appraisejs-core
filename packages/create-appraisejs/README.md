@@ -1,16 +1,16 @@
-# create-appraise
+# create-appraisejs
 
 Scaffold a new [Appraise](https://github.com/jamil2018/appraisejs-core) app in your directory.
 
 ## Usage
 
 ```bash
-npx create-appraise@latest
+npx create-appraisejs@latest
 ```
 
 The CLI will prompt you for:
 
-1. **Project directory** – Where to create the app (default: `./my-appraise-app`). The directory must be empty or not exist.
+1. **Project directory** – Where to create the app (default: `./my-appraisejs-app`). The directory must be empty or not exist.
 2. **Package manager** – `npm`, `pnpm`, `yarn`, or `bun`.
 3. **Run setup now** – Whether to run the project’s setup script after copying the template (installs dependencies, creates `.env`, runs migrations, installs Playwright). If you skip this, you run setup yourself before starting the app.
 
@@ -53,6 +53,6 @@ From the repo root or this package directory:
 1. Ensure the package builds: `npm run build` (syncs templates and compiles TypeScript).
 2. Bump version in `package.json` if needed.
 3. Log in to npm: `npm login`.
-4. Publish: `npm publish` (from `packages/create-appraise`).
+4. Publish: `npm publish` (from `packages/create-appraisejs`).
 
 The `files` field in `package.json` includes only `dist` and `templates`, so source and dev dependencies are not published.

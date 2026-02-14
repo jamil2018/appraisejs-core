@@ -1,5 +1,5 @@
 {
-  "name": "appraise",
+  "name": "appraisejs",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -27,8 +27,8 @@
     "sync-all": "npx tsx scripts/sync-all.ts",
     "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
     "test": "cucumber-js",
-    "appraise:setup": "npm run setup",
-    "appraise:sync": "npm run sync-all"
+    "appraisejs:setup": "npm run setup",
+    "appraisejs:sync": "npm run sync-all"
   },
   "dependencies": {
     "@babel/parser": "^7.27.0",

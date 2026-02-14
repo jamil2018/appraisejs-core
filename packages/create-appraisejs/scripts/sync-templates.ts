@@ -15,4 +15,4 @@ if (!existsSync(source)) {
 
 mkdirSync(dest, { recursive: true });
 cpSync(source, dest, { recursive: true, force: true });
-console.log('Synced templates/default to packages/create-appraise/templates/default');
+console.log('Synced templates/default to packages/create-appraisejs/templates/default');

@@ -78,11 +78,11 @@ export async function patchPackageJsonScripts(targetDir: string, pm: PackageMana
   if (pkg.scripts['setup'] !== undefined) {
     pkg.scripts['setup'] = pkg.scripts['setup'].replace(/npm run /g, `${runPrefix} `);
   }
-  if (pkg.scripts['appraise:setup'] !== undefined) {
-    pkg.scripts['appraise:setup'] = `${runPrefix} setup`;
+  if (pkg.scripts['appraisejs:setup'] !== undefined) {
+    pkg.scripts['appraisejs:setup'] = `${runPrefix} setup`;
   }
-  if (pkg.scripts['appraise:sync'] !== undefined) {
-    pkg.scripts['appraise:sync'] = `${runPrefix} sync-all`;
+  if (pkg.scripts['appraisejs:sync'] !== undefined) {
+    pkg.scripts['appraisejs:sync'] = `${runPrefix} sync-all`;
   }
 
   const execPrefix = getExecPrefix(pm);

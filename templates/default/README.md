@@ -36,15 +36,15 @@ npm run dev
 | `npm run build`          | Build for production                                                                                            |
 | `npm run start`          | Start production server                                                                                         |
 | `npm run setup`          | Install deps, create .env, migrate DB, install Playwright                                                       |
-| `npm run appraise:setup` | Alias for `setup`                                                                                               |
+| `npm run appraisejs:setup` | Alias for `setup`                                                                                               |
 | `npm run sync-all`       | Sync all entities (modules, environments, tags, steps, locators, test suites, test cases) from filesystem to DB |
-| `npm run appraise:sync`  | Alias for `sync-all`                                                                                            |
+| `npm run appraisejs:sync`  | Alias for `sync-all`                                                                                            |
 | `npm run test`           | Run Cucumber tests                                                                                              |
 
 ## Configuration
 
 - Copy `.env.example` to `.env` before running (or let `npm run setup` create it). Required: `DATABASE_URL="file:./prisma/dev.db"` for SQLite.
-- `appraise.config.json` — minimal starter config for future CLI/tooling.
+- `appraisejs.config.json` — minimal starter config for future CLI/tooling.
 
 ## Note
 

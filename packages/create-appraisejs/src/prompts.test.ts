@@ -21,7 +21,7 @@ describe('runPrompts', () => {
 
   beforeEach(() => {
     cwd = process.cwd();
-    tempDir = path.join(os.tmpdir(), `create-appraise-prompts-${Date.now()}`);
+    tempDir = path.join(os.tmpdir(), `create-appraisejs-prompts-${Date.now()}`);
   });
 
   afterEach(async () => {

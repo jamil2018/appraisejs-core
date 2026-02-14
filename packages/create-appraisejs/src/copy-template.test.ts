@@ -9,7 +9,7 @@ describe('copy-template', () => {
   let destDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'create-appraise-test-'));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'create-appraisejs-test-'));
     destDir = path.join(tempDir, 'output');
   });
 

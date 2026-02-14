@@ -10,7 +10,7 @@ describe('CLI E2E', () => {
   let destDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'create-appraise-e2e-'));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'create-appraisejs-e2e-'));
     destDir = path.join(tempDir, 'my-app');
   });
 
@@ -35,7 +35,7 @@ describe('CLI E2E', () => {
     expect(await fs.pathExists(pkgJsonPath)).toBe(true);
     expect(await fs.pathExists(srcPath)).toBe(true);
     const pkg = await fs.readJson(pkgJsonPath);
-    expect(pkg.name).toBe('appraise');
+    expect(pkg.name).toBe('appraisejs');
     expect(pkg.scripts?.dev).toBeDefined();
   });
 
@@ -60,8 +60,8 @@ describe('CLI E2E', () => {
     expect(pkgAfter.scripts.setup).toBe(
       'pnpm run install-dependencies && pnpm run setup-env && pnpm run migrate-db && pnpm run install-playwright'
     );
-    expect(pkgAfter.scripts['appraise:setup']).toBe('pnpm run setup');
-    expect(pkgAfter.scripts['appraise:sync']).toBe('pnpm run sync-all');
+    expect(pkgAfter.scripts['appraisejs:setup']).toBe('pnpm run setup');
+    expect(pkgAfter.scripts['appraisejs:sync']).toBe('pnpm run sync-all');
     expect(pkgAfter.scripts['setup-env']).toContain('pnpm exec ');
     expect(pkgAfter.scripts['setup-env']).not.toContain('npx ');
     expect(pkgAfter.scripts['sync-all']).toContain('pnpm exec ');

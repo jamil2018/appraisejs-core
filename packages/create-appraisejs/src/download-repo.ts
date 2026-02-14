@@ -4,7 +4,7 @@ import path from 'path'
 import { spawn } from 'child_process'
 import { x as extractTar } from 'tar'
 
-const TEMP_PREFIX = 'create-appraise-'
+const TEMP_PREFIX = 'create-appraisejs-'
 
 function getTarballUrl(repoBase: string, branch: string): string {
   const base = repoBase.replace(/\/$/, '').replace(/\.git$/, '')
