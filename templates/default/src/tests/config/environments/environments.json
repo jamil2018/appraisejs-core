@@ -9,6 +9,6 @@
     "baseUrl": "https://demo-test-site-beta.vercel.app/login",
     "apiBaseUrl": "",
     "email": "demo@example.com",
-    "password": ""
+    "password": "test1234"
   }
 }
