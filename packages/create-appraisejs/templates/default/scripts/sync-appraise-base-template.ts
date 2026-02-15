@@ -65,7 +65,7 @@ copyDirWithFilter(join(repoRoot, 'public'), join(target, 'public'));
 console.log('Copying scripts/...');
 copyDirWithFilter(join(repoRoot, 'scripts'), join(target, 'scripts'));
 
-// 3. Copy root config files
+// 3. Copy root config files and package lock files
 const configFiles = [
   'eslint.config.mjs',
   'tailwind.config.ts',
@@ -74,6 +74,9 @@ const configFiles = [
   'components.json',
   'next.config.ts',
   '.env.example',
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
 ];
 console.log('Copying config files...');
 for (const name of configFiles) {
