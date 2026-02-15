@@ -356,7 +356,7 @@ const TestCaseForm = ({
                 value={generateGherkinSyntax()}
                 onChange={() => {}}
                 height="200px"
-                extensions={[langs.gherkin(), EditorView.lineWrapping]}
+                extensions={[langs.feature(), EditorView.lineWrapping]}
                 theme={githubDark}
               />
             </CardContent>
