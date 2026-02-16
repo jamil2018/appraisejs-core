@@ -1,7 +1,7 @@
 {
-  "name": "appraisejs",
+  "name": "appraise",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -12,7 +12,7 @@
     "install-dependencies": "npm install --legacy-peer-deps",
     "setup-env": "npx tsx scripts/setup-env.ts",
     "migrate-db": "npx prisma migrate dev",
-    "setup": "npm run install-dependencies && npm run setup-env && npm run migrate-db && npm run install-playwright",
+    "setup": "npm run install-dependencies && npm run setup-env && npm run migrate-db && npm run install-playwright && npm run sync-all",
     "sync-features": "npx tsx scripts/regenerate-features.ts",
     "sync-features:dry-run": "npx tsx scripts/regenerate-features.ts --dry-run",
     "sync-locator-groups": "npx tsx scripts/sync-locator-groups.ts",

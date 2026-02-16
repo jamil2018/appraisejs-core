@@ -1,14 +1,1 @@
-{
-  "demoqa": {
-    "baseUrl": "https://demoqa.com/",
-    "apiBaseUrl": "",
-    "email": "",
-    "password": ""
-  },
-  "demo_test_site": {
-    "baseUrl": "https://demo-test-site-beta.vercel.app/login",
-    "apiBaseUrl": "",
-    "email": "demo@example.com",
-    "password": ""
-  }
-}
+{}

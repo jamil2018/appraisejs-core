@@ -15,4 +15,19 @@ if (!existsSync(source)) {
 
 mkdirSync(dest, { recursive: true });
 cpSync(source, dest, { recursive: true, force: true });
+
+// Copy cucumber.mjs from repo root (required for running tests)
+const cucumberSource = join(repoRoot, 'cucumber.mjs');
+if (existsSync(cucumberSource)) {
+  cpSync(cucumberSource, join(dest, 'cucumber.mjs'), { force: true });
+  console.log('Synced cucumber.mjs to template');
+}
+
+// Copy .vscode folder from repo root
+const vscodeSource = join(repoRoot, '.vscode');
+if (existsSync(vscodeSource)) {
+  cpSync(vscodeSource, join(dest, '.vscode'), { recursive: true, force: true });
+  console.log('Synced .vscode to template');
+}
+
 console.log('Synced templates/default to packages/create-appraisejs/templates/default');
