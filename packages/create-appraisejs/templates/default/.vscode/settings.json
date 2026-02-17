@@ -1,5 +1,4 @@
 {
-  "postman.settings.dotenv-detection-notification-visibility": false,
   "cucumber.features": ["src/tests/features/**/*.feature"],
   "cucumber.glue": ["src/tests/steps/**/*.ts"],
   "prisma.pinToPrisma6": true

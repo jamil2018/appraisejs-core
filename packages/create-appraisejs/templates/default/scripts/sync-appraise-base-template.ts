@@ -86,6 +86,20 @@ for (const name of configFiles) {
   }
 }
 
+// Copy cucumber.mjs from repo root (required for running tests)
+const cucumberSource = join(repoRoot, 'cucumber.mjs');
+if (existsSync(cucumberSource)) {
+  copyFile(cucumberSource, join(target, 'cucumber.mjs'));
+  console.log('Synced cucumber.mjs to template');
+}
+
+// Copy .vscode folder from repo root
+const vscodeSource = join(repoRoot, '.vscode');
+if (existsSync(vscodeSource)) {
+  cpSync(vscodeSource, join(target, '.vscode'), { recursive: true, force: true });
+  console.log('Synced .vscode to template');
+}
+
 // 4. package.json: base + template-only scripts
 const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>;
