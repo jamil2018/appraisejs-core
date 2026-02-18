@@ -100,7 +100,7 @@ const LocatorForm = ({
         {field => {
           return (
             <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Value</Label>
+              <Label htmlFor={field.name}>Selector</Label>
               <Input
                 id={field.name}
                 value={field.state.value}
@@ -131,7 +131,7 @@ const LocatorForm = ({
                 <SelectTrigger>
                   <SelectValue placeholder="Select a locator group" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent isEmpty={locatorGroupList.length === 0}>
                   {locatorGroupList.map(locatorGroup => (
                     <SelectItem key={locatorGroup.id} value={locatorGroup.id}>
                       {locatorGroup.name}

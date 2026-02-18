@@ -24,25 +24,26 @@ When('the user navigates to the {string} url', async function (this: CustomWorld
 
 /**
  * @name navigate to environment base url
- * @description Navigate to the base url of previously stored environment configuration
+ * @description Navigate to the base url of the selected environment
  * @icon NAVIGATION
  */
-When(
-  'the user navigates to the base url of the {string} environment',
-  async function (this: CustomWorld, environmentName: string) {
-    try {
-      const environmentConfig = getEnvironment(environmentName)
-      if (!environmentConfig) {
-        throw new Error(`Environment ${environmentName} not found`)
-      }
-      await this.page.goto(environmentConfig.baseUrl, {
-        waitUntil: 'domcontentloaded',
-      })
-    } catch (error) {
-      throw new Error(`Failed to navigate to the base url of the ${environmentName} environment: ${error}`)
+When('the user navigates to the base url of the selected environment', async function (this: CustomWorld) {
+  try {
+    const environment = process.env.ENVIRONMENT as string
+    if (!environment) {
+      throw new Error('Environment is not set')
     }
-  },
-)
+    const environmentConfig = getEnvironment(environment)
+    if (!environmentConfig) {
+      throw new Error(`Environment ${environment} not found`)
+    }
+    await this.page.goto(environmentConfig.baseUrl, {
+      waitUntil: 'domcontentloaded',
+    })
+  } catch (error) {
+    throw new Error(`Failed to navigate to the base url of the selected environment: ${error}`)
+  }
+})
 
 /**
  * @name reload

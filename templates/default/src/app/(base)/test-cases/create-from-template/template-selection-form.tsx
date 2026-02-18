@@ -43,7 +43,7 @@ const TemplateSelectionForm = ({ templateTestCases }: { templateTestCases: Templ
                   <SelectTrigger>
                     <SelectValue placeholder="Select a template test case" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent isEmpty={templateTestCases.length === 0}>
                     {templateTestCases.map(templateTestCase => (
                       <SelectItem key={templateTestCase.id} value={templateTestCase.id}>
                         {templateTestCase.name}
