@@ -171,7 +171,7 @@ export const TestSuiteForm = ({
                       <SelectTrigger className="w-full bg-background">
                         <SelectValue placeholder="Select a module" />
                       </SelectTrigger>
-                      <SelectContent className="w-full">
+                      <SelectContent className="w-full" isEmpty={moduleList.length === 0}>
                         {moduleList.map(module => (
                           <SelectItem key={module.id} value={module.id}>
                             {module.name}

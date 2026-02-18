@@ -8,8 +8,6 @@ import TableActions from '@/components/table/table-actions'
 import { Locator, LocatorGroup, ConflictResolution } from '@prisma/client'
 import { deleteLocatorAction } from '@/actions/locator/locator-actions'
 import { formatDateTime } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
-import { resolveConflictsAction } from '@/actions/conflict/conflict.action'
 
 export const locatorTableCols: ColumnDef<Locator & { locatorGroup: LocatorGroup; conflicts: ConflictResolution[] }>[] =
   [
@@ -37,20 +35,6 @@ export const locatorTableCols: ColumnDef<Locator & { locatorGroup: LocatorGroup;
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-      cell: ({ row }) => {
-        const locator = row.original
-        const hasConflicts = locator.conflicts && locator.conflicts.length > 0
-        return (
-          <div className="flex items-center gap-2">
-            <span>{locator.name}</span>
-            {hasConflicts && (
-              <Badge variant="destructive" className="text-xs">
-                Conflict
-              </Badge>
-            )}
-          </div>
-        )
-      },
     },
     {
       accessorKey: 'value',
@@ -82,7 +66,6 @@ export const locatorTableCols: ColumnDef<Locator & { locatorGroup: LocatorGroup;
           <TableActions
             modifyLink={`/locators/modify/${locator.id}`}
             deleteHandler={() => deleteLocatorAction([locator.id])}
-            resolveConflictsHandler={() => resolveConflictsAction([locator.id])}
           />
         )
       },

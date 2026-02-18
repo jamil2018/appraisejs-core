@@ -32,7 +32,7 @@ export function getEnvironment(environment: string) {
   const environmentConfig: { [key: string]: EnvironmentConfig } = JSON.parse(
     readFileSync(`${process.cwd()}/src/tests/config/environments/environments.json`, 'utf8'),
   )
-  return environmentConfig[environment] as EnvironmentConfig
+  return environmentConfig[environment.toLowerCase()] as EnvironmentConfig
 }
 
 /**

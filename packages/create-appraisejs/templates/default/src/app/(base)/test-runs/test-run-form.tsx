@@ -349,16 +349,12 @@ const TestRunForm = ({
                         <SelectTrigger>
                           <SelectValue placeholder="Select an environment" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {environments.length === 0 ? (
-                            <div className="p-2 text-sm">No environments available</div>
-                          ) : (
-                            environments.map(environment => (
-                              <SelectItem key={environment.id} value={environment.id}>
-                                {environment.name}
-                              </SelectItem>
-                            ))
-                          )}
+                        <SelectContent isEmpty={environments.length === 0} emptyMessage="No environments available">
+                          {environments.map(environment => (
+                            <SelectItem key={environment.id} value={environment.id}>
+                              {environment.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       {field.state.meta.isTouched &&
