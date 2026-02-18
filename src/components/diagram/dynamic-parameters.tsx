@@ -369,7 +369,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
                 <SelectTrigger id={`group-${name}`} className="w-full">
                   <SelectValue placeholder="Select a locator group" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent isEmpty={locatorGroups.length === 0}>
                   {locatorGroups.map(group => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name}
@@ -397,7 +397,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
                   }
                 />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent isEmpty={availableLocators.length === 0}>
                 {availableLocators.map(locator => (
                   <SelectItem key={locator.id} value={locator.name}>
                     {locator.name}

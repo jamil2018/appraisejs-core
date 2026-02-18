@@ -174,7 +174,7 @@ export default function ParamChip({
                 <SelectTrigger id="type">
                   <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent isEmpty={types.length === 0}>
                   {types.map(type => (
                     <SelectItem key={type} value={type}>
                       {type}

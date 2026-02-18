@@ -131,7 +131,7 @@ const LocatorForm = ({
                 <SelectTrigger>
                   <SelectValue placeholder="Select a locator group" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent isEmpty={locatorGroupList.length === 0}>
                   {locatorGroupList.map(locatorGroup => (
                     <SelectItem key={locatorGroup.id} value={locatorGroup.id}>
                       {locatorGroup.name}

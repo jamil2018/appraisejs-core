@@ -156,7 +156,7 @@ const LocatorGroupForm = ({
                 <SelectTrigger>
                   <SelectValue placeholder="Select a module" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent isEmpty={moduleList.length === 0}>
                   {moduleList.map(moduleData => (
                     <SelectItem key={moduleData.id} value={moduleData.id}>
                       {moduleData.name}

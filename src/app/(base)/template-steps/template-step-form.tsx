@@ -237,7 +237,7 @@ export const TemplateStepForm = ({
                         <SelectTrigger id={field.name}>
                           <SelectValue placeholder="Select a template step group" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent isEmpty={!templateStepGroups?.length}>
                           {templateStepGroups?.map(group => (
                             <SelectItem key={group.id} value={group.id}>
                               {group.name}
