@@ -100,7 +100,7 @@ const LocatorForm = ({
         {field => {
           return (
             <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Value</Label>
+              <Label htmlFor={field.name}>Selector</Label>
               <Input
                 id={field.name}
                 value={field.state.value}
