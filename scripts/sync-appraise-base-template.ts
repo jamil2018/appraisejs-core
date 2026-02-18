@@ -8,7 +8,7 @@
  * Or: npm run sync-template
  */
 
-import { cpSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { cpSync, readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -18,10 +18,17 @@ const target = join(repoRoot, 'templates', 'default');
 
 const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git']);
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3']);
+const EXCLUDED_TEST_DATA_PREFIXES = [
+  'tests/features/',
+  'tests/config/environments/',
+  'tests/locators/',
+  'tests/reports/',
+];
 
 function shouldExclude(relativePath: string): boolean {
   const parts = relativePath.split(/[/\\]/);
   if (parts.some((p) => EXCLUDED_DIRS.has(p))) return true;
+  if (EXCLUDED_TEST_DATA_PREFIXES.some((prefix) => relativePath.startsWith(prefix))) return true;
   const ext = relativePath.endsWith('.sqlite3')
     ? '.sqlite3'
     : relativePath.endsWith('.sqlite')
@@ -58,6 +65,31 @@ const savedAppraisejsConfig = existsSync(appraisejsConfigPath)
 // 2. Copy directories
 console.log('Copying src/...');
 copyDirWithFilter(join(repoRoot, 'src'), join(target, 'src'));
+
+// Clear test data dirs and write empty configs (no project-specific features/envs/locators/reports)
+const dirsToClear = [
+  join(target, 'src', 'tests', 'features'),
+  join(target, 'src', 'tests', 'locators'),
+  join(target, 'src', 'tests', 'reports'),
+];
+for (const dir of dirsToClear) {
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+}
+const testDirs = [
+  join(target, 'src', 'tests', 'features'),
+  join(target, 'src', 'tests', 'config', 'environments'),
+  join(target, 'src', 'tests', 'locators'),
+  join(target, 'src', 'tests', 'reports'),
+  join(target, 'src', 'tests', 'mapping'),
+];
+for (const dir of testDirs) {
+  mkdirSync(dir, { recursive: true });
+}
+writeFileSync(join(target, 'src', 'tests', 'config', 'environments', 'environments.json'), JSON.stringify({}) + '\n');
+writeFileSync(join(target, 'src', 'tests', 'mapping', 'locator-map.json'), JSON.stringify([]) + '\n');
+
 console.log('Copying prisma/...');
 copyDirWithFilter(join(repoRoot, 'prisma'), join(target, 'prisma'));
 console.log('Copying public/...');

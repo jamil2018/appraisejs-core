@@ -1,8 +1,1 @@
-{
-  "demo": {
-    "baseUrl": "https://demo-test-site-beta.vercel.app/",
-    "apiBaseUrl": "",
-    "email": "",
-    "password": ""
-  }
-}
+{}
