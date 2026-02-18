@@ -67,6 +67,7 @@ copyDirWithFilter(join(repoRoot, 'scripts'), join(target, 'scripts'));
 
 // 3. Copy root config files and package lock files
 const configFiles = [
+  '.gitignore',
   'eslint.config.mjs',
   'tailwind.config.ts',
   'tsconfig.json',
