@@ -15,8 +15,9 @@ import { CustomWorld, expect } from '../../config/executor/world.js'
  */
 Then('the url route should be equal to {string}', async function (this: CustomWorld, route: string) {
   try {
-    const currentRoute = await this.page.url()
-    expect(currentRoute, `Expected the current route to be "${route}"`).to.equal(route)
+    await this.page.waitForLoadState('networkidle')
+    const currentRoute = new URL(this.page.url()).pathname
+    expect(currentRoute, `Expected the current route to be "${route}"`).to.equal(route.toLowerCase())
   } catch (error) {
     throw new Error(`Failed to validate the equality of the current route to the route "${route}": ${error}`)
   }

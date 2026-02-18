@@ -3,7 +3,12 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: collection of login scenarios
+Feature: login
+
+  @tc_076b9e46c0fa1586
+  Scenario: [navigation] validate user is able to navigate to the login page of the environment
+    Given the user navigates to the base url of the selected environment
+    Then the url route should be equal to "/login"
 
   @tc_2d1e1128876ce9d5
   Scenario: [login] validate user is able to login to app using valid credentials
