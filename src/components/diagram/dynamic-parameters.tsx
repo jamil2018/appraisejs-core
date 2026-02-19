@@ -108,18 +108,49 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     return values
   }, [templateStepParams, initialParameterValues])
 
+  // Derive initial locator groups from initialParameterValues (locator name -> group id via locators lookup)
+  const initialSelectedLocatorGroups = useMemo(() => {
+    const groups: Record<string, string> = {}
+    const initialValueMap: Record<string, string> = {}
+    initialParameterValues?.forEach(v => {
+      initialValueMap[v.name] = v.value
+    })
+    templateStepParams.forEach(param => {
+      if (param.type === 'LOCATOR') {
+        const locatorName = initialValueMap[param.name]
+        if (locatorName) {
+          const locator = locators.find(l => l.name === locatorName)
+          if (locator?.locatorGroupId) {
+            groups[param.name] = locator.locatorGroupId
+          }
+        }
+      }
+    })
+    return groups
+  }, [templateStepParams, initialParameterValues, locators])
+
   // Initialize state with initial values
   const [values, setValues] = useState<{
     [key: string]: string | number | boolean | Date
   }>(initialValues)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // State for locator group selection
-  const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>({})
+  // State for locator group selection (initialized from initial data so edit restores group + locator)
+  const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>(
+    initialSelectedLocatorGroups,
+  )
 
   useEffect(() => {
     queueMicrotask(() => setErrors({}))
   }, [templateStepParams])
+
+  // Sync state when initial data changes (e.g. opening edit for a different node)
+  useEffect(() => {
+    queueMicrotask(() => {
+      setValues(initialValues)
+      setSelectedLocatorGroups(initialSelectedLocatorGroups)
+    })
+  }, [initialValues, initialSelectedLocatorGroups])
 
   useImperativeHandle(ref, () => ({
     validate: () => {
