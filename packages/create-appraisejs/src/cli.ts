@@ -19,10 +19,10 @@ function printSuccessMessage(targetDir: string, packageManager: string, didInsta
     const { command, args } = getInstallCommand(pm)
     console.log(`  1. cd ${cdPath}`)
     console.log(`  2. ${command} ${args.join(' ')}`)
-    console.log(`  3. ${pm} run init\n`)
+    console.log(`  3. ${pm} run dev\n`)
   } else {
     console.log(`  1. cd ${cdPath}`)
-    console.log(`  2. ${pm} run init\n`)
+    console.log(`  2. ${pm} run dev\n`)
   }
   console.log('  See README.md in the project for more details.\n')
 }

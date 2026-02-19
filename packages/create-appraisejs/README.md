@@ -20,7 +20,7 @@ The CLI will prompt you for:
 2. Downloads the template from the repo (tarball first, then git clone if the tarball fails), or uses the bundled template when `CREATE_APPRAISE_USE_BUNDLED` is set.
 3. Copies the template into the target directory and patches `package.json` scripts to use your chosen package manager.
 4. If you chose to run setup, runs the project’s `setup` script in the new directory.
-5. Prints the project path and next steps (`cd <dir>`, then `npm run setup` if you skipped, then `npm run init`).
+5. Prints the project path and next steps (`cd <dir>`, then `npm run setup` if you skipped, then `npm run dev`).
 
 By default, the template is **downloaded from the official Appraise GitHub repository**. You can override this with environment variables or use the bundled template for offline use.
 
@@ -42,4 +42,4 @@ From the new project directory:
 - **If you skipped setup:** run `npm run setup` (or your package manager’s equivalent: `pnpm run setup`, etc.). This installs dependencies, creates `.env`, runs migrations, and installs Playwright.
 - **If you ran setup:** you can go straight to the next step.
 - Sync entities: `npm run sync-all` (or `pnpm run sync-all`, etc.).
-- Start the dev server: `npm run init` (or your package manager’s equivalent).
+- Start the dev server: `npm run dev` (or your package manager’s equivalent).
