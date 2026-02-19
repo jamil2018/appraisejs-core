@@ -1,6 +1,6 @@
 {
   "name": "create-appraisejs",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Scaffold a new AppraiseJS app in your directory",
   "license": "Apache-2.0",
   "author": "Hasnat Jamil",
