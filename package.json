@@ -81,7 +81,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@babel/traverse": "^7.28.5",
+    "@babel/traverse": "^7.29.0",
     "@cucumber/cucumber": "^12.6.0",
     "@cucumber/pretty-formatter": "^3.0.0",
     "@cucumber/tag-expressions": "^8.0.0",
