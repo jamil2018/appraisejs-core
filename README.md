@@ -4,11 +4,11 @@
 
 #### Test management, re-engineered
 
-Appraisejs is a visual test development, management and execution platform built for the modern day Test Engineers. It is a Nextjs application that runs locally and helps users develop and orchestrate test scenarios without the hassle of learning coding or a new framework.
+AppraiseJS is a visual test development, management and execution platform built for the modern day Test Engineers. It is a Nextjs application that runs locally and helps users develop and orchestrate test scenarios without the hassle of learning coding or a new framework.
 
 ---
 
-## Why Appraisejs?
+## Why AppraiseJS?
 
 #### Test management, orchestration, and execution all in one place without any coding.
 
@@ -19,7 +19,7 @@ Appraisejs is a visual test development, management and execution platform built
 - **User-agnostic by design.**  
   QA engineers, manual testers, developers, and even product teams can use AppraiseJS with minimal onboarding and shared understanding.
 - **Low configuration, fast setup.**  
-  One command. Sensible defaults. Youâ€™re productive in minutes, not days.
+  One command. Sensible defaults. You're productive in minutes, not days.
 - **Automation without vendor lock-in.**  
   AppraiseJS generates real, portable test artifacts (Gherkin, Playwright, Cucumber). You own your tests always.
 - **Visual-first, logic-driven testing.**  
@@ -94,18 +94,18 @@ This section introduces the main concepts in AppraiseJS and then walks you throu
 
 Before you start authoring tests, it helps to know the main building blocks. Everything in the app fits into a few concepts:
 
-| Concept | What it is | Example |
-|--------|------------------------------------------|------------------------------------------|
-| **Module** | A high-level area of your application. | "Login", "Checkout", "Dashboard" |
-| **Test suite** | A group of test cases, belonging to one module. | "Login with valid credentials", "Password reset" |
-| **Test case** | A single scenario: a sequence of steps that describe one flow. | "User logs in with email and password" |
-| **Step** | One action or assertion in a test case. Each step uses a **template step** and parameters (e.g. which button, what text). | "Click the Login button", "Verify the title is 'Welcome'" |
-| **Template step** | A reusable action or assertion. AppraiseJS includes many built-in template steps (click, type, assert text, etc.); you pick one per step and fill in parameters. | "Click on element", "Fill input with value" |
-| **Locator** | A named reference to an element on the page (e.g. "Login button", "Email field"). Steps refer to locators by name so selectors are defined once and reused. | "loginButton", "emailInput" |
-| **Locator group** | A set of locators, often for one page or one module. | "Login page", "Header" |
-| **Environment** | Where tests run: e.g. base URL (staging, production). You choose an environment when you start a test run. | "Local", "Staging", "Production" |
-| **Test run** | One execution of a set of test cases. You create a run, pick an environment and which tests to run; execution starts automatically. | "Smoke run – 15 Jan" |
-| **Report** | The result of a test run: which scenarios and steps passed or failed, duration, and details. One report per run. | View after a run completes |
+| Concept           | What it is                                                                                                                                                       | Example                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **Module**        | A high-level area of your application.                                                                                                                           | "Login", "Checkout", "Dashboard"                          |
+| **Test suite**    | A group of test cases, belonging to one module.                                                                                                                  | "Login with valid credentials", "Password reset"          |
+| **Test case**     | A single scenario: a sequence of steps that describe one flow.                                                                                                   | "User logs in with email and password"                    |
+| **Step**          | One action or assertion in a test case. Each step uses a **template step** and parameters (e.g. which button, what text).                                        | "Click the Login button", "Verify the title is 'Welcome'" |
+| **Template step** | A reusable action or assertion. AppraiseJS includes many built-in template steps (click, type, assert text, etc.); you pick one per step and fill in parameters. | "Click on element", "Fill input with value"               |
+| **Locator**       | A named reference to an element on the page (e.g. "Login button", "Email field"). Steps refer to locators by name so selectors are defined once and reused.      | "loginButton", "emailInput"                               |
+| **Locator group** | A set of locators, often for one page or one module.                                                                                                             | "Login page", "Header"                                    |
+| **Environment**   | Where tests run: e.g. base URL (staging, production). You choose an environment when you start a test run.                                                       | "Local", "Staging", "Production"                          |
+| **Test run**      | One execution of a set of test cases. You create a run, pick an environment and which tests to run; execution starts automatically.                              | "Smoke run – 15 Jan"                                      |
+| **Report**        | The result of a test run: which scenarios and steps passed or failed, duration, and details. One report per run.                                                 | View after a run completes                                |
 
 **How they fit together**
 
@@ -166,10 +166,6 @@ Follow these steps in order. After installation, run `npm run sync-all` once so 
 **Step 9: View the report**
 
 - When the run has completed, open **Reports** in the app. You will see a report for that run. Open it to see pass/fail per scenario and per step, duration, and drill-down (features → scenarios → steps). You can also open the same report from the test run detail page via **View Report**.
-
-**Optional: Run from the command line**
-
-- You can also execute the Cucumber suite from the terminal with `npm run test`. Use the UI when you want to choose specific cases, environments, and see runs and reports in the app.
 
 ```mermaid
 flowchart LR
