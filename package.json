@@ -30,7 +30,7 @@
     "test": "cucumber-js"
   },
   "dependencies": {
-    "@babel/parser": "^7.27.0",
+    "@babel/parser": "^7.29.0",
     "@babel/types": "^7.27.0",
     "@codemirror/lang-jinja": "^6.0.0",
     "@faker-js/faker": "^10.2.0",
