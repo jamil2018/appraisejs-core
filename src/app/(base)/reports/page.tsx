@@ -88,7 +88,7 @@ const Reports = async () => {
             Reports
           </span>
         </PageHeader>
-        <HeaderSubtitle>Reports are the reports of the test runs.</HeaderSubtitle>
+        <HeaderSubtitle>Review test execution details, identify patterns, and optimize performance</HeaderSubtitle>
       </div>
       <ReportTable />
     </>

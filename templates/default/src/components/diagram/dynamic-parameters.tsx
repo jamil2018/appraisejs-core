@@ -108,18 +108,49 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     return values
   }, [templateStepParams, initialParameterValues])
 
+  // Derive initial locator groups from initialParameterValues (locator name -> group id via locators lookup)
+  const initialSelectedLocatorGroups = useMemo(() => {
+    const groups: Record<string, string> = {}
+    const initialValueMap: Record<string, string> = {}
+    initialParameterValues?.forEach(v => {
+      initialValueMap[v.name] = v.value
+    })
+    templateStepParams.forEach(param => {
+      if (param.type === 'LOCATOR') {
+        const locatorName = initialValueMap[param.name]
+        if (locatorName) {
+          const locator = locators.find(l => l.name === locatorName)
+          if (locator?.locatorGroupId) {
+            groups[param.name] = locator.locatorGroupId
+          }
+        }
+      }
+    })
+    return groups
+  }, [templateStepParams, initialParameterValues, locators])
+
   // Initialize state with initial values
   const [values, setValues] = useState<{
     [key: string]: string | number | boolean | Date
   }>(initialValues)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // State for locator group selection
-  const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>({})
+  // State for locator group selection (initialized from initial data so edit restores group + locator)
+  const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>(
+    initialSelectedLocatorGroups,
+  )
 
   useEffect(() => {
     queueMicrotask(() => setErrors({}))
   }, [templateStepParams])
+
+  // Sync state when initial data changes (e.g. opening edit for a different node)
+  useEffect(() => {
+    queueMicrotask(() => {
+      setValues(initialValues)
+      setSelectedLocatorGroups(initialSelectedLocatorGroups)
+    })
+  }, [initialValues, initialSelectedLocatorGroups])
 
   useImperativeHandle(ref, () => ({
     validate: () => {
@@ -251,8 +282,8 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     switch (type) {
       case 'NUMBER':
         return (
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor={`input-${name}`}>
+          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+            <Label htmlFor={`input-${name}`} className="text-primary">
               {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
@@ -269,8 +300,8 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
       case 'STRING':
         return (
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor={`input-${name}`}>
+          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+            <Label htmlFor={`input-${name}`} className="text-primary">
               {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
@@ -287,8 +318,8 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
       case 'DATE':
         return (
-          <div className="grid w-full items-center gap-1.5">
-            <Label>
+          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+            <Label className="text-primary">
               {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
@@ -324,8 +355,8 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
       case 'BOOLEAN':
         return (
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor={`select-${name}`}>
+          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+            <Label htmlFor={`select-${name}`} className="text-primary">
               {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
@@ -350,8 +381,8 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
         const availableLocators = selectedGroupId ? getLocatorsForGroup(selectedGroupId) : []
 
         return (
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor={`select-${name}`}>
+          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+            <Label htmlFor={`select-${name}`} className="text-primary">
               {defaultValueInput ? `Default ${name}` : name}{' '}
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
@@ -380,31 +411,36 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
             </div>
 
             {/* Locator Selection */}
-            <Select
-              value={typeof values[name] === 'string' ? values[name] : ''}
-              onValueChange={value => handleInputChange(name, value)}
-              required={!defaultValueInput}
-              disabled={!selectedGroupId}
-            >
-              <SelectTrigger id={`select-${name}`} className="w-full">
-                <SelectValue
-                  placeholder={
-                    !selectedGroupId
-                      ? 'Select a locator group first'
-                      : defaultValueInput
-                        ? 'Select a locator (optional)'
-                        : 'Select a locator *'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent isEmpty={availableLocators.length === 0}>
-                {availableLocators.map(locator => (
-                  <SelectItem key={locator.id} value={locator.name}>
-                    {locator.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Label htmlFor={`select-${name}`} className="text-sm text-muted-foreground">
+                Locator
+              </Label>
+              <Select
+                value={typeof values[name] === 'string' ? values[name] : ''}
+                onValueChange={value => handleInputChange(name, value)}
+                required={!defaultValueInput}
+                disabled={!selectedGroupId}
+              >
+                <SelectTrigger id={`select-${name}`} className="w-full">
+                  <SelectValue
+                    placeholder={
+                      !selectedGroupId
+                        ? 'Select a locator group first'
+                        : defaultValueInput
+                          ? 'Select a locator (optional)'
+                          : 'Select a locator *'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent isEmpty={availableLocators.length === 0}>
+                  {availableLocators.map(locator => (
+                    <SelectItem key={locator.id} value={locator.name}>
+                      {locator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
           </div>
         )
@@ -420,9 +456,9 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   }
 
   return (
-    <Card className="border-none shadow-none" key={resetKey}>
-      <CardHeader className='py-3'>
-        <CardTitle className='text-xs font-bold text-primary'>Parameters</CardTitle>
+    <Card className="border-gray-700 bg-transparent shadow-none" key={resetKey}>
+      <CardHeader className="py-3">
+        <CardTitle className="text-xs font-bold text-primary">Parameters</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">

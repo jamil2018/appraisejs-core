@@ -57,7 +57,7 @@ export const testCasesMetricTableCols: ColumnDef<TestCaseMetrics & { testCase: T
       header: ({ column }) => <DataTableColumnHeader column={column} title="Failure Rate" />,
       cell: ({ row }) => {
         const testCaseMetrics = row.original
-        return <div>{testCaseMetrics.failureRate * 100}%</div>
+        return <div>{((testCaseMetrics.failureRate as number) * 100).toFixed(2)}%</div>
       },
     },
     {

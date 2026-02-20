@@ -47,9 +47,7 @@ const LocatorGroups = async () => {
             Locator Groups
           </span>
         </PageHeader>
-        <HeaderSubtitle>
-          Locator groups are used to group locators together. They are used to identify the elements on the page.
-        </HeaderSubtitle>
+        <HeaderSubtitle>Organize locators for better maintainability and reusability</HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
         <LocatorGroupTable />

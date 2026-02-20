@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: 'Manage test runs and their execution results',
 }
 
-const TestRuns = async ({searchParams}: {searchParams: Promise<{filter?: string}>}) => {
+const TestRuns = async ({ searchParams }: { searchParams: Promise<{ filter?: string }> }) => {
   const resolvedSearchParams = await searchParams
   const filter = resolvedSearchParams?.filter
   const { data: testRuns, error: testRunsError } = await getAllTestRunsAction(filter)
@@ -48,7 +48,7 @@ const TestRuns = async ({searchParams}: {searchParams: Promise<{filter?: string}
             Test Runs
           </span>
         </PageHeader>
-        <HeaderSubtitle>Test runs are the runs of the test cases.</HeaderSubtitle>
+        <HeaderSubtitle>Orchestrate tests and track the execution progress with detailed results</HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
         <TestRunTable initialData={testRunsData} filter={filter as 'recentFailed' | 'all'} />
