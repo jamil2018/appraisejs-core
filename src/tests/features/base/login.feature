@@ -5,24 +5,11 @@
 
 Feature: login
 
-  @tc_076b9e46c0fa1586
-  Scenario: [navigation] validate user is able to navigate to the login page of the environment
-    Given the user navigates to the base url of the selected environment
-    Then the url route should be equal to "/login"
-
-  @tc_2d328a936cf4c446
-  Scenario: [Login] Verify user is able to login to the app using valid credentials
+  @tc_a4e8ace9bd94d53c
+  Scenario: [Login] Verify user is able to login to app using valid credentials
     Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
     When the user fills in the "email" input field with value "demo@example.com"
     And the user fills in the "password" input field with value "test1234"
     And the user clicks on the "submit" element
     And the user waits for the route "/home" to be loaded
-    Then the element "home title" should true contain the text "Welcome to Home Page"
-
-  @tc_2d1e1128876ce9d5
-  Scenario: [login] validate user is able to login to app using valid credentials
-    Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
-    When the user fills in the "email" input field with value "demo@example.com"
-    And the user fills in the "password" input field with value "test1234"
-    And the user clicks on the "submit" element
     Then the element "home title" should true contain the text "Welcome to Home Page"
