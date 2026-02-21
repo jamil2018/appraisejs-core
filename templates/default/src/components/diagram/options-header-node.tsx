@@ -33,7 +33,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodePro
   const { label, gherkinStep, isFirstNode, icon, isMissingParams } = data as unknown as OptionsHeaderNodeData
 
   return (
-    <BaseNode selected={selected} className={cn('w-52 border-none px-3 py-2', isMissingParams && 'bg-red-700')}>
+    <BaseNode selected={selected} className={cn('max-w-80 border-none px-3 py-2', isMissingParams && 'bg-red-700')}>
       {!isFirstNode && <Handle type="target" position={Position.Left} />}
       <NodeHeader className="-mx-3 -mt-2 border-b">
         <NodeHeaderIcon>{KeyToIconTransformer(icon as TemplateStepIcon)}</NodeHeaderIcon>

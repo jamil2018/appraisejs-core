@@ -32,8 +32,10 @@ When('the user waits for the current page to be loaded', async function (this: C
 When('the user waits for the route {string} to be loaded', async function (this: CustomWorld, routeName: string) {
   try {
     const baseUrl = getEnvironment(process.env.ENVIRONMENT as string).baseUrl
-    const fullRoute = routeName.startsWith('/') ? `${baseUrl}${routeName.slice(1)}` : `${baseUrl}${routeName}`
-    await this.page.waitForURL(`${fullRoute}`, { waitUntil: 'domcontentloaded' })
+    const sanitizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+    const sanitizedRouteName = routeName.startsWith('/') ? routeName.slice(1) : routeName
+    const fullRoute = `${sanitizedBaseUrl}/${sanitizedRouteName}`
+    await this.page.waitForURL(fullRoute, { waitUntil: 'domcontentloaded' })
   } catch (error) {
     throw new Error(`Failed to wait for the route ${routeName} to be loaded: ${error}`)
   }

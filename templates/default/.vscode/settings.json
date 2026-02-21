@@ -1,5 +1,11 @@
 {
   "cucumber.features": ["src/tests/features/**/*.feature"],
   "cucumber.glue": ["src/tests/steps/**/*.ts"],
-  "prisma.pinToPrisma6": true
+  "prisma.pinToPrisma6": true,
+  "cucumber.parameterTypes": [
+    {
+      "name": "boolean",
+      "regexp": "true|false"
+    }
+  ]
 }
