@@ -5,8 +5,8 @@
 
 Feature: login
 
-  @tc_a4e8ace9bd94d53c
-  Scenario: [Login] Verify user is able to login to app using valid credentials
+  @tc_7d56316baeced87a
+  Scenario: [Login] Verify user is able to login using valid credentials
     Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
     When the user fills in the "email" input field with value "demo@example.com"
     And the user fills in the "password" input field with value "test1234"
