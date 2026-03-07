@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "init": "DISABLE_DEVTOOLS=1 NEXT_PUBLIC_DISABLE_DEVTOOLS=1 next dev",
-    "build": "next build",
+    "build:cucumber-runtime": "tsc -p packages/cucumber-runtime/tsconfig.json",
+    "build": "npm run build:cucumber-runtime && next build",
     "start": "next start",
     "lint": "eslint .",
     "install-playwright": "npx playwright install && npx playwright install-deps",

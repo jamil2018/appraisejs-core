@@ -455,7 +455,7 @@ function parseStepFile(content: string, filePath: string): StepData | null {
  * Scans step definition files
  */
 async function scanStepFiles(baseDir: string): Promise<string[]> {
-  const patterns = ['src/tests/steps/actions/**/*.step.ts', 'src/tests/steps/validations/**/*.step.ts']
+  const patterns = ['automation/steps/actions/**/*.step.ts', 'automation/steps/validations/**/*.step.ts']
   const stepFiles: string[] = []
 
   for (const pattern of patterns) {
@@ -804,3 +804,4 @@ async function main() {
 }
 
 main()
+

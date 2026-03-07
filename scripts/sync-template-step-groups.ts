@@ -148,7 +148,7 @@ async function scanStepFiles(baseDir: string): Promise<string[]> {
 
   try {
     // Get all .step.ts files in actions and validations directories
-    const patterns = ['src/tests/steps/actions/**/*.step.ts', 'src/tests/steps/validations/**/*.step.ts']
+    const patterns = ['automation/steps/actions/**/*.step.ts', 'automation/steps/validations/**/*.step.ts']
 
     for (const pattern of patterns) {
       const files = await glob(pattern, {
@@ -397,3 +397,4 @@ async function main() {
 }
 
 main()
+
