@@ -4,16 +4,11 @@ import prisma from '@/config/db-config'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
 import { z } from 'zod'
-import { generateFeatureFile } from '@/lib/feature-file-generator'
-
 import { StepParameterType, TagType } from '@prisma/client'
 import { generateUniqueTestCaseIdentifier } from '@/lib/test-case-utils'
 
-/**
- * Get all test cases
- * @returns ActionResponse
- */
 export async function getAllTestCasesAction(): Promise<ActionResponse> {
   try {
     const testCases = await prisma.testCase.findMany({
@@ -31,35 +26,27 @@ export async function getAllTestCasesAction(): Promise<ActionResponse> {
       status: 200,
       data: testCases,
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
 
-/**
- * Delete a test case
- * @param id - Test case id
- * @returns ActionResponse
- */
-export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse> {
+export async function deleteTestCaseAction(ids: string[]): Promise<ActionResponse> {
   try {
-    // Get the test suites that will be affected before deletion
     const affectedTestSuites = await prisma.testSuite.findMany({
       where: {
         testCases: {
           some: {
             id: {
-              in: id,
+              in: ids,
             },
           },
         },
       },
-      include: {
-        module: true,
-      },
+      select: { id: true },
     })
 
     const testCaseIdentifierTags = await prisma.tag.findMany({
@@ -68,7 +55,7 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
         testCases: {
           some: {
             id: {
-              in: id,
+              in: ids,
             },
           },
         },
@@ -79,96 +66,74 @@ export async function deleteTestCaseAction(id: string[]): Promise<ActionResponse
     })
 
     await prisma.$transaction(async tx => {
-      // Delete all test run test cases associated with the test cases
-      // Note: This has RESTRICT constraint in the database, so must be deleted first
       await tx.testRunTestCase.deleteMany({
         where: {
           testCaseId: {
-            in: id,
+            in: ids,
           },
         },
       })
 
-      // Delete all reviews associated with the test cases
       await tx.review.deleteMany({
         where: {
           testCaseId: {
-            in: id,
+            in: ids,
           },
         },
       })
 
-      // Delete all linked Jira tickets associated with the test cases
       await tx.linkedJiraTicket.deleteMany({
         where: {
           testCaseId: {
-            in: id,
+            in: ids,
           },
         },
       })
 
-      // Delete all step parameters associated with the test case steps
       await tx.testCaseStepParameter.deleteMany({
         where: {
           testCaseStep: {
             testCaseId: {
-              in: id,
+              in: ids,
             },
           },
         },
       })
 
-      // Delete all test case steps
       await tx.testCaseStep.deleteMany({
         where: {
           testCaseId: {
-            in: id,
+            in: ids,
           },
         },
       })
 
-      // Delete all test case identifier tags associated with the test cases
       await tx.tag.deleteMany({
         where: {
           id: { in: testCaseIdentifierTags.map(tag => tag.id) },
         },
       })
 
-      // Delete the test cases
       await tx.testCase.deleteMany({
-        where: { id: { in: id } },
+        where: { id: { in: ids } },
       })
     })
 
-    // Regenerate feature files for affected test suites
-    for (const testSuite of affectedTestSuites) {
-      try {
-        await generateFeatureFile(testSuite.id, testSuite.name, testSuite.description || undefined)
-      } catch (featureFileError) {
-        console.error(`Error regenerating feature file for test suite ${testSuite.name}:`, featureFileError)
-        // Don't fail the deletion if feature file regeneration fails
-      }
-    }
+    await Promise.all(affectedTestSuites.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 
     revalidatePath('/test-cases')
     return {
       status: 200,
       message: 'Test case(s) deleted successfully',
     }
-  } catch (e) {
-    console.error('Error deleting test case(s):', e)
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
 
-/**
- * Create a test case
- * @param testCase - Test case
- * @returns ActionResponse
- */
 export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>): Promise<ActionResponse> {
   try {
     testCaseSchema.parse(value)
@@ -180,6 +145,7 @@ export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>
         tagExpression: `@${uniqueTestCaseIdentifier}`,
       },
     })
+
     const baseData = {
       title: value.title,
       description: value.description ?? '',
@@ -205,7 +171,6 @@ export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>
       },
     }
 
-    // Only include tags if there are tagIds provided
     const data =
       value.tagIds && value.tagIds.length > 0
         ? {
@@ -225,22 +190,14 @@ export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>
       data,
       include: {
         TestSuite: {
-          include: {
-            module: true,
+          select: {
+            id: true,
           },
         },
       },
     })
 
-    // Regenerate feature files for all related test suites
-    for (const testSuite of newTestCase.TestSuite) {
-      try {
-        await generateFeatureFile(testSuite.id, testSuite.name, testSuite.description || undefined)
-      } catch (featureFileError) {
-        console.error(`Error regenerating feature file for test suite ${testSuite.name}:`, featureFileError)
-        // Don't fail the creation if feature file regeneration fails
-      }
-    }
+    await Promise.all(newTestCase.TestSuite.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 
     revalidatePath('/test-cases')
     return {
@@ -248,19 +205,14 @@ export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>
       message: 'Test case created successfully',
       data: newTestCase,
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
 
-/**
- * Get a test case by id
- * @param id - Test case id
- * @returns ActionResponse
- */
 export async function getTestCaseByIdAction(id: string): Promise<ActionResponse> {
   try {
     const testCase = await prisma.testCase.findUnique({
@@ -294,10 +246,10 @@ export async function getTestCaseByIdAction(id: string): Promise<ActionResponse>
         tagIds: testCase?.tags.map(tag => tag.id) || [],
       },
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
@@ -310,40 +262,35 @@ export async function updateTestCaseAction(
     throw new Error("updateTestCaseAction: 'id' parameter is required for updating a test case.")
   }
   try {
-    // Get the test suites that will be affected before updating
     const affectedTestSuites = await prisma.testSuite.findMany({
       where: {
         testCases: {
           some: {
-            id: id,
+            id,
           },
         },
       },
-      include: {
-        module: true,
+      select: {
+        id: true,
       },
     })
 
-    // 1. Find all step IDs for the test case
     const steps = await prisma.testCaseStep.findMany({
       where: { testCaseId: id },
       select: { id: true },
     })
     const stepIds = steps.map(step => step.id)
 
-    // 2. Delete all parameters for those steps
     if (stepIds.length > 0) {
       await prisma.testCaseStepParameter.deleteMany({
         where: { testCaseStepId: { in: stepIds } },
       })
     }
 
-    // 3. Delete all steps for the test case
     await prisma.testCaseStep.deleteMany({
       where: { testCaseId: id },
     })
 
-    // 4. Get existing IDENTIFIER tags to preserve them
     const existingTestCase = await prisma.testCase.findUnique({
       where: { id },
       include: {
@@ -358,19 +305,17 @@ export async function updateTestCaseAction(
       },
     })
 
-    // 5. Combine IDENTIFIER tags with FILTER tags from the form
     const identifierTagIds = existingTestCase?.tags.map(tag => tag.id) || []
     const filterTagIds = value.tagIds || []
     const allTagIds = [...identifierTagIds, ...filterTagIds]
 
-    // 6. Then, update the test case with new steps
     const testCase = await prisma.testCase.update({
       where: { id },
       data: {
         title: value.title,
         description: value.description ?? '',
         tags: {
-          set: allTagIds.map(id => ({ id })),
+          set: allTagIds.map(tagId => ({ id: tagId })),
         },
         steps: {
           create: value.steps.map(step => ({
@@ -395,25 +340,17 @@ export async function updateTestCaseAction(
       },
     })
 
-    // Regenerate feature files for all affected test suites
-    for (const testSuite of affectedTestSuites) {
-      try {
-        await generateFeatureFile(testSuite.id, testSuite.name, testSuite.description || undefined)
-      } catch (featureFileError) {
-        console.error(`Error regenerating feature file for test suite ${testSuite.name}:`, featureFileError)
-        // Don't fail the update if feature file regeneration fails
-      }
-    }
+    await Promise.all(affectedTestSuites.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 
     return {
       status: 200,
       message: 'Test case updated successfully',
       data: testCase,
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }

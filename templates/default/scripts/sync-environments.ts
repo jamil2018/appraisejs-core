@@ -9,8 +9,8 @@
  */
 
 import { promises as fs } from 'fs'
-import { join } from 'path'
 import prisma from '../src/config/db-config'
+import { ensureAutomationWorkspaceReady, getAutomationEnvironmentsDir } from '../src/lib/automation/paths'
 
 interface EnvironmentConfig {
   baseUrl: string
@@ -43,8 +43,8 @@ interface SyncResult {
 /**
  * Reads and parses the environments.json file
  */
-async function readEnvironmentsFromFile(baseDir: string): Promise<Record<string, EnvironmentConfig>> {
-  const filePath = join(baseDir, 'src', 'tests', 'config', 'environments', 'environments.json')
+async function readEnvironmentsFromFile(): Promise<Record<string, EnvironmentConfig>> {
+  const filePath = `${getAutomationEnvironmentsDir()}/environments.json`
 
   try {
     await fs.access(filePath)
@@ -285,11 +285,11 @@ async function main() {
     console.log('🔄 Starting environments sync...')
     console.log('This will scan environments.json and sync environments to database.\n')
 
-    const baseDir = process.cwd()
+    await ensureAutomationWorkspaceReady()
 
     // Read environments from file
     console.log('📁 Reading environments.json...')
-    const jsonContent = await readEnvironmentsFromFile(baseDir)
+    const jsonContent = await readEnvironmentsFromFile()
     const environmentKeys = Object.keys(jsonContent)
     console.log(`   Found ${environmentKeys.length} environment(s): ${environmentKeys.join(', ') || 'none'}`)
 
@@ -320,4 +320,7 @@ async function main() {
 }
 
 main()
+
+
+
 

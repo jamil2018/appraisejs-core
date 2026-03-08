@@ -2,46 +2,19 @@
 
 import prisma from '@/config/db-config'
 import { templateStepGroupSchema } from '@/constants/form-opts/template-step-group-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { Prisma } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { z, ZodError } from 'zod'
 
-// TemplateStepGroupType will be available after Prisma migration
 type TemplateStepGroupType = 'ACTION' | 'VALIDATION'
 
-// Type helper to safely extract type from Prisma records
-type TemplateStepGroupWithType = {
-  id: string
-  name: string
-  description: string | null
-  type?: TemplateStepGroupType
-  createdAt: Date
-  updatedAt: Date
-}
-
 function getGroupType(group: unknown): TemplateStepGroupType {
-  const groupWithType = group as TemplateStepGroupWithType
-  const type = groupWithType.type
-  if (type === 'VALIDATION' || type === 'ACTION') {
-    return type
-  }
-  return 'ACTION' // default
+  const type = (group as { type?: TemplateStepGroupType }).type
+  return type === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
 }
 
-import {
-  createTemplateStepGroupFile,
-  removeTemplateStepGroupFile,
-  renameTemplateStepGroupFile,
-  ensureGroupJSDoc,
-} from '@/lib/utils/template-step-file-manager-intelligent'
-import { promises as fs } from 'fs'
-import { getFilePath, formatFileContent } from '@/lib/utils/template-step-file-generator'
-
-/**
- * Get all template step groups
- * @returns ActionResponse
- */
 export async function getAllTemplateStepGroupsAction(): Promise<ActionResponse> {
   try {
     const templateStepGroups = await prisma.templateStepGroup.findMany()
@@ -49,20 +22,14 @@ export async function getAllTemplateStepGroupsAction(): Promise<ActionResponse> 
       status: 200,
       data: templateStepGroups,
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
 
-/**
- * Create a new template step group
- * @param _prev - Previous state
- * @param value - Template step group data
- * @returns ActionResponse
- */
 export async function createTemplateStepGroupAction(
   _prev: unknown,
   value: z.infer<typeof templateStepGroupSchema>,
@@ -71,36 +38,32 @@ export async function createTemplateStepGroupAction(
     templateStepGroupSchema.parse(value)
 
     const type: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
-
-    // First, try to create the file - if this fails, we won't create the database record
-    await createTemplateStepGroupFile(value.name, type, value.description)
-
-    // If file creation succeeds, create the database record
-    // Note: Using type assertion because Prisma client hasn't been regenerated yet
-    await prisma.templateStepGroup.create({
+    const createdGroup = await prisma.templateStepGroup.create({
       data: {
         name: value.name,
         description: value.description,
-        type: type,
+        type,
       } as Parameters<typeof prisma.templateStepGroup.create>[0]['data'],
     })
+
+    await automationProjectionService.syncTemplateStepGroup(createdGroup.id)
 
     revalidatePath('/template-step-groups')
     return {
       status: 200,
       message: 'Template step group created successfully',
     }
-  } catch (e) {
-    if (e instanceof ZodError) {
+  } catch (error) {
+    if (error instanceof ZodError) {
       return {
         status: 400,
-        error: e.message,
+        error: error.message,
       }
     }
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return {
         status: 500,
-        error: e.message,
+        error: error.message,
       }
     }
     return {
@@ -110,54 +73,27 @@ export async function createTemplateStepGroupAction(
   }
 }
 
-/**
- * Delete a template step group
- * @param id - Template step group id(s)
- * @returns ActionResponse
- */
-export async function deleteTemplateStepGroupAction(id: string[]): Promise<ActionResponse> {
+export async function deleteTemplateStepGroupAction(ids: string[]): Promise<ActionResponse> {
   try {
-    // Get the group names and types before deletion for file cleanup
-    const groupsToDelete = await prisma.templateStepGroup.findMany({
-      where: { id: { in: id } },
-    })
+    await Promise.all(ids.map(id => automationProjectionService.deleteTemplateStepGroup(id)))
 
-    // With proper cascade deletes in the schema, we can now rely on the database
-    // to handle the deletion of related entities automatically
     await prisma.templateStepGroup.deleteMany({
-      where: { id: { in: id } },
+      where: { id: { in: ids } },
     })
-
-    // Clean up the files after successful database deletion
-    for (const group of groupsToDelete) {
-      try {
-        const groupType = getGroupType(group)
-        await removeTemplateStepGroupFile(group.name, groupType)
-      } catch (fileError) {
-        console.error(`Failed to delete file for group "${group.name}":`, fileError)
-        // Don't fail the entire operation if file deletion fails
-      }
-    }
 
     revalidatePath('/template-step-groups')
     return {
       status: 200,
       message: 'Template step group(s) deleted successfully',
     }
-  } catch (e) {
-    console.error('Error deleting template step group:', e)
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
 
-/**
- * Get a template step group by id
- * @param id - Template step group id
- * @returns ActionResponse
- */
 export async function getTemplateStepGroupByIdAction(id: string): Promise<ActionResponse> {
   try {
     const templateStepGroup = await prisma.templateStepGroup.findUnique({
@@ -167,19 +103,12 @@ export async function getTemplateStepGroupByIdAction(id: string): Promise<Action
       status: 200,
       data: templateStepGroup,
     }
-  } catch (e) {
-    console.error(e)
-    throw e
+  } catch (error) {
+    console.error(error)
+    throw error
   }
 }
 
-/**
- * Update a template step group
- * @param _prev - Previous state
- * @param value - Template step group data
- * @param id - Template step group id
- * @returns ActionResponse
- */
 export async function updateTemplateStepGroupAction(
   _prev: unknown,
   value: z.infer<typeof templateStepGroupSchema>,
@@ -195,7 +124,6 @@ export async function updateTemplateStepGroupAction(
       }
     }
 
-    // Get the current group to check if name or type changed
     const currentGroup = await prisma.templateStepGroup.findUnique({
       where: { id },
     })
@@ -209,40 +137,11 @@ export async function updateTemplateStepGroupAction(
 
     const newType: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
     const currentType = getGroupType(currentGroup)
-    const nameChanged = currentGroup.name !== value.name
-    const typeChanged = currentType !== newType
-    const descriptionChanged = currentGroup.description !== value.description
 
-    // If name or type changed, we need to handle file renaming/moving
-    if (nameChanged || typeChanged) {
-      // Rename/move the file to preserve all existing content and update JSDoc
-      try {
-        await renameTemplateStepGroupFile(currentGroup.name, value.name, currentType, newType, value.description)
-      } catch (fileError) {
-        console.error(
-          `Failed to rename/move file from "${currentGroup.name}" (${currentType}) to "${value.name}" (${newType}):`,
-          fileError,
-        )
-        // Continue with the update even if file rename fails
-      }
-    } else if (descriptionChanged) {
-      // Only description changed, update JSDoc in place
-      try {
-        const filePath = getFilePath(value.name, newType)
-
-        let fileContent = await fs.readFile(filePath, 'utf8')
-        fileContent = ensureGroupJSDoc(fileContent, value.name, value.description || null, newType)
-
-        const formattedContent = await formatFileContent(fileContent)
-        await fs.writeFile(filePath, formattedContent, 'utf8')
-      } catch (fileError) {
-        console.error(`Failed to update JSDoc for group "${value.name}":`, fileError)
-        // Continue with the update even if file update fails
-      }
+    if (currentGroup.name !== value.name || currentType !== newType) {
+      await automationProjectionService.renameTemplateStepGroup(id, value.name, newType, value.description)
     }
 
-    // Update the database record
-    // Note: Using type assertion because Prisma client hasn't been regenerated yet
     await prisma.templateStepGroup.update({
       where: { id },
       data: {
@@ -252,22 +151,24 @@ export async function updateTemplateStepGroupAction(
       } as Parameters<typeof prisma.templateStepGroup.update>[0]['data'],
     })
 
+    await automationProjectionService.syncTemplateStepGroup(id)
+
     revalidatePath('/template-step-groups')
     return {
       status: 200,
       message: 'Template step group updated successfully',
     }
-  } catch (e) {
-    if (e instanceof ZodError) {
+  } catch (error) {
+    if (error instanceof ZodError) {
       return {
         status: 400,
-        error: e.message,
+        error: error.message,
       }
     }
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return {
         status: 500,
-        error: e.message,
+        error: error.message,
       }
     }
     return {

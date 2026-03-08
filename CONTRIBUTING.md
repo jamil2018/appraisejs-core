@@ -215,8 +215,8 @@ npm test
 
 ### Writing Tests
 
-- Feature files: `src/tests/features/*.feature` (Gherkin format)
-- Step definitions: `src/tests/steps/` (Note: some step files are generated)
+- Feature files: `automation/features/*.feature` (Gherkin format)
+- Step definitions: `automation/steps/` (Note: some step files are generated)
 - Test configuration: `cucumber.mjs`
 
 ### Playwright
@@ -379,3 +379,5 @@ By contributing, you agree that your contributions will be licensed under the Ap
 ---
 
 Thank you for contributing to AppraiseJS Core! 🎉
+
+

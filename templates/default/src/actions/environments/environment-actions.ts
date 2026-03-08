@@ -2,18 +2,15 @@
 
 import prisma from '@/config/db-config'
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { createOrUpdateEnvironmentsFile, updateEnvironmentEntry } from '@/lib/environment-file-utils'
 
-/**
- * Check if an environment name already exists
- */
 async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.environment.findFirst({
     where: {
-      name: name,
+      name,
       ...(excludeId && { id: { not: excludeId } }),
     },
   })
@@ -28,8 +25,7 @@ export async function getAllEnvironmentsAction(): Promise<ActionResponse> {
       },
     })
 
-    // Update the environments.json file
-    await createOrUpdateEnvironmentsFile()
+    await automationProjectionService.syncEnvironments()
 
     return {
       status: 200,
@@ -51,8 +47,7 @@ export async function deleteEnvironmentAction(ids: string[]): Promise<ActionResp
       },
     })
 
-    // Update the environments.json file
-    await createOrUpdateEnvironmentsFile()
+    await automationProjectionService.syncEnvironments()
 
     revalidatePath('/environments')
     return {
@@ -74,7 +69,6 @@ export async function createEnvironmentAction(
   try {
     environmentSchema.parse(value)
 
-    // Check if name already exists
     const nameExists = await checkUniqueName(value.name)
     if (nameExists) {
       return {
@@ -83,7 +77,6 @@ export async function createEnvironmentAction(
       }
     }
 
-    // Convert empty strings to null for optional fields
     const environmentData = {
       ...value,
       apiBaseUrl: value.apiBaseUrl === '' ? null : value.apiBaseUrl,
@@ -95,8 +88,7 @@ export async function createEnvironmentAction(
       data: environmentData,
     })
 
-    // Update the environments.json file
-    await createOrUpdateEnvironmentsFile()
+    await automationProjectionService.syncEnvironments()
 
     revalidatePath('/environments')
     return {
@@ -137,13 +129,11 @@ export async function updateEnvironmentAction(
   try {
     environmentSchema.parse(value)
 
-    // Get the current environment to check if name changed
     const currentEnvironment = await prisma.environment.findUnique({
       where: { id },
       select: { name: true },
     })
 
-    // Check if name is being changed and if the new name already exists
     if (currentEnvironment?.name !== value.name) {
       const nameExists = await checkUniqueName(value.name, id)
       if (nameExists) {
@@ -154,7 +144,6 @@ export async function updateEnvironmentAction(
       }
     }
 
-    // Convert empty strings to null for optional fields
     const environmentData = {
       ...value,
       apiBaseUrl: value.apiBaseUrl === '' ? null : value.apiBaseUrl,
@@ -167,10 +156,7 @@ export async function updateEnvironmentAction(
       data: environmentData,
     })
 
-    // Update the environments.json file
-    // If name changed, we need to remove the old entry and add the new one
-    const oldName = currentEnvironment?.name !== value.name ? currentEnvironment?.name : undefined
-    await updateEnvironmentEntry(id!, oldName)
+    await automationProjectionService.syncEnvironments()
 
     revalidatePath('/environments')
     return {
@@ -186,9 +172,6 @@ export async function updateEnvironmentAction(
   }
 }
 
-/**
- * Check if an environment name is unique
- */
 export async function checkEnvironmentNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
   try {
     const nameExists = await checkUniqueName(name, excludeId)

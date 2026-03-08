@@ -47,5 +47,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-src/tests/reports/*
-src/tests/config/environments/environments.json
+automation/reports/*
+automation/config/environments/environments.json
+packages/cucumber-runtime/dist/*

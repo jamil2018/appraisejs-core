@@ -77,8 +77,17 @@ function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
     return null
   }
 
-  const firstLine = lines[0].trim()
-  if (!firstLine.startsWith('/**')) {
+  let startLine = 0
+  while (startLine < lines.length) {
+    const line = lines[startLine].trim()
+    if (line === '' || line.startsWith('import ')) {
+      startLine++
+      continue
+    }
+    break
+  }
+
+  if (startLine >= lines.length || !lines[startLine].trim().startsWith('/**')) {
     return null
   }
 
@@ -88,8 +97,8 @@ function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
   let description: string | null = null
   let type: string | null = null
 
-  const maxLines = Math.min(lines.length, 50)
-  for (let i = 0; i < maxLines; i++) {
+  const maxLines = Math.min(lines.length, startLine + 50)
+  for (let i = startLine; i < maxLines; i++) {
     const line = lines[i].trim()
 
     if (line.includes('*/')) {
@@ -455,7 +464,7 @@ function parseStepFile(content: string, filePath: string): StepData | null {
  * Scans step definition files
  */
 async function scanStepFiles(baseDir: string): Promise<string[]> {
-  const patterns = ['src/tests/steps/actions/**/*.step.ts', 'src/tests/steps/validations/**/*.step.ts']
+  const patterns = ['automation/steps/actions/**/*.step.ts', 'automation/steps/validations/**/*.step.ts']
   const stepFiles: string[] = []
 
   for (const pattern of patterns) {
@@ -804,3 +813,5 @@ async function main() {
 }
 
 main()
+
+

@@ -1,6 +1,6 @@
 {
-  "cucumber.features": ["src/tests/features/**/*.feature"],
-  "cucumber.glue": ["src/tests/steps/**/*.ts"],
+  "cucumber.features": ["automation/features/**/*.feature"],
+  "cucumber.glue": ["automation/steps/**/*.ts"],
   "prisma.pinToPrisma6": true,
   "cucumber.parameterTypes": [
     {
@@ -9,3 +9,4 @@
     }
   ]
 }
+

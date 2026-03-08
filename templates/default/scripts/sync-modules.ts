@@ -33,7 +33,7 @@ async function scanLocatorDirectories(baseDir: string): Promise<string[]> {
 
   try {
     // Get all JSON files in locators directory
-    const pattern = 'src/tests/locators/**/*.json'
+    const pattern = 'automation/locators/**/*.json'
     const files = await glob(pattern, {
       cwd: baseDir,
     })
@@ -61,7 +61,7 @@ async function scanFeatureDirectories(baseDir: string): Promise<string[]> {
 
   try {
     // Get all feature files
-    const pattern = 'src/tests/features/**/*.feature'
+    const pattern = 'automation/features/**/*.feature'
     const files = await glob(pattern, {
       cwd: baseDir,
     })
@@ -83,7 +83,7 @@ async function scanFeatureDirectories(baseDir: string): Promise<string[]> {
 
 /**
  * Extracts module path from locator file path
- * Example: src/tests/locators/home/home.json -> /home
+ * Example: automation/locators/home/home.json -> /home
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
   const testsDir = join(baseDir, 'src', 'tests')
@@ -95,7 +95,7 @@ function extractModulePathFromLocatorFile(filePath: string, baseDir: string): st
 
 /**
  * Extracts module path from feature file path
- * Example: src/tests/features/login/demo.feature -> /login
+ * Example: automation/features/login/demo.feature -> /login
  */
 function extractModulePathFromFeatureFile(filePath: string, baseDir: string): string {
   const featuresBaseDir = join(baseDir, 'src', 'tests', 'features')
@@ -301,11 +301,11 @@ async function main() {
     const baseDir = process.cwd()
 
     // Scan directories
-    console.log('📁 Scanning src/tests/locators...')
+    console.log('📁 Scanning automation/locators...')
     const locatorModulePaths = await scanLocatorDirectories(baseDir)
     console.log(`   Found ${locatorModulePaths.length} module path(s): ${locatorModulePaths.join(', ') || 'none'}`)
 
-    console.log('\n📁 Scanning src/tests/features...')
+    console.log('\n📁 Scanning automation/features...')
     const featureModulePaths = await scanFeatureDirectories(baseDir)
     console.log(`   Found ${featureModulePaths.length} module path(s): ${featureModulePaths.join(', ') || 'none'}`)
 
@@ -346,4 +346,5 @@ async function main() {
 }
 
 main()
+
 

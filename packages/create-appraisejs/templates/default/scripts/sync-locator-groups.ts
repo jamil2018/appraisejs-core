@@ -82,7 +82,7 @@ async function readLocatorMap(baseDir: string): Promise<LocatorMapEntry[]> {
  * Scans the locators directory to find all locator group files
  */
 async function scanLocatorGroupFiles(baseDir: string): Promise<string[]> {
-  const pattern = 'src/tests/locators/**/*.json'
+  const pattern = 'automation/locators/**/*.json'
 
   try {
     const files = await glob(pattern, {
@@ -96,8 +96,8 @@ async function scanLocatorGroupFiles(baseDir: string): Promise<string[]> {
 
 /**
  * Extracts module path from locator file path
- * Example: src/tests/locators/home/home.json -> /home
- * Example: src/tests/locators/users/admins/directors.json -> /users/admins
+ * Example: automation/locators/home/home.json -> /home
+ * Example: automation/locators/users/admins/directors.json -> /users/admins
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
   const testsDir = join(baseDir, 'src', 'tests')
@@ -374,7 +374,7 @@ async function main() {
     console.log(`   Found ${locatorMap.length} entry(ies) in locator map`)
 
     // Build locator groups from filesystem
-    console.log('\n📁 Scanning src/tests/locators directory...')
+    console.log('\n📁 Scanning automation/locators directory...')
     const locatorGroups = await buildLocatorGroupsFromFS(baseDir, locatorMap)
     result.locatorGroupsScanned = locatorGroups.length
     console.log(`   Found ${locatorGroups.length} locator group(s) in filesystem`)
@@ -411,3 +411,4 @@ async function main() {
 }
 
 main()
+

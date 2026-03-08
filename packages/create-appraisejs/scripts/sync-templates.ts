@@ -9,10 +9,10 @@ const source = join(repoRoot, 'templates', 'default');
 const dest = join(__dirname, '..', 'templates', 'default');
 
 const EXCLUDED_TEST_DATA_PREFIXES = [
-  'src/tests/features/',
-  'src/tests/config/environments/',
-  'src/tests/locators/',
-  'src/tests/reports/',
+  'automation/features/',
+  'automation/config/environments/',
+  'automation/locators/',
+  'automation/reports/',
 ];
 
 function shouldExcludeFromCopy(sourcePath: string): boolean {
@@ -32,29 +32,29 @@ cpSync(source, dest, {
   filter: (sourcePath: string) => !shouldExcludeFromCopy(sourcePath),
 });
 
-// Clear and recreate test data directories so dest has no leftover project data
+// Clear and recreate automation workspace directories so dest has no leftover project data
 const dirsToClear = [
-  join(dest, 'src', 'tests', 'features'),
-  join(dest, 'src', 'tests', 'locators'),
-  join(dest, 'src', 'tests', 'reports'),
+  join(dest, 'automation', 'features'),
+  join(dest, 'automation', 'locators'),
+  join(dest, 'automation', 'reports'),
 ];
 for (const dir of dirsToClear) {
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
 }
-const testDirs = [
-  join(dest, 'src', 'tests', 'features'),
-  join(dest, 'src', 'tests', 'config', 'environments'),
-  join(dest, 'src', 'tests', 'locators'),
-  join(dest, 'src', 'tests', 'reports'),
-  join(dest, 'src', 'tests', 'mapping'),
+const automationDirs = [
+  join(dest, 'automation', 'features'),
+  join(dest, 'automation', 'config', 'environments'),
+  join(dest, 'automation', 'locators'),
+  join(dest, 'automation', 'reports'),
+  join(dest, 'automation', 'mapping'),
 ];
-for (const dir of testDirs) {
+for (const dir of automationDirs) {
   mkdirSync(dir, { recursive: true });
 }
-writeFileSync(join(dest, 'src', 'tests', 'config', 'environments', 'environments.json'), JSON.stringify({}) + '\n');
-writeFileSync(join(dest, 'src', 'tests', 'mapping', 'locator-map.json'), JSON.stringify([]) + '\n');
+writeFileSync(join(dest, 'automation', 'config', 'environments', 'environments.json'), JSON.stringify({}) + '\n');
+writeFileSync(join(dest, 'automation', 'mapping', 'locator-map.json'), JSON.stringify([]) + '\n');
 
 // Copy cucumber.mjs from repo root (required for running tests)
 const cucumberSource = join(repoRoot, 'cucumber.mjs');
@@ -71,3 +71,4 @@ if (existsSync(vscodeSource)) {
 }
 
 console.log('Synced templates/default to packages/create-appraisejs/templates/default');
+

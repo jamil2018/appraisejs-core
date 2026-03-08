@@ -49,13 +49,21 @@ interface SyncResult {
 function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
   const lines = content.split('\n')
 
-  // Look for JSDoc comment at the very top of the file
   if (lines.length === 0) {
     return null
   }
 
-  const firstLine = lines[0].trim()
-  if (!firstLine.startsWith('/**')) {
+  let startLine = 0
+  while (startLine < lines.length) {
+    const line = lines[startLine].trim()
+    if (line === '' || line.startsWith('import ')) {
+      startLine++
+      continue
+    }
+    break
+  }
+
+  if (startLine >= lines.length || !lines[startLine].trim().startsWith('/**')) {
     return null
   }
 
@@ -68,8 +76,8 @@ function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
 
   // Look through the JSDoc block until we find the closing */
   // Use a reasonable limit (50 lines) to avoid parsing entire files if JSDoc is malformed
-  const maxLines = Math.min(lines.length, 50)
-  for (let i = 0; i < maxLines; i++) {
+  const maxLines = Math.min(lines.length, startLine + 50)
+  for (let i = startLine; i < maxLines; i++) {
     const line = lines[i].trim()
 
     // Check if this line contains the closing */ (could be on same line as content)
@@ -148,7 +156,7 @@ async function scanStepFiles(baseDir: string): Promise<string[]> {
 
   try {
     // Get all .step.ts files in actions and validations directories
-    const patterns = ['src/tests/steps/actions/**/*.step.ts', 'src/tests/steps/validations/**/*.step.ts']
+    const patterns = ['automation/steps/actions/**/*.step.ts', 'automation/steps/validations/**/*.step.ts']
 
     for (const pattern of patterns) {
       const files = await glob(pattern, {
@@ -397,3 +405,5 @@ async function main() {
 }
 
 main()
+
+
