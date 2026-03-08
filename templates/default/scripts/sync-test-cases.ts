@@ -9,7 +9,6 @@
  * Usage: npx tsx scripts/sync-test-cases.ts
  */
 
-import { join } from 'path'
 import prisma from '../src/config/db-config'
 import {
   scanFeatureFiles,
@@ -18,6 +17,7 @@ import {
 } from '../src/lib/gherkin-parser'
 import { buildModuleHierarchy, findModuleByPath } from '../src/lib/module-hierarchy-builder'
 import { TemplateStepType, TemplateStepIcon, StepParameterType, TagType } from '@prisma/client'
+import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '../src/lib/automation/paths'
 
 interface TestCaseFromFS {
   identifierTag: string // @tc_... tag
@@ -852,8 +852,8 @@ async function main() {
     console.log('This will scan feature files and sync test cases to database.')
     console.log('Filesystem is the source of truth - test cases in DB but not in FS will be deleted.\n')
 
-    const baseDir = process.cwd()
-    const featuresDir = join(baseDir, 'src', 'tests', 'features')
+    await ensureAutomationWorkspaceReady()
+    const featuresDir = getAutomationFeaturesDir()
 
     // Scan test cases from filesystem
     const testCasesFromFS = await scanTestCasesFromFilesystem(featuresDir)
@@ -903,3 +903,6 @@ async function main() {
 }
 
 main()
+
+
+

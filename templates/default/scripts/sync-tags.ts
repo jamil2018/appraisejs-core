@@ -238,7 +238,7 @@ async function main() {
     const featuresDir = join(baseDir, 'src', 'tests', 'features')
 
     // Scan feature files
-    console.log('📁 Scanning feature files in src/tests/features...')
+    console.log('📁 Scanning feature files in automation/features...')
     const parsedFeatures = await scanFeatureFiles(featuresDir)
     console.log(`   Found ${parsedFeatures.length} feature file(s)`)
 
@@ -289,4 +289,5 @@ async function main() {
 }
 
 main()
+
 

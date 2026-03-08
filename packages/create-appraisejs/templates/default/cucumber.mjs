@@ -1,16 +1,16 @@
 // eslint-disable-next-line import/no-anonymous-default-export
 export default {
-  paths: ['src/tests/features/**/*.feature'],
+  paths: ['automation/features/**/*.feature'],
   import: [
-    'src/tests/support/parameter-types.ts',
-    'src/tests/steps/**/*.ts',
-    'src/tests/hooks/hooks.ts',
-    'src/tests/config/executor/world.ts',
+    'packages/cucumber-runtime/src/parameter-types.ts',
+    'automation/steps/**/*.ts',
+    'packages/cucumber-runtime/src/hooks.ts',
+    'packages/cucumber-runtime/src/world.ts',
   ],
   loader: ['ts-node/esm'],
   format: [
     'pretty',
-    process.env.REPORT_FORMAT ?? `json:${process.env.REPORT_PATH ?? 'src/tests/reports/cucumber.json'}`,
+    process.env.REPORT_FORMAT ?? `json:${process.env.REPORT_PATH ?? 'automation/reports/cucumber.json'}`,
   ],
   publishQuiet: true,
 }

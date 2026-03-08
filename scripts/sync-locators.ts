@@ -34,7 +34,7 @@ interface SyncResult {
  * Scans locator directory for all JSON files
  */
 async function scanLocatorFiles(baseDir: string): Promise<string[]> {
-  const pattern = 'src/tests/locators/**/*.json'
+  const pattern = 'automation/locators/**/*.json'
   try {
     const files = await glob(pattern, {
       cwd: baseDir,
@@ -47,7 +47,7 @@ async function scanLocatorFiles(baseDir: string): Promise<string[]> {
 
 /**
  * Extracts module path from locator file path
- * Example: src/tests/locators/users/admins/directors/directors.json -> /users/admins/directors
+ * Example: automation/locators/users/admins/directors/directors.json -> /users/admins/directors
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
   const testsDir = join(baseDir, 'src', 'tests')
@@ -368,7 +368,7 @@ async function main() {
     const baseDir = process.cwd()
 
     // Scan locator files
-    console.log('📁 Scanning src/tests/locators...')
+    console.log('📁 Scanning automation/locators...')
     const files = await scanLocatorFiles(baseDir)
     console.log(`   Found ${files.length} locator file(s)`)
 
@@ -399,4 +399,5 @@ async function main() {
 }
 
 main()
+
 

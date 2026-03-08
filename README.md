@@ -124,7 +124,7 @@ Follow these steps in order. After installation, run `npm run sync-all` once so 
 **Step 1: Sync built-in template steps (one-time)**
 
 - In your project folder, run: `npm run sync-all`
-- This loads **built-in template steps** (click, type, fill, assert visibility, navigate, etc.) from `src/tests/steps/` into the app. You will use these when authoring test case steps. You can also add your own template steps later via the UI or by adding files and syncing again.
+- This loads **built-in template steps** (click, type, fill, assert visibility, navigate, etc.) from `automation/steps/` into the app. You will use these when authoring test case steps. You can also add your own template steps later via the UI or by adding files and syncing again.
 
 **Step 2: Create an environment**
 
@@ -137,7 +137,7 @@ Follow these steps in order. After installation, run `npm run sync-all` once so 
 
 **Step 4: Create locator groups and locators**
 
-- Open **Locator groups** and create a group (e.g. "Login page"). Then open **Locators** and add locators inside that group: give each a **name** (e.g. `loginButton`, `emailInput`) and a **selector** (CSS or XPath). These names are what you will choose in test case steps (e.g. "click on **loginButton**"). You can define locators per page or per module; the app can also sync to/from `src/tests/locators/*.json` and `src/tests/mapping/locator-map.json` if you prefer file-based definitions.
+- Open **Locator groups** and create a group (e.g. "Login page"). Then open **Locators** and add locators inside that group: give each a **name** (e.g. `loginButton`, `emailInput`) and a **selector** (CSS or XPath). These names are what you will choose in test case steps (e.g. "click on **loginButton**"). You can define locators per page or per module; the app can also sync to/from `automation/locators/*.json` and `automation/mapping/locator-map.json` if you prefer file-based definitions.
 
 **Step 5: Create a test suite**
 
@@ -222,7 +222,7 @@ flowchart LR
   - report parsing and metrics
 - **Data (`prisma`, SQLite)**
   Stores authored structure, run state, and parsed outputs.
-- **Execution (`src/tests`)**
+- **Execution (`automation` + `packages/cucumber-runtime`)**
   Uses Cucumber for scenario execution and Playwright for browser automation.
 
 ---
@@ -309,7 +309,7 @@ sequenceDiagram
 | `src/actions/`                   | Server actions per domain (test-run, test-case, test-suite, report, dashboard, etc.)                                                               |
 | `src/lib/`                       | Feature generation, sync, test-run executor, report parser, metrics, transformers                                                                  |
 | `src/lib/test-run/`              | Execution (test-run-executor, process-manager), logging, report parsing                                                                            |
-| `src/tests/`                     | Cucumber config, step definitions, support (hooks, parameter types, utils), locators/mapping                                                       |
+| `automation/`                    | User-authored automation assets: features, steps, locators, mapping, environments, reports                                                         |
 | `src/app/api/test-runs/[runId]/` | Logs, trace, and download endpoints for a run                                                                                                      |
 | `prisma/`                        | Schema and migrations (SQLite)                                                                                                                     |
 | `scripts/`                       | Sync scripts (e.g. sync-all, sync-test-cases, regenerate-features)                                                                                 |
@@ -335,3 +335,7 @@ sequenceDiagram
 - Support: `SUPPORT.md`
 
 ---
+
+
+
+

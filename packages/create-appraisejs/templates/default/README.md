@@ -48,4 +48,5 @@ npm run dev
 
 ## Note
 
-`npm run setup` runs `install-playwright`, which may require network access and a few minutes. The first `sync-all` run will sync entities from the included `src/tests` structure (locators, steps, environments) into the database.
+`npm run setup` runs `install-playwright`, which may require network access and a few minutes. The first `sync-all` run will sync entities from the included `automation` workspace (locators, steps, environments) into the database.
+

@@ -278,24 +278,9 @@ interface RequiredImport {
 
 const REQUIRED_IMPORTS: RequiredImport[] = [
   {
-    module: '@cucumber/cucumber',
-    namedExports: ['When'],
-    from: '@cucumber/cucumber',
-  },
-  {
-    module: '../../config/executor/world',
-    namedExports: ['CustomWorld'],
-    from: '../../config/executor/world.js',
-  },
-  {
-    module: '@/types/locator/locator.type',
-    namedExports: ['SelectorName'],
-    from: '@/types/locator/locator.type',
-  },
-  {
-    module: '../../utils/locator.util',
-    namedExports: ['resolveLocator'],
-    from: '../../utils/locator.util.js',
+    module: '../../../packages/cucumber-runtime/src/index',
+    namedExports: ['When', 'Then', 'CustomWorld', 'expect', 'SelectorName', 'resolveLocator', 'getEnvironment', 'generateRandomData', 'RandomDataType'],
+    from: '../../../packages/cucumber-runtime/src/index.js',
   },
 ]
 
@@ -627,10 +612,7 @@ export async function createTemplateStepGroupFile(
 
     // Generate content with JSDoc at the top, then imports, then placeholder comment
     const groupJSDoc = generateGroupJSDocComment(groupName, description || null, type)
-    const requiredImports = `import { When } from '@cucumber/cucumber';
-import { CustomWorld } from '../../config/executor/world.js';
-import { SelectorName } from '@/types/locator/locator.type';
-import { resolveLocator } from '../../utils/locator.util.js';
+    const requiredImports = `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js';
 
 `
     const placeholderComment =
@@ -721,3 +703,6 @@ export async function renameTemplateStepGroupFile(
     throw new Error(`File rename failed: ${error}`)
   }
 }
+
+
+

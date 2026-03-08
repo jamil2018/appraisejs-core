@@ -12,8 +12,7 @@ import {
   TagType,
   Tag,
 } from '@prisma/client'
-import { executeTestRun } from '@/lib/test-run/test-run-executor'
-import { waitForTask, taskSpawner, killTask } from '@/tests/utils/spawner.util'
+import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
 import { revalidatePath } from 'next/cache'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 import { processManager } from '@/lib/test-run/process-manager'
@@ -471,7 +470,7 @@ export async function createTestRunAction(
 
     // Execute test run asynchronously (don't await, let it run in background)
     try {
-      const { process: spawnedProcess, reportPath } = await executeTestRun({
+      const { process: spawnedProcess, reportPath } = await localExecutorAdapter.executeTestRun({
         testRunId: testRun.runId,
         environment,
         tags,
@@ -533,7 +532,7 @@ export async function createTestRunAction(
       executePromise
         .then(async spawnedProcess => {
           // Wait for process to complete
-          const exitCode = await waitForTask(spawnedProcess.name)
+          const exitCode = await localExecutorAdapter.waitForProcess(spawnedProcess.name)
 
           // Collect all logs from the process output
           const logEntries: LogEntry[] = []
@@ -906,7 +905,7 @@ export async function checkTraceViewerStatusAction(testRunId: string, testCaseId
 
     // Check if trace viewer process is running
     const processName = `trace-viewer-${testCaseId}`
-    const process = taskSpawner.getProcess(processName)
+    const process = localExecutorAdapter.getProcess(processName)
     const isRunning = process?.isRunning ?? false
 
     return {
@@ -989,12 +988,7 @@ export async function spawnTraceViewerAction(testRunId: string, testCaseId: stri
 
     // Spawn playwright show-trace command
     // The process is self-closing when the user closes the trace viewer
-    const spawnedProcess = await taskSpawner.spawn('npx', ['playwright', 'show-trace', absoluteTracePath], {
-      streamLogs: true,
-      prefixLogs: true,
-      logPrefix: `trace-viewer-${testCaseId}`,
-      captureOutput: false, // No need to capture output for trace viewer
-    })
+    const spawnedProcess = await localExecutorAdapter.spawnTraceViewer(testCaseId, absoluteTracePath)
 
     console.log(
       `[TestRunAction] Spawned trace viewer process for testCaseId: ${testCaseId}, tracePath: ${absoluteTracePath}`,
@@ -1077,10 +1071,10 @@ export async function cancelTestRunAction(testRunId: string): Promise<ActionResp
       }
     }
 
-    const killed = killTask(process.name, 'SIGTERM')
+    const killed = localExecutorAdapter.killProcess(process.name, 'SIGTERM')
     console.log(`[TestRunAction] Killed: ${killed}`)
     if (!killed) {
-      const forceKilled = killTask(process.name, 'SIGKILL')
+      const forceKilled = localExecutorAdapter.killProcess(process.name, 'SIGKILL')
       if (!forceKilled) {
         console.warn(`[TestRunAction] Failed to force kill process for testRunId: ${testRunId}`)
       }
@@ -1183,3 +1177,7 @@ export async function checkTestRunNameUniqueAction(name: string, excludeId?: str
     }
   }
 }
+
+
+
+
