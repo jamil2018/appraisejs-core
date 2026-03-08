@@ -5,6 +5,7 @@ import cliProgress from 'cli-progress'
 import type { PackageManager } from './prompts.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SEEDED_DB_PATH = path.join('prisma', 'dev.db')
 
 const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git'])
 const EXCLUDED_FILES = new Set([
@@ -18,6 +19,10 @@ const EXCLUDED_FILES = new Set([
 ])
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3'])
 
+function shouldKeepSeededDatabase(relativePath: string): boolean {
+  return relativePath.replace(/\\/g, '/') === SEEDED_DB_PATH
+}
+
 function shouldExclude(relativePath: string, name: string, stat: fs.Stats, packageManager?: PackageManager): boolean {
   if (EXCLUDED_DIRS.has(name)) return true
   if (stat.isFile()) {
@@ -26,7 +31,7 @@ function shouldExclude(relativePath: string, name: string, stat: fs.Stats, packa
       return true
     }
     const ext = path.extname(name)
-    if (EXCLUDED_EXTENSIONS.has(ext)) return true
+    if (EXCLUDED_EXTENSIONS.has(ext) && !shouldKeepSeededDatabase(relativePath)) return true
     if (name.startsWith('.env') && name !== '.env.example') return true
   }
   return false
@@ -64,8 +69,8 @@ function collectFiles(src: string, base = '', packageManager?: PackageManager): 
   return files
 }
 
-export function getCollectedFilesForTest(src: string): string[] {
-  return collectFiles(src, '')
+export function getCollectedFilesForTest(src: string, packageManager?: PackageManager): string[] {
+  return collectFiles(src, '', packageManager)
 }
 
 export function getTemplatePath(): string {

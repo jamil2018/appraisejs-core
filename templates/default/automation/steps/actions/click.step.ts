@@ -57,4 +57,3 @@ When('the user right clicks on the {string} element', async function (this: Cust
     throw new Error(`Failed to right click on the ${elementName} element: ${error}`)
   }
 })
-

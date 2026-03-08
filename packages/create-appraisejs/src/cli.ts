@@ -1,15 +1,29 @@
 #!/usr/bin/env node
 import path from 'path'
 import fs from 'fs-extra'
-import { runPrompts } from './prompts.js'
+import { runPrompts, type PlaywrightBrowser } from './prompts.js'
 import { copyTemplate } from './copy-template.js'
 import { runSetup, getInstallCommand, patchPackageJsonScripts } from './install.js'
 import { getConfig } from './config.js'
 import { downloadRepo } from './download-repo.js'
 
-function printSuccessMessage(targetDir: string, packageManager: string, didInstall: boolean): void {
+function formatBrowserInstallStep(packageManager: string, browsers: PlaywrightBrowser[]): string | null {
+  if (browsers.length === 0) {
+    return null
+  }
+
+  return `${packageManager} run install-playwright -- ${browsers.join(' ')}`
+}
+
+function printSuccessMessage(
+  targetDir: string,
+  packageManager: string,
+  didInstall: boolean,
+  playwrightBrowsers: PlaywrightBrowser[],
+): void {
   const relativePath = path.relative(process.cwd(), targetDir)
   const cdPath = relativePath.startsWith('..') ? targetDir : `./${relativePath}`
+  const browserInstallStep = formatBrowserInstallStep(packageManager, playwrightBrowsers)
 
   console.log('\n\u2713 Appraise app created successfully!\n')
   console.log(`  Location: ${targetDir}\n`)
@@ -19,10 +33,15 @@ function printSuccessMessage(targetDir: string, packageManager: string, didInsta
     const { command, args } = getInstallCommand(pm)
     console.log(`  1. cd ${cdPath}`)
     console.log(`  2. ${command} ${args.join(' ')}`)
-    console.log(`  3. ${pm} run dev\n`)
+    if (browserInstallStep) {
+      console.log(`  3. ${browserInstallStep}`)
+      console.log(`  4. ${pm} run start\n`)
+    } else {
+      console.log(`  3. ${pm} run start\n`)
+    }
   } else {
     console.log(`  1. cd ${cdPath}`)
-    console.log(`  2. ${pm} run dev\n`)
+    console.log(`  2. ${pm} run start\n`)
   }
   console.log('  See README.md in the project for more details.\n')
 }
@@ -40,7 +59,7 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
-  const { directory, packageManager, runInstall: shouldRunInstall } = answers
+  const { directory, packageManager, runInstall: shouldRunInstall, playwrightBrowsers } = answers
   const config = getConfig()
 
   try {
@@ -48,7 +67,7 @@ async function main(): Promise<void> {
     console.log(`  Creating project at: ${directory}\n`)
 
     if (config.useBundled) {
-      console.log('  Copying template files...')
+      console.log('  Copying bundled template files...')
       await copyTemplate(directory, undefined, undefined, packageManager)
       console.log('  Template files copied.\n')
     } else {
@@ -71,12 +90,12 @@ async function main(): Promise<void> {
     await patchPackageJsonScripts(directory, packageManager)
 
     if (shouldRunInstall) {
-      console.log('  Running setup (dependencies, env, db, Playwright)...')
-      await runSetup(directory, packageManager)
+      console.log('  Running setup (dependencies, env, production build)...')
+      await runSetup(directory, packageManager, playwrightBrowsers)
       console.log('  Setup complete.\n')
     }
 
-    printSuccessMessage(directory, packageManager, shouldRunInstall)
+    printSuccessMessage(directory, packageManager, shouldRunInstall, playwrightBrowsers)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('\n\u2717', message)

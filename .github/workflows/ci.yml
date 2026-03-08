@@ -10,7 +10,7 @@ jobs:
   lint-and-build:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: file:./prisma/dev.db
+      DATABASE_URL: file:./dev.db
     steps:
       - name: Checkout
         uses: actions/checkout@v4

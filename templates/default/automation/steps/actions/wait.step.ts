@@ -89,4 +89,3 @@ When('the user waits for {int} seconds', async function (this: CustomWorld, wait
     throw new Error(`Failed to wait for ${waitTimeInSeconds} seconds: ${error}`)
   }
 })
-

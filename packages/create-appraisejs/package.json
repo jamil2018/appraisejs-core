@@ -37,7 +37,8 @@
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "npm run sync-templates && tsc",
+    "build": "npm run prepare-template && tsc",
+    "prepare-template": "tsx scripts/prepare-template.ts",
     "sync-templates": "tsx scripts/sync-templates.ts",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",

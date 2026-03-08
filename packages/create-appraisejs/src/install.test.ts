@@ -2,17 +2,19 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { describe, it, expect } from 'vitest';
-import { getInstallCommand, patchPackageJsonScripts } from './install.js';
+import { getInstallCommand, getPlaywrightInstallCommand, patchPackageJsonScripts } from './install.js';
 
 const TEMPLATE_SCRIPTS = {
   'install-dependencies': 'npm install --legacy-peer-deps',
-  setup:
-    'npm run install-dependencies && npm run setup-env && npm run migrate-db && npm run install-playwright',
+  setup: 'npm run install-dependencies && npm run setup-env && npm run build:local',
   'appraisejs:setup': 'npm run setup',
   'appraisejs:sync': 'npm run sync-all',
+  'build:local': 'npm run build:cucumber-runtime && next build',
   'setup-env': 'npx tsx scripts/setup-env.ts',
-  'migrate-db': 'npx prisma migrate dev',
-  'install-playwright': 'npx playwright install && npx playwright install-deps',
+  'migrate-db': 'npx prisma migrate deploy',
+  'install-playwright': 'npx playwright install',
+  'setup:db': 'npm run setup-env && npm run migrate-db && npm run sync-all',
+  'setup:full': 'npm run install-dependencies && npm run setup:db && npm run build:local',
   'sync-all': 'npx tsx scripts/sync-all.ts',
 };
 
@@ -29,14 +31,17 @@ describe('patchPackageJsonScripts', () => {
       const pkg = await patchAndRead(dir, 'pnpm');
       expect(pkg.scripts['install-dependencies']).toBe('pnpm install');
       expect(pkg.scripts.setup).toBe(
-        'pnpm run install-dependencies && pnpm run setup-env && pnpm run migrate-db && pnpm run install-playwright'
+        'pnpm run install-dependencies && pnpm run setup-env && pnpm run build:local'
       );
       expect(pkg.scripts['appraisejs:setup']).toBe('pnpm run setup');
       expect(pkg.scripts['appraisejs:sync']).toBe('pnpm run sync-all');
+      expect(pkg.scripts['build:local']).toBe('pnpm run build:cucumber-runtime && next build');
       expect(pkg.scripts['setup-env']).toBe('pnpm exec tsx scripts/setup-env.ts');
-      expect(pkg.scripts['migrate-db']).toBe('pnpm exec prisma migrate dev');
-      expect(pkg.scripts['install-playwright']).toBe(
-        'pnpm exec playwright install && pnpm exec playwright install-deps'
+      expect(pkg.scripts['migrate-db']).toBe('pnpm exec prisma migrate deploy');
+      expect(pkg.scripts['install-playwright']).toBe('pnpm exec playwright install');
+      expect(pkg.scripts['setup:db']).toBe('pnpm run setup-env && pnpm run migrate-db && pnpm run sync-all');
+      expect(pkg.scripts['setup:full']).toBe(
+        'pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local'
       );
       expect(pkg.scripts['sync-all']).toBe('pnpm exec tsx scripts/sync-all.ts');
       expect(pkg.scripts['setup-env']).not.toContain('npx ');
@@ -66,13 +71,11 @@ describe('patchPackageJsonScripts', () => {
       const pkg = await patchAndRead(dir, 'yarn');
       expect(pkg.scripts['install-dependencies']).toBe('yarn install');
       expect(pkg.scripts.setup).toBe(
-        'yarn run install-dependencies && yarn run setup-env && yarn run migrate-db && yarn run install-playwright'
+        'yarn run install-dependencies && yarn run setup-env && yarn run build:local'
       );
       expect(pkg.scripts['appraisejs:setup']).toBe('yarn run setup');
       expect(pkg.scripts['setup-env']).toBe('yarn run tsx scripts/setup-env.ts');
-      expect(pkg.scripts['install-playwright']).toBe(
-        'yarn run playwright install && yarn run playwright install-deps'
-      );
+      expect(pkg.scripts['install-playwright']).toBe('yarn run playwright install');
       expect(pkg.scripts['sync-all']).not.toContain('npx ');
     } finally {
       await fs.remove(dir).catch(() => {});
@@ -87,7 +90,7 @@ describe('patchPackageJsonScripts', () => {
       expect(pkg.scripts.setup).toContain('bun run install-dependencies');
       expect(pkg.scripts['appraisejs:sync']).toBe('bun run sync-all');
       expect(pkg.scripts['setup-env']).toBe('bunx tsx scripts/setup-env.ts');
-      expect(pkg.scripts['migrate-db']).toBe('bunx prisma migrate dev');
+      expect(pkg.scripts['migrate-db']).toBe('bunx prisma migrate deploy');
       expect(pkg.scripts['sync-all']).toContain('bunx ');
       expect(pkg.scripts['sync-all']).not.toContain('npx ');
     } finally {
@@ -129,5 +132,16 @@ describe('getInstallCommand', () => {
     const result = getInstallCommand('bun');
     expect(result).toEqual({ command: 'bun', args: ['run', 'setup'] });
     expect(`${result.command} ${result.args.join(' ')}`).toBe('bun run setup');
+  });
+
+  it('returns package-manager specific playwright install commands', () => {
+    expect(getPlaywrightInstallCommand('npm', ['chromium', 'firefox'])).toEqual({
+      command: 'npm',
+      args: ['run', 'install-playwright', '--', 'chromium', 'firefox'],
+    });
+    expect(getPlaywrightInstallCommand('pnpm', [])).toEqual({
+      command: 'pnpm',
+      args: ['run', 'install-playwright', '--'],
+    });
   });
 });

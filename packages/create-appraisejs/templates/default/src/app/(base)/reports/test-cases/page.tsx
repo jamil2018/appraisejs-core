@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: 'Manage test cases report for identifying elements on pages',
 }
 
-const TestCasesMetricsReport = async ({searchParams}: {searchParams: Promise<{filter?: string}>}) => {
+const TestCasesMetricsReport = async ({ searchParams }: { searchParams: Promise<{ filter?: string }> }) => {
   const resolvedSearchParams = await searchParams
   const filter = resolvedSearchParams?.filter as 'repeatedlyFailing' | 'flaky' | undefined
 
@@ -27,7 +27,7 @@ const TestCasesMetricsReport = async ({searchParams}: {searchParams: Promise<{fi
               </span>
             </PageHeader>
             <HeaderSubtitle>
-              Test cases are the individual tests that are used to test a specific feature or functionality
+              Test cases are the individual tests that validate the functionality a specific feature or functionality
             </HeaderSubtitle>
           </div>
         </div>

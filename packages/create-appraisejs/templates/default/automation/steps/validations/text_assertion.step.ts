@@ -106,4 +106,3 @@ Then(
     _variableName: string
   ) {}
 );
-

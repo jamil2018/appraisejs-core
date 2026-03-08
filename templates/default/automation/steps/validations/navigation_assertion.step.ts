@@ -21,4 +21,3 @@ Then('the url route should be equal to {string}', async function (this: CustomWo
     throw new Error(`Failed to validate the equality of the current route to the route "${route}": ${error}`)
   }
 })
-
