@@ -4,6 +4,13 @@ import { cpSync, createReadStream, existsSync, mkdirSync, promises as fs, rmSync
 import path from 'path'
 import { spawn } from 'child_process'
 import { fileURLToPath, pathToFileURL } from 'url'
+import {
+  collectFiles,
+  TEMPLATE_PREP_SYNC_SCRIPTS,
+  shouldAbortOnFallbackSeed,
+  verifyPreparedTemplateState,
+  type TemplateMetadata,
+} from '../src/prepare-template-utils.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.join(__dirname, '..')
@@ -12,24 +19,6 @@ const rootTemplateDir = path.join(repoRoot, 'templates', 'default')
 const packageTemplateDir = path.join(packageRoot, 'templates', 'default')
 const tempWorkspaceDir = path.join(repoRoot, '.tmp', 'create-appraisejs-template-build')
 const templateMetaPath = path.join(rootTemplateDir, '.appraise-template-meta.json')
-
-const syncScripts = [
-  'sync-modules',
-  'sync-environments',
-  'sync-tags',
-  'sync-template-step-groups',
-  'sync-template-steps',
-  'sync-locator-groups',
-  'sync-locators',
-  'sync-test-suites',
-  'sync-test-cases',
-] as const
-
-interface TemplateMetadata {
-  preparedAt: string
-  inputHash: string
-  databasePath: string
-}
 
 function getTsxCliPath(): string {
   return path.join(repoRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs')
@@ -101,27 +90,6 @@ async function runPrismaMigrateDeploy(cwd: string): Promise<void> {
       PRISMA_HIDE_UPDATE_MESSAGE: '1',
     },
   )
-}
-
-async function collectFiles(dir: string, predicate?: (relativePath: string) => boolean, baseDir = dir): Promise<string[]> {
-  const entries = await fs.readdir(dir, { withFileTypes: true })
-  const files: string[] = []
-
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name)
-    const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/')
-
-    if (entry.isDirectory()) {
-      files.push(...await collectFiles(fullPath, predicate, baseDir))
-      continue
-    }
-
-    if (!predicate || predicate(relativePath)) {
-      files.push(fullPath)
-    }
-  }
-
-  return files
 }
 
 async function hashFile(filePath: string): Promise<Buffer> {
@@ -223,7 +191,7 @@ async function seedRootTemplateDatabase(inputHash: string, previousMetadata: Tem
   let usedFallbackSeed = await seedDatabaseForWorkspace()
 
   try {
-    for (const script of syncScripts) {
+    for (const script of TEMPLATE_PREP_SYNC_SCRIPTS) {
       await runTypeScriptScript(path.join('scripts', `${script}.ts`), tempWorkspaceDir)
     }
   } catch (error) {
@@ -233,7 +201,7 @@ async function seedRootTemplateDatabase(inputHash: string, previousMetadata: Tem
     usedFallbackSeed = true
   }
 
-  if (usedFallbackSeed && previousMetadata?.inputHash !== inputHash) {
+  if (shouldAbortOnFallbackSeed(usedFallbackSeed, inputHash, previousMetadata)) {
     throw new Error(
       'Template inputs changed but the seeded database could not be regenerated. Run the template prep flow in an environment that can execute Prisma and sync scripts, then retry publish.',
     )
@@ -253,38 +221,6 @@ async function seedRootTemplateDatabase(inputHash: string, previousMetadata: Tem
   await writeTemplateMetadata(inputHash)
 }
 
-async function verifyPreparedTemplate(): Promise<void> {
-  const seededDbPath = path.join(packageTemplateDir, 'prisma', 'dev.db')
-  const staleNestedDbPath = path.join(packageTemplateDir, 'prisma', 'prisma', 'dev.db')
-  const packageEnvPath = path.join(packageTemplateDir, '.env')
-  const starterFeaturePath = path.join(packageTemplateDir, 'automation', 'features', 'base', 'login.feature')
-  const starterEnvironmentPath = path.join(packageTemplateDir, 'automation', 'config', 'environments', 'environments.json')
-  const starterLocatorMapPath = path.join(packageTemplateDir, 'automation', 'mapping', 'locator-map.json')
-  const reportFiles = await collectFiles(path.join(packageTemplateDir, 'automation', 'reports'))
-
-  if (!existsSync(seededDbPath)) {
-    throw new Error(`Prepared template is missing ${seededDbPath}`)
-  }
-  if (existsSync(staleNestedDbPath)) {
-    throw new Error(`Prepared template still contains stale nested database ${staleNestedDbPath}`)
-  }
-  if (existsSync(packageEnvPath)) {
-    throw new Error(`Prepared template should not include ${packageEnvPath}`)
-  }
-  if (!existsSync(starterFeaturePath)) {
-    throw new Error(`Prepared template is missing starter automation feature ${starterFeaturePath}`)
-  }
-  if (!existsSync(starterEnvironmentPath)) {
-    throw new Error(`Prepared template is missing starter environments file ${starterEnvironmentPath}`)
-  }
-  if (!existsSync(starterLocatorMapPath)) {
-    throw new Error(`Prepared template is missing locator map ${starterLocatorMapPath}`)
-  }
-  if (reportFiles.length > 0) {
-    throw new Error(`Prepared template should not include report artifacts, found ${reportFiles.join(', ')}`)
-  }
-}
-
 async function main(): Promise<void> {
   const inputHash = await computeTemplateInputHash()
   const previousMetadata = await readExistingTemplateMetadata()
@@ -293,7 +229,7 @@ async function main(): Promise<void> {
     await runTypeScriptScript(path.join('scripts', 'sync-appraise-base-template.ts'), repoRoot)
     await seedRootTemplateDatabase(inputHash, previousMetadata)
     await runTypeScriptScript(path.join('packages', 'create-appraisejs', 'scripts', 'sync-templates.ts'), repoRoot)
-    await verifyPreparedTemplate()
+    await verifyPreparedTemplateState(packageTemplateDir)
   } finally {
     rmSync(tempWorkspaceDir, { recursive: true, force: true })
   }
@@ -303,4 +239,3 @@ main().catch(error => {
   console.error(error)
   process.exit(1)
 })
-

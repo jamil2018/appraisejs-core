@@ -10,31 +10,14 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import { shouldBackfillLegacyEnvironmentConfig, shouldExcludeTemplatePath } from '../src/lib/template-sync-utils'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..')
 const target = join(repoRoot, 'templates', 'default')
 
-const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist'])
-const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3', '.tsbuildinfo'])
-const EXCLUDED_PATH_PREFIXES = ['automation/reports/']
-
 function shouldExclude(relativePath: string): boolean {
-  const normalizedPath = relativePath.replace(/\\/g, '/')
-  const parts = normalizedPath.split('/')
-
-  if (parts.some(part => EXCLUDED_DIRS.has(part))) return true
-  if (EXCLUDED_PATH_PREFIXES.some(prefix => normalizedPath.startsWith(prefix))) return true
-
-  const ext = normalizedPath.endsWith('.sqlite3')
-    ? '.sqlite3'
-    : normalizedPath.endsWith('.sqlite')
-      ? '.sqlite'
-      : normalizedPath.endsWith('.tsbuildinfo')
-        ? '.tsbuildinfo'
-        : normalizedPath.slice(normalizedPath.lastIndexOf('.'))
-
-  return EXCLUDED_EXTENSIONS.has(ext)
+  return shouldExcludeTemplatePath(relativePath)
 }
 
 function copyDirWithFilter(src: string, dest: string, base = src): void {
@@ -68,6 +51,20 @@ function resetAutomationReports(templateRoot: string): void {
   mkdirSync(join(reportsRoot, 'traces'), { recursive: true })
 }
 
+function syncLegacyEnvironmentConfig(): void {
+  const legacyEnvironmentsDir = join(repoRoot, 'src', 'tests', 'config', 'environments')
+  const targetEnvironmentsDir = join(target, 'automation', 'config', 'environments')
+  const targetEnvironmentsFile = join(targetEnvironmentsDir, 'environments.json')
+
+  if (!shouldBackfillLegacyEnvironmentConfig(existsSync(targetEnvironmentsFile), existsSync(legacyEnvironmentsDir))) {
+    return
+  }
+
+  mkdirSync(targetEnvironmentsDir, { recursive: true })
+  cpSync(legacyEnvironmentsDir, targetEnvironmentsDir, { recursive: true, force: true })
+  console.log('Backfilled automation/config/environments from legacy src/tests config.')
+}
+
 function syncCucumberRuntimePackage(): void {
   const runtimeTarget = join(target, 'packages', 'cucumber-runtime')
   rmSync(runtimeTarget, { recursive: true, force: true })
@@ -93,6 +90,7 @@ copyDirWithFilter(join(repoRoot, 'src'), join(target, 'src'))
 
 console.log('Copying automation/...')
 copyDirWithFilter(join(repoRoot, 'automation'), join(target, 'automation'))
+syncLegacyEnvironmentConfig()
 resetAutomationReports(target)
 
 console.log('Copying cucumber runtime package...')
@@ -151,12 +149,13 @@ const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
 rootPkg.scripts = {
   ...rootPkg.scripts,
   build: 'npm run build:local',
-  'build:local': 'npm run build:cucumber-runtime && next build',
+  'build:local': 'npm run generate-db-client && npm run build:cucumber-runtime && next build',
   start: 'next start',
+  'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
   'migrate-db': 'npx prisma migrate deploy',
   'install-playwright': 'npx playwright install',
-  setup: 'npm run install-dependencies && npm run setup-env && npm run build:local',
-  'setup:db': 'npm run setup-env && npm run migrate-db && npm run sync-all',
+  setup: 'npm run install-dependencies && npm run setup:db && npm run build:local',
+  'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all',
   'setup:full': 'npm run install-dependencies && npm run setup:db && npm run build:local',
   'appraisejs:setup': 'npm run setup',
   'appraisejs:sync': 'npm run sync-all',

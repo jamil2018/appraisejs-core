@@ -1,0 +1,42 @@
+2026-02-20 00:20:17 [INFO]: [dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+2026-02-20 00:20:17 [INFO]: Feature: login # src/tests/features/base/login.feature:6
+2026-02-20 00:20:17 [INFO]:   @tc_2d328a936cf4c446
+2026-02-20 00:20:17 [INFO]:   Scenario: [Login] Verify user is able to login to the app using valid credentials # src/tests/features/base/login.feature:14
+2026-02-20 00:20:17 [INFO]:     Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
+2026-02-20 00:20:17 [INFO]:     When the user fills in the "email" input field with value "demo@example.com"
+2026-02-20 00:20:17 [INFO]:     And the user fills in the "password" input field with value "test1234"
+2026-02-20 00:20:17 [INFO]:     And the user clicks on the "submit" element
+2026-02-20 00:20:17 [INFO]:     And the user waits for the route "/home" to be loaded
+2026-02-20 00:20:17 [INFO]:     ✖ failed
+2026-02-20 00:20:17 [INFO]:       Error: Failed to wait for the route /home to be loaded: TimeoutError: page.waitForURL: Timeout 30000ms exceeded.
+2026-02-20 00:20:17 [INFO]:       =========================== logs ===========================
+2026-02-20 00:20:17 [INFO]:       waiting for navigation to "**/home.html" until "domcontentloaded"
+2026-02-20 00:20:17 [INFO]:         navigated to "https://demo-test-site-beta.vercel.app/home"
+2026-02-20 00:20:17 [INFO]:       ============================================================
+2026-02-20 00:20:17 [INFO]:           at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/actions/wait.step.ts:38:11)
+2026-02-20 00:20:17 [INFO]:     Then the element "home title" should true contain the text "Welcome to Home Page"
+2026-02-20 00:20:17 [INFO]:     - skipped
+2026-02-20 00:20:17 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[Login] Verify user is able to login to the app using valid credentials","status":"failed","tracePath":"/Users/hasnat/Projects/appraise/src/tests/reports/traces/021136bb-8755-4c3e-aa48-6fcb3e392ebf.zip"}}
+2026-02-20 00:20:17 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[Login] Verify user is able to login to the app using valid credentials","status":"failed","tracePath":"/Users/hasnat/Projects/appraise/src/tests/reports/traces/021136bb-8755-4c3e-aa48-6fcb3e392ebf.zip"}}
+2026-02-20 00:20:17 [INFO]: Failures:
+2026-02-20 00:20:17 [INFO]: 1) Scenario: [Login] Verify user is able to login to the app using valid credentials # src/tests/features/base/login.feature:14
+2026-02-20 00:20:17 [INFO]:    ✔ Before # src/tests/hooks/hooks.ts:40
+2026-02-20 00:20:17 [INFO]:    ✔ Given the user navigates to the "https://demo-test-site-beta.vercel.app" url # src/tests/steps/actions/navigation.step.ts:17
+2026-02-20 00:20:17 [INFO]:    ✔ When the user fills in the "email" input field with value "demo@example.com" # src/tests/steps/actions/input.step.ts:18
+2026-02-20 00:20:17 [INFO]:    ✔ And the user fills in the "password" input field with value "test1234" # src/tests/steps/actions/input.step.ts:18
+2026-02-20 00:20:17 [INFO]:    ✔ And the user clicks on the "submit" element # src/tests/steps/actions/click.step.ts:18
+2026-02-20 00:20:17 [INFO]:    ✖ And the user waits for the route "/home" to be loaded # src/tests/steps/actions/wait.step.ts:32
+2026-02-20 00:20:17 [INFO]:        Error: Failed to wait for the route /home to be loaded: TimeoutError: page.waitForURL: Timeout 30000ms exceeded.
+2026-02-20 00:20:17 [INFO]:        =========================== logs ===========================
+2026-02-20 00:20:17 [INFO]:        waiting for navigation to "**/home.html" until "domcontentloaded"
+2026-02-20 00:20:17 [INFO]:          navigated to "https://demo-test-site-beta.vercel.app/home"
+2026-02-20 00:20:17 [INFO]:        ============================================================
+2026-02-20 00:20:17 [INFO]:            at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/actions/wait.step.ts:38:11)
+2026-02-20 00:20:17 [INFO]:    - Then the element "home title" should true contain the text "Welcome to Home Page" # src/tests/steps/validations/text_assertion.step.ts:18
+2026-02-20 00:20:17 [INFO]:    ✔ After # src/tests/hooks/hooks.ts:63
+2026-02-20 00:20:17 [INFO]: 1 scenario (1 failed)
+2026-02-20 00:20:17 [INFO]: 6 steps (1 failed, 1 skipped, 4 passed)
+2026-02-20 00:20:17 [INFO]: 0m33.419s (executing steps: 0m33.186s)
+2026-02-20 00:20:17 [ERROR]: (node:1029) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+2026-02-20 00:20:17 [ERROR]: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-02-20 00:20:17 [INFO]: Process exited with code 1

@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import spawn from 'cross-spawn';
 import path from 'path';
+import { getPackageManagerProfile, rewriteScriptsForPackageManager } from './package-manager.js';
 import type { PackageManager, PlaywrightBrowser } from './prompts.js';
 
 const RUN_SETUP_ARGS = ['run', 'setup'] as const;
@@ -8,18 +9,7 @@ const RUN_PLAYWRIGHT_INSTALL_ARGS = ['run', 'install-playwright', '--'] as const
 
 /** Used for "next steps" when user skips running setup (setup includes install). */
 export function getInstallCommand(pm: PackageManager): { command: string; args: string[] } {
-  switch (pm) {
-    case 'npm':
-      return { command: 'npm', args: [...RUN_SETUP_ARGS] };
-    case 'pnpm':
-      return { command: 'pnpm', args: [...RUN_SETUP_ARGS] };
-    case 'yarn':
-      return { command: 'yarn', args: [...RUN_SETUP_ARGS] };
-    case 'bun':
-      return { command: 'bun', args: [...RUN_SETUP_ARGS] };
-    default:
-      return { command: 'npm', args: [...RUN_SETUP_ARGS] };
-  }
+  return { command: getPackageManagerProfile(pm).command, args: [...RUN_SETUP_ARGS] };
 }
 
 export function getPlaywrightInstallCommand(
@@ -30,43 +20,6 @@ export function getPlaywrightInstallCommand(
     command: pm,
     args: [...RUN_PLAYWRIGHT_INSTALL_ARGS, ...browsers],
   };
-}
-
-/** Install command for each PM (used in package.json install-dependencies script). */
-function getInstallScript(pm: PackageManager): string {
-  switch (pm) {
-    case 'npm':
-      return 'npm install --legacy-peer-deps';
-    case 'pnpm':
-      return 'pnpm install';
-    case 'yarn':
-      return 'yarn install';
-    case 'bun':
-      return 'bun install';
-    default:
-      return 'npm install --legacy-peer-deps';
-  }
-}
-
-/** "pm run" prefix for script invocations (e.g. "pnpm run"). */
-function getRunPrefix(pm: PackageManager): string {
-  return `${pm} run`;
-}
-
-/** Exec prefix for running binaries (replaces "npx " in script bodies). */
-function getExecPrefix(pm: PackageManager): string {
-  switch (pm) {
-    case 'npm':
-      return 'npx ';
-    case 'pnpm':
-      return 'pnpm exec ';
-    case 'yarn':
-      return 'yarn run ';
-    case 'bun':
-      return 'bunx ';
-    default:
-      return 'npx ';
-  }
 }
 
 /**
@@ -80,33 +33,7 @@ export async function patchPackageJsonScripts(targetDir: string, pm: PackageMana
   const pkg = (await fs.readJson(pkgPath)) as { scripts?: Record<string, string> };
   if (!pkg.scripts) return;
 
-  const installScript = getInstallScript(pm);
-  const runPrefix = getRunPrefix(pm);
-
-  if (pkg.scripts['install-dependencies'] !== undefined) {
-    pkg.scripts['install-dependencies'] = installScript;
-  }
-  if (pkg.scripts['appraisejs:setup'] !== undefined) {
-    pkg.scripts['appraisejs:setup'] = `${runPrefix} setup`;
-  }
-  if (pkg.scripts['appraisejs:sync'] !== undefined) {
-    pkg.scripts['appraisejs:sync'] = `${runPrefix} sync-all`;
-  }
-
-  for (const key of Object.keys(pkg.scripts)) {
-    const value = pkg.scripts[key];
-    if (typeof value === 'string' && value.includes('npm run ')) {
-      pkg.scripts[key] = value.replace(/npm run /g, `${runPrefix} `);
-    }
-  }
-
-  const execPrefix = getExecPrefix(pm);
-  for (const key of Object.keys(pkg.scripts)) {
-    const value = pkg.scripts[key];
-    if (typeof value === 'string' && value.includes('npx ')) {
-      pkg.scripts[key] = value.replace(/npx /g, execPrefix);
-    }
-  }
+  pkg.scripts = rewriteScriptsForPackageManager(pkg.scripts, pm);
 
   await fs.writeJson(pkgPath, pkg, { spaces: 2 });
 }

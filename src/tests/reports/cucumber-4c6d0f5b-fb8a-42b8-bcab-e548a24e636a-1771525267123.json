@@ -1,0 +1,124 @@
+[
+  {
+    "description": "",
+    "elements": [
+      {
+        "description": "",
+        "id": "login;[login]-verify-user-is-able-to-login-to-the-app-using-valid-credentials",
+        "keyword": "Scenario",
+        "line": 14,
+        "name": "[Login] Verify user is able to login to the app using valid credentials",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 48338917
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 15,
+            "name": "the user navigates to the \"https://demo-test-site-beta.vercel.app\" url",
+            "match": {
+              "location": "src/tests/steps/actions/navigation.step.ts:17"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 251913041
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 16,
+            "name": "the user fills in the \"email\" input field with value \"demo@example.com\"",
+            "match": {
+              "location": "src/tests/steps/actions/input.step.ts:18"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1070195251
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 17,
+            "name": "the user fills in the \"password\" input field with value \"test1234\"",
+            "match": {
+              "location": "src/tests/steps/actions/input.step.ts:18"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 858856249
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 18,
+            "name": "the user clicks on the \"submit\" element",
+            "match": {
+              "location": "src/tests/steps/actions/click.step.ts:18"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 888994707
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 19,
+            "name": "the user waits for the route \"/home\" to be loaded",
+            "match": {
+              "location": "src/tests/steps/actions/wait.step.ts:32"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 30004083208,
+              "error_message": "Error: Failed to wait for the route /home to be loaded: TimeoutError: page.waitForURL: Timeout 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"https://demo-test-site-beta.vercel.app//home\" until \"domcontentloaded\"\n  navigated to \"https://demo-test-site-beta.vercel.app/home\"\n============================================================\n    at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/actions/wait.step.ts:38:11)"
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 20,
+            "name": "the element \"home title\" should true contain the text \"Welcome to Home Page\"",
+            "match": {
+              "location": "src/tests/steps/validations/text_assertion.step.ts:18"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 46452582
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@tc_2d328a936cf4c446",
+            "line": 13
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "login",
+    "line": 6,
+    "keyword": "Feature",
+    "name": "login",
+    "tags": [],
+    "uri": "src/tests/features/base/login.feature"
+  }
+]

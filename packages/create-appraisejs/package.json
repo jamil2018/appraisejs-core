@@ -1,6 +1,6 @@
 {
   "name": "create-appraisejs",
-  "version": "0.1.9",
+  "version": "0.1.10-alpha.2",
   "description": "Scaffold a new AppraiseJS app in your directory",
   "license": "Apache-2.0",
   "author": "Hasnat Jamil",
@@ -33,7 +33,9 @@
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "templates/default/prisma/dev.db",
+    "templates/default/automation/config/environments/environments.json"
   ],
   "scripts": {
     "prepublishOnly": "npm run build",

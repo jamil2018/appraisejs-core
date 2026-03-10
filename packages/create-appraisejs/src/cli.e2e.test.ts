@@ -38,7 +38,10 @@ describe('CLI E2E', () => {
     expect(await fs.pathExists(staleNestedDbPath)).toBe(false);
     const pkg = await fs.readJson(pkgJsonPath);
     expect(pkg.scripts?.dev).toBeDefined();
+    expect(pkg.scripts?.setup).toContain('setup:db');
+    expect(pkg.scripts?.['setup:db']).toContain('generate-db-client');
     expect(pkg.scripts?.setup).toContain('build:local');
+    expect(pkg.scripts?.['build:local']).toContain('generate-db-client');
     expect(pkg.scripts?.['build:local']).toContain('build:cucumber-runtime');
   });
 
@@ -55,16 +58,17 @@ describe('CLI E2E', () => {
     const pkgBefore = await fs.readJson(path.join(destDir, 'package.json'));
     expect(pkgBefore.scripts['install-dependencies']).toBe('npm install --legacy-peer-deps');
     expect(pkgBefore.scripts.setup).toMatch(/npm run /);
+    expect(pkgBefore.scripts['generate-db-client']).toBe('npx prisma generate --schema prisma/schema.prisma');
 
     await patchPackageJsonScripts(destDir, 'pnpm');
 
     const pkgAfter = await fs.readJson(path.join(destDir, 'package.json'));
     expect(pkgAfter.scripts['install-dependencies']).toBe('pnpm install');
-    expect(pkgAfter.scripts.setup).toBe(
-      'pnpm run install-dependencies && pnpm run setup-env && pnpm run build:local'
-    );
+    expect(pkgAfter.scripts.setup).toBe('pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local');
     expect(pkgAfter.scripts['appraisejs:setup']).toBe('pnpm run setup');
     expect(pkgAfter.scripts['appraisejs:sync']).toBe('pnpm run sync-all');
+    expect(pkgAfter.scripts['generate-db-client']).toContain('pnpm exec ');
+    expect(pkgAfter.scripts['generate-db-client']).not.toContain('npx ');
     expect(pkgAfter.scripts['setup-env']).toContain('pnpm exec ');
     expect(pkgAfter.scripts['setup-env']).not.toContain('npx ');
     expect(pkgAfter.scripts['sync-all']).toContain('pnpm exec ');

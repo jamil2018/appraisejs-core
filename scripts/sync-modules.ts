@@ -13,6 +13,7 @@ import { buildModuleHierarchy, findModuleByPath, getAllModulesWithPaths } from '
 import { join } from 'path'
 import { glob } from 'glob'
 import prisma from '../src/config/db-config'
+import { extractModulePathFromAutomationFile } from '../src/lib/template-sync-utils'
 
 interface SyncResult {
   modulesScanned: number
@@ -86,11 +87,7 @@ async function scanFeatureDirectories(baseDir: string): Promise<string[]> {
  * Example: automation/locators/home/home.json -> /home
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  const testsDir = join(baseDir, 'src', 'tests')
-  const relativePath = filePath.replace(testsDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(p => p && p !== 'locators')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
 }
 
 /**
@@ -98,11 +95,7 @@ function extractModulePathFromLocatorFile(filePath: string, baseDir: string): st
  * Example: automation/features/login/demo.feature -> /login
  */
 function extractModulePathFromFeatureFile(filePath: string, baseDir: string): string {
-  const featuresBaseDir = join(baseDir, 'src', 'tests', 'features')
-  const relativePath = filePath.replace(featuresBaseDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(part => part && part !== '')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return extractModulePathFromAutomationFile(filePath, baseDir, 'features')
 }
 
 /**
@@ -346,5 +339,3 @@ async function main() {
 }
 
 main()
-
-

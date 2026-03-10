@@ -78,6 +78,18 @@ async function copyLegacyMutableWorkspace(): Promise<void> {
   }
 }
 
+async function copyLegacyEnvironmentsIfNeeded(): Promise<void> {
+  const legacyEnvironmentsDir = path.join(legacyTestsRoot, 'config', 'environments')
+  const automationEnvironmentsFile = path.join(getAutomationEnvironmentsDir(), 'environments.json')
+
+  if (!(await pathExists(legacyEnvironmentsDir)) || (await pathExists(automationEnvironmentsFile))) {
+    return
+  }
+
+  await fs.mkdir(getAutomationEnvironmentsDir(), { recursive: true })
+  await fs.cp(legacyEnvironmentsDir, getAutomationEnvironmentsDir(), { recursive: true })
+}
+
 async function ensureMutableAutomationDirectories(): Promise<void> {
   const requiredDirectories = [
     getAutomationRoot(),
@@ -107,6 +119,7 @@ async function removeLegacyRuntimeArtifactsFromAutomation(): Promise<void> {
 export async function ensureAutomationWorkspaceReady(): Promise<void> {
   automationWorkspaceReadyPromise ??= (async () => {
     await copyLegacyMutableWorkspace()
+    await copyLegacyEnvironmentsIfNeeded()
     await ensureMutableAutomationDirectories()
     await removeLegacyRuntimeArtifactsFromAutomation()
     await rewriteLegacyStepImports()
@@ -166,4 +179,3 @@ export function getAutomationActionStepsDir(): string {
 export function getAutomationValidationStepsDir(): string {
   return path.join(getAutomationStepsDir(), 'validations')
 }
-

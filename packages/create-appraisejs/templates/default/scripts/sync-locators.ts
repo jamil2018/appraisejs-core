@@ -15,6 +15,7 @@ import { glob } from 'glob'
 import prisma from '../src/config/db-config'
 import { buildModuleHierarchy } from '../src/lib/module-hierarchy-builder'
 import { getLocatorGroupFilePath } from '../src/lib/locator-group-file-utils'
+import { extractModulePathFromAutomationFile } from '../src/lib/template-sync-utils'
 
 interface SyncResult {
   locatorsScanned: number
@@ -50,11 +51,7 @@ async function scanLocatorFiles(baseDir: string): Promise<string[]> {
  * Example: automation/locators/users/admins/directors/directors.json -> /users/admins/directors
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  const testsDir = join(baseDir, 'src', 'tests')
-  const relativePath = filePath.replace(testsDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(p => p && p !== 'locators')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
 }
 
 /**
@@ -399,5 +396,3 @@ async function main() {
 }
 
 main()
-
-

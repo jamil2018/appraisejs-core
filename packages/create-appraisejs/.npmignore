@@ -1,0 +1,6 @@
+dist/**/*.map
+node_modules
+*.tsbuildinfo
+
+!templates/default/prisma/dev.db
+!templates/default/automation/config/environments/environments.json

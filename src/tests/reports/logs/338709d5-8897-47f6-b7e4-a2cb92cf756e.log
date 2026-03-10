@@ -1,0 +1,12 @@
+2026-02-20 00:20:35 [ERROR]: Error: Cannot find package '@/tests' imported from /Users/hasnat/Projects/appraise/src/tests/steps/actions/wait.step.ts
+2026-02-20 00:20:35 [ERROR]:     at packageResolve (/Users/hasnat/Projects/appraise/node_modules/ts-node/dist-raw/node-internal-modules-esm-resolve.js:757:9)
+2026-02-20 00:20:35 [ERROR]:     at moduleResolve (/Users/hasnat/Projects/appraise/node_modules/ts-node/dist-raw/node-internal-modules-esm-resolve.js:798:18)
+2026-02-20 00:20:35 [ERROR]:     at Object.defaultResolve (/Users/hasnat/Projects/appraise/node_modules/ts-node/dist-raw/node-internal-modules-esm-resolve.js:912:11)
+2026-02-20 00:20:35 [ERROR]:     at /Users/hasnat/Projects/appraise/node_modules/ts-node/src/esm.ts:218:35
+2026-02-20 00:20:35 [ERROR]:     at entrypointFallback (/Users/hasnat/Projects/appraise/node_modules/ts-node/src/esm.ts:168:34)
+2026-02-20 00:20:35 [ERROR]:     at /Users/hasnat/Projects/appraise/node_modules/ts-node/src/esm.ts:217:14
+2026-02-20 00:20:35 [ERROR]:     at addShortCircuitFlag (/Users/hasnat/Projects/appraise/node_modules/ts-node/src/esm.ts:409:21)
+2026-02-20 00:20:35 [ERROR]:     at resolve (/Users/hasnat/Projects/appraise/node_modules/ts-node/src/esm.ts:197:12)
+2026-02-20 00:20:35 [ERROR]:     at nextResolve (node:internal/modules/esm/hooks:769:28)
+2026-02-20 00:20:35 [ERROR]:     at AsyncLoaderHooksOnLoaderHookWorker.resolve (node:internal/modules/esm/hooks:265:30)
+2026-02-20 00:20:35 [INFO]: Process exited with code 1
