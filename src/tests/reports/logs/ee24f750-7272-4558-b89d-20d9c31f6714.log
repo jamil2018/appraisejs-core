@@ -1,0 +1,17 @@
+2026-02-18 20:09:50 [INFO]: [dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+2026-02-18 20:09:50 [INFO]: Feature: login # src/tests/features/base/login.feature:6
+2026-02-18 20:09:50 [INFO]:   @tc_2d1e1128876ce9d5
+2026-02-18 20:09:50 [INFO]:   Scenario: [login] validate user is able to login to app using valid credentials # src/tests/features/base/login.feature:14
+2026-02-18 20:09:50 [INFO]:     Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
+2026-02-18 20:09:50 [INFO]:     When the user fills in the "email" input field with value "demo@example.com"
+2026-02-18 20:09:50 [INFO]:     And the user fills in the "password" input field with value "test1234"
+2026-02-18 20:09:50 [INFO]:     And the user clicks on the "submit" element
+2026-02-18 20:09:50 [INFO]:     Then the element "home title" should true contain the text "Welcome to Home Page"
+2026-02-18 20:09:50 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[login] validate user is able to login to app using valid credentials","status":"passed"}}
+2026-02-18 20:09:50 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[login] validate user is able to login to app using valid credentials","status":"passed"}}
+2026-02-18 20:09:50 [INFO]: 1 scenario (1 passed)
+2026-02-18 20:09:50 [INFO]: 5 steps (5 passed)
+2026-02-18 20:09:50 [INFO]: 0m04.805s (executing steps: 0m04.398s)
+2026-02-18 20:09:50 [ERROR]: (node:80482) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+2026-02-18 20:09:50 [ERROR]: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-02-18 20:09:50 [INFO]: Process exited with code 0

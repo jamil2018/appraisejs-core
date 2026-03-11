@@ -14,7 +14,7 @@ This repository contains two related deliverables:
 - Next.js 16 App Router
 - React 19
 - TypeScript with `strict: true`
-- Prisma + SQLite (`DATABASE_URL="file:./prisma/dev.db"` by default)
+- Prisma + SQLite (`DATABASE_URL="file:./dev.db"` by default, which creates `prisma/dev.db`)
 - Cucumber + Playwright for test execution
 - Tailwind CSS + Radix UI
 - TanStack Table/Form, React Flow, Recharts
@@ -29,7 +29,7 @@ This repository contains two related deliverables:
 - `src/actions/`: server actions grouped by domain
 - `src/lib/`: orchestration logic, sync, feature generation, report parsing, metrics, and helpers
 - `src/lib/test-run/`: run executor, process manager, log formatting, winston logger, report parser
-- `src/tests/`: Cucumber/Playwright runtime files plus generated artifacts
+- `automation/`: starter automation assets, feature files, locators, environments, and reports
 - `prisma/`: schema and migrations
 - `scripts/`: setup and sync scripts
 - `templates/default/`: scaffoldable app template derived from the root app
@@ -57,7 +57,7 @@ Server actions in `src/actions/` persist these entities through Prisma.
 ### Execution flow
 
 1. Authored test data is saved in SQLite.
-2. Feature files are generated under `src/tests/features/`.
+2. Feature files are generated under `automation/features/`.
 3. Starting a run creates `TestRun` and `TestRunTestCase` records.
 4. `src/lib/test-run/test-run-executor.ts` spawns `npx cucumber-js`.
 5. `cucumber.mjs` loads step definitions, hooks, parameter types, and writes JSON reports.
@@ -89,18 +89,18 @@ This repository mixes authored code with generated test artifacts. Be careful no
 - server actions in `src/actions/`
 - orchestration logic in `src/lib/`
 - Prisma schema/migrations in `prisma/`
-- reusable step definitions and support code in `src/tests/support/`, `src/tests/hooks/`, `src/tests/utils/`, and some files under `src/tests/steps/`
+- reusable automation runtime files in `automation/steps/` and the local runtime package under `packages/cucumber-runtime/`
 - sync/setup scripts in `scripts/`
 
 ### Usually generated or sync-managed
 
-- `src/tests/features/**/*.feature`
+- `automation/features/**/*.feature`
   These are auto-generated from DB state and also participate in bidirectional sync.
-- `src/tests/reports/**`
+- `automation/reports/**`
   Run output artifacts.
-- `src/tests/locators/**`
+- `automation/locators/**`
   Sync-managed locator files.
-- `src/tests/mapping/locator-map.json`
+- `automation/mapping/locator-map.json`
   Sync-managed mapping data.
 - Some files under `src/tests/steps/**/*.step.ts`
   ESLint explicitly ignores these generated step files.
@@ -112,24 +112,24 @@ If a change affects authored test structure, check whether `generateFeatureFile`
 Key scripts from the root `package.json`:
 
 - `npm run setup`: install deps, create `.env`, run Prisma migrations, install Playwright, then `sync-all`
-- `npm run dev`: start Next.js
+- `npm run dev`: start the root app in development mode
 - `npm run build`: production build
 - `npm run lint`: ESLint
 - `npm run test`: `cucumber-js`
 - `npm run sync-all`: run sync scripts in dependency order
-- `npm run sync-features`: bidirectional database/filesystem feature sync
+- `npm run sync-features`: bidirectional database/filesystem feature sync for `automation/features`
 - `npm run sync-template`: copy the root app into `templates/default/`
 
 `scripts/sync-all.ts` is the main orchestrator. It runs sync steps in dependency order: modules/environments/tags/template-step-groups/template-steps/locator-groups/locators/test-suites/test-cases.
 
-`scripts/regenerate-features.ts` performs bidirectional sync between `src/tests/features` and the database. Use `--dry-run` when you want to inspect impact first.
+`scripts/regenerate-features.ts` performs bidirectional sync between `automation/features` and the database. Use `--dry-run` when you want to inspect impact first.
 
 ## Template And Scaffold Relationship
 
 There are two template sync layers:
 
 1. `npm run sync-template`
-   Copies the root app into `templates/default/` while excluding project-specific generated test data and preserving template-only files like its README.
+   Copies the root app into `templates/default/`, preserves starter automation assets, strips report artifacts, and preserves template-only files like its README.
 2. `packages/create-appraisejs/scripts/sync-templates.ts`
    Copies `templates/default/` into `packages/create-appraisejs/templates/default/`.
 

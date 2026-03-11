@@ -25,29 +25,39 @@ describe('copy-template', () => {
   });
 
   describe('copyTemplate', () => {
-    it('copies template files and excludes node_modules, .env, and lockfiles', async () => {
+    it('copies template files and excludes node_modules, .env, and lockfiles while keeping the seeded db', async () => {
       const fixtureDir = path.join(tempDir, 'fixture');
       await fs.ensureDir(path.join(fixtureDir, 'src', 'app'));
       await fs.ensureDir(path.join(fixtureDir, 'node_modules', 'pkg'));
+      await fs.ensureDir(path.join(fixtureDir, 'prisma'));
       await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' });
+      await fs.writeFile(path.join(fixtureDir, 'gitignore'), 'node_modules\n');
       await fs.writeFile(path.join(fixtureDir, '.env'), 'SECRET=1');
       await fs.writeFile(path.join(fixtureDir, 'package-lock.json'), '{}');
+      await fs.writeFile(path.join(fixtureDir, 'prisma', 'dev.db'), 'db');
       await fs.writeFile(path.join(fixtureDir, 'src', 'app', 'page.tsx'), 'export default function Page() {}');
 
+      const files = getTemplatePath();
+      expect(files).toMatch(/[\\/]templates[\\/]default$/);
+
       const { getCollectedFilesForTest } = await import('./copy-template.js');
-      const files = getCollectedFilesForTest(fixtureDir);
-      expect(files).toContain('package.json');
-      expect(files.some((f) => f.includes('node_modules'))).toBe(false);
-      expect(files.some((f) => f.includes('.env'))).toBe(false);
-      expect(files.some((f) => f.includes('package-lock'))).toBe(false);
-      const srcFiles = files.filter((f) => f.includes('src'));
+      const collectedFiles = getCollectedFilesForTest(fixtureDir, 'npm');
+      expect(collectedFiles).toContain('package.json');
+      expect(collectedFiles).toContain('gitignore');
+      expect(collectedFiles).toContain(path.join('prisma', 'dev.db'));
+      expect(collectedFiles.some((f) => f.includes('node_modules'))).toBe(false);
+      expect(collectedFiles.some((f) => f.includes('.env'))).toBe(false);
+      const srcFiles = collectedFiles.filter((f) => f.includes('src'));
       expect(srcFiles.length).toBeGreaterThan(0);
 
-      await copyTemplate(destDir, undefined, fixtureDir);
+      await copyTemplate(destDir, undefined, fixtureDir, 'npm');
 
       expect(await fs.pathExists(path.join(destDir, 'package.json'))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, '.gitignore'))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, 'gitignore'))).toBe(false);
       expect(await fs.pathExists(path.join(destDir, 'src'))).toBe(true);
       expect(await fs.pathExists(path.join(destDir, 'src', 'app', 'page.tsx'))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, 'prisma', 'dev.db'))).toBe(true);
 
       const hasNodeModules = await fs.pathExists(path.join(destDir, 'node_modules'));
       const hasEnv = await fs.pathExists(path.join(destDir, '.env'));
@@ -55,7 +65,7 @@ describe('copy-template', () => {
 
       expect(hasNodeModules).toBe(false);
       expect(hasEnv).toBe(false);
-      expect(hasLock).toBe(false);
+      expect(hasLock).toBe(true);
     });
 
     it('copies package-lock.json when packageManager is npm', async () => {

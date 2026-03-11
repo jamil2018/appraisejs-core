@@ -11,7 +11,7 @@ High-signal summary:
 
 - This repo contains the main AppraiseJS Next.js app at the root and the `create-appraisejs` scaffold package in `packages/create-appraisejs`.
 - AppraiseJS is a local-first visual test authoring and execution platform built on Next.js, Prisma, SQLite, Cucumber, and Playwright.
-- Main execution flow: UI/server actions save entities -> feature files are generated in `src/tests/features` -> `npx cucumber-js` executes tests -> JSON reports/logs are produced -> report data is parsed back into the database -> UI shows runs and reports.
+- Main execution flow: UI/server actions save entities -> feature files are generated in `automation/features` -> `npx cucumber-js` executes tests -> JSON reports/logs are produced under `automation/reports` -> report data is parsed back into the database -> UI shows runs and reports.
 
 Repository structure:
 
@@ -19,7 +19,7 @@ Repository structure:
 - `src/actions/`: domain server actions
 - `src/lib/`: orchestration, sync, feature generation, parsing, metrics
 - `src/lib/test-run/`: runner, process management, logs, report parser
-- `src/tests/`: test runtime plus generated artifacts
+- `automation/`: starter automation assets plus generated run artifacts
 - `prisma/`: schema and migrations
 - `scripts/`: setup and sync scripts
 - `templates/default/`: scaffold template source
@@ -28,14 +28,14 @@ Repository structure:
 Source-of-truth guidance:
 
 - Prefer editing canonical app code in `src/app`, `src/actions`, `src/lib`, `prisma`, and `scripts`.
-- Treat `src/tests/features/**`, `src/tests/reports/**`, `src/tests/locators/**`, and `src/tests/mapping/locator-map.json` as generated or sync-managed unless the task explicitly targets sync output.
-- Some `src/tests/steps/**/*.step.ts` files are generated; ESLint ignores them.
+- Treat `automation/features/**`, `automation/reports/**`, `automation/locators/**`, and `automation/mapping/locator-map.json` as sync-managed unless the task explicitly targets sync output.
+- Automation step files live under `automation/steps/**/*.step.ts`.
 - If a change affects authored test structure, check whether the correct fix belongs in feature generation or sync logic instead of editing generated files directly.
 
 Operational conventions:
 
-- Default local DB is SQLite via `.env` and `prisma/dev.db`.
-- `npm run setup` installs dependencies, creates `.env`, runs Prisma migrations, installs Playwright, and runs `sync-all`.
+- Default local DB is SQLite via `.env` with `DATABASE_URL="file:./dev.db"`, which creates `prisma/dev.db`.
+- Root app: `npm run setup` installs dependencies, creates `.env`, runs Prisma migrations, installs Playwright, and runs `sync-all`. Scaffolded apps use a production-first path: `setup`, optional `install-playwright`, then `start`.
 - `npm run sync-all` is the main sync orchestrator.
 - `npm run sync-features` performs bidirectional database/filesystem sync for feature files.
 - The dashboard route is implemented at `src/app/page.tsx`.

@@ -50,12 +50,12 @@ Scaffold a new AppraiseJS app in a folder of your choice using the official crea
 npx create-appraisejs
 ```
 
-Follow the prompts (project name, directory), then go into the new project and start the dev server:
+Follow the prompts, then go into the new project, run the one-time production setup, and start the production server:
 
 ```bash
 cd <your-project-name>
-npm install
-npm run dev
+npm run setup
+npm run start
 ```
 
 Open `http://localhost:3000` after the server starts.
@@ -77,12 +77,13 @@ Open `http://localhost:3000` after the server starts.
 #### Environment configuration
 
 - Copy `.env.example` to `.env`, or let `npm run setup` create it (clone method) or use the one created by `create-appraisejs`.
-- Default local database: `DATABASE_URL="file:./prisma/dev.db"`.
+- Default local database: `DATABASE_URL="file:./dev.db"` (creates `prisma/dev.db`).
 
 #### Common scripts
 
 - `npm run dev` - Start the Next.js development server
 - `npm run build` - Build production assets
+- `npm run start` - Start the local production server
 - `npm run lint` - Run lint checks
 - `npm run test` - Run Cucumber test suite
 
@@ -335,7 +336,4 @@ sequenceDiagram
 - Support: `SUPPORT.md`
 
 ---
-
-
-
 

@@ -1,0 +1,14 @@
+2026-02-18 20:10:07 [INFO]: [dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+2026-02-18 20:10:07 [INFO]: Feature: login # src/tests/features/base/login.feature:6
+2026-02-18 20:10:07 [INFO]:   @tc_076b9e46c0fa1586
+2026-02-18 20:10:07 [INFO]:   Scenario: [navigation] validate user is able to navigate to the login page of the environment # src/tests/features/base/login.feature:9
+2026-02-18 20:10:07 [INFO]:     Given the user navigates to the base url of the selected environment
+2026-02-18 20:10:07 [INFO]:     Then the url route should be equal to "/login"
+2026-02-18 20:10:07 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[navigation] validate user is able to navigate to the login page of the environment","status":"passed"}}
+2026-02-18 20:10:07 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[navigation] validate user is able to navigate to the login page of the environment","status":"passed"}}
+2026-02-18 20:10:07 [INFO]: 1 scenario (1 passed)
+2026-02-18 20:10:07 [INFO]: 2 steps (2 passed)
+2026-02-18 20:10:07 [INFO]: 0m01.189s (executing steps: 0m00.960s)
+2026-02-18 20:10:07 [ERROR]: (node:80895) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+2026-02-18 20:10:07 [ERROR]: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-02-18 20:10:07 [INFO]: Process exited with code 0

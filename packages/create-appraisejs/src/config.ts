@@ -19,6 +19,11 @@ function normalizeRepoBase(value: string): string {
 }
 
 export function getConfig(): Config {
+  const hasRemoteOverride =
+    Boolean(process.env.CREATE_APPRAISE_REPO_URL?.trim()) ||
+    Boolean(process.env.CREATE_APPRAISE_BRANCH?.trim()) ||
+    Boolean(process.env.CREATE_APPRAISE_TEMPLATE_SUBPATH?.trim());
+
   const repoBaseRaw = process.env.CREATE_APPRAISE_REPO_URL ?? DEFAULT_REPO_BASE;
   const repoBase = repoBaseRaw ? normalizeRepoBase(repoBaseRaw) : DEFAULT_REPO_BASE;
 
@@ -28,10 +33,11 @@ export function getConfig(): Config {
     process.env.CREATE_APPRAISE_TEMPLATE_SUBPATH?.trim() ?? DEFAULT_TEMPLATE_SUBPATH;
 
   const useBundledRaw = process.env.CREATE_APPRAISE_USE_BUNDLED;
-  const useBundled =
+  const forceBundled =
     useBundledRaw !== undefined &&
     useBundledRaw !== '' &&
     ['1', 'true', 'yes'].includes(String(useBundledRaw).toLowerCase());
+  const useBundled = forceBundled || !hasRemoteOverride;
 
   return {
     repoBase: repoBase || DEFAULT_REPO_BASE,

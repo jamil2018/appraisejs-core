@@ -69,4 +69,3 @@ When('the user goes back to the previous page', async function (this: CustomWorl
     throw new Error(`Failed to go back to the previous page: ${error}`)
   }
 })
-

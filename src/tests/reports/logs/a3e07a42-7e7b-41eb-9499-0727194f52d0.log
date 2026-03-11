@@ -1,0 +1,42 @@
+2026-02-20 00:11:51 [INFO]: [dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+2026-02-20 00:11:51 [INFO]: Feature: login # src/tests/features/base/login.feature:6
+2026-02-20 00:11:51 [INFO]:   @tc_2d328a936cf4c446
+2026-02-20 00:11:51 [INFO]:   Scenario: [Login] Verify user is able to login to the app using valid credentials # src/tests/features/base/login.feature:14
+2026-02-20 00:11:51 [INFO]:     Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
+2026-02-20 00:11:51 [INFO]:     When the user fills in the "email" input field with value "demo@example.com"
+2026-02-20 00:11:51 [INFO]:     And the user fills in the "password" input field with value "test1234"
+2026-02-20 00:11:51 [INFO]:     And the user clicks on the "submit" element
+2026-02-20 00:11:51 [INFO]:     Then the element "home title" should true contain the text "Welcome to Home Page"
+2026-02-20 00:11:51 [INFO]:     ✖ failed
+2026-02-20 00:11:51 [INFO]:       Error: Failed to validate the containment of the text of the element home title: Error: Selector home title not found
+2026-02-20 00:11:51 [INFO]:           at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/validations/text_assertion.step.ts:50:13)
+2026-02-20 00:11:51 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[Login] Verify user is able to login to the app using valid credentials","status":"failed","tracePath":"/Users/hasnat/Projects/appraise/src/tests/reports/traces/628eebcd-e6d9-4fb0-b423-b19467e69294.zip"}}
+2026-02-20 00:11:51 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[Login] Verify user is able to login to the app using valid credentials","status":"failed","tracePath":"/Users/hasnat/Projects/appraise/src/tests/reports/traces/628eebcd-e6d9-4fb0-b423-b19467e69294.zip"}}
+2026-02-20 00:11:51 [INFO]: Failures:
+2026-02-20 00:11:51 [INFO]: 1) Scenario: [Login] Verify user is able to login to the app using valid credentials # src/tests/features/base/login.feature:14
+2026-02-20 00:11:51 [INFO]:    ✔ Before # src/tests/hooks/hooks.ts:40
+2026-02-20 00:11:51 [INFO]:    ✔ Given the user navigates to the "https://demo-test-site-beta.vercel.app" url # src/tests/steps/actions/navigation.step.ts:17
+2026-02-20 00:11:51 [INFO]:    ✔ When the user fills in the "email" input field with value "demo@example.com" # src/tests/steps/actions/input.step.ts:18
+2026-02-20 00:11:51 [INFO]:    ✔ And the user fills in the "password" input field with value "test1234" # src/tests/steps/actions/input.step.ts:18
+2026-02-20 00:11:51 [INFO]:    ✔ And the user clicks on the "submit" element # src/tests/steps/actions/click.step.ts:18
+2026-02-20 00:11:51 [INFO]:    ✖ Then the element "home title" should true contain the text "Welcome to Home Page" # src/tests/steps/validations/text_assertion.step.ts:18
+2026-02-20 00:11:51 [INFO]:        Error: Failed to validate the containment of the text of the element home title: Error: Selector home title not found
+2026-02-20 00:11:51 [INFO]:            at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/validations/text_assertion.step.ts:50:13)
+2026-02-20 00:11:51 [INFO]:    ✔ After # src/tests/hooks/hooks.ts:63
+2026-02-20 00:11:51 [INFO]: 1 scenario (1 failed)
+2026-02-20 00:11:51 [INFO]: 5 steps (1 failed, 4 passed)
+2026-02-20 00:11:51 [INFO]: 0m06.307s (executing steps: 0m05.893s)
+2026-02-20 00:11:51 [ERROR]: (node:93339) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+2026-02-20 00:11:51 [ERROR]: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-02-20 00:11:51 [ERROR]: Error: Locator "home title" not found for name login
+2026-02-20 00:11:51 [ERROR]:     at resolveLocator (/Users/hasnat/Projects/appraise/src/tests/utils/locator.util.ts:229:28)
+2026-02-20 00:11:51 [ERROR]:     at async CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/validations/text_assertion.step.ts:27:24)
+2026-02-20 00:11:51 [ERROR]:     at async wrapPromiseWithTimeout (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/time.ts:55:10)
+2026-02-20 00:11:51 [ERROR]:     at async Object.run (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/user_code_runner.ts:86:16)
+2026-02-20 00:11:51 [ERROR]:     at async Object.run (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/runtime/step_runner.ts:58:20)
+2026-02-20 00:11:51 [ERROR]:     at async TestCaseRunner.invokeStep (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/runtime/test_case_runner.ts:151:12)
+2026-02-20 00:11:51 [ERROR]:     at async TestCaseRunner.runStep (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/runtime/test_case_runner.ts:377:20)
+2026-02-20 00:11:51 [ERROR]:     at async <anonymous> (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/runtime/test_case_runner.ts:259:34)
+2026-02-20 00:11:51 [ERROR]:     at async TestCaseRunner.aroundTestStep (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/runtime/test_case_runner.ts:184:28)
+2026-02-20 00:11:51 [ERROR]:     at async TestCaseRunner.runAttempt (/Users/hasnat/Projects/appraise/node_modules/@cucumber/cucumber/src/runtime/test_case_runner.ts:236:7)
+2026-02-20 00:11:51 [INFO]: Process exited with code 1

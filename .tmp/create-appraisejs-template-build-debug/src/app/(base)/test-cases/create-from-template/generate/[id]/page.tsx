@@ -1,0 +1,96 @@
+import { getTemplateTestCaseByIdAction } from '@/actions/template-test-case/template-test-case-actions'
+import {
+  TemplateTestCase,
+  TemplateTestCaseStep,
+  TemplateTestCaseStepParameter,
+  TemplateStep,
+  TemplateStepParameter,
+  Locator,
+  TestSuite,
+  LocatorGroup,
+  Tag,
+} from '@prisma/client'
+import React from 'react'
+import {
+  templateTestCaseToTestCaseConverter,
+  validateConvertedTestCaseData,
+} from '@/lib/transformers/template-test-case-converter'
+import TestCaseForm from '../../../test-case-form'
+import { createTestCaseAction } from '@/actions/test-case/test-case-actions'
+import {
+  getAllTemplateStepParamsAction,
+  getAllTemplateStepsAction,
+} from '@/actions/template-step/template-step-actions'
+import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
+import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import PageHeader from '@/components/typography/page-header'
+import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Appraise | Create Test Case From Template',
+  description: 'Create a new test from a template to execute against your application',
+}
+
+const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params
+  const { data: templateTestCase, error } = await getTemplateTestCaseByIdAction(id)
+  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
+  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
+  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
+  const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
+  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
+  const { data: tags, error: tagsError } = await getAllTagsAction()
+
+  if (templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError || tagsError) {
+    return (
+      <div>
+        Error: {templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError || tagsError}
+      </div>
+    )
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>
+  }
+  const templateTestCaseData = templateTestCase as TemplateTestCase & {
+    steps: (TemplateTestCaseStep & {
+      parameters: TemplateTestCaseStepParameter[]
+    })[]
+  }
+
+  // Convert template test case to test case format
+  const convertedData = templateTestCaseToTestCaseConverter(templateTestCaseData)
+
+  // Validate the converted data
+  const validation = validateConvertedTestCaseData(convertedData)
+
+  if (!validation.isValid) {
+    return <div>Invalid test case</div>
+  }
+
+  return (
+    <div>
+      <PageHeader>Create New Test Case</PageHeader>
+      <HeaderSubtitle>Create a new test from a template to execute against your application</HeaderSubtitle>
+
+      <TestCaseForm
+        onSubmitAction={createTestCaseAction}
+        defaultNodesOrder={convertedData.nodesOrder}
+        templateStepParams={templateStepParams as TemplateStepParameter[]}
+        templateSteps={templateSteps as TemplateStep[]}
+        locators={locators as Locator[]}
+        testSuites={testSuites as TestSuite[]}
+        tags={tags as Tag[]}
+        defaultTitle={templateTestCaseData.name || ''}
+        defaultDescription={templateTestCaseData.description || ''}
+        defaultTestSuiteIds={convertedData.testSuiteIds}
+        locatorGroups={locatorGroups as LocatorGroup[]}
+      />
+    </div>
+  )
+}
+
+export default GenerateTestCaseFromTemplate

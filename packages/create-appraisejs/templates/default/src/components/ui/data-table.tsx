@@ -127,7 +127,7 @@ export function DataTable<TData, TValue>({
       <div className="flex justify-end">
         <div className="mb-4 flex gap-2">
           {createLink && (
-            <Button variant="default" size="icon">
+            <Button variant="default" size="icon" asChild>
               <Link href={createLink}>
                 <PlusCircle className="h-4 w-4" />
               </Link>
@@ -154,46 +154,40 @@ export function DataTable<TData, TValue>({
             </DropdownMenu>
           )}
           {modifyLink && (
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={table.getSelectedRowModel().rows.length === 0 || table.getSelectedRowModel().rows.length > 1}
-            >
-              <Link
-                href={`${modifyLink}/${
-                  table.getSelectedRowModel().rows.length > 0
-                    ? (
-                        table.getSelectedRowModel().rows[0].original as {
-                          id: string
-                        }
-                      ).id
-                    : ''
-                }`}
-              >
-                <Pencil className="h-4 w-4" />
-              </Link>
-            </Button>
+            (() => {
+              const disabled =
+                table.getSelectedRowModel().rows.length === 0 || table.getSelectedRowModel().rows.length > 1
+              const href = `${modifyLink}/${disabled ? '' : (table.getSelectedRowModel().rows[0].original as { id: string }).id}`
+              return disabled ? (
+                <Button variant="outline" size="icon" disabled>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button variant="outline" size="icon" asChild>
+                  <Link href={href}>
+                    <Pencil className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )
+            })()
           )}
           {viewLink && (
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={table.getSelectedRowModel().rows.length === 0 || table.getSelectedRowModel().rows.length > 1}
-            >
-              <Link
-                href={`${viewLink}/${
-                  table.getSelectedRowModel().rows.length > 0
-                    ? (
-                        table.getSelectedRowModel().rows[0].original as {
-                          id: string
-                        }
-                      ).id
-                    : ''
-                }`}
-              >
-                <Eye className="h-4 w-4" />
-              </Link>
-            </Button>
+            (() => {
+              const disabled =
+                table.getSelectedRowModel().rows.length === 0 || table.getSelectedRowModel().rows.length > 1
+              const href = `${viewLink}/${disabled ? '' : (table.getSelectedRowModel().rows[0].original as { id: string }).id}`
+              return disabled ? (
+                <Button variant="outline" size="icon" disabled>
+                  <Eye className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button variant="outline" size="icon" asChild>
+                  <Link href={href}>
+                    <Eye className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )
+            })()
           )}
           {deleteAction && (
             <DeletePrompt

@@ -1,74 +1,77 @@
 #!/usr/bin/env node
-import { cpSync, mkdirSync, existsSync, writeFileSync, rmSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+import { getEmptyEnvironmentsFileContent, setSeededTemplateFilesTracked } from '../src/scaffold-gitignore.js'
+import { shouldExcludeBundledTemplatePath } from '../src/sync-templates-utils.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(__dirname, '..', '..', '..');
-const source = join(repoRoot, 'templates', 'default');
-const dest = join(__dirname, '..', 'templates', 'default');
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const repoRoot = join(__dirname, '..', '..', '..')
+const source = join(repoRoot, 'templates', 'default')
+const dest = join(__dirname, '..', 'templates', 'default')
 
-const EXCLUDED_TEST_DATA_PREFIXES = [
-  'automation/features/',
-  'automation/config/environments/',
-  'automation/locators/',
-  'automation/reports/',
-];
+function copyDir(sourceDir: string, destDir: string, baseDir = sourceDir): void {
+  mkdirSync(destDir, { recursive: true })
 
-function shouldExcludeFromCopy(sourcePath: string): boolean {
-  const rel = sourcePath.slice(source.length).replace(/^[/\\]/, '') || '';
-  return EXCLUDED_TEST_DATA_PREFIXES.some((prefix) => rel.startsWith(prefix));
+  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = join(sourceDir, entry.name)
+    const destPath = join(destDir, entry.name)
+    const relativePath = sourcePath.slice(baseDir.length + 1).replace(/\\/g, '/')
+
+    if (shouldExcludeBundledTemplatePath(relativePath)) {
+      continue
+    }
+
+    if (entry.isDirectory()) {
+      copyDir(sourcePath, destPath, baseDir)
+      continue
+    }
+
+    cpSync(sourcePath, destPath, { force: true })
+  }
+}
+
+function prepareBundledTemplateFiles(templateRoot: string): void {
+  const gitignorePath = join(templateRoot, '.gitignore')
+  const packagedGitignorePath = join(templateRoot, 'gitignore')
+  if (existsSync(gitignorePath) || existsSync(packagedGitignorePath)) {
+    const gitignore = readFileSync(existsSync(gitignorePath) ? gitignorePath : packagedGitignorePath, 'utf8')
+    writeFileSync(packagedGitignorePath, setSeededTemplateFilesTracked(gitignore, true))
+    rmSync(gitignorePath, { force: true })
+  }
+
+  const environmentsPath = join(templateRoot, 'automation', 'config', 'environments', 'environments.json')
+  mkdirSync(dirname(environmentsPath), { recursive: true })
+  writeFileSync(environmentsPath, getEmptyEnvironmentsFileContent())
 }
 
 if (!existsSync(source)) {
-  console.error('Source template not found:', source);
-  process.exit(1);
+  console.error('Source template not found:', source)
+  process.exit(1)
 }
 
-mkdirSync(dest, { recursive: true });
-cpSync(source, dest, {
-  recursive: true,
-  force: true,
-  filter: (sourcePath: string) => !shouldExcludeFromCopy(sourcePath),
-});
+const readmePath = join(dest, 'README.md')
+const appraisejsConfigPath = join(dest, 'appraisejs.config.json')
+const savedReadme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : null
+const savedAppraisejsConfig = existsSync(appraisejsConfigPath)
+  ? readFileSync(appraisejsConfigPath, 'utf8')
+  : null
 
-// Clear and recreate automation workspace directories so dest has no leftover project data
-const dirsToClear = [
-  join(dest, 'automation', 'features'),
-  join(dest, 'automation', 'locators'),
-  join(dest, 'automation', 'reports'),
-];
-for (const dir of dirsToClear) {
-  if (existsSync(dir)) {
-    rmSync(dir, { recursive: true });
-  }
-}
-const automationDirs = [
-  join(dest, 'automation', 'features'),
-  join(dest, 'automation', 'config', 'environments'),
-  join(dest, 'automation', 'locators'),
-  join(dest, 'automation', 'reports'),
-  join(dest, 'automation', 'mapping'),
-];
-for (const dir of automationDirs) {
-  mkdirSync(dir, { recursive: true });
-}
-writeFileSync(join(dest, 'automation', 'config', 'environments', 'environments.json'), JSON.stringify({}) + '\n');
-writeFileSync(join(dest, 'automation', 'mapping', 'locator-map.json'), JSON.stringify([]) + '\n');
+rmSync(dest, { recursive: true, force: true })
+mkdirSync(dest, { recursive: true })
+copyDir(source, dest)
 
-// Copy cucumber.mjs from repo root (required for running tests)
-const cucumberSource = join(repoRoot, 'cucumber.mjs');
-if (existsSync(cucumberSource)) {
-  cpSync(cucumberSource, join(dest, 'cucumber.mjs'), { force: true });
-  console.log('Synced cucumber.mjs to template');
+rmSync(join(dest, '.env'), { force: true })
+rmSync(join(dest, 'prisma', 'prisma'), { recursive: true, force: true })
+prepareBundledTemplateFiles(dest)
+
+if (savedReadme) {
+  writeFileSync(readmePath, savedReadme)
+  console.log('Restored README.md')
+}
+if (savedAppraisejsConfig) {
+  writeFileSync(appraisejsConfigPath, savedAppraisejsConfig)
+  console.log('Restored appraisejs.config.json')
 }
 
-// Copy .vscode folder from repo root
-const vscodeSource = join(repoRoot, '.vscode');
-if (existsSync(vscodeSource)) {
-  cpSync(vscodeSource, join(dest, '.vscode'), { recursive: true, force: true });
-  console.log('Synced .vscode to template');
-}
-
-console.log('Synced templates/default to packages/create-appraisejs/templates/default');
-
+console.log('Synced templates/default to packages/create-appraisejs/templates/default')

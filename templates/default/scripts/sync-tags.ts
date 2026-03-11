@@ -235,7 +235,7 @@ async function main() {
     console.log('Filesystem is the source of truth - tags in DB but not in FS will be deleted.\n')
 
     const baseDir = process.cwd()
-    const featuresDir = join(baseDir, 'src', 'tests', 'features')
+    const featuresDir = join(baseDir, 'automation', 'features')
 
     // Scan feature files
     console.log('📁 Scanning feature files in automation/features...')
@@ -289,5 +289,4 @@ async function main() {
 }
 
 main()
-
 
