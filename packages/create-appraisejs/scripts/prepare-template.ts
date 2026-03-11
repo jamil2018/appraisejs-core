@@ -183,6 +183,7 @@ async function seedRootTemplateDatabase(inputHash: string, previousMetadata: Tem
   rmSync(path.join(tempWorkspaceDir, '.env'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'dev.db'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'prisma'), { recursive: true, force: true })
+  await fs.writeFile(path.join(tempWorkspaceDir, 'prisma', 'dev.db'), '')
   await fs.writeFile(
     path.join(tempWorkspaceDir, '.env'),
     '# Database configuration for local development\nDATABASE_URL="file:./dev.db"\n',

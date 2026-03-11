@@ -1,0 +1,554 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model TestSuite {
+  id          String            @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  moduleId    String
+  module      Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  testCases   TestCase[]        @relation("TestSuiteTestCases")
+  tags        Tag[]
+  metrics     TestSuiteMetrics?
+}
+
+model Review {
+  id         String       @id @default(uuid())
+  testCaseId String
+  reviewerId String
+  status     ReviewStatus
+  comments   String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  testCase   TestCase     @relation(fields: [testCaseId], references: [id])
+}
+
+model LinkedJiraTicket {
+  id            String   @id @default(uuid())
+  testCaseId    String
+  jiraTicketId  String
+  jiraTicketUrl String
+  jiraStatus    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  testCase      TestCase @relation(fields: [testCaseId], references: [id])
+}
+
+model TemplateStep {
+  id                   String                  @id @default(uuid())
+  name                 String
+  description          String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  signature            String
+  functionDefinition   String?
+  type                 TemplateStepType
+  icon                 TemplateStepIcon
+  templateStepGroupId  String
+  templateStepGroup    TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
+  parameters           TemplateStepParameter[]
+  TemplateTestCaseStep TemplateTestCaseStep[]
+  TestCaseStep         TestCaseStep[]
+}
+
+model TemplateStepParameter {
+  id             String            @id @default(uuid())
+  name           String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  templateStepId String
+  order          Int
+  type           StepParameterType
+  templateStep   TemplateStep      @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+}
+
+model TemplateStepGroup {
+  id            String                @id @default(uuid())
+  name          String
+  description   String?
+  type          TemplateStepGroupType @default(ACTION)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  templateSteps TemplateStep[]        @relation("TemplateStepGroupSteps")
+}
+
+model TestCase {
+  id                String             @id @default(uuid())
+  title             String
+  description       String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  linkedJiraTickets LinkedJiraTicket[]
+  reviews           Review[]
+  steps             TestCaseStep[]
+  TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
+  TestRunTestCase   TestRunTestCase[]
+  tags              Tag[]
+  metrics           TestCaseMetrics?
+}
+
+model TestCaseStep {
+  id             String                  @id @default(uuid())
+  testCaseId     String
+  order          Int
+  gherkinStep    String
+  icon           TemplateStepIcon
+  label          String
+  templateStepId String
+  TemplateStep   TemplateStep            @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters     TestCaseStepParameter[]
+}
+
+model TemplateTestCase {
+  id          String                 @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  steps       TemplateTestCaseStep[]
+}
+
+model TemplateTestCaseStep {
+  id                 String                          @id @default(uuid())
+  order              Int
+  gherkinStep        String
+  icon               TemplateStepIcon
+  label              String
+  templateTestCaseId String
+  templateStepId     String
+  TemplateStep       TemplateStep                    @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
+  parameters         TemplateTestCaseStepParameter[]
+}
+
+model TemplateTestCaseStepParameter {
+  id                   String               @id @default(uuid())
+  name                 String
+  defaultValue         String
+  order                Int
+  testCaseStepId       String
+  locatorId            String?
+  type                 StepParameterType
+  defaultLocatorId     String?
+  defaultLocator       Locator?             @relation(fields: [defaultLocatorId], references: [id])
+  templateTestCaseStep TemplateTestCaseStep @relation(fields: [testCaseStepId], references: [id], onDelete: Cascade)
+}
+
+model TestCaseStepParameter {
+  id             String            @id @default(uuid())
+  name           String
+  value          String
+  order          Int
+  testCaseStepId String
+  locatorId      String?
+  type           StepParameterType
+  Locator        Locator?          @relation(fields: [locatorId], references: [id])
+  testCaseStep   TestCaseStep      @relation(fields: [testCaseStepId], references: [id], onDelete: Cascade)
+}
+
+model Locator {
+  id                            String                          @id @default(uuid())
+  name                          String
+  value                         String
+  createdAt                     DateTime                        @default(now())
+  updatedAt                     DateTime                        @updatedAt
+  locatorGroupId                String?
+  locatorGroup                  LocatorGroup?                   @relation(fields: [locatorGroupId], references: [id], onDelete: Cascade)
+  TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
+  stepParameters                TestCaseStepParameter[]
+  conflicts                     ConflictResolution[]
+}
+
+model LocatorGroup {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  route     String    @default("/")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  moduleId  String
+  locators  Locator[]
+  module    Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+model Module {
+  id            String         @id @default(uuid())
+  name          String
+  parentId      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  locatorGroups LocatorGroup[]
+  parent        Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Module[]       @relation("ModuleHierarchy")
+  testSuites    TestSuite[]
+}
+
+model TestRunTestCase {
+  id              String                @id @default(uuid())
+  testRunId       String
+  testCaseId      String
+  status          TestRunTestCaseStatus @default(PENDING)
+  result          TestRunTestCaseResult @default(UNTESTED)
+  tracePath       String?
+  testRun         TestRun               @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCase        TestCase              @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  reportTestCases ReportTestCase[]
+}
+
+model TestRun {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  runId            String            @unique @default(uuid())
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  status           TestRunStatus     @default(QUEUED)
+  result           TestRunResult     @default(PENDING)
+  testCases        TestRunTestCase[]
+  updatedAt        DateTime          @updatedAt
+  environment      Environment       @relation(fields: [environmentId], references: [id])
+  environmentId    String
+  tags             Tag[]
+  testWorkersCount Int?              @default(1)
+  browserEngine    BrowserEngine     @default(CHROMIUM)
+  logs             TestRunLog?
+  logPath          String?
+  reportPath       String?
+  reports          Report[]
+
+  @@index([completedAt])
+  @@index([result])
+}
+
+model TestRunLog {
+  id        String   @id @default(uuid())
+  testRunId String   @unique
+  logs      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  testRun   TestRun  @relation(fields: [testRunId], references: [runId], onDelete: Cascade)
+}
+
+model Environment {
+  id         String    @id @default(uuid())
+  name       String    @unique
+  baseUrl    String
+  apiBaseUrl String?
+  username   String?
+  password   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  testRuns   TestRun[]
+}
+
+model Tag {
+  id            String      @id @default(uuid())
+  name          String
+  tagExpression String
+  type          TagType     @default(FILTER)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  testRuns      TestRun[]
+  testSuites    TestSuite[]
+  testCases     TestCase[]
+}
+
+model ConflictResolution {
+  id                  String       @id @default(uuid())
+  entityType          EntityType
+  entityId            String
+  conflictType        ConflictType
+  conflictingEntityId String?
+  resolved            Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  locator             Locator?     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model ReportTestCase {
+  id                String          @id @default(uuid())
+  reportId          String
+  testCaseId        String
+  testRunTestCaseId String
+  reportScenarioId  String?
+  testRunTestCase   TestRunTestCase @relation(fields: [testRunTestCaseId], references: [id], onDelete: Cascade)
+  report            Report          @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportScenario    ReportScenario? @relation(fields: [reportScenarioId], references: [id], onDelete: SetNull)
+  duration          String
+}
+
+model Report {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  reportPath  String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  testRunId   String
+  testRun     TestRun          @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCases   ReportTestCase[]
+  features    ReportFeature[]
+}
+
+model ReportFeature {
+  id          String             @id @default(uuid())
+  reportId    String
+  name        String
+  description String?
+  uri         String
+  line        Int
+  keyword     String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  report      Report             @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  tags        ReportFeatureTag[]
+  scenarios   ReportScenario[]
+}
+
+model ReportFeatureTag {
+  id              String        @id @default(uuid())
+  reportFeatureId String
+  tagName         String
+  line            Int
+  createdAt       DateTime      @default(now())
+  reportFeature   ReportFeature @relation(fields: [reportFeatureId], references: [id], onDelete: Cascade)
+}
+
+model ReportScenario {
+  id              String              @id @default(uuid())
+  reportFeatureId String
+  name            String
+  description     String?
+  line            Int
+  keyword         String
+  type            String
+  cucumberId      String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  reportFeature   ReportFeature       @relation(fields: [reportFeatureId], references: [id], onDelete: Cascade)
+  tags            ReportScenarioTag[]
+  steps           ReportStep[]
+  hooks           ReportHook[]
+  reportTestCases ReportTestCase[]
+}
+
+model ReportScenarioTag {
+  id               String         @id @default(uuid())
+  reportScenarioId String
+  tagName          String
+  line             Int
+  createdAt        DateTime       @default(now())
+  reportScenario   ReportScenario @relation(fields: [reportScenarioId], references: [id], onDelete: Cascade)
+}
+
+model ReportStep {
+  id               String         @id @default(uuid())
+  reportScenarioId String
+  keyword          StepKeyword
+  line             Int?
+  name             String
+  matchLocation    String?
+  status           StepStatus
+  duration         String
+  errorMessage     String?
+  errorTrace       String?
+  hidden           Boolean        @default(false)
+  order            Int
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  reportScenario   ReportScenario @relation(fields: [reportScenarioId], references: [id], onDelete: Cascade)
+}
+
+model ReportHook {
+  id               String         @id @default(uuid())
+  reportScenarioId String
+  keyword          StepKeyword
+  status           StepStatus
+  duration         String
+  errorMessage     String?
+  errorTrace       String?
+  hidden           Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  reportScenario   ReportScenario @relation(fields: [reportScenarioId], references: [id], onDelete: Cascade)
+}
+
+model TestCaseMetrics {
+  id                  String    @id @default(uuid())
+  testCaseId          String    @unique
+  isRepeatedlyFailing Boolean   @default(false)
+  isFlaky             Boolean   @default(false)
+  consecutiveFailures Int       @default(0)
+  failureRate         Float     @default(0)
+  totalRecentRuns     Int       @default(0)
+  failedRecentRuns    Int       @default(0)
+  lastExecutedAt      DateTime?
+  lastFailedAt        DateTime?
+  lastPassedAt        DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  testCase            TestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@index([isRepeatedlyFailing])
+  @@index([isFlaky])
+}
+
+model TestSuiteMetrics {
+  id             String    @id @default(uuid())
+  testSuiteId    String    @unique
+  lastExecutedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  testSuite      TestSuite @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+
+  @@index([lastExecutedAt])
+}
+
+model DashboardMetrics {
+  id                             String   @id @default(uuid())
+  failedRecentRunsCount          Int      @default(0)
+  repeatedlyFailingTestsCount    Int      @default(0)
+  flakyTestsCount                Int      @default(0)
+  suitesNotExecutedRecentlyCount Int      @default(0)
+  lastUpdatedAt                  DateTime @default(now())
+  createdAt                      DateTime @default(now())
+}
+
+enum TagType {
+  IDENTIFIER
+  FILTER
+}
+
+enum TestRunStatus {
+  QUEUED
+  RUNNING
+  CANCELLING
+  COMPLETED
+  CANCELLED
+}
+
+enum TestRunTestCaseStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum TestRunTestCaseResult {
+  PASSED
+  FAILED
+  UNTESTED
+}
+
+enum TestRunResult {
+  PENDING
+  PASSED
+  FAILED
+  CANCELLED
+}
+
+enum Role {
+  ADMIN
+  TESTER
+  REVIEWER
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum TestCaseStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TestCaseResult {
+  PASSED
+  FAILED
+  BLOCKED
+  SKIPPED
+  RETEST
+  UNTESTED
+}
+
+enum TemplateStepType {
+  ACTION
+  ASSERTION
+}
+
+enum StepParameterType {
+  NUMBER
+  STRING
+  DATE
+  BOOLEAN
+  LOCATOR
+}
+
+enum StepParameterValueType {
+  STRING
+  NUMBER
+  LOCATOR
+}
+
+enum TemplateStepIcon {
+  MOUSE
+  NAVIGATION
+  INPUT
+  DOWNLOAD
+  API
+  STORE
+  FORMAT
+  DATA
+  UPLOAD
+  WAIT
+  VALIDATION
+  DEBUG
+}
+
+enum BrowserEngine {
+  CHROMIUM
+  FIREFOX
+  WEBKIT
+}
+
+enum TemplateStepGroupType {
+  ACTION
+  VALIDATION
+}
+
+enum EntityType {
+  LOCATOR
+}
+
+enum ConflictType {
+  DUPLICATE_NAME
+  DUPLICATE_VALUE
+}
+
+enum StepStatus {
+  PASSED
+  FAILED
+  SKIPPED
+  PENDING
+  UNDEFINED
+}
+
+enum StepKeyword {
+  GIVEN
+  WHEN
+  THEN
+  AND
+  BUT
+  BEFORE
+  AFTER
+}
