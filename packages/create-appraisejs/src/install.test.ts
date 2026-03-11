@@ -6,10 +6,11 @@ import { getInstallCommand, getPlaywrightInstallCommand, patchPackageJsonScripts
 
 const TEMPLATE_SCRIPTS = {
   'install-dependencies': 'npm install --legacy-peer-deps',
-  setup: 'npm run install-dependencies && npm run setup:db && npm run build:local',
+  setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
   'appraisejs:setup': 'npm run setup',
   'appraisejs:sync': 'npm run sync-all',
   'build:local': 'npm run generate-db-client && npm run build:cucumber-runtime && next build',
+  'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
   'setup-env': 'npx tsx scripts/setup-env.ts',
   'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
   'migrate-db': 'npx prisma migrate deploy',
@@ -31,12 +32,15 @@ describe('patchPackageJsonScripts', () => {
     try {
       const pkg = await patchAndRead(dir, 'pnpm');
       expect(pkg.scripts['install-dependencies']).toBe('pnpm install');
-      expect(pkg.scripts.setup).toBe('pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local');
+      expect(pkg.scripts.setup).toBe(
+        'pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local && pnpm run protect-seeded-files'
+      );
       expect(pkg.scripts['appraisejs:setup']).toBe('pnpm run setup');
       expect(pkg.scripts['appraisejs:sync']).toBe('pnpm run sync-all');
       expect(pkg.scripts['build:local']).toBe(
         'pnpm run generate-db-client && pnpm run build:cucumber-runtime && next build'
       );
+      expect(pkg.scripts['protect-seeded-files']).toBe('pnpm exec tsx scripts/protect-seeded-files.ts');
       expect(pkg.scripts['setup-env']).toBe('pnpm exec tsx scripts/setup-env.ts');
       expect(pkg.scripts['generate-db-client']).toBe('pnpm exec prisma generate --schema prisma/schema.prisma');
       expect(pkg.scripts['migrate-db']).toBe('pnpm exec prisma migrate deploy');
@@ -61,7 +65,9 @@ describe('patchPackageJsonScripts', () => {
       expect(pkg.scripts['install-dependencies']).toBe('npm install --legacy-peer-deps');
       expect(pkg.scripts.setup).toContain('npm run install-dependencies');
       expect(pkg.scripts.setup).toContain('npm run setup:db');
+      expect(pkg.scripts.setup).toContain('npm run protect-seeded-files');
       expect(pkg.scripts.setup).not.toContain('pnpm run');
+      expect(pkg.scripts['protect-seeded-files']).toBe('npx tsx scripts/protect-seeded-files.ts');
       expect(pkg.scripts['setup-env']).toContain('npx ');
       expect(pkg.scripts['setup-env']).toBe('npx tsx scripts/setup-env.ts');
       expect(pkg.scripts['generate-db-client']).toBe('npx prisma generate --schema prisma/schema.prisma');
@@ -76,8 +82,11 @@ describe('patchPackageJsonScripts', () => {
     try {
       const pkg = await patchAndRead(dir, 'yarn');
       expect(pkg.scripts['install-dependencies']).toBe('yarn install');
-      expect(pkg.scripts.setup).toBe('yarn run install-dependencies && yarn run setup:db && yarn run build:local');
+      expect(pkg.scripts.setup).toBe(
+        'yarn run install-dependencies && yarn run setup:db && yarn run build:local && yarn run protect-seeded-files'
+      );
       expect(pkg.scripts['appraisejs:setup']).toBe('yarn run setup');
+      expect(pkg.scripts['protect-seeded-files']).toBe('yarn run tsx scripts/protect-seeded-files.ts');
       expect(pkg.scripts['setup-env']).toBe('yarn run tsx scripts/setup-env.ts');
       expect(pkg.scripts['generate-db-client']).toBe('yarn run prisma generate --schema prisma/schema.prisma');
       expect(pkg.scripts['install-playwright']).toBe('yarn run playwright install');
@@ -94,7 +103,9 @@ describe('patchPackageJsonScripts', () => {
       expect(pkg.scripts['install-dependencies']).toBe('bun install');
       expect(pkg.scripts.setup).toContain('bun run install-dependencies');
       expect(pkg.scripts.setup).toContain('bun run setup:db');
+      expect(pkg.scripts.setup).toContain('bun run protect-seeded-files');
       expect(pkg.scripts['appraisejs:sync']).toBe('bun run sync-all');
+      expect(pkg.scripts['protect-seeded-files']).toBe('bunx tsx scripts/protect-seeded-files.ts');
       expect(pkg.scripts['setup-env']).toBe('bunx tsx scripts/setup-env.ts');
       expect(pkg.scripts['generate-db-client']).toBe('bunx prisma generate --schema prisma/schema.prisma');
       expect(pkg.scripts['migrate-db']).toBe('bunx prisma migrate deploy');

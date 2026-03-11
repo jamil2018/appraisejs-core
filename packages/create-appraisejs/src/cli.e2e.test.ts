@@ -41,8 +41,10 @@ describe('CLI E2E', () => {
     expect(pkg.scripts?.setup).toContain('setup:db');
     expect(pkg.scripts?.['setup:db']).toContain('generate-db-client');
     expect(pkg.scripts?.setup).toContain('build:local');
+    expect(pkg.scripts?.setup).toContain('protect-seeded-files');
     expect(pkg.scripts?.['build:local']).toContain('generate-db-client');
     expect(pkg.scripts?.['build:local']).toContain('build:cucumber-runtime');
+    expect(pkg.scripts?.['protect-seeded-files']).toBe('npx tsx scripts/protect-seeded-files.ts');
   });
 
   it('patchPackageJsonScripts rewrites real template scripts for chosen package manager', async () => {
@@ -64,11 +66,14 @@ describe('CLI E2E', () => {
 
     const pkgAfter = await fs.readJson(path.join(destDir, 'package.json'));
     expect(pkgAfter.scripts['install-dependencies']).toBe('pnpm install');
-    expect(pkgAfter.scripts.setup).toBe('pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local');
+    expect(pkgAfter.scripts.setup).toBe(
+      'pnpm run install-dependencies && pnpm run setup:db && pnpm run build:local && pnpm run protect-seeded-files'
+    );
     expect(pkgAfter.scripts['appraisejs:setup']).toBe('pnpm run setup');
     expect(pkgAfter.scripts['appraisejs:sync']).toBe('pnpm run sync-all');
     expect(pkgAfter.scripts['generate-db-client']).toContain('pnpm exec ');
     expect(pkgAfter.scripts['generate-db-client']).not.toContain('npx ');
+    expect(pkgAfter.scripts['protect-seeded-files']).toContain('pnpm exec ');
     expect(pkgAfter.scripts['setup-env']).toContain('pnpm exec ');
     expect(pkgAfter.scripts['setup-env']).not.toContain('npx ');
     expect(pkgAfter.scripts['sync-all']).toContain('pnpm exec ');
@@ -89,9 +94,11 @@ describe('CLI E2E', () => {
     await patchPackageJsonScripts(destDir, 'bun');
 
     const pkgAfter = await fs.readJson(path.join(destDir, 'package.json'));
+    expect(pkgAfter.scripts['protect-seeded-files']).toContain('bunx ');
     expect(pkgAfter.scripts['setup-env']).toContain('bunx ');
     expect(pkgAfter.scripts['sync-all']).toContain('bunx ');
     expect(pkgAfter.scripts['install-playwright']).toContain('bunx ');
+    expect(pkgAfter.scripts['protect-seeded-files']).not.toContain('npx ');
     expect(pkgAfter.scripts['setup-env']).not.toContain('npx ');
   });
 });

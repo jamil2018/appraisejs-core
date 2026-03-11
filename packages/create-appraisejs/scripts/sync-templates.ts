@@ -2,6 +2,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import { getEmptyEnvironmentsFileContent, setSeededTemplateFilesTracked } from '../src/scaffold-gitignore.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..', '..', '..')
@@ -31,6 +32,18 @@ function resetAutomationReports(templateRoot: string): void {
   mkdirSync(join(reportsRoot, 'traces'), { recursive: true })
 }
 
+function prepareBundledTemplateFiles(templateRoot: string): void {
+  const gitignorePath = join(templateRoot, '.gitignore')
+  if (existsSync(gitignorePath)) {
+    const gitignore = readFileSync(gitignorePath, 'utf8')
+    writeFileSync(gitignorePath, setSeededTemplateFilesTracked(gitignore, true))
+  }
+
+  const environmentsPath = join(templateRoot, 'automation', 'config', 'environments', 'environments.json')
+  mkdirSync(dirname(environmentsPath), { recursive: true })
+  writeFileSync(environmentsPath, getEmptyEnvironmentsFileContent())
+}
+
 if (!existsSync(source)) {
   console.error('Source template not found:', source)
   process.exit(1)
@@ -50,6 +63,7 @@ copyDir(source, dest)
 resetAutomationReports(dest)
 rmSync(join(dest, '.env'), { force: true })
 rmSync(join(dest, 'prisma', 'prisma'), { recursive: true, force: true })
+prepareBundledTemplateFiles(dest)
 
 if (savedReadme) {
   writeFileSync(readmePath, savedReadme)

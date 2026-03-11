@@ -48,5 +48,6 @@ yarn-error.log*
 next-env.d.ts
 
 automation/reports/*
-automation/config/environments/environments.json
 packages/cucumber-runtime/dist/*
+!prisma/dev.db
+!automation/config/environments/environments.json

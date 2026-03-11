@@ -63,8 +63,8 @@ function runCommand(targetDir: string, command: string, args: string[]): Promise
 }
 
 /**
- * Run the project's `setup` script (install-dependencies, setup-env, build:local)
- * and optionally install the selected Playwright browsers afterward.
+ * Run the project's `setup` script and optionally install the selected
+ * Playwright browsers afterward.
  */
 export async function runSetup(
   targetDir: string,
