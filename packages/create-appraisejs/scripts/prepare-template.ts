@@ -112,7 +112,7 @@ async function computeTemplateInputHash(): Promise<string> {
 
   for (const file of await collectFiles(path.join(repoRoot, 'scripts'), relativePath => {
     const baseName = path.basename(relativePath)
-    return baseName.startsWith('sync-') || baseName === 'setup-env.ts'
+    return baseName.startsWith('sync-') || baseName === 'setup-env.ts' || baseName === 'protect-seeded-files.ts'
   })) {
     inputFiles.add(file)
   }

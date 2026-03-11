@@ -11,13 +11,11 @@ import {
 
 async function createPreparedTemplateFixture(rootDir: string): Promise<void> {
   await fs.ensureDir(path.join(rootDir, 'prisma'))
-  await fs.ensureDir(path.join(rootDir, 'automation', 'features', 'base'))
   await fs.ensureDir(path.join(rootDir, 'automation', 'config', 'environments'))
   await fs.ensureDir(path.join(rootDir, 'automation', 'mapping'))
-  await fs.ensureDir(path.join(rootDir, 'automation', 'reports'))
 
+  await fs.writeFile(path.join(rootDir, 'gitignore'), 'node_modules\n')
   await fs.writeFile(path.join(rootDir, 'prisma', 'dev.db'), 'db')
-  await fs.writeFile(path.join(rootDir, 'automation', 'features', 'base', 'login.feature'), 'Feature: login')
   await fs.writeFile(
     path.join(rootDir, 'automation', 'config', 'environments', 'environments.json'),
     '{"demo":{"baseUrl":"https://example.com","apiBaseUrl":"","email":"","password":""}}',
@@ -84,6 +82,13 @@ describe('verifyPreparedTemplateState', () => {
     await fs.writeFile(path.join(dir, 'automation', 'reports', 'logs', 'run.log'), 'artifact')
 
     await expect(verifyPreparedTemplateState(dir)).rejects.toThrow(/report artifacts/)
+  })
+
+  it('fails when the packaged gitignore file is missing', async () => {
+    const dir = await createTempTemplateDir()
+    await fs.remove(path.join(dir, 'gitignore'))
+
+    await expect(verifyPreparedTemplateState(dir)).rejects.toThrow(/packaged gitignore/)
   })
 
   it('fails when a stale nested prisma database is present', async () => {

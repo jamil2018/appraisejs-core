@@ -25,7 +25,14 @@ function setSeededTemplateFilesTracked(content: string, tracked: boolean): strin
 }
 
 const gitignorePath = path.join(process.cwd(), '.gitignore')
-const currentGitignore = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : ''
+const packagedGitignorePath = path.join(process.cwd(), 'gitignore')
+const sourceGitignorePath = fs.existsSync(gitignorePath) ? gitignorePath : packagedGitignorePath
+const currentGitignore = fs.existsSync(sourceGitignorePath) ? fs.readFileSync(sourceGitignorePath, 'utf8') : ''
 
 fs.writeFileSync(gitignorePath, setSeededTemplateFilesTracked(currentGitignore, false))
+
+if (sourceGitignorePath === packagedGitignorePath && fs.existsSync(packagedGitignorePath)) {
+  fs.rmSync(packagedGitignorePath, { force: true })
+}
+
 console.log('Updated .gitignore to ignore seeded local files.')

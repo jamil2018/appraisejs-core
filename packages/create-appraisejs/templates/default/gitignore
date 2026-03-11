@@ -39,6 +39,7 @@ yarn-error.log*
 *.db
 *.sqlite
 *.sqlite3
+!packages/create-appraisejs/templates/default/prisma/dev.db
 
 # vercel
 .vercel

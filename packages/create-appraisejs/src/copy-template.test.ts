@@ -31,6 +31,7 @@ describe('copy-template', () => {
       await fs.ensureDir(path.join(fixtureDir, 'node_modules', 'pkg'));
       await fs.ensureDir(path.join(fixtureDir, 'prisma'));
       await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' });
+      await fs.writeFile(path.join(fixtureDir, 'gitignore'), 'node_modules\n');
       await fs.writeFile(path.join(fixtureDir, '.env'), 'SECRET=1');
       await fs.writeFile(path.join(fixtureDir, 'package-lock.json'), '{}');
       await fs.writeFile(path.join(fixtureDir, 'prisma', 'dev.db'), 'db');
@@ -42,6 +43,7 @@ describe('copy-template', () => {
       const { getCollectedFilesForTest } = await import('./copy-template.js');
       const collectedFiles = getCollectedFilesForTest(fixtureDir, 'npm');
       expect(collectedFiles).toContain('package.json');
+      expect(collectedFiles).toContain('gitignore');
       expect(collectedFiles).toContain(path.join('prisma', 'dev.db'));
       expect(collectedFiles.some((f) => f.includes('node_modules'))).toBe(false);
       expect(collectedFiles.some((f) => f.includes('.env'))).toBe(false);
@@ -51,6 +53,8 @@ describe('copy-template', () => {
       await copyTemplate(destDir, undefined, fixtureDir, 'npm');
 
       expect(await fs.pathExists(path.join(destDir, 'package.json'))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, '.gitignore'))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, 'gitignore'))).toBe(false);
       expect(await fs.pathExists(path.join(destDir, 'src'))).toBe(true);
       expect(await fs.pathExists(path.join(destDir, 'src', 'app', 'page.tsx'))).toBe(true);
       expect(await fs.pathExists(path.join(destDir, 'prisma', 'dev.db'))).toBe(true);

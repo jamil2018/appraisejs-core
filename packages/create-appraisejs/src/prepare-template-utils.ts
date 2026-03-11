@@ -48,8 +48,8 @@ export async function verifyPreparedTemplateState(
 ): Promise<void> {
   const seededDbPath = path.join(packageTemplateDir, 'prisma', 'dev.db')
   const staleNestedDbPath = path.join(packageTemplateDir, 'prisma', 'prisma', 'dev.db')
+  const packagedGitignorePath = path.join(packageTemplateDir, 'gitignore')
   const packageEnvPath = path.join(packageTemplateDir, '.env')
-  const starterFeaturePath = path.join(packageTemplateDir, 'automation', 'features', 'base', 'login.feature')
   const starterEnvironmentPath = path.join(
     packageTemplateDir,
     'automation',
@@ -58,7 +58,8 @@ export async function verifyPreparedTemplateState(
     'environments.json',
   )
   const starterLocatorMapPath = path.join(packageTemplateDir, 'automation', 'mapping', 'locator-map.json')
-  const reportFiles = await collectFilesFn(path.join(packageTemplateDir, 'automation', 'reports'))
+  const reportsDir = path.join(packageTemplateDir, 'automation', 'reports')
+  const reportFiles = existsSync(reportsDir) ? await collectFilesFn(reportsDir) : []
 
   if (!existsSync(seededDbPath)) {
     throw new Error(`Prepared template is missing ${seededDbPath}`)
@@ -66,11 +67,11 @@ export async function verifyPreparedTemplateState(
   if (existsSync(staleNestedDbPath)) {
     throw new Error(`Prepared template still contains stale nested database ${staleNestedDbPath}`)
   }
+  if (!existsSync(packagedGitignorePath)) {
+    throw new Error(`Prepared template is missing packaged gitignore ${packagedGitignorePath}`)
+  }
   if (existsSync(packageEnvPath)) {
     throw new Error(`Prepared template should not include ${packageEnvPath}`)
-  }
-  if (!existsSync(starterFeaturePath)) {
-    throw new Error(`Prepared template is missing starter automation feature ${starterFeaturePath}`)
   }
   if (!existsSync(starterEnvironmentPath)) {
     throw new Error(`Prepared template is missing starter environments file ${starterEnvironmentPath}`)

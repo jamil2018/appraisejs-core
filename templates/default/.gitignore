@@ -39,6 +39,7 @@ yarn-error.log*
 *.db
 *.sqlite
 *.sqlite3
+!packages/create-appraisejs/templates/default/prisma/dev.db
 
 # vercel
 .vercel
@@ -49,5 +50,3 @@ next-env.d.ts
 
 automation/reports/*
 packages/cucumber-runtime/dist/*
-!prisma/dev.db
-!automation/config/environments/environments.json

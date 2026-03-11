@@ -3,21 +3,27 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, write
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { getEmptyEnvironmentsFileContent, setSeededTemplateFilesTracked } from '../src/scaffold-gitignore.js'
+import { shouldExcludeBundledTemplatePath } from '../src/sync-templates-utils.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..', '..', '..')
 const source = join(repoRoot, 'templates', 'default')
 const dest = join(__dirname, '..', 'templates', 'default')
 
-function copyDir(sourceDir: string, destDir: string): void {
+function copyDir(sourceDir: string, destDir: string, baseDir = sourceDir): void {
   mkdirSync(destDir, { recursive: true })
 
   for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
     const sourcePath = join(sourceDir, entry.name)
     const destPath = join(destDir, entry.name)
+    const relativePath = sourcePath.slice(baseDir.length + 1).replace(/\\/g, '/')
+
+    if (shouldExcludeBundledTemplatePath(relativePath)) {
+      continue
+    }
 
     if (entry.isDirectory()) {
-      copyDir(sourcePath, destPath)
+      copyDir(sourcePath, destPath, baseDir)
       continue
     }
 
@@ -25,18 +31,13 @@ function copyDir(sourceDir: string, destDir: string): void {
   }
 }
 
-function resetAutomationReports(templateRoot: string): void {
-  const reportsRoot = join(templateRoot, 'automation', 'reports')
-  rmSync(reportsRoot, { recursive: true, force: true })
-  mkdirSync(join(reportsRoot, 'logs'), { recursive: true })
-  mkdirSync(join(reportsRoot, 'traces'), { recursive: true })
-}
-
 function prepareBundledTemplateFiles(templateRoot: string): void {
   const gitignorePath = join(templateRoot, '.gitignore')
-  if (existsSync(gitignorePath)) {
-    const gitignore = readFileSync(gitignorePath, 'utf8')
-    writeFileSync(gitignorePath, setSeededTemplateFilesTracked(gitignore, true))
+  const packagedGitignorePath = join(templateRoot, 'gitignore')
+  if (existsSync(gitignorePath) || existsSync(packagedGitignorePath)) {
+    const gitignore = readFileSync(existsSync(gitignorePath) ? gitignorePath : packagedGitignorePath, 'utf8')
+    writeFileSync(packagedGitignorePath, setSeededTemplateFilesTracked(gitignore, true))
+    rmSync(gitignorePath, { force: true })
   }
 
   const environmentsPath = join(templateRoot, 'automation', 'config', 'environments', 'environments.json')
@@ -60,7 +61,6 @@ rmSync(dest, { recursive: true, force: true })
 mkdirSync(dest, { recursive: true })
 copyDir(source, dest)
 
-resetAutomationReports(dest)
 rmSync(join(dest, '.env'), { force: true })
 rmSync(join(dest, 'prisma', 'prisma'), { recursive: true, force: true })
 prepareBundledTemplateFiles(dest)

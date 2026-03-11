@@ -6,6 +6,7 @@ import type { PackageManager } from './prompts.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SEEDED_DB_PATH = path.join('prisma', 'dev.db')
+const PACKAGED_GITIGNORE_PATH = 'gitignore'
 
 const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git'])
 const EXCLUDED_FILES = new Set([
@@ -78,6 +79,10 @@ export function getTemplatePath(): string {
   return path.join(packageDir, 'templates', 'default')
 }
 
+function getDestinationRelativePath(relativePath: string): string {
+  return relativePath === PACKAGED_GITIGNORE_PATH ? '.gitignore' : relativePath
+}
+
 export async function copyTemplate(
   destDir: string,
   onProgress?: (current: number, total: number, filename: string) => void,
@@ -107,7 +112,7 @@ export async function copyTemplate(
   for (let i = 0; i < files.length; i++) {
     const rel = files[i]
     const srcFile = path.join(templatePath, rel)
-    const destFile = path.join(destDir, rel)
+    const destFile = path.join(destDir, getDestinationRelativePath(rel))
     await fs.ensureDir(path.dirname(destFile))
     await fs.copy(srcFile, destFile)
     progressBar.update(i + 1, { filename: rel })

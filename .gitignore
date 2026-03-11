@@ -49,6 +49,4 @@ yarn-error.log*
 next-env.d.ts
 
 automation/reports/*
-automation/config/environments/environments.json
-!packages/create-appraisejs/templates/default/automation/config/environments/environments.json
 packages/cucumber-runtime/dist/*

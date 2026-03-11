@@ -27,6 +27,7 @@ describe('CLI E2E', () => {
 
     await fs.ensureDir(destDir);
     const pkgJsonPath = path.join(destDir, 'package.json');
+    const gitignorePath = path.join(destDir, '.gitignore');
     const seededDbPath = path.join(destDir, 'prisma', 'dev.db');
     const staleNestedDbPath = path.join(destDir, 'prisma', 'prisma', 'dev.db');
 
@@ -34,6 +35,7 @@ describe('CLI E2E', () => {
     await copyTemplate(destDir, undefined, undefined, 'npm');
 
     expect(await fs.pathExists(pkgJsonPath)).toBe(true);
+    expect(await fs.pathExists(gitignorePath)).toBe(true);
     expect(await fs.pathExists(seededDbPath)).toBe(true);
     expect(await fs.pathExists(staleNestedDbPath)).toBe(false);
     const pkg = await fs.readJson(pkgJsonPath);
