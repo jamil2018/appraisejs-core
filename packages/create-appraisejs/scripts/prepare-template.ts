@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import crypto from 'crypto'
-import { cpSync, createReadStream, existsSync, mkdirSync, promises as fs, rmSync } from 'fs'
+import { cpSync, createReadStream, existsSync, mkdirSync, promises as fs, rmSync, rmdirSync } from 'fs'
 import path from 'path'
 import { spawn } from 'child_process'
 import { fileURLToPath, pathToFileURL } from 'url'
@@ -18,6 +18,7 @@ const repoRoot = path.join(packageRoot, '..', '..')
 const rootTemplateDir = path.join(repoRoot, 'templates', 'default')
 const packageTemplateDir = path.join(packageRoot, 'templates', 'default')
 const tempWorkspaceDir = path.join(repoRoot, '.tmp', 'create-appraisejs-template-build')
+const tempWorkspaceRootDir = path.dirname(tempWorkspaceDir)
 const templateMetaPath = path.join(rootTemplateDir, '.appraise-template-meta.json')
 
 function getTsxCliPath(): string {
@@ -178,7 +179,7 @@ async function seedDatabaseForWorkspace(): Promise<boolean> {
 
 async function seedRootTemplateDatabase(inputHash: string, previousMetadata: TemplateMetadata | null): Promise<void> {
   rmSync(tempWorkspaceDir, { recursive: true, force: true })
-  mkdirSync(path.dirname(tempWorkspaceDir), { recursive: true })
+  mkdirSync(tempWorkspaceRootDir, { recursive: true })
   cpSync(rootTemplateDir, tempWorkspaceDir, { recursive: true, force: true })
   rmSync(path.join(tempWorkspaceDir, '.env'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'dev.db'), { force: true })
@@ -222,6 +223,19 @@ async function seedRootTemplateDatabase(inputHash: string, previousMetadata: Tem
   await writeTemplateMetadata(inputHash)
 }
 
+function cleanupTempWorkspace(): void {
+  rmSync(tempWorkspaceDir, { recursive: true, force: true })
+
+  try {
+    rmdirSync(tempWorkspaceRootDir)
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code !== 'ENOENT' && code !== 'ENOTEMPTY') {
+      throw error
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const inputHash = await computeTemplateInputHash()
   const previousMetadata = await readExistingTemplateMetadata()
@@ -232,7 +246,7 @@ async function main(): Promise<void> {
     await runTypeScriptScript(path.join('packages', 'create-appraisejs', 'scripts', 'sync-templates.ts'), repoRoot)
     await verifyPreparedTemplateState(packageTemplateDir)
   } finally {
-    rmSync(tempWorkspaceDir, { recursive: true, force: true })
+    cleanupTempWorkspace()
   }
 }
 
