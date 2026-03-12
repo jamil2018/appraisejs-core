@@ -10,6 +10,9 @@ interface OverviewChartProps {
 
 const calculatePassRate = (data: Array<{ result: string; value: number; fill: string }>) => {
   const total = data.reduce((acc, curr) => acc + curr.value, 0)
+  if (total === 0) {
+    return 0
+  }
   const passed = data.find(item => item.result === 'passed')?.value || 0
   return Math.round((passed / total) * 100)
 }
