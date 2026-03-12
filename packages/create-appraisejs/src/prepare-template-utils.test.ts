@@ -78,8 +78,8 @@ describe('verifyPreparedTemplateState', () => {
 
   it('fails when report artifacts are present', async () => {
     const dir = await createTempTemplateDir()
-    await fs.ensureDir(path.join(dir, 'automation', 'reports', 'logs'))
-    await fs.writeFile(path.join(dir, 'automation', 'reports', 'logs', 'run.log'), 'artifact')
+    await fs.ensureDir(path.join(dir, 'automation', 'reports', 'run-123', 'logs'))
+    await fs.writeFile(path.join(dir, 'automation', 'reports', 'run-123', 'logs', 'run.log'), 'artifact')
 
     await expect(verifyPreparedTemplateState(dir)).rejects.toThrow(/report artifacts/)
   })

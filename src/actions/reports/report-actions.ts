@@ -6,6 +6,7 @@ import { parseCucumberReport, getStepStatusEnum, getStepKeywordEnum } from '@/li
 import { TagType, Prisma } from '@prisma/client'
 import { existsSync } from 'fs'
 import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
+import { resolveStoredPath, toProjectRelativePath } from '@/lib/automation/paths'
 
 /**
  * Type for report with all relations from getAllReportsAction
@@ -93,8 +94,10 @@ type ReportDetailWithRelations = Prisma.ReportGetPayload<{
  */
 export async function storeReportFromFile(testRunId: string, reportPath: string): Promise<ActionResponse> {
   try {
+    const resolvedReportPath = resolveStoredPath(reportPath)
+
     // Check if file exists
-    if (!existsSync(reportPath)) {
+    if (!existsSync(resolvedReportPath)) {
       console.warn(`[ReportActions] Report file not found at ${reportPath} for testRunId: ${testRunId}`)
       return {
         status: 404,
@@ -126,14 +129,14 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
     }
 
     // Parse the report
-    const parsedReport = await parseCucumberReport(reportPath)
+    const parsedReport = await parseCucumberReport(resolvedReportPath)
 
     // Create Report record
     const report = await prisma.report.create({
       data: {
         name: `Test Run Report - ${testRun.name}`,
         description: `Report for test run: ${testRun.name}`,
-        reportPath,
+        reportPath: toProjectRelativePath(reportPath),
         testRunId: testRun.id,
       },
     })
@@ -205,6 +208,7 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
               duration: String(step.duration),
               errorMessage: step.errorMessage,
               errorTrace: step.errorTrace,
+              screenshotPath: step.screenshotPath ? toProjectRelativePath(step.screenshotPath) : null,
               hidden: step.hidden,
               order: step.order,
             },

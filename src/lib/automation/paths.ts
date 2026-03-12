@@ -7,7 +7,7 @@ const legacyTestsRoot = path.join(repoRoot, 'src', 'tests')
 const runtimeImport =
   "import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'"
 
-const mutableLegacyDirectories = ['features', 'locators', 'mapping', 'reports', 'steps'] as const
+const mutableLegacyDirectories = ['features', 'locators', 'mapping', 'steps'] as const
 
 let automationWorkspaceReadyPromise: Promise<void> | null = null
 
@@ -39,10 +39,16 @@ async function rewriteLegacyStepImports(): Promise<void> {
     content = content
       .replace(/^import \{ (When|Then) \} from '@cucumber\/cucumber';?\r?\n/gm, '')
       .replace(/^import \{ CustomWorld(?:, expect)? \} from '\.\.\/\.\.\/config\/executor\/world\.js';?\r?\n/gm, '')
-      .replace(/^import \{ SelectorName \} from '(?:@\/types\/locator\/locator\.type|\.\.\/\.\.\/\.\.\/types\/locator\/locator\.type)';?\r?\n/gm, '')
+      .replace(
+        /^import \{ SelectorName \} from '(?:@\/types\/locator\/locator\.type|\.\.\/\.\.\/\.\.\/types\/locator\/locator\.type)';?\r?\n/gm,
+        '',
+      )
       .replace(/^import \{ resolveLocator \} from '\.\.\/\.\.\/utils\/locator\.util\.js';?\r?\n/gm, '')
       .replace(/^import \{ getEnvironment \} from '\.\.\/\.\.\/utils\/environment\.util\.js';?\r?\n/gm, '')
-      .replace(/^import \{ generateRandomData, RandomDataType \} from '\.\.\/\.\.\/utils\/random-data\.util\.js';?\r?\n/gm, '')
+      .replace(
+        /^import \{ generateRandomData, RandomDataType \} from '\.\.\/\.\.\/utils\/random-data\.util\.js';?\r?\n/gm,
+        '',
+      )
       .trimStart()
 
     if (!content.startsWith(runtimeImport)) {
@@ -99,8 +105,6 @@ async function ensureMutableAutomationDirectories(): Promise<void> {
     getAutomationLocatorsDir(),
     getAutomationMappingDir(),
     getAutomationReportsDir(),
-    getAutomationReportLogsDir(),
-    getAutomationReportTracesDir(),
     getAutomationStepsDir(),
     getAutomationActionStepsDir(),
     getAutomationValidationStepsDir(),
@@ -160,12 +164,37 @@ export function getAutomationReportsDir(): string {
   return path.join(getAutomationRoot(), 'reports')
 }
 
-export function getAutomationReportLogsDir(): string {
-  return path.join(getAutomationReportsDir(), 'logs')
+export function getAutomationReportRunDir(runId: string): string {
+  return path.join(getAutomationReportsDir(), runId)
 }
 
-export function getAutomationReportTracesDir(): string {
-  return path.join(getAutomationReportsDir(), 'traces')
+export function getAutomationRunReportPath(runId: string): string {
+  return path.join(getAutomationReportRunDir(runId), 'cucumber.json')
+}
+
+export function getAutomationReportLogsDir(runId: string): string {
+  return path.join(getAutomationReportRunDir(runId), 'logs')
+}
+
+export function getAutomationRunLogPath(runId: string): string {
+  return path.join(getAutomationReportLogsDir(runId), 'run.log')
+}
+
+export function getAutomationReportTracesDir(runId: string): string {
+  return path.join(getAutomationReportRunDir(runId), 'traces')
+}
+
+export function getAutomationReportScreenshotsDir(runId: string): string {
+  return path.join(getAutomationReportRunDir(runId), 'screenshots')
+}
+
+export function toProjectRelativePath(targetPath: string): string {
+  const normalizedPath = path.isAbsolute(targetPath) ? path.relative(repoRoot, targetPath) : targetPath
+  return normalizedPath.replace(/\\/g, '/')
+}
+
+export function resolveStoredPath(storedPath: string): string {
+  return path.isAbsolute(storedPath) ? storedPath : path.join(repoRoot, storedPath)
 }
 
 export function getAutomationStepsDir(): string {

@@ -359,6 +359,7 @@ model ReportStep {
   duration         String
   errorMessage     String?
   errorTrace       String?
+  screenshotPath   String?
   hidden           Boolean        @default(false)
   order            Int
   createdAt        DateTime       @default(now())

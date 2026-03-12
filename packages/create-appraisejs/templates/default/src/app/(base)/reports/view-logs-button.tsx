@@ -6,27 +6,30 @@ import { Eye } from 'lucide-react'
 import { TestCaseLogsModal } from '@/components/reports/test-case-logs-modal'
 import { ReportScenario, StepStatus } from '@prisma/client'
 
-type ReportScenarioWithDetails = (ReportScenario & {
-  tags: Array<{ tagName: string }>
-  steps: Array<{
-    id: string
-    keyword: string
-    name: string
-    status: StepStatus
-    duration: string
-    errorMessage: string | null
-    errorTrace: string | null
-    order: number
-  }>
-  hooks: Array<{
-    id: string
-    keyword: string
-    status: StepStatus
-    duration: string
-    errorMessage: string | null
-    errorTrace: string | null
-  }>
-}) | null
+type ReportScenarioWithDetails =
+  | (ReportScenario & {
+      tags: Array<{ tagName: string }>
+      steps: Array<{
+        id: string
+        keyword: string
+        name: string
+        status: StepStatus
+        duration: string
+        errorMessage: string | null
+        errorTrace: string | null
+        screenshotPath?: string | null
+        order: number
+      }>
+      hooks: Array<{
+        id: string
+        keyword: string
+        status: StepStatus
+        duration: string
+        errorMessage: string | null
+        errorTrace: string | null
+      }>
+    })
+  | null
 
 interface ViewLogsButtonProps {
   reportScenario: ReportScenarioWithDetails
@@ -48,13 +51,8 @@ export function ViewLogsButton({ reportScenario }: ViewLogsButtonProps) {
         View Logs
       </Button>
       {reportScenario && (
-        <TestCaseLogsModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          reportScenario={reportScenario}
-        />
+        <TestCaseLogsModal open={isModalOpen} onOpenChange={setIsModalOpen} reportScenario={reportScenario} />
       )}
     </>
   )
 }
-

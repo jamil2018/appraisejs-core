@@ -28,6 +28,31 @@ export function getAutomationReportsDir(): string {
   return path.join(getAutomationRoot(), 'reports')
 }
 
-export function getAutomationTraceDir(): string {
+export function resolveProjectPath(targetPath: string): string {
+  return path.isAbsolute(targetPath) ? targetPath : path.join(process.cwd(), targetPath)
+}
+
+export function toProjectRelativePath(targetPath: string): string {
+  const normalizedPath = path.isAbsolute(targetPath) ? path.relative(process.cwd(), targetPath) : targetPath
+  return normalizedPath.replace(/\\/g, '/')
+}
+
+export function getAutomationReportRunDirFromReportPath(reportPath: string): string {
+  return path.dirname(resolveProjectPath(reportPath))
+}
+
+export function getAutomationTraceDir(reportPath = process.env.REPORT_PATH): string {
+  if (reportPath) {
+    return path.join(getAutomationReportRunDirFromReportPath(reportPath), 'traces')
+  }
+
   return path.join(getAutomationReportsDir(), 'traces')
+}
+
+export function getAutomationScreenshotDir(reportPath = process.env.REPORT_PATH): string {
+  if (reportPath) {
+    return path.join(getAutomationReportRunDirFromReportPath(reportPath), 'screenshots')
+  }
+
+  return path.join(getAutomationReportsDir(), 'screenshots')
 }

@@ -18,9 +18,9 @@ import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib
 import { processManager } from '@/lib/test-run/process-manager'
 import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
 import { promises as fs } from 'fs'
-import path from 'path'
 import { Prisma } from '@prisma/client'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
+import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/paths'
 
 /**
  * Check if a test run name already exists
@@ -109,45 +109,31 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
 
 export async function deleteTestRunAction(id: string[]): Promise<ActionResponse> {
   try {
-    // Get all unique test case IDs from test runs being deleted (before deletion)
-    // This is needed to recalculate metrics after deletion
-    const testRunTestCases = await prisma.testRunTestCase.findMany({
-      where: {
-        testRunId: { in: id },
-      },
-      select: {
-        testCaseId: true,
-      },
-    })
-    const _affectedTestCaseIds = [...new Set(testRunTestCases.map(trtc => trtc.testCaseId))]
-
-    // find all trace paths for the test runs
-    const tracePaths = await prisma.testRunTestCase.findMany({
-      where: {
-        testRunId: { in: id },
-      },
-      select: {
-        tracePath: true,
-      },
-    })
-    // delete the trace paths
-    for (const tracePath of tracePaths) {
-      if (tracePath.tracePath) {
-        await fs.unlink(tracePath.tracePath)
-      }
-    }
-
-    //  find all report paths for the test runs
-    const reportPaths = await prisma.testRun.findMany({
+    const testRuns = await prisma.testRun.findMany({
       where: { id: { in: id } },
       select: {
+        runId: true,
+        logPath: true,
         reportPath: true,
+        testCases: {
+          select: {
+            tracePath: true,
+          },
+        },
       },
     })
-    // delete the report paths
-    for (const reportPath of reportPaths) {
-      if (reportPath.reportPath) {
-        await fs.unlink(reportPath.reportPath)
+
+    for (const testRun of testRuns) {
+      await fs.rm(getAutomationReportRunDir(testRun.runId), { recursive: true, force: true })
+
+      const legacyArtifactPaths = [
+        testRun.logPath,
+        testRun.reportPath,
+        ...testRun.testCases.map(testCase => testCase.tracePath),
+      ].filter((artifactPath): artifactPath is string => Boolean(artifactPath))
+
+      for (const artifactPath of legacyArtifactPaths) {
+        await fs.rm(resolveStoredPath(artifactPath), { force: true }).catch(() => {})
       }
     }
 
@@ -161,9 +147,7 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
     // deleting a test run might affect consecutive failure counts for any test case
     // that had recent runs (e.g., if a test case had 3 consecutive failures and we
     // delete one of those failures, it might no longer be "repeatedly failing")
-    const { recalculateMetricsForTestCases, updateDashboardMetrics } = await import(
-      '@/lib/metrics/metric-calculator'
-    )
+    const { recalculateMetricsForTestCases, updateDashboardMetrics } = await import('@/lib/metrics/metric-calculator')
 
     // Get all test case IDs that have recent test runs (last 7 days)
     // These are the ones that might be affected by the deletion
@@ -187,9 +171,7 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
     })
 
     // Get unique test case IDs
-    const allAffectedTestCaseIds = [
-      ...new Set(allRecentTestRunTestCases.map(trtc => trtc.testCaseId)),
-    ]
+    const allAffectedTestCaseIds = [...new Set(allRecentTestRunTestCases.map(trtc => trtc.testCaseId))]
 
     // Recalculate metrics for all test cases with recent runs
     if (allAffectedTestCaseIds.length > 0) {
@@ -973,18 +955,17 @@ export async function spawnTraceViewerAction(testRunId: string, testCaseId: stri
       }
     }
 
+    const absoluteTracePath = resolveStoredPath(tracePath)
+
     // Validate trace file exists
     try {
-      await fs.access(tracePath)
+      await fs.access(absoluteTracePath)
     } catch {
       return {
         status: 404,
         error: `Trace file not found at path: ${tracePath}`,
       }
     }
-
-    // Resolve absolute path if relative
-    const absoluteTracePath = path.isAbsolute(tracePath) ? tracePath : path.join(process.cwd(), tracePath)
 
     // Spawn playwright show-trace command
     // The process is self-closing when the user closes the trace viewer
@@ -1177,7 +1158,3 @@ export async function checkTestRunNameUniqueAction(name: string, excludeId?: str
     }
   }
 }
-
-
-
-
