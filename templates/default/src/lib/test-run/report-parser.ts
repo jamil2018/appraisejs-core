@@ -1,6 +1,8 @@
 import { readFile } from 'fs/promises'
 import { StepStatus, StepKeyword } from '@prisma/client'
 
+const SCREENSHOT_ATTACHMENT_MEDIA_TYPE = 'application/vnd.appraisejs.report-step-screenshot+json'
+
 /**
  * Parsed report structure matching cucumber.json format
  */
@@ -29,6 +31,7 @@ export interface ParsedReport {
         duration: number
         errorMessage?: string
         errorTrace?: string
+        screenshotPath?: string
         hidden: boolean
         order: number
       }>
@@ -68,6 +71,10 @@ interface CucumberJsonFeature {
         duration?: number
         error_message?: string
       }
+      embeddings?: Array<{
+        data?: string
+        mime_type?: string
+      }>
     }>
     tags: Array<{
       name: string
@@ -84,6 +91,33 @@ interface CucumberJsonFeature {
     line: number
   }>
   uri: string
+}
+
+function extractScreenshotPath(
+  embeddings: Array<{ data?: string; mime_type?: string }> | undefined,
+): string | undefined {
+  const screenshotAttachment = embeddings?.find(embedding => embedding.mime_type === SCREENSHOT_ATTACHMENT_MEDIA_TYPE)
+
+  if (!screenshotAttachment?.data) {
+    return undefined
+  }
+
+  const parsePayload = (payload: string): string | undefined => {
+    try {
+      const parsedPayload = JSON.parse(payload) as { screenshotPath?: unknown }
+      return typeof parsedPayload.screenshotPath === 'string' ? parsedPayload.screenshotPath : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  const directPayload = parsePayload(screenshotAttachment.data)
+  if (directPayload) {
+    return directPayload
+  }
+
+  const decodedPayload = Buffer.from(screenshotAttachment.data, 'base64').toString('utf8')
+  return parsePayload(decodedPayload)
 }
 
 /**
@@ -236,6 +270,7 @@ export async function parseCucumberReport(reportPath: string): Promise<ParsedRep
 
           // Separate error message from stack trace
           const { message: errorMessage, trace: errorTrace } = separateErrorMessageAndTrace(step.result?.error_message)
+          const screenshotPath = extractScreenshotPath(step.embeddings)
 
           if (isHook) {
             hooks.push({
@@ -256,6 +291,7 @@ export async function parseCucumberReport(reportPath: string): Promise<ParsedRep
               duration,
               errorMessage,
               errorTrace,
+              screenshotPath,
               hidden: step.hidden || false,
               order: index,
             })

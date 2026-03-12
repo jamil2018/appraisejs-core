@@ -1,18 +1,16 @@
 import winston from 'winston'
 import path from 'path'
 import { promises as fs } from 'fs'
-import { ensureAutomationWorkspaceReady, getAutomationReportLogsDir } from '@/lib/automation/paths'
+import { ensureAutomationWorkspaceReady, getAutomationRunLogPath, toProjectRelativePath } from '@/lib/automation/paths'
 
-const LOGS_DIR = getAutomationReportLogsDir()
-
-async function ensureLogsDirectory(): Promise<void> {
+async function ensureLogsDirectory(testRunId: string): Promise<void> {
   await ensureAutomationWorkspaceReady()
-  await fs.mkdir(LOGS_DIR, { recursive: true })
+  await fs.mkdir(path.dirname(getAutomationRunLogPath(testRunId)), { recursive: true })
 }
 
 export async function createTestRunLogger(testRunId: string): Promise<winston.Logger> {
-  await ensureLogsDirectory()
-  const logFilePath = path.join(LOGS_DIR, `${testRunId}.log`)
+  await ensureLogsDirectory(testRunId)
+  const logFilePath = getAutomationRunLogPath(testRunId)
 
   const logFormat = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -62,5 +60,5 @@ export async function closeLogger(logger: winston.Logger): Promise<void> {
 }
 
 export function getLogFilePath(testRunId: string): string {
-  return path.join(LOGS_DIR, `${testRunId}.log`)
+  return toProjectRelativePath(getAutomationRunLogPath(testRunId))
 }

@@ -1,10 +1,17 @@
-import { join } from 'path'
+import { dirname } from 'path'
 import { spawnTask, taskSpawner, type SpawnedProcess, waitForTask, killTask } from '@/lib/process/task-spawner'
-import { ensureAutomationWorkspaceReady, getAutomationReportsDir } from '@/lib/automation/paths'
+import {
+  ensureAutomationWorkspaceReady,
+  getAutomationRunReportPath,
+  toProjectRelativePath,
+} from '@/lib/automation/paths'
 import type { ExecutorAdapter, TestRunExecutionRequest, TestRunExecutionResult } from './types'
 import { processManager } from '@/lib/test-run/process-manager'
+import { promises as fs } from 'fs'
 
-function mapBrowserEngineToName(browserEngine: TestRunExecutionRequest['browserEngine']): 'chromium' | 'firefox' | 'webkit' {
+function mapBrowserEngineToName(
+  browserEngine: TestRunExecutionRequest['browserEngine'],
+): 'chromium' | 'firefox' | 'webkit' {
   switch (browserEngine) {
     case 'CHROMIUM':
       return 'chromium'
@@ -30,8 +37,7 @@ function combineTagExpressions(tags: TestRunExecutionRequest['tags']): string | 
 }
 
 function generateReportPath(testRunId: string): string {
-  const timestamp = Date.now()
-  return join(getAutomationReportsDir(), `cucumber-${testRunId}-${timestamp}.json`)
+  return getAutomationRunReportPath(testRunId)
 }
 
 export class LocalExecutorAdapter implements ExecutorAdapter {
@@ -41,6 +47,7 @@ export class LocalExecutorAdapter implements ExecutorAdapter {
     const { testRunId, environment, tags, testWorkersCount, browserEngine, headless = true } = config
     const reportPath = generateReportPath(testRunId)
     const browserName = mapBrowserEngineToName(browserEngine)
+    await fs.mkdir(dirname(reportPath), { recursive: true })
 
     process.env.ENVIRONMENT = environment.name
     process.env.HEADLESS = headless.toString()
@@ -72,7 +79,7 @@ export class LocalExecutorAdapter implements ExecutorAdapter {
 
     return {
       process: spawnedProcess,
-      reportPath,
+      reportPath: toProjectRelativePath(reportPath),
     }
   }
 

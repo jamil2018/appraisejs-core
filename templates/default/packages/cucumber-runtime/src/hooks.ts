@@ -2,12 +2,13 @@ import { After, AfterAll, AfterStep, Before, BeforeAll, setDefaultTimeout } from
 import { config } from 'dotenv'
 import { promises as fs } from 'fs'
 import { chromium, firefox, webkit, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright'
-import { getAutomationTraceDir } from './paths.js'
+import { getAutomationScreenshotDir, getAutomationTraceDir, toProjectRelativePath } from './paths.js'
 import { BrowserName } from './types.js'
 import { CustomWorld } from './world.js'
 
 config()
 
+const SCREENSHOT_ATTACHMENT_MEDIA_TYPE = 'application/vnd.appraisejs.report-step-screenshot+json'
 let browser: ChromiumBrowser | FirefoxBrowser | WebKitBrowser
 let currentScenarioStatus = 'unknown'
 
@@ -45,6 +46,24 @@ AfterStep(async function (this: CustomWorld, result) {
   const status = result.result?.status
   if (status === 'FAILED') {
     currentScenarioStatus = 'failed'
+
+    if (result.pickleStep?.text) {
+      try {
+        const screenshotDir = getAutomationScreenshotDir()
+        await fs.mkdir(screenshotDir, { recursive: true })
+
+        const screenshotPath = `${screenshotDir}/${crypto.randomUUID()}.png`
+        await this.page.screenshot({ path: screenshotPath, fullPage: true })
+        await this.attach(
+          JSON.stringify({ screenshotPath: toProjectRelativePath(screenshotPath) }),
+          SCREENSHOT_ATTACHMENT_MEDIA_TYPE,
+        )
+      } catch (error) {
+        console.warn(
+          `[CucumberRuntime] Failed to capture screenshot for step "${result.pickleStep.text}": ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+      }
+    }
   } else if (status === 'SKIPPED' && currentScenarioStatus !== 'failed') {
     currentScenarioStatus = 'skipped'
   } else if (status === 'PASSED' && currentScenarioStatus === 'unknown') {
@@ -57,8 +76,9 @@ After(async function (this: CustomWorld, scenario) {
   if (scenario.result?.status === 'FAILED') {
     const traceDir = getAutomationTraceDir()
     await fs.mkdir(traceDir, { recursive: true })
-    tracePath = `${traceDir}/${crypto.randomUUID()}.zip`
-    await this.context.tracing.stop({ path: tracePath })
+    const absoluteTracePath = `${traceDir}/${crypto.randomUUID()}.zip`
+    tracePath = toProjectRelativePath(absoluteTracePath)
+    await this.context.tracing.stop({ path: absoluteTracePath })
   }
 
   const eventJson = JSON.stringify({

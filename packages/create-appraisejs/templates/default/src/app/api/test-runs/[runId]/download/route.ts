@@ -3,17 +3,45 @@ import prisma from '@/config/db-config'
 import archiver from 'archiver'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/paths'
 
 // Ensure this route runs in Node.js runtime (not Edge) for file system access
 export const runtime = 'nodejs'
 
+async function collectRunArtifactFiles(
+  dir: string,
+  baseDir = dir,
+): Promise<Array<{ absolutePath: string; archivePath: string }>> {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true })
+    const files: Array<{ absolutePath: string; archivePath: string }> = []
+
+    for (const entry of entries) {
+      const absolutePath = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        files.push(...(await collectRunArtifactFiles(absolutePath, baseDir)))
+        continue
+      }
+
+      files.push({
+        absolutePath,
+        archivePath: path.relative(baseDir, absolutePath).replace(/\\/g, '/'),
+      })
+    }
+
+    return files
+  } catch {
+    return []
+  }
+}
+
 /**
- * GET handler for downloading test run logs and traces as a zip file
+ * GET handler for downloading a test run's stored artifacts as a zip file
  *
  * This endpoint:
  * - Verifies the test run exists
- * - Collects the log file (if exists)
- * - Collects all trace files from test cases (if any)
+ * - Collects the run folder artifacts when present
+ * - Falls back to legacy log/trace paths for older runs
  * - Creates a zip file containing all files
  * - Returns the zip file as a downloadable response
  */
@@ -46,44 +74,45 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Track if we have any files to add
     let hasFiles = false
 
-    // Add log file if it exists
-    if (testRun.logPath) {
+    const runArtifactFiles = await collectRunArtifactFiles(getAutomationReportRunDir(runId))
+    for (const artifactFile of runArtifactFiles) {
+      archive.file(artifactFile.absolutePath, { name: artifactFile.archivePath })
+      hasFiles = true
+    }
+
+    if (!hasFiles && testRun.logPath) {
       try {
-        await fs.access(testRun.logPath)
-        const logFileName = path.basename(testRun.logPath)
-        archive.file(testRun.logPath, { name: `logs/${logFileName}` })
+        const logPath = resolveStoredPath(testRun.logPath)
+        await fs.access(logPath)
+        archive.file(logPath, { name: `logs/${path.basename(logPath)}` })
         hasFiles = true
       } catch {
-        // Log file doesn't exist, skip it
         console.warn(`[Download] Log file not found at path: ${testRun.logPath}`)
       }
     }
 
-    // Add trace files if they exist
-    const traceFiles = testRun.testCases.filter(tc => tc.tracePath).map(tc => tc.tracePath!)
-    for (const tracePath of traceFiles) {
-      try {
-        await fs.access(tracePath)
-        const traceFileName = path.basename(tracePath)
-        archive.file(tracePath, { name: `traces/${traceFileName}` })
-        hasFiles = true
-      } catch {
-        // Trace file doesn't exist, skip it
-        console.warn(`[Download] Trace file not found at path: ${tracePath}`)
+    if (!hasFiles) {
+      const traceFiles = testRun.testCases.filter(tc => tc.tracePath).map(tc => tc.tracePath!)
+      for (const tracePath of traceFiles) {
+        try {
+          const resolvedTracePath = resolveStoredPath(tracePath)
+          await fs.access(resolvedTracePath)
+          archive.file(resolvedTracePath, { name: `traces/${path.basename(resolvedTracePath)}` })
+          hasFiles = true
+        } catch {
+          console.warn(`[Download] Trace file not found at path: ${tracePath}`)
+        }
       }
     }
 
     // If no files to add, return an error
     if (!hasFiles) {
-      return NextResponse.json(
-        { error: 'No log or trace files available for this test run' },
-        { status: 404 },
-      )
+      return NextResponse.json({ error: 'No run artifacts available for this test run' }, { status: 404 })
     }
 
     // Create a readable stream to collect the archive data
     const chunks: Buffer[] = []
-    
+
     // Set up event handlers before finalizing
     const archivePromise = new Promise<Buffer>((resolve, reject) => {
       archive.on('data', (chunk: Buffer) => {
@@ -95,7 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         resolve(zipBuffer)
       })
 
-      archive.on('error', (err) => {
+      archive.on('error', err => {
         reject(err)
       })
     })
@@ -130,4 +159,3 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     )
   }
 }
-
