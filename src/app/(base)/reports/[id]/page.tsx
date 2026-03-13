@@ -8,7 +8,7 @@ import {
   StepStatus,
   Prisma,
 } from '@prisma/client'
-import { Calendar, CheckCircle, Clock, Compass, Flame, Info, XCircle } from 'lucide-react'
+import { Calendar, ChartLine, CheckCircle, Clock, Compass, Flame, Info, XCircle } from 'lucide-react'
 import { Metadata } from 'next'
 import ReportMetricCard from '../report-metric-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -445,7 +445,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           )}
         </div>
       </div>
-      <div className="mt-4 flex justify-around gap-8">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ReportMetricCard title="Total Tests" value={totalTests.toString()} />
         <ReportMetricCard title="Passed" value={passedTests.toString()} />
         <ReportMetricCard title="Failed" value={failedTests.toString()} />
@@ -488,8 +488,11 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </CardContent>
         </Card>
         <Card className="flex h-[420px] min-w-0 flex-1 flex-col shadow-none bg-gray-500/10 border-none">
-          <CardHeader className="flex-shrink-0">
-            <CardTitle>Visualizations</CardTitle>
+          <CardHeader className="flex-shrink-0 ">
+            <div className="flex items-center gap-2">
+              <ChartLine className="h-6 w-6" />
+              <CardTitle className="text-lg font-semibold">Visualizations</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col overflow-hidden">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
