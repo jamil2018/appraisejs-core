@@ -343,6 +343,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
   const totalTests = report.testCases.length
   const passedTests = report.testCases.filter(rtc => rtc.testRunTestCase.result === 'PASSED').length
   const failedTests = report.testCases.filter(rtc => rtc.testRunTestCase.result === 'FAILED').length
+  const untestedTests = report.testCases.filter(rtc => rtc.testRunTestCase.result === 'UNTESTED').length
 
   // Calculate overview chart data
   const overviewData = [
@@ -418,39 +419,41 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <>
-      <div className="flex justify-between">
-        <div>
-          <PageHeader className="mb-2 flex items-center gap-2 text-3xl">
-            <div>
-              <span>Test Run Report: </span>
-              <span>{report.testRun.name}</span>
-            </div>
-            {testRunResultToBadge(testRun.result)}
-          </PageHeader>
-          <div className="flex gap-2">
-            {testRun.completedAt && (
-              <div className="flex items-center gap-1 text-sm text-gray-400">
-                <Calendar className="h-4 w-4" />
-                {formatDateTime(testRun.completedAt)}
-              </div>
-            )}
-            {testRun.completedAt && testRun.startedAt && (
-              <div className="flex items-center gap-1 text-sm text-gray-400">
-                <Clock className="h-4 w-4" />
-                {formatDuration(testRun.startedAt, testRun.completedAt)}
-              </div>
-            )}
+
+      <div>
+        <div className="w-fit mb-2">
+          {testRunResultToBadge(testRun.result)}
+        </div>
+        <PageHeader className="mb-2 text-4xl">
+          <div>
+            <span>Test Run Report: </span>
+            <span>{report.testRun.name}</span>
           </div>
+        </PageHeader>
+        <div className="flex gap-2">
+          {testRun.completedAt && (
+            <div className="flex items-center gap-1 text-sm text-gray-400">
+              <Calendar className="h-4 w-4" />
+              {formatDateTime(testRun.completedAt)}
+            </div>
+          )}
+          {testRun.completedAt && testRun.startedAt && (
+            <div className="flex items-center gap-1 text-sm text-gray-400">
+              <Clock className="h-4 w-4" />
+              {formatDuration(testRun.startedAt, testRun.completedAt)}
+            </div>
+          )}
         </div>
-        <div className="flex w-1/2 justify-between gap-1">
-          <ReportMetricCard title="Total Tests" value={totalTests.toString()} />
-          <ReportMetricCard title="Passed" value={passedTests.toString()} />
-          <ReportMetricCard title="Failed" value={failedTests.toString()} />
-        </div>
+      </div>
+      <div className="mt-4 flex justify-around gap-8">
+        <ReportMetricCard title="Total Tests" value={totalTests.toString()} />
+        <ReportMetricCard title="Passed" value={passedTests.toString()} />
+        <ReportMetricCard title="Failed" value={failedTests.toString()} />
+        <ReportMetricCard title="Untested" value={untestedTests.toString()} />
       </div>
       <Separator className="my-4 bg-muted" />
       <div className="flex gap-6">
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col shadow-none bg-gray-500/10 border-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <Info className="h-6 w-6" />
@@ -484,13 +487,13 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             </div>
           </CardContent>
         </Card>
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col shadow-none bg-gray-500/10 border-none">
           <CardHeader className="flex-shrink-0">
             <CardTitle>Visualizations</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col overflow-hidden">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <TabsList className="flex-shrink-0">
+              <TabsList className="flex-shrink-0 bg-gray-500/15 w-fit mx-auto p-2">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="feature">Feature</TabsTrigger>
                 <TabsTrigger value="duration">Duration</TabsTrigger>
