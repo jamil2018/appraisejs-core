@@ -3,7 +3,8 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: login
+@lemon
+Feature: adasdasd
 
   @tc_e40594fd42874390
   Scenario: [Login Validation] Verify user is able to login the test app using valid credentials
