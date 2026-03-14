@@ -2,5 +2,7 @@
   "email": "#email",
   "password": "#password",
   "submit": "button[data-test-id='login-button']",
-  "test2": "/test1323"
+  "test2": "/test1323",
+  "Email Test": "role=textbox[name=\"Email\"]",
+  "Login page header": "css=h2.card-title.text-2xl"
 }

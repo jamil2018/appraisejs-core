@@ -6,6 +6,11 @@
 @lemon
 Feature: adasdasd
 
+  @tc_40f14dd522d7bf98
+  Scenario: [Demo Test] This is a demo
+    Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
+    When the user clicks on the "email" element
+
   @tc_e40594fd42874390
   Scenario: [Login Validation] Verify user is able to login the test app using valid credentials
     Given the user navigates to the base url of the selected environment

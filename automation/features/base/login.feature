@@ -5,6 +5,11 @@
 
 Feature: login
 
+  @tc_9c23c86d0a0bdeba
+  Scenario: [Login Validation] Verify user is able to see the login page header
+    Given the user navigates to the base url of the selected environment
+    Then the element "Login page header" should true contain the text "Login"
+
   @tc_e40594fd42874390
   Scenario: [Login Validation] Verify user is able to login the test app using valid credentials
     Given the user navigates to the base url of the selected environment

@@ -15,7 +15,10 @@
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"],
+      "@locator-picker-companion/*": ["./packages/locator-picker-companion/src/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
