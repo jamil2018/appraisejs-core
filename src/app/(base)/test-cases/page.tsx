@@ -6,7 +6,7 @@ import TestCaseTable from './test-case-table'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import EmptyState from '@/components/data-state/empty-state'
-import { TestCase, TestCaseStep } from '@prisma/client'
+import { TestCasePickerRow } from '@/types/test-case-picker'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ const TestCases = async () => {
     return <div>Error: {testCasesError}</div>
   }
 
-  const testCasesData = testCases as (TestCase & { steps: TestCaseStep[] })[]
+  const testCasesData = testCases as TestCasePickerRow[]
 
   if (!testCasesData || testCasesData.length === 0) {
     return (
