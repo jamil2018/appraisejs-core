@@ -1,7 +1,7 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
-import { Code } from 'lucide-react'
+import { Code, Crosshair } from 'lucide-react'
 import LocatorTable from './locator-table'
 import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
@@ -9,6 +9,8 @@ import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Locator, LocatorGroup } from '@prisma/client'
 import { Metadata } from 'next'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Appraise | Locators',
@@ -53,6 +55,12 @@ const Locators = async () => {
               Locators are the elements that are used to identify the elements on the page
             </HeaderSubtitle>
           </div>
+          <Button asChild>
+            <Link href="/locators/picker">
+              <Crosshair className="mr-2 h-4 w-4" />
+              Pick From Page
+            </Link>
+          </Button>
         </div>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
