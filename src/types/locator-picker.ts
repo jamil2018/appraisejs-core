@@ -1,37 +1,19 @@
-import type { BrowserEngine } from '@prisma/client'
-
-export type LocatorPickerStatus = 'starting' | 'ready' | 'selecting' | 'selected' | 'saving' | 'closed' | 'error'
-
-export type SelectorStrategy = 'test-id' | 'role' | 'label' | 'placeholder' | 'text' | 'id' | 'css' | 'xpath'
+export type LocatorPickerStatus = 'starting' | 'ready' | 'picked' | 'saving' | 'closed' | 'error'
 
 export type GroupResolutionMode = 'existing' | 'create'
 
-export interface SelectorCandidate {
-  selector: string
-  strategy: SelectorStrategy
-  description: string
-  count: number
-  isUnique: boolean
-  isVisible: boolean
-  score: number
-}
+export type PickedLocatorStrategy = 'test-id' | 'role' | 'label' | 'placeholder' | 'id' | 'css' | 'xpath'
 
-export interface PickedElement {
-  tagName: string
-  id?: string
-  text?: string
-  accessibleName?: string
-  role?: string
-  labelText?: string
-  placeholder?: string
-  classes: string[]
-  attributes: Record<string, string>
+export interface PickedLocatorPayload {
+  sessionId: string
+  selector: string
   currentUrl: string
   pathname: string
   pageTitle: string
-  frameUrl: string
-  outerHTML: string
-  isInFrame: boolean
+  tagName: string
+  text?: string
+  accessibleName?: string
+  strategy?: PickedLocatorStrategy
 }
 
 export interface LocatorPickerGroupSuggestion {
@@ -52,16 +34,13 @@ export interface LocatorPickerSession {
     environmentName?: string
     url: string
   }
-  browserEngine: BrowserEngine
+  browserName: 'chromium'
   status: LocatorPickerStatus
-  selectionMode: boolean
   currentUrl: string
   currentPathname: string
   pageTitle: string
-  pickedElement?: PickedElement
-  selectorCandidates: SelectorCandidate[]
-  suggestedLocatorName?: string
-  groupSuggestion?: LocatorPickerGroupSuggestion
+  companionPid: number | null
+  pickedLocator?: PickedLocatorPayload
   startedAt: string
   updatedAt: string
   error?: string
@@ -70,11 +49,10 @@ export interface LocatorPickerSession {
 export interface StartLocatorPickerSessionRequest {
   environmentId?: string
   url?: string
-  browserEngine?: BrowserEngine
 }
 
 export interface SavePickedLocatorRequest {
-  sessionId: string
+  sessionId?: string
   locatorName: string
   selector: string
   resolutionMode: GroupResolutionMode

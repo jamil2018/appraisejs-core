@@ -2,6 +2,7 @@
 
 import prisma from '@/config/db-config'
 import { automationProjectionService } from '@/lib/automation/projection-service'
+import { normalizeRoute } from '@/lib/locator-picker/suggestions'
 import { locatorPickerSessionManager } from '@/lib/locator-picker/session-manager'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import type { SavePickedLocatorRequest, StartLocatorPickerSessionRequest } from '@/types/locator-picker'
@@ -12,14 +13,13 @@ const startLocatorPickerSessionSchema = z
   .object({
     environmentId: z.string().optional(),
     url: z.string().optional(),
-    browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
   })
   .refine(value => Boolean(value.environmentId || value.url), {
     message: 'Choose an environment or provide a URL.',
   })
 
 const savePickedLocatorSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).optional(),
   locatorName: z.string().min(1, { message: 'Locator name is required.' }),
   selector: z.string().min(1, { message: 'Selector is required.' }),
   resolutionMode: z.enum(['existing', 'create']),
@@ -28,19 +28,6 @@ const savePickedLocatorSchema = z.object({
   route: z.string().optional(),
   moduleId: z.string().optional(),
 })
-
-function normalizeRoute(value: string | undefined): string {
-  if (!value || value.trim() === '') {
-    return '/'
-  }
-
-  try {
-    const parsed = new URL(value)
-    return parsed.pathname || '/'
-  } catch {
-    return value.startsWith('/') ? value : `/${value}`
-  }
-}
 
 export async function startLocatorPickerSessionAction(
   request: StartLocatorPickerSessionRequest,
@@ -84,24 +71,6 @@ export async function getLocatorPickerSessionAction(sessionId: string): Promise<
   }
 }
 
-export async function toggleLocatorPickerSelectionModeAction(
-  sessionId: string,
-  enabled: boolean,
-): Promise<ActionResponse> {
-  try {
-    const session = await locatorPickerSessionManager.updateSelectionMode(sessionId, enabled)
-    return {
-      status: 200,
-      data: session,
-    }
-  } catch (error) {
-    return {
-      status: 500,
-      error: error instanceof Error ? error.message : 'Failed to update picker selection mode.',
-    }
-  }
-}
-
 export async function closeLocatorPickerSessionAction(sessionId: string): Promise<ActionResponse> {
   try {
     const session = await locatorPickerSessionManager.closeSession(sessionId)
@@ -127,31 +96,17 @@ export async function closeLocatorPickerSessionAction(sessionId: string): Promis
 export async function savePickedLocatorAction(request: SavePickedLocatorRequest): Promise<ActionResponse> {
   try {
     const value = savePickedLocatorSchema.parse(request)
-    const session = await locatorPickerSessionManager.getSession(value.sessionId)
+    const session = value.sessionId ? await locatorPickerSessionManager.getSession(value.sessionId) : null
     const fail = async (status: number, error: string): Promise<ActionResponse> => {
       await locatorPickerSessionManager.markReadyAfterSave(value.sessionId)
       return { status, error }
-    }
-
-    if (!session) {
-      return {
-        status: 404,
-        error: 'Locator picker session not found.',
-      }
-    }
-
-    if (!session.pickedElement) {
-      return {
-        status: 400,
-        error: 'Select an element in the picker before saving.',
-      }
     }
 
     await locatorPickerSessionManager.markSaving(value.sessionId)
 
     let locatorGroupId = value.existingLocatorGroupId
     let locatorGroupName = ''
-    const route = normalizeRoute(value.route || session.currentPathname)
+    const route = normalizeRoute(value.route || session?.currentPathname)
 
     if (value.resolutionMode === 'existing') {
       if (!locatorGroupId) {
@@ -231,6 +186,7 @@ export async function savePickedLocatorAction(request: SavePickedLocatorRequest)
 
     revalidatePath('/locators')
     revalidatePath('/locator-groups')
+    revalidatePath('/locators/create')
 
     return {
       status: 200,

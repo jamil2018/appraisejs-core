@@ -1,7 +1,7 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
-import { Code, Crosshair } from 'lucide-react'
+import { Code, Plus } from 'lucide-react'
 import LocatorTable from './locator-table'
 import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
@@ -43,24 +43,16 @@ const Locators = async () => {
   return (
     <>
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <PageHeader>
-              <span className="flex items-center">
-                <Code className="mr-2 h-8 w-8" />
-                Locators
-              </span>
-            </PageHeader>
-            <HeaderSubtitle>
-              Locators are the elements that are used to identify the elements on the page
-            </HeaderSubtitle>
-          </div>
-          <Button asChild>
-            <Link href="/locators/picker">
-              <Crosshair className="mr-2 h-4 w-4" />
-              Pick From Page
-            </Link>
-          </Button>
+        <div>
+          <PageHeader>
+            <span className="flex items-center">
+              <Code className="mr-2 h-8 w-8" />
+              Locators
+            </span>
+          </PageHeader>
+          <HeaderSubtitle>
+            Locators are the elements that are used to identify the elements on the page
+          </HeaderSubtitle>
         </div>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>

@@ -1,7 +1,7 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
-import { Crosshair, Group } from 'lucide-react'
+import { Group, Plus } from 'lucide-react'
 import LocatorGroupTable from './locator-group-table'
 import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
@@ -54,9 +54,9 @@ const LocatorGroups = async () => {
             <HeaderSubtitle>Organize locators for better maintainability and reusability</HeaderSubtitle>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/locators/picker">
-              <Crosshair className="mr-2 h-4 w-4" />
-              Open Picker
+            <Link href="/locators/create">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Locator
             </Link>
           </Button>
         </div>
