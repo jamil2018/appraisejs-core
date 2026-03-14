@@ -1,14 +1,16 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import TestCasePicker from '@/components/test-case/test-case-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { formOpts, TestRun } from '@/constants/form-opts/test-run-form-opts'
 import { toast } from '@/hooks/use-toast'
+import { TestCasePickerRow } from '@/types/test-case-picker'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { BrowserEngine, Environment, Tag, TestCase, TestRunTestCase, TestSuite } from '@prisma/client'
+import { BrowserEngine, Environment, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect, useCallback } from 'react'
@@ -27,7 +29,7 @@ const TestRunForm = ({
   defaultValues,
   successTitle,
   successMessage,
-  testSuiteTestCases,
+  testCases,
   environments,
   tags,
   id,
@@ -36,14 +38,16 @@ const TestRunForm = ({
   defaultValues?: TestRun
   successTitle: string
   successMessage: string
-  testSuiteTestCases: (TestSuite & { testCases: TestCase[] })[]
+  testCases: TestCasePickerRow[]
   environments: Environment[]
   tags: Tag[]
   id?: string
   onSubmitAction: (_prev: unknown, value: TestRun, id?: string) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
-  const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(TestSelectionType.TAGS)
+  const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(() =>
+    defaultValues?.testCases?.length ? TestSelectionType.TEST_CASES : TestSelectionType.TAGS,
+  )
   const testSelectionTypeRef = useRef<TestSelectionType>(testSelectionType)
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -253,32 +257,14 @@ const TestRunForm = ({
                     <div
                       className={`mb-4 flex flex-col gap-2 ${testSelectionType === TestSelectionType.TEST_CASES ? 'block' : 'hidden'}`}
                     >
-                      <MultiSelect
-                        options={(() => {
-                          const seen = new Set<string | number>()
-                          return testSuiteTestCases.flatMap(testSuite =>
-                            testSuite.testCases
-                              .filter(testCase => {
-                                if (!seen.has(testCase.id)) {
-                                  seen.add(testCase.id)
-                                  return true
-                                }
-                                return false
-                              })
-                              .map(testCase => ({
-                                label: testCase.title,
-                                value: testCase.id,
-                              })),
-                          )
-                        })()}
-                        selected={field.state.value.map(testCase => testCase.testCaseId)}
-                        onChange={value =>
-                          field.handleChange(
-                            value.map(testCaseId => ({ testCaseId: testCaseId }) as unknown as TestRunTestCase),
-                          )
-                        }
-                        placeholder="Select test cases"
-                        emptyMessage="No test cases available"
+                      <TestCasePicker
+                        testCases={testCases}
+                        selectedIds={field.state.value.map(testCase => testCase.testCaseId)}
+                        onSave={value => field.handleChange(value.map(testCaseId => ({ testCaseId })))}
+                        triggerPlaceholder="Select test case(s)"
+                        dialogTitle="Select Test Cases"
+                        dialogDescription="Search and select the test cases to include in this test run."
+                        selectedLabel="Selected test case(s)"
                       />
                       {field.state.meta.isTouched &&
                         field.state.meta.errors.map((error, index) => (
