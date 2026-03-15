@@ -42,8 +42,12 @@ class LocatorPickerCompanion {
         this.context = null;
         this.finalized = false;
         this.shuttingDown = false;
+        this.requestedExitCode = 0;
         this.sessionFile = options.sessionFile;
         this.targetUrl = options.targetUrl;
+    }
+    get exitCode() {
+        return this.requestedExitCode;
     }
     async ensureOverlayInstalled(page) {
         if (page.isClosed()) {
@@ -97,6 +101,7 @@ class LocatorPickerCompanion {
             }
         }
         catch (error) {
+            this.requestedExitCode = 1;
             await this.markError(error instanceof Error && error.message.includes("Executable doesn't exist")
                 ? 'Playwright Chromium is not installed. Run `npm run install-playwright -- chromium` and retry.'
                 : error instanceof Error
@@ -146,6 +151,7 @@ class LocatorPickerCompanion {
     }
     async confirmSelection(payload) {
         this.finalized = true;
+        this.requestedExitCode = 0;
         await patchLocatorPickerSessionFile(this.sessionFile, current => ({
             status: current.status === 'saving' ? 'saving' : 'picked',
             currentUrl: payload.currentUrl,
@@ -176,6 +182,7 @@ class LocatorPickerCompanion {
     }
     async markError(message) {
         this.finalized = false;
+        this.requestedExitCode = 1;
         await patchLocatorPickerSessionFile(this.sessionFile, {
             status: 'error',
             error: message,
@@ -187,6 +194,7 @@ class LocatorPickerCompanion {
             return;
         }
         this.shuttingDown = true;
+        this.requestedExitCode = status === 'error' ? 1 : 0;
         if (!this.finalized) {
             await patchLocatorPickerSessionFile(this.sessionFile, current => ({
                 status: current.status === 'saving' ? 'saving' : status,
@@ -205,6 +213,7 @@ async function main() {
     await writeLocatorPickerSessionFile(options.sessionFile, Object.assign(Object.assign({}, existingSession), { companionPid: process.pid, error: undefined }));
     const companion = new LocatorPickerCompanion(options);
     await companion.run();
+    process.exit(companion.exitCode);
 }
 void main().catch(async (error) => {
     const argv = process.argv.slice(2);

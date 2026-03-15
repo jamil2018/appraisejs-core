@@ -9,6 +9,7 @@ import type {
 import { resolveLocatorPickerCompanionInvocation } from '@locator-picker-companion/launcher'
 import {
   ensureLocatorPickerDirectories,
+  getLocatorPickerSessionsDir,
   getLocatorPickerSessionFilePath,
   patchLocatorPickerSessionFile,
   readLocatorPickerSessionFile,
@@ -17,6 +18,8 @@ import {
 import type { CompanionSessionFile } from '@locator-picker-companion/types'
 import { randomUUID } from 'crypto'
 import { execa } from 'execa'
+import { readdir } from 'fs/promises'
+import path from 'path'
 
 function safeUrlParts(url: string): { currentUrl: string; pathname: string } {
   if (!url) {
@@ -44,6 +47,43 @@ async function terminateProcessByPid(pid: number): Promise<void> {
   }
 
   process.kill(pid, 'SIGTERM')
+}
+
+async function cleanupLingeringCompanionProcesses(currentSessionId?: string): Promise<void> {
+  await ensureLocatorPickerDirectories()
+
+  const sessionsDir = getLocatorPickerSessionsDir()
+  const entries = await readdir(sessionsDir).catch(() => [])
+  const now = Date.now()
+
+  for (const entry of entries) {
+    if (!entry.endsWith('.json')) {
+      continue
+    }
+
+    const sessionFilePath = path.join(sessionsDir, entry)
+    const session = await readLocatorPickerSessionFile(sessionFilePath)
+    if (!session?.companionPid || session.sessionId === currentSessionId) {
+      continue
+    }
+
+    const ageMs = now - new Date(session.updatedAt).getTime()
+    const shouldTerminate =
+      session.status === 'picked' ||
+      session.status === 'closed' ||
+      session.status === 'error' ||
+      ageMs > 2 * 60 * 1000
+
+    if (!shouldTerminate) {
+      continue
+    }
+
+    await terminateProcessByPid(session.companionPid).catch(() => undefined)
+    await patchLocatorPickerSessionFile(sessionFilePath, {
+      companionPid: null,
+      status: session.status === 'picked' ? 'picked' : 'closed',
+    }).catch(() => undefined)
+  }
 }
 
 function toPickedLocatorPayload(
@@ -118,6 +158,8 @@ class LocatorPickerSessionManager {
   }
 
   async startSession(request: StartLocatorPickerSessionRequest): Promise<LocatorPickerSession> {
+    await cleanupLingeringCompanionProcesses()
+
     const environment = request.environmentId
       ? await prisma.environment.findUnique({
           where: {
@@ -179,18 +221,40 @@ class LocatorPickerSessionManager {
       })
 
       spawnedProcess.process.on('exit', code => {
-        if (code === 0) {
-          return
-        }
-
         const stderr = spawnedProcess.output.stderr.join('').trim()
         const stdout = spawnedProcess.output.stdout.join('').trim()
-        const details = stderr || stdout
-        const message = details
-          ? `Locator picker companion exited early: ${details}`
-          : `Locator picker companion exited early with code ${code}.`
 
-        void markSessionLaunchFailure(sessionFilePath, message, spawnedProcess.pid)
+        void patchLocatorPickerSessionFile(sessionFilePath, current => {
+          const basePatch: Partial<CompanionSessionFile> = {
+            companionPid: null,
+          }
+
+          if (code === 0) {
+            if (current.status === 'picked') {
+              return basePatch
+            }
+
+            return {
+              ...basePatch,
+              status: 'closed',
+            }
+          }
+
+          const details = stderr || stdout
+          const message = details
+            ? `Locator picker companion exited early: ${details}`
+            : `Locator picker companion exited early with code ${code}.`
+
+          if (current.status === 'picked' || current.status === 'closed') {
+            return basePatch
+          }
+
+          return {
+            ...basePatch,
+            status: 'error',
+            error: message,
+          }
+        }).catch(() => undefined)
       })
 
       await patchLocatorPickerSessionFile(sessionFilePath, current => ({

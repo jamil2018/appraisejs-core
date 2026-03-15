@@ -10,5 +10,9 @@
   {
     "name": "test",
     "path": "/test"
+  },
+  {
+    "name": "testload",
+    "path": "/login"
   }
 ]
