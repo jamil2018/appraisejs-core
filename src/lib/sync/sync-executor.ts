@@ -80,7 +80,7 @@ async function executeSyncScript(scriptId: SyncScriptId): Promise<ScriptExecutio
   })
 
   return {
-    exitCode: result.exitCode,
+    exitCode: result.exitCode ?? null,
     stdout: result.stdout,
     stderr: result.stderr,
   }

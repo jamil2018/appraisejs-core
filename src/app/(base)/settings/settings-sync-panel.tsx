@@ -30,6 +30,7 @@ import {
   type SyncScriptId,
   type SyncScriptDefinition,
 } from '@/lib/sync/sync-registry'
+import type { SyncPendingCounts } from '@/lib/sync/sync-pending-counts'
 
 type SyncRunResult = Awaited<ReturnType<typeof runSyncAction>>
 type SyncTileColor = keyof typeof AppDrawerItemColor
@@ -103,14 +104,15 @@ function SyncRow({
   definition,
   disabled,
   isActive,
+  pendingCount,
   onRun,
 }: {
   definition: SyncScriptDefinition
   disabled: boolean
   isActive: boolean
+  pendingCount: number
   onRun: (requestId: SyncRequestId) => void
 }) {
-  const executionCount = resolveRequestedSyncExecutionOrder(definition.id).length
   const { icon, colorKey } = syncPresentation[definition.id]
   const color = AppDrawerItemColor[colorKey]
   const executionOrder = resolveRequestedSyncExecutionOrder(definition.id)
@@ -128,11 +130,13 @@ function SyncRow({
             <div className={`${color.iconColor} shrink-0 [&_svg]:!h-5 [&_svg]:!w-5`}>
               {isActive ? <RefreshCw className="animate-spin" /> : icon}
             </div>
-            <div
-              className={`flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-[10px] font-semibold ${color.badgeColor}`}
-            >
-              {executionCount}
-            </div>
+            {pendingCount > 0 ? (
+              <div
+                className={`flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-[10px] font-semibold ${color.badgeColor}`}
+              >
+                {pendingCount}
+              </div>
+            ) : null}
           </div>
           <div className="mt-3 min-w-0">
             <p className="break-words text-xs font-medium leading-4 text-gray-100">{definition.label}</p>
@@ -147,7 +151,7 @@ function SyncRow({
   )
 }
 
-export function SettingsSyncPanel() {
+export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendingCounts }) {
   const router = useRouter()
   const [activeRequestId, setActiveRequestId] = useState<SyncRequestId | null>(null)
 
@@ -218,9 +222,11 @@ export function SettingsSyncPanel() {
                   <div className="text-emerald-500 [&_svg]:!h-5 [&_svg]:!w-5">
                     {activeRequestId === SYNC_ALL_REQUEST_ID ? <RefreshCw className="animate-spin" /> : <RefreshCw />}
                   </div>
-                  <div className="rounded-full bg-emerald-400 px-2 py-1 text-[10px] font-semibold text-emerald-900">
-                    {syncScriptDefinitions.length}
-                  </div>
+                  {pendingCounts[SYNC_ALL_REQUEST_ID] > 0 ? (
+                    <div className="rounded-full bg-emerald-400 px-2 py-1 text-[10px] font-semibold text-emerald-900">
+                      {pendingCounts[SYNC_ALL_REQUEST_ID]}
+                    </div>
+                  ) : null}
                 </div>
                 <p className="mt-3 text-xs font-medium leading-4">Sync All</p>
               </Button>
@@ -236,6 +242,7 @@ export function SettingsSyncPanel() {
                 definition={definition}
                 disabled={isRunning}
                 isActive={activeRequestId === definition.id}
+                pendingCount={pendingCounts[definition.id]}
                 onRun={runSync}
               />
             ))}

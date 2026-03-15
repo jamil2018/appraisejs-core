@@ -2,13 +2,16 @@ import type { Metadata } from 'next'
 import { Settings2 } from 'lucide-react'
 import PageHeader from '@/components/typography/page-header'
 import { SettingsSyncPanel } from './settings-sync-panel'
+import { getSyncPendingCounts } from '@/lib/sync/sync-pending-counts'
 
 export const metadata: Metadata = {
   title: 'Appraise | Settings',
   description: 'Manage sync operations and other application settings.',
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const pendingCounts = await getSyncPendingCounts()
+
   return (
     <div className="space-y-8">
       <div className="mb-8">
@@ -20,7 +23,7 @@ export default function SettingsPage() {
         </PageHeader>
       </div>
       <section className="max-w-6xl">
-        <SettingsSyncPanel />
+        <SettingsSyncPanel pendingCounts={pendingCounts} />
       </section>
     </div>
   )
