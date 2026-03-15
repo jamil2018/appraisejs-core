@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  closeLocatorPickerSessionAction,
   getLocatorPickerSessionAction,
   savePickedLocatorAction,
   startLocatorPickerSessionAction,
@@ -20,7 +19,7 @@ import { toast } from '@/hooks/use-toast'
 import { inferGroupSuggestion, normalizeRoute, suggestLocatorName } from '@/lib/locator-picker/suggestions'
 import type { LocatorPickerSession } from '@/types/locator-picker'
 import type { Environment, LocatorGroup, Module } from '@prisma/client'
-import { ExternalLink, Loader2, RefreshCw, Save, SquareX, Target } from 'lucide-react'
+import { ExternalLink, Loader2, Save, Target } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -67,7 +66,6 @@ export default function CreateLocatorWorkspace({
   const [url, setUrl] = useState('')
   const [session, setSession] = useState<LocatorPickerSession | null>(null)
   const [isStarting, setIsStarting] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [payloadSignature, setPayloadSignature] = useState('')
 
@@ -86,10 +84,6 @@ export default function CreateLocatorWorkspace({
   const [lastAutoModuleId, setLastAutoModuleId] = useState('')
 
   const loadSession = async (sessionId: string, silent = false) => {
-    if (!silent) {
-      setIsRefreshing(true)
-    }
-
     const response = await getLocatorPickerSessionAction(sessionId)
     if (response.status === 200) {
       setSession(response.data as LocatorPickerSession)
@@ -100,14 +94,10 @@ export default function CreateLocatorWorkspace({
         variant: 'destructive',
       })
     }
-
-    if (!silent) {
-      setIsRefreshing(false)
-    }
   }
 
   useEffect(() => {
-    if (!session?.sessionId || session.status === 'closed') {
+    if (!session?.sessionId || session.status === 'closed' || !session.companionPid) {
       return
     }
 
@@ -116,7 +106,7 @@ export default function CreateLocatorWorkspace({
     }, 1500)
 
     return () => window.clearInterval(intervalId)
-  }, [session?.sessionId, session?.status])
+  }, [session?.companionPid, session?.sessionId, session?.status])
 
   useEffect(() => {
     const pickedLocator = session?.pickedLocator
@@ -212,34 +202,16 @@ export default function CreateLocatorWorkspace({
 
     setSession(response.data as LocatorPickerSession)
     setPayloadSignature('')
-    setLastAutoLocatorName('')
-    setLastAutoSelector('')
-    setLastAutoExistingGroupId('')
-    setLastAutoGroupName('')
-    setLastAutoRoute('/')
-    setLastAutoModuleId('')
+    setLastAutoLocatorName(locatorName)
+    setLastAutoSelector(selector)
+    setLastAutoExistingGroupId(existingLocatorGroupId)
+    setLastAutoGroupName(newLocatorGroupName)
+    setLastAutoRoute(route)
+    setLastAutoModuleId(moduleId)
 
     toast({
       title: 'Chromium launched',
       description: 'Use the in-browser Appraise picker panel to start picking, click one element, then confirm Use selector.',
-    })
-  }
-
-  const handleClose = async () => {
-    if (!session) {
-      return
-    }
-
-    const response = await closeLocatorPickerSessionAction(session.sessionId)
-    if (response.status === 200) {
-      setSession(response.data as LocatorPickerSession)
-      return
-    }
-
-    toast({
-      title: 'Unable to close Chromium',
-      description: response.error,
-      variant: 'destructive',
     })
   }
 
@@ -382,27 +354,6 @@ export default function CreateLocatorWorkspace({
                     <div className="font-medium">Current page</div>
                     <div className="break-all text-muted-foreground">{session.currentUrl || session.launchSource.url}</div>
                     <div className="text-muted-foreground">{session.pageTitle || 'Waiting for page metadata'}</div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void loadSession(session.sessionId)}
-                      disabled={isRefreshing}
-                    >
-                      {isRefreshing ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                      )}
-                      Refresh
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={handleClose}>
-                      <SquareX className="mr-2 h-4 w-4" />
-                      Close Browser
-                    </Button>
                   </div>
 
                   {session.error ? (

@@ -67,9 +67,15 @@ class LocatorPickerCompanion {
 
   private shuttingDown = false
 
+  private requestedExitCode = 0
+
   constructor(options: CliOptions) {
     this.sessionFile = options.sessionFile
     this.targetUrl = options.targetUrl
+  }
+
+  get exitCode(): number {
+    return this.requestedExitCode
   }
 
   private async ensureOverlayInstalled(page: Page): Promise<void> {
@@ -140,6 +146,7 @@ class LocatorPickerCompanion {
         await this.shutdown('closed')
       }
     } catch (error) {
+      this.requestedExitCode = 1
       await this.markError(
         error instanceof Error && error.message.includes("Executable doesn't exist")
           ? 'Playwright Chromium is not installed. Run `npm run install-playwright -- chromium` and retry.'
@@ -202,6 +209,7 @@ class LocatorPickerCompanion {
 
   private async confirmSelection(payload: CompanionPickedLocatorPayload): Promise<void> {
     this.finalized = true
+    this.requestedExitCode = 0
 
     await patchLocatorPickerSessionFile(this.sessionFile, current => ({
       status: current.status === 'saving' ? 'saving' : 'picked',
@@ -239,6 +247,7 @@ class LocatorPickerCompanion {
 
   private async markError(message: string): Promise<void> {
     this.finalized = false
+    this.requestedExitCode = 1
     await patchLocatorPickerSessionFile(this.sessionFile, {
       status: 'error',
       error: message,
@@ -252,6 +261,7 @@ class LocatorPickerCompanion {
     }
 
     this.shuttingDown = true
+    this.requestedExitCode = status === 'error' ? 1 : 0
 
     if (!this.finalized) {
       await patchLocatorPickerSessionFile(this.sessionFile, current => ({
@@ -279,6 +289,7 @@ async function main(): Promise<void> {
 
   const companion = new LocatorPickerCompanion(options)
   await companion.run()
+  process.exit(companion.exitCode)
 }
 
 void main().catch(async error => {
