@@ -10,58 +10,13 @@
 
 import { execa } from 'execa'
 import { join } from 'path'
-
-/**
- * Sync script configuration with execution order and dependencies
- * Order is critical - scripts must run after their dependencies
- */
-const SYNC_SCRIPTS = [
-  {
-    name: 'sync-modules',
-    description: 'Sync module hierarchy',
-    dependencies: [], // No dependencies - base entity
-  },
-  {
-    name: 'sync-environments',
-    description: 'Sync environments',
-    dependencies: [], // No dependencies - standalone
-  },
-  {
-    name: 'sync-tags',
-    description: 'Sync tags',
-    dependencies: [], // No dependencies - standalone
-  },
-  {
-    name: 'sync-template-step-groups',
-    description: 'Sync template step groups',
-    dependencies: [], // No dependencies - base for template steps
-  },
-  {
-    name: 'sync-template-steps',
-    description: 'Sync template steps',
-    dependencies: ['sync-template-step-groups'], // Depends on template-step-groups
-  },
-  {
-    name: 'sync-locator-groups',
-    description: 'Sync locator groups',
-    dependencies: ['sync-modules'], // Depends on modules
-  },
-  {
-    name: 'sync-locators',
-    description: 'Sync locators',
-    dependencies: ['sync-locator-groups'], // Depends on locator-groups
-  },
-  {
-    name: 'sync-test-suites',
-    description: 'Sync test suites',
-    dependencies: ['sync-modules', 'sync-tags'], // Depends on modules and tags
-  },
-  {
-    name: 'sync-test-cases',
-    description: 'Sync test cases',
-    dependencies: ['sync-test-suites', 'sync-template-steps', 'sync-tags'], // Depends on test-suites, template-steps, and tags
-  },
-] as const
+import {
+  getSyncScriptDefinition,
+  resolveRequestedSyncExecutionOrder,
+  SYNC_ALL_REQUEST_ID,
+  type SyncScriptId,
+} from '../src/lib/sync/sync-registry'
+const SYNC_SCRIPT_IDS = resolveRequestedSyncExecutionOrder(SYNC_ALL_REQUEST_ID)
 
 interface DatabaseChanges {
   scanned: number
@@ -138,13 +93,14 @@ function parseDatabaseChanges(stdout: string): DatabaseChanges | undefined {
 /**
  * Executes a single sync script and captures the result
  */
-async function executeSyncScript(scriptName: string): Promise<ScriptResult> {
-  const scriptPath = join(process.cwd(), 'scripts', `${scriptName}.ts`)
+async function executeSyncScript(scriptId: SyncScriptId): Promise<ScriptResult> {
+  const definition = getSyncScriptDefinition(scriptId)
+  const scriptPath = join(process.cwd(), 'scripts', definition.scriptFile)
   const startTime = Date.now()
 
   try {
-    console.log(`\n🔄 Running ${scriptName}...`)
-    const result = await execa('npx', ['tsx', scriptPath], {
+    console.log(`\n🔄 Running ${scriptId}...`)
+    const result = await execa(process.execPath, ['--import', 'tsx', scriptPath], {
       cwd: process.cwd(),
       stdio: 'pipe',
       reject: false, // Don't throw on non-zero exit codes
@@ -155,17 +111,17 @@ async function executeSyncScript(scriptName: string): Promise<ScriptResult> {
     const dbChanges = parseDatabaseChanges(result.stdout)
 
     if (success) {
-      console.log(`   ✅ ${scriptName} completed successfully (${duration}ms)`)
+      console.log(`   ✅ ${scriptId} completed successfully (${duration}ms)`)
     } else {
-      console.log(`   ❌ ${scriptName} failed with exit code ${result.exitCode} (${duration}ms)`)
+      console.log(`   ❌ ${scriptId} failed with exit code ${result.exitCode} (${duration}ms)`)
       if (result.stderr) {
         console.log(`   Error output: ${result.stderr.substring(0, 200)}...`)
       }
     }
 
     return {
-      name: scriptName,
-      description: SYNC_SCRIPTS.find(s => s.name === scriptName)?.description || scriptName,
+      name: scriptId,
+      description: definition.description,
       success,
       exitCode: result.exitCode ?? null,
       duration,
@@ -175,12 +131,12 @@ async function executeSyncScript(scriptName: string): Promise<ScriptResult> {
     }
   } catch (error) {
     const duration = Date.now() - startTime
-    console.log(`   ❌ ${scriptName} threw an error (${duration}ms)`)
+    console.log(`   ❌ ${scriptId} threw an error (${duration}ms)`)
     console.error(`   Error: ${error}`)
 
     return {
-      name: scriptName,
-      description: SYNC_SCRIPTS.find(s => s.name === scriptName)?.description || scriptName,
+      name: scriptId,
+      description: definition.description,
       success: false,
       exitCode: null,
       duration,
@@ -301,8 +257,8 @@ async function main(): Promise<void> {
   console.log('Execution will continue even if individual scripts fail.\n')
 
   // Execute each script in order
-  for (const script of SYNC_SCRIPTS) {
-    const result = await executeSyncScript(script.name)
+  for (const scriptId of SYNC_SCRIPT_IDS) {
+    const result = await executeSyncScript(scriptId)
     results.push(result)
     
     // Continue execution even if script failed (as per user requirement)
@@ -315,7 +271,7 @@ async function main(): Promise<void> {
   const totalDbChanges = aggregateDatabaseChanges(results)
 
   const summary: SyncSummary = {
-    totalScripts: SYNC_SCRIPTS.length,
+    totalScripts: SYNC_SCRIPT_IDS.length,
     successfulScripts,
     failedScripts,
     totalDuration,
