@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { mkdir, readFile, rename, unlink, writeFile } from 'fs/promises'
+import { access, appendFile, mkdir, readFile, rename, rm, unlink, writeFile } from 'fs/promises'
 import path from 'path'
 import type { CompanionSessionFile } from './types.js'
 
@@ -26,6 +26,15 @@ export function getLocatorPickerProfilesDir(repoRoot = process.cwd()): string {
   return path.join(getLocatorPickerRootDir(repoRoot), 'profiles')
 }
 
+export function getLocatorPickerLogsDir(repoRoot = process.cwd()): string {
+  console.log('getLocatorPickerLogsDir:', path.join(getLocatorPickerRootDir(repoRoot), 'logs'))
+  return path.join(getLocatorPickerRootDir(repoRoot), 'logs')
+}
+
+export function getLocatorPickerProfileDir(sessionId: string, repoRoot = process.cwd()): string {
+  return path.join(getLocatorPickerProfilesDir(repoRoot), sessionId)
+}
+
 export function getLocatorPickerRuntimeDir(repoRoot = process.cwd()): string {
   return path.join(getLocatorPickerRootDir(repoRoot), 'runtime')
 }
@@ -36,6 +45,51 @@ export function getLocatorPickerRuntimeHomeDir(repoRoot = process.cwd()): string
 
 export function getLocatorPickerSessionFilePath(sessionId: string, repoRoot = process.cwd()): string {
   return path.join(getLocatorPickerSessionsDir(repoRoot), `${sessionId}.json`)
+}
+
+export function getLocatorPickerCrashLogPath(sessionId: string, repoRoot = process.cwd()): string {
+  return path.join(getLocatorPickerLogsDir(repoRoot), `${sessionId}.log`)
+}
+
+export async function removeLocatorPickerProfileDir(
+  sessionId: string,
+  repoRoot = process.cwd(),
+): Promise<void> {
+  await rm(getLocatorPickerProfileDir(sessionId, repoRoot), {
+    force: true,
+    recursive: true,
+  }).catch(() => undefined)
+}
+
+export async function removeLocatorPickerSessionFile(
+  sessionId: string,
+  repoRoot = process.cwd(),
+): Promise<void> {
+  await unlink(getLocatorPickerSessionFilePath(sessionId, repoRoot)).catch(() => undefined)
+}
+
+export async function clearLocatorPickerCrashLogs(repoRoot = process.cwd()): Promise<void> {
+  await rm(getLocatorPickerLogsDir(repoRoot), {
+    force: true,
+    recursive: true,
+  }).catch(() => console.error('Failed to clear locator picker crash logs.'))
+
+  await mkdir(getLocatorPickerLogsDir(repoRoot), { recursive: true })
+}
+
+export async function createLocatorPickerCrashLog(logFilePath: string): Promise<void> {
+  await mkdir(path.dirname(logFilePath), { recursive: true })
+  await writeFile(logFilePath, '', 'utf8')
+}
+
+export async function appendLocatorPickerCrashLog(logFilePath: string, message: string): Promise<void> {
+  try {
+    await access(logFilePath)
+  } catch {
+    return
+  }
+
+  await appendFile(logFilePath, `[${new Date().toISOString()}] ${message}\n`, 'utf8')
 }
 
 export async function ensureLocatorPickerDirectories(repoRoot = process.cwd()): Promise<void> {
@@ -50,6 +104,7 @@ export async function ensureLocatorPickerDirectories(repoRoot = process.cwd()): 
 
   await mkdir(getLocatorPickerSessionsDir(repoRoot), { recursive: true })
   await mkdir(getLocatorPickerProfilesDir(repoRoot), { recursive: true })
+  await mkdir(getLocatorPickerLogsDir(repoRoot), { recursive: true })
   await mkdir(runtimeHomeDir, { recursive: true })
   await mkdir(tempDir, { recursive: true })
   await mkdir(configDir, { recursive: true })
