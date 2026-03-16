@@ -1,6 +1,6 @@
-import { chromium } from 'playwright';
+import { chromium, } from 'playwright';
 import path from 'path';
-import { ensureLocatorPickerDirectories, patchLocatorPickerSessionFile, readLocatorPickerSessionFile, writeLocatorPickerSessionFile, } from './session-file.js';
+import { ensureLocatorPickerDirectories, getLocatorPickerProfilesDir, patchLocatorPickerSessionFile, readLocatorPickerSessionFile, writeLocatorPickerSessionFile, } from './session-file.js';
 import { generatePickedLocatorPayload } from './selector-generator.js';
 import { installLocatorPickerOverlay } from './injected-picker-script.js';
 function parseArgs(argv) {
@@ -49,6 +49,40 @@ class LocatorPickerCompanion {
     get exitCode() {
         return this.requestedExitCode;
     }
+    getLaunchCandidates() {
+        const sharedOptions = {
+            headless: false,
+            ignoreHTTPSErrors: true,
+        };
+        const bundledChromium = {
+            label: 'playwright-chromium',
+            options: sharedOptions,
+        };
+        const systemChrome = {
+            label: 'google-chrome',
+            options: Object.assign(Object.assign({}, sharedOptions), { channel: 'chrome' }),
+        };
+        const systemEdge = {
+            label: 'microsoft-edge',
+            options: Object.assign(Object.assign({}, sharedOptions), { channel: 'msedge' }),
+        };
+        return process.platform === 'darwin'
+            ? [systemChrome, systemEdge, bundledChromium]
+            : [bundledChromium, systemChrome, systemEdge];
+    }
+    async launchBrowser(profileDir) {
+        const failures = [];
+        for (const candidate of this.getLaunchCandidates()) {
+            try {
+                return await chromium.launchPersistentContext(profileDir, candidate.options);
+            }
+            catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                failures.push(`${candidate.label}: ${message}`);
+            }
+        }
+        throw new Error(failures.join('\n\n'));
+    }
     async ensureOverlayInstalled(page) {
         if (page.isClosed()) {
             return;
@@ -68,13 +102,9 @@ class LocatorPickerCompanion {
         process.on('SIGINT', () => {
             void this.shutdown('closed');
         });
-        const profileDir = path.join(process.cwd(), '.tmp', 'locator-picker', 'profiles', path.basename(this.sessionFile, '.json'));
+        const profileDir = path.join(getLocatorPickerProfilesDir(process.cwd()), path.basename(this.sessionFile, '.json'));
         try {
-            this.context = await chromium.launchPersistentContext(profileDir, {
-                headless: false,
-                channel: 'chromium',
-                ignoreHTTPSErrors: true,
-            });
+            this.context = await this.launchBrowser(profileDir);
             await this.context.exposeBinding('__appraiseLocatorPickerPreview', async ({ page }, elementHandle) => {
                 return this.generatePreview(page, elementHandle);
             }, { handle: true });

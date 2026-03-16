@@ -49,6 +49,7 @@ export class TaskSpawner extends EventEmitter {
     const stdioConfig = captureOutput ? 'pipe' : streamLogs ? 'inherit' : 'pipe'
     const childProcess = execa(command, args, {
       stdio: stdioConfig,
+      reject: false,
       ...spawnOptions,
     })
 

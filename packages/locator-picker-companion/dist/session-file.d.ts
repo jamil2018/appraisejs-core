@@ -2,6 +2,8 @@ import type { CompanionSessionFile } from './types.js';
 export declare function getLocatorPickerRootDir(repoRoot?: string): string;
 export declare function getLocatorPickerSessionsDir(repoRoot?: string): string;
 export declare function getLocatorPickerProfilesDir(repoRoot?: string): string;
+export declare function getLocatorPickerRuntimeDir(repoRoot?: string): string;
+export declare function getLocatorPickerRuntimeHomeDir(repoRoot?: string): string;
 export declare function getLocatorPickerSessionFilePath(sessionId: string, repoRoot?: string): string;
 export declare function ensureLocatorPickerDirectories(repoRoot?: string): Promise<void>;
 export declare function readLocatorPickerSessionFile(sessionFilePath: string): Promise<CompanionSessionFile | null>;
