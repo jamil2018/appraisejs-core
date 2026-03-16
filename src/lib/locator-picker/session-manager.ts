@@ -1,6 +1,6 @@
 import prisma from '@/config/db-config'
 import { normalizeRoute } from '@/lib/locator-picker/suggestions'
-import { spawnTask } from '@/lib/process/task-spawner'
+import { removeTask, spawnTask } from '@/lib/process/task-spawner'
 import type {
   LocatorPickerSession,
   PickedLocatorPayload,
@@ -8,7 +8,13 @@ import type {
 } from '@/types/locator-picker'
 import { resolveLocatorPickerCompanionInvocation } from '@locator-picker-companion/launcher'
 import {
+  appendLocatorPickerCrashLog,
+  clearLocatorPickerCrashLogs,
+  createLocatorPickerCrashLog,
   ensureLocatorPickerDirectories,
+  getLocatorPickerCrashLogPath,
+  removeLocatorPickerProfileDir,
+  removeLocatorPickerSessionFile,
   getLocatorPickerSessionsDir,
   getLocatorPickerSessionFilePath,
   patchLocatorPickerSessionFile,
@@ -20,6 +26,11 @@ import { randomUUID } from 'crypto'
 import { execa } from 'execa'
 import { readdir } from 'fs/promises'
 import path from 'path'
+
+const ACTIVE_SESSION_STALE_MS = 2 * 60 * 1000
+const COMPANION_EXIT_POLL_MS = 100
+const COMPANION_EXIT_TIMEOUT_MS = 5 * 1000
+const TERMINAL_SESSION_RETENTION_MS = 30 * 60 * 1000
 
 function safeUrlParts(url: string): { currentUrl: string; pathname: string } {
   if (!url) {
@@ -40,16 +51,76 @@ function safeUrlParts(url: string): { currentUrl: string; pathname: string } {
   }
 }
 
-async function terminateProcessByPid(pid: number): Promise<void> {
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function isMissingProcessError(error: unknown): boolean {
+  return Boolean(error instanceof Error && 'code' in error && error.code === 'ESRCH')
+}
+
+async function processExists(pid: number): Promise<boolean> {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    if (isMissingProcessError(error)) {
+      return false
+    }
+
+    return true
+  }
+}
+
+async function waitForProcessExit(pid: number, timeoutMs = COMPANION_EXIT_TIMEOUT_MS): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    if (!(await processExists(pid))) {
+      return true
+    }
+
+    await delay(COMPANION_EXIT_POLL_MS)
+  }
+
+  return !(await processExists(pid))
+}
+
+async function terminateProcessByPid(pid: number, force = false): Promise<void> {
   if (process.platform === 'win32') {
-    await execa('taskkill', ['/PID', String(pid), '/T', '/F'])
+    const args = ['/PID', String(pid), '/T']
+    if (force) {
+      args.push('/F')
+    }
+
+    await execa('taskkill', args)
     return
   }
 
-  process.kill(pid, 'SIGTERM')
+  process.kill(pid, force ? 'SIGKILL' : 'SIGTERM')
 }
 
-async function cleanupLingeringCompanionProcesses(currentSessionId?: string): Promise<void> {
+async function shutdownCompanionProcess(pid: number): Promise<void> {
+  await terminateProcessByPid(pid).catch(() => undefined)
+
+  if (await waitForProcessExit(pid)) {
+    return
+  }
+
+  await terminateProcessByPid(pid, true).catch(() => undefined)
+  await waitForProcessExit(pid)
+}
+
+function getSessionAgeMs(updatedAt: string, now: number): number {
+  const updatedAtMs = Date.parse(updatedAt)
+  return Number.isFinite(updatedAtMs) ? Math.max(0, now - updatedAtMs) : Number.POSITIVE_INFINITY
+}
+
+function isTerminalStatus(status: CompanionSessionFile['status']): boolean {
+  return status === 'picked' || status === 'closed' || status === 'error'
+}
+
+async function cleanupLingeringCompanionSessions(currentSessionId?: string): Promise<void> {
   await ensureLocatorPickerDirectories()
 
   const sessionsDir = getLocatorPickerSessionsDir()
@@ -63,26 +134,39 @@ async function cleanupLingeringCompanionProcesses(currentSessionId?: string): Pr
 
     const sessionFilePath = path.join(sessionsDir, entry)
     const session = await readLocatorPickerSessionFile(sessionFilePath)
-    if (!session?.companionPid || session.sessionId === currentSessionId) {
+    if (!session || session.sessionId === currentSessionId) {
       continue
     }
 
-    const ageMs = now - new Date(session.updatedAt).getTime()
-    const shouldTerminate =
-      session.status === 'picked' ||
-      session.status === 'closed' ||
-      session.status === 'error' ||
-      ageMs > 2 * 60 * 1000
+    const ageMs = getSessionAgeMs(session.updatedAt, now)
+    const isTerminal = isTerminalStatus(session.status)
+    const shouldTerminate = Boolean(session.companionPid)
+    const shouldCloseStaleSession = !session.companionPid && !isTerminal && ageMs > ACTIVE_SESSION_STALE_MS
+    const shouldPruneSessionFile =
+      (isTerminal && ageMs > TERMINAL_SESSION_RETENTION_MS) || shouldCloseStaleSession
 
-    if (!shouldTerminate) {
-      continue
+    if (shouldTerminate && session.companionPid) {
+      await shutdownCompanionProcess(session.companionPid).catch(() => undefined)
+      await patchLocatorPickerSessionFile(sessionFilePath, {
+        companionPid: null,
+        status: session.status === 'picked' ? 'picked' : 'closed',
+      }).catch(() => undefined)
     }
 
-    await terminateProcessByPid(session.companionPid).catch(() => undefined)
-    await patchLocatorPickerSessionFile(sessionFilePath, {
-      companionPid: null,
-      status: session.status === 'picked' ? 'picked' : 'closed',
-    }).catch(() => undefined)
+    if (shouldCloseStaleSession) {
+      await patchLocatorPickerSessionFile(sessionFilePath, {
+        companionPid: null,
+        status: 'closed',
+      }).catch(() => undefined)
+    }
+
+    if (shouldTerminate || isTerminal || shouldCloseStaleSession) {
+      await removeLocatorPickerProfileDir(session.sessionId).catch(() => undefined)
+    }
+
+    if (shouldPruneSessionFile) {
+      await removeLocatorPickerSessionFile(session.sessionId).catch(() => undefined)
+    }
   }
 }
 
@@ -117,6 +201,7 @@ function toSessionSnapshot(record: CompanionSessionFile): LocatorPickerSession {
     currentPathname: record.currentPathname,
     pageTitle: record.pageTitle,
     companionPid: record.companionPid,
+    crashLogPath: record.crashLogPath,
     pickedLocator: toPickedLocatorPayload(record.sessionId, record.pickedLocator),
     startedAt: record.startedAt,
     updatedAt: record.updatedAt,
@@ -158,7 +243,8 @@ class LocatorPickerSessionManager {
   }
 
   async startSession(request: StartLocatorPickerSessionRequest): Promise<LocatorPickerSession> {
-    await cleanupLingeringCompanionProcesses()
+    await clearLocatorPickerCrashLogs()
+    await cleanupLingeringCompanionSessions()
 
     const environment = request.environmentId
       ? await prisma.environment.findUnique({
@@ -176,6 +262,7 @@ class LocatorPickerSessionManager {
     const normalizedUrl = /^https?:\/\//i.test(launchUrl) ? launchUrl : `https://${launchUrl}`
     const sessionId = randomUUID()
     const sessionFilePath = getLocatorPickerSessionFilePath(sessionId)
+    const crashLogPath = getLocatorPickerCrashLogPath(sessionId)
     const { currentUrl, pathname } = safeUrlParts(normalizedUrl)
 
     await ensureLocatorPickerDirectories()
@@ -192,11 +279,17 @@ class LocatorPickerSessionManager {
       currentPathname: pathname,
       pageTitle: '',
       companionPid: null,
+      crashLogPath,
       startedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
 
     await writeLocatorPickerSessionFile(sessionFilePath, initialRecord)
+    await createLocatorPickerCrashLog(crashLogPath)
+    await appendLocatorPickerCrashLog(
+      crashLogPath,
+      `Session created for ${normalizedUrl}. Waiting for companion launch.`,
+    ).catch(() => undefined)
 
     try {
       const { command, args } = await resolveLocatorPickerCompanionInvocation(
@@ -210,6 +303,7 @@ class LocatorPickerSessionManager {
         streamLogs: false,
         captureOutput: true,
         logPrefix: `locator-picker-companion-${sessionId}`,
+        retainProcessRecord: false,
       })
 
       spawnedProcess.process.on('error', error => {
@@ -218,11 +312,25 @@ class LocatorPickerSessionManager {
           error.message || 'Locator picker companion failed to start.',
           spawnedProcess.pid,
         )
+        void appendLocatorPickerCrashLog(
+          crashLogPath,
+          `Companion process error: ${error.message || 'Unknown process error.'}`,
+        ).catch(() => undefined)
+        removeTask(spawnedProcess.name)
       })
 
       spawnedProcess.process.on('exit', code => {
         const stderr = spawnedProcess.output.stderr.join('').trim()
         const stdout = spawnedProcess.output.stdout.join('').trim()
+        const logLines = [`Companion process exited with code ${code}.`]
+
+        if (stdout) {
+          logLines.push(`Captured stdout:\n${stdout}`)
+        }
+
+        if (stderr) {
+          logLines.push(`Captured stderr:\n${stderr}`)
+        }
 
         void patchLocatorPickerSessionFile(sessionFilePath, current => {
           const basePatch: Partial<CompanionSessionFile> = {
@@ -256,7 +364,13 @@ class LocatorPickerSessionManager {
             status: 'error',
             error: message,
           }
-        }).catch(() => undefined)
+        })
+          .catch(() => undefined)
+          .finally(() => {
+            void appendLocatorPickerCrashLog(crashLogPath, logLines.join('\n\n')).catch(() => undefined)
+            removeTask(spawnedProcess.name)
+            return removeLocatorPickerProfileDir(sessionId).catch(() => undefined)
+          })
       })
 
       await patchLocatorPickerSessionFile(sessionFilePath, current => ({
@@ -264,6 +378,11 @@ class LocatorPickerSessionManager {
         error: undefined,
       }))
     } catch (error) {
+      await appendLocatorPickerCrashLog(
+        crashLogPath,
+        `Failed to spawn companion: ${error instanceof Error ? error.message : 'Unknown launch failure.'}`,
+      ).catch(() => undefined)
+      await removeLocatorPickerProfileDir(sessionId).catch(() => undefined)
       await patchLocatorPickerSessionFile(sessionFilePath, {
         status: 'error',
         error: error instanceof Error ? error.message : 'Failed to start the locator picker companion.',
@@ -313,13 +432,15 @@ class LocatorPickerSessionManager {
     }
 
     if (current.companionPid) {
-      await terminateProcessByPid(current.companionPid).catch(() => undefined)
+      await shutdownCompanionProcess(current.companionPid).catch(() => undefined)
     }
 
     const nextRecord = await patchLocatorPickerSessionFile(sessionFilePath, {
       status: 'closed',
       companionPid: null,
     })
+
+    await removeLocatorPickerProfileDir(sessionId).catch(() => undefined)
 
     return nextRecord ? toSessionSnapshot(nextRecord) : null
   }

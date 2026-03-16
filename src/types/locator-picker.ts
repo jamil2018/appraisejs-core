@@ -40,6 +40,7 @@ export interface LocatorPickerSession {
   currentPathname: string
   pageTitle: string
   companionPid: number | null
+  crashLogPath?: string
   pickedLocator?: PickedLocatorPayload
   startedAt: string
   updatedAt: string

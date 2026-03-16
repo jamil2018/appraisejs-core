@@ -23,6 +23,7 @@ export interface CompanionSessionFile {
     currentPathname: string;
     pageTitle: string;
     companionPid: number | null;
+    crashLogPath?: string;
     pickedLocator?: CompanionPickedLocatorPayload;
     error?: string;
     startedAt: string;

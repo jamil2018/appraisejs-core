@@ -13,6 +13,10 @@ export function installLocatorPickerOverlay() {
         error: '',
         elements: {},
     });
+    function stopOverlayEvent(event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     function normalizeText(value) {
         return (value !== null && value !== void 0 ? value : '').replace(/\s+/g, ' ').trim();
     }
@@ -443,7 +447,9 @@ export function installLocatorPickerOverlay() {
         startButton.className = 'appraise-picker-primary';
         startButton.type = 'button';
         startButton.textContent = 'Start picking';
-        startButton.addEventListener('click', () => {
+        startButton.addEventListener('click', event => {
+            stopOverlayEvent(event);
+            state.submitting = false;
             state.preview = null;
             state.error = '';
             setPicking(true);
@@ -452,7 +458,8 @@ export function installLocatorPickerOverlay() {
         useButton.className = 'appraise-picker-primary';
         useButton.type = 'button';
         useButton.textContent = 'Use selector';
-        useButton.addEventListener('click', () => {
+        useButton.addEventListener('click', event => {
+            stopOverlayEvent(event);
             if (!state.preview || state.submitting || !globalState.__appraiseLocatorPickerConfirm) {
                 return;
             }
@@ -473,7 +480,9 @@ export function installLocatorPickerOverlay() {
         pickAgainButton.className = 'appraise-picker-secondary';
         pickAgainButton.type = 'button';
         pickAgainButton.textContent = 'Pick again';
-        pickAgainButton.addEventListener('click', () => {
+        pickAgainButton.addEventListener('click', event => {
+            stopOverlayEvent(event);
+            state.submitting = false;
             state.preview = null;
             state.error = '';
             setPicking(true);
@@ -482,7 +491,8 @@ export function installLocatorPickerOverlay() {
         cancelButton.className = 'appraise-picker-secondary';
         cancelButton.type = 'button';
         cancelButton.textContent = 'Cancel';
-        cancelButton.addEventListener('click', () => {
+        cancelButton.addEventListener('click', event => {
+            stopOverlayEvent(event);
             if (state.submitting || !globalState.__appraiseLocatorPickerCancel) {
                 return;
             }
@@ -492,6 +502,8 @@ export function installLocatorPickerOverlay() {
         });
         actions.append(startButton, useButton, pickAgainButton, cancelButton);
         root.append(heading, helperText, statusText, previewCard, errorValue, actions);
+        root.addEventListener('pointerdown', event => event.stopPropagation());
+        root.addEventListener('click', event => event.stopPropagation());
         mountTarget.appendChild(root);
         state.elements = {
             root,
@@ -510,6 +522,10 @@ export function installLocatorPickerOverlay() {
         var _a, _b;
         ensureStyle();
         ensureRoot();
+        document.documentElement.classList.toggle(ACTIVE_CLASS, state.picking);
+        if (state.hoveredElement && !state.hoveredElement.isConnected) {
+            state.hoveredElement = null;
+        }
         const { helperText, statusText, selectorValue, metadataValue, errorValue, startButton, useButton, pickAgainButton, cancelButton } = state.elements;
         if (!helperText || !statusText || !selectorValue || !metadataValue || !errorValue || !startButton || !useButton || !pickAgainButton || !cancelButton) {
             return;
