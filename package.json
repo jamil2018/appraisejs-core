@@ -11,7 +11,7 @@
     "build": "npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build",
     "start": "ENVIRONMENT=local next start",
     "lint": "eslint .",
-    "install-playwright": "npx playwright install && npx playwright install-deps",
+    "install-playwright": "tsx scripts/install-playwright.ts",
     "install-dependencies": "npm install --legacy-peer-deps",
     "setup-env": "npx tsx scripts/setup-env.ts",
     "migrate-db": "npx prisma migrate dev",

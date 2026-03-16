@@ -240,10 +240,12 @@ class LocatorPickerSessionManager {
             }
           }
 
-          const details = stderr || stdout
-          const message = details
-            ? `Locator picker companion exited early: ${details}`
-            : `Locator picker companion exited early with code ${code}.`
+          const details = current.error?.trim() || stderr || stdout
+          const message = current.error?.trim()
+            ? current.error.trim()
+            : details
+              ? `Locator picker companion exited early: ${details}`
+              : `Locator picker companion exited early with code ${code}.`
 
           if (current.status === 'picked' || current.status === 'closed') {
             return basePatch
