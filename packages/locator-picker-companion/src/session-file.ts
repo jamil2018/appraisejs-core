@@ -27,7 +27,6 @@ export function getLocatorPickerProfilesDir(repoRoot = process.cwd()): string {
 }
 
 export function getLocatorPickerLogsDir(repoRoot = process.cwd()): string {
-  console.log('getLocatorPickerLogsDir:', path.join(getLocatorPickerRootDir(repoRoot), 'logs'))
   return path.join(getLocatorPickerRootDir(repoRoot), 'logs')
 }
 
