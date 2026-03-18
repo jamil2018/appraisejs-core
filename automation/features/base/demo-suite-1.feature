@@ -3,12 +3,18 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-Feature: login
+@ts_4d44ec70e52f33a2
+Feature: This is demo one
 
   @tc_9c23c86d0a0bdeba
   Scenario: [Login Validation] Verify user is able to see the login page header
     Given the user navigates to the base url of the selected environment
     Then the element "Login page header" should true contain the text "Login"
+
+  @tc_40f14dd522d7bf98
+  Scenario: [Demo Test] This is a demo
+    Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
+    When the user clicks on the "email" element
 
   @tc_e40594fd42874390
   Scenario: [Login Validation] Verify user is able to login the test app using valid credentials
