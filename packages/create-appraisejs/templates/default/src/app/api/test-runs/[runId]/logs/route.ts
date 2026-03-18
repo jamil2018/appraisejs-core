@@ -312,6 +312,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         scenarioName: string
         status: string
         tracePath?: string
+        featureName?: string
+        scenarioTags?: string[]
       }) => {
         // Early return if error occurred to prevent infinite loops
         if (errorOccurred) return
@@ -325,7 +327,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           sendSSE(
             'scenario::end',
             JSON.stringify({
+              featureName: eventData.featureName,
               scenarioName: eventData.scenarioName,
+              scenarioTags: eventData.scenarioTags,
               status: eventData.status,
               tracePath: eventData.tracePath,
             }),
@@ -418,4 +422,3 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     },
   })
 }
-

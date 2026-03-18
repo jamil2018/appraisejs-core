@@ -53,6 +53,7 @@ type ReportDetailWithRelations = Prisma.ReportGetPayload<{
                 tags: true
               }
             }
+            testSuite: true
           }
         }
         reportScenario: {

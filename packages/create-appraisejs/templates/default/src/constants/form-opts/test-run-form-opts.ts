@@ -7,9 +7,11 @@ export const testRunSchema = z.object({
   tags: z.array(z.string()),
   testWorkersCount: z.number().min(1, { message: 'Test workers count must be at least 1' }).optional(),
   browserEngine: z.nativeEnum(BrowserEngine),
-  testCases: z.array(
+  testSuites: z.array(
     z.object({
-      testCaseId: z.string().min(1, { message: 'Test case is required' }),
+      testSuiteId: z.string().min(1, { message: 'Test suite is required' }),
+      runAll: z.boolean(),
+      testCaseIds: z.array(z.string()),
     }),
   ),
 })
@@ -23,7 +25,7 @@ export const formOpts = {
     tags: [],
     testWorkersCount: 1,
     browserEngine: BrowserEngine.CHROMIUM,
-    testCases: [],
+    testSuites: [],
   } as TestRun,
   validators: {
     onChange: testRunSchema,

@@ -84,7 +84,9 @@ After(async function (this: CustomWorld, scenario) {
   const eventJson = JSON.stringify({
     event: 'scenario::end',
     data: {
+      featureName: scenario.gherkinDocument?.feature?.name,
       scenarioName: scenario.pickle.name,
+      scenarioTags: scenario.pickle.tags?.map(tag => tag.name) ?? [],
       status: currentScenarioStatus,
       tracePath,
     },

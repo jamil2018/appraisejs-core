@@ -190,6 +190,11 @@ export async function updateTestSuitesForTestRun(
     // Extract unique test suite IDs
     const testSuiteIds = new Set<string>()
     testRunTestCases.forEach(trtc => {
+      if (trtc.testSuiteId) {
+        testSuiteIds.add(trtc.testSuiteId)
+        return
+      }
+
       if (trtc.testCase && trtc.testCase.TestSuite) {
         trtc.testCase.TestSuite.forEach(suite => {
           testSuiteIds.add(suite.id)

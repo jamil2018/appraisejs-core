@@ -5,6 +5,7 @@ import {
   ReportTestCase,
   TestRunTestCase,
   TestCase,
+  TestSuite,
   Tag,
   ReportScenario,
   StepStatus,
@@ -18,6 +19,7 @@ import { CheckCircle, XCircle, Clock } from 'lucide-react'
 type ReportTestCaseWithRelations = ReportTestCase & {
   testRunTestCase: TestRunTestCase & {
     testCase: TestCase & { tags?: Tag[] }
+    testSuite: TestSuite | null
   }
   reportScenario:
     | (ReportScenario & {
@@ -91,7 +93,16 @@ export const reportViewTableCols: ColumnDef<ReportTestCaseWithRelations>[] = [
     accessorFn: row => row.testRunTestCase.testCase.title || '',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Test Case Title" />,
     cell: ({ row }) => {
-      return <div className="font-medium">{row.original.testRunTestCase.testCase.title}</div>
+      return (
+        <div>
+          <div className="font-medium">{row.original.testRunTestCase.testCase.title}</div>
+          {row.original.testRunTestCase.testSuite && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              Suite: {row.original.testRunTestCase.testSuite.name}
+            </div>
+          )}
+        </div>
+      )
     },
   },
   {
