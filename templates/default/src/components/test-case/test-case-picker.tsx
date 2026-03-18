@@ -30,6 +30,7 @@ import {
 } from '@tanstack/react-table'
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 type TestCasePickerProps = {
   testCases: TestCasePickerRow[]
@@ -124,6 +125,7 @@ export function TestCasePicker({
     .map(selectedId => testCases.find(testCase => testCase.id === selectedId))
     .filter((testCase): testCase is TestCasePickerRow => Boolean(testCase))
   const selectionSummaryLabel = selectedLabel.replace(/^selected\s+/i, '')
+  const shouldConstrainSavedListHeight = savedTestCases.length > 3
 
   const saveDraftSelection = () => {
     const nextSelectedIds = testCases.filter(testCase => rowSelection[testCase.id]).map(testCase => testCase.id)
@@ -214,7 +216,7 @@ export function TestCasePicker({
       {savedTestCases.length > 0 && (
         <div className="rounded-md border bg-muted/20">
           <div className="border-b px-4 py-3 text-sm font-medium">{selectedLabel}</div>
-          <ScrollArea className="max-h-56">
+          <ScrollArea className={cn(shouldConstrainSavedListHeight && 'h-56')}>
             <div className="space-y-3 p-4">
               {savedTestCases.map(testCase => (
                 <div key={testCase.id} className="rounded-md border bg-background p-3">

@@ -531,16 +531,15 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
 
         const newFilterTagIds = filterTagIds.sort()
         const tagsChanged = JSON.stringify(currentFilterTagIds) !== JSON.stringify(newFilterTagIds)
+        const isAssociated = existingTestCase.TestSuite.some(ts => ts.id === testSuite.id)
 
         const needsUpdate =
           existingTestCase.title !== testCase.title ||
           existingTestCase.description !== testCase.description ||
-          tagsChanged
+          tagsChanged ||
+          !isAssociated
 
         if (needsUpdate) {
-          // Check if test case is already associated with this test suite
-          const isAssociated = existingTestCase.TestSuite.some(ts => ts.id === testSuite.id)
-
           await prisma.testCase.update({
             where: { id: existingTestCase.id },
             data: {
@@ -903,6 +902,5 @@ async function main() {
 }
 
 main()
-
 
 
