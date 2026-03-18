@@ -12,6 +12,7 @@ import { Metadata } from 'next'
 import { TubePlus } from '@/assets/icons/tube-plus'
 import EmptyTube from '@/assets/icons/empty-tube'
 import { Tag as TagIcon } from 'lucide-react'
+import { getFilterTags } from '@/lib/tag-utils'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Suites',
@@ -31,7 +32,7 @@ const TestSuites = async () => {
   const tagSuiteCountMap = new Map<string, { name: string; suiteCount: number }>()
 
   for (const testSuite of testSuitesData) {
-    for (const tag of testSuite.tags) {
+    for (const tag of getFilterTags(testSuite.tags)) {
       const currentTag = tagSuiteCountMap.get(tag.id)
 
       if (currentTag) {

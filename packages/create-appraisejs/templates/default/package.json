@@ -30,7 +30,7 @@
     "sync-all": "npx tsx scripts/sync-all.ts",
     "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
     "test": "cucumber-js",
-    "build:local": "npm run generate-db-client && npm run build:cucumber-runtime && next build",
+    "build:local": "npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build",
     "generate-db-client": "npx prisma generate --schema prisma/schema.prisma",
     "setup:db": "npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all",
     "setup:full": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",

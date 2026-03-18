@@ -62,7 +62,9 @@ class ProcessManager extends EventEmitter {
           if (eventData.event === 'scenario::end') {
             this.emit('scenario::end', {
               testRunId,
+              featureName: eventData.data?.featureName,
               scenarioName: eventData.data?.scenarioName,
+              scenarioTags: eventData.data?.scenarioTags,
               status: eventData.data?.status,
               tracePath: eventData.data?.tracePath,
               ...eventData.data,

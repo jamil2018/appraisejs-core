@@ -13,5 +13,6 @@ describe('shouldExcludeBundledTemplatePath', () => {
     expect(shouldExcludeBundledTemplatePath('automation/config/environments/environments.json')).toBe(false)
     expect(shouldExcludeBundledTemplatePath('automation/mapping/locator-map.json')).toBe(false)
     expect(shouldExcludeBundledTemplatePath('src/app/page.tsx')).toBe(false)
+    expect(shouldExcludeBundledTemplatePath('packages/locator-picker-companion/dist/cli.js')).toBe(false)
   })
 })

@@ -24,18 +24,6 @@ function mapBrowserEngineToName(
   }
 }
 
-function combineTagExpressions(tags: TestRunExecutionRequest['tags']): string | null {
-  if (tags.length === 0) {
-    return null
-  }
-
-  if (tags.length === 1) {
-    return tags[0].tagExpression
-  }
-
-  return tags.map(tag => `(${tag.tagExpression})`).join(' or ')
-}
-
 function generateReportPath(testRunId: string): string {
   return getAutomationRunReportPath(testRunId)
 }
@@ -44,7 +32,7 @@ export class LocalExecutorAdapter implements ExecutorAdapter {
   async executeTestRun(config: TestRunExecutionRequest): Promise<TestRunExecutionResult> {
     await ensureAutomationWorkspaceReady()
 
-    const { testRunId, environment, tags, testWorkersCount, browserEngine, headless = true } = config
+    const { testRunId, environment, tagExpression, testWorkersCount, browserEngine, headless = true } = config
     const reportPath = generateReportPath(testRunId)
     const browserName = mapBrowserEngineToName(browserEngine)
     await fs.mkdir(dirname(reportPath), { recursive: true })
@@ -59,7 +47,6 @@ export class LocalExecutorAdapter implements ExecutorAdapter {
     }
 
     const cucumberArgs: string[] = ['cucumber-js']
-    const tagExpression = combineTagExpressions(tags)
 
     if (tagExpression) {
       cucumberArgs.push('-t', tagExpression)

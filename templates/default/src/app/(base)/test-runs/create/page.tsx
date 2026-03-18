@@ -12,7 +12,7 @@ import { TestSuitePickerRow } from '@/types/test-suite-picker'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Run',
-  description: 'Create a new test run to execute selected suites or tagged tests',
+  description: 'Create a new test run to execute your selected suites or tagged tests',
 }
 
 const CreateTestRun = async () => {

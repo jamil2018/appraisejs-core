@@ -18,6 +18,7 @@ model TestSuite {
   testCases   TestCase[]        @relation("TestSuiteTestCases")
   tags        Tag[]
   metrics     TestSuiteMetrics?
+  testRuns    TestRunTestCase[]
 }
 
 model Review {
@@ -195,11 +196,13 @@ model TestRunTestCase {
   id              String                @id @default(uuid())
   testRunId       String
   testCaseId      String
+  testSuiteId     String?
   status          TestRunTestCaseStatus @default(PENDING)
   result          TestRunTestCaseResult @default(UNTESTED)
   tracePath       String?
   testRun         TestRun               @relation(fields: [testRunId], references: [id], onDelete: Cascade)
   testCase        TestCase              @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  testSuite       TestSuite?            @relation(fields: [testSuiteId], references: [id], onDelete: SetNull)
   reportTestCases ReportTestCase[]
 }
 

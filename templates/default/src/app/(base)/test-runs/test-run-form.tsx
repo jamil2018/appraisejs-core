@@ -442,7 +442,7 @@ const TestRunForm = ({
                 <div className="flex flex-col gap-1">
                   <span className="text-base font-bold">Select the environment for your test run</span>
                   <span className="text-sm text-muted-foreground">
-                    Choose the environment that best suits your selected test cases
+                    Choose the environment that best suits your selected tests
                   </span>
                 </div>
               </div>
@@ -462,9 +462,9 @@ const TestRunForm = ({
                   4
                 </span>
                 <div className="flex flex-col gap-1">
-                  <span className="text-base font-bold">Select the test cases or tags for your test run</span>
+                  <span className="text-base font-bold">Select the test suites or tags for your test run</span>
                   <span className="text-sm text-muted-foreground">
-                    You can filter your test cases by tags or select specific test cases
+                    You can filter by tags or browse suites and choose full suites or child subsets
                   </span>
                 </div>
               </div>

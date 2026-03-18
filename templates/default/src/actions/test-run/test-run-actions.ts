@@ -22,6 +22,7 @@ import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/me
 import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/paths'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { getIdentifierTagByPrefix } from '@/lib/tag-utils'
+import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 
 /**
  * Check if a test run name already exists
@@ -122,6 +123,7 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
         testCases: {
           include: {
             testCase: true,
+            testSuite: true,
           },
         },
         tags: true,
@@ -240,9 +242,18 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
 
 export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> {
   try {
+    await ensureTestSuiteIdentifierTags()
+
     const testSuiteTestCases = await prisma.testSuite.findMany({
       include: {
-        testCases: true,
+        module: true,
+        tags: true,
+        testCases: {
+          include: {
+            steps: true,
+            tags: true,
+          },
+        },
       },
     })
     return {
@@ -381,6 +392,7 @@ export async function createTestRunAction(
       tags = await prisma.tag.findMany({
         where: { id: { in: value.tags } },
       })
+
       tagExpression = buildOrExpression(tags.map(tag => `(${tag.tagExpression})`))
 
       // Find test cases that have tags directly OR belong to test suites with tags
@@ -430,12 +442,23 @@ export async function createTestRunAction(
         },
       })
 
+      if (selectedSuites.length !== value.testSuites.length) {
+        return {
+          status: 400,
+          error: 'One or more selected test suites could not be found.',
+        }
+      }
+
       const selectedSuiteById = new Map(selectedSuites.map(testSuite => [testSuite.id, testSuite]))
       const suiteClauses: string[] = []
 
       for (const suiteSelection of value.testSuites) {
         const selectedSuite = selectedSuiteById.get(suiteSelection.testSuiteId)
-        if (!selectedSuite || selectedSuite.testCases.length === 0) {
+        if (!selectedSuite) {
+          continue
+        }
+
+        if (selectedSuite.testCases.length === 0) {
           continue
         }
 
@@ -470,6 +493,13 @@ export async function createTestRunAction(
         const selectedTestCases = selectedSuite.testCases.filter(testCase =>
           normalizedSelection.testCaseIds.includes(testCase.id),
         )
+
+        if (selectedTestCases.length === 0) {
+          return {
+            status: 400,
+            error: `Test suite "${selectedSuite.name}" requires at least one selected test case.`,
+          }
+        }
 
         const missingIdentifierTestCase = selectedTestCases.find(
           testCase => !getIdentifierTagByPrefix(testCase.tags, 'tc_'),
@@ -568,6 +598,8 @@ export async function createTestRunAction(
         scenarioName: string
         status: string
         tracePath?: string
+        featureName?: string
+        scenarioTags?: string[]
       }) => {
         // Only process events for this test run
         if (eventData.testRunId === testRun.runId) {
@@ -582,12 +614,13 @@ export async function createTestRunAction(
           }
           const mappedStatus = statusMap[eventData.status] || 'unknown'
           // Update test case status in database
-          await updateTestRunTestCaseStatusAction(
-            testRun.runId,
-            eventData.scenarioName,
-            mappedStatus,
-            eventData.tracePath,
-          )
+          await updateTestRunTestCaseStatusAction(testRun.runId, {
+            scenarioName: eventData.scenarioName,
+            status: mappedStatus,
+            tracePath: eventData.tracePath,
+            featureName: eventData.featureName,
+            scenarioTags: eventData.scenarioTags,
+          })
         }
       }
 
@@ -826,9 +859,13 @@ export async function createTestRunAction(
  */
 export async function updateTestRunTestCaseStatusAction(
   testRunId: string,
-  scenarioName: string,
-  status: 'passed' | 'failed' | 'skipped' | 'unknown',
-  tracePath?: string,
+  scenario: {
+    scenarioName: string
+    status: 'passed' | 'failed' | 'skipped' | 'unknown'
+    tracePath?: string
+    featureName?: string
+    scenarioTags?: string[]
+  },
 ): Promise<ActionResponse> {
   try {
     // Find the test run by runId
@@ -837,7 +874,16 @@ export async function updateTestRunTestCaseStatusAction(
       include: {
         testCases: {
           include: {
-            testCase: true,
+            testCase: {
+              include: {
+                tags: true,
+              },
+            },
+            testSuite: {
+              include: {
+                tags: true,
+              },
+            },
           },
         },
       },
@@ -850,38 +896,18 @@ export async function updateTestRunTestCaseStatusAction(
       }
     }
 
-    // Parse scenario name to extract test case title
-    // Format: "[Test Case Title] Description" or just "Test Case Title"
-    let testCaseTitle: string | null = null
-
-    // Try to extract title from [brackets]
-    const bracketMatch = scenarioName.match(/^\[([^\]]+)\]/)
-    if (bracketMatch) {
-      testCaseTitle = bracketMatch[1].trim()
-    } else {
-      // If no brackets, use the full scenario name (might be just the title)
-      testCaseTitle = scenarioName.trim()
-    }
-
-    if (!testCaseTitle) {
-      return {
-        status: 400,
-        error: 'Could not extract test case title from scenario name',
-      }
-    }
-
-    // Find matching test case by title
-    const matchingTestCase = testRun.testCases.find(trtc => trtc.testCase.title === testCaseTitle)
+    const matchingTestCase = findMatchingTestRunTestCase(testRun.testCases, {
+      scenarioName: scenario.scenarioName,
+      scenarioTags: scenario.scenarioTags,
+    })
 
     if (!matchingTestCase) {
-      // This is expected when scenarios run without corresponding test cases (e.g., when filtered by tags)
-      // Return success status to indicate this was handled gracefully
       console.log(
-        `[TestRunAction] No matching test case found for scenario: ${scenarioName} (extracted title: ${testCaseTitle}). This is expected when scenarios run without corresponding test cases.`,
+        `[TestRunAction] No matching test case found for scenario: ${scenario.scenarioName}. This is expected when scenarios run without corresponding test cases in this test run.`,
       )
       return {
         status: 200,
-        message: `Scenario "${scenarioName}" completed but has no corresponding test case in this test run (likely filtered by tags)`,
+        message: `Scenario "${scenario.scenarioName}" completed but has no corresponding test case in this test run`,
       }
     }
 
@@ -889,7 +915,7 @@ export async function updateTestRunTestCaseStatusAction(
     const testCaseStatus: TestRunTestCaseStatus = TestRunTestCaseStatus.COMPLETED
     let testCaseResult: TestRunTestCaseResult
 
-    switch (status) {
+    switch (scenario.status) {
       case 'passed':
         testCaseResult = TestRunTestCaseResult.PASSED
         break
@@ -909,7 +935,7 @@ export async function updateTestRunTestCaseStatusAction(
       data: {
         status: testCaseStatus,
         result: testCaseResult,
-        tracePath: tracePath || null,
+        tracePath: scenario.tracePath || null,
       },
     })
 
@@ -931,7 +957,7 @@ export async function updateTestRunTestCaseStatusAction(
     }
   } catch (error) {
     console.error(
-      `[TestRunAction] Error updating test case status for testRunId: ${testRunId}, scenario: ${scenarioName}:`,
+      `[TestRunAction] Error updating test case status for testRunId: ${testRunId}, scenario: ${scenario.scenarioName}:`,
       error,
     )
     return {

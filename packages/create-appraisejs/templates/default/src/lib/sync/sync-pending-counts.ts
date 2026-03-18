@@ -21,6 +21,7 @@ import {
 import { extractModulePathFromFilePath, scanFeatureFiles, type ParsedFeature, type ParsedStep } from '@/lib/gherkin-parser'
 import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
 import { SYNC_ALL_REQUEST_ID, syncScriptDefinitions, type SyncRequestId, type SyncScriptId } from '@/lib/sync/sync-registry'
+import { getTagTypeFromName } from '@/lib/tag-utils'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
@@ -199,7 +200,7 @@ function buildTagObjects(tagExpressions: Set<string>): Array<{ name: string; tag
     return {
       name,
       tagExpression,
-      type: name.startsWith('tc_') ? TagType.IDENTIFIER : TagType.FILTER,
+      type: getTagTypeFromName(name),
     }
   })
 }

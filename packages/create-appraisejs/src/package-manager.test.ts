@@ -6,7 +6,7 @@ const TEMPLATE_SCRIPTS = {
   setup: 'npm run install-dependencies && npm run setup-env && npm run build:local && npm run protect-seeded-files',
   'appraisejs:setup': 'npm run setup',
   'appraisejs:sync': 'npm run sync-all',
-  'build:local': 'npm run build:cucumber-runtime && next build',
+  'build:local': 'npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
   'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
   'setup-env': 'npx tsx scripts/setup-env.ts',
   'migrate-db': 'npx prisma migrate deploy',
@@ -33,7 +33,7 @@ describe('rewriteScriptsForPackageManager', () => {
 
     expect(scripts['install-dependencies']).toBe('pnpm install')
     expect(scripts.setup).toBe(
-      'pnpm run install-dependencies && pnpm run setup-env && pnpm run build:local && pnpm run protect-seeded-files'
+      'pnpm run install-dependencies && pnpm run setup-env && pnpm run build:local && pnpm run protect-seeded-files',
     )
     expect(scripts['appraisejs:setup']).toBe('pnpm run setup')
     expect(scripts['appraisejs:sync']).toBe('pnpm run sync-all')
@@ -47,7 +47,7 @@ describe('rewriteScriptsForPackageManager', () => {
 
     expect(scripts['install-dependencies']).toBe('yarn install')
     expect(scripts.setup).toBe(
-      'yarn run install-dependencies && yarn run setup-env && yarn run build:local && yarn run protect-seeded-files'
+      'yarn run install-dependencies && yarn run setup-env && yarn run build:local && yarn run protect-seeded-files',
     )
     expect(scripts['protect-seeded-files']).toBe('yarn run tsx scripts/protect-seeded-files.ts')
     expect(scripts['setup-env']).toBe('yarn run tsx scripts/setup-env.ts')
