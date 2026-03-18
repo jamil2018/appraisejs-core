@@ -1,10 +1,10 @@
-import type { BrowserEngine, Environment, Tag } from '@prisma/client'
+import type { BrowserEngine, Environment } from '@prisma/client'
 import type { SpawnedProcess } from '@/lib/process/task-spawner'
 
 export interface TestRunExecutionRequest {
   testRunId: string
   environment: Environment
-  tags: Tag[]
+  tagExpression: string | null
   testWorkersCount: number
   browserEngine: BrowserEngine
   headless?: boolean

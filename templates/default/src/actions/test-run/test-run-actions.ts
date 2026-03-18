@@ -9,7 +9,6 @@ import {
   TestRunResult,
   TestRunTestCaseStatus,
   TestRunTestCaseResult,
-  TagType,
   Tag,
 } from '@prisma/client'
 import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
@@ -21,6 +20,8 @@ import { promises as fs } from 'fs'
 import { Prisma } from '@prisma/client'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
 import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/paths'
+import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
+import { getIdentifierTagByPrefix } from '@/lib/tag-utils'
 
 /**
  * Check if a test run name already exists
@@ -33,6 +34,47 @@ async function checkUniqueName(name: string, excludeId?: string): Promise<boolea
     },
   })
   return !!existing
+}
+
+function buildOrExpression(expressions: string[]): string | null {
+  if (expressions.length === 0) {
+    return null
+  }
+
+  if (expressions.length === 1) {
+    return expressions[0]
+  }
+
+  return expressions.join(' or ')
+}
+
+function normalizeSuiteSelection(
+  selection: z.infer<typeof testRunSchema>['testSuites'][number],
+  availableTestCaseIds: string[],
+) {
+  if (selection.runAll) {
+    return {
+      testSuiteId: selection.testSuiteId,
+      runAll: true,
+      testCaseIds: [] as string[],
+    }
+  }
+
+  const selectedTestCaseIds = selection.testCaseIds.filter(testCaseId => availableTestCaseIds.includes(testCaseId))
+
+  if (selectedTestCaseIds.length === availableTestCaseIds.length) {
+    return {
+      testSuiteId: selection.testSuiteId,
+      runAll: true,
+      testCaseIds: [] as string[],
+    }
+  }
+
+  return {
+    testSuiteId: selection.testSuiteId,
+    runAll: false,
+    testCaseIds: selectedTestCaseIds,
+  }
 }
 
 export async function getAllTestRunsAction(filter?: string): Promise<ActionResponse> {
@@ -319,26 +361,27 @@ export async function createTestRunAction(
       }
     }
 
-    // Determine if we're filtering by tags or test cases
+    // Determine if we're filtering by tags or test suites
     const isFilteringByTags = value.tags.length > 0
-    const isFilteringByTestCases = value.testCases.length > 0 && value.tags.length === 0
+    const isFilteringByTestSuites = value.testSuites.length > 0 && value.tags.length === 0
 
     // Validate that at least one filtering option is provided
-    if (!isFilteringByTags && !isFilteringByTestCases) {
+    if (!isFilteringByTags && !isFilteringByTestSuites) {
       return {
         status: 400,
-        error: 'Either tags or test cases must be provided to filter the test run.',
+        error: 'Either tags or test suites must be provided to filter the test run.',
       }
     }
 
     let tags: Tag[] = []
-    let testRunTestCases: Array<{ testCaseId: string }> = []
+    let tagExpression: string | null = null
+    let testRunTestCases: Array<{ testCaseId: string; testSuiteId?: string | null }> = []
 
     if (isFilteringByTags) {
-      // Existing behavior: filter by tags
       tags = await prisma.tag.findMany({
         where: { id: { in: value.tags } },
       })
+      tagExpression = buildOrExpression(tags.map(tag => `(${tag.tagExpression})`))
 
       // Find test cases that have tags directly OR belong to test suites with tags
       const tagFilteredTestCases = await prisma.testCase.findMany({
@@ -366,56 +409,102 @@ export async function createTestRunAction(
 
       testRunTestCases = tagFilteredTestCases.map(tc => ({
         testCaseId: tc.id,
+        testSuiteId: null,
       }))
-    } else if (isFilteringByTestCases) {
-      // New behavior: filter by test cases - extract identifier tags
-      const selectedTestCases = await prisma.testCase.findMany({
+    } else if (isFilteringByTestSuites) {
+      await ensureTestSuiteIdentifierTags(value.testSuites.map(testSuite => testSuite.testSuiteId))
+
+      const selectedSuites = await prisma.testSuite.findMany({
         where: {
-          id: { in: value.testCases.map(tc => tc.testCaseId) },
+          id: {
+            in: value.testSuites.map(testSuite => testSuite.testSuiteId),
+          },
         },
         include: {
           tags: true,
+          testCases: {
+            include: {
+              tags: true,
+            },
+          },
         },
       })
 
-      // Extract identifier tags from selected test cases
-      const identifierTags = selectedTestCases
-        .flatMap(tc => tc.tags)
-        .filter(tag => tag.type === TagType.IDENTIFIER)
-        // Remove duplicates by id
-        .filter((tag, index, self) => index === self.findIndex(t => t.id === tag.id))
+      const selectedSuiteById = new Map(selectedSuites.map(testSuite => [testSuite.id, testSuite]))
+      const suiteClauses: string[] = []
 
-      // Safety check: if no identifier tags found, this would run all tests
-      // which is not what the user expects when they select specific test cases
-      if (identifierTags.length === 0) {
-        return {
-          status: 400,
-          error: 'Selected test cases do not have identifier tags. Cannot execute specific test cases.',
+      for (const suiteSelection of value.testSuites) {
+        const selectedSuite = selectedSuiteById.get(suiteSelection.testSuiteId)
+        if (!selectedSuite || selectedSuite.testCases.length === 0) {
+          continue
         }
-      }
 
-      // Filter to only include test cases that have identifier tags
-      // Test cases without identifier tags cannot be executed and should be excluded
-      const testCasesWithIdentifierTags = selectedTestCases.filter(tc =>
-        tc.tags.some(tag => tag.type === TagType.IDENTIFIER),
-      )
+        const normalizedSelection = normalizeSuiteSelection(
+          suiteSelection,
+          selectedSuite.testCases.map(testCase => testCase.id),
+        )
 
-      // Log warning if some test cases don't have identifier tags
-      const testCasesWithoutIdentifierTags = selectedTestCases.filter(
-        tc => !tc.tags.some(tag => tag.type === TagType.IDENTIFIER),
-      )
-      if (testCasesWithoutIdentifierTags.length > 0) {
-        console.warn(
-          `[TestRunAction] Some selected test cases (${testCasesWithoutIdentifierTags.length}) do not have identifier tags and will not be executed.`,
+        if (!normalizedSelection) {
+          continue
+        }
+
+        const suiteIdentifierTag = getIdentifierTagByPrefix(selectedSuite.tags, 'ts_')
+        if (!suiteIdentifierTag) {
+          return {
+            status: 400,
+            error: `Test suite "${selectedSuite.name}" does not have an identifier tag.`,
+          }
+        }
+
+        if (normalizedSelection.runAll) {
+          suiteClauses.push(`(${suiteIdentifierTag.tagExpression})`)
+          testRunTestCases.push(
+            ...selectedSuite.testCases.map(testCase => ({
+              testCaseId: testCase.id,
+              testSuiteId: selectedSuite.id,
+            })),
+          )
+          continue
+        }
+
+        const selectedTestCases = selectedSuite.testCases.filter(testCase =>
+          normalizedSelection.testCaseIds.includes(testCase.id),
+        )
+
+        const missingIdentifierTestCase = selectedTestCases.find(
+          testCase => !getIdentifierTagByPrefix(testCase.tags, 'tc_'),
+        )
+        if (missingIdentifierTestCase) {
+          return {
+            status: 400,
+            error: `Test case "${missingIdentifierTestCase.title}" does not have an identifier tag.`,
+          }
+        }
+
+        const testCaseTagExpressions = selectedTestCases.map(testCase => {
+          const identifierTag = getIdentifierTagByPrefix(testCase.tags, 'tc_')
+          return identifierTag!.tagExpression
+        })
+
+        suiteClauses.push(
+          `(${suiteIdentifierTag.tagExpression}) and (${testCaseTagExpressions.map(tag => `(${tag})`).join(' or ')})`,
+        )
+        testRunTestCases.push(
+          ...selectedTestCases.map(testCase => ({
+            testCaseId: testCase.id,
+            testSuiteId: selectedSuite.id,
+          })),
         )
       }
 
-      tags = identifierTags
+      tagExpression = buildOrExpression(suiteClauses.map(clause => `(${clause})`))
+    }
 
-      // Only include test cases that have identifier tags
-      testRunTestCases = testCasesWithIdentifierTags.map(tc => ({
-        testCaseId: tc.id,
-      }))
+    if (!tagExpression) {
+      return {
+        status: 400,
+        error: 'No executable tests were resolved from the selected filters.',
+      }
     }
 
     // Create TestRun record in database with RUNNING status
@@ -433,6 +522,7 @@ export async function createTestRunAction(
         testCases: {
           create: testRunTestCases.map(tc => ({
             testCaseId: tc.testCaseId,
+            testSuiteId: tc.testSuiteId ?? null,
           })),
         },
       },
@@ -455,7 +545,7 @@ export async function createTestRunAction(
       const { process: spawnedProcess, reportPath } = await localExecutorAdapter.executeTestRun({
         testRunId: testRun.runId,
         environment,
-        tags,
+        tagExpression,
         testWorkersCount: value.testWorkersCount || 1,
         browserEngine: value.browserEngine,
         headless: true, // Default to headless

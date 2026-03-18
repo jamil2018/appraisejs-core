@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoaderCircle, Wifi, WifiOff, CheckCircle, XCircle, Logs } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTestRunLogsAction, updateTestRunTestCaseStatusAction } from '@/actions/test-run/test-run-actions'
+import { getTestRunLogsAction } from '@/actions/test-run/test-run-actions'
 import { TestRunStatus } from '@prisma/client'
 import { DownloadLogsButton } from './download-logs-button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -277,19 +277,6 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
         console.log(
           `[LogViewer] Scenario ended: ${scenarioName} with status: ${status}${tracePath ? `, tracePath: ${tracePath}` : ''}`,
         )
-
-        // Update test case status in database
-        // This will gracefully handle test runs filtered by tags (no test cases)
-        const response = await updateTestRunTestCaseStatusAction(testRunId, scenarioName, status, tracePath)
-        if (response.error && response.status !== 200) {
-          // Only log as error if it's not a 200 status (which means it was skipped gracefully)
-          console.error('[LogViewer] Error updating test case status:', response.error)
-        } else if (response.status === 200) {
-          // Log success or graceful skip (200 status means it was handled correctly)
-          console.log(
-            `[LogViewer] ${response.message || `Successfully updated test case status for scenario: ${scenarioName}`}`,
-          )
-        }
 
         // Also add to logs for visibility
         setLogs(prev => [
