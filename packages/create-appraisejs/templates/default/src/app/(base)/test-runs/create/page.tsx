@@ -1,7 +1,9 @@
-import { createTestRunAction, getAllTestSuiteTestCasesAction } from '@/actions/test-run/test-run-actions'
+import { createTestRunAction } from '@/actions/test-run/test-run-actions'
+import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { Environment, Tag, TestCase, TestSuite } from '@prisma/client'
+import { TestCasePickerRow } from '@/types/test-case-picker'
+import { Environment, Tag } from '@prisma/client'
 import React from 'react'
 import TestRunForm from '../test-run-form'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
@@ -14,15 +16,15 @@ export const metadata: Metadata = {
 }
 
 const CreateTestRun = async () => {
-  const { data: testSuiteTestCases, error: testSuiteTestCasesError } = await getAllTestSuiteTestCasesAction()
+  const { data: testCases, error: testCasesError } = await getAllTestCasesAction()
   const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
   const { data: tags, error: tagsError } = await getAllTagsAction()
 
-  if (testSuiteTestCasesError || environmentsError || tagsError) {
-    return <div>Error: {testSuiteTestCasesError || environmentsError || tagsError}</div>
+  if (testCasesError || environmentsError || tagsError) {
+    return <div>Error: {testCasesError || environmentsError || tagsError}</div>
   }
 
-  const testSuiteTestCasesData = testSuiteTestCases as (TestSuite & { testCases: TestCase[] })[]
+  const testCasesData = testCases as TestCasePickerRow[]
   const environmentsData = environments as Environment[]
   const tagsData = tags as Tag[]
 
@@ -33,7 +35,7 @@ const CreateTestRun = async () => {
         <HeaderSubtitle>Create a new test run to execute your test cases</HeaderSubtitle>
       </div>
       <TestRunForm
-        testSuiteTestCases={testSuiteTestCasesData}
+        testCases={testCasesData}
         environments={environmentsData}
         tags={tagsData}
         onSubmitAction={createTestRunAction}

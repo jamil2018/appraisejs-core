@@ -7,6 +7,7 @@
     "dev": "next dev",
     "init": "DISABLE_DEVTOOLS=1 NEXT_PUBLIC_DISABLE_DEVTOOLS=1 next dev",
     "build:cucumber-runtime": "tsc -p packages/cucumber-runtime/tsconfig.json",
+    "build:locator-picker-companion": "tsc -p packages/locator-picker-companion/tsconfig.json",
     "build": "npm run build:local",
     "start": "next start",
     "lint": "eslint .",
