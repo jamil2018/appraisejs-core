@@ -225,6 +225,7 @@ export function TestSuitePicker({
     )
 
   const selectionSummaryLabel = selectedLabel.replace(/^selected\s+/i, '')
+  const shouldConstrainSavedListHeight = savedSuites.length > 2
 
   return (
     <div className="flex flex-col gap-3">
@@ -404,7 +405,7 @@ export function TestSuitePicker({
       {savedSuites.length > 0 && (
         <div className="rounded-md border bg-muted/20">
           <div className="border-b px-4 py-3 text-sm font-medium">{selectedLabel}</div>
-          <ScrollArea className="max-h-72">
+          <ScrollArea className={cn(shouldConstrainSavedListHeight && 'h-72')}>
             <div className="space-y-3 p-4">
               {savedSuites.map(({ suite, selection }) => {
                 const selectedChildren = selection.runAll
