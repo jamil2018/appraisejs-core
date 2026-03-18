@@ -49,5 +49,8 @@ next-env.d.ts
 
 automation/reports/*
 packages/cucumber-runtime/dist/*
+
+# temporary files
+.tmp
 !prisma/dev.db
 !automation/config/environments/environments.json

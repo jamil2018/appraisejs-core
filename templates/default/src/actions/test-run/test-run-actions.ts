@@ -109,18 +109,6 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
 
 export async function deleteTestRunAction(id: string[]): Promise<ActionResponse> {
   try {
-    // Get all unique test case IDs from test runs being deleted (before deletion)
-    // This is needed to recalculate metrics after deletion
-    const testRunTestCases = await prisma.testRunTestCase.findMany({
-      where: {
-        testRunId: { in: id },
-      },
-      select: {
-        testCaseId: true,
-      },
-    })
-    const _affectedTestCaseIds = [...new Set(testRunTestCases.map(trtc => trtc.testCaseId))]
-
     const testRuns = await prisma.testRun.findMany({
       where: { id: { in: id } },
       select: {

@@ -48,11 +48,15 @@ export class LocalExecutorAdapter implements ExecutorAdapter {
     const reportPath = generateReportPath(testRunId)
     const browserName = mapBrowserEngineToName(browserEngine)
     await fs.mkdir(dirname(reportPath), { recursive: true })
-
-    process.env.ENVIRONMENT = environment.name
-    process.env.HEADLESS = headless.toString()
-    process.env.BROWSER = browserName
-    process.env.REPORT_PATH = reportPath
+    const childEnv = {
+      ...process.env,
+      ENVIRONMENT: environment.name,
+      HEADLESS: headless.toString(),
+      BROWSER: browserName,
+      REPORT_PATH: reportPath,
+      REPORT_FORMAT: `json:${reportPath}`,
+      TEST_RUN_ID: testRunId,
+    }
 
     const cucumberArgs: string[] = ['cucumber-js']
     const tagExpression = combineTagExpressions(tags)
@@ -70,6 +74,7 @@ export class LocalExecutorAdapter implements ExecutorAdapter {
       prefixLogs: true,
       logPrefix: `test-run-${testRunId}`,
       captureOutput: true,
+      env: childEnv,
     })
 
     processManager.register(testRunId, spawnedProcess)

@@ -5,11 +5,16 @@
 
 Feature: login
 
-  @tc_7d56316baeced87a
-  Scenario: [Login] Verify user is able to login using valid credentials
-    Given the user navigates to the "https://demo-test-site-beta.vercel.app" url
+  @tc_9c23c86d0a0bdeba
+  Scenario: [Login Validation] Verify user is able to see the login page header
+    Given the user navigates to the base url of the selected environment
+    Then the element "Login page header" should true contain the text "Login"
+
+  @tc_e40594fd42874390
+  Scenario: [Login Validation] Verify user is able to login the test app using valid credentials
+    Given the user navigates to the base url of the selected environment
     When the user fills in the "email" input field with value "demo@example.com"
     And the user fills in the "password" input field with value "test1234"
     And the user clicks on the "submit" element
     And the user waits for the route "/home" to be loaded
-    Then the element "home title" should true contain the text "Welcome to Home Page"
+    Then the element "home title" should false contain the text "Welcome to Home Page"

@@ -49,3 +49,6 @@ next-env.d.ts
 
 automation/reports/*
 packages/cucumber-runtime/dist/*
+
+# temporary files
+.tmp

@@ -28,6 +28,10 @@ export function getAutomationReportsDir(): string {
   return path.join(getAutomationRoot(), 'reports')
 }
 
+export function getAutomationReportRunDir(runId: string): string {
+  return path.join(getAutomationReportsDir(), runId)
+}
+
 export function resolveProjectPath(targetPath: string): string {
   return path.isAbsolute(targetPath) ? targetPath : path.join(process.cwd(), targetPath)
 }
@@ -41,17 +45,53 @@ export function getAutomationReportRunDirFromReportPath(reportPath: string): str
   return path.dirname(resolveProjectPath(reportPath))
 }
 
-export function getAutomationTraceDir(reportPath = process.env.REPORT_PATH): string {
-  if (reportPath) {
-    return path.join(getAutomationReportRunDirFromReportPath(reportPath), 'traces')
+function extractReportPathFromFormat(reportFormat = process.env.REPORT_FORMAT): string | null {
+  if (!reportFormat?.startsWith('json:')) {
+    return null
+  }
+
+  const reportPath = reportFormat.slice('json:'.length).trim()
+  return reportPath.length > 0 ? reportPath : null
+}
+
+function getRuntimeReportRunDir(
+  reportPath = process.env.REPORT_PATH,
+  reportFormat = process.env.REPORT_FORMAT,
+  testRunId = process.env.TEST_RUN_ID,
+): string | null {
+  const resolvedReportPath = reportPath ?? extractReportPathFromFormat(reportFormat)
+  if (resolvedReportPath) {
+    return getAutomationReportRunDirFromReportPath(resolvedReportPath)
+  }
+
+  if (testRunId) {
+    return getAutomationReportRunDir(testRunId)
+  }
+
+  return null
+}
+
+export function getAutomationTraceDir(
+  reportPath = process.env.REPORT_PATH,
+  testRunId = process.env.TEST_RUN_ID,
+  reportFormat = process.env.REPORT_FORMAT,
+): string {
+  const runDir = getRuntimeReportRunDir(reportPath, reportFormat, testRunId)
+  if (runDir) {
+    return path.join(runDir, 'traces')
   }
 
   return path.join(getAutomationReportsDir(), 'traces')
 }
 
-export function getAutomationScreenshotDir(reportPath = process.env.REPORT_PATH): string {
-  if (reportPath) {
-    return path.join(getAutomationReportRunDirFromReportPath(reportPath), 'screenshots')
+export function getAutomationScreenshotDir(
+  reportPath = process.env.REPORT_PATH,
+  testRunId = process.env.TEST_RUN_ID,
+  reportFormat = process.env.REPORT_FORMAT,
+): string {
+  const runDir = getRuntimeReportRunDir(reportPath, reportFormat, testRunId)
+  if (runDir) {
+    return path.join(runDir, 'screenshots')
   }
 
   return path.join(getAutomationReportsDir(), 'screenshots')

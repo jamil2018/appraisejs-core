@@ -16,7 +16,6 @@ export function getLocatorPickerProfilesDir(repoRoot = process.cwd()) {
     return path.join(getLocatorPickerRootDir(repoRoot), 'profiles');
 }
 export function getLocatorPickerLogsDir(repoRoot = process.cwd()) {
-    console.log('getLocatorPickerLogsDir:', path.join(getLocatorPickerRootDir(repoRoot), 'logs'));
     return path.join(getLocatorPickerRootDir(repoRoot), 'logs');
 }
 export function getLocatorPickerProfileDir(sessionId, repoRoot = process.cwd()) {

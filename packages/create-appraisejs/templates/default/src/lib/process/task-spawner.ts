@@ -7,6 +7,7 @@ export interface SpawnerOptions extends ExecaOptions {
   prefixLogs?: boolean
   logPrefix?: string
   captureOutput?: boolean
+  retainProcessRecord?: boolean
 }
 
 export interface SpawnedProcess {
@@ -28,8 +29,29 @@ export class TaskSpawner extends EventEmitter {
   private processCounter = 0
   private outputBuffers: Map<string, { stdout: string; stderr: string }> = new Map()
 
+  private scheduleProcessCleanup(processName: string, spawnedProcess: SpawnedProcess): void {
+    setImmediate(() => {
+      spawnedProcess.output.stdout.length = 0
+      spawnedProcess.output.stderr.length = 0
+      this.outputBuffers.delete(processName)
+      this.processes.delete(processName)
+    })
+  }
+
+  removeProcess(processName: string): boolean {
+    this.outputBuffers.delete(processName)
+    return this.processes.delete(processName)
+  }
+
   async spawn(command: string, args: string[] = [], options: SpawnerOptions = {}): Promise<SpawnedProcess> {
-    const { streamLogs = true, prefixLogs = true, logPrefix, captureOutput = false, ...spawnOptions } = options
+    const {
+      streamLogs = true,
+      prefixLogs = true,
+      logPrefix,
+      captureOutput = false,
+      retainProcessRecord = true,
+      ...spawnOptions
+    } = options
 
     const processName = logPrefix || `${command}_${++this.processCounter}`
     const spawnedProcess: SpawnedProcess = {
@@ -49,6 +71,7 @@ export class TaskSpawner extends EventEmitter {
     const stdioConfig = captureOutput ? 'pipe' : streamLogs ? 'inherit' : 'pipe'
     const childProcess = execa(command, args, {
       stdio: stdioConfig,
+      reject: false,
       ...spawnOptions,
     })
 
@@ -63,6 +86,7 @@ export class TaskSpawner extends EventEmitter {
       streamLogs,
       prefixLogs,
       captureOutput,
+      retainProcessRecord,
       stdioConfig,
     })
 
@@ -140,10 +164,11 @@ export class TaskSpawner extends EventEmitter {
       streamLogs: boolean
       prefixLogs: boolean
       captureOutput: boolean
+      retainProcessRecord: boolean
       stdioConfig: string | string[]
     },
   ): void {
-    const { streamLogs, prefixLogs, captureOutput, stdioConfig } = options
+    const { streamLogs, prefixLogs, captureOutput, retainProcessRecord, stdioConfig } = options
     const { process: childProcess, name } = spawnedProcess
 
     if (stdioConfig === 'pipe') {
@@ -201,12 +226,22 @@ export class TaskSpawner extends EventEmitter {
       spawnedProcess.isRunning = false
       spawnedProcess.exitCode = code
       spawnedProcess.endTime = new Date()
+
+      if (!retainProcessRecord) {
+        this.scheduleProcessCleanup(name, spawnedProcess)
+      }
+
       this.emit('exit', { processName: name, code })
     })
 
     childProcess.on('error', (error: Error) => {
+      this.outputBuffers.delete(name)
       spawnedProcess.isRunning = false
       spawnedProcess.endTime = new Date()
+
+      if (!retainProcessRecord) {
+        this.scheduleProcessCleanup(name, spawnedProcess)
+      }
 
       if (streamLogs) {
         const prefix = prefixLogs ? `[${name}] ` : ''
@@ -234,3 +269,5 @@ export const spawnTask = (command: string, args: string[] = [], options: Spawner
 export const killTask = (processName: string, signal?: NodeJS.Signals) => taskSpawner.killProcess(processName, signal)
 
 export const waitForTask = (processName: string) => taskSpawner.waitForProcess(processName)
+
+export const removeTask = (processName: string) => taskSpawner.removeProcess(processName)

@@ -35,6 +35,28 @@ async function collectRunArtifactFiles(
   }
 }
 
+async function addStoredArtifactFile(
+  archive: ReturnType<typeof archiver>,
+  storedPath: string,
+  archivePath: string,
+  warningLabel: string,
+): Promise<boolean> {
+  try {
+    const resolvedPath = resolveStoredPath(storedPath)
+    await fs.access(resolvedPath)
+    archive.file(resolvedPath, { name: archivePath })
+    return true
+  } catch {
+    console.warn(`[Download] ${warningLabel} not found at path: ${storedPath}`)
+    return false
+  }
+}
+
+function isPathWithinDirectory(targetPath: string, directoryPath: string): boolean {
+  const relativePath = path.relative(directoryPath, targetPath)
+  return relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath)
+}
+
 /**
  * GET handler for downloading a test run's stored artifacts as a zip file
  *
@@ -45,17 +67,19 @@ async function collectRunArtifactFiles(
  * - Creates a zip file containing all files
  * - Returns the zip file as a downloadable response
  */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params
+  const runArtifactDir = getAutomationReportRunDir(runId)
 
   try {
     // Verify test run exists
     const testRun = await prisma.testRun.findUnique({
       where: { runId },
-      include: {
+      select: {
+        logPath: true,
+        reportPath: true,
         testCases: {
           select: {
-            id: true,
             tracePath: true,
           },
         },
@@ -71,36 +95,47 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       zlib: { level: 9 }, // Maximum compression
     })
 
-    // Track if we have any files to add
-    let hasFiles = false
+    const runArtifactFiles = await collectRunArtifactFiles(runArtifactDir)
+    let hasFiles = runArtifactFiles.length > 0
+    const archivedPaths = new Set<string>(runArtifactFiles.map(artifactFile => artifactFile.archivePath))
 
-    const runArtifactFiles = await collectRunArtifactFiles(getAutomationReportRunDir(runId))
     for (const artifactFile of runArtifactFiles) {
       archive.file(artifactFile.absolutePath, { name: artifactFile.archivePath })
-      hasFiles = true
     }
 
-    if (!hasFiles && testRun.logPath) {
-      try {
-        const logPath = resolveStoredPath(testRun.logPath)
-        await fs.access(logPath)
-        archive.file(logPath, { name: `logs/${path.basename(logPath)}` })
-        hasFiles = true
-      } catch {
-        console.warn(`[Download] Log file not found at path: ${testRun.logPath}`)
+    if (testRun.reportPath) {
+      const resolvedReportPath = resolveStoredPath(testRun.reportPath)
+      if (!isPathWithinDirectory(resolvedReportPath, runArtifactDir) && !archivedPaths.has('cucumber.json')) {
+        const didAddReportFile = await addStoredArtifactFile(archive, testRun.reportPath, 'cucumber.json', 'Report file')
+        hasFiles = didAddReportFile || hasFiles
+        if (didAddReportFile) {
+          archivedPaths.add('cucumber.json')
+        }
       }
     }
 
-    if (!hasFiles) {
-      const traceFiles = testRun.testCases.filter(tc => tc.tracePath).map(tc => tc.tracePath!)
-      for (const tracePath of traceFiles) {
-        try {
-          const resolvedTracePath = resolveStoredPath(tracePath)
-          await fs.access(resolvedTracePath)
-          archive.file(resolvedTracePath, { name: `traces/${path.basename(resolvedTracePath)}` })
-          hasFiles = true
-        } catch {
-          console.warn(`[Download] Trace file not found at path: ${tracePath}`)
+    if (testRun.logPath) {
+      const resolvedLogPath = resolveStoredPath(testRun.logPath)
+      const archivePath = `logs/${path.basename(testRun.logPath)}`
+      if (!isPathWithinDirectory(resolvedLogPath, runArtifactDir) && !archivedPaths.has(archivePath)) {
+        const didAddLogFile = await addStoredArtifactFile(archive, testRun.logPath, archivePath, 'Log file')
+        hasFiles = didAddLogFile || hasFiles
+        if (didAddLogFile) {
+          archivedPaths.add(archivePath)
+        }
+      }
+    }
+
+    const traceFiles = testRun.testCases.flatMap(({ tracePath }) => (tracePath ? [tracePath] : []))
+    for (const tracePath of traceFiles) {
+      const resolvedTracePath = resolveStoredPath(tracePath)
+      const archivePath = `traces/${path.basename(tracePath)}`
+
+      if (!isPathWithinDirectory(resolvedTracePath, runArtifactDir) && !archivedPaths.has(archivePath)) {
+        const didAddTraceFile = await addStoredArtifactFile(archive, tracePath, archivePath, 'Trace file')
+        hasFiles = didAddTraceFile || hasFiles
+        if (didAddTraceFile) {
+          archivedPaths.add(archivePath)
         }
       }
     }

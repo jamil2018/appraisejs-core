@@ -47,7 +47,8 @@ function copyFile(src: string, dest: string): void {
 function resetAutomationReports(templateRoot: string): void {
   const reportsRoot = join(templateRoot, 'automation', 'reports')
   rmSync(reportsRoot, { recursive: true, force: true })
-  mkdirSync(reportsRoot, { recursive: true })
+  mkdirSync(join(reportsRoot, 'logs'), { recursive: true })
+  mkdirSync(join(reportsRoot, 'traces'), { recursive: true })
 }
 
 function syncLegacyEnvironmentConfig(): void {
@@ -77,7 +78,9 @@ function syncCucumberRuntimePackage(): void {
 const readmePath = join(target, 'README.md')
 const appraisejsConfigPath = join(target, 'appraisejs.config.json')
 const savedReadme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : null
-const savedAppraisejsConfig = existsSync(appraisejsConfigPath) ? readFileSync(appraisejsConfigPath, 'utf8') : null
+const savedAppraisejsConfig = existsSync(appraisejsConfigPath)
+  ? readFileSync(appraisejsConfigPath, 'utf8')
+  : null
 
 rmSync(target, { recursive: true, force: true })
 mkdirSync(target, { recursive: true })
@@ -151,7 +154,8 @@ rootPkg.scripts = {
   'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
   'migrate-db': 'npx prisma migrate deploy',
   'install-playwright': 'npx playwright install',
-  setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
+  setup:
+    'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
   'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all',
   'setup:full':
     'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',

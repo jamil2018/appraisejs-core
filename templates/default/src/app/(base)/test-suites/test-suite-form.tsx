@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import TestCasePicker from '@/components/test-case/test-case-picker'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { formOpts, TestSuite } from '@/constants/form-opts/test-suite-form-opts'
 import { toast } from '@/hooks/use-toast'
+import { TestCasePickerRow } from '@/types/test-case-picker'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { Module, TestCase, Tag } from '@prisma/client'
+import { Module, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { Info, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -31,7 +33,7 @@ export const TestSuiteForm = ({
   successMessage: string
   id?: string
   onSubmitAction: (_prev: unknown, value: TestSuite, id?: string) => Promise<ActionResponse>
-  testCases: TestCase[]
+  testCases: TestCasePickerRow[]
   moduleList: Module[]
   tags: Tag[]
 }) => {
@@ -134,28 +136,25 @@ export const TestSuiteForm = ({
             </form.Field>
             <form.Field name="testCases">
               {field => {
-                const testCasesOptions = testCases.map(testCase => ({
-                  value: testCase.id,
-                  label: testCase.title,
-                }))
                 return (
                   <div className="mb-6 flex flex-col gap-2">
                     <Label htmlFor={field.name} className="font-bold">
                       Test Cases
                     </Label>
-                    <MultiSelectWithPreview
-                      id={field.name}
-                      className="w-full"
-                      options={testCasesOptions}
-                      onSelectChange={value => {
-                        field.handleChange(value)
-                      }}
-                      defaultSelectedValues={field.state.value}
-                      placeholder="Select test case(s)"
-                      emptyMessage="No test case(s) found"
+                    <TestCasePicker
+                      testCases={testCases}
+                      selectedIds={field.state.value ?? []}
+                      onSave={value => field.handleChange(value)}
+                      triggerPlaceholder="Select test case(s)"
+                      dialogTitle="Select Test Cases"
+                      dialogDescription="Search and select the test cases to include in this suite."
                       selectedLabel="Selected test case(s)"
-                      searchPlaceholder="Search test cases..."
                     />
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-pink-500">
+                        {typeof error === 'string' ? error : error?.message || String(error)}
+                      </p>
+                    ))}
                   </div>
                 )
               }}
