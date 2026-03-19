@@ -1,18 +1,1 @@
-[
-  {
-    "name": "login",
-    "path": "/login"
-  },
-  {
-    "name": "home",
-    "path": "/home"
-  },
-  {
-    "name": "test",
-    "path": "/test"
-  },
-  {
-    "name": "testload",
-    "path": "/login"
-  }
-]
+[]

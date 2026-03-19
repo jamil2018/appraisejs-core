@@ -22,3 +22,7 @@ export function setSeededTemplateFilesTracked(content: string, tracked: boolean)
 export function getEmptyEnvironmentsFileContent(): string {
   return '{}\n'
 }
+
+export function getEmptyLocatorMapFileContent(): string {
+  return '[]\n'
+}

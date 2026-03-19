@@ -84,6 +84,13 @@ describe('verifyPreparedTemplateState', () => {
     await expect(verifyPreparedTemplateState(dir)).rejects.toThrow(/report artifacts/)
   })
 
+  it('fails when the locator map starter file is not an empty array', async () => {
+    const dir = await createTempTemplateDir()
+    await fs.writeFile(path.join(dir, 'automation', 'mapping', 'locator-map.json'), '[{"name":"login","path":"/login"}]')
+
+    await expect(verifyPreparedTemplateState(dir)).rejects.toThrow(/empty locator map/)
+  })
+
   it('fails when the packaged gitignore file is missing', async () => {
     const dir = await createTempTemplateDir()
     await fs.remove(path.join(dir, 'gitignore'))
