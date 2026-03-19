@@ -2,7 +2,11 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
-import { getEmptyEnvironmentsFileContent, setSeededTemplateFilesTracked } from '../src/scaffold-gitignore.js'
+import {
+  getEmptyEnvironmentsFileContent,
+  getEmptyLocatorMapFileContent,
+  setSeededTemplateFilesTracked,
+} from '../src/scaffold-gitignore.js'
 import { shouldExcludeBundledTemplatePath } from '../src/sync-templates-utils.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -43,6 +47,10 @@ function prepareBundledTemplateFiles(templateRoot: string): void {
   const environmentsPath = join(templateRoot, 'automation', 'config', 'environments', 'environments.json')
   mkdirSync(dirname(environmentsPath), { recursive: true })
   writeFileSync(environmentsPath, getEmptyEnvironmentsFileContent())
+
+  const locatorMapPath = join(templateRoot, 'automation', 'mapping', 'locator-map.json')
+  mkdirSync(dirname(locatorMapPath), { recursive: true })
+  writeFileSync(locatorMapPath, getEmptyLocatorMapFileContent())
 }
 
 if (!existsSync(source)) {

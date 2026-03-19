@@ -79,6 +79,11 @@ export async function verifyPreparedTemplateState(
   if (!existsSync(starterLocatorMapPath)) {
     throw new Error(`Prepared template is missing locator map ${starterLocatorMapPath}`)
   }
+  const starterLocatorMap = await fs.readFile(starterLocatorMapPath, 'utf8')
+  const parsedStarterLocatorMap = JSON.parse(starterLocatorMap) as unknown
+  if (!Array.isArray(parsedStarterLocatorMap) || parsedStarterLocatorMap.length > 0) {
+    throw new Error(`Prepared template should include an empty locator map at ${starterLocatorMapPath}`)
+  }
   if (reportFiles.length > 0) {
     throw new Error(`Prepared template should not include report artifacts, found ${reportFiles.join(', ')}`)
   }
