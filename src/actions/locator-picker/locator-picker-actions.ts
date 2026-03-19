@@ -19,6 +19,7 @@ const startLocatorPickerSessionSchema = z
   })
 
 const savePickedLocatorSchema = z.object({
+  locatorId: z.string().min(1).optional(),
   sessionId: z.string().min(1).optional(),
   locatorName: z.string().min(1, { message: 'Locator name is required.' }),
   selector: z.string().min(1, { message: 'Selector is required.' }),
@@ -107,6 +108,18 @@ export async function savePickedLocatorAction(request: SavePickedLocatorRequest)
     let locatorGroupId = value.existingLocatorGroupId
     let locatorGroupName = ''
     const route = normalizeRoute(value.route || session?.currentPathname)
+    const locatorName = value.locatorName.trim()
+    const selector = value.selector.trim()
+    const currentLocator = value.locatorId
+      ? await prisma.locator.findUnique({
+          where: { id: value.locatorId },
+          select: { locatorGroupId: true },
+        })
+      : null
+
+    if (value.locatorId && !currentLocator) {
+      return fail(404, 'The locator you are editing no longer exists.')
+    }
 
     if (value.resolutionMode === 'existing') {
       if (!locatorGroupId) {
@@ -165,28 +178,52 @@ export async function savePickedLocatorAction(request: SavePickedLocatorRequest)
     const existingLocator = await prisma.locator.findFirst({
       where: {
         locatorGroupId,
-        name: value.locatorName.trim(),
+        name: locatorName,
+        ...(value.locatorId
+          ? {
+              id: {
+                not: value.locatorId,
+              },
+            }
+          : {}),
       },
     })
 
     if (existingLocator) {
-      return fail(400, `A locator named "${value.locatorName.trim()}" already exists in ${locatorGroupName}.`)
+      return fail(400, `A locator named "${locatorName}" already exists in ${locatorGroupName}.`)
     }
 
-    const locator = await prisma.locator.create({
-      data: {
-        name: value.locatorName.trim(),
-        value: value.selector.trim(),
-        locatorGroupId,
-      },
-    })
+    const locator = value.locatorId
+      ? await prisma.locator.update({
+          where: { id: value.locatorId },
+          data: {
+            name: locatorName,
+            value: selector,
+            locatorGroupId,
+          },
+        })
+      : await prisma.locator.create({
+          data: {
+            name: locatorName,
+            value: selector,
+            locatorGroupId,
+          },
+        })
 
-    await automationProjectionService.syncLocatorGroup(locatorGroupId)
+    const groupsToSync = new Set<string>([locatorGroupId])
+    if (currentLocator?.locatorGroupId && currentLocator.locatorGroupId !== locatorGroupId) {
+      groupsToSync.add(currentLocator.locatorGroupId)
+    }
+
+    await Promise.all(Array.from(groupsToSync).map(groupId => automationProjectionService.syncLocatorGroup(groupId)))
     await locatorPickerSessionManager.markReadyAfterSave(value.sessionId)
 
     revalidatePath('/locators')
     revalidatePath('/locator-groups')
     revalidatePath('/locators/create')
+    if (value.locatorId) {
+      revalidatePath(`/locators/modify/${value.locatorId}`)
+    }
 
     return {
       status: 200,
@@ -194,7 +231,7 @@ export async function savePickedLocatorAction(request: SavePickedLocatorRequest)
         locatorId: locator.id,
         locatorGroupId,
       },
-      message: 'Locator saved successfully.',
+      message: value.locatorId ? 'Locator updated successfully.' : 'Locator saved successfully.',
     }
   } catch (error) {
     await locatorPickerSessionManager.markReadyAfterSave(request.sessionId).catch(() => undefined)

@@ -1,5 +1,5 @@
 {
-  "email": "#email",
+  "emails": "#email",
   "password": "#password",
   "submit": "button[data-test-id='login-button']",
   "test2": "/test1323",
