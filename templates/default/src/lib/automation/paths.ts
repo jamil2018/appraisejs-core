@@ -6,6 +6,8 @@ const automationRoot = path.join(repoRoot, 'automation')
 const legacyTestsRoot = path.join(repoRoot, 'src', 'tests')
 const runtimeImport =
   "import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'"
+const runtimeImportPattern =
+  /^import\s*\{[\s\S]*?\}\s*from\s*['"]\.\.\/\.\.\/\.\.\/packages\/cucumber-runtime\/src\/index(?:\.js)?['"];?\r?\n*/gm
 
 const mutableLegacyDirectories = ['features', 'locators', 'mapping', 'steps'] as const
 
@@ -37,6 +39,7 @@ async function rewriteLegacyStepImports(): Promise<void> {
     let content = await fs.readFile(filePath, 'utf8')
 
     content = content
+      .replace(runtimeImportPattern, '')
       .replace(/^import \{ (When|Then) \} from '@cucumber\/cucumber';?\r?\n/gm, '')
       .replace(/^import \{ CustomWorld(?:, expect)? \} from '\.\.\/\.\.\/config\/executor\/world\.js';?\r?\n/gm, '')
       .replace(
@@ -51,9 +54,7 @@ async function rewriteLegacyStepImports(): Promise<void> {
       )
       .trimStart()
 
-    if (!content.startsWith(runtimeImport)) {
-      content = `${runtimeImport}\n${content}`
-    }
+    content = `${runtimeImport}\n${content}`
 
     await fs.writeFile(filePath, content)
   }
