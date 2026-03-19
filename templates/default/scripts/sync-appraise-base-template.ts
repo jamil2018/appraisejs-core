@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Sync the default template from the base app (repo root).
- * Copies src/, automation/, prisma/, public/, scripts/, the cucumber runtime package,
+ * Copies src/, automation/, prisma/, public/, scripts/, selected internal packages,
  * and root config files into templates/default/ while preserving template-only files.
  *
  * Usage: npx tsx scripts/sync-appraise-base-template.ts
@@ -20,18 +20,23 @@ function shouldExclude(relativePath: string): boolean {
   return shouldExcludeTemplatePath(relativePath)
 }
 
-function copyDirWithFilter(src: string, dest: string, base = src): void {
+function copyDirWithFilter(
+  src: string,
+  dest: string,
+  options: { base?: string; shouldExcludePath?: (relativePath: string) => boolean } = {},
+): void {
   if (!existsSync(src)) return
 
+  const { base = src, shouldExcludePath = shouldExclude } = options
   mkdirSync(dest, { recursive: true })
   for (const entry of readdirSync(src, { withFileTypes: true })) {
     const srcPath = join(src, entry.name)
     const relativePath = srcPath.slice(base.length + 1).replace(/\\/g, '/')
-    if (shouldExclude(relativePath)) continue
+    if (shouldExcludePath(relativePath)) continue
 
     const destPath = join(dest, entry.name)
     if (entry.isDirectory()) {
-      copyDirWithFilter(srcPath, destPath, base)
+      copyDirWithFilter(srcPath, destPath, { base, shouldExcludePath })
       continue
     }
 
@@ -65,22 +70,46 @@ function syncLegacyEnvironmentConfig(): void {
   console.log('Backfilled automation/config/environments from legacy src/tests config.')
 }
 
-function syncCucumberRuntimePackage(): void {
-  const runtimeTarget = join(target, 'packages', 'cucumber-runtime')
-  rmSync(runtimeTarget, { recursive: true, force: true })
-  mkdirSync(runtimeTarget, { recursive: true })
+type InternalPackageSyncConfig = {
+  name: string
+  directories: string[]
+}
 
-  copyFile(join(repoRoot, 'packages', 'cucumber-runtime', 'package.json'), join(runtimeTarget, 'package.json'))
-  copyFile(join(repoRoot, 'packages', 'cucumber-runtime', 'tsconfig.json'), join(runtimeTarget, 'tsconfig.json'))
-  copyDirWithFilter(join(repoRoot, 'packages', 'cucumber-runtime', 'src'), join(runtimeTarget, 'src'))
+const INTERNAL_PACKAGES: InternalPackageSyncConfig[] = [
+  { name: 'cucumber-runtime', directories: ['src'] },
+  { name: 'locator-picker-companion', directories: ['src', 'dist'] },
+]
+
+function syncInternalPackage({ name, directories }: InternalPackageSyncConfig): void {
+  const packageRoot = join(repoRoot, 'packages', name)
+  const packageTarget = join(target, 'packages', name)
+
+  rmSync(packageTarget, { recursive: true, force: true })
+  mkdirSync(packageTarget, { recursive: true })
+
+  copyFile(join(packageRoot, 'package.json'), join(packageTarget, 'package.json'))
+  copyFile(join(packageRoot, 'tsconfig.json'), join(packageTarget, 'tsconfig.json'))
+
+  const shouldExcludeInternalPackagePath = (relativePath: string): boolean => {
+    if (relativePath === 'dist' || relativePath.startsWith('dist/')) {
+      return false
+    }
+
+    return shouldExclude(relativePath)
+  }
+
+  for (const directory of directories) {
+    copyDirWithFilter(join(packageRoot, directory), join(packageTarget, directory), {
+      base: packageRoot,
+      shouldExcludePath: shouldExcludeInternalPackagePath,
+    })
+  }
 }
 
 const readmePath = join(target, 'README.md')
 const appraisejsConfigPath = join(target, 'appraisejs.config.json')
 const savedReadme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : null
-const savedAppraisejsConfig = existsSync(appraisejsConfigPath)
-  ? readFileSync(appraisejsConfigPath, 'utf8')
-  : null
+const savedAppraisejsConfig = existsSync(appraisejsConfigPath) ? readFileSync(appraisejsConfigPath, 'utf8') : null
 
 rmSync(target, { recursive: true, force: true })
 mkdirSync(target, { recursive: true })
@@ -93,8 +122,10 @@ copyDirWithFilter(join(repoRoot, 'automation'), join(target, 'automation'))
 syncLegacyEnvironmentConfig()
 resetAutomationReports(target)
 
-console.log('Copying cucumber runtime package...')
-syncCucumberRuntimePackage()
+for (const internalPackage of INTERNAL_PACKAGES) {
+  console.log(`Copying internal package ${internalPackage.name}...`)
+  syncInternalPackage(internalPackage)
+}
 
 console.log('Copying prisma/...')
 copyDirWithFilter(join(repoRoot, 'prisma'), join(target, 'prisma'))
@@ -149,13 +180,13 @@ const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
 rootPkg.scripts = {
   ...rootPkg.scripts,
   build: 'npm run build:local',
-  'build:local': 'npm run generate-db-client && npm run build:cucumber-runtime && next build',
+  'build:local':
+    'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
   start: 'next start',
   'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
   'migrate-db': 'npx prisma migrate deploy',
   'install-playwright': 'npx playwright install',
-  setup:
-    'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
+  setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
   'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all',
   'setup:full':
     'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',

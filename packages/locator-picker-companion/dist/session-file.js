@@ -27,6 +27,16 @@ export function getLocatorPickerRuntimeDir(repoRoot = process.cwd()) {
 export function getLocatorPickerRuntimeHomeDir(repoRoot = process.cwd()) {
     return path.join(getLocatorPickerRuntimeDir(repoRoot), 'home');
 }
+export function getLocatorPickerRuntimeEnv(repoRoot = process.cwd(), baseEnv = process.env) {
+    const runtimeDir = getLocatorPickerRuntimeDir(repoRoot);
+    const runtimeHomeDir = getLocatorPickerRuntimeHomeDir(repoRoot);
+    const tempDir = path.join(runtimeDir, 'tmp');
+    const configDir = path.join(runtimeDir, 'config');
+    const cacheDir = path.join(runtimeDir, 'cache');
+    const appDataDir = path.join(runtimeDir, 'appdata');
+    const localAppDataDir = path.join(runtimeDir, 'localappdata');
+    return Object.assign(Object.assign({}, baseEnv), { HOME: runtimeHomeDir, USERPROFILE: runtimeHomeDir, APPDATA: appDataDir, LOCALAPPDATA: localAppDataDir, XDG_CONFIG_HOME: configDir, XDG_CACHE_HOME: cacheDir, TMPDIR: tempDir, TMP: tempDir, TEMP: tempDir });
+}
 export function getLocatorPickerSessionFilePath(sessionId, repoRoot = process.cwd()) {
     return path.join(getLocatorPickerSessionsDir(repoRoot), `${sessionId}.json`);
 }
@@ -63,7 +73,6 @@ export async function appendLocatorPickerCrashLog(logFilePath, message) {
     await appendFile(logFilePath, `[${new Date().toISOString()}] ${message}\n`, 'utf8');
 }
 export async function ensureLocatorPickerDirectories(repoRoot = process.cwd()) {
-    const rootDir = getLocatorPickerRootDir(repoRoot);
     const runtimeDir = getLocatorPickerRuntimeDir(repoRoot);
     const runtimeHomeDir = getLocatorPickerRuntimeHomeDir(repoRoot);
     const tempDir = path.join(runtimeDir, 'tmp');
@@ -80,15 +89,6 @@ export async function ensureLocatorPickerDirectories(repoRoot = process.cwd()) {
     await mkdir(cacheDir, { recursive: true });
     await mkdir(appDataDir, { recursive: true });
     await mkdir(localAppDataDir, { recursive: true });
-    process.env.HOME = runtimeHomeDir;
-    process.env.USERPROFILE = runtimeHomeDir;
-    process.env.APPDATA = appDataDir;
-    process.env.LOCALAPPDATA = localAppDataDir;
-    process.env.XDG_CONFIG_HOME = configDir;
-    process.env.XDG_CACHE_HOME = cacheDir;
-    process.env.TMPDIR = tempDir;
-    process.env.TMP = tempDir;
-    process.env.TEMP = tempDir;
 }
 export async function readLocatorPickerSessionFile(sessionFilePath) {
     try {

@@ -12,6 +12,7 @@ import {
   clearLocatorPickerCrashLogs,
   createLocatorPickerCrashLog,
   ensureLocatorPickerDirectories,
+  getLocatorPickerRuntimeEnv,
   getLocatorPickerCrashLogPath,
   removeLocatorPickerProfileDir,
   removeLocatorPickerSessionFile,
@@ -291,6 +292,8 @@ class LocatorPickerSessionManager {
       `Session created for ${normalizedUrl}. Waiting for companion launch.`,
     ).catch(() => undefined)
 
+    const companionEnv = getLocatorPickerRuntimeEnv(process.cwd(), process.env)
+
     try {
       const { command, args } = await resolveLocatorPickerCompanionInvocation(
         ['--session-id', sessionId, '--session-file', sessionFilePath, '--target-url', normalizedUrl],
@@ -299,7 +302,7 @@ class LocatorPickerSessionManager {
 
       const spawnedProcess = await spawnTask(command, args, {
         cwd: process.cwd(),
-        env: process.env,
+        env: companionEnv,
         streamLogs: false,
         captureOutput: true,
         logPrefix: `locator-picker-companion-${sessionId}`,
