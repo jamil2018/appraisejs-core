@@ -21,12 +21,23 @@ import type { LocatorPickerSession } from '@/types/locator-picker'
 import type { Environment, LocatorGroup, Module } from '@prisma/client'
 import { ExternalLink, Loader2, Save, Target } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface CreateLocatorWorkspaceProps {
   environments: Environment[]
   locatorGroups: LocatorGroup[]
   modules: Module[]
+  mode?: 'create' | 'modify'
+  locatorId?: string
+  initialValues?: {
+    locatorName?: string
+    selector?: string
+    resolutionMode?: 'existing' | 'create'
+    existingLocatorGroupId?: string
+    newLocatorGroupName?: string
+    route?: string
+    moduleId?: string
+  }
 }
 
 function statusTone(status: LocatorPickerSession['status']) {
@@ -59,29 +70,33 @@ export default function CreateLocatorWorkspace({
   environments,
   locatorGroups,
   modules,
+  mode = 'create',
+  locatorId,
+  initialValues,
 }: CreateLocatorWorkspaceProps) {
   const router = useRouter()
+  const isModifyMode = mode === 'modify'
   const [sourceType, setSourceType] = useState<'environment' | 'url'>(environments.length > 0 ? 'environment' : 'url')
   const [environmentId, setEnvironmentId] = useState(environments[0]?.id ?? '')
   const [url, setUrl] = useState('')
   const [session, setSession] = useState<LocatorPickerSession | null>(null)
   const [isStarting, setIsStarting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [payloadSignature, setPayloadSignature] = useState('')
+  const payloadSignatureRef = useRef('')
 
-  const [locatorName, setLocatorName] = useState('')
-  const [selector, setSelector] = useState('')
-  const [resolutionMode, setResolutionMode] = useState<'existing' | 'create'>('existing')
-  const [existingLocatorGroupId, setExistingLocatorGroupId] = useState('')
-  const [newLocatorGroupName, setNewLocatorGroupName] = useState('')
-  const [route, setRoute] = useState('/')
-  const [moduleId, setModuleId] = useState('')
-  const [lastAutoLocatorName, setLastAutoLocatorName] = useState('')
-  const [lastAutoSelector, setLastAutoSelector] = useState('')
-  const [lastAutoExistingGroupId, setLastAutoExistingGroupId] = useState('')
-  const [lastAutoGroupName, setLastAutoGroupName] = useState('')
-  const [lastAutoRoute, setLastAutoRoute] = useState('/')
-  const [lastAutoModuleId, setLastAutoModuleId] = useState('')
+  const [locatorName, setLocatorName] = useState(initialValues?.locatorName ?? '')
+  const [selector, setSelector] = useState(initialValues?.selector ?? '')
+  const [resolutionMode, setResolutionMode] = useState<'existing' | 'create'>(initialValues?.resolutionMode ?? 'existing')
+  const [existingLocatorGroupId, setExistingLocatorGroupId] = useState(initialValues?.existingLocatorGroupId ?? '')
+  const [newLocatorGroupName, setNewLocatorGroupName] = useState(initialValues?.newLocatorGroupName ?? '')
+  const [route, setRoute] = useState(normalizeRoute(initialValues?.route ?? '/'))
+  const [moduleId, setModuleId] = useState(initialValues?.moduleId ?? '')
+  const [lastAutoLocatorName, setLastAutoLocatorName] = useState(initialValues?.locatorName ?? '')
+  const [lastAutoSelector, setLastAutoSelector] = useState(initialValues?.selector ?? '')
+  const [lastAutoExistingGroupId, setLastAutoExistingGroupId] = useState(initialValues?.existingLocatorGroupId ?? '')
+  const [lastAutoGroupName, setLastAutoGroupName] = useState(initialValues?.newLocatorGroupName ?? '')
+  const [lastAutoRoute, setLastAutoRoute] = useState(normalizeRoute(initialValues?.route ?? '/'))
+  const [lastAutoModuleId, setLastAutoModuleId] = useState(initialValues?.moduleId ?? '')
 
   const loadSession = async (sessionId: string, silent = false) => {
     const response = await getLocatorPickerSessionAction(sessionId)
@@ -115,54 +130,61 @@ export default function CreateLocatorWorkspace({
     }
 
     const nextPayloadSignature = `${session?.updatedAt}:${pickedLocator.currentUrl}:${pickedLocator.selector}`
-    if (nextPayloadSignature === payloadSignature) {
+    if (nextPayloadSignature === payloadSignatureRef.current) {
       return
     }
 
-    setPayloadSignature(nextPayloadSignature)
-
-    if (selector === '' || selector === lastAutoSelector) {
-      setSelector(pickedLocator.selector)
-      setLastAutoSelector(pickedLocator.selector)
-    }
-
-    const suggestedName = suggestLocatorName(pickedLocator)
-    if (suggestedName && (locatorName === '' || locatorName === lastAutoLocatorName)) {
-      setLocatorName(suggestedName)
-      setLastAutoLocatorName(suggestedName)
-    }
-
-    const suggestion = inferGroupSuggestion(pickedLocator.pathname, pickedLocator.pageTitle, locatorGroups, modules)
-
-    if (route === '/' || route === '' || route === lastAutoRoute) {
-      setRoute(suggestion.route)
-      setLastAutoRoute(suggestion.route)
-    }
-
-    if (suggestion.mode === 'existing') {
-      setResolutionMode(currentMode => (currentMode === 'create' ? 'existing' : currentMode))
-
-      const nextExistingGroupId = suggestion.existingLocatorGroupId ?? ''
-      if (existingLocatorGroupId === '' || existingLocatorGroupId === lastAutoExistingGroupId) {
-        setExistingLocatorGroupId(nextExistingGroupId)
-        setLastAutoExistingGroupId(nextExistingGroupId)
-      }
-    } else {
-      if (resolutionMode === 'create' || existingLocatorGroupId === '' || existingLocatorGroupId === lastAutoExistingGroupId) {
-        setResolutionMode('create')
+    payloadSignatureRef.current = nextPayloadSignature
+    const timeoutId = window.setTimeout(() => {
+      if (selector === '' || selector === lastAutoSelector) {
+        setSelector(pickedLocator.selector)
+        setLastAutoSelector(pickedLocator.selector)
       }
 
-      if (newLocatorGroupName === '' || newLocatorGroupName === lastAutoGroupName) {
-        setNewLocatorGroupName(suggestion.suggestedGroupName)
-        setLastAutoGroupName(suggestion.suggestedGroupName)
+      const suggestedName = suggestLocatorName(pickedLocator)
+      if (suggestedName && (locatorName === '' || locatorName === lastAutoLocatorName)) {
+        setLocatorName(suggestedName)
+        setLastAutoLocatorName(suggestedName)
       }
 
-      if (moduleId === '' || moduleId === lastAutoModuleId) {
-        const nextModuleId = suggestion.suggestedModuleId ?? ''
-        setModuleId(nextModuleId)
-        setLastAutoModuleId(nextModuleId)
+      const suggestion = inferGroupSuggestion(pickedLocator.pathname, pickedLocator.pageTitle, locatorGroups, modules)
+
+      if (route === '/' || route === '' || route === lastAutoRoute) {
+        setRoute(suggestion.route)
+        setLastAutoRoute(suggestion.route)
       }
-    }
+
+      if (suggestion.mode === 'existing') {
+        setResolutionMode(currentMode => (currentMode === 'create' ? 'existing' : currentMode))
+
+        const nextExistingGroupId = suggestion.existingLocatorGroupId ?? ''
+        if (existingLocatorGroupId === '' || existingLocatorGroupId === lastAutoExistingGroupId) {
+          setExistingLocatorGroupId(nextExistingGroupId)
+          setLastAutoExistingGroupId(nextExistingGroupId)
+        }
+      } else {
+        if (
+          resolutionMode === 'create' ||
+          existingLocatorGroupId === '' ||
+          existingLocatorGroupId === lastAutoExistingGroupId
+        ) {
+          setResolutionMode('create')
+        }
+
+        if (newLocatorGroupName === '' || newLocatorGroupName === lastAutoGroupName) {
+          setNewLocatorGroupName(suggestion.suggestedGroupName)
+          setLastAutoGroupName(suggestion.suggestedGroupName)
+        }
+
+        if (moduleId === '' || moduleId === lastAutoModuleId) {
+          const nextModuleId = suggestion.suggestedModuleId ?? ''
+          setModuleId(nextModuleId)
+          setLastAutoModuleId(nextModuleId)
+        }
+      }
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [
     existingLocatorGroupId,
     lastAutoExistingGroupId,
@@ -176,7 +198,6 @@ export default function CreateLocatorWorkspace({
     moduleId,
     modules,
     newLocatorGroupName,
-    payloadSignature,
     resolutionMode,
     route,
     selector,
@@ -201,7 +222,7 @@ export default function CreateLocatorWorkspace({
     }
 
     setSession(response.data as LocatorPickerSession)
-    setPayloadSignature('')
+    payloadSignatureRef.current = ''
     setLastAutoLocatorName(locatorName)
     setLastAutoSelector(selector)
     setLastAutoExistingGroupId(existingLocatorGroupId)
@@ -219,6 +240,7 @@ export default function CreateLocatorWorkspace({
     setIsSaving(true)
 
     const response = await savePickedLocatorAction({
+      locatorId,
       sessionId: session?.sessionId,
       locatorName,
       selector,
@@ -233,7 +255,7 @@ export default function CreateLocatorWorkspace({
 
     if (response.status === 200) {
       toast({
-        title: 'Locator saved',
+        title: isModifyMode ? 'Locator updated' : 'Locator saved',
         description: response.message,
       })
       router.push('/locators')
@@ -262,7 +284,8 @@ export default function CreateLocatorWorkspace({
             <CardTitle>Launch Chromium Picker</CardTitle>
             <CardDescription>
               Start a Chromium window from an environment or direct URL. The companion injects its own floating picker
-              panel into that browser, so no extension is required.
+              panel into that browser, so no extension is required. Use this to repick the selector while editing or to
+              capture a new one from scratch.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -370,7 +393,7 @@ export default function CreateLocatorWorkspace({
 
         <Card>
           <CardHeader>
-            <CardTitle>Finalize Locator</CardTitle>
+            <CardTitle>{isModifyMode ? 'Update Locator' : 'Finalize Locator'}</CardTitle>
             <CardDescription>
               Manual selector entry still works. When a picker result arrives, Appraise fills in the selector and route
               defaults for you.
@@ -508,7 +531,7 @@ export default function CreateLocatorWorkspace({
             <div className="flex justify-end">
               <Button type="button" onClick={handleSave} disabled={!canSave || isSaving}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Locator
+                {isModifyMode ? 'Update Locator' : 'Save Locator'}
               </Button>
             </div>
           </CardContent>

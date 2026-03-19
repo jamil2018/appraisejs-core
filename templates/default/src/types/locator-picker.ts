@@ -53,6 +53,7 @@ export interface StartLocatorPickerSessionRequest {
 }
 
 export interface SavePickedLocatorRequest {
+  locatorId?: string
   sessionId?: string
   locatorName: string
   selector: string
