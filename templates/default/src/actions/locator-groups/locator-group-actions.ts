@@ -138,16 +138,19 @@ export async function updateLocatorGroupAction(
     }
 
     const previousFilePath = await getLocatorGroupFilePath(id!)
+    const locatorConnections = value.locators?.map(locator => ({ id: locator })) ?? []
 
     const updatedLocatorGroup = await prisma.locatorGroup.update({
       where: { id },
       data: {
         name: value.name,
         moduleId: value.moduleId,
-        locators: {
-          set: value.locators?.map(locator => ({ id: locator })) || [],
-        },
         route: value.route,
+        ...(value.locators !== undefined && {
+          locators: {
+            set: locatorConnections,
+          },
+        }),
       },
       include: locatorGroupInclude,
     })

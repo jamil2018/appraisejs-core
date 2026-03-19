@@ -14,5 +14,9 @@
   {
     "name": "testload",
     "path": "/login"
+  },
+  {
+    "name": "Login Page",
+    "path": "/login"
   }
 ]
