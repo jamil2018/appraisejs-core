@@ -15,6 +15,8 @@ import OngoingTestRunsCard from './(dashboard-components)/ongoing-test-runs-card
 import { DataCardGrid } from './(dashboard-components)/data-card-grid'
 import { ExecutionHealthPanel } from './(dashboard-components)/execution-health-panel'
 
+export const dynamic = 'force-dynamic'
+
 const Dashboard = async () => {
   const metricsResponse = await getDashboardMetricsAction()
   const metrics = metricsResponse.status === 200 ? (metricsResponse.data as DashboardMetrics | null) : null
