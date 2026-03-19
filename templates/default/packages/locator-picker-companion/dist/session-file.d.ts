@@ -6,6 +6,7 @@ export declare function getLocatorPickerLogsDir(repoRoot?: string): string;
 export declare function getLocatorPickerProfileDir(sessionId: string, repoRoot?: string): string;
 export declare function getLocatorPickerRuntimeDir(repoRoot?: string): string;
 export declare function getLocatorPickerRuntimeHomeDir(repoRoot?: string): string;
+export declare function getLocatorPickerRuntimeEnv(repoRoot?: string, baseEnv?: NodeJS.ProcessEnv): NodeJS.ProcessEnv;
 export declare function getLocatorPickerSessionFilePath(sessionId: string, repoRoot?: string): string;
 export declare function getLocatorPickerCrashLogPath(sessionId: string, repoRoot?: string): string;
 export declare function removeLocatorPickerProfileDir(sessionId: string, repoRoot?: string): Promise<void>;
