@@ -16,6 +16,7 @@ import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
 import type { NodePath } from '@babel/traverse'
+import prettier from 'prettier'
 
 // Handle both ESM and CJS exports
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
@@ -64,6 +65,33 @@ interface SyncResult {
   createdSteps: Array<{ name: string; signature: string; group: string }>
   updatedSteps: Array<{ name: string; signature: string; group: string }>
   deletedSteps: Array<{ name: string; signature: string; group: string }>
+}
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
+async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
+  const source = functionDefinition?.trim()
+  if (!source) {
+    return ''
+  }
+
+  try {
+    return (
+      await prettier.format(source, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        printWidth: 80,
+        tabWidth: 2,
+      })
+    ).trim()
+  } catch {
+    return source
+  }
 }
 
 /**
@@ -482,7 +510,6 @@ async function scanStepFiles(baseDir: string): Promise<string[]> {
  */
 async function syncStepsToDatabase(
   allSteps: Array<{ step: ParsedStep; groupName: string; filePath: string }>,
-  _baseDir: string,
 ): Promise<SyncResult> {
   const result: SyncResult = {
     stepsScanned: 0,
@@ -520,6 +547,8 @@ async function syncStepsToDatabase(
       // Determine step type from group type
       const stepType: TemplateStepType =
         stepGroup.type === TemplateStepGroupType.ACTION ? TemplateStepType.ACTION : TemplateStepType.ASSERTION
+      const description = normalizeOptionalText(step.jsdoc.description)
+      const functionDefinition = await normalizeFunctionDefinition(step.functionDefinition)
 
       // Check if step exists by signature
       const existingStep = await prisma.templateStep.findFirst({
@@ -535,9 +564,9 @@ async function syncStepsToDatabase(
         // Check if update is needed
         const needsUpdate =
           existingStep.name !== step.jsdoc.name ||
-          existingStep.description !== (step.jsdoc.description || '') ||
+          (existingStep.description ?? null) !== description ||
           existingStep.signature !== step.signature ||
-          existingStep.functionDefinition !== step.functionDefinition ||
+          (existingStep.functionDefinition ?? '') !== functionDefinition ||
           existingStep.icon !== step.jsdoc.icon ||
           existingStep.type !== stepType ||
           existingStep.templateStepGroupId !== stepGroup.id
@@ -548,9 +577,9 @@ async function syncStepsToDatabase(
             where: { id: existingStep.id },
             data: {
               name: step.jsdoc.name,
-              description: step.jsdoc.description || '',
+              description,
               signature: step.signature,
-              functionDefinition: step.functionDefinition,
+              functionDefinition,
               icon: step.jsdoc.icon,
               type: stepType,
               templateStepGroupId: stepGroup.id,
@@ -579,9 +608,9 @@ async function syncStepsToDatabase(
         await prisma.templateStep.create({
           data: {
             name: step.jsdoc.name,
-            description: step.jsdoc.description || '',
+            description,
             signature: step.signature,
-            functionDefinition: step.functionDefinition,
+            functionDefinition,
             icon: step.jsdoc.icon,
             type: stepType,
             templateStepGroupId: stepGroup.id,
@@ -790,7 +819,7 @@ async function main() {
 
     // Sync to database
     console.log('\n✅ Syncing template steps to database...')
-    const result = await syncStepsToDatabase(allSteps, baseDir)
+    const result = await syncStepsToDatabase(allSteps)
 
     // Add parsing errors to result
     result.errors.push(...errors)
@@ -813,5 +842,3 @@ async function main() {
 }
 
 main()
-
-
