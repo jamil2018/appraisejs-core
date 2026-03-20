@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { glob } from 'glob'
+import prettier from 'prettier'
 import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
@@ -82,6 +83,7 @@ type ParsedTemplateStep = {
   jsdoc: StepJSDoc
   signature: string
   functionDefinition: string
+  normalizedFunctionDefinition: string
   parameters: StepParameter[]
   keyword: 'When' | 'Then' | 'Given'
 }
@@ -138,7 +140,42 @@ function normalizeEnvironmentName(name: string): string {
     return name
   }
 
-  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+  return name
+    .trim()
+    .replace(/[_\s]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function getEnvironmentIdentityKey(name: string): string {
+  return name
+    .trim()
+    .replace(/[_\s]+/g, ' ')
+    .toLowerCase()
+}
+
+async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
+  const source = functionDefinition?.trim()
+  if (!source) {
+    return ''
+  }
+
+  try {
+    return (
+      await prettier.format(source, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        printWidth: 80,
+        tabWidth: 2,
+      })
+    ).trim()
+  } catch {
+    return source
+  }
 }
 
 async function readEnvironmentsFromFile(): Promise<EnvironmentData[]> {
@@ -546,6 +583,7 @@ function parseStepFile(content: string): ParsedStepFile | null {
         jsdoc,
         signature: patternArg.value,
         functionDefinition: extractFunctionDefinition(node, content),
+        normalizedFunctionDefinition: '',
         parameters,
         keyword,
       })
@@ -748,6 +786,12 @@ async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnaps
         continue
       }
 
+      await Promise.all(
+        parsed.steps.map(async step => {
+          step.normalizedFunctionDefinition = await normalizeFunctionDefinition(step.functionDefinition)
+        }),
+      )
+
       templateStepGroups.push(parsed.group)
       for (const step of parsed.steps) {
         templateSteps.push({
@@ -813,13 +857,13 @@ function countModuleMismatches(
   const dbPaths = new Set<string>()
   let rootExists = false
 
-  for (const module of dbModules) {
-    if (module.name === 'root' && module.parentId === null) {
+  for (const dbModule of dbModules) {
+    if (dbModule.name === 'root' && dbModule.parentId === null) {
       rootExists = true
       continue
     }
 
-    dbPaths.add(module.path)
+    dbPaths.add(dbModule.path)
   }
 
   let count = 0
@@ -847,11 +891,13 @@ function countEnvironmentMismatches(
   filesystemEnvironments: EnvironmentData[],
   dbEnvironments: Array<{ name: string }>,
 ): number {
-  const fsByNormalizedName = new Map(filesystemEnvironments.map(environment => [normalizeEnvironmentName(environment.name), environment]))
+  const fsByNormalizedName = new Map(
+    filesystemEnvironments.map(environment => [getEnvironmentIdentityKey(environment.name), environment]),
+  )
   const dbByNormalizedName = new Map<string, { name: string }>()
 
   for (const environment of dbEnvironments) {
-    const normalizedName = normalizeEnvironmentName(environment.name)
+    const normalizedName = getEnvironmentIdentityKey(environment.name)
     if (!dbByNormalizedName.has(normalizedName)) {
       dbByNormalizedName.set(normalizedName, environment)
     }
@@ -859,14 +905,14 @@ function countEnvironmentMismatches(
 
   let count = 0
   for (const environment of filesystemEnvironments) {
-    const existing = dbByNormalizedName.get(normalizeEnvironmentName(environment.name))
-    if (!existing || existing.name !== environment.name) {
+    const existing = dbByNormalizedName.get(getEnvironmentIdentityKey(environment.name))
+    if (!existing) {
       count++
     }
   }
 
   for (const environment of dbEnvironments) {
-    if (!fsByNormalizedName.has(normalizeEnvironmentName(environment.name))) {
+    if (!fsByNormalizedName.has(getEnvironmentIdentityKey(environment.name))) {
       count++
     }
   }
@@ -963,7 +1009,7 @@ function countTemplateStepMismatches(
     const needsUpdate =
       existing.name !== item.step.jsdoc.name ||
       (existing.description ?? '') !== (item.step.jsdoc.description ?? '') ||
-      (existing.functionDefinition ?? '') !== item.step.functionDefinition ||
+      (existing.functionDefinition ?? '') !== item.step.normalizedFunctionDefinition ||
       existing.icon !== item.step.jsdoc.icon ||
       existing.type !== expectedType ||
       existing.templateStepGroup.name !== item.groupName ||
@@ -1310,6 +1356,13 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       }),
     ])
 
+    const normalizedDbTemplateSteps = await Promise.all(
+      dbTemplateSteps.map(async step => ({
+        ...step,
+        functionDefinition: await normalizeFunctionDefinition(step.functionDefinition),
+      })),
+    )
+
     const modulePathMap = new Map(dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]))
 
     const counts: Record<SyncScriptId, number> = {
@@ -1317,7 +1370,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
       'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),
       'sync-template-step-groups': countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
-      'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, dbTemplateSteps),
+      'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
       'sync-locator-groups': countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
       'sync-locators': countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups),
       'sync-test-suites': countTestSuiteMismatches(filesystem.testSuites, dbTestSuites, modulePathMap),
@@ -1325,7 +1378,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
         filesystem.testCases,
         dbTestCases,
         modulePathMap,
-        dbTemplateSteps.map(step => ({
+        normalizedDbTemplateSteps.map(step => ({
           signature: step.signature,
           parameters: step.parameters,
         })),

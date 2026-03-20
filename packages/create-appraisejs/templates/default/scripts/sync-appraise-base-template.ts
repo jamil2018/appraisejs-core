@@ -56,6 +56,12 @@ function resetAutomationReports(templateRoot: string): void {
   mkdirSync(join(reportsRoot, 'traces'), { recursive: true })
 }
 
+function resetAutomationLocatorMap(templateRoot: string): void {
+  const locatorMapPath = join(templateRoot, 'automation', 'mapping', 'locator-map.json')
+  mkdirSync(dirname(locatorMapPath), { recursive: true })
+  writeFileSync(locatorMapPath, '[]\n')
+}
+
 function syncLegacyEnvironmentConfig(): void {
   const legacyEnvironmentsDir = join(repoRoot, 'src', 'tests', 'config', 'environments')
   const targetEnvironmentsDir = join(target, 'automation', 'config', 'environments')
@@ -121,6 +127,7 @@ console.log('Copying automation/...')
 copyDirWithFilter(join(repoRoot, 'automation'), join(target, 'automation'))
 syncLegacyEnvironmentConfig()
 resetAutomationReports(target)
+resetAutomationLocatorMap(target)
 
 for (const internalPackage of INTERNAL_PACKAGES) {
   console.log(`Copying internal package ${internalPackage.name}...`)
