@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { glob } from 'glob'
+import prettier from 'prettier'
 import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
@@ -23,6 +24,11 @@ import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
 import { SYNC_ALL_REQUEST_ID, syncScriptDefinitions, type SyncRequestId, type SyncScriptId } from '@/lib/sync/sync-registry'
 import { getTagTypeFromName } from '@/lib/tag-utils'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
+import {
+  determineProjectedStepIcon,
+  getTestSuiteSyncIdentity,
+  normalizeProjectedDbTestCaseSteps,
+} from '@/lib/sync/projected-feature-utils'
 
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
 
@@ -82,6 +88,7 @@ type ParsedTemplateStep = {
   jsdoc: StepJSDoc
   signature: string
   functionDefinition: string
+  normalizedFunctionDefinition: string
   parameters: StepParameter[]
   keyword: 'When' | 'Then' | 'Given'
 }
@@ -138,7 +145,42 @@ function normalizeEnvironmentName(name: string): string {
     return name
   }
 
-  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+  return name
+    .trim()
+    .replace(/[_\s]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function getEnvironmentIdentityKey(name: string): string {
+  return name
+    .trim()
+    .replace(/[_\s]+/g, ' ')
+    .toLowerCase()
+}
+
+async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
+  const source = functionDefinition?.trim()
+  if (!source) {
+    return ''
+  }
+
+  try {
+    return (
+      await prettier.format(source, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        printWidth: 80,
+        tabWidth: 2,
+      })
+    ).trim()
+  } catch {
+    return source
+  }
 }
 
 async function readEnvironmentsFromFile(): Promise<EnvironmentData[]> {
@@ -546,6 +588,7 @@ function parseStepFile(content: string): ParsedStepFile | null {
         jsdoc,
         signature: patternArg.value,
         functionDefinition: extractFunctionDefinition(node, content),
+        normalizedFunctionDefinition: '',
         parameters,
         keyword,
       })
@@ -645,12 +688,25 @@ function matchGherkinStepToTemplateStep(
   return null
 }
 
-function determineStepIcon(keyword: string): TemplateStepIcon {
-  const lowerKeyword = keyword.toLowerCase().trim()
+function groupRecordsByKey<T>(records: T[], getKey: (record: T) => string | null | undefined): Map<string, T[]> {
+  const recordsByKey = new Map<string, T[]>()
 
-  if (lowerKeyword === 'given') return TemplateStepIcon.NAVIGATION
-  if (lowerKeyword === 'then') return TemplateStepIcon.VALIDATION
-  return TemplateStepIcon.MOUSE
+  for (const record of records) {
+    const key = getKey(record)
+    if (!key) {
+      continue
+    }
+
+    const existing = recordsByKey.get(key)
+    if (existing) {
+      existing.push(record)
+      continue
+    }
+
+    recordsByKey.set(key, [record])
+  }
+
+  return recordsByKey
 }
 
 function sameStringSet(left: string[], right: string[]): boolean {
@@ -748,6 +804,12 @@ async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnaps
         continue
       }
 
+      await Promise.all(
+        parsed.steps.map(async step => {
+          step.normalizedFunctionDefinition = await normalizeFunctionDefinition(step.functionDefinition)
+        }),
+      )
+
       templateStepGroups.push(parsed.group)
       for (const step of parsed.steps) {
         templateSteps.push({
@@ -806,20 +868,20 @@ async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnaps
   }
 }
 
-function countModuleMismatches(
+export function countModuleMismatches(
   filesystemPaths: Set<string>,
   dbModules: Array<{ id: string; name: string; path: string; parentId: string | null }>,
 ): number {
   const dbPaths = new Set<string>()
   let rootExists = false
 
-  for (const module of dbModules) {
-    if (module.name === 'root' && module.parentId === null) {
+  for (const dbModule of dbModules) {
+    if (dbModule.name === 'root' && dbModule.parentId === null) {
       rootExists = true
       continue
     }
 
-    dbPaths.add(module.path)
+    dbPaths.add(dbModule.path)
   }
 
   let count = 0
@@ -834,12 +896,6 @@ function countModuleMismatches(
     }
   }
 
-  for (const modulePath of dbPaths) {
-    if (!filesystemPaths.has(modulePath)) {
-      count++
-    }
-  }
-
   return count
 }
 
@@ -847,11 +903,13 @@ function countEnvironmentMismatches(
   filesystemEnvironments: EnvironmentData[],
   dbEnvironments: Array<{ name: string }>,
 ): number {
-  const fsByNormalizedName = new Map(filesystemEnvironments.map(environment => [normalizeEnvironmentName(environment.name), environment]))
+  const fsByNormalizedName = new Map(
+    filesystemEnvironments.map(environment => [getEnvironmentIdentityKey(environment.name), environment]),
+  )
   const dbByNormalizedName = new Map<string, { name: string }>()
 
   for (const environment of dbEnvironments) {
-    const normalizedName = normalizeEnvironmentName(environment.name)
+    const normalizedName = getEnvironmentIdentityKey(environment.name)
     if (!dbByNormalizedName.has(normalizedName)) {
       dbByNormalizedName.set(normalizedName, environment)
     }
@@ -859,14 +917,14 @@ function countEnvironmentMismatches(
 
   let count = 0
   for (const environment of filesystemEnvironments) {
-    const existing = dbByNormalizedName.get(normalizeEnvironmentName(environment.name))
-    if (!existing || existing.name !== environment.name) {
+    const existing = dbByNormalizedName.get(getEnvironmentIdentityKey(environment.name))
+    if (!existing) {
       count++
     }
   }
 
   for (const environment of dbEnvironments) {
-    if (!fsByNormalizedName.has(normalizeEnvironmentName(environment.name))) {
+    if (!fsByNormalizedName.has(getEnvironmentIdentityKey(environment.name))) {
       count++
     }
   }
@@ -874,29 +932,16 @@ function countEnvironmentMismatches(
   return count
 }
 
-function countTagMismatches(
+export function countTagMismatches(
   filesystemTags: Array<{ name: string; tagExpression: string; type: TagType }>,
   dbTags: Array<{ name: string; type: TagType }>,
 ): number {
-  const fsByName = new Map(filesystemTags.map(tag => [tag.name, tag]))
-  const dbByName = new Map<string, { name: string; type: TagType }>()
-
-  for (const tag of dbTags) {
-    if (!dbByName.has(tag.name)) {
-      dbByName.set(tag.name, tag)
-    }
-  }
+  const dbByName = groupRecordsByKey(dbTags, tag => tag.name)
 
   let count = 0
   for (const tag of filesystemTags) {
-    const existing = dbByName.get(tag.name)
-    if (!existing || existing.type !== tag.type) {
-      count++
-    }
-  }
-
-  for (const tag of dbTags) {
-    if (!fsByName.has(tag.name)) {
+    const hasMatch = (dbByName.get(tag.name) ?? []).some(existing => existing.type === tag.type)
+    if (!hasMatch) {
       count++
     }
   }
@@ -904,28 +949,19 @@ function countTagMismatches(
   return count
 }
 
-function countTemplateStepGroupMismatches(
+export function countTemplateStepGroupMismatches(
   filesystemGroups: StepGroupJSDoc[],
   dbGroups: Array<{ name: string; description: string | null; type: TemplateStepGroupType }>,
 ): number {
-  const fsByName = new Map(filesystemGroups.map(group => [group.name, group]))
-  const dbByName = new Map(dbGroups.map(group => [group.name, group]))
+  const dbByName = groupRecordsByKey(dbGroups, group => group.name)
   let count = 0
 
   for (const group of filesystemGroups) {
-    const existing = dbByName.get(group.name)
-    if (!existing) {
-      count++
-      continue
-    }
+    const hasMatch = (dbByName.get(group.name) ?? []).some(existing => {
+      return (existing.description ?? null) === (group.description ?? null) && existing.type === group.type
+    })
 
-    if ((existing.description ?? null) !== (group.description ?? null) || existing.type !== group.type) {
-      count++
-    }
-  }
-
-  for (const group of dbGroups) {
-    if (!fsByName.has(group.name)) {
+    if (!hasMatch) {
       count++
     }
   }
@@ -933,7 +969,7 @@ function countTemplateStepGroupMismatches(
   return count
 }
 
-function countTemplateStepMismatches(
+export function countTemplateStepMismatches(
   filesystemSteps: TemplateStepFromFs[],
   dbSteps: Array<{
     signature: string
@@ -946,36 +982,26 @@ function countTemplateStepMismatches(
     parameters: Array<{ name: string; order: number; type: StepParameterType }>
   }>,
 ): number {
-  const fsSignatures = new Set(filesystemSteps.map(item => item.step.signature))
-  const dbBySignature = new Map(dbSteps.map(step => [step.signature, step]))
+  const dbBySignature = groupRecordsByKey(dbSteps, step => step.signature)
   let count = 0
 
   for (const item of filesystemSteps) {
-    const existing = dbBySignature.get(item.step.signature)
     const expectedType =
       item.groupType === TemplateStepGroupType.ACTION ? TemplateStepType.ACTION : TemplateStepType.ASSERTION
 
-    if (!existing) {
-      count++
-      continue
-    }
+    const hasMatch = (dbBySignature.get(item.step.signature) ?? []).some(existing => {
+      return (
+        existing.name === item.step.jsdoc.name &&
+        (existing.description ?? '') === (item.step.jsdoc.description ?? '') &&
+        (existing.functionDefinition ?? '') === item.step.normalizedFunctionDefinition &&
+        existing.icon === item.step.jsdoc.icon &&
+        existing.type === expectedType &&
+        existing.templateStepGroup.name === item.groupName &&
+        sameStepParameters(existing.parameters, item.step.parameters)
+      )
+    })
 
-    const needsUpdate =
-      existing.name !== item.step.jsdoc.name ||
-      (existing.description ?? '') !== (item.step.jsdoc.description ?? '') ||
-      (existing.functionDefinition ?? '') !== item.step.functionDefinition ||
-      existing.icon !== item.step.jsdoc.icon ||
-      existing.type !== expectedType ||
-      existing.templateStepGroup.name !== item.groupName ||
-      !sameStepParameters(existing.parameters, item.step.parameters)
-
-    if (needsUpdate) {
-      count++
-    }
-  }
-
-  for (const step of dbSteps) {
-    if (!fsSignatures.has(step.signature)) {
+    if (!hasMatch) {
       count++
     }
   }
@@ -1053,7 +1079,7 @@ function countLocatorMismatches(
   return count
 }
 
-function countTestSuiteMismatches(
+export function countTestSuiteMismatches(
   filesystemSuites: TestSuiteFromFs[],
   dbSuites: Array<{
     name: string
@@ -1063,33 +1089,20 @@ function countTestSuiteMismatches(
   }>,
   modulePathMap: Map<string, string>,
 ): number {
-  const fsKeys = new Set(filesystemSuites.map(suite => `${suite.name}::${suite.modulePath}`))
-  const dbByKey = new Map(
-    dbSuites.map(suite => [`${suite.name}::${modulePathMap.get(suite.moduleId) ?? '/'}`, suite] as const),
+  const dbByKey = groupRecordsByKey(dbSuites, suite =>
+    getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/'),
   )
   let count = 0
 
   for (const suite of filesystemSuites) {
-    const key = `${suite.name}::${suite.modulePath}`
-    const existing = dbByKey.get(key as `${string}::${string}`)
-    if (!existing) {
-      count++
-      continue
-    }
-
-    const dbTagExpressions = existing.tags.map(tag => normalizeTagExpression(tag.tagExpression))
+    const suiteKey = getTestSuiteSyncIdentity(suite.name, suite.modulePath)
     const fsTagExpressions = suite.tags.map(normalizeTagExpression)
-    const needsUpdate =
-      (existing.description ?? null) !== (suite.description ?? null) || !sameStringSet(dbTagExpressions, fsTagExpressions)
+    const hasMatch = (dbByKey.get(suiteKey) ?? []).some(existing => {
+      const dbTagExpressions = existing.tags.map(tag => normalizeTagExpression(tag.tagExpression))
+      return (existing.description ?? null) === (suite.description ?? null) && sameStringSet(dbTagExpressions, fsTagExpressions)
+    })
 
-    if (needsUpdate) {
-      count++
-    }
-  }
-
-  for (const suite of dbSuites) {
-    const key = `${suite.name}::${modulePathMap.get(suite.moduleId) ?? '/'}`
-    if (!fsKeys.has(key)) {
+    if (!hasMatch) {
       count++
     }
   }
@@ -1097,7 +1110,7 @@ function countTestSuiteMismatches(
   return count
 }
 
-function hasTestCaseStepMismatch(
+function hasProjectedTestCaseStepMismatch(
   stepsFromFs: ParsedStep[],
   dbSteps: Array<{
     order: number
@@ -1112,7 +1125,8 @@ function hasTestCaseStepMismatch(
     parameters: Array<{ name: string; order: number; type: StepParameterType }>
   }>,
 ): boolean {
-  const dbStepsByOrder = new Map(dbSteps.map(step => [step.order, step]))
+  const projectedDbSteps = normalizeProjectedDbTestCaseSteps(dbSteps)
+  const dbStepsByOrder = new Map(projectedDbSteps.map(step => [step.order, step]))
 
   for (const step of stepsFromFs) {
     const existing = dbStepsByOrder.get(step.order)
@@ -1122,14 +1136,14 @@ function hasTestCaseStepMismatch(
       return true
     }
 
-    const expectedIcon = determineStepIcon(step.keyword)
+    const expectedIcon = determineProjectedStepIcon(step.keyword)
     const expectedGherkinStep = `${step.keyword} ${step.text}`
 
     if (
       existing.gherkinStep !== expectedGherkinStep ||
       existing.label !== step.text ||
       existing.icon !== expectedIcon ||
-      existing.TemplateStep?.signature !== matchedTemplateStep.signature ||
+      existing.templateStepSignature !== matchedTemplateStep.signature ||
       !sameResolvedParameters(existing.parameters, matchedTemplateStep.parameters)
     ) {
       return true
@@ -1137,10 +1151,10 @@ function hasTestCaseStepMismatch(
   }
 
   const fsOrders = new Set(stepsFromFs.map(step => step.order))
-  return dbSteps.some(step => !fsOrders.has(step.order))
+  return projectedDbSteps.some(step => !fsOrders.has(step.order))
 }
 
-function countTestCaseMismatches(
+export function countTestCaseMismatches(
   filesystemTestCases: TestCaseFromFs[],
   dbTestCases: Array<{
     title: string
@@ -1162,52 +1176,46 @@ function countTestCaseMismatches(
     parameters: Array<{ name: string; order: number; type: StepParameterType }>
   }>,
 ): number {
-  const dbByIdentifier = new Map<string, (typeof dbTestCases)[number]>()
+  const dbByIdentifier = new Map<string, Array<(typeof dbTestCases)[number]>>()
   let count = 0
 
   for (const testCase of dbTestCases) {
     const identifierTag = testCase.tags.find(tag => tag.type === TagType.IDENTIFIER)
     if (!identifierTag) {
-      count++
       continue
     }
 
     const normalizedIdentifier = normalizeTagExpression(identifierTag.tagExpression)
-    if (!dbByIdentifier.has(normalizedIdentifier)) {
-      dbByIdentifier.set(normalizedIdentifier, testCase)
+    const existing = dbByIdentifier.get(normalizedIdentifier)
+    if (existing) {
+      existing.push(testCase)
+      continue
     }
-  }
 
-  const fsIdentifiers = new Set(filesystemTestCases.map(testCase => testCase.identifierTag))
+    dbByIdentifier.set(normalizedIdentifier, [testCase])
+  }
 
   for (const testCase of filesystemTestCases) {
-    const existing = dbByIdentifier.get(testCase.identifierTag)
-    if (!existing) {
-      count++
-      continue
-    }
+    const expectedSuiteIdentity = getTestSuiteSyncIdentity(testCase.testSuiteName, testCase.modulePath)
+    const normalizedFilterTags = testCase.filterTags.map(normalizeTagExpression)
+    const hasMatch = (dbByIdentifier.get(testCase.identifierTag) ?? []).some(existing => {
+      const existingFilterTags = existing.tags
+        .filter(tag => tag.type === TagType.FILTER)
+        .map(tag => normalizeTagExpression(tag.tagExpression))
+      const isLinkedToExpectedSuite = existing.TestSuite.some(
+        suite => getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/') === expectedSuiteIdentity,
+      )
 
-    const existingFilterTags = existing.tags
-      .filter(tag => tag.type === TagType.FILTER)
-      .map(tag => normalizeTagExpression(tag.tagExpression))
-    const needsUpdate =
-      existing.title !== testCase.title ||
-      existing.description !== testCase.description ||
-      !sameStringSet(existingFilterTags, testCase.filterTags.map(normalizeTagExpression)) ||
-      hasTestCaseStepMismatch(testCase.steps, existing.steps, dbTemplateSteps)
+      return (
+        existing.title === testCase.title &&
+        existing.description === testCase.description &&
+        isLinkedToExpectedSuite &&
+        sameStringSet(existingFilterTags, normalizedFilterTags) &&
+        !hasProjectedTestCaseStepMismatch(testCase.steps, existing.steps, dbTemplateSteps)
+      )
+    })
 
-    if (needsUpdate) {
-      count++
-    }
-  }
-
-  for (const testCase of dbTestCases) {
-    const identifierTag = testCase.tags.find(tag => tag.type === TagType.IDENTIFIER)
-    if (!identifierTag) {
-      continue
-    }
-
-    if (!fsIdentifiers.has(normalizeTagExpression(identifierTag.tagExpression))) {
+    if (!hasMatch) {
       count++
     }
   }
@@ -1310,6 +1318,13 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       }),
     ])
 
+    const normalizedDbTemplateSteps = await Promise.all(
+      dbTemplateSteps.map(async step => ({
+        ...step,
+        functionDefinition: await normalizeFunctionDefinition(step.functionDefinition),
+      })),
+    )
+
     const modulePathMap = new Map(dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]))
 
     const counts: Record<SyncScriptId, number> = {
@@ -1317,7 +1332,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
       'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),
       'sync-template-step-groups': countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
-      'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, dbTemplateSteps),
+      'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
       'sync-locator-groups': countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
       'sync-locators': countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups),
       'sync-test-suites': countTestSuiteMismatches(filesystem.testSuites, dbTestSuites, modulePathMap),
@@ -1325,7 +1340,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
         filesystem.testCases,
         dbTestCases,
         modulePathMap,
-        dbTemplateSteps.map(step => ({
+        normalizedDbTemplateSteps.map(step => ({
           signature: step.signature,
           parameters: step.parameters,
         })),

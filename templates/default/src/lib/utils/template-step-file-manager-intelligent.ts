@@ -28,7 +28,6 @@ function generateGroupJSDocComment(
 function extractGroupJSDocBounds(content: string): { startLine: number; endLine: number } | null {
   const lines = content.split('\n')
 
-  // Look for JSDoc comment at the very top of the file
   if (lines.length === 0) {
     return null
   }
@@ -38,25 +37,20 @@ function extractGroupJSDocBounds(content: string): { startLine: number; endLine:
     return null
   }
 
-  // Check if this JSDoc contains group metadata (@type distinguishes group from step JSDoc)
   let hasType = false
   let endLine = -1
 
-  // Look through the JSDoc block (should end within first few lines)
   for (let i = 0; i < lines.length && i < 10; i++) {
     const line = lines[i].trim()
 
     if (line === '*/') {
-      // Found end of JSDoc
       endLine = i
       break
     } else if (line.startsWith('* @type') || line.startsWith('*@type')) {
-      // Found @type - this is group metadata (steps have @icon, not @type)
       hasType = true
     }
   }
 
-  // If we found a JSDoc block at the top with @type, return its bounds
   if (hasType && endLine >= 0) {
     return { startLine: 0, endLine }
   }
@@ -703,6 +697,4 @@ export async function renameTemplateStepGroupFile(
     throw new Error(`File rename failed: ${error}`)
   }
 }
-
-
 

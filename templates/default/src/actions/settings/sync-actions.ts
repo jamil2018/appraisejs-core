@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { runRequestedSync, type SyncExecutionResult } from '@/lib/sync/sync-executor'
+import { getSyncPendingCounts, type SyncPendingCounts } from '@/lib/sync/sync-pending-counts'
 import { isSyncRequestId } from '@/lib/sync/sync-registry'
 
 export async function runSyncAction(requestedScriptId: string): Promise<SyncExecutionResult | InvalidSyncExecutionResult> {
@@ -29,6 +30,10 @@ export async function runSyncAction(requestedScriptId: string): Promise<SyncExec
       cause: error instanceof Error ? error.message : String(error),
     }
   }
+}
+
+export async function getSyncPendingCountsAction(): Promise<SyncPendingCounts> {
+  return getSyncPendingCounts()
 }
 
 type InvalidSyncExecutionResult = {

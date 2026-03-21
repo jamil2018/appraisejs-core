@@ -1,22 +1,14 @@
 [
   {
-    "name": "login mod",
+    "name": "Login",
     "path": "/login"
   },
   {
-    "name": "home",
+    "name": "Home",
     "path": "/home"
   },
   {
     "name": "test",
     "path": "/test"
-  },
-  {
-    "name": "testload",
-    "path": "/login"
-  },
-  {
-    "name": "Login Page",
-    "path": "/login"
   }
 ]

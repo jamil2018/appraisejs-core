@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CircleHelp,
@@ -15,7 +15,7 @@ import {
   TestTubeDiagonal,
   TestTubes,
 } from 'lucide-react'
-import { runSyncAction } from '@/actions/settings/sync-actions'
+import { getSyncPendingCountsAction, runSyncAction } from '@/actions/settings/sync-actions'
 import { AppDrawerItemColor } from '@/app/(dashboard-components)/app-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -154,6 +154,11 @@ function SyncRow({
 export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendingCounts }) {
   const router = useRouter()
   const [activeRequestId, setActiveRequestId] = useState<SyncRequestId | null>(null)
+  const [currentPendingCounts, setCurrentPendingCounts] = useState<SyncPendingCounts>(pendingCounts)
+
+  useEffect(() => {
+    setCurrentPendingCounts(pendingCounts)
+  }, [pendingCounts])
 
   const runSync = async (requestId: SyncRequestId) => {
     if (activeRequestId) {
@@ -166,6 +171,8 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
       const result = await runSyncAction(requestId)
 
       if (result.success) {
+        const refreshedCounts = await getSyncPendingCountsAction()
+        setCurrentPendingCounts(refreshedCounts)
         toast({
           title: 'Sync completed',
           description: formatExecutionSummary(result),
@@ -222,9 +229,9 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
                   <div className="text-emerald-500 [&_svg]:!h-5 [&_svg]:!w-5">
                     {activeRequestId === SYNC_ALL_REQUEST_ID ? <RefreshCw className="animate-spin" /> : <RefreshCw />}
                   </div>
-                  {pendingCounts[SYNC_ALL_REQUEST_ID] > 0 ? (
+                  {currentPendingCounts[SYNC_ALL_REQUEST_ID] > 0 ? (
                     <div className="rounded-full bg-emerald-400 px-2 py-1 text-[10px] font-semibold text-emerald-900">
-                      {pendingCounts[SYNC_ALL_REQUEST_ID]}
+                      {currentPendingCounts[SYNC_ALL_REQUEST_ID]}
                     </div>
                   ) : null}
                 </div>
@@ -242,7 +249,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
                 definition={definition}
                 disabled={isRunning}
                 isActive={activeRequestId === definition.id}
-                pendingCount={pendingCounts[definition.id]}
+                pendingCount={currentPendingCounts[definition.id]}
                 onRun={runSync}
               />
             ))}

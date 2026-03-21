@@ -14,6 +14,7 @@ import {
   createTemplateStepGroupFile,
   removeTemplateStepGroupFile,
   renameTemplateStepGroupFile,
+  ensureGroupJSDoc,
 } from '@/lib/utils/template-step-file-manager-intelligent'
 import { generateFileContent, writeTemplateStepFile } from '@/lib/utils/template-step-file-generator'
 import { ensureAutomationWorkspaceReady } from './paths'
@@ -101,7 +102,7 @@ class AutomationProjectionService {
       return
     }
 
-    const content = generateFileContent(group.templateSteps)
+    const content = ensureGroupJSDoc(generateFileContent(group.templateSteps), group.name, group.description, groupType)
     await writeTemplateStepFile(group.name, content, groupType)
   }
 
