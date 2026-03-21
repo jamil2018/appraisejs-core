@@ -6,7 +6,35 @@ import { automationProjectionService } from '@/lib/automation/projection-service
 import { ActionResponse } from '@/types/form/actionHandler'
 import { StepParameterType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import prettier from 'prettier'
 import { z } from 'zod'
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
+async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
+  const source = functionDefinition?.trim()
+  if (!source) {
+    return ''
+  }
+
+  try {
+    return (
+      await prettier.format(source, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        printWidth: 80,
+        tabWidth: 2,
+      })
+    ).trim()
+  } catch {
+    return source
+  }
+}
 
 export async function getAllTemplateStepsAction(): Promise<ActionResponse> {
   try {
@@ -93,13 +121,16 @@ export async function createTemplateStepAction(
   value: z.infer<typeof templateStepSchema>,
 ): Promise<ActionResponse> {
   try {
+    const description = normalizeOptionalText(value.description)
+    const functionDefinition = await normalizeFunctionDefinition(value.functionDefinition)
+
     const newTemplateStep = await prisma.templateStep.create({
       data: {
         name: value.name,
         type: value.type as TemplateStepType,
         signature: value.signature,
-        description: value.description || '',
-        functionDefinition: value.functionDefinition || '',
+        description,
+        functionDefinition,
         parameters: {
           create: value.params.map(param => ({
             name: param.name,
@@ -160,14 +191,17 @@ export async function updateTemplateStepAction(
       }
     }
 
+    const description = normalizeOptionalText(value.description)
+    const functionDefinition = await normalizeFunctionDefinition(value.functionDefinition)
+
     const updatedTemplateStep = await prisma.templateStep.update({
       where: { id },
       data: {
         name: value.name,
         type: value.type as TemplateStepType,
         signature: value.signature,
-        description: value.description || '',
-        functionDefinition: value.functionDefinition || '',
+        description,
+        functionDefinition,
         parameters: {
           deleteMany: {
             templateStepId: id,

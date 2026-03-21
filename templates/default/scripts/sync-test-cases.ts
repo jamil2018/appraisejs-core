@@ -18,6 +18,11 @@ import {
 import { buildModuleHierarchy, findModuleByPath } from '../src/lib/module-hierarchy-builder'
 import { TemplateStepType, TemplateStepIcon, StepParameterType, TagType } from '@prisma/client'
 import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '../src/lib/automation/paths'
+import {
+  determineProjectedStepIcon,
+  getTestSuiteFilesystemKey,
+  normalizeProjectedDbTestCaseSteps,
+} from '../src/lib/sync/projected-feature-utils'
 
 interface TestCaseFromFS {
   identifierTag: string // @tc_... tag
@@ -39,6 +44,7 @@ interface ParameterMatch {
 
 interface TemplateStepMatch {
   templateStepId: string
+  signature: string
   parameters: ParameterMatch[]
 }
 
@@ -259,6 +265,7 @@ async function matchGherkinStepToTemplateStep(gherkinStep: ParsedStep): Promise<
       if (parameters !== null) {
         return {
           templateStepId: templateStep.id,
+          signature: templateStep.signature,
           parameters,
         }
       }
@@ -289,6 +296,22 @@ function determineStepTypeAndIcon(keyword: string): { type: TemplateStepType; ic
     // Default fallback
     return { type: 'ACTION', icon: 'MOUSE' }
   }
+}
+
+function sameResolvedParameters(left: ParameterMatch[], right: ParameterMatch[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((parameter, index) => {
+    const other = right[index]
+    return (
+      parameter.name === other?.name &&
+      parameter.value === other?.value &&
+      parameter.order === other?.order &&
+      parameter.type === other?.type
+    )
+  })
 }
 
 /**
@@ -341,12 +364,18 @@ async function syncTestCaseSteps(testCaseId: string, steps: ParsedStep[], result
       where: { testCaseId },
       orderBy: { order: 'asc' },
       include: {
+        TemplateStep: {
+          select: {
+            signature: true,
+          },
+        },
         parameters: true,
       },
     })
 
     // Create a map of existing steps by order
     const existingStepsMap = new Map(existingSteps.map(step => [step.order, step]))
+    const projectedExistingStepsMap = new Map(normalizeProjectedDbTestCaseSteps(existingSteps).map(step => [step.order, step]))
 
     // Process each step from filesystem
     for (const step of steps) {
@@ -365,11 +394,22 @@ async function syncTestCaseSteps(testCaseId: string, steps: ParsedStep[], result
       const gherkinStep = `${step.keyword} ${step.text}`
 
       if (existingStep) {
+        const projectedExistingStep = projectedExistingStepsMap.get(step.order)
+        const matchesProjectedState =
+          projectedExistingStep != null &&
+          projectedExistingStep.gherkinStep === gherkinStep &&
+          projectedExistingStep.label === step.text &&
+          projectedExistingStep.icon === determineProjectedStepIcon(step.keyword) &&
+          projectedExistingStep.templateStepSignature === match.signature &&
+          sameResolvedParameters(projectedExistingStep.parameters, match.parameters)
+
         // Update existing step if needed
         const needsUpdate =
-          existingStep.gherkinStep !== gherkinStep ||
-          existingStep.templateStepId !== match.templateStepId ||
-          existingStep.label !== step.text
+          !matchesProjectedState &&
+          (existingStep.gherkinStep !== gherkinStep ||
+            existingStep.templateStepId !== match.templateStepId ||
+            existingStep.label !== step.text ||
+            existingStep.icon !== icon)
 
         if (needsUpdate) {
           await prisma.testCaseStep.update({
@@ -451,6 +491,7 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
 
   // Track test cases from filesystem (by identifier tag)
   const fsTestCaseTags = new Set<string>()
+  const suitesByModuleId = new Map<string, Array<{ id: string; name: string }>>()
 
   for (const testCase of testCasesFromFS) {
     try {
@@ -465,12 +506,23 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
       }
 
       // Find test suite
-      const testSuite = await prisma.testSuite.findFirst({
-        where: {
-          name: testCase.testSuiteName,
-          moduleId: moduleId,
-        },
-      })
+      let moduleSuites = suitesByModuleId.get(moduleId)
+      if (!moduleSuites) {
+        moduleSuites = await prisma.testSuite.findMany({
+          where: {
+            moduleId: moduleId,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        })
+        suitesByModuleId.set(moduleId, moduleSuites)
+      }
+
+      const testSuite = moduleSuites.find(
+        suite => getTestSuiteFilesystemKey(suite.name) === getTestSuiteFilesystemKey(testCase.testSuiteName),
+      )
 
       if (!testSuite) {
         result.errors.push(`Test suite '${testCase.testSuiteName}' not found in module '${testCase.modulePath}'`)
@@ -509,8 +561,11 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
 
       if (identifierTag && identifierTag.testCases.length > 0) {
         // Test case exists - update it
+        const matchedExistingTestCaseSummary =
+          identifierTag.testCases.find(existingCase => existingCase.TestSuite.some(suite => suite.id === testSuite.id)) ??
+          identifierTag.testCases[0]
         const existingTestCase = await prisma.testCase.findUnique({
-          where: { id: identifierTag.testCases[0].id },
+          where: { id: matchedExistingTestCaseSummary.id },
           include: {
             tags: true,
             TestSuite: true,
@@ -902,5 +957,4 @@ async function main() {
 }
 
 main()
-
 

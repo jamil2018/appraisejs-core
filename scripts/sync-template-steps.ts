@@ -353,7 +353,6 @@ function extractFunctionDefinition(callExpr: t.CallExpression, keyword: string, 
  * Parses a step definition file to extract steps
  */
 function parseStepFile(content: string, filePath: string): StepData | null {
-  // Parse group JSDoc
   const group = parseGroupJSDoc(content)
   if (!group) {
     return null

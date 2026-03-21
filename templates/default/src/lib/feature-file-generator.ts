@@ -3,6 +3,7 @@ import { join, dirname } from 'path'
 import prisma from '@/config/db-config'
 import { buildModulePath } from '@/lib/path-helpers/module-path'
 import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '@/lib/automation/paths'
+import { generateProjectedGherkinSteps, getTestSuiteFilesystemKey } from '@/lib/sync/projected-feature-utils'
 
 async function isDirectoryEmpty(dirPath: string): Promise<boolean> {
   try {
@@ -76,7 +77,7 @@ export async function generateFeatureFile(
     const moduleDir = join(featuresBaseDir, modulePath.substring(1))
     await fs.mkdir(moduleDir, { recursive: true })
 
-    const safeFileName = generateSafeFileName(testSuiteName)
+    const safeFileName = getTestSuiteFilesystemKey(testSuiteName)
     const featureFilePath = join(moduleDir, `${safeFileName}.feature`)
 
     await fs.writeFile(featureFilePath, featureContent, 'utf8')
@@ -126,7 +127,7 @@ function generateFeatureContent(
 
   testCases.forEach(testCase => {
     if (testCase.steps && testCase.steps.length > 0) {
-      const gherkinSteps = generateGherkinStepsFromTestCase(testCase.steps)
+      const gherkinSteps = generateProjectedGherkinSteps(testCase.steps)
 
       if (gherkinSteps.length > 0) {
         if (scenarioCount > 0) {
@@ -153,60 +154,6 @@ function generateFeatureContent(
   return lines.join('\n') + '\n'
 }
 
-function generateGherkinStepsFromTestCase(
-  steps: Array<{
-    gherkinStep: string
-    order: number
-  }>,
-): string[] {
-  if (!steps || steps.length === 0) {
-    return []
-  }
-
-  const sortedSteps = steps.sort((a, b) => a.order - b.order)
-  let hasThenInPrevious = false
-  let hasWhenInPrevious = false
-
-  return sortedSteps.map((step, index) => {
-    const gherkinStep = step.gherkinStep?.trim() || ''
-    const firstWord = gherkinStep.split(' ')[0].toLowerCase()
-    const hasGherkinKeyword = ['given', 'when', 'then', 'and', 'but'].includes(firstWord)
-    const stepWithoutKeyword = hasGherkinKeyword ? gherkinStep.split(' ').slice(1).join(' ') : gherkinStep
-
-    if (index === 0) {
-      return `Given ${stepWithoutKeyword}`
-    }
-
-    const isThenStatement =
-      firstWord === 'then' ||
-      stepWithoutKeyword.toLowerCase().startsWith('should') ||
-      stepWithoutKeyword.toLowerCase().startsWith('must') ||
-      stepWithoutKeyword.toLowerCase().startsWith('will')
-
-    if (!hasThenInPrevious) {
-      if (isThenStatement) {
-        hasThenInPrevious = true
-        return `Then ${stepWithoutKeyword}`
-      }
-
-      if (!hasWhenInPrevious) {
-        hasWhenInPrevious = true
-        return `When ${stepWithoutKeyword}`
-      }
-
-      return `And ${stepWithoutKeyword}`
-    }
-
-    if (isThenStatement) {
-      return `And ${stepWithoutKeyword}`
-    }
-
-    hasThenInPrevious = false
-    hasWhenInPrevious = true
-    return `When ${stepWithoutKeyword}`
-  })
-}
-
 export async function deleteFeatureFile(testSuiteId: string): Promise<boolean> {
   try {
     await ensureAutomationWorkspaceReady()
@@ -225,7 +172,7 @@ export async function deleteFeatureFile(testSuiteId: string): Promise<boolean> {
     }
 
     const modulePath = buildModulePath(allModules, testSuite.module)
-    const safeFileName = generateSafeFileName(testSuite.name)
+    const safeFileName = getTestSuiteFilesystemKey(testSuite.name)
 
     const featuresBaseDir = getAutomationFeaturesDir()
     const moduleDir = join(featuresBaseDir, modulePath.substring(1))
@@ -295,7 +242,7 @@ export async function regenerateAllFeatureFiles(): Promise<string[]> {
         const moduleDir = join(featuresBaseDir, modulePath.substring(1))
         await fs.mkdir(moduleDir, { recursive: true })
 
-        const safeFileName = generateSafeFileName(testSuite.name)
+        const safeFileName = getTestSuiteFilesystemKey(testSuite.name)
         const featureFilePath = join(moduleDir, `${safeFileName}.feature`)
 
         await fs.writeFile(featureFilePath, featureContent, 'utf8')
@@ -310,12 +257,4 @@ export async function regenerateAllFeatureFiles(): Promise<string[]> {
     console.error('Error during feature files regeneration:', error)
     throw error
   }
-}
-
-function generateSafeFileName(testSuiteName: string): string {
-  return testSuiteName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-+/g, '-')
 }

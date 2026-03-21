@@ -4,7 +4,6 @@ import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvir
  * @description Template steps that handles the assertion of element visibility states
  * @type VALIDATION
  */
-
 // This file is generated automatically. Add template steps to this group to generate content.
 
 /**

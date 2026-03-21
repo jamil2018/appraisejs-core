@@ -15,6 +15,11 @@ function getGroupType(group: unknown): TemplateStepGroupType {
   return type === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
 }
 
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
 export async function getAllTemplateStepGroupsAction(): Promise<ActionResponse> {
   try {
     const templateStepGroups = await prisma.templateStepGroup.findMany()
@@ -38,10 +43,11 @@ export async function createTemplateStepGroupAction(
     templateStepGroupSchema.parse(value)
 
     const type: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
+    const description = normalizeOptionalText(value.description)
     const createdGroup = await prisma.templateStepGroup.create({
       data: {
         name: value.name,
-        description: value.description,
+        description,
         type,
       } as Parameters<typeof prisma.templateStepGroup.create>[0]['data'],
     })
@@ -137,16 +143,17 @@ export async function updateTemplateStepGroupAction(
 
     const newType: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
     const currentType = getGroupType(currentGroup)
+    const description = normalizeOptionalText(value.description)
 
     if (currentGroup.name !== value.name || currentType !== newType) {
-      await automationProjectionService.renameTemplateStepGroup(id, value.name, newType, value.description)
+      await automationProjectionService.renameTemplateStepGroup(id, value.name, newType, description)
     }
 
     await prisma.templateStepGroup.update({
       where: { id },
       data: {
         name: value.name,
-        description: value.description,
+        description,
         type: newType,
       } as Parameters<typeof prisma.templateStepGroup.update>[0]['data'],
     })
