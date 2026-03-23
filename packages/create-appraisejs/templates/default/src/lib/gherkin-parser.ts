@@ -81,15 +81,9 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
 
       // Parse Feature line
       if (line.startsWith('Feature:')) {
-        featureName = line.replace('Feature:', '').trim()
-        // Look for description in next lines
-        let j = i + 1
-        while (j < lines.length && lines[j] && !lines[j].startsWith('Scenario:') && !lines[j].startsWith('Feature:')) {
-          if (lines[j] && !lines[j].startsWith('#')) {
-            featureDescription += (featureDescription ? ' ' : '') + lines[j]
-          }
-          j++
-        }
+        const featureLineText = line.replace('Feature:', '').trim()
+        featureName = featureLineText
+        featureDescription = featureLineText
         continue
       }
 

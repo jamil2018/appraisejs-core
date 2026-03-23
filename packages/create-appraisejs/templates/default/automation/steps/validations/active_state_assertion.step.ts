@@ -4,6 +4,7 @@ import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvir
  * @description Template steps for handling the validation of the active state of an element
  * @type VALIDATION
  */
+
 // This file is generated automatically. Add template steps to this group to generate content.
 
 /**
