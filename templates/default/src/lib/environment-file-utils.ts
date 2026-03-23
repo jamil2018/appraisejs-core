@@ -10,6 +10,8 @@ interface EnvironmentConfig {
   password: string
 }
 
+const EMPTY_ENVIRONMENTS_FILE_CONTENT = '{}\n'
+
 export function getEnvironmentsFilePath(): string {
   return path.join(getAutomationEnvironmentsDir(), 'environments.json')
 }
@@ -53,7 +55,7 @@ export async function createOrUpdateEnvironmentsFile(): Promise<boolean> {
     const content = await generateEnvironmentsContent()
 
     if (Object.keys(content).length === 0) {
-      await deleteEnvironmentsFile()
+      await fs.writeFile(filePath, EMPTY_ENVIRONMENTS_FILE_CONTENT)
       return true
     }
 
@@ -69,14 +71,8 @@ export async function deleteEnvironmentsFile(): Promise<boolean> {
   try {
     await ensureAutomationWorkspaceReady()
     const filePath = getEnvironmentsFilePath()
-
-    try {
-      await fs.access(filePath)
-    } catch {
-      return true
-    }
-
-    await fs.unlink(filePath)
+    await ensureConfigDirectoryExists()
+    await fs.writeFile(filePath, EMPTY_ENVIRONMENTS_FILE_CONTENT)
     return true
   } catch (error) {
     console.error('Error deleting environments file:', error)

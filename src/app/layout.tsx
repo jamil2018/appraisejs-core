@@ -156,9 +156,10 @@ export default function RootLayout({
                     },
                   ]}
                 />
-                <NavLink href="/settings" icon={<Settings2 className="h-5 w-5 text-primary" />}>
+                {/* <NavLink href="/settings" icon={<Settings2 className="h-5 w-5 text-primary" />}>
                   Settings
                 </NavLink>
+                */}
                 <NavCommand className="ml-auto" />
               </div>
             </nav>
