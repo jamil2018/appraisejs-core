@@ -9,6 +9,7 @@
  */
 
 import { promises as fs } from 'fs'
+import path from 'path'
 import prisma from '../src/config/db-config'
 import { ensureAutomationWorkspaceReady, getAutomationEnvironmentsDir } from '../src/lib/automation/paths'
 
@@ -40,16 +41,20 @@ interface SyncResult {
   skippedEnvironments: string[]
 }
 
+const EMPTY_ENVIRONMENTS_FILE_CONTENT = '{}\n'
+
 /**
  * Reads and parses the environments.json file
  */
 async function readEnvironmentsFromFile(): Promise<Record<string, EnvironmentConfig>> {
-  const filePath = `${getAutomationEnvironmentsDir()}/environments.json`
+  const filePath = path.join(getAutomationEnvironmentsDir(), 'environments.json')
 
   try {
     await fs.access(filePath)
   } catch {
-    throw new Error(`Environments file not found at ${filePath}`)
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, EMPTY_ENVIRONMENTS_FILE_CONTENT, 'utf-8')
+    return {}
   }
 
   try {
@@ -340,6 +345,5 @@ async function main() {
 }
 
 main()
-
 
 
