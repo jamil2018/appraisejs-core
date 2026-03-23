@@ -1,6 +1,6 @@
 {
   "name": "create-appraisejs",
-  "version": "0.1.10-alpha.10",
+  "version": "0.2.0-alpha.3",
   "description": "Scaffold a new AppraiseJS app in your directory",
   "license": "Apache-2.0",
   "author": "Hasnat Jamil",
@@ -44,10 +44,14 @@
     "sync-templates": "tsx scripts/sync-templates.ts",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "publish": "npm run build && npm publish",
-    "publish:alpha": "npm run build && npm publish --tag alpha",
-    "publish:beta": "npm run build && npm publish --tag beta",
-    "bump:alpha": "npm version prerelease --preid alpha"
+    "publish:alpha": "npm publish --tag alpha",
+    "publish:beta": "npm publish --tag beta",
+    "bump:alpha": "npm version prerelease --preid alpha",
+    "bump:beta": "npm version prerelease --preid beta",
+    "bump:release": "npm version patch",
+    "bump:major": "npm version major",
+    "bump:minor": "npm version minor",
+    "bump:patch": "npm version patch"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.2.0",

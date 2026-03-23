@@ -825,7 +825,7 @@ async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnaps
 
   const testSuites: TestSuiteFromFs[] = parsedFeatures.map(feature => ({
     name: extractTestSuiteNameFromFilename(feature.filePath),
-    description: feature.featureDescription ?? null,
+    description: feature.featureDescription ?? feature.featureName ?? null,
     modulePath: extractModulePathFromFilePath(feature.filePath, featuresDir),
     tags: extractFeatureLevelTags(feature),
   }))
@@ -1099,7 +1099,8 @@ export function countTestSuiteMismatches(
     const fsTagExpressions = suite.tags.map(normalizeTagExpression)
     const hasMatch = (dbByKey.get(suiteKey) ?? []).some(existing => {
       const dbTagExpressions = existing.tags.map(tag => normalizeTagExpression(tag.tagExpression))
-      return (existing.description ?? null) === (suite.description ?? null) && sameStringSet(dbTagExpressions, fsTagExpressions)
+      const expectedDescription = existing.description ?? existing.name
+      return expectedDescription === (suite.description ?? null) && sameStringSet(dbTagExpressions, fsTagExpressions)
     })
 
     if (!hasMatch) {
