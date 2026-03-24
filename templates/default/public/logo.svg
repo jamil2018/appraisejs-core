@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <line class="ln" x1="14" y1="64" x2="62" y2="64" stroke-width="4.5" stroke-linecap="round"/>
+  <circle class="dot" cx="16" cy="64" r="6.5" stroke-width="3.5"/>
+  <circle class="dot" cx="42" cy="64" r="8.5" stroke-width="3.5"/>
+  <circle class="ring" cx="88" cy="64" r="26" fill="none" stroke-width="7"/>
+  <polyline class="ck" points="76,66 85,76 102,54" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <style>
+    .ln{stroke:#d4d4d4}
+    .dot{fill:#999;stroke:#d4d4d4}
+    .ring{stroke:#eee}
+    .ck{stroke:#5cb85c}
+    @media(prefers-color-scheme:light){
+      .ln{stroke:#555}
+      .dot{fill:#aaa;stroke:#555}
+      .ring{stroke:#333}
+    }
+  </style>
+</svg>

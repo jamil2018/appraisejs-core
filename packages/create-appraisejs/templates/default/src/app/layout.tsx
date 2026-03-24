@@ -1,26 +1,13 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Inter_Tight } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { ModeToggle } from '@/components/theme/mode-toggle'
 import { Toaster } from '@/components/ui/toaster'
-
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
-})
-
-const interTight = Inter_Tight({
-  variable: '--font-inter-tight',
-  subsets: ['latin'],
-})
-
-export const metadata: Metadata = {
-  title: 'Appraise | Dashboard',
-  description: 'Welcome to the dashboard. Here you can see your test suites and run them.',
-}
-
 import Logo from '@/components/logo'
+import Link from 'next/link'
+import NavMenuCardDeck from '@/components/navigation/nav-menu-card-deck'
+import NavCommand from '@/components/navigation/nav-command'
 import NavLink from '@/components/navigation/nav-link'
 import {
   Blocks,
@@ -41,9 +28,62 @@ import {
   TestTubeDiagonal,
   TestTubes,
 } from 'lucide-react'
-import Link from 'next/link'
-import NavMenuCardDeck from '@/components/navigation/nav-menu-card-deck'
-import NavCommand from '@/components/navigation/nav-command'
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+})
+
+const interTight = Inter_Tight({
+  variable: '--font-inter-tight',
+  subsets: ['latin'],
+})
+
+const appTitle = 'AppraiseJS'
+const appDescription =
+  'AppraiseJS helps teams organize automated tests, execute suites, and review results from one dashboard.'
+
+export const viewport: Viewport = {
+  colorScheme: 'light dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+  ],
+}
+
+export const metadata: Metadata = {
+  title: {
+    default: appTitle,
+    template: `%s | ${appTitle}`,
+  },
+  description: appDescription,
+  applicationName: appTitle,
+  keywords: ['AppraiseJS', 'test automation', 'QA', 'dashboard', 'test execution'],
+  openGraph: {
+    title: appTitle,
+    description: appDescription,
+    siteName: appTitle,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: appTitle,
+    description: appDescription,
+  },
+  appleWebApp: {
+    capable: true,
+    title: appTitle,
+    statusBarStyle: 'default',
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: ['/favicon.svg'],
+    other: [{ rel: 'mask-icon', url: '/favicon.svg', color: '#5cb85c' }],
+  },
+}
 
 export default function RootLayout({
   children,
