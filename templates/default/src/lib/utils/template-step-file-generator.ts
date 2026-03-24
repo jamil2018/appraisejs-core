@@ -13,6 +13,30 @@ const RUNTIME_IMPORT = '../../../packages/cucumber-runtime/src/index.js'
 const REQUIRED_RUNTIME_IMPORT =
   `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '${RUNTIME_IMPORT}';\n\n`
 
+function generateStepJSDoc(templateStep: Pick<TemplateStep, 'name' | 'description' | 'icon'>): string {
+  const lines = ['/**']
+  lines.push(` * @name ${templateStep.name}`)
+  if (templateStep.description) {
+    lines.push(` * @description ${templateStep.description}`)
+  }
+  lines.push(` * @icon ${templateStep.icon}`)
+  lines.push(' */')
+  return lines.join('\n')
+}
+
+function stripLeadingJSDoc(functionDefinition: string): string {
+  return functionDefinition.replace(/^\s*\/\*\*[\s\S]*?\*\/\s*/u, '').trim()
+}
+
+function generateStepDefinition(templateStep: TemplateStep): string | null {
+  const functionDefinition = templateStep.functionDefinition?.trim()
+  if (!functionDefinition) {
+    return null
+  }
+
+  return `${generateStepJSDoc(templateStep)}\n${stripLeadingJSDoc(functionDefinition)}`
+}
+
 export function sanitizeFileName(groupName: string): string {
   return groupName
     .toLowerCase()
@@ -27,8 +51,8 @@ export function generateFileContent(templateSteps: TemplateStep[]): string {
   }
 
   const functionDefinitions = templateSteps
-    .map(step => step.functionDefinition)
-    .filter(Boolean)
+    .map(generateStepDefinition)
+    .filter((definition): definition is string => Boolean(definition))
     .join('\n\n')
 
   return REQUIRED_RUNTIME_IMPORT + functionDefinitions

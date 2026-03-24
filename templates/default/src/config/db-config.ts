@@ -34,6 +34,8 @@ function normalizeDatabaseUrl(databaseUrl: string): string {
     return databaseUrl
   }
 
+  // Prisma resolves relative SQLite paths from the schema directory. The app's schema
+  // lives in `<project>/prisma`, so normalize local file URLs to that location.
   const absolutePath = path.resolve(process.cwd(), 'prisma', sqlitePath)
   return `file:${absolutePath}${query}`
 }

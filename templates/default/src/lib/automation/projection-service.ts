@@ -214,14 +214,9 @@ class AutomationProjectionService {
       select: { id: true },
     })
 
-    const templateStepGroups = await prisma.templateStepGroup.findMany({
-      select: { id: true },
-    })
-
     await Promise.all([
       this.syncEnvironments(),
       ...locatorGroups.map(locatorGroup => this.syncLocatorGroup(locatorGroup.id)),
-      ...templateStepGroups.map(group => this.syncTemplateStepGroup(group.id)),
     ])
 
     await this.regenerateAllFeatures()
