@@ -32,24 +32,24 @@ export function normalizeRoute(value: string | null | undefined): string {
 }
 
 function buildModulePathMap(modules: Module[]): Map<string, string> {
-  const moduleById = new Map(modules.map(module => [module.id, module]))
+  const moduleById = new Map(modules.map(moduleRecord => [moduleRecord.id, moduleRecord]))
   const pathByModuleId = new Map<string, string>()
 
-  const buildPath = (module: Module): string => {
-    const cached = pathByModuleId.get(module.id)
+  const buildPath = (moduleRecord: Module): string => {
+    const cached = pathByModuleId.get(moduleRecord.id)
     if (cached) {
       return cached
     }
 
-    const parent = module.parentId ? moduleById.get(module.parentId) : null
-    const pathValue = parent ? `${buildPath(parent)}/${module.name}` : `/${module.name}`
+    const parent = moduleRecord.parentId ? moduleById.get(moduleRecord.parentId) : null
+    const pathValue = parent ? `${buildPath(parent)}/${moduleRecord.name}` : `/${moduleRecord.name}`
 
-    pathByModuleId.set(module.id, pathValue.replace(/\/{2,}/g, '/'))
-    return pathByModuleId.get(module.id)!
+    pathByModuleId.set(moduleRecord.id, pathValue.replace(/\/{2,}/g, '/'))
+    return pathByModuleId.get(moduleRecord.id)!
   }
 
-  for (const module of modules) {
-    buildPath(module)
+  for (const moduleRecord of modules) {
+    buildPath(moduleRecord)
   }
 
   return pathByModuleId
