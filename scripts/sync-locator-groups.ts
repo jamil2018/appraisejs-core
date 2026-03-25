@@ -14,6 +14,7 @@ import { join } from 'path'
 import { glob } from 'glob'
 import prisma from '../src/config/db-config'
 import { findModuleByPath, buildModuleHierarchy } from '../src/lib/module-hierarchy-builder'
+import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '../src/lib/template-sync-utils'
 
 /**
  * Represents a locator group from the filesystem
@@ -52,7 +53,7 @@ interface SyncResult {
  * Reads and parses the locator-map.json file
  */
 async function readLocatorMap(baseDir: string): Promise<LocatorMapEntry[]> {
-  const locatorMapPath = join(baseDir, 'src', 'tests', 'mapping', 'locator-map.json')
+  const locatorMapPath = getAutomationLocatorMapPath(baseDir)
 
   try {
     await fs.access(locatorMapPath)
@@ -82,7 +83,7 @@ async function readLocatorMap(baseDir: string): Promise<LocatorMapEntry[]> {
  * Scans the locators directory to find all locator group files
  */
 async function scanLocatorGroupFiles(baseDir: string): Promise<string[]> {
-  const pattern = 'src/tests/locators/**/*.json'
+  const pattern = 'automation/locators/**/*.json'
 
   try {
     const files = await glob(pattern, {
@@ -96,15 +97,11 @@ async function scanLocatorGroupFiles(baseDir: string): Promise<string[]> {
 
 /**
  * Extracts module path from locator file path
- * Example: src/tests/locators/home/home.json -> /home
- * Example: src/tests/locators/users/admins/directors.json -> /users/admins
+ * Example: automation/locators/home/home.json -> /home
+ * Example: automation/locators/users/admins/directors.json -> /users/admins
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  const testsDir = join(baseDir, 'src', 'tests')
-  const relativePath = filePath.replace(testsDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(p => p && p !== 'locators')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
 }
 
 /**
@@ -374,7 +371,7 @@ async function main() {
     console.log(`   Found ${locatorMap.length} entry(ies) in locator map`)
 
     // Build locator groups from filesystem
-    console.log('\n📁 Scanning src/tests/locators directory...')
+    console.log('\n📁 Scanning automation/locators directory...')
     const locatorGroups = await buildLocatorGroupsFromFS(baseDir, locatorMap)
     result.locatorGroupsScanned = locatorGroups.length
     console.log(`   Found ${locatorGroups.length} locator group(s) in filesystem`)

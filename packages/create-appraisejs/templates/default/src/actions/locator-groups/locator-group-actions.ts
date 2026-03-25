@@ -2,44 +2,29 @@
 
 import prisma from '@/config/db-config'
 import { locatorGroupSchema } from '@/constants/form-opts/locator-group-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
+import { getLocatorGroupFilePath, readLocatorGroupFile } from '@/lib/locator-group-file-utils'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
-import {
-  createOrUpdateLocatorGroupFile,
-  deleteLocatorGroupFile,
-  renameLocatorGroupFile,
-  moveLocatorGroupFile,
-  createEmptyLocatorGroupFile,
-  readLocatorGroupFile,
-  updateLocatorMapFile,
-  removeLocatorMapEntry,
-} from '@/lib/locator-group-file-utils'
 
-// Common include pattern for locator groups
 const locatorGroupInclude = {
   module: {
     select: { name: true },
   },
 } as const
 
-/**
- * Check if a locator group name already exists
- */
 async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.locatorGroup.findFirst({
     where: {
-      name: name,
+      name,
       ...(excludeId && { id: { not: excludeId } }),
     },
   })
   return !!existing
 }
 
-/**
- * Get all locator groups
- */
 export async function getAllLocatorGroupsAction(): Promise<ActionResponse> {
   try {
     const locatorGroups = await prisma.locatorGroup.findMany({
@@ -58,9 +43,6 @@ export async function getAllLocatorGroupsAction(): Promise<ActionResponse> {
   }
 }
 
-/**
- * Get a locator group by ID
- */
 export async function getLocatorGroupByIdAction(id: string): Promise<ActionResponse> {
   try {
     const locatorGroup = await prisma.locatorGroup.findUnique({
@@ -80,15 +62,11 @@ export async function getLocatorGroupByIdAction(id: string): Promise<ActionRespo
   }
 }
 
-/**
- * Create a new locator group
- */
 export async function createLocatorGroupAction(
   _prev: unknown,
   value: z.infer<typeof locatorGroupSchema>,
 ): Promise<ActionResponse> {
   try {
-    // Check if name already exists
     const nameExists = await checkUniqueName(value.name)
     if (nameExists) {
       return {
@@ -96,6 +74,7 @@ export async function createLocatorGroupAction(
         error: 'A locator group with this name already exists. Please choose a different name.',
       }
     }
+
     const locatorGroup = await prisma.locatorGroup.create({
       data: {
         name: value.name,
@@ -107,9 +86,8 @@ export async function createLocatorGroupAction(
       },
     })
 
-    // Create empty JSON file initially
-    await createEmptyLocatorGroupFile(locatorGroup.id)
-    await updateLocatorMapFile(value.name, value.route ?? '/')
+    await automationProjectionService.createEmptyLocatorGroup(locatorGroup.id)
+    await automationProjectionService.syncLocatorMap(value.name, value.route ?? '/')
 
     revalidatePath('/locator-groups')
     return {
@@ -118,7 +96,6 @@ export async function createLocatorGroupAction(
       message: 'Locator group created successfully',
     }
   } catch (error) {
-    // Handle Prisma unique constraint error
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return {
         status: 400,
@@ -132,16 +109,12 @@ export async function createLocatorGroupAction(
   }
 }
 
-/**
- * Update an existing locator group
- */
 export async function updateLocatorGroupAction(
   _prev: unknown,
   value: z.infer<typeof locatorGroupSchema>,
   id?: string,
 ): Promise<ActionResponse> {
   try {
-    // Get current state to detect changes
     const currentLocatorGroup = await prisma.locatorGroup.findUnique({
       where: { id },
       include: { module: true },
@@ -154,7 +127,6 @@ export async function updateLocatorGroupAction(
       }
     }
 
-    // Check if name already exists (only if name is changing)
     if (currentLocatorGroup.name !== value.name) {
       const nameExists = await checkUniqueName(value.name, id)
       if (nameExists) {
@@ -165,42 +137,45 @@ export async function updateLocatorGroupAction(
       }
     }
 
-    // Update the locator group
+    const previousFilePath = await getLocatorGroupFilePath(id!)
+    const locatorConnections = value.locators?.map(locator => ({ id: locator })) ?? []
+
     const updatedLocatorGroup = await prisma.locatorGroup.update({
       where: { id },
       data: {
         name: value.name,
         moduleId: value.moduleId,
-        locators: {
-          set: value.locators?.map(locator => ({ id: locator })) || [],
-        },
         route: value.route,
+        ...(value.locators !== undefined && {
+          locators: {
+            set: locatorConnections,
+          },
+        }),
       },
       include: locatorGroupInclude,
     })
 
-    // Handle file operations based on changes
     const nameChanged = currentLocatorGroup.name !== value.name
     const moduleChanged = currentLocatorGroup.moduleId !== value.moduleId
     const routeChanged = currentLocatorGroup.route !== value.route
 
-    if (nameChanged && moduleChanged) {
-      // Both changed - move the file (this will handle both changes)
-      await moveLocatorGroupFile(id!)
+    if (moduleChanged) {
+      await automationProjectionService.moveLocatorGroup(id!, previousFilePath ?? undefined)
     } else if (nameChanged) {
-      // Only name changed - rename the file
-      await renameLocatorGroupFile(id!, value.name, currentLocatorGroup.name)
-    } else if (moduleChanged) {
-      // Only module changed - move the file
-      await moveLocatorGroupFile(id!)
+      await automationProjectionService.renameLocatorGroup(id!, value.name, currentLocatorGroup.name)
     } else {
-      // No structural changes - just update content
-      await createOrUpdateLocatorGroupFile(id!)
+      await automationProjectionService.syncLocatorGroup(id!)
     }
 
     if (routeChanged || nameChanged) {
-      await updateLocatorMapFile(currentLocatorGroup.route, value.route ?? '/', currentLocatorGroup.name, value.name)
+      await automationProjectionService.syncLocatorMap(
+        currentLocatorGroup.route,
+        value.route ?? '/',
+        currentLocatorGroup.name,
+        value.name,
+      )
     }
+
     revalidatePath('/locator-groups')
     return {
       status: 200,
@@ -208,7 +183,6 @@ export async function updateLocatorGroupAction(
       message: 'Locator group updated successfully',
     }
   } catch (error) {
-    // Handle Prisma unique constraint error
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return {
         status: 400,
@@ -222,26 +196,16 @@ export async function updateLocatorGroupAction(
   }
 }
 
-/**
- * Delete locator groups
- */
 export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionResponse> {
   try {
-    // Get locator group names before deletion for locator map cleanup
     const locatorGroupsToDelete = await prisma.locatorGroup.findMany({
       where: { id: { in: ids } },
       select: { name: true },
     })
 
-    const locatorGroupNames = locatorGroupsToDelete.map(group => group.name)
+    await automationProjectionService.deleteLocatorMapEntries(locatorGroupsToDelete.map(group => group.name))
+    await Promise.all(ids.map(id => automationProjectionService.deleteLocatorGroup(id)))
 
-    // Remove entries from locator map
-    await removeLocatorMapEntry(locatorGroupNames)
-
-    // Delete JSON files first
-    await Promise.all(ids.map(id => deleteLocatorGroupFile(id)))
-
-    // Delete the locator groups (locators will be deleted via cascade)
     await prisma.locatorGroup.deleteMany({
       where: { id: { in: ids } },
     })
@@ -260,9 +224,6 @@ export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionRes
   }
 }
 
-/**
- * Get the content of a specific locator group file
- */
 export async function getLocatorGroupFileContentAction(locatorGroupId: string): Promise<ActionResponse> {
   try {
     const fileData = await readLocatorGroupFile(locatorGroupId)
@@ -286,9 +247,6 @@ export async function getLocatorGroupFileContentAction(locatorGroupId: string): 
   }
 }
 
-/**
- * Check if a locator group name is unique
- */
 export async function checkLocatorGroupNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
   try {
     const nameExists = await checkUniqueName(name, excludeId)
@@ -304,23 +262,14 @@ export async function checkLocatorGroupNameUniqueAction(name: string, excludeId?
   }
 }
 
-/**
- * Regenerate all locator group files from database
- */
 export async function regenerateAllLocatorGroupFilesAction(): Promise<ActionResponse> {
   try {
     const locatorGroups = await prisma.locatorGroup.findMany({
-      include: {
-        module: true,
-        locators: {
-          select: { name: true, value: true },
-        },
-      },
+      select: { id: true },
     })
 
-    // Process all files in parallel for better performance
     const results = await Promise.allSettled(
-      locatorGroups.map(locatorGroup => createOrUpdateLocatorGroupFile(locatorGroup.id)),
+      locatorGroups.map(locatorGroup => automationProjectionService.syncLocatorGroup(locatorGroup.id)),
     )
 
     const successCount = results.filter(result => result.status === 'fulfilled' && result.value).length

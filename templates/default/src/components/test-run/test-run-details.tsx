@@ -46,7 +46,10 @@ import { toast } from '@/hooks/use-toast'
 
 interface TestRunDetailsProps {
   testRun: TestRun & {
-    testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
+    testCases: (TestRunTestCase & {
+      testCase: { title: string; description: string }
+      testSuite: { id: string; name: string } | null
+    })[]
     tags: Tag[]
     environment: Environment
     reports: Report[]
@@ -81,7 +84,10 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
         }
         // TypeScript now knows updatedTestRun is defined - cast to proper type
         const typedTestRun = updatedTestRun as TestRun & {
-          testCases: (TestRunTestCase & { testCase: { title: string; description: string } })[]
+          testCases: (TestRunTestCase & {
+            testCase: { title: string; description: string }
+            testSuite: { id: string; name: string } | null
+          })[]
           tags: Tag[]
           environment: Environment
           reports: Report[]
@@ -544,6 +550,13 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                       <div className="flex flex-col gap-1">
                         <span className="text-sm font-semibold">{testCase.testCase.title}</span>
                         <span className="text-xs text-muted-foreground">{testCase.testCase.description}</span>
+                        {testCase.testSuite && (
+                          <div className="pt-1">
+                            <Badge variant="outline" className="w-fit text-[11px]">
+                              Suite: {testCase.testSuite.name}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

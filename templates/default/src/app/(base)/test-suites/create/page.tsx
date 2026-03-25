@@ -3,7 +3,8 @@ import { TestSuiteForm } from '../test-suite-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
-import { Module, TestCase, Tag } from '@prisma/client'
+import { TestCasePickerRow } from '@/types/test-case-picker'
+import { Module, Tag } from '@prisma/client'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
@@ -34,7 +35,7 @@ const CreateTestSuite = async () => {
         successTitle="Suite created"
         successMessage="Test suite created successfully"
         onSubmitAction={createTestSuiteAction}
-        testCases={testCases as TestCase[]}
+        testCases={testCases as TestCasePickerRow[]}
         moduleList={moduleList as Module[]}
         tags={tags as Tag[]}
       />

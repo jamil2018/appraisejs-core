@@ -3,9 +3,11 @@
 import { ActionResponse } from '@/types/form/actionHandler'
 import prisma from '@/config/db-config'
 import { parseCucumberReport, getStepStatusEnum, getStepKeywordEnum } from '@/lib/test-run/report-parser'
-import { TagType, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { existsSync } from 'fs'
 import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
+import { resolveStoredPath, toProjectRelativePath } from '@/lib/automation/paths'
+import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 
 /**
  * Type for report with all relations from getAllReportsAction
@@ -27,6 +29,7 @@ type ReportWithRelations = Prisma.ReportGetPayload<{
                 tags: true
               }
             }
+            testSuite: true
           }
         }
         reportScenario: {
@@ -71,6 +74,7 @@ type ReportDetailWithRelations = Prisma.ReportGetPayload<{
                 tags: true
               }
             }
+            testSuite: true
           }
         }
         reportScenario: {
@@ -93,8 +97,10 @@ type ReportDetailWithRelations = Prisma.ReportGetPayload<{
  */
 export async function storeReportFromFile(testRunId: string, reportPath: string): Promise<ActionResponse> {
   try {
+    const resolvedReportPath = resolveStoredPath(reportPath)
+
     // Check if file exists
-    if (!existsSync(reportPath)) {
+    if (!existsSync(resolvedReportPath)) {
       console.warn(`[ReportActions] Report file not found at ${reportPath} for testRunId: ${testRunId}`)
       return {
         status: 404,
@@ -113,6 +119,11 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
                 tags: true,
               },
             },
+            testSuite: {
+              include: {
+                tags: true,
+              },
+            },
           },
         },
       },
@@ -126,20 +137,21 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
     }
 
     // Parse the report
-    const parsedReport = await parseCucumberReport(reportPath)
+    const parsedReport = await parseCucumberReport(resolvedReportPath)
 
     // Create Report record
     const report = await prisma.report.create({
       data: {
         name: `Test Run Report - ${testRun.name}`,
         description: `Report for test run: ${testRun.name}`,
-        reportPath,
+        reportPath: toProjectRelativePath(reportPath),
         testRunId: testRun.id,
       },
     })
 
     // Track test case IDs that were matched and executed
-    const executedTestCaseIds = new Set<string>()
+    const executedSuiteIds = new Set<string>()
+    const executedLegacyTestCaseIds = new Set<string>()
 
     // Process each feature
     for (const feature of parsedReport.features) {
@@ -205,6 +217,7 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
               duration: String(step.duration),
               errorMessage: step.errorMessage,
               errorTrace: step.errorTrace,
+              screenshotPath: step.screenshotPath ? toProjectRelativePath(step.screenshotPath) : null,
               hidden: step.hidden,
               order: step.order,
             },
@@ -228,29 +241,18 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
 
         // Try to match scenario to test case
         // Method 1: Extract test case title from scenario name (format: "[Title] Description")
-        let matchedTestCase: (typeof testRun.testCases)[0] | undefined
-        const bracketMatch = scenario.name.match(/^\[([^\]]+)\]/)
-        if (bracketMatch) {
-          const testCaseTitle = bracketMatch[1].trim()
-          matchedTestCase = testRun.testCases.find(trtc => trtc.testCase.title === testCaseTitle)
-        }
-
-        // Method 2: Match by identifier tags if method 1 didn't work
-        if (!matchedTestCase) {
-          const scenarioTagNames = scenario.tags.map(tag => tag.name.toLowerCase())
-          matchedTestCase = testRun.testCases.find(trtc => {
-            const identifierTags = trtc.testCase.tags.filter(tag => tag.type === TagType.IDENTIFIER)
-            return identifierTags.some(tag => {
-              const tagExpression = tag.tagExpression.toLowerCase()
-              return scenarioTagNames.some(scenarioTag => tagExpression.includes(scenarioTag))
-            })
-          })
-        }
+        const matchedTestCase = findMatchingTestRunTestCase(testRun.testCases, {
+          scenarioName: scenario.name,
+          scenarioTags: scenario.tags.map(tag => tag.name),
+        })
 
         // If we found a matching test case, create ReportTestCase link
         if (matchedTestCase) {
-          // Track this test case as executed
-          executedTestCaseIds.add(matchedTestCase.testCaseId)
+          if (matchedTestCase.testSuiteId) {
+            executedSuiteIds.add(matchedTestCase.testSuiteId)
+          } else {
+            executedLegacyTestCaseIds.add(matchedTestCase.testCaseId)
+          }
 
           // Calculate scenario duration
           const scenarioDuration =
@@ -272,40 +274,37 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
 
     // Update test suite metrics for all test suites that had test cases executed
     // This serves as a backup to ensure metrics are updated even if updateTestSuitesForTestRun missed some
-    if (executedTestCaseIds.size > 0) {
+    if (executedSuiteIds.size > 0 || executedLegacyTestCaseIds.size > 0) {
       try {
         const executedAt = testRun.completedAt || testRun.startedAt || new Date()
+        const allSuiteIds = new Set(executedSuiteIds)
 
-        // Get all test cases that were executed and their associated test suites
-        const testCases = await prisma.testCase.findMany({
-          where: {
-            id: {
-              in: Array.from(executedTestCaseIds),
+        if (executedLegacyTestCaseIds.size > 0) {
+          const legacyTestCases = await prisma.testCase.findMany({
+            where: {
+              id: {
+                in: Array.from(executedLegacyTestCaseIds),
+              },
             },
-          },
-          include: {
-            TestSuite: true,
-          },
-        })
+            include: {
+              TestSuite: true,
+            },
+          })
 
-        // Extract unique test suite IDs
-        const testSuiteIds = new Set<string>()
-        testCases.forEach(testCase => {
-          if (testCase.TestSuite) {
-            testCase.TestSuite.forEach(suite => {
-              testSuiteIds.add(suite.id)
+          legacyTestCases.forEach(testCase => {
+            testCase.TestSuite.forEach(testSuite => {
+              allSuiteIds.add(testSuite.id)
             })
-          }
-        })
+          })
+        }
 
-        // Update lastExecutedAt for each suite
-        for (const suiteId of testSuiteIds) {
+        for (const suiteId of allSuiteIds) {
           await updateTestSuiteMetrics(suiteId, executedAt)
         }
 
-        if (testSuiteIds.size > 0) {
+        if (allSuiteIds.size > 0) {
           console.log(
-            `[ReportActions] Updated test suite metrics for ${testSuiteIds.size} test suite(s) based on executed test cases`,
+            `[ReportActions] Updated test suite metrics for ${allSuiteIds.size} executed suite(s)`,
           )
         }
       } catch (error) {
@@ -352,6 +351,7 @@ export const getAllReportsAction = async (): Promise<ActionResponse> => {
                     tags: true,
                   },
                 },
+                testSuite: true,
               },
             },
             reportScenario: {
@@ -419,6 +419,7 @@ export const getReportByIdAction = async (reportId: string): Promise<ActionRespo
                     tags: true,
                   },
                 },
+                testSuite: true,
               },
             },
             reportScenario: {
@@ -511,6 +512,7 @@ export const getReportByTestRunIdAction = async (testRunId: string): Promise<Act
                     tags: true,
                   },
                 },
+                testSuite: true,
               },
             },
             reportScenario: {

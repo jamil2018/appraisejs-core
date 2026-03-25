@@ -2,36 +2,38 @@
 
 import prisma from '@/config/db-config'
 import { templateStepSchema } from '@/constants/form-opts/template-test-step-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { StepParameterType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import prettier from 'prettier'
 import { z } from 'zod'
-import {
-  addTemplateStepToFile,
-  removeTemplateStepFromFile,
-  updateTemplateStepInFile,
-} from '@/lib/utils/template-step-file-manager-intelligent'
 
-// TemplateStepGroupType helper - will be available from @prisma/client after migration
-type TemplateStepGroupType = 'ACTION' | 'VALIDATION'
-
-// Type helper to safely extract type from Prisma templateStepGroup records
-type TemplateStepGroupWithType = {
-  id: string
-  name: string
-  description: string | null
-  type?: TemplateStepGroupType
-  createdAt: Date
-  updatedAt: Date
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
 }
 
-function getGroupTypeFromRelation(group: unknown): TemplateStepGroupType {
-  const groupWithType = group as TemplateStepGroupWithType
-  const type = groupWithType.type
-  if (type === 'VALIDATION' || type === 'ACTION') {
-    return type
+async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
+  const source = functionDefinition?.trim()
+  if (!source) {
+    return ''
   }
-  return 'ACTION' // default
+
+  try {
+    return (
+      await prettier.format(source, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        printWidth: 80,
+        tabWidth: 2,
+      })
+    ).trim()
+  } catch {
+    return source
+  }
 }
 
 export async function getAllTemplateStepsAction(): Promise<ActionResponse> {
@@ -61,19 +63,14 @@ export async function getAllTemplateStepsAction(): Promise<ActionResponse> {
 
 export async function deleteTemplateStepAction(templateStepIds: string[]): Promise<ActionResponse> {
   try {
-    // Get the template steps with their group info before deletion
     const stepsToDelete = await prisma.templateStep.findMany({
       where: { id: { in: templateStepIds } },
-      include: {
-        templateStepGroup: true,
+      select: {
+        templateStepGroupId: true,
       },
     })
 
-    // Delete in order: child records first. TemplateTestCaseStepParameter and
-    // TestCaseStepParameter must be removed before TemplateTestCaseStep/TestCaseStep
-    // (which are cascade-deleted from TemplateStep).
     await prisma.$transaction(async tx => {
-      // Delete TemplateTestCaseStepParameter records first
       await tx.templateTestCaseStepParameter.deleteMany({
         where: {
           templateTestCaseStep: {
@@ -82,7 +79,6 @@ export async function deleteTemplateStepAction(templateStepIds: string[]): Promi
         },
       })
 
-      // Delete TestCaseStepParameter records
       await tx.testCaseStepParameter.deleteMany({
         where: {
           testCaseStep: {
@@ -91,14 +87,12 @@ export async function deleteTemplateStepAction(templateStepIds: string[]): Promi
         },
       })
 
-      // Delete the template step parameters
       await tx.templateStepParameter.deleteMany({
         where: {
           templateStepId: { in: templateStepIds },
         },
       })
 
-      // Delete the template steps (this will cascade delete TemplateTestCaseStep and TestCaseStep)
       await tx.templateStep.deleteMany({
         where: {
           id: { in: templateStepIds },
@@ -106,18 +100,8 @@ export async function deleteTemplateStepAction(templateStepIds: string[]): Promi
       })
     })
 
-    // Remove the deleted steps from their respective group files
-    for (const step of stepsToDelete) {
-      if (step.templateStepGroup) {
-        try {
-          const groupType = getGroupTypeFromRelation(step.templateStepGroup)
-          await removeTemplateStepFromFile(step.templateStepGroup.name, step, groupType)
-        } catch (fileError) {
-          console.error(`Failed to remove step from file for group "${step.templateStepGroup.name}":`, fileError)
-          // Don't fail the entire operation if file update fails
-        }
-      }
-    }
+    const affectedGroupIds = [...new Set(stepsToDelete.map(step => step.templateStepGroupId))]
+    await Promise.all(affectedGroupIds.map(groupId => automationProjectionService.syncTemplateStepGroup(groupId)))
 
     revalidatePath('/template-steps')
     return {
@@ -137,14 +121,16 @@ export async function createTemplateStepAction(
   value: z.infer<typeof templateStepSchema>,
 ): Promise<ActionResponse> {
   try {
-    // First, try to create the template step
+    const description = normalizeOptionalText(value.description)
+    const functionDefinition = await normalizeFunctionDefinition(value.functionDefinition)
+
     const newTemplateStep = await prisma.templateStep.create({
       data: {
         name: value.name,
         type: value.type as TemplateStepType,
         signature: value.signature,
-        description: value.description || '',
-        functionDefinition: value.functionDefinition || '',
+        description,
+        functionDefinition,
         parameters: {
           create: value.params.map(param => ({
             name: param.name,
@@ -159,21 +145,9 @@ export async function createTemplateStepAction(
           },
         },
       },
-      include: {
-        templateStepGroup: true,
-      },
     })
 
-    // If database creation succeeds, add the step to the group's file
-    if (newTemplateStep.templateStepGroup) {
-      try {
-        const groupType = getGroupTypeFromRelation(newTemplateStep.templateStepGroup)
-        await addTemplateStepToFile(newTemplateStep.templateStepGroup.name, newTemplateStep, groupType)
-      } catch (fileError) {
-        console.error(`Failed to add step to file after creating template step:`, fileError)
-        // Don't fail the entire operation if file update fails
-      }
-    }
+    await automationProjectionService.syncTemplateStepGroup(newTemplateStep.templateStepGroupId)
 
     revalidatePath('/template-steps')
 
@@ -203,11 +177,10 @@ export async function updateTemplateStepAction(
       }
     }
 
-    // Get the current template step to check if group changed
     const currentStep = await prisma.templateStep.findUnique({
       where: { id },
-      include: {
-        templateStepGroup: true,
+      select: {
+        templateStepGroupId: true,
       },
     })
 
@@ -218,18 +191,17 @@ export async function updateTemplateStepAction(
       }
     }
 
-    // Check if the group changed
-    const groupChanged = currentStep.templateStepGroupId !== value.templateStepGroupId
+    const description = normalizeOptionalText(value.description)
+    const functionDefinition = await normalizeFunctionDefinition(value.functionDefinition)
 
-    // Update the template step
     const updatedTemplateStep = await prisma.templateStep.update({
       where: { id },
       data: {
         name: value.name,
         type: value.type as TemplateStepType,
         signature: value.signature,
-        description: value.description || '',
-        functionDefinition: value.functionDefinition || '',
+        description,
+        functionDefinition,
         parameters: {
           deleteMany: {
             templateStepId: id,
@@ -247,39 +219,10 @@ export async function updateTemplateStepAction(
           },
         },
       },
-      include: {
-        templateStepGroup: true,
-      },
     })
 
-    // Update files for affected groups
-    try {
-      if (groupChanged) {
-        // If group changed, remove from old group and add to new group
-        if (currentStep.templateStepGroup) {
-          const oldGroupType = getGroupTypeFromRelation(currentStep.templateStepGroup)
-          await removeTemplateStepFromFile(currentStep.templateStepGroup.name, currentStep, oldGroupType)
-        }
-        if (updatedTemplateStep.templateStepGroup) {
-          const newGroupType = getGroupTypeFromRelation(updatedTemplateStep.templateStepGroup)
-          await addTemplateStepToFile(updatedTemplateStep.templateStepGroup.name, updatedTemplateStep, newGroupType)
-        }
-      } else {
-        // If group didn't change, just update the step in the current group
-        if (updatedTemplateStep.templateStepGroup) {
-          const groupType = getGroupTypeFromRelation(updatedTemplateStep.templateStepGroup)
-          await updateTemplateStepInFile(
-            updatedTemplateStep.templateStepGroup.name,
-            updatedTemplateStep,
-            groupType,
-            currentStep,
-          )
-        }
-      }
-    } catch (fileError) {
-      console.error(`Failed to update file after updating template step:`, fileError)
-      // Don't fail the entire operation if file update fails
-    }
+    const affectedGroupIds = new Set([currentStep.templateStepGroupId, updatedTemplateStep.templateStepGroupId])
+    await Promise.all(Array.from(affectedGroupIds).map(groupId => automationProjectionService.syncTemplateStepGroup(groupId)))
 
     revalidatePath('/template-steps')
     return {

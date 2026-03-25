@@ -13,6 +13,7 @@ import {
   Plus,
   Puzzle,
   Server,
+  Settings2,
   Tag,
   TestTubeDiagonal,
   TestTubes,
@@ -238,6 +239,18 @@ export default function NavCommand({ className }: { className?: string }) {
                   <Link href="/" onClick={() => setOpen(false)}>
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
+                  </Link>
+                </CommandItem>
+                <CommandItem
+                  asChild
+                  onSelect={() => {
+                    setOpen(false)
+                    router.push('/settings')
+                  }}
+                >
+                  <Link href="/settings" onClick={() => setOpen(false)}>
+                    <Settings2 className="h-4 w-4" />
+                    Settings
                   </Link>
                 </CommandItem>
               </CommandGroup>

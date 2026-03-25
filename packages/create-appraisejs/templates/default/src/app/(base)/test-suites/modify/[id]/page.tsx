@@ -7,6 +7,7 @@ import { Module, TestCase } from '@prisma/client'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
+import { TestCasePickerRow } from '@/types/test-case-picker'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Test Suite',
@@ -45,7 +46,7 @@ const ModifyTestSuite = async ({ params }: { params: Promise<{ id: string }> }) 
       successMessage="Test suite updated successfully"
       onSubmitAction={updateTestSuiteAction}
       id={id}
-      testCases={testCases as TestCase[]}
+      testCases={testCases as TestCasePickerRow[]}
       moduleList={moduleList as Module[]}
       tags={tags as Tag[]}
     />

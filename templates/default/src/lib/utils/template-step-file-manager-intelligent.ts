@@ -28,7 +28,6 @@ function generateGroupJSDocComment(
 function extractGroupJSDocBounds(content: string): { startLine: number; endLine: number } | null {
   const lines = content.split('\n')
 
-  // Look for JSDoc comment at the very top of the file
   if (lines.length === 0) {
     return null
   }
@@ -38,25 +37,20 @@ function extractGroupJSDocBounds(content: string): { startLine: number; endLine:
     return null
   }
 
-  // Check if this JSDoc contains group metadata (@type distinguishes group from step JSDoc)
   let hasType = false
   let endLine = -1
 
-  // Look through the JSDoc block (should end within first few lines)
   for (let i = 0; i < lines.length && i < 10; i++) {
     const line = lines[i].trim()
 
     if (line === '*/') {
-      // Found end of JSDoc
       endLine = i
       break
     } else if (line.startsWith('* @type') || line.startsWith('*@type')) {
-      // Found @type - this is group metadata (steps have @icon, not @type)
       hasType = true
     }
   }
 
-  // If we found a JSDoc block at the top with @type, return its bounds
   if (hasType && endLine >= 0) {
     return { startLine: 0, endLine }
   }
@@ -278,24 +272,9 @@ interface RequiredImport {
 
 const REQUIRED_IMPORTS: RequiredImport[] = [
   {
-    module: '@cucumber/cucumber',
-    namedExports: ['When'],
-    from: '@cucumber/cucumber',
-  },
-  {
-    module: '../../config/executor/world',
-    namedExports: ['CustomWorld'],
-    from: '../../config/executor/world.js',
-  },
-  {
-    module: '@/types/locator/locator.type',
-    namedExports: ['SelectorName'],
-    from: '@/types/locator/locator.type',
-  },
-  {
-    module: '../../utils/locator.util',
-    namedExports: ['resolveLocator'],
-    from: '../../utils/locator.util.js',
+    module: '../../../packages/cucumber-runtime/src/index',
+    namedExports: ['When', 'Then', 'CustomWorld', 'expect', 'SelectorName', 'resolveLocator', 'getEnvironment', 'generateRandomData', 'RandomDataType'],
+    from: '../../../packages/cucumber-runtime/src/index.js',
   },
 ]
 
@@ -627,10 +606,7 @@ export async function createTemplateStepGroupFile(
 
     // Generate content with JSDoc at the top, then imports, then placeholder comment
     const groupJSDoc = generateGroupJSDocComment(groupName, description || null, type)
-    const requiredImports = `import { When } from '@cucumber/cucumber';
-import { CustomWorld } from '../../config/executor/world.js';
-import { SelectorName } from '@/types/locator/locator.type';
-import { resolveLocator } from '../../utils/locator.util.js';
+    const requiredImports = `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js';
 
 `
     const placeholderComment =
@@ -721,3 +697,4 @@ export async function renameTemplateStepGroupFile(
     throw new Error(`File rename failed: ${error}`)
   }
 }
+

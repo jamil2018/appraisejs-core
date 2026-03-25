@@ -9,10 +9,11 @@
  * Usage: npx tsx scripts/sync-test-suites.ts
  */
 
-import { join } from 'path'
 import prisma from '../src/config/db-config'
 import { scanFeatureFiles, extractModulePathFromFilePath, ParsedFeature } from '../src/lib/gherkin-parser'
 import { buildModuleHierarchy, findModuleByPath, getAllModulesWithPaths } from '../src/lib/module-hierarchy-builder'
+import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '../src/lib/automation/paths'
+import { getTestSuiteSyncIdentity, getTestSuiteFilesystemKey } from '../src/lib/sync/projected-feature-utils'
 
 interface TestSuiteFromFS {
   name: string // From filename (without .feature extension)
@@ -142,7 +143,7 @@ async function syncTestSuitesToDatabase(
   
   for (const testSuite of testSuitesFromFS) {
     try {
-      const key = `${testSuite.name}::${testSuite.modulePath}`
+      const key = getTestSuiteSyncIdentity(testSuite.name, testSuite.modulePath)
       fsTestSuiteKeys.add(key)
       
       // Ensure module exists
@@ -154,15 +155,17 @@ async function syncTestSuitesToDatabase(
       }
       
       // Find existing test suite by name and moduleId
-      const existingTestSuite = await prisma.testSuite.findFirst({
+      const existingTestSuites = await prisma.testSuite.findMany({
         where: {
-          name: testSuite.name,
           moduleId: moduleId,
         },
         include: {
           tags: true,
         },
       })
+      const existingTestSuite = existingTestSuites.find(
+        candidate => getTestSuiteFilesystemKey(candidate.name) === getTestSuiteFilesystemKey(testSuite.name),
+      )
       
       // Find tag IDs
       const tagIds = await findTagIdsByExpressions(testSuite.tags)
@@ -271,7 +274,7 @@ async function syncTestSuitesToDatabase(
   for (const dbTestSuite of allDbTestSuites) {
     try {
       const modulePath = modulePathMap.get(dbTestSuite.moduleId) || '/'
-      const key = `${dbTestSuite.name}::${modulePath}`
+      const key = getTestSuiteSyncIdentity(dbTestSuite.name, modulePath)
       
       if (!fsTestSuiteKeys.has(key)) {
         // Check if test suite has test cases (for logging)
@@ -358,9 +361,9 @@ async function main() {
     console.log('This will scan feature files and sync test suites to database.')
     console.log('Filesystem is the source of truth - test suites in DB but not in FS will be deleted.')
     console.log('Note: Test cases are not synced by this script (they will be handled separately).\n')
-    
-    const baseDir = process.cwd()
-    const featuresDir = join(baseDir, 'src', 'tests', 'features')
+
+    await ensureAutomationWorkspaceReady()
+    const featuresDir = getAutomationFeaturesDir()
     
     // Scan test suites from filesystem
     const testSuitesFromFS = await scanTestSuitesFromFilesystem(featuresDir)
@@ -409,3 +412,5 @@ async function main() {
 }
 
 main()
+
+

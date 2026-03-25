@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import prisma from '@/config/db-config'
+import { ensureAutomationWorkspaceReady, getAutomationEnvironmentsDir } from '@/lib/automation/paths'
 
 interface EnvironmentConfig {
   baseUrl: string
@@ -9,29 +10,17 @@ interface EnvironmentConfig {
   password: string
 }
 
-/**
- * Gets the file path for the environments.json file
- */
+const EMPTY_ENVIRONMENTS_FILE_CONTENT = '{}\n'
+
 export function getEnvironmentsFilePath(): string {
-  return path.join('src', 'tests', 'config', 'environments', 'environments.json')
+  return path.join(getAutomationEnvironmentsDir(), 'environments.json')
 }
 
-/**
- * Ensures the config directory exists
- */
 export async function ensureConfigDirectoryExists(): Promise<void> {
-  const filePath = getEnvironmentsFilePath()
-  const dir = path.dirname(filePath)
-  try {
-    await fs.access(dir)
-  } catch {
-    await fs.mkdir(dir, { recursive: true })
-  }
+  await ensureAutomationWorkspaceReady()
+  await fs.mkdir(path.dirname(getEnvironmentsFilePath()), { recursive: true })
 }
 
-/**
- * Generates JSON content for environments from database
- */
 export async function generateEnvironmentsContent(): Promise<Record<string, EnvironmentConfig>> {
   try {
     const environments = await prisma.environment.findMany({
@@ -57,19 +46,16 @@ export async function generateEnvironmentsContent(): Promise<Record<string, Envi
   }
 }
 
-/**
- * Creates or updates the environments.json file
- */
 export async function createOrUpdateEnvironmentsFile(): Promise<boolean> {
   try {
+    await ensureAutomationWorkspaceReady()
     const filePath = getEnvironmentsFilePath()
     await ensureConfigDirectoryExists()
 
     const content = await generateEnvironmentsContent()
 
-    // If no environments exist, delete the file
     if (Object.keys(content).length === 0) {
-      await deleteEnvironmentsFile()
+      await fs.writeFile(filePath, EMPTY_ENVIRONMENTS_FILE_CONTENT)
       return true
     }
 
@@ -81,21 +67,12 @@ export async function createOrUpdateEnvironmentsFile(): Promise<boolean> {
   }
 }
 
-/**
- * Deletes the environments.json file
- */
 export async function deleteEnvironmentsFile(): Promise<boolean> {
   try {
+    await ensureAutomationWorkspaceReady()
     const filePath = getEnvironmentsFilePath()
-
-    // Check if file exists before trying to delete
-    try {
-      await fs.access(filePath)
-    } catch {
-      return true // File doesn't exist, nothing to delete
-    }
-
-    await fs.unlink(filePath)
+    await ensureConfigDirectoryExists()
+    await fs.writeFile(filePath, EMPTY_ENVIRONMENTS_FILE_CONTENT)
     return true
   } catch (error) {
     console.error('Error deleting environments file:', error)
@@ -103,20 +80,18 @@ export async function deleteEnvironmentsFile(): Promise<boolean> {
   }
 }
 
-/**
- * Reads and parses the content of the environments.json file
- */
 export async function readEnvironmentsFile(): Promise<{
   filePath: string
   content: Record<string, EnvironmentConfig>
 } | null> {
   try {
+    await ensureAutomationWorkspaceReady()
     const filePath = getEnvironmentsFilePath()
 
     try {
       await fs.access(filePath)
     } catch {
-      return null // File doesn't exist
+      return null
     }
 
     const fileContent = await fs.readFile(filePath, 'utf-8')
@@ -129,12 +104,9 @@ export async function readEnvironmentsFile(): Promise<{
   }
 }
 
-/**
- * Updates a specific environment entry in the environments.json file
- */
 export async function updateEnvironmentEntry(environmentId: string, oldName?: string): Promise<boolean> {
   try {
-    // Get the environment from database
+    await ensureAutomationWorkspaceReady()
     const environment = await prisma.environment.findUnique({
       where: { id: environmentId },
     })
@@ -145,24 +117,21 @@ export async function updateEnvironmentEntry(environmentId: string, oldName?: st
     }
 
     const filePath = getEnvironmentsFilePath()
-
-    // Read existing content
     let environmentsConfig: Record<string, EnvironmentConfig> = {}
+
     try {
       await fs.access(filePath)
       const fileContent = await fs.readFile(filePath, 'utf-8')
       environmentsConfig = JSON.parse(fileContent)
     } catch {
-      // File doesn't exist, start with empty object
+      environmentsConfig = {}
     }
 
-    // Remove old entry if name changed
     if (oldName) {
       const oldKey = oldName.toLowerCase().replace(/\s+/g, '_')
       delete environmentsConfig[oldKey]
     }
 
-    // Add/update the environment entry
     const envKey = environment.name.toLowerCase().replace(/\s+/g, '_')
     environmentsConfig[envKey] = {
       baseUrl: environment.baseUrl,
@@ -171,10 +140,7 @@ export async function updateEnvironmentEntry(environmentId: string, oldName?: st
       password: environment.password || '',
     }
 
-    // Ensure directory exists
     await ensureConfigDirectoryExists()
-
-    // Write updated content
     await fs.writeFile(filePath, JSON.stringify(environmentsConfig, null, 2))
     return true
   } catch (error) {
@@ -183,35 +149,28 @@ export async function updateEnvironmentEntry(environmentId: string, oldName?: st
   }
 }
 
-/**
- * Removes a specific environment entry from the environments.json file
- */
 export async function removeEnvironmentEntry(environmentName: string): Promise<boolean> {
   try {
+    await ensureAutomationWorkspaceReady()
     const filePath = getEnvironmentsFilePath()
 
-    // Check if file exists
     try {
       await fs.access(filePath)
     } catch {
-      return true // File doesn't exist, nothing to remove
+      return true
     }
 
-    // Read existing content
     const fileContent = await fs.readFile(filePath, 'utf-8')
     const environmentsConfig: Record<string, EnvironmentConfig> = JSON.parse(fileContent)
 
-    // Remove the environment entry
     const envKey = environmentName.toLowerCase().replace(/\s+/g, '_')
     delete environmentsConfig[envKey]
 
-    // If no environments left, delete the file
     if (Object.keys(environmentsConfig).length === 0) {
       await deleteEnvironmentsFile()
       return true
     }
 
-    // Write updated content
     await fs.writeFile(filePath, JSON.stringify(environmentsConfig, null, 2))
     return true
   } catch (error) {

@@ -1,45 +1,102 @@
 # create-appraisejs
 
-Scaffold a new [Appraise](https://github.com/jamil2018/appraisejs-core) app in your directory.
+Scaffold a new [AppraiseJS](https://github.com/jamil2018/appraisejs-core) project.
 
-## Usage
+## Quick Start
 
 ```bash
 npx create-appraisejs@latest
 ```
 
-The CLI will prompt you for:
+The CLI will ask for:
 
-1. **Project directory** – Where to create the app (default: `./my-appraisejs-app`). The directory must be empty or not exist.
-2. **Package manager** – `npm`, `pnpm`, `yarn`, or `bun`.
-3. **Run setup now** – Whether to run the project’s setup script after copying the template (installs dependencies, creates `.env`, runs migrations, installs Playwright). If you skip this, you run setup yourself before starting the app.
+1. The target directory. It must not exist yet, or it must be empty.
+2. The package manager: `npm`, `pnpm`, `yarn`, or `bun`.
+3. Whether to run the production setup immediately.
+4. Which Playwright browsers you want available: `chromium`, `firefox`, and/or `webkit`.
 
-**Workflow:**
+## What The Scaffolder Does
 
-1. Validates the target directory (must be empty or non-existent).
-2. Downloads the template from the repo (tarball first, then git clone if the tarball fails), or uses the bundled template when `CREATE_APPRAISE_USE_BUNDLED` is set.
-3. Copies the template into the target directory and patches `package.json` scripts to use your chosen package manager.
-4. If you chose to run setup, runs the project’s `setup` script in the new directory.
-5. Prints the project path and next steps (`cd <dir>`, then `npm run setup` if you skipped, then `npm run dev`).
+By default, `create-appraisejs` uses the bundled template shipped inside the package.
 
-By default, the template is **downloaded from the official Appraise GitHub repository**. You can override this with environment variables or use the bundled template for offline use.
+During scaffolding it:
 
-### Template source and environment variables
+1. Copies the packaged AppraiseJS template into your target directory.
+2. Renames the packaged `gitignore` file back to `.gitignore`.
+3. Rewrites `package.json` scripts so they use your chosen package manager.
+4. Preserves the seeded local SQLite database at `prisma/dev.db`.
+5. Starts you with a clean automation workspace: `automation/config/environments/environments.json` is reset to `{}`, `automation/mapping/locator-map.json` is reset to `[]`, reusable step definitions are included, and starter features, locators, and reports are not bundled into the generated app.
+6. Optionally runs the project's `setup` script and then installs any Playwright browsers you selected.
 
-| Variable                           | Description                                                                                                                                    | Default                                        |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `CREATE_APPRAISE_REPO_URL`         | Git repository base URL (e.g. `https://github.com/jamil2018/appraisejs-core`). Used for both tarball and clone.                                | `https://github.com/jamil2018/appraisejs-core` |
-| `CREATE_APPRAISE_BRANCH`           | Branch or ref to use.                                                                                                                          | `main`                                         |
-| `CREATE_APPRAISE_TEMPLATE_SUBPATH` | Path inside the repo to the template directory (relative to repo root).                                                                        | `templates/default`                            |
-| `CREATE_APPRAISE_USE_BUNDLED`      | Set to `1`, `true`, or `yes` to skip download and use the template bundled in the package. Use for offline or when both download methods fail. | not set (download from repo)                   |
+If you skip setup, the CLI still prints the exact next commands to run.
 
-Download order: the CLI tries the GitHub tarball URL first (no git required); if that fails, it falls back to `git clone`. If both fail, set `CREATE_APPRAISE_USE_BUNDLED=1` to use the bundled template instead.
+## Default Local Workflow
 
-## After scaffolding
+From the generated project directory:
 
-From the new project directory:
+```bash
+# Install dependencies, create .env, prepare the database, and build the app
+npm run setup
 
-- **If you skipped setup:** run `npm run setup` (or your package manager’s equivalent: `pnpm run setup`, etc.). This installs dependencies, creates `.env`, runs migrations, and installs Playwright.
-- **If you ran setup:** you can go straight to the next step.
-- Sync entities: `npm run sync-all` (or `pnpm run sync-all`, etc.).
-- Start the dev server: `npm run dev` (or your package manager’s equivalent).
+# Optional: install only the browsers you need
+npm run install-playwright -- chromium
+
+# Start the local production server
+npm run start
+```
+
+`npm run dev` is still available, but the scaffold is intentionally production-first.
+
+## Generated Project Highlights
+
+The generated project includes:
+
+- a seeded SQLite database at `prisma/dev.db`
+- the AppraiseJS dashboard and application code
+- automation sync scripts and reusable step definitions
+- package-manager-aware scripts such as `setup`, `setup:db`, `setup:full`, and `appraisejs:sync`
+
+The generated project does not include:
+
+- a ready-made `.env` file
+- starter feature files under `automation/features`
+- starter locator files under `automation/locators`
+- automation reports
+
+## Template Source Overrides
+
+The package defaults to the bundled template. Remote fetching is only used when you provide one of the override environment variables below.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `CREATE_APPRAISE_REPO_URL` | Repository URL used for remote template fetching. | `https://github.com/jamil2018/appraisejs-core.git` |
+| `CREATE_APPRAISE_BRANCH` | Branch or ref to fetch from the remote repository. | `main` |
+| `CREATE_APPRAISE_TEMPLATE_SUBPATH` | Path to the template directory inside that repository. | `templates/default` |
+| `CREATE_APPRAISE_USE_BUNDLED` | Set to `1`, `true`, or `yes` to force the bundled template even when remote overrides are present. | bundled template |
+
+When remote mode is active, the CLI tries the repository tarball first and falls back to `git clone` if needed.
+
+Example:
+
+```bash
+CREATE_APPRAISE_BRANCH=main CREATE_APPRAISE_TEMPLATE_SUBPATH=templates/default npx create-appraisejs@latest
+```
+
+## Common Scripts In The Generated App
+
+| Script | What it does |
+| --- | --- |
+| `npm run setup` | Install dependencies, create `.env`, rebuild the local DB, build the app, and protect seeded files |
+| `npm run setup:db` | Recreate the local SQLite database from migrations and rerun the sync pipeline |
+| `npm run setup:full` | Reinstall dependencies, rebuild the DB, rebuild the app, and protect seeded files |
+| `npm run install-playwright -- <browser...>` | Install selected Playwright browsers |
+| `npm run sync-all` | Run the full sync pipeline |
+| `npm run appraisejs:sync` | Alias for `sync-all` |
+| `npm run start` | Start the local production server |
+| `npm run dev` | Start the Next.js development server |
+
+## Notes
+
+- Node.js `18+` is required.
+- The CLI rewrites hardcoded `npm` and `npx` usage inside the generated scripts so `pnpm`, `yarn`, and `bun` work correctly after scaffolding.
+- Selecting Playwright browsers in the prompt does not force installation unless you also choose to run setup immediately. If you skip setup, the CLI shows the browser install command in the next steps.

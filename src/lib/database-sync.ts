@@ -3,6 +3,7 @@ import prisma from '@/config/db-config'
 import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
 import { TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
+import { getTagTypeFromExpression } from './tag-utils'
 
 /**
  * Syncs feature files to the database by creating missing test suites and test cases
@@ -93,13 +94,7 @@ export async function syncFeaturesToDatabase(
  * @returns TagType - IDENTIFIER if matches pattern, FILTER otherwise
  */
 function determineTagType(tagExpression: string): TagType {
-  // Pattern: @xx_id_xxxxxxxx where:
-  // - @ = literal @
-  // - xx = any 2 characters
-  // - _id_ = literal string
-  // - xxxxxxxx = any characters
-  const identifierPattern = /^@.{2}_id_.+$/
-  return identifierPattern.test(tagExpression) ? TagType.IDENTIFIER : TagType.FILTER
+  return getTagTypeFromExpression(tagExpression)
 }
 
 /**

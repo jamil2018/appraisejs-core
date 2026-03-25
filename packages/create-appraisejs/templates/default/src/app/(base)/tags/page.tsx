@@ -2,7 +2,7 @@ import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-tab
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Tag } from 'lucide-react'
-import React, { Suspense } from 'react'
+import { Suspense } from 'react'
 import TagTable from './tag-table'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import EmptyState from '@/components/data-state/empty-state'
@@ -46,7 +46,7 @@ const Tags = async () => {
             Tags
           </span>
         </PageHeader>
-        <HeaderSubtitle>Tags are used to categorize test cases and test runs</HeaderSubtitle>
+        <HeaderSubtitle>Categorize test cases and test runs for better organization and filtering</HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
         <TagTable />

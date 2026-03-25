@@ -13,6 +13,7 @@ import { buildModuleHierarchy, findModuleByPath, getAllModulesWithPaths } from '
 import { join } from 'path'
 import { glob } from 'glob'
 import prisma from '../src/config/db-config'
+import { extractModulePathFromAutomationFile } from '../src/lib/template-sync-utils'
 
 interface SyncResult {
   modulesScanned: number
@@ -33,7 +34,7 @@ async function scanLocatorDirectories(baseDir: string): Promise<string[]> {
 
   try {
     // Get all JSON files in locators directory
-    const pattern = 'src/tests/locators/**/*.json'
+    const pattern = 'automation/locators/**/*.json'
     const files = await glob(pattern, {
       cwd: baseDir,
     })
@@ -61,7 +62,7 @@ async function scanFeatureDirectories(baseDir: string): Promise<string[]> {
 
   try {
     // Get all feature files
-    const pattern = 'src/tests/features/**/*.feature'
+    const pattern = 'automation/features/**/*.feature'
     const files = await glob(pattern, {
       cwd: baseDir,
     })
@@ -83,26 +84,18 @@ async function scanFeatureDirectories(baseDir: string): Promise<string[]> {
 
 /**
  * Extracts module path from locator file path
- * Example: src/tests/locators/home/home.json -> /home
+ * Example: automation/locators/home/home.json -> /home
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  const testsDir = join(baseDir, 'src', 'tests')
-  const relativePath = filePath.replace(testsDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(p => p && p !== 'locators')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
 }
 
 /**
  * Extracts module path from feature file path
- * Example: src/tests/features/login/demo.feature -> /login
+ * Example: automation/features/login/demo.feature -> /login
  */
 function extractModulePathFromFeatureFile(filePath: string, baseDir: string): string {
-  const featuresBaseDir = join(baseDir, 'src', 'tests', 'features')
-  const relativePath = filePath.replace(featuresBaseDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(part => part && part !== '')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return extractModulePathFromAutomationFile(filePath, baseDir, 'features')
 }
 
 /**
@@ -301,11 +294,11 @@ async function main() {
     const baseDir = process.cwd()
 
     // Scan directories
-    console.log('📁 Scanning src/tests/locators...')
+    console.log('📁 Scanning automation/locators...')
     const locatorModulePaths = await scanLocatorDirectories(baseDir)
     console.log(`   Found ${locatorModulePaths.length} module path(s): ${locatorModulePaths.join(', ') || 'none'}`)
 
-    console.log('\n📁 Scanning src/tests/features...')
+    console.log('\n📁 Scanning automation/features...')
     const featureModulePaths = await scanFeatureDirectories(baseDir)
     console.log(`   Found ${featureModulePaths.length} module path(s): ${featureModulePaths.join(', ') || 'none'}`)
 
@@ -346,4 +339,3 @@ async function main() {
 }
 
 main()
-

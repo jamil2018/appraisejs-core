@@ -16,19 +16,20 @@ describe('getConfig', () => {
     process.env = originalEnv;
   });
 
-  it('returns default repo base, branch, template subpath, and useBundled false when no env set', () => {
+  it('returns default repo base, branch, template subpath, and useBundled true when no env set', () => {
     const config = getConfig();
     expect(config.repoBase).toContain('github.com');
     expect(config.repoBase).toContain('appraisejs');
     expect(config.branch).toBe('main');
     expect(config.templateSubpath).toBe('templates/default');
-    expect(config.useBundled).toBe(false);
+    expect(config.useBundled).toBe(true);
   });
 
   it('uses CREATE_APPRAISE_REPO_URL when set', () => {
     process.env.CREATE_APPRAISE_REPO_URL = 'https://example.com/repo';
     const config = getConfig();
     expect(config.repoBase).toBe('https://example.com/repo');
+    expect(config.useBundled).toBe(false);
   });
 
   it('normalizes repo base: trims, removes trailing slash and .git', () => {
@@ -41,15 +42,18 @@ describe('getConfig', () => {
     process.env.CREATE_APPRAISE_BRANCH = 'dev';
     const config = getConfig();
     expect(config.branch).toBe('dev');
+    expect(config.useBundled).toBe(false);
   });
 
   it('uses CREATE_APPRAISE_TEMPLATE_SUBPATH when set', () => {
     process.env.CREATE_APPRAISE_TEMPLATE_SUBPATH = 'templates/custom';
     const config = getConfig();
     expect(config.templateSubpath).toBe('templates/custom');
+    expect(config.useBundled).toBe(false);
   });
 
   it('sets useBundled true when CREATE_APPRAISE_USE_BUNDLED is 1', () => {
+    process.env.CREATE_APPRAISE_REPO_URL = 'https://example.com/repo';
     process.env.CREATE_APPRAISE_USE_BUNDLED = '1';
     const config = getConfig();
     expect(config.useBundled).toBe(true);
@@ -67,10 +71,10 @@ describe('getConfig', () => {
     expect(config.useBundled).toBe(true);
   });
 
-  it('sets useBundled false when CREATE_APPRAISE_USE_BUNDLED is empty or 0', () => {
+  it('keeps bundled mode when CREATE_APPRAISE_USE_BUNDLED is empty or 0 without remote override', () => {
     process.env.CREATE_APPRAISE_USE_BUNDLED = '';
-    expect(getConfig().useBundled).toBe(false);
+    expect(getConfig().useBundled).toBe(true);
     process.env.CREATE_APPRAISE_USE_BUNDLED = '0';
-    expect(getConfig().useBundled).toBe(false);
+    expect(getConfig().useBundled).toBe(true);
   });
 });

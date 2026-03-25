@@ -3,26 +3,21 @@
 
 import prisma from '@/config/db-config'
 import { testSuiteSchema } from '@/constants/form-opts/test-suite-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
+import {
+  ensureTestSuiteIdentifierTags,
+  getOrCreateTestSuiteIdentifierTagId,
+} from '@/lib/test-suite-identifier-service'
+import { generateUniqueTestSuiteIdentifier } from '@/lib/test-suite-utils'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { Prisma } from '@prisma/client'
+import { Prisma, TagType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { z, ZodError } from 'zod'
-import { generateFeatureFile, deleteFeatureFile } from '@/lib/feature-file-generator'
 
-const generateSafeFileName = (testSuiteName: string): string => {
-  return testSuiteName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-+/g, '-')
-}
-
-/**
- * Get all test suites
- * @returns ActionResponse
- */
 export async function getAllTestSuitesAction(): Promise<ActionResponse> {
   try {
+    await ensureTestSuiteIdentifierTags()
+
     const testSuites = await prisma.testSuite.findMany({
       include: {
         module: true,
@@ -34,20 +29,14 @@ export async function getAllTestSuitesAction(): Promise<ActionResponse> {
       status: 200,
       data: testSuites,
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
 
-/**
- * Create a new test suite
- * @param _prev - Previous state
- * @param value - Test suite data
- * @returns ActionResponse
- */
 export async function createTestSuiteAction(
   _prev: unknown,
   value: z.infer<typeof testSuiteSchema>,
@@ -55,35 +44,39 @@ export async function createTestSuiteAction(
   try {
     testSuiteSchema.parse(value)
 
-    // Create the test suite
-    const newTestSuite = await prisma.testSuite.create({
-      data: {
-        name: value.name,
-        description: value.description,
-        module: {
-          connect: {
-            id: value.moduleId,
+    const suiteIdentifier = generateUniqueTestSuiteIdentifier()
+    const newTestSuite = await prisma.$transaction(async tx => {
+      const suiteIdentifierTag = await tx.tag.create({
+        data: {
+          name: suiteIdentifier,
+          type: TagType.IDENTIFIER,
+          tagExpression: `@${suiteIdentifier}`,
+        },
+      })
+
+      return tx.testSuite.create({
+        data: {
+          name: value.name,
+          description: value.description,
+          module: {
+            connect: {
+              id: value.moduleId,
+            },
+          },
+          testCases: {
+            connect: value.testCases?.map(id => ({ id })),
+          },
+          tags: {
+            connect: [{ id: suiteIdentifierTag.id }, ...(value.tagIds?.map(id => ({ id })) || [])],
           },
         },
-        testCases: {
-          connect: value.testCases?.map(id => ({ id })),
-        },
-        tags: {
-          connect: value.tagIds?.map(id => ({ id })) || [],
-        },
-      },
-      include: {
-        module: true,
-      },
+      })
     })
 
-    const sanitizedTestSuiteName = generateSafeFileName(newTestSuite.name)
-    // Generate feature file for the new test suite
     try {
-      await generateFeatureFile(newTestSuite.id, sanitizedTestSuiteName, newTestSuite.description || undefined)
-    } catch (featureFileError) {
-      console.error('Error generating feature file:', featureFileError)
-      // Don't fail the test suite creation if feature file generation fails
+      await automationProjectionService.generateFeature(newTestSuite.id)
+    } catch (error) {
+      console.error('Error generating feature file:', error)
     }
 
     revalidatePath('/test-suites')
@@ -91,17 +84,17 @@ export async function createTestSuiteAction(
       status: 200,
       message: 'Test suite created successfully',
     }
-  } catch (e) {
-    if (e instanceof ZodError) {
+  } catch (error) {
+    if (error instanceof ZodError) {
       return {
         status: 400,
-        error: e.message,
+        error: error.message,
       }
     }
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return {
         status: 500,
-        error: e.message,
+        error: error.message,
       }
     }
     return {
@@ -111,67 +104,96 @@ export async function createTestSuiteAction(
   }
 }
 
-/**
- * Delete a test suite
- * @param id - Test suite id
- * @returns ActionResponse
- */
 export async function deleteTestSuiteAction(id: string[]): Promise<ActionResponse> {
   try {
-    // Delete corresponding feature files before deleting test suites
+    const suiteIdentifierTags = await prisma.tag.findMany({
+      where: {
+        type: TagType.IDENTIFIER,
+        name: {
+          startsWith: 'ts_',
+        },
+        testSuites: {
+          some: {
+            id: {
+              in: id,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+
     for (const testSuiteId of id) {
       try {
-        await deleteFeatureFile(testSuiteId)
-      } catch (featureFileError) {
-        console.error(`Error deleting feature file for test suite ${testSuiteId}:`, featureFileError)
-        // Don't fail the test suite deletion if feature file deletion fails
+        await automationProjectionService.deleteFeature(testSuiteId)
+      } catch (error) {
+        console.error(`Error deleting feature file for test suite ${testSuiteId}:`, error)
       }
     }
 
     await prisma.testSuite.deleteMany({
       where: { id: { in: id } },
     })
+
+    if (suiteIdentifierTags.length > 0) {
+      await prisma.tag.deleteMany({
+        where: {
+          id: {
+            in: suiteIdentifierTags.map(tag => tag.id),
+          },
+          testSuites: {
+            none: {},
+          },
+          testCases: {
+            none: {},
+          },
+          testRuns: {
+            none: {},
+          },
+        },
+      })
+    }
+
     revalidatePath('/test-suites')
     return {
       status: 200,
       message: 'Test suite(s) deleted successfully',
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }
 
-/**
- * Get a test suite by id
- * @param id - Test suite id
- * @returns ActionResponse
- */
 export async function getTestSuiteByIdAction(id: string): Promise<ActionResponse> {
   try {
+    await ensureTestSuiteIdentifierTags([id])
+
     const testSuite = await prisma.testSuite.findUnique({
       where: { id },
-      include: { testCases: true, tags: true },
+      include: {
+        testCases: true,
+        tags: {
+          where: {
+            type: TagType.FILTER,
+          },
+        },
+      },
     })
     return {
       status: 200,
       data: testSuite,
     }
-  } catch (e) {
-    console.error(e)
-    throw e
+  } catch (error) {
+    console.error(error)
+    throw error
   }
 }
 
-/**
- * Update a test suite
- * @param _prev - Previous state
- * @param value - Test suite data
- * @param id - Test suite id
- * @returns ActionResponse
- */
 export async function updateTestSuiteAction(
   _prev: unknown,
   value: z.infer<typeof testSuiteSchema>,
@@ -179,12 +201,20 @@ export async function updateTestSuiteAction(
 ): Promise<ActionResponse> {
   try {
     testSuiteSchema.parse(value)
+    await ensureTestSuiteIdentifierTags(id ? [id] : undefined)
 
-    // Get the current test suite to check if name or module changed
     const currentTestSuite = await prisma.testSuite.findUnique({
       where: { id },
       include: {
         module: true,
+        tags: {
+          where: {
+            type: TagType.IDENTIFIER,
+          },
+          select: {
+            id: true,
+          },
+        },
       },
     })
 
@@ -195,30 +225,30 @@ export async function updateTestSuiteAction(
       }
     }
 
-    // Check if name or module changed - if so, delete old feature file
     const nameChanged = currentTestSuite.name !== value.name
     const moduleChanged = currentTestSuite.moduleId !== value.moduleId
 
     if (nameChanged || moduleChanged) {
       try {
-        await deleteFeatureFile(currentTestSuite.id)
-      } catch (featureFileError) {
-        console.error('Error deleting old feature file:', featureFileError)
-        // Don't fail the update if old file deletion fails
+        await automationProjectionService.deleteFeature(currentTestSuite.id)
+      } catch (error) {
+        console.error('Error deleting old feature file:', error)
       }
     }
 
-    // Update the test suite
+    const suiteIdentifierTagId = id ? await getOrCreateTestSuiteIdentifierTagId(id) : undefined
     const updatedTestSuite = await prisma.testSuite.update({
       where: { id },
       data: {
         name: value.name,
         description: value.description,
         testCases: {
-          set: value.testCases?.map(id => ({ id })),
+          set: value.testCases?.map(testCaseId => ({ id: testCaseId })),
         },
         tags: {
-          set: value.tagIds?.map(id => ({ id })) || [],
+          set: [suiteIdentifierTagId, ...(value.tagIds || [])]
+            .filter((tagId): tagId is string => Boolean(tagId))
+            .map(tagId => ({ id: tagId })),
         },
         module: {
           connect: {
@@ -226,17 +256,12 @@ export async function updateTestSuiteAction(
           },
         },
       },
-      include: {
-        module: true,
-      },
     })
 
-    // Generate new feature file with updated information
     try {
-      await generateFeatureFile(updatedTestSuite.id, updatedTestSuite.name, updatedTestSuite.description || undefined)
-    } catch (featureFileError) {
-      console.error('Error generating updated feature file:', featureFileError)
-      // Don't fail the test suite update if feature file generation fails
+      await automationProjectionService.generateFeature(updatedTestSuite.id)
+    } catch (error) {
+      console.error('Error generating updated feature file:', error)
     }
 
     revalidatePath('/test-suites')
@@ -244,10 +269,10 @@ export async function updateTestSuiteAction(
       status: 200,
       message: 'Test suite updated successfully',
     }
-  } catch (e) {
+  } catch (error) {
     return {
       status: 500,
-      error: `Server error occurred: ${e}`,
+      error: `Server error occurred: ${error}`,
     }
   }
 }

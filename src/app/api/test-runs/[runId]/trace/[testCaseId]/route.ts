@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
-import { taskSpawner } from '@/tests/utils/spawner.util'
+import { taskSpawner } from '@/lib/process/task-spawner'
 import prisma from '@/config/db-config'
-import path from 'path'
+import { resolveStoredPath } from '@/lib/automation/paths'
 
 // Ensure this route runs in Node.js runtime (not Edge) for singleton to work
 export const runtime = 'nodejs'
@@ -49,7 +49,10 @@ export async function GET(
       processName: isRunning ? processName : null,
     })
   } catch (error) {
-    console.error(`[TraceViewer] Error checking trace viewer status for runId: ${runId}, testCaseId: ${testCaseId}:`, error)
+    console.error(
+      `[TraceViewer] Error checking trace viewer status for runId: ${runId}, testCaseId: ${testCaseId}:`,
+      error,
+    )
     return NextResponse.json(
       {
         error: `Failed to check trace viewer status: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -104,18 +107,14 @@ export async function POST(
       return NextResponse.json({ error: 'No trace path available for this test case' }, { status: 400 })
     }
 
+    const absoluteTracePath = resolveStoredPath(tracePath)
+
     // Validate trace file exists
     try {
-      await fs.access(tracePath)
+      await fs.access(absoluteTracePath)
     } catch {
-      return NextResponse.json(
-        { error: `Trace file not found at path: ${tracePath}` },
-        { status: 404 },
-      )
+      return NextResponse.json({ error: `Trace file not found at path: ${tracePath}` }, { status: 404 })
     }
-
-    // Resolve absolute path if relative
-    const absoluteTracePath = path.isAbsolute(tracePath) ? tracePath : path.join(process.cwd(), tracePath)
 
     // Spawn playwright show-trace command
     // The process is self-closing when the user closes the trace viewer
@@ -126,7 +125,9 @@ export async function POST(
       captureOutput: false, // No need to capture output for trace viewer
     })
 
-    console.log(`[TraceViewer] Spawned trace viewer process for testCaseId: ${testCaseId}, tracePath: ${absoluteTracePath}`)
+    console.log(
+      `[TraceViewer] Spawned trace viewer process for testCaseId: ${testCaseId}, tracePath: ${absoluteTracePath}`,
+    )
 
     return NextResponse.json({
       success: true,
@@ -143,4 +144,3 @@ export async function POST(
     )
   }
 }
-

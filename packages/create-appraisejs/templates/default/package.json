@@ -1,19 +1,21 @@
 {
   "name": "appraise",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "private": false,
   "type": "module",
   "scripts": {
     "dev": "next dev",
     "init": "DISABLE_DEVTOOLS=1 NEXT_PUBLIC_DISABLE_DEVTOOLS=1 next dev",
-    "build": "next build",
+    "build:cucumber-runtime": "tsc -p packages/cucumber-runtime/tsconfig.json",
+    "build:locator-picker-companion": "tsc -p packages/locator-picker-companion/tsconfig.json",
+    "build": "npm run build:local",
     "start": "next start",
     "lint": "eslint .",
-    "install-playwright": "npx playwright install && npx playwright install-deps",
+    "install-playwright": "npx playwright install",
     "install-dependencies": "npm install --legacy-peer-deps",
     "setup-env": "npx tsx scripts/setup-env.ts",
-    "migrate-db": "npx prisma migrate dev",
-    "setup": "npm run install-dependencies && npm run setup-env && npm run migrate-db && npm run install-playwright && npm run sync-all",
+    "migrate-db": "npx prisma migrate deploy",
+    "setup": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",
     "sync-features": "npx tsx scripts/regenerate-features.ts",
     "sync-features:dry-run": "npx tsx scripts/regenerate-features.ts --dry-run",
     "sync-locator-groups": "npx tsx scripts/sync-locator-groups.ts",
@@ -28,6 +30,11 @@
     "sync-all": "npx tsx scripts/sync-all.ts",
     "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
     "test": "cucumber-js",
+    "build:local": "npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build",
+    "generate-db-client": "npx prisma generate --schema prisma/schema.prisma",
+    "setup:db": "npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all",
+    "setup:full": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",
+    "protect-seeded-files": "npx tsx scripts/protect-seeded-files.ts",
     "appraisejs:setup": "npm run setup",
     "appraisejs:sync": "npm run sync-all"
   },
@@ -54,9 +61,7 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@tanstack/react-devtools": "^0.8.1",
     "@tanstack/react-form": "^1.25.0",
-    "@tanstack/react-form-devtools": "^0.2.1",
     "@tanstack/react-table": "^8.20.6",
     "@types/archiver": "^7.0.0",
     "@uiw/codemirror-extensions-langs": "^4.25.4",
@@ -121,6 +126,7 @@
   "overrides": {
     "react-is": "^19.2.1",
     "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "minimatch": ">=10.2.1"
   }
 }

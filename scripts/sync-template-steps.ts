@@ -16,6 +16,7 @@ import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
 import type { NodePath } from '@babel/traverse'
+import prettier from 'prettier'
 
 // Handle both ESM and CJS exports
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
@@ -66,6 +67,33 @@ interface SyncResult {
   deletedSteps: Array<{ name: string; signature: string; group: string }>
 }
 
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
+async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
+  const source = functionDefinition?.trim()
+  if (!source) {
+    return ''
+  }
+
+  try {
+    return (
+      await prettier.format(source, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        printWidth: 80,
+        tabWidth: 2,
+      })
+    ).trim()
+  } catch {
+    return source
+  }
+}
+
 /**
  * Parses JSDoc comment to extract step group metadata
  * Reused from template-step-group-sync.ts
@@ -77,8 +105,17 @@ function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
     return null
   }
 
-  const firstLine = lines[0].trim()
-  if (!firstLine.startsWith('/**')) {
+  let startLine = 0
+  while (startLine < lines.length) {
+    const line = lines[startLine].trim()
+    if (line === '' || line.startsWith('import ')) {
+      startLine++
+      continue
+    }
+    break
+  }
+
+  if (startLine >= lines.length || !lines[startLine].trim().startsWith('/**')) {
     return null
   }
 
@@ -88,8 +125,8 @@ function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
   let description: string | null = null
   let type: string | null = null
 
-  const maxLines = Math.min(lines.length, 50)
-  for (let i = 0; i < maxLines; i++) {
+  const maxLines = Math.min(lines.length, startLine + 50)
+  for (let i = startLine; i < maxLines; i++) {
     const line = lines[i].trim()
 
     if (line.includes('*/')) {
@@ -316,7 +353,6 @@ function extractFunctionDefinition(callExpr: t.CallExpression, keyword: string, 
  * Parses a step definition file to extract steps
  */
 function parseStepFile(content: string, filePath: string): StepData | null {
-  // Parse group JSDoc
   const group = parseGroupJSDoc(content)
   if (!group) {
     return null
@@ -455,7 +491,7 @@ function parseStepFile(content: string, filePath: string): StepData | null {
  * Scans step definition files
  */
 async function scanStepFiles(baseDir: string): Promise<string[]> {
-  const patterns = ['src/tests/steps/actions/**/*.step.ts', 'src/tests/steps/validations/**/*.step.ts']
+  const patterns = ['automation/steps/actions/**/*.step.ts', 'automation/steps/validations/**/*.step.ts']
   const stepFiles: string[] = []
 
   for (const pattern of patterns) {
@@ -473,7 +509,6 @@ async function scanStepFiles(baseDir: string): Promise<string[]> {
  */
 async function syncStepsToDatabase(
   allSteps: Array<{ step: ParsedStep; groupName: string; filePath: string }>,
-  _baseDir: string,
 ): Promise<SyncResult> {
   const result: SyncResult = {
     stepsScanned: 0,
@@ -511,6 +546,8 @@ async function syncStepsToDatabase(
       // Determine step type from group type
       const stepType: TemplateStepType =
         stepGroup.type === TemplateStepGroupType.ACTION ? TemplateStepType.ACTION : TemplateStepType.ASSERTION
+      const description = normalizeOptionalText(step.jsdoc.description)
+      const functionDefinition = await normalizeFunctionDefinition(step.functionDefinition)
 
       // Check if step exists by signature
       const existingStep = await prisma.templateStep.findFirst({
@@ -526,9 +563,9 @@ async function syncStepsToDatabase(
         // Check if update is needed
         const needsUpdate =
           existingStep.name !== step.jsdoc.name ||
-          existingStep.description !== (step.jsdoc.description || '') ||
+          (existingStep.description ?? null) !== description ||
           existingStep.signature !== step.signature ||
-          existingStep.functionDefinition !== step.functionDefinition ||
+          (existingStep.functionDefinition ?? '') !== functionDefinition ||
           existingStep.icon !== step.jsdoc.icon ||
           existingStep.type !== stepType ||
           existingStep.templateStepGroupId !== stepGroup.id
@@ -539,9 +576,9 @@ async function syncStepsToDatabase(
             where: { id: existingStep.id },
             data: {
               name: step.jsdoc.name,
-              description: step.jsdoc.description || '',
+              description,
               signature: step.signature,
-              functionDefinition: step.functionDefinition,
+              functionDefinition,
               icon: step.jsdoc.icon,
               type: stepType,
               templateStepGroupId: stepGroup.id,
@@ -570,9 +607,9 @@ async function syncStepsToDatabase(
         await prisma.templateStep.create({
           data: {
             name: step.jsdoc.name,
-            description: step.jsdoc.description || '',
+            description,
             signature: step.signature,
-            functionDefinition: step.functionDefinition,
+            functionDefinition,
             icon: step.jsdoc.icon,
             type: stepType,
             templateStepGroupId: stepGroup.id,
@@ -781,7 +818,7 @@ async function main() {
 
     // Sync to database
     console.log('\n✅ Syncing template steps to database...')
-    const result = await syncStepsToDatabase(allSteps, baseDir)
+    const result = await syncStepsToDatabase(allSteps)
 
     // Add parsing errors to result
     result.errors.push(...errors)

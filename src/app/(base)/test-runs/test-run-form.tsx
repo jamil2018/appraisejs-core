@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import TestSuitePicker from '@/components/test-suite/test-suite-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -8,7 +9,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { formOpts, TestRun } from '@/constants/form-opts/test-run-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { BrowserEngine, Environment, Tag, TestCase, TestRunTestCase, TestSuite } from '@prisma/client'
+import { BrowserEngine, Environment, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect, useCallback } from 'react'
@@ -17,17 +18,18 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { checkTestRunNameUniqueAction } from '@/actions/test-run/test-run-actions'
 import { Info, Play } from 'lucide-react'
+import { TestSuitePickerRow } from '@/types/test-suite-picker'
 
 enum TestSelectionType {
   TAGS = 'tags',
-  TEST_CASES = 'testCases',
+  TEST_SUITES = 'testSuites',
 }
 
 const TestRunForm = ({
   defaultValues,
   successTitle,
   successMessage,
-  testSuiteTestCases,
+  testSuites,
   environments,
   tags,
   id,
@@ -36,14 +38,16 @@ const TestRunForm = ({
   defaultValues?: TestRun
   successTitle: string
   successMessage: string
-  testSuiteTestCases: (TestSuite & { testCases: TestCase[] })[]
+  testSuites: TestSuitePickerRow[]
   environments: Environment[]
   tags: Tag[]
   id?: string
   onSubmitAction: (_prev: unknown, value: TestRun, id?: string) => Promise<ActionResponse>
 }) => {
   const router = useRouter()
-  const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(TestSelectionType.TAGS)
+  const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(() =>
+    defaultValues?.testSuites?.length ? TestSelectionType.TEST_SUITES : TestSelectionType.TAGS,
+  )
   const testSelectionTypeRef = useRef<TestSelectionType>(testSelectionType)
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -118,7 +122,7 @@ const TestRunForm = ({
       const submitValue = {
         ...value,
         tags: testSelectionType === TestSelectionType.TAGS ? value.tags : [],
-        testCases: testSelectionType === TestSelectionType.TEST_CASES ? value.testCases : [],
+        testSuites: testSelectionType === TestSelectionType.TEST_SUITES ? value.testSuites : [],
       }
       const res = await onSubmitAction(undefined, submitValue, id)
       if (res.status === 200) {
@@ -174,15 +178,15 @@ const TestRunForm = ({
                   setTestSelectionType(newType)
                   // Clear the other field when switching filter types
                   if (newType === TestSelectionType.TAGS) {
-                    form.setFieldValue('testCases', [])
+                    form.setFieldValue('testSuites', [])
                     // Validate both fields to clear any errors
                     form.validateField('tags', 'change')
-                    form.validateField('testCases', 'change')
+                    form.validateField('testSuites', 'change')
                   } else {
                     form.setFieldValue('tags', [])
                     // Validate both fields to clear any errors
                     form.validateField('tags', 'change')
-                    form.validateField('testCases', 'change')
+                    form.validateField('testSuites', 'change')
                   }
                 }}
                 className="mb-4 flex gap-4"
@@ -192,8 +196,8 @@ const TestRunForm = ({
                   <Label htmlFor={TestSelectionType.TAGS}>By Tags</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value={TestSelectionType.TEST_CASES} id={TestSelectionType.TEST_CASES} />
-                  <Label htmlFor={TestSelectionType.TEST_CASES}>By Test Cases</Label>
+                  <RadioGroupItem value={TestSelectionType.TEST_SUITES} id={TestSelectionType.TEST_SUITES} />
+                  <Label htmlFor={TestSelectionType.TEST_SUITES}>By Test Suites</Label>
                 </div>
               </RadioGroup>
 
@@ -235,13 +239,20 @@ const TestRunForm = ({
               </form.Field>
 
               <form.Field
-                name="testCases"
+                name="testSuites"
                 validators={{
                   onChange: ({ value }) => {
                     const currentSelectionType = testSelectionTypeRef.current
-                    if (currentSelectionType === TestSelectionType.TEST_CASES) {
+                    if (currentSelectionType === TestSelectionType.TEST_SUITES) {
                       if (!Array.isArray(value) || value.length === 0) {
-                        return 'Test cases are required'
+                        return 'At least one test suite is required'
+                      }
+
+                      const invalidSuite = value.find(
+                        suiteSelection => !suiteSelection.runAll && suiteSelection.testCaseIds.length === 0,
+                      )
+                      if (invalidSuite) {
+                        return 'Partial suite selections must include at least one test case'
                       }
                     }
                     return undefined
@@ -251,34 +262,16 @@ const TestRunForm = ({
                 {field => {
                   return (
                     <div
-                      className={`mb-4 flex flex-col gap-2 ${testSelectionType === TestSelectionType.TEST_CASES ? 'block' : 'hidden'}`}
+                      className={`mb-4 flex flex-col gap-2 ${testSelectionType === TestSelectionType.TEST_SUITES ? 'block' : 'hidden'}`}
                     >
-                      <MultiSelect
-                        options={(() => {
-                          const seen = new Set<string | number>()
-                          return testSuiteTestCases.flatMap(testSuite =>
-                            testSuite.testCases
-                              .filter(testCase => {
-                                if (!seen.has(testCase.id)) {
-                                  seen.add(testCase.id)
-                                  return true
-                                }
-                                return false
-                              })
-                              .map(testCase => ({
-                                label: testCase.title,
-                                value: testCase.id,
-                              })),
-                          )
-                        })()}
-                        selected={field.state.value.map(testCase => testCase.testCaseId)}
-                        onChange={value =>
-                          field.handleChange(
-                            value.map(testCaseId => ({ testCaseId: testCaseId }) as unknown as TestRunTestCase),
-                          )
-                        }
-                        placeholder="Select test cases"
-                        emptyMessage="No test cases available"
+                      <TestSuitePicker
+                        testSuites={testSuites}
+                        selectedSuites={field.state.value}
+                        onSave={value => field.handleChange(value)}
+                        triggerPlaceholder="Select test suite(s)"
+                        dialogTitle="Select Test Suites"
+                        dialogDescription="Browse suites, expand child test cases, and save the suite-scoped selection for this test run."
+                        selectedLabel="Selected test suite(s)"
                       />
                       {field.state.meta.isTouched &&
                         field.state.meta.errors.map((error, index) => (
@@ -449,7 +442,7 @@ const TestRunForm = ({
                 <div className="flex flex-col gap-1">
                   <span className="text-base font-bold">Select the environment for your test run</span>
                   <span className="text-sm text-muted-foreground">
-                    Choose the environment that best suits your selected test cases
+                    Choose the environment that best suits your selected tests
                   </span>
                 </div>
               </div>
@@ -469,9 +462,9 @@ const TestRunForm = ({
                   4
                 </span>
                 <div className="flex flex-col gap-1">
-                  <span className="text-base font-bold">Select the test cases or tags for your test run</span>
+                  <span className="text-base font-bold">Select the test suites or tags for your test run</span>
                   <span className="text-sm text-muted-foreground">
-                    You can filter your test cases by tags or select specific test cases
+                    You can filter by tags or browse suites and choose full suites or child subsets
                   </span>
                 </div>
               </div>

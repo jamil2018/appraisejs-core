@@ -1,0 +1,55 @@
+---
+description: AppraiseJS project context and repo-specific guidance
+alwaysApply: false
+---
+
+# AppraiseJS Project Context
+
+Use `/Users/hasnat/Projects/appraise/AGENT.md` as the canonical long-form project reference. Follow it when making code changes in this repository.
+
+High-signal summary:
+
+- This repo contains the main AppraiseJS Next.js app at the root and the `create-appraisejs` scaffold package in `packages/create-appraisejs`.
+- AppraiseJS is a local-first visual test authoring and execution platform built on Next.js, Prisma, SQLite, Cucumber, and Playwright.
+- Main execution flow: UI/server actions save entities -> feature files are generated in `automation/features` -> `npx cucumber-js` executes tests -> JSON reports/logs are produced under `automation/reports` -> report data is parsed back into the database -> UI shows runs and reports.
+
+Repository structure:
+
+- `src/app/`: App Router UI and API routes
+- `src/actions/`: domain server actions
+- `src/lib/`: orchestration, sync, feature generation, parsing, metrics
+- `src/lib/test-run/`: runner, process management, logs, report parser
+- `automation/`: starter automation assets plus generated run artifacts
+- `prisma/`: schema and migrations
+- `scripts/`: setup and sync scripts
+- `templates/default/`: scaffold template source
+- `packages/create-appraisejs/`: published scaffolding CLI
+
+Source-of-truth guidance:
+
+- Prefer editing canonical app code in `src/app`, `src/actions`, `src/lib`, `prisma`, and `scripts`.
+- Treat `automation/features/**`, `automation/reports/**`, `automation/locators/**`, and `automation/mapping/locator-map.json` as sync-managed unless the task explicitly targets sync output.
+- Automation step files live under `automation/steps/**/*.step.ts`.
+- If a change affects authored test structure, check whether the correct fix belongs in feature generation or sync logic instead of editing generated files directly.
+
+Operational conventions:
+
+- Default local DB is SQLite via `.env` with `DATABASE_URL="file:./dev.db"`, which creates `prisma/dev.db`.
+- Root app: `npm run setup` installs dependencies, creates `.env`, runs Prisma migrations, installs Playwright, and runs `sync-all`. Scaffolded apps use a production-first path: `setup`, optional `install-playwright`, then `start`.
+- `npm run sync-all` is the main sync orchestrator.
+- `npm run sync-features` performs bidirectional database/filesystem sync for feature files.
+- The dashboard route is implemented at `src/app/page.tsx`.
+- Run log streaming uses the Node runtime SSE route at `src/app/api/test-runs/[runId]/logs/route.ts`.
+
+Template/scaffold rules:
+
+- If a root app change should affect new generated projects, also consider `templates/default/` and `packages/create-appraisejs/templates/default/`.
+- `npm run sync-template` syncs the root app into `templates/default/`.
+- `packages/create-appraisejs/scripts/sync-templates.ts` syncs `templates/default/` into the package template.
+
+Files to inspect first for common work:
+
+- CRUD/domain logic: `prisma/schema.prisma`, matching files in `src/actions/`, `src/app/(base)/`
+- test runs/logging: `src/actions/test-run/test-run-actions.ts`, `src/lib/test-run/test-run-executor.ts`, `src/lib/test-run/process-manager.ts`, `src/app/api/test-runs/[runId]/logs/route.ts`, `cucumber.mjs`
+- feature/sync behavior: `src/lib/feature-file-generator.ts`, `src/lib/bidirectional-sync.ts`, `src/lib/database-sync.ts`, `src/lib/gherkin-parser.ts`, `scripts/sync-all.ts`, `scripts/regenerate-features.ts`
+- scaffold package: `packages/create-appraisejs/src/cli.ts`, `packages/create-appraisejs/src/copy-template.ts`, `packages/create-appraisejs/src/download-repo.ts`, `packages/create-appraisejs/src/install.ts`

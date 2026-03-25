@@ -9,8 +9,9 @@
  */
 
 import { promises as fs } from 'fs'
-import { join } from 'path'
+import path from 'path'
 import prisma from '../src/config/db-config'
+import { ensureAutomationWorkspaceReady, getAutomationEnvironmentsDir } from '../src/lib/automation/paths'
 
 interface EnvironmentConfig {
   baseUrl: string
@@ -40,16 +41,20 @@ interface SyncResult {
   skippedEnvironments: string[]
 }
 
+const EMPTY_ENVIRONMENTS_FILE_CONTENT = '{}\n'
+
 /**
  * Reads and parses the environments.json file
  */
-async function readEnvironmentsFromFile(baseDir: string): Promise<Record<string, EnvironmentConfig>> {
-  const filePath = join(baseDir, 'src', 'tests', 'config', 'environments', 'environments.json')
+async function readEnvironmentsFromFile(): Promise<Record<string, EnvironmentConfig>> {
+  const filePath = path.join(getAutomationEnvironmentsDir(), 'environments.json')
 
   try {
     await fs.access(filePath)
   } catch {
-    throw new Error(`Environments file not found at ${filePath}`)
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, EMPTY_ENVIRONMENTS_FILE_CONTENT, 'utf-8')
+    return {}
   }
 
   try {
@@ -69,15 +74,25 @@ async function readEnvironmentsFromFile(baseDir: string): Promise<Record<string,
   }
 }
 
-/**
- * Normalizes environment name to title case for consistent comparison
- * e.g., "staging" -> "Staging", "STAGING" -> "Staging", "Staging" -> "Staging"
- */
 function normalizeEnvironmentName(name: string): string {
   if (!name || name.trim() === '') {
     return name
   }
-  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+
+  return name
+    .trim()
+    .replace(/[_\s]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function getEnvironmentIdentityKey(name: string): string {
+  return name
+    .trim()
+    .replace(/[_\s]+/g, ' ')
+    .toLowerCase()
 }
 
 /**
@@ -135,19 +150,20 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
   }
 
   // Get set of normalized environment names from JSON file (for case-insensitive comparison)
-  const jsonEnvironmentNamesNormalized = new Set(
-    environments.map(env => normalizeEnvironmentName(env.name))
-  )
+  const jsonEnvironmentNamesNormalized = new Set(environments.map(env => getEnvironmentIdentityKey(env.name)))
 
   // Get all environments from database
   const allDbEnvironments = await prisma.environment.findMany({
-    select: { id: true, name: true },
+    select: { id: true, name: true, baseUrl: true, apiBaseUrl: true, username: true, password: true },
   })
 
   // Create a case-insensitive map: normalized name -> actual DB name
-  const dbEnvironmentsByNormalizedName = new Map<string, { id: string; name: string }>()
+  const dbEnvironmentsByNormalizedName = new Map<
+    string,
+    { id: string; name: string; baseUrl: string; apiBaseUrl: string | null; username: string | null; password: string | null }
+  >()
   for (const dbEnv of allDbEnvironments) {
-    const normalizedName = normalizeEnvironmentName(dbEnv.name)
+    const normalizedName = getEnvironmentIdentityKey(dbEnv.name)
     // If we find a duplicate normalized name, keep the first one
     if (!dbEnvironmentsByNormalizedName.has(normalizedName)) {
       dbEnvironmentsByNormalizedName.set(normalizedName, dbEnv)
@@ -156,7 +172,7 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
 
   // Delete environments from DB that are not in JSON file (case-insensitive comparison)
   for (const dbEnv of allDbEnvironments) {
-    const normalizedDbName = normalizeEnvironmentName(dbEnv.name)
+    const normalizedDbName = getEnvironmentIdentityKey(dbEnv.name)
     if (!jsonEnvironmentNamesNormalized.has(normalizedDbName)) {
       try {
         // Check if environment has test runs (foreign key constraint prevents deletion)
@@ -187,23 +203,32 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
   // Create or update environments from JSON file
   for (const env of environments) {
     try {
-      const normalizedName = normalizeEnvironmentName(env.name)
+      const normalizedName = getEnvironmentIdentityKey(env.name)
       // Check if environment already exists by normalized name (case-insensitive)
       const existingDbEnv = dbEnvironmentsByNormalizedName.get(normalizedName)
 
       if (existingDbEnv) {
-        // Environment exists, check if name needs to be updated to normalized form
-        if (existingDbEnv.name !== env.name) {
-          // Update the name to normalized form
+        const needsUpdate =
+          existingDbEnv.baseUrl !== env.baseUrl ||
+          (existingDbEnv.apiBaseUrl ?? null) !== env.apiBaseUrl ||
+          (existingDbEnv.username ?? null) !== env.username ||
+          (existingDbEnv.password ?? null) !== env.password
+
+        if (needsUpdate) {
           await prisma.environment.update({
             where: { id: existingDbEnv.id },
-            data: { name: env.name },
+            data: {
+              baseUrl: env.baseUrl,
+              apiBaseUrl: env.apiBaseUrl,
+              username: env.username,
+              password: env.password,
+            },
           })
-          console.log(`   🔄 Updated environment name from '${existingDbEnv.name}' to '${env.name}'`)
+          console.log(`   🔄 Updated environment '${existingDbEnv.name}'`)
         }
         result.environmentsExisting++
-        result.existingEnvironments.push(env.name)
-        console.log(`   ✓ Environment '${env.name}' already exists`)
+        result.existingEnvironments.push(existingDbEnv.name)
+        console.log(`   ✓ Environment '${existingDbEnv.name}' already exists`)
       } else {
         // Create the environment
         await prisma.environment.create({
@@ -285,11 +310,11 @@ async function main() {
     console.log('🔄 Starting environments sync...')
     console.log('This will scan environments.json and sync environments to database.\n')
 
-    const baseDir = process.cwd()
+    await ensureAutomationWorkspaceReady()
 
     // Read environments from file
     console.log('📁 Reading environments.json...')
-    const jsonContent = await readEnvironmentsFromFile(baseDir)
+    const jsonContent = await readEnvironmentsFromFile()
     const environmentKeys = Object.keys(jsonContent)
     console.log(`   Found ${environmentKeys.length} environment(s): ${environmentKeys.join(', ') || 'none'}`)
 
@@ -320,4 +345,5 @@ async function main() {
 }
 
 main()
+
 

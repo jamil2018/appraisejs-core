@@ -55,14 +55,18 @@ Before you begin, ensure you have the following installed:
    This will:
    - Install dependencies
    - Create `.env` file with SQLite configuration
-   - Set up the database schema (Prisma migrations)
-   - Install Playwright browsers and dependencies
+   - Build the local production app
 
-2. **Start the development server:**
+2. **Start the local production server:**
    ```bash
-   npm run dev
+   npm run start
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+3. **Optional: install Playwright browsers when you need test execution:**
+   ```bash
+   npm run install-playwright -- chromium
+   ```
 
 ### Environment Variables
 
@@ -215,8 +219,8 @@ npm test
 
 ### Writing Tests
 
-- Feature files: `src/tests/features/*.feature` (Gherkin format)
-- Step definitions: `src/tests/steps/` (Note: some step files are generated)
+- Feature files: `automation/features/*.feature` (Gherkin format)
+- Step definitions: `automation/steps/` (Note: some step files are generated)
 - Test configuration: `cucumber.mjs`
 
 ### Playwright
@@ -379,3 +383,4 @@ By contributing, you agree that your contributions will be licensed under the Ap
 ---
 
 Thank you for contributing to AppraiseJS Core! 🎉
+

@@ -1,11 +1,14 @@
 'use client'
 
+import { useState } from 'react'
+import Image from 'next/image'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { StepStatus, ReportScenario } from '@prisma/client'
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { ScrollArea } from '../ui/scroll-area'
+import { Button } from '@/components/ui/button'
 
 /** Minimal shape so both full Prisma and report-table select types are accepted */
 type ReportScenarioWithDetails = ReportScenario & {
@@ -18,6 +21,7 @@ type ReportScenarioWithDetails = ReportScenario & {
     duration: string
     errorMessage: string | null
     errorTrace: string | null
+    screenshotPath?: string | null
     order: number
     matchLocation?: string | null
   }>
@@ -98,6 +102,8 @@ const formatKeyword = (keyword: string) => {
 }
 
 export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCaseLogsModalProps) {
+  const [expandedScreenshot, setExpandedScreenshot] = useState<{ stepId: string; stepName: string } | null>(null)
+
   if (!reportScenario) {
     return null
   }
@@ -106,148 +112,199 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
   const sortedSteps = [...reportScenario.steps].sort((a, b) => a.order - b.order)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col p-0">
-        <DialogHeader className="flex-shrink-0 px-6 pt-6">
-          <DialogTitle className="text-xl font-semibold">{reportScenario.name}</DialogTitle>
-          {reportScenario.description && (
-            <DialogDescription className="text-sm text-muted-foreground">
-              {reportScenario.description}
-            </DialogDescription>
-          )}
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col p-0">
+          <DialogHeader className="flex-shrink-0 px-6 pt-6">
+            <DialogTitle className="text-xl font-semibold">{reportScenario.name}</DialogTitle>
+            {reportScenario.description && (
+              <DialogDescription className="text-sm text-muted-foreground">
+                {reportScenario.description}
+              </DialogDescription>
+            )}
+          </DialogHeader>
 
-        <ScrollArea className="h-[calc(90vh-120px)] pr-4">
-          <div className="px-6 pb-6">
-            <div className="space-y-6">
-              {/* Tags */}
-              {reportScenario.tags.length > 0 && (
-                <div>
-                  <h4 className="mb-2 text-sm font-medium">Tags</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {reportScenario.tags.map((tag, _index) => (
-                      <Badge key={_index} variant="outline">
-                        {tag.tagName}
-                      </Badge>
-                    ))}
+          <ScrollArea className="h-[calc(90vh-120px)] pr-4">
+            <div className="px-6 pb-6">
+              <div className="space-y-6">
+                {/* Tags */}
+                {reportScenario.tags.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-medium">Tags</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {reportScenario.tags.map(tag => (
+                        <Badge key={tag.tagName} variant="outline">
+                          {tag.tagName}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Steps */}
-              <div>
-                <h4 className="mb-3 text-sm font-medium">Steps</h4>
-                <div className="space-y-3">
-                  {sortedSteps.length > 0 ? (
-                    sortedSteps.map((step, _index) => (
-                      <div key={step.id} className="space-y-2 rounded-lg border p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="mb-1 flex items-center gap-2">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                {formatKeyword(step.keyword)}
-                              </span>
-                              <span className="text-sm">{step.name}</span>
-                            </div>
-                            {step.matchLocation && (
-                              <div className="mt-1 text-xs text-muted-foreground">{step.matchLocation}</div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {stepStatusToBadge(step.status)}
-                            <span className="text-xs text-muted-foreground">{formatDuration(step.duration)}</span>
-                          </div>
-                        </div>
-                        {step.status === StepStatus.FAILED && (
-                          <div className="mt-2 space-y-2">
-                            {step.errorMessage && (
-                              <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
-                                <div className="mb-1 flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4 text-red-500" />
-                                  <span className="text-sm font-medium text-red-400">Error Message</span>
-                                </div>
-                                <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
-                                  {step.errorMessage}
-                                </pre>
-                              </div>
-                            )}
-                            {step.errorTrace && (
-                              <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
-                                <div className="mb-1 flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4 text-red-500" />
-                                  <span className="text-sm font-medium text-red-400">Error Trace</span>
-                                </div>
-                                <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">
-                                  {step.errorTrace}
-                                </pre>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-muted-foreground">No steps recorded</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Hooks */}
-              {reportScenario.hooks.length > 0 && (
+                {/* Steps */}
                 <div>
-                  <Separator className="my-4" />
-                  <h4 className="mb-3 text-sm font-medium">Hooks</h4>
+                  <h4 className="mb-3 text-sm font-medium">Steps</h4>
                   <div className="space-y-3">
-                    {reportScenario.hooks.map((hook, _index) => (
-                      <div key={hook.id} className="space-y-2 rounded-lg border p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="mb-1 flex items-center gap-2">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                {formatKeyword(hook.keyword)} Hook
-                              </span>
+                    {sortedSteps.length > 0 ? (
+                      sortedSteps.map(step => (
+                        <div key={step.id} className="space-y-2 rounded-lg border p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  {formatKeyword(step.keyword)}
+                                </span>
+                                <span className="text-sm">{step.name}</span>
+                              </div>
+                              {step.matchLocation && (
+                                <div className="mt-1 text-xs text-muted-foreground">{step.matchLocation}</div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {stepStatusToBadge(step.status)}
+                              <span className="text-xs text-muted-foreground">{formatDuration(step.duration)}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {stepStatusToBadge(hook.status)}
-                            <span className="text-xs text-muted-foreground">{formatDuration(hook.duration)}</span>
-                          </div>
+                          {step.status === StepStatus.FAILED && (
+                            <div className="mt-2 space-y-2">
+                              {step.errorMessage && (
+                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                  <div className="mb-1 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <span className="text-sm font-medium text-red-400">Error Message</span>
+                                  </div>
+                                  <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
+                                    {step.errorMessage}
+                                  </pre>
+                                </div>
+                              )}
+                              {step.errorTrace && (
+                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                  <div className="mb-1 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <span className="text-sm font-medium text-red-400">Error Trace</span>
+                                  </div>
+                                  <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">
+                                    {step.errorTrace}
+                                  </pre>
+                                </div>
+                              )}
+                              {step.screenshotPath && (
+                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                  <div className="mb-2 flex items-center justify-between gap-2">
+                                    <span className="text-sm font-medium text-red-400">Failure Screenshot</span>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => setExpandedScreenshot({ stepId: step.id, stepName: step.name })}
+                                    >
+                                      Expand
+                                    </Button>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="block w-full overflow-hidden rounded-md border border-red-900/60"
+                                    onClick={() => setExpandedScreenshot({ stepId: step.id, stepName: step.name })}
+                                  >
+                                    <Image
+                                      src={`/api/reports/steps/${step.id}/screenshot`}
+                                      alt={`Failure screenshot for step ${step.name}`}
+                                      width={1280}
+                                      height={720}
+                                      unoptimized
+                                      className="max-h-64 w-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {hook.status === StepStatus.FAILED && (
-                          <div className="mt-2 space-y-2">
-                            {hook.errorMessage && (
-                              <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
-                                <div className="mb-1 flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4 text-red-500" />
-                                  <span className="text-sm font-medium text-red-400">Error Message</span>
-                                </div>
-                                <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
-                                  {hook.errorMessage}
-                                </pre>
-                              </div>
-                            )}
-                            {hook.errorTrace && (
-                              <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
-                                <div className="mb-1 flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4 text-red-500" />
-                                  <span className="text-sm font-medium text-red-400">Error Trace</span>
-                                </div>
-                                <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">
-                                  {hook.errorTrace}
-                                </pre>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No steps recorded</div>
+                    )}
                   </div>
                 </div>
-              )}
+
+                {/* Hooks */}
+                {reportScenario.hooks.length > 0 && (
+                  <div>
+                    <Separator className="my-4" />
+                    <h4 className="mb-3 text-sm font-medium">Hooks</h4>
+                    <div className="space-y-3">
+                      {reportScenario.hooks.map(hook => (
+                        <div key={hook.id} className="space-y-2 rounded-lg border p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  {formatKeyword(hook.keyword)} Hook
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {stepStatusToBadge(hook.status)}
+                              <span className="text-xs text-muted-foreground">{formatDuration(hook.duration)}</span>
+                            </div>
+                          </div>
+                          {hook.status === StepStatus.FAILED && (
+                            <div className="mt-2 space-y-2">
+                              {hook.errorMessage && (
+                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                  <div className="mb-1 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <span className="text-sm font-medium text-red-400">Error Message</span>
+                                  </div>
+                                  <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
+                                    {hook.errorMessage}
+                                  </pre>
+                                </div>
+                              )}
+                              {hook.errorTrace && (
+                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                  <div className="mb-1 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <span className="text-sm font-medium text-red-400">Error Trace</span>
+                                  </div>
+                                  <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">
+                                    {hook.errorTrace}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!expandedScreenshot} onOpenChange={nextOpen => !nextOpen && setExpandedScreenshot(null)}>
+        <DialogContent className="max-w-5xl p-4">
+          <DialogHeader>
+            <DialogTitle>{expandedScreenshot?.stepName ?? 'Failure Screenshot'}</DialogTitle>
+            <DialogDescription>Captured from the failed scenario step.</DialogDescription>
+          </DialogHeader>
+          {expandedScreenshot && (
+            <Image
+              src={`/api/reports/steps/${expandedScreenshot.stepId}/screenshot`}
+              alt={`Failure screenshot for step ${expandedScreenshot.stepName}`}
+              width={1600}
+              height={900}
+              unoptimized
+              className="max-h-[75vh] w-full rounded-md border object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

@@ -15,12 +15,15 @@ import OngoingTestRunsCard from './(dashboard-components)/ongoing-test-runs-card
 import { DataCardGrid } from './(dashboard-components)/data-card-grid'
 import { ExecutionHealthPanel } from './(dashboard-components)/execution-health-panel'
 
+export const dynamic = 'force-dynamic'
+
 const Dashboard = async () => {
   const metricsResponse = await getDashboardMetricsAction()
   const metrics = metricsResponse.status === 200 ? (metricsResponse.data as DashboardMetrics | null) : null
 
   const entityMetricsResponse = await getEntityMetricsAction()
-  const entityMetrics = entityMetricsResponse.status === 200 ? (entityMetricsResponse.data as unknown as EntityMetrics) : null
+  const entityMetrics =
+    entityMetricsResponse.status === 200 ? (entityMetricsResponse.data as unknown as EntityMetrics) : null
   if (!entityMetrics) {
     return <div>Error loading entity metrics</div>
   }
@@ -30,15 +33,13 @@ const Dashboard = async () => {
   // Fetch test suite execution data
   const testSuiteExecutionResponse = await getTestSuiteExecutionDataAction()
   const testSuiteExecutionData =
-    testSuiteExecutionResponse.status === 200
-      ? (testSuiteExecutionResponse.data as TestSuiteExecutionData)
-      : []
+    testSuiteExecutionResponse.status === 200 ? (testSuiteExecutionResponse.data as TestSuiteExecutionData) : []
 
   return (
     <div>
       <div className="mb-8">
         <PageHeader>Dashboard</PageHeader>
-        <HeaderSubtitle>Welcome to the dashboard. Here you can see your test suites and run them.</HeaderSubtitle>
+        <HeaderSubtitle>Check metrics, entity states, execution health, and more</HeaderSubtitle>
       </div>
       <div className="flex gap-7" id="dashboard-content">
         <div className="flex flex-col gap-7">

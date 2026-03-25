@@ -2,6 +2,7 @@
 
 import prisma from '@/config/db-config'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { TagType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
@@ -29,7 +30,7 @@ export async function getAllTagsAction(): Promise<ActionResponse> {
 export async function deleteTagAction(ids: string[]): Promise<ActionResponse> {
   try {
     await prisma.tag.deleteMany({ where: { id: { in: ids } } })
-
+    await automationProjectionService.regenerateAllFeatures()
     revalidatePath('/tags')
 
     return {
@@ -50,6 +51,7 @@ export async function createTagAction(_prev: unknown, value: z.infer<typeof tagS
       data: value,
     })
 
+    await automationProjectionService.regenerateAllFeatures()
     revalidatePath('/tags')
 
     return {
@@ -88,6 +90,7 @@ export async function updateTagAction(
   try {
     const updatedTag = await prisma.tag.update({ where: { id }, data: value })
 
+    await automationProjectionService.regenerateAllFeatures()
     revalidatePath('/tags')
 
     return {

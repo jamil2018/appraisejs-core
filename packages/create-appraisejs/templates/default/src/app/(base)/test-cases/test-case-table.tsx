@@ -1,6 +1,6 @@
 import { deleteTestCaseAction, getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { DataTable } from '@/components/ui/data-table'
-import { TestCase, TestCaseStep } from '@prisma/client'
+import { TestCasePickerRow } from '@/types/test-case-picker'
 import { testCaseTableCols } from './test-case-table-columns'
 import { Cog, LayoutPanelTop } from 'lucide-react'
 
@@ -11,7 +11,7 @@ export default async function TestCaseTable() {
     <>
       <DataTable
         columns={testCaseTableCols}
-        data={testCases as (TestCase & { steps: TestCaseStep[] })[]}
+        data={testCases as TestCasePickerRow[]}
         filterColumn="title"
         filterPlaceholder="Filter by title..."
         modifyLink="/test-cases/modify"

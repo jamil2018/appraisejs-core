@@ -15,6 +15,7 @@ import { glob } from 'glob'
 import prisma from '../src/config/db-config'
 import { buildModuleHierarchy } from '../src/lib/module-hierarchy-builder'
 import { getLocatorGroupFilePath } from '../src/lib/locator-group-file-utils'
+import { extractModulePathFromAutomationFile } from '../src/lib/template-sync-utils'
 
 interface SyncResult {
   locatorsScanned: number
@@ -34,7 +35,7 @@ interface SyncResult {
  * Scans locator directory for all JSON files
  */
 async function scanLocatorFiles(baseDir: string): Promise<string[]> {
-  const pattern = 'src/tests/locators/**/*.json'
+  const pattern = 'automation/locators/**/*.json'
   try {
     const files = await glob(pattern, {
       cwd: baseDir,
@@ -47,14 +48,10 @@ async function scanLocatorFiles(baseDir: string): Promise<string[]> {
 
 /**
  * Extracts module path from locator file path
- * Example: src/tests/locators/users/admins/directors/directors.json -> /users/admins/directors
+ * Example: automation/locators/users/admins/directors/directors.json -> /users/admins/directors
  */
 function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  const testsDir = join(baseDir, 'src', 'tests')
-  const relativePath = filePath.replace(testsDir, '').replace(/\\/g, '/')
-  const pathParts = relativePath.split('/').filter(p => p && p !== 'locators')
-  const moduleParts = pathParts.slice(0, -1) // Remove filename
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
 }
 
 /**
@@ -368,7 +365,7 @@ async function main() {
     const baseDir = process.cwd()
 
     // Scan locator files
-    console.log('📁 Scanning src/tests/locators...')
+    console.log('📁 Scanning automation/locators...')
     const files = await scanLocatorFiles(baseDir)
     console.log(`   Found ${files.length} locator file(s)`)
 
@@ -399,4 +396,3 @@ async function main() {
 }
 
 main()
-

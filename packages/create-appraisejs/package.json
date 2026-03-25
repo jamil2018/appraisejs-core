@@ -1,6 +1,6 @@
 {
   "name": "create-appraisejs",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Scaffold a new AppraiseJS app in your directory",
   "license": "Apache-2.0",
   "author": "Hasnat Jamil",
@@ -33,16 +33,25 @@
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "templates/default/prisma/dev.db",
+    "templates/default/automation/config/environments/environments.json"
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "npm run sync-templates && tsc",
+    "build": "npm run prepare-template && tsc",
+    "prepare-template": "tsx scripts/prepare-template.ts",
     "sync-templates": "tsx scripts/sync-templates.ts",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "publish:alpha": "npm publish --tag alpha",
-    "publish:beta": "npm publish --tag beta"
+    "publish:beta": "npm publish --tag beta",
+    "bump:alpha": "npm version prerelease --preid alpha",
+    "bump:beta": "npm version prerelease --preid beta",
+    "bump:release": "npm version patch",
+    "bump:major": "npm version major",
+    "bump:minor": "npm version minor",
+    "bump:patch": "npm version patch"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.2.0",

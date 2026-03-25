@@ -7,11 +7,11 @@ import { Metadata } from 'next'
 import TestCasesMetricTable from './test-cases-metric-table'
 
 export const metadata: Metadata = {
-  title: 'Appraise | Test Cases Metrics Report',
-  description: 'Manage test cases report for identifying elements on pages',
+  title: 'Appraise | Failing Test Cases Report',
+  description: 'Manage failing test cases report for identifying elements on pages',
 }
 
-const TestCasesMetricsReport = async ({searchParams}: {searchParams: Promise<{filter?: string}>}) => {
+const TestCasesMetricsReport = async ({ searchParams }: { searchParams: Promise<{ filter?: string }> }) => {
   const resolvedSearchParams = await searchParams
   const filter = resolvedSearchParams?.filter as 'repeatedlyFailing' | 'flaky' | undefined
 
@@ -23,12 +23,10 @@ const TestCasesMetricsReport = async ({searchParams}: {searchParams: Promise<{fi
             <PageHeader>
               <span className="flex items-center">
                 <Code className="mr-2 h-8 w-8" />
-                Test Cases Report
+                Failing Test Cases Report
               </span>
             </PageHeader>
-            <HeaderSubtitle>
-              Test cases are the individual tests that are used to test a specific feature or functionality
-            </HeaderSubtitle>
+            <HeaderSubtitle>Report of test cases that have been failing repeatedly or are flaky</HeaderSubtitle>
           </div>
         </div>
       </div>

@@ -1,0 +1,29 @@
+2026-02-18 20:05:03 [INFO]: [dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+2026-02-18 20:05:03 [INFO]: Feature: login # src/tests/features/base/login.feature:6
+2026-02-18 20:05:03 [INFO]:   @tc_076b9e46c0fa1586
+2026-02-18 20:05:03 [INFO]:   Scenario: [navigation] validate user is able to navigate to the login page of the environment # src/tests/features/base/login.feature:9
+2026-02-18 20:05:03 [INFO]:     Given the user navigates to the base url of the selected environment
+2026-02-18 20:05:03 [INFO]:     Then the url route should be equal to "/login"
+2026-02-18 20:05:03 [INFO]:     ✖ failed
+2026-02-18 20:05:03 [INFO]:       Error: Failed to validate the equality of the current route to the route "/login": AssertionError: Expected the current route to be "/login": expected 'https://demo-test-site-beta.vercel.ap…' to equal '/login'
+2026-02-18 20:05:03 [INFO]:           at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/validations/navigation_assertion.step.ts:21:11)
+2026-02-18 20:05:03 [INFO]:           at runNextTicks (node:internal/process/task_queues:64:5)
+2026-02-18 20:05:03 [INFO]:           at process.processImmediate (node:internal/timers:472:9)
+2026-02-18 20:05:03 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[navigation] validate user is able to navigate to the login page of the environment","status":"failed","tracePath":"/Users/hasnat/Projects/appraise/src/tests/reports/traces/2efb0461-a2af-4064-9bfe-0e756913e8fe.zip"}}
+2026-02-18 20:05:03 [INFO]: {"event":"scenario::end","data":{"scenarioName":"[navigation] validate user is able to navigate to the login page of the environment","status":"failed","tracePath":"/Users/hasnat/Projects/appraise/src/tests/reports/traces/2efb0461-a2af-4064-9bfe-0e756913e8fe.zip"}}
+2026-02-18 20:05:03 [INFO]: Failures:
+2026-02-18 20:05:03 [INFO]: 1) Scenario: [navigation] validate user is able to navigate to the login page of the environment # src/tests/features/base/login.feature:9
+2026-02-18 20:05:03 [INFO]:    ✔ Before # src/tests/hooks/hooks.ts:40
+2026-02-18 20:05:03 [INFO]:    ✔ Given the user navigates to the base url of the selected environment # src/tests/steps/actions/navigation.step.ts:30
+2026-02-18 20:05:03 [INFO]:    ✖ Then the url route should be equal to "/login" # src/tests/steps/validations/navigation_assertion.step.ts:16
+2026-02-18 20:05:03 [INFO]:        Error: Failed to validate the equality of the current route to the route "/login": AssertionError: Expected the current route to be "/login": expected 'https://demo-test-site-beta.vercel.ap…' to equal '/login'
+2026-02-18 20:05:03 [INFO]:            at CustomWorld.<anonymous> (/Users/hasnat/Projects/appraise/src/tests/steps/validations/navigation_assertion.step.ts:21:11)
+2026-02-18 20:05:03 [INFO]:            at runNextTicks (node:internal/process/task_queues:64:5)
+2026-02-18 20:05:03 [INFO]:            at process.processImmediate (node:internal/timers:472:9)
+2026-02-18 20:05:03 [INFO]:    ✔ After # src/tests/hooks/hooks.ts:63
+2026-02-18 20:05:03 [INFO]: 1 scenario (1 failed)
+2026-02-18 20:05:03 [INFO]: 2 steps (1 failed, 1 passed)
+2026-02-18 20:05:03 [INFO]: 0m00.747s (executing steps: 0m00.494s)
+2026-02-18 20:05:03 [ERROR]: (node:75290) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+2026-02-18 20:05:03 [ERROR]: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-02-18 20:05:03 [INFO]: Process exited with code 1

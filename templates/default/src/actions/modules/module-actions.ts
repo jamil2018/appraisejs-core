@@ -2,6 +2,7 @@
 
 import prisma from '@/config/db-config'
 import { moduleSchema, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
+import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -36,6 +37,7 @@ export async function deleteModuleAction(ids: string[]): Promise<ActionResponse>
         id: { in: ids },
       },
     })
+    await automationProjectionService.regenerateAllPathDependentArtifacts()
     revalidatePath('/modules')
     return {
       status: 200,
@@ -53,7 +55,6 @@ export async function createModuleAction(_prev: unknown, value: z.infer<typeof m
   try {
     moduleSchema.parse(value)
 
-    // Convert the special root UUID to null for database storage
     const moduleData = {
       ...value,
       parentId: value.parentId === ROOT_MODULE_UUID ? null : value.parentId,
@@ -62,6 +63,7 @@ export async function createModuleAction(_prev: unknown, value: z.infer<typeof m
     const newModule = await prisma.module.create({
       data: moduleData,
     })
+    await automationProjectionService.regenerateAllPathDependentArtifacts()
     revalidatePath('/modules')
     return {
       status: 200,
@@ -108,7 +110,6 @@ export async function updateModuleAction(
   try {
     moduleSchema.parse(value)
 
-    // Convert the special root UUID to null for database storage
     const moduleData = {
       ...value,
       parentId: value.parentId === ROOT_MODULE_UUID ? null : value.parentId,
@@ -118,6 +119,7 @@ export async function updateModuleAction(
       where: { id },
       data: moduleData,
     })
+    await automationProjectionService.regenerateAllPathDependentArtifacts()
     revalidatePath('/modules')
     return {
       status: 200,

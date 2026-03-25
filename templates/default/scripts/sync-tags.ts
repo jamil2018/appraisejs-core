@@ -13,6 +13,7 @@ import { join } from 'path'
 import prisma from '../src/config/db-config'
 import { scanFeatureFiles, ParsedFeature } from '../src/lib/gherkin-parser'
 import { TagType } from '@prisma/client'
+import { getTagTypeFromName } from '../src/lib/tag-utils'
 
 interface TagData {
   name: string // Without @ prefix, for DB storage
@@ -90,8 +91,7 @@ function buildTagObjects(tagExpressions: Set<string>): TagData[] {
     // Strip @ prefix for name field
     const name = tagExpression.startsWith('@') ? tagExpression.substring(1) : tagExpression
 
-    // Determine type: IDENTIFIER if starts with tc_, otherwise FILTER
-    const type = name.startsWith('tc_') ? TagType.IDENTIFIER : TagType.FILTER
+    const type = getTagTypeFromName(name)
 
     tagObjects.push({
       name,
@@ -235,10 +235,10 @@ async function main() {
     console.log('Filesystem is the source of truth - tags in DB but not in FS will be deleted.\n')
 
     const baseDir = process.cwd()
-    const featuresDir = join(baseDir, 'src', 'tests', 'features')
+    const featuresDir = join(baseDir, 'automation', 'features')
 
     // Scan feature files
-    console.log('📁 Scanning feature files in src/tests/features...')
+    console.log('📁 Scanning feature files in automation/features...')
     const parsedFeatures = await scanFeatureFiles(featuresDir)
     console.log(`   Found ${parsedFeatures.length} feature file(s)`)
 
@@ -289,4 +289,3 @@ async function main() {
 }
 
 main()
-

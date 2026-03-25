@@ -1,13 +1,15 @@
-import { input, select, confirm } from '@inquirer/prompts';
+import { checkbox, confirm, input, select } from '@inquirer/prompts';
 import path from 'path';
 import fs from 'fs';
 
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
+export type PlaywrightBrowser = 'chromium' | 'firefox' | 'webkit';
 
 export interface PromptAnswers {
   directory: string;
   packageManager: PackageManager;
   runInstall: boolean;
+  playwrightBrowsers: PlaywrightBrowser[];
 }
 
 const DEFAULT_DIR = './my-appraisejs-app';
@@ -63,9 +65,18 @@ export async function runPrompts(cwd: string): Promise<PromptAnswers> {
   });
 
   const runInstall = await confirm({
-    message: 'Would you like to run the package installation now?',
+    message: 'Would you like to run the production setup now?',
     default: true,
   });
 
-  return { directory: resolved, packageManager, runInstall };
+  const playwrightBrowsers = await checkbox<PlaywrightBrowser>({
+    message: 'Which Playwright browsers should we install?',
+    choices: [
+      { name: 'Chromium', value: 'chromium' },
+      { name: 'Firefox', value: 'firefox' },
+      { name: 'WebKit', value: 'webkit' },
+    ],
+  });
+
+  return { directory: resolved, packageManager, runInstall, playwrightBrowsers };
 }
