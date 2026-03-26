@@ -9,12 +9,16 @@
  */
 
 import { performBidirectionalSync, performDryRunSync } from '../src/lib/bidirectional-sync'
-import { join } from 'path'
+import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '../src/lib/automation/paths'
 
-async function main() {
+/**
+ * Runs bidirectional feature sync in dry-run or apply mode.
+ */
+async function main(): Promise<void> {
   try {
     const isDryRun = process.argv.includes('--dry-run')
-    const featuresBaseDir = join(process.cwd(), 'src', 'tests', 'features')
+    await ensureAutomationWorkspaceReady()
+    const featuresBaseDir = getAutomationFeaturesDir()
 
     if (isDryRun) {
       console.log('🔍 Performing dry run of bidirectional sync...')
