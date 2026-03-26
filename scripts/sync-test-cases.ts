@@ -23,6 +23,16 @@ import {
   getTestSuiteFilesystemKey,
   normalizeProjectedDbTestCaseSteps,
 } from '../src/lib/sync/projected-feature-utils'
+import { extractTestSuiteNameFromFilename } from './lib/filename-utils'
+import { splitTagLine } from './lib/tag-parsing'
+import {
+  determineStepTypeAndIcon,
+  findMatchingTemplateStep,
+  sameResolvedParameters,
+  ParameterMatch,
+} from './lib/step-matcher'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 interface TestCaseFromFS {
   identifierTag: string // @tc_... tag
@@ -33,19 +43,6 @@ interface TestCaseFromFS {
   filterTags: string[] // Scenario tags excluding @tc_...
   steps: ParsedStep[] // From scenario steps
   filePath: string // Feature file path
-}
-
-interface ParameterMatch {
-  name: string
-  value: string
-  order: number
-  type: StepParameterType
-}
-
-interface TemplateStepMatch {
-  templateStepId: string
-  signature: string
-  parameters: ParameterMatch[]
 }
 
 interface SyncResult {
@@ -59,26 +56,6 @@ interface SyncResult {
   createdTestCases: Array<{ identifierTag: string; title: string }>
   updatedTestCases: Array<{ identifierTag: string; title: string }>
   deletedTestCases: Array<{ identifierTag: string; title: string }>
-}
-
-/**
- * Extracts test suite name from filename
- * Example: "login-validation.feature" -> "login-validation"
- */
-function extractTestSuiteNameFromFilename(filePath: string): string {
-  const fileName = filePath.split(/[/\\]/).pop() || ''
-  return fileName.replace(/\.feature$/, '')
-}
-
-/**
- * Splits a tag line that may contain multiple tags separated by spaces
- * Example: "@smoke @demo" -> ["@smoke", "@demo"]
- */
-function splitTagLine(tagLine: string): string[] {
-  return tagLine
-    .split(/\s+/)
-    .filter(tag => tag.trim().startsWith('@'))
-    .map(tag => tag.trim())
 }
 
 /**
@@ -172,149 +149,6 @@ async function scanTestCasesFromFilesystem(featuresDir: string): Promise<TestCas
 }
 
 /**
- * Converts template step signature to regex pattern
- * Replaces placeholders like {string}, {int}, {boolean} with regex patterns
- */
-function signatureToRegex(signature: string): RegExp {
-  // Escape special regex characters except placeholders
-  let pattern = signature.replace(/[.*+?^${}()|[\]\\]/g, match => {
-    // Don't escape { and } as they're our placeholders
-    if (match === '{' || match === '}') return match
-    return '\\' + match
-  })
-
-  // Replace placeholders with regex patterns
-  pattern = pattern.replace(/\{string\}/g, '"([^"]+)"') // Matches quoted strings
-  pattern = pattern.replace(/\{int\}/g, '(\\d+)') // Matches integers
-  pattern = pattern.replace(/\{boolean\}/g, '(true|false)') // Matches booleans
-  pattern = pattern.replace(/\{number\}/g, '(\\d+(?:\\.\\d+)?)') // Matches numbers (int or float)
-
-  // Create regex with case-insensitive matching and word boundaries
-  return new RegExp(`^${pattern}$`, 'i')
-}
-
-/**
- * Extracts parameters from gherkin step text based on template step signature
- */
-function extractParametersFromGherkinStep(
-  gherkinText: string,
-  signature: string,
-  templateStepParameters: Array<{ name: string; order: number; type: StepParameterType }>,
-): ParameterMatch[] | null {
-  const regex = signatureToRegex(signature)
-  const match = gherkinText.match(regex)
-
-  if (!match) {
-    return null
-  }
-
-  // Extract captured groups (skip index 0 which is the full match)
-  const capturedValues = match.slice(1)
-  const parameters: ParameterMatch[] = []
-
-  // Map captured values to template step parameters by order
-  for (let i = 0; i < capturedValues.length && i < templateStepParameters.length; i++) {
-    const param = templateStepParameters[i]
-    const value = capturedValues[i]
-
-    if (value !== undefined) {
-      parameters.push({
-        name: param.name,
-        value: value,
-        order: param.order,
-        type: param.type,
-      })
-    }
-  }
-
-  return parameters
-}
-
-/**
- * Matches a gherkin step to a template step by pattern matching
- * Returns the template step ID and extracted parameters, or null if no match found
- * Note: Template step signatures don't include the keyword, so we match against step.text only
- */
-async function matchGherkinStepToTemplateStep(gherkinStep: ParsedStep): Promise<TemplateStepMatch | null> {
-  try {
-    // Get all template steps from database
-    const templateSteps = await prisma.templateStep.findMany({
-      include: {
-        parameters: {
-          orderBy: {
-            order: 'asc',
-          },
-        },
-      },
-    })
-
-    // Try to match against each template step signature
-    // Template step signatures don't include the keyword, so match against step.text
-    for (const templateStep of templateSteps) {
-      // Try to match the gherkin step text (without keyword) against the signature
-      const parameters = extractParametersFromGherkinStep(
-        gherkinStep.text,
-        templateStep.signature,
-        templateStep.parameters.map(p => ({
-          name: p.name,
-          order: p.order,
-          type: p.type,
-        })),
-      )
-
-      if (parameters !== null) {
-        return {
-          templateStepId: templateStep.id,
-          signature: templateStep.signature,
-          parameters,
-        }
-      }
-    }
-
-    return null
-  } catch (error) {
-    console.error(`Error matching gherkin step to template step:`, error)
-    return null
-  }
-}
-
-/**
- * Determines the step type and icon based on the Gherkin keyword
- */
-function determineStepTypeAndIcon(keyword: string): { type: TemplateStepType; icon: TemplateStepIcon } {
-  const lowerKeyword = keyword.toLowerCase().trim()
-
-  if (lowerKeyword === 'given') {
-    return { type: 'ACTION', icon: 'NAVIGATION' }
-  } else if (lowerKeyword === 'when') {
-    return { type: 'ACTION', icon: 'MOUSE' }
-  } else if (lowerKeyword === 'then') {
-    return { type: 'ASSERTION', icon: 'VALIDATION' }
-  } else if (lowerKeyword === 'and' || lowerKeyword === 'but') {
-    return { type: 'ACTION', icon: 'MOUSE' }
-  } else {
-    // Default fallback
-    return { type: 'ACTION', icon: 'MOUSE' }
-  }
-}
-
-function sameResolvedParameters(left: ParameterMatch[], right: ParameterMatch[]): boolean {
-  if (left.length !== right.length) {
-    return false
-  }
-
-  return left.every((parameter, index) => {
-    const other = right[index]
-    return (
-      parameter.name === other?.name &&
-      parameter.value === other?.value &&
-      parameter.order === other?.order &&
-      parameter.type === other?.type
-    )
-  })
-}
-
-/**
  * Finds or creates a tag by tag expression
  * If the tag exists but has a different type, updates it to the correct type
  */
@@ -354,12 +188,67 @@ async function findOrCreateTag(tagExpression: string, type: TagType): Promise<st
   }
 }
 
+async function deleteTestCaseWithCascade(
+  testCaseId: string,
+  identifierTagId?: string,
+): Promise<void> {
+  // Keep deletes in dependency order to satisfy RESTRICT constraints and
+  // mirror domain-level delete behavior in a single transactional boundary.
+  await prisma.$transaction(async tx => {
+    await tx.testRunTestCase.deleteMany({
+      where: { testCaseId },
+    })
+    await tx.review.deleteMany({
+      where: { testCaseId },
+    })
+    await tx.linkedJiraTicket.deleteMany({
+      where: { testCaseId },
+    })
+    await tx.testCaseStepParameter.deleteMany({
+      where: {
+        testCaseStep: { testCaseId },
+      },
+    })
+    await tx.testCaseStep.deleteMany({
+      where: { testCaseId },
+    })
+
+    if (identifierTagId) {
+      const otherTestCasesWithTag = await tx.testCase.findMany({
+        where: {
+          tags: { some: { id: identifierTagId } },
+          id: { not: testCaseId },
+        },
+      })
+      if (otherTestCasesWithTag.length === 0) {
+        await tx.tag.delete({
+          where: { id: identifierTagId },
+        })
+      }
+    }
+
+    await tx.testCase.delete({
+      where: { id: testCaseId },
+    })
+  })
+}
+
 /**
  * Syncs test case steps to database
  */
-async function syncTestCaseSteps(testCaseId: string, steps: ParsedStep[], result: SyncResult): Promise<void> {
+async function syncTestCaseSteps(
+  testCaseId: string,
+  steps: ParsedStep[],
+  templateSteps: Array<{
+    id: string
+    signature: string
+    parameters: Array<{ name: string; order: number; type: StepParameterType }>
+  }>,
+  result: SyncResult,
+): Promise<void> {
   try {
-    // Get existing steps
+    // Load current persisted step state once so we can diff by order and apply
+    // minimal mutations for idempotent sync runs.
     const existingSteps = await prisma.testCaseStep.findMany({
       where: { testCaseId },
       orderBy: { order: 'asc' },
@@ -373,13 +262,13 @@ async function syncTestCaseSteps(testCaseId: string, steps: ParsedStep[], result
       },
     })
 
-    // Create a map of existing steps by order
+    // Order is the stable identity within a scenario for synchronization.
     const existingStepsMap = new Map(existingSteps.map(step => [step.order, step]))
     const projectedExistingStepsMap = new Map(normalizeProjectedDbTestCaseSteps(existingSteps).map(step => [step.order, step]))
 
     // Process each step from filesystem
     for (const step of steps) {
-      const match = await matchGherkinStepToTemplateStep(step)
+      const match = findMatchingTemplateStep(step, templateSteps)
 
       if (!match) {
         result.warnings.push(
@@ -403,7 +292,8 @@ async function syncTestCaseSteps(testCaseId: string, steps: ParsedStep[], result
           projectedExistingStep.templateStepSignature === match.signature &&
           sameResolvedParameters(projectedExistingStep.parameters, match.parameters)
 
-        // Update existing step if needed
+        // First compare with projected state (normalizes icon/signature/params) to
+        // avoid redundant writes from representational differences.
         const needsUpdate =
           !matchesProjectedState &&
           (existingStep.gherkinStep !== gherkinStep ||
@@ -483,207 +373,195 @@ async function syncTestCaseSteps(testCaseId: string, steps: ParsedStep[], result
   }
 }
 
-/**
- * Syncs test cases from filesystem to database
- */
-async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result: SyncResult): Promise<void> {
-  console.log('\n✅ Syncing test cases to database...')
+type TemplateStepForMatch = Array<{
+  id: string
+  signature: string
+  parameters: Array<{ name: string; order: number; type: StepParameterType }>
+}>
 
-  // Track test cases from filesystem (by identifier tag)
-  const fsTestCaseTags = new Set<string>()
-  const suitesByModuleId = new Map<string, Array<{ id: string; name: string }>>()
+async function upsertTestCase(
+  testCase: TestCaseFromFS,
+  templateSteps: TemplateStepForMatch,
+  suitesByModuleId: Map<string, Array<{ id: string; name: string }>>,
+  result: SyncResult,
+): Promise<void> {
+  // Resolve module + suite first so create/update paths share the same identity anchor.
+  // Ensure module exists
+  let moduleId = await findModuleByPath(testCase.modulePath)
 
-  for (const testCase of testCasesFromFS) {
-    try {
-      fsTestCaseTags.add(testCase.identifierTag)
+  if (!moduleId) {
+    console.log(`   📦 Creating module hierarchy for path: ${testCase.modulePath}`)
+    moduleId = await buildModuleHierarchy(testCase.modulePath)
+  }
 
-      // Ensure module exists
-      let moduleId = await findModuleByPath(testCase.modulePath)
+  // Find test suite
+  let moduleSuites = suitesByModuleId.get(moduleId)
+  if (!moduleSuites) {
+    moduleSuites = await prisma.testSuite.findMany({
+      where: {
+        moduleId: moduleId,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    })
+    suitesByModuleId.set(moduleId, moduleSuites)
+  }
 
-      if (!moduleId) {
-        console.log(`   📦 Creating module hierarchy for path: ${testCase.modulePath}`)
-        moduleId = await buildModuleHierarchy(testCase.modulePath)
-      }
+  const testSuite = moduleSuites.find(
+    suite => getTestSuiteFilesystemKey(suite.name) === getTestSuiteFilesystemKey(testCase.testSuiteName),
+  )
 
-      // Find test suite
-      let moduleSuites = suitesByModuleId.get(moduleId)
-      if (!moduleSuites) {
-        moduleSuites = await prisma.testSuite.findMany({
-          where: {
-            moduleId: moduleId,
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-        })
-        suitesByModuleId.set(moduleId, moduleSuites)
-      }
+  if (!testSuite) {
+    result.errors.push(`Test suite '${testCase.testSuiteName}' not found in module '${testCase.modulePath}'`)
+    console.error(`   ❌ Test suite '${testCase.testSuiteName}' not found in module '${testCase.modulePath}'`)
+    return
+  }
 
-      const testSuite = moduleSuites.find(
-        suite => getTestSuiteFilesystemKey(suite.name) === getTestSuiteFilesystemKey(testCase.testSuiteName),
-      )
+  const identifierTagName = testCase.identifierTag.startsWith('@')
+    ? testCase.identifierTag.substring(1)
+    : testCase.identifierTag
 
-      if (!testSuite) {
-        result.errors.push(`Test suite '${testCase.testSuiteName}' not found in module '${testCase.modulePath}'`)
-        console.error(`   ❌ Test suite '${testCase.testSuiteName}' not found in module '${testCase.modulePath}'`)
-        continue
-      }
-
-      // Find identifier tag
-      const identifierTagName = testCase.identifierTag.startsWith('@')
-        ? testCase.identifierTag.substring(1)
-        : testCase.identifierTag
-
-      // Find test case by identifier tag
-      const identifierTag = await prisma.tag.findFirst({
-        where: {
-          name: identifierTagName,
-          type: TagType.IDENTIFIER,
-        },
+  const identifierTag = await prisma.tag.findFirst({
+    where: {
+      name: identifierTagName,
+      type: TagType.IDENTIFIER,
+    },
+    include: {
+      testCases: {
         include: {
-          testCases: {
-            include: {
-              TestSuite: true,
-            },
-          },
+          TestSuite: true,
         },
-      })
+      },
+    },
+  })
 
-      // Find filter tag IDs
-      const filterTagIds: string[] = []
-      for (const filterTagExpr of testCase.filterTags) {
-        const tagId = await findOrCreateTag(filterTagExpr, TagType.FILTER)
-        if (tagId) {
-          filterTagIds.push(tagId)
-        }
-      }
-
-      if (identifierTag && identifierTag.testCases.length > 0) {
-        // Test case exists - update it
-        const matchedExistingTestCaseSummary =
-          identifierTag.testCases.find(existingCase => existingCase.TestSuite.some(suite => suite.id === testSuite.id)) ??
-          identifierTag.testCases[0]
-        const existingTestCase = await prisma.testCase.findUnique({
-          where: { id: matchedExistingTestCaseSummary.id },
-          include: {
-            tags: true,
-            TestSuite: true,
-          },
-        })
-
-        if (!existingTestCase) {
-          result.errors.push(`Test case with identifier tag '${testCase.identifierTag}' not found`)
-          continue
-        }
-
-        // Check if update is needed
-        const currentFilterTagIds =
-          existingTestCase.tags
-            .filter(t => t.type === TagType.FILTER)
-            .map(t => t.id)
-            .sort() || []
-
-        const newFilterTagIds = filterTagIds.sort()
-        const tagsChanged = JSON.stringify(currentFilterTagIds) !== JSON.stringify(newFilterTagIds)
-        const isAssociated = existingTestCase.TestSuite.some(ts => ts.id === testSuite.id)
-
-        const needsUpdate =
-          existingTestCase.title !== testCase.title ||
-          existingTestCase.description !== testCase.description ||
-          tagsChanged ||
-          !isAssociated
-
-        if (needsUpdate) {
-          await prisma.testCase.update({
-            where: { id: existingTestCase.id },
-            data: {
-              title: testCase.title,
-              description: testCase.description,
-              tags: {
-                set: [identifierTag.id, ...filterTagIds].map(id => ({ id })),
-              },
-              TestSuite: isAssociated
-                ? undefined // Don't change associations if already connected
-                : {
-                    connect: [{ id: testSuite.id }], // Add test suite if not already connected
-                  },
-            },
-          })
-
-          result.testCasesUpdated++
-          result.updatedTestCases.push({
-            identifierTag: testCase.identifierTag,
-            title: testCase.title,
-          })
-          console.log(`   🔄 Updated test case '${testCase.title}' (${testCase.identifierTag})`)
-        } else {
-          result.testCasesExisting++
-          console.log(`   ✓ Test case '${testCase.title}' (${testCase.identifierTag}) already up to date`)
-        }
-
-        // Sync steps
-        await syncTestCaseSteps(existingTestCase.id, testCase.steps, result)
-      } else {
-        // Test case doesn't exist - create it
-        // First ensure identifier tag exists
-        const identifierTagId = await findOrCreateTag(testCase.identifierTag, TagType.IDENTIFIER)
-
-        if (!identifierTagId) {
-          result.errors.push(`Failed to create identifier tag '${testCase.identifierTag}'`)
-          console.error(`   ❌ Failed to create identifier tag '${testCase.identifierTag}'`)
-          continue
-        }
-
-        const newTestCase = await prisma.testCase.create({
-          data: {
-            title: testCase.title,
-            description: testCase.description,
-            tags: {
-              connect: [identifierTagId, ...filterTagIds].map(id => ({ id })),
-            },
-            TestSuite: {
-              connect: [{ id: testSuite.id }],
-            },
-          },
-          include: {
-            tags: true,
-          },
-        })
-
-        // Verify identifier tag is associated
-        const hasIdentifierTag = newTestCase.tags.some(t => t.type === TagType.IDENTIFIER)
-        if (!hasIdentifierTag) {
-          result.errors.push(
-            `Test case '${testCase.title}' was created but identifier tag '${testCase.identifierTag}' was not associated`,
-          )
-          console.error(
-            `   ❌ Test case '${testCase.title}' was created but identifier tag '${testCase.identifierTag}' was not associated`,
-          )
-        }
-
-        result.testCasesCreated++
-        result.createdTestCases.push({
-          identifierTag: testCase.identifierTag,
-          title: testCase.title,
-        })
-        console.log(`   ➕ Created test case '${testCase.title}' (${testCase.identifierTag})`)
-
-        // Sync steps
-        await syncTestCaseSteps(newTestCase.id, testCase.steps, result)
-      }
-    } catch (error) {
-      const errorMsg = `Error processing test case '${testCase.title}' from ${testCase.filePath}: ${error}`
-      result.errors.push(errorMsg)
-      console.error(`   ❌ ${errorMsg}`)
+  const filterTagIds: string[] = []
+  // FILTER tags are opportunistically created during test-case sync; identifier tags
+  // are handled separately because they define test-case identity.
+  for (const filterTagExpr of testCase.filterTags) {
+    const tagId = await findOrCreateTag(filterTagExpr, TagType.FILTER)
+    if (tagId) {
+      filterTagIds.push(tagId)
     }
   }
 
-  // Delete orphaned test cases (test cases in DB but not in FS)
+  if (identifierTag && identifierTag.testCases.length > 0) {
+    // Prefer a suite-matching case when tags are reused; fallback preserves legacy data.
+    const matchedExistingTestCaseSummary =
+      identifierTag.testCases.find(existingCase => existingCase.TestSuite.some(suite => suite.id === testSuite.id)) ??
+      identifierTag.testCases[0]
+    const existingTestCase = await prisma.testCase.findUnique({
+      where: { id: matchedExistingTestCaseSummary.id },
+      include: {
+        tags: true,
+        TestSuite: true,
+      },
+    })
+
+    if (!existingTestCase) {
+      result.errors.push(`Test case with identifier tag '${testCase.identifierTag}' not found`)
+      return
+    }
+
+    const currentFilterTagIds =
+      existingTestCase.tags
+        .filter(t => t.type === TagType.FILTER)
+        .map(t => t.id)
+        .sort() || []
+
+    const newFilterTagIds = filterTagIds.sort()
+    const tagsChanged = JSON.stringify(currentFilterTagIds) !== JSON.stringify(newFilterTagIds)
+    const isAssociated = existingTestCase.TestSuite.some(ts => ts.id === testSuite.id)
+
+    const needsUpdate =
+      existingTestCase.title !== testCase.title ||
+      existingTestCase.description !== testCase.description ||
+      tagsChanged ||
+      !isAssociated
+
+    if (needsUpdate) {
+      await prisma.testCase.update({
+        where: { id: existingTestCase.id },
+        data: {
+          title: testCase.title,
+          description: testCase.description,
+          tags: {
+            set: [identifierTag.id, ...filterTagIds].map(id => ({ id })),
+          },
+          TestSuite: isAssociated
+            ? undefined
+            : {
+                connect: [{ id: testSuite.id }],
+              },
+        },
+      })
+
+      result.testCasesUpdated++
+      result.updatedTestCases.push({
+        identifierTag: testCase.identifierTag,
+        title: testCase.title,
+      })
+      console.log(`   🔄 Updated test case '${testCase.title}' (${testCase.identifierTag})`)
+    } else {
+      result.testCasesExisting++
+      console.log(`   ✓ Test case '${testCase.title}' (${testCase.identifierTag}) already up to date`)
+    }
+
+    await syncTestCaseSteps(existingTestCase.id, testCase.steps, templateSteps, result)
+    return
+  }
+
+  const identifierTagId = await findOrCreateTag(testCase.identifierTag, TagType.IDENTIFIER)
+
+  if (!identifierTagId) {
+    result.errors.push(`Failed to create identifier tag '${testCase.identifierTag}'`)
+    console.error(`   ❌ Failed to create identifier tag '${testCase.identifierTag}'`)
+    return
+  }
+
+  const newTestCase = await prisma.testCase.create({
+    data: {
+      title: testCase.title,
+      description: testCase.description,
+      tags: {
+        connect: [identifierTagId, ...filterTagIds].map(id => ({ id })),
+      },
+      TestSuite: {
+        connect: [{ id: testSuite.id }],
+      },
+    },
+    include: {
+      tags: true,
+    },
+  })
+
+  const hasIdentifierTag = newTestCase.tags.some(t => t.type === TagType.IDENTIFIER)
+  if (!hasIdentifierTag) {
+    result.errors.push(
+      `Test case '${testCase.title}' was created but identifier tag '${testCase.identifierTag}' was not associated`,
+    )
+    console.error(
+      `   ❌ Test case '${testCase.title}' was created but identifier tag '${testCase.identifierTag}' was not associated`,
+    )
+  }
+
+  result.testCasesCreated++
+  result.createdTestCases.push({
+    identifierTag: testCase.identifierTag,
+    title: testCase.title,
+  })
+  console.log(`   ➕ Created test case '${testCase.title}' (${testCase.identifierTag})`)
+
+  await syncTestCaseSteps(newTestCase.id, testCase.steps, templateSteps, result)
+}
+
+async function deleteOrphanedTestCases(fsTestCaseTags: Set<string>, result: SyncResult): Promise<void> {
   console.log('\n🔍 Checking for orphaned test cases (not in filesystem)...')
   const allDbTestCases = await prisma.testCase.findMany({
     include: {
-      tags: true, // Include all tags, not just identifier tags
+      tags: true,
     },
   })
 
@@ -691,56 +569,9 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
     try {
       const identifierTag = dbTestCase.tags.find(t => t.type === TagType.IDENTIFIER)
 
-      // Test cases without identifier tags cannot be synced from filesystem
-      // and should be deleted as orphaned
       if (!identifierTag) {
         console.log(`   ⚠️  Test case '${dbTestCase.title}' has no identifier tag - will be deleted as orphaned`)
-
-        // Delete the test case and all related records in a transaction
-        await prisma.$transaction(async tx => {
-          // Delete all test run test cases (has RESTRICT constraint, must be deleted first)
-          await tx.testRunTestCase.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete all reviews
-          await tx.review.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete all linked Jira tickets
-          await tx.linkedJiraTicket.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete all step parameters
-          await tx.testCaseStepParameter.deleteMany({
-            where: {
-              testCaseStep: {
-                testCaseId: dbTestCase.id,
-              },
-            },
-          })
-
-          // Delete all test case steps
-          await tx.testCaseStep.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete the test case
-          await tx.testCase.delete({
-            where: { id: dbTestCase.id },
-          })
-        })
-
+        await deleteTestCaseWithCascade(dbTestCase.id)
         result.testCasesDeleted++
         result.deletedTestCases.push({
           identifierTag: '(no identifier tag)',
@@ -750,12 +581,10 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
         continue
       }
 
-      // Normalize tagExpression to ensure consistent format comparison
-      // fsTestCaseTags contains normalized tags (with @ prefix), so we need to normalize
-      // the database tagExpression before comparing
       const identifierTagExpr = normalizeTagExpression(identifierTag.tagExpression)
+      // Compare normalized expressions because filesystem tags are always normalized
+      // with '@', while historical DB entries may not be.
       if (!fsTestCaseTags.has(identifierTagExpr)) {
-        // Check if test case has test runs (for logging)
         const testRunTestCases = await prisma.testRunTestCase.findMany({
           where: { testCaseId: dbTestCase.id },
         })
@@ -766,72 +595,7 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
           )
         }
 
-        // Delete the test case and all related records in a transaction
-        // Following the same pattern as deleteTestCaseAction
-        await prisma.$transaction(async tx => {
-          // Delete all test run test cases (has RESTRICT constraint, must be deleted first)
-          await tx.testRunTestCase.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete all reviews
-          await tx.review.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete all linked Jira tickets
-          await tx.linkedJiraTicket.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete all step parameters
-          await tx.testCaseStepParameter.deleteMany({
-            where: {
-              testCaseStep: {
-                testCaseId: dbTestCase.id,
-              },
-            },
-          })
-
-          // Delete all test case steps
-          await tx.testCaseStep.deleteMany({
-            where: {
-              testCaseId: dbTestCase.id,
-            },
-          })
-
-          // Delete the identifier tag (only if it's not used by other test cases)
-          // Check if any other test case uses this tag
-          const otherTestCasesWithTag = await tx.testCase.findMany({
-            where: {
-              tags: {
-                some: {
-                  id: identifierTag.id,
-                },
-              },
-              id: {
-                not: dbTestCase.id,
-              },
-            },
-          })
-
-          if (otherTestCasesWithTag.length === 0) {
-            await tx.tag.delete({
-              where: { id: identifierTag.id },
-            })
-          }
-
-          // Delete the test case
-          await tx.testCase.delete({
-            where: { id: dbTestCase.id },
-          })
-        })
+        await deleteTestCaseWithCascade(dbTestCase.id, identifierTag.id)
 
         result.testCasesDeleted++
         result.deletedTestCases.push({
@@ -849,59 +613,41 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
 }
 
 /**
- * Generates and displays sync summary
+ * Syncs test cases from filesystem to database
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Test cases scanned: ${result.testCasesScanned}`)
-  console.log(`   ✅ Test cases existing: ${result.testCasesExisting}`)
-  console.log(`   ➕ Test cases created: ${result.testCasesCreated}`)
-  console.log(`   🔄 Test cases updated: ${result.testCasesUpdated}`)
-  console.log(`   🗑️  Test cases deleted: ${result.testCasesDeleted}`)
-  console.log(`   ⚠️  Warnings: ${result.warnings.length}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
+async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result: SyncResult): Promise<void> {
+  console.log('\n✅ Syncing test cases to database...')
+  // Fixes prior N+1 behavior: template steps are loaded once and reused for
+  // every gherkin step match in this sync run.
+  const templateSteps = await prisma.templateStep.findMany({
+    include: {
+      parameters: {
+        orderBy: { order: 'asc' },
+      },
+    },
+  })
 
-  if (result.createdTestCases.length > 0) {
-    console.log('\n   Created test cases:')
-    result.createdTestCases.forEach((tc, index) => {
-      console.log(`      ${index + 1}. ${tc.title} (${tc.identifierTag})`)
-    })
-  }
+  // Track test cases from filesystem (by identifier tag)
+  const fsTestCaseTags = new Set<string>()
+  const suitesByModuleId = new Map<string, Array<{ id: string; name: string }>>()
 
-  if (result.updatedTestCases.length > 0) {
-    console.log('\n   Updated test cases:')
-    result.updatedTestCases.forEach((tc, index) => {
-      console.log(`      ${index + 1}. ${tc.title} (${tc.identifierTag})`)
-    })
+  for (const testCase of testCasesFromFS) {
+    try {
+      fsTestCaseTags.add(testCase.identifierTag)
+      await upsertTestCase(testCase, templateSteps, suitesByModuleId, result)
+    } catch (error) {
+      const errorMsg = `Error processing test case '${testCase.title}' from ${testCase.filePath}: ${error}`
+      result.errors.push(errorMsg)
+      console.error(`   ❌ ${errorMsg}`)
+    }
   }
-
-  if (result.deletedTestCases.length > 0) {
-    console.log('\n   Deleted test cases:')
-    result.deletedTestCases.forEach((tc, index) => {
-      console.log(`      ${index + 1}. ${tc.title} (${tc.identifierTag})`)
-    })
-  }
-
-  if (result.warnings.length > 0) {
-    console.log('\n   Warnings:')
-    result.warnings.forEach((warning, index) => {
-      console.log(`      ${index + 1}. ${warning}`)
-    })
-  }
-
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
+  await deleteOrphanedTestCases(fsTestCaseTags, result)
 }
 
 /**
- * Main function
+ * Generates and displays sync summary
  */
-async function main() {
-  try {
+async function main(): Promise<SyncResult | void> {
     console.log('🔄 Starting test cases sync...')
     console.log('This will scan feature files and sync test cases to database.')
     console.log('Filesystem is the source of truth - test cases in DB but not in FS will be deleted.\n')
@@ -939,22 +685,35 @@ async function main() {
     // Sync to database
     await syncTestCasesToDatabase(testCasesFromFS, result)
 
-    // Generate summary
-    generateSummary(result)
-
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    printSyncSummary(
+      [
+        { label: '📁 Test cases scanned', value: result.testCasesScanned },
+        { label: '✅ Test cases existing', value: result.testCasesExisting },
+        { label: '➕ Test cases created', value: result.testCasesCreated },
+        { label: '🔄 Test cases updated', value: result.testCasesUpdated },
+        { label: '🗑️  Test cases deleted', value: result.testCasesDeleted },
+        { label: '⚠️  Warnings', value: result.warnings.length },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        {
+          title: 'Created test cases',
+          items: result.createdTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
+        },
+        {
+          title: 'Updated test cases',
+          items: result.updatedTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
+        },
+        {
+          title: 'Deleted test cases',
+          items: result.deletedTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
+        },
+        { title: 'Warnings', items: result.warnings },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
+    return result
 }
 
-main()
+runSyncScript(main)
 

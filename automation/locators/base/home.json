@@ -1,1 +1,3 @@
-{}
+{
+  "welcome": "role=text[id=\"welcome\"]"
+}

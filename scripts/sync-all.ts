@@ -16,7 +16,9 @@ import {
   SYNC_ALL_REQUEST_ID,
   type SyncScriptId,
 } from '../src/lib/sync/sync-registry'
+import { printSyncSummary } from './lib/sync-summary'
 const SYNC_SCRIPT_IDS = resolveRequestedSyncExecutionOrder(SYNC_ALL_REQUEST_ID)
+const DIVIDER = '='.repeat(80)
 
 interface DatabaseChanges {
   scanned: number
@@ -48,6 +50,15 @@ interface SyncSummary {
   totalDbChanges: DatabaseChanges
 }
 
+const DB_CHANGE_PATTERNS: Array<{ key: keyof DatabaseChanges; regex: RegExp }> = [
+  { key: 'scanned', regex: /scanned:\s*(\d+)/i },
+  { key: 'existing', regex: /existing:\s*(\d+)/i },
+  { key: 'created', regex: /created:\s*(\d+)/i },
+  { key: 'updated', regex: /updated:\s*(\d+)/i },
+  { key: 'deleted', regex: /deleted:\s*(\d+)/i },
+  { key: 'errors', regex: /Errors:\s*(\d+)/i },
+]
+
 /**
  * Parses database changes from sync script output
  * Extracts counts from the "Sync Summary:" section
@@ -62,7 +73,8 @@ function parseDatabaseChanges(stdout: string): DatabaseChanges | undefined {
     errors: 0,
   }
 
-  // Look for the Sync Summary section
+  // Child sync scripts are expected to print a canonical "📊 Sync Summary:"
+  // block. If absent, we skip aggregation for that child.
   const summaryIndex = stdout.indexOf('📊 Sync Summary:')
   if (summaryIndex === -1) {
     return undefined
@@ -70,17 +82,7 @@ function parseDatabaseChanges(stdout: string): DatabaseChanges | undefined {
 
   const summarySection = stdout.substring(summaryIndex)
 
-  // Parse patterns like "   📁 Modules scanned: 3" or "   ✅ Modules existing: 3"
-  const patterns = [
-    { key: 'scanned' as const, regex: /scanned:\s*(\d+)/i },
-    { key: 'existing' as const, regex: /existing:\s*(\d+)/i },
-    { key: 'created' as const, regex: /created:\s*(\d+)/i },
-    { key: 'updated' as const, regex: /updated:\s*(\d+)/i },
-    { key: 'deleted' as const, regex: /deleted:\s*(\d+)/i },
-    { key: 'errors' as const, regex: /Errors:\s*(\d+)/i },
-  ]
-
-  for (const pattern of patterns) {
+  for (const pattern of DB_CHANGE_PATTERNS) {
     const match = summarySection.match(pattern.regex)
     if (match) {
       changes[pattern.key] = parseInt(match[1], 10) || 0
@@ -103,7 +105,8 @@ async function executeSyncScript(scriptId: SyncScriptId): Promise<ScriptResult> 
     const result = await execa(process.execPath, ['--import', 'tsx', scriptPath], {
       cwd: process.cwd(),
       stdio: 'pipe',
-      reject: false, // Don't throw on non-zero exit codes
+      // Non-zero exit codes are reported in summary but should not stop orchestration.
+      reject: false,
     })
 
     const duration = Date.now() - startTime
@@ -177,10 +180,14 @@ function aggregateDatabaseChanges(results: ScriptResult[]): DatabaseChanges {
 /**
  * Generates and displays a comprehensive summary of the sync operation
  */
+function hasDatabaseChanges(changes: DatabaseChanges): boolean {
+  return Object.values(changes).some(value => value > 0)
+}
+
 function displaySummary(summary: SyncSummary): void {
-  console.log('\n' + '='.repeat(80))
+  console.log('\n' + DIVIDER)
   console.log('📊 SYNC ALL - EXECUTION SUMMARY')
-  console.log('='.repeat(80))
+  console.log(DIVIDER)
 
   console.log(`\n📈 Overall Statistics:`)
   console.log(`   Total scripts: ${summary.totalScripts}`)
@@ -205,50 +212,34 @@ function displaySummary(summary: SyncSummary): void {
     }
   })
 
-  // Display database changes summary
-  const hasChanges = summary.totalDbChanges.created > 0 || 
-                     summary.totalDbChanges.updated > 0 || 
-                     summary.totalDbChanges.deleted > 0 ||
-                     summary.totalDbChanges.existing > 0 ||
-                     summary.totalDbChanges.scanned > 0
-
-  if (hasChanges) {
-    console.log(`\n💾 Database Changes Summary:`)
-    if (summary.totalDbChanges.scanned > 0) {
-      console.log(`   📁 Total entities scanned: ${summary.totalDbChanges.scanned}`)
-    }
-    if (summary.totalDbChanges.existing > 0) {
-      console.log(`   ✅ Total entities existing: ${summary.totalDbChanges.existing}`)
-    }
-    if (summary.totalDbChanges.created > 0) {
-      console.log(`   ➕ Total entities created: ${summary.totalDbChanges.created}`)
-    }
-    if (summary.totalDbChanges.updated > 0) {
-      console.log(`   🔄 Total entities updated: ${summary.totalDbChanges.updated}`)
-    }
-    if (summary.totalDbChanges.deleted > 0) {
-      console.log(`   🗑️  Total entities deleted: ${summary.totalDbChanges.deleted}`)
-    }
-    if (summary.totalDbChanges.errors > 0) {
-      console.log(`   ❌ Total errors encountered: ${summary.totalDbChanges.errors}`)
-    }
+  // Reuse shared summary rendering so aggregate output format remains
+  // structurally aligned with individual sync scripts.
+  if (hasDatabaseChanges(summary.totalDbChanges)) {
+    printSyncSummary([
+      { label: '📁 Total entities scanned', value: summary.totalDbChanges.scanned },
+      { label: '✅ Total entities existing', value: summary.totalDbChanges.existing },
+      { label: '➕ Total entities created', value: summary.totalDbChanges.created },
+      { label: '🔄 Total entities updated', value: summary.totalDbChanges.updated },
+      { label: '🗑️  Total entities deleted', value: summary.totalDbChanges.deleted },
+      { label: '❌ Total errors encountered', value: summary.totalDbChanges.errors },
+    ])
   }
 
-  console.log(`\n${'='.repeat(80)}`)
+  console.log(`\n${DIVIDER}`)
 
   if (summary.failedScripts === 0) {
     console.log('✅ All sync scripts completed successfully!')
-    console.log('='.repeat(80) + '\n')
+    console.log(DIVIDER + '\n')
   } else {
     console.log(`⚠️  ${summary.failedScripts} script(s) failed. Please review the errors above.`)
-    console.log('='.repeat(80) + '\n')
+    console.log(DIVIDER + '\n')
   }
 }
 
 /**
  * Main function that orchestrates all sync scripts
  */
-async function main(): Promise<void> {
+async function main(): Promise<number> {
   const startTime = Date.now()
   const results: ScriptResult[] = []
 
@@ -256,7 +247,8 @@ async function main(): Promise<void> {
   console.log('This will sync all entities from filesystem to database in the correct dependency order.')
   console.log('Execution will continue even if individual scripts fail.\n')
 
-  // Execute each script in order
+  // Execute in dependency order from registry; we intentionally continue through
+  // failures to provide complete visibility of system state in one run.
   for (const scriptId of SYNC_SCRIPT_IDS) {
     const result = await executeSyncScript(scriptId)
     results.push(result)
@@ -282,16 +274,14 @@ async function main(): Promise<void> {
   // Display comprehensive summary
   displaySummary(summary)
 
-  // Exit with appropriate code
-  if (failedScripts > 0) {
-    process.exit(1)
-  } else {
-    process.exit(0)
-  }
+  return failedScripts > 0 ? 1 : 0
 }
 
 // Run the main function
 main().catch(error => {
   console.error('\n❌ Fatal error during sync orchestration:', error)
-  process.exit(1)
+  return 1
 })
+  .then(exitCode => {
+    process.exit(exitCode)
+  })
