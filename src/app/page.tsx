@@ -6,8 +6,8 @@ import {
   getDashboardMetricsAction,
   getEntityMetricsAction,
   getTestSuiteExecutionDataAction,
-  TestSuiteExecutionData,
 } from '@/actions/dashboard/dashboard-actions'
+import type { TestSuiteExecutionData } from '@/services/dashboard/dashboard-service'
 import { DashboardMetrics } from '@prisma/client'
 import QuickActionsDrawer from './(dashboard-components)/quick-actions-drawer'
 import DataCard from './(dashboard-components)/data-card'

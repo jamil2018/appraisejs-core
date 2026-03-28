@@ -3,6 +3,7 @@
 import { ActionResponse } from '@/types/form/actionHandler'
 import prisma from '@/config/db-config'
 import { revalidatePath } from 'next/cache'
+import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 export async function resolveConflictsAction(conflictIds: string[]): Promise<ActionResponse> {
   try {
@@ -16,18 +17,17 @@ export async function resolveConflictsAction(conflictIds: string[]): Promise<Act
     if (updatedConflicts.count === 0) {
       return {
         status: 404,
+        success: false,
         error: 'No conflicts found',
       }
     }
     return {
       status: 200,
+      success: true,
       data: updatedConflicts.count,
       message: 'Conflicts resolved successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }

@@ -7,6 +7,7 @@ import { ActionResponse } from '@/types/form/actionHandler'
 import { Prisma } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { z, ZodError } from 'zod'
+import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 type TemplateStepGroupType = 'ACTION' | 'VALIDATION'
 
@@ -25,13 +26,11 @@ export async function getAllTemplateStepGroupsAction(): Promise<ActionResponse> 
     const templateStepGroups = await prisma.templateStepGroup.findMany()
     return {
       status: 200,
+      success: true,
       data: templateStepGroups,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -57,25 +56,25 @@ export async function createTemplateStepGroupAction(
     revalidatePath('/template-step-groups')
     return {
       status: 200,
+      success: true,
       message: 'Template step group created successfully',
     }
   } catch (error) {
     if (error instanceof ZodError) {
       return {
         status: 400,
+        success: false,
         error: error.message,
       }
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return {
         status: 500,
+        success: false,
         error: error.message,
       }
     }
-    return {
-      status: 500,
-      error: 'Server error occurred',
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -90,13 +89,11 @@ export async function deleteTemplateStepGroupAction(ids: string[]): Promise<Acti
     revalidatePath('/template-step-groups')
     return {
       status: 200,
+      success: true,
       message: 'Template step group(s) deleted successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -105,13 +102,20 @@ export async function getTemplateStepGroupByIdAction(id: string): Promise<Action
     const templateStepGroup = await prisma.templateStepGroup.findUnique({
       where: { id },
     })
+    if (!templateStepGroup) {
+      return {
+        status: 404,
+        success: false,
+        error: 'Template step group not found',
+      }
+    }
     return {
       status: 200,
+      success: true,
       data: templateStepGroup,
     }
   } catch (error) {
-    console.error(error)
-    throw error
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -126,6 +130,7 @@ export async function updateTemplateStepGroupAction(
     if (!id) {
       return {
         status: 400,
+        success: false,
         error: 'Template step group ID is required',
       }
     }
@@ -137,6 +142,7 @@ export async function updateTemplateStepGroupAction(
     if (!currentGroup) {
       return {
         status: 404,
+        success: false,
         error: 'Template step group not found',
       }
     }
@@ -163,24 +169,24 @@ export async function updateTemplateStepGroupAction(
     revalidatePath('/template-step-groups')
     return {
       status: 200,
+      success: true,
       message: 'Template step group updated successfully',
     }
   } catch (error) {
     if (error instanceof ZodError) {
       return {
         status: 400,
+        success: false,
         error: error.message,
       }
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return {
         status: 500,
+        success: false,
         error: error.message,
       }
     }
-    return {
-      status: 500,
-      error: 'Server error occurred',
-    }
+    return unknownErrorToActionResponse(error)
   }
 }

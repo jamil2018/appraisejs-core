@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartConfig } from '@/components/ui/chart'
 import FeatureChart from '../(base)/reports/feature-chart'
-import { TestSuiteExecutionData } from '@/actions/dashboard/dashboard-actions'
+import type { TestSuiteExecutionData } from '@/services/dashboard/dashboard-service'
 
 const colorMap = {
     passed: 'oklch(59.6% 0.145 163.225)',
@@ -41,7 +41,7 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
         <Card className="border-gray-600/10 bg-gray-600/10 w-full h-full">
             <CardHeader>
                 <CardTitle className="text-primary">Execution Health</CardTitle>
-                <CardDescription>Pass/fail rates by test suite across last 10 test runs</CardDescription>
+                <CardDescription>Pass/fail counts by test suite across last 10 completed test runs</CardDescription>
             </CardHeader>
             <CardContent>
                 {featureData.length === 0 ? (

@@ -4,6 +4,7 @@ import prisma from '@/config/db-config'
 import { locatorGroupSchema } from '@/constants/form-opts/locator-group-form-opts'
 import { automationProjectionService } from '@/lib/automation/projection-service'
 import { getLocatorGroupFilePath, readLocatorGroupFile } from '@/lib/locator-group-file-utils'
+import { unknownErrorToActionResponse } from '@/services/shared/errors'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -36,10 +37,7 @@ export async function getAllLocatorGroupsAction(): Promise<ActionResponse> {
       data: locatorGroups,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -55,10 +53,7 @@ export async function getLocatorGroupByIdAction(id: string): Promise<ActionRespo
       data: locatorGroup,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -102,10 +97,7 @@ export async function createLocatorGroupAction(
         error: 'A locator group with this name already exists. Please choose a different name.',
       }
     }
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -189,10 +181,7 @@ export async function updateLocatorGroupAction(
         error: 'A locator group with this name already exists. Please choose a different name.',
       }
     }
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -217,10 +206,7 @@ export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionRes
       message: `${ids.length} locator group(s) deleted successfully`,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -240,10 +226,7 @@ export async function getLocatorGroupFileContentAction(locatorGroupId: string): 
       data: fileData,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -255,10 +238,7 @@ export async function checkLocatorGroupNameUniqueAction(name: string, excludeId?
       data: { isUnique: !nameExists },
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -285,9 +265,6 @@ export async function regenerateAllLocatorGroupFilesAction(): Promise<ActionResp
       message: `Regenerated ${successCount} files successfully. ${errorCount} errors encountered.`,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }

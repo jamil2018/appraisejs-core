@@ -4,37 +4,37 @@ overview: Extract business logic from 17 Server Action files into a new service 
 todos:
   - id: shared-infra
     content: Create src/services/shared/ (ServiceError, constants, result types) and update vitest.config.ts to include src/services/**/*.test.ts
-    status: pending
+    status: completed
   - id: extract-test-run-service
     content: Extract business logic from test-run-actions.ts into src/services/test-run/test-run-service.ts; thin the actions
-    status: pending
+    status: completed
   - id: extract-report-service
     content: Extract business logic from report-actions.ts into src/services/report/report-service.ts; thin the actions
-    status: pending
+    status: completed
   - id: batch1-tests
     content: Write unit tests for test-run-service.ts and report-service.ts
-    status: pending
+    status: completed
   - id: extract-test-case-service
     content: Extract business logic from test-case-actions.ts into src/services/test-case/test-case-service.ts
-    status: pending
+    status: completed
   - id: extract-test-suite-service
     content: Extract business logic from test-suite-actions.ts into src/services/test-suite/test-suite-service.ts
-    status: pending
+    status: completed
   - id: extract-locator-service
     content: Extract business logic from locator-actions.ts and locator-picker-actions.ts into src/services/locator/locator-service.ts
-    status: pending
+    status: completed
   - id: batch2-tests
     content: Write unit tests for test-case, test-suite, and locator services
-    status: pending
+    status: completed
   - id: batch3-crud-cleanup
     content: Standardize simple CRUD actions (environments, modules, tags, template-steps, reviews, conflict, sync); extract dashboard-service.ts; remove dead code
-    status: pending
+    status: completed
   - id: batch3-tests
     content: Write unit tests for dashboard-service and any remaining extracted services
-    status: pending
+    status: completed
   - id: final-consistency-pass
     content: Normalize error handling, function style, null checks, and return shapes across all touched action files
-    status: pending
+    status: completed
 isProject: false
 ---
 

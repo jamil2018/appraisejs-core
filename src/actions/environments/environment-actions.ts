@@ -6,6 +6,7 @@ import { automationProjectionService } from '@/lib/automation/projection-service
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.environment.findFirst({
@@ -29,13 +30,11 @@ export async function getAllEnvironmentsAction(): Promise<ActionResponse> {
 
     return {
       status: 200,
+      success: true,
       data: environments,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -52,13 +51,11 @@ export async function deleteEnvironmentAction(ids: string[]): Promise<ActionResp
     revalidatePath('/environments')
     return {
       status: 200,
+      success: true,
       message: 'Environments deleted successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -73,6 +70,7 @@ export async function createEnvironmentAction(
     if (nameExists) {
       return {
         status: 400,
+        success: false,
         error: 'An environment with this name already exists. Please choose a different name.',
       }
     }
@@ -93,31 +91,34 @@ export async function createEnvironmentAction(
     revalidatePath('/environments')
     return {
       status: 200,
+      success: true,
       data: newEnvironment,
       message: 'Environment created successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function getEnvironmentByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const environmentData = await prisma.environment.findUniqueOrThrow({
+    const environmentData = await prisma.environment.findUnique({
       where: { id },
     })
+    if (!environmentData) {
+      return {
+        status: 404,
+        success: false,
+        error: 'Environment not found',
+      }
+    }
     return {
       status: 200,
+      success: true,
       data: environmentData,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -139,6 +140,7 @@ export async function updateEnvironmentAction(
       if (nameExists) {
         return {
           status: 400,
+          success: false,
           error: 'An environment with this name already exists. Please choose a different name.',
         }
       }
@@ -161,14 +163,12 @@ export async function updateEnvironmentAction(
     revalidatePath('/environments')
     return {
       status: 200,
+      success: true,
       data: updatedEnvironment,
       message: 'Environment updated successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -177,12 +177,10 @@ export async function checkEnvironmentNameUniqueAction(name: string, excludeId?:
     const nameExists = await checkUniqueName(name, excludeId)
     return {
       status: 200,
+      success: true,
       data: { isUnique: !nameExists },
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }

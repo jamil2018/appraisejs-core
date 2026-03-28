@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
 import { StepParameterType } from '@prisma/client'
 import { z } from 'zod'
+import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 /**
  * Get all template test cases
@@ -25,13 +26,11 @@ export async function getAllTemplateTestCasesAction(): Promise<ActionResponse> {
 
     return {
       status: 200,
+      success: true,
       data: templateTestCases,
     }
   } catch (e) {
-    return {
-      status: 500,
-      message: `Server error occurred: ${e}`,
-    }
+    return unknownErrorToActionResponse(e)
   }
 }
 
@@ -72,13 +71,11 @@ export async function deleteTemplateTestCaseAction(id: string[]): Promise<Action
     revalidatePath('/template-test-cases')
     return {
       status: 200,
+      success: true,
       message: 'Template test case(s) deleted successfully',
     }
   } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
-    }
+    return unknownErrorToActionResponse(e)
   }
 }
 
@@ -123,14 +120,12 @@ export async function createTemplateTestCaseAction(
     revalidatePath('/template-test-cases')
     return {
       status: 200,
+      success: true,
       message: 'Template test case created successfully',
       data: newTemplateTestCase,
     }
   } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
-    }
+    return unknownErrorToActionResponse(e)
   }
 }
 
@@ -151,15 +146,20 @@ export async function getTemplateTestCaseByIdAction(id: string): Promise<ActionR
         },
       },
     })
+    if (!templateTestCase) {
+      return {
+        status: 404,
+        success: false,
+        error: 'Template test case not found',
+      }
+    }
     return {
       status: 200,
+      success: true,
       data: templateTestCase,
     }
   } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
-    }
+    return unknownErrorToActionResponse(e)
   }
 }
 
@@ -174,7 +174,11 @@ export async function updateTemplateTestCaseAction(
   id?: string,
 ): Promise<ActionResponse> {
   if (!id) {
-    throw new Error("updateTemplateTestCaseAction: 'id' parameter is required for updating a template test case.")
+    return {
+      status: 400,
+      success: false,
+      error: "updateTemplateTestCaseAction: 'id' parameter is required for updating a template test case.",
+    }
   }
   try {
     // 1. Find all step IDs for the test case
@@ -226,13 +230,11 @@ export async function updateTemplateTestCaseAction(
     })
     return {
       status: 200,
+      success: true,
       message: 'Template test case updated successfully',
       data: templateTestCase,
     }
   } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
-    }
+    return unknownErrorToActionResponse(e)
   }
 }

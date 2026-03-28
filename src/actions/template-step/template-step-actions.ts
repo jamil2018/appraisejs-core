@@ -8,6 +8,7 @@ import { StepParameterType, TemplateStepIcon, TemplateStepType } from '@prisma/c
 import { revalidatePath } from 'next/cache'
 import prettier from 'prettier'
 import { z } from 'zod'
+import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 function normalizeOptionalText(value: string | null | undefined): string | null {
   const normalized = value?.trim()
@@ -54,10 +55,7 @@ export async function getAllTemplateStepsAction(): Promise<ActionResponse> {
       data: templateSteps,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -109,10 +107,7 @@ export async function deleteTemplateStepAction(templateStepIds: string[]): Promi
       message: 'Template steps deleted successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -157,10 +152,7 @@ export async function createTemplateStepAction(
       data: newTemplateStep,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -231,10 +223,7 @@ export async function updateTemplateStepAction(
       data: updatedTemplateStep,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -252,10 +241,7 @@ export async function getTemplateStepByIdAction(id: string): Promise<ActionRespo
       data: templateStep,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -267,9 +253,6 @@ export async function getAllTemplateStepParamsAction(): Promise<ActionResponse> 
       data: templateStepParams,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }

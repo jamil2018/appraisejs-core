@@ -4,96 +4,28 @@ import prisma from '@/config/db-config'
 import { testRunSchema } from '@/constants/form-opts/test-run-form-opts'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { z } from 'zod'
-import {
-  TestRunStatus,
-  TestRunResult,
-  TestRunTestCaseStatus,
-  TestRunTestCaseResult,
-  Tag,
-} from '@prisma/client'
-import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
+import { TestRunStatus, TestRunResult, TestRunTestCaseStatus } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
-import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
-import { processManager } from '@/lib/test-run/process-manager'
-import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
-import { promises as fs } from 'fs'
+import { type LogEntry } from '@/lib/test-run/log-formatter'
 import { Prisma } from '@prisma/client'
-import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
-import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/paths'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
-import { getIdentifierTagByPrefix } from '@/lib/tag-utils'
-import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
-
-/**
- * Check if a test run name already exists
- */
-async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
-  const existing = await prisma.testRun.findFirst({
-    where: {
-      name: name,
-      ...(excludeId && { id: { not: excludeId } }),
-    },
-  })
-  return !!existing
-}
-
-function buildOrExpression(expressions: string[]): string | null {
-  if (expressions.length === 0) {
-    return null
-  }
-
-  if (expressions.length === 1) {
-    return expressions[0]
-  }
-
-  return expressions.join(' or ')
-}
-
-function normalizeSuiteSelection(
-  selection: z.infer<typeof testRunSchema>['testSuites'][number],
-  availableTestCaseIds: string[],
-) {
-  if (selection.runAll) {
-    return {
-      testSuiteId: selection.testSuiteId,
-      runAll: true,
-      testCaseIds: [] as string[],
-    }
-  }
-
-  const selectedTestCaseIds = selection.testCaseIds.filter(testCaseId => availableTestCaseIds.includes(testCaseId))
-
-  if (selectedTestCaseIds.length === availableTestCaseIds.length) {
-    return {
-      testSuiteId: selection.testSuiteId,
-      runAll: true,
-      testCaseIds: [] as string[],
-    }
-  }
-
-  return {
-    testSuiteId: selection.testSuiteId,
-    runAll: false,
-    testCaseIds: selectedTestCaseIds,
-  }
-}
+import {
+  buildTestRunsWhereClause,
+  cancelTestRunService,
+  checkTraceViewerStatusService,
+  createTestRunFromValidatedValue,
+  deleteTestRunsByIds,
+  getTestRunLogsService,
+  isTestRunNameTaken,
+  spawnTraceViewerService,
+  storeTestRunLogsService,
+  updateTestRunTestCaseStatusFromScenario,
+} from '@/services/test-run/test-run-service'
+import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 
 export async function getAllTestRunsAction(filter?: string): Promise<ActionResponse> {
   try {
-    // Build the where clause based on filter
-    const whereClause: Prisma.TestRunWhereInput = {}
-
-    if (filter === 'recentFailed') {
-      // Calculate the date 7 days ago
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-      whereClause.result = TestRunResult.FAILED
-      whereClause.completedAt = {
-        not: null,
-        gte: sevenDaysAgo,
-      }
-    }
+    const whereClause: Prisma.TestRunWhereInput = buildTestRunsWhereClause(filter)
 
     const testRuns = await prisma.testRun.findMany({
       where: whereClause,
@@ -105,13 +37,11 @@ export async function getAllTestRunsAction(filter?: string): Promise<ActionRespo
     })
     return {
       status: 200,
+      success: true,
       data: testRuns,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -135,108 +65,34 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
     if (!testRun) {
       return {
         status: 404,
+        success: false,
         error: 'Test run not found',
       }
     }
 
     return {
       status: 200,
+      success: true,
       data: testRun,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function deleteTestRunAction(id: string[]): Promise<ActionResponse> {
   try {
-    const testRuns = await prisma.testRun.findMany({
-      where: { id: { in: id } },
-      select: {
-        runId: true,
-        logPath: true,
-        reportPath: true,
-        testCases: {
-          select: {
-            tracePath: true,
-          },
-        },
-      },
-    })
+    await deleteTestRunsByIds(id)
 
-    for (const testRun of testRuns) {
-      await fs.rm(getAutomationReportRunDir(testRun.runId), { recursive: true, force: true })
-
-      const legacyArtifactPaths = [
-        testRun.logPath,
-        testRun.reportPath,
-        ...testRun.testCases.map(testCase => testCase.tracePath),
-      ].filter((artifactPath): artifactPath is string => Boolean(artifactPath))
-
-      for (const artifactPath of legacyArtifactPaths) {
-        await fs.rm(resolveStoredPath(artifactPath), { force: true }).catch(() => {})
-      }
-    }
-
-    // delete the test runs
-    await prisma.testRun.deleteMany({
-      where: { id: { in: id } },
-    })
-
-    // Recalculate metrics for affected test cases and dashboard metrics
-    // Note: We recalculate all test case metrics, not just affected ones, because
-    // deleting a test run might affect consecutive failure counts for any test case
-    // that had recent runs (e.g., if a test case had 3 consecutive failures and we
-    // delete one of those failures, it might no longer be "repeatedly failing")
-    const { recalculateMetricsForTestCases, updateDashboardMetrics } = await import('@/lib/metrics/metric-calculator')
-
-    // Get all test case IDs that have recent test runs (last 7 days)
-    // These are the ones that might be affected by the deletion
-    // We recalculate all of them because deleting a test run might affect
-    // consecutive failure counts for any test case
-    const recentPeriodDate = new Date()
-    recentPeriodDate.setDate(recentPeriodDate.getDate() - 7)
-
-    const allRecentTestRunTestCases = await prisma.testRunTestCase.findMany({
-      where: {
-        status: TestRunTestCaseStatus.COMPLETED,
-        testRun: {
-          completedAt: {
-            gte: recentPeriodDate,
-          },
-        },
-      },
-      select: {
-        testCaseId: true,
-      },
-    })
-
-    // Get unique test case IDs
-    const allAffectedTestCaseIds = [...new Set(allRecentTestRunTestCases.map(trtc => trtc.testCaseId))]
-
-    // Recalculate metrics for all test cases with recent runs
-    if (allAffectedTestCaseIds.length > 0) {
-      await recalculateMetricsForTestCases(allAffectedTestCaseIds)
-    }
-
-    // Always update dashboard metrics (e.g., failedRecentRunsCount might change)
-    await updateDashboardMetrics()
-
-    // Revalidate paths
     revalidatePath('/test-runs')
     revalidatePath('/')
     return {
       status: 200,
+      success: true,
       message: 'Test run(s) deleted successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -258,88 +114,49 @@ export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> 
     })
     return {
       status: 200,
+      success: true,
       data: testSuiteTestCases,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
-/**
- * Stores test run logs in the database
- * @param testRunId - The test run ID (runId, not id)
- * @param logs - Array of log entries to store
- */
 export async function storeTestRunLogsAction(testRunId: string, logs: LogEntry[]): Promise<ActionResponse> {
   try {
     if (logs.length === 0) {
       return {
         status: 200,
+        success: true,
         message: 'No logs to store',
       }
     }
 
-    // Format logs for storage
-    const formattedLogs = formatLogsForStorage(logs)
-
-    // Upsert logs in TestRunLog table
-    await prisma.testRunLog.upsert({
-      where: { testRunId },
-      create: {
-        testRunId,
-        logs: formattedLogs,
-      },
-      update: {
-        logs: formattedLogs,
-      },
-    })
+    await storeTestRunLogsService(testRunId, logs)
 
     return {
       status: 200,
+      success: true,
       message: 'Logs stored successfully',
     }
   } catch (error) {
     console.error(`[TestRunAction] Error storing logs for testRunId: ${testRunId}:`, error)
-    return {
-      status: 500,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error, `[TestRunAction] storeTestRunLogs`)
   }
 }
 
-/**
- * Retrieves test run logs from the database
- * @param testRunId - The test run ID (runId, not id)
- */
 export async function getTestRunLogsAction(testRunId: string): Promise<ActionResponse> {
   try {
-    const testRunLog = await prisma.testRunLog.findUnique({
-      where: { testRunId },
-    })
-
-    if (!testRunLog) {
-      return {
-        status: 200,
-        data: [],
-      }
-    }
-
-    // Parse logs from storage
-    const logs = parseLogsFromStorage(testRunLog.logs)
+    const logs = await getTestRunLogsService(testRunId)
 
     return {
       status: 200,
+      success: true,
       data: logs,
     }
   } catch (error) {
     console.error(`[TestRunAction] Error retrieving logs for testRunId: ${testRunId}:`, error)
-    return {
-      status: 500,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -348,515 +165,32 @@ export async function createTestRunAction(
   value: z.infer<typeof testRunSchema>,
 ): Promise<ActionResponse> {
   try {
-    // Validate input
     testRunSchema.parse(value)
 
-    // Check if name already exists
-    const nameExists = await checkUniqueName(value.name)
-    if (nameExists) {
-      return {
-        status: 400,
-        error: 'A test run with this name already exists. Please choose a different name.',
-      }
-    }
-
-    // Fetch environment and tags from database
-    const environment = await prisma.environment.findUnique({
-      where: { id: value.environmentId },
-    })
-
-    if (!environment) {
-      return {
-        status: 400,
-        error: 'Environment not found',
-      }
-    }
-
-    // Determine if we're filtering by tags or test suites
-    const isFilteringByTags = value.tags.length > 0
-    const isFilteringByTestSuites = value.testSuites.length > 0 && value.tags.length === 0
-
-    // Validate that at least one filtering option is provided
-    if (!isFilteringByTags && !isFilteringByTestSuites) {
-      return {
-        status: 400,
-        error: 'Either tags or test suites must be provided to filter the test run.',
-      }
-    }
-
-    let tags: Tag[] = []
-    let tagExpression: string | null = null
-    let testRunTestCases: Array<{ testCaseId: string; testSuiteId?: string | null }> = []
-
-    if (isFilteringByTags) {
-      tags = await prisma.tag.findMany({
-        where: { id: { in: value.tags } },
-      })
-
-      tagExpression = buildOrExpression(tags.map(tag => `(${tag.tagExpression})`))
-
-      // Find test cases that have tags directly OR belong to test suites with tags
-      const tagFilteredTestCases = await prisma.testCase.findMany({
-        where: {
-          OR: [
-            // Test cases with tags directly
-            {
-              tags: {
-                some: { id: { in: value.tags } },
-              },
-            },
-            // Test cases in test suites with tags
-            {
-              TestSuite: {
-                some: {
-                  tags: {
-                    some: { id: { in: value.tags } },
-                  },
-                },
-              },
-            },
-          ],
-        },
-      })
-
-      testRunTestCases = tagFilteredTestCases.map(tc => ({
-        testCaseId: tc.id,
-        testSuiteId: null,
-      }))
-    } else if (isFilteringByTestSuites) {
-      await ensureTestSuiteIdentifierTags(value.testSuites.map(testSuite => testSuite.testSuiteId))
-
-      const selectedSuites = await prisma.testSuite.findMany({
-        where: {
-          id: {
-            in: value.testSuites.map(testSuite => testSuite.testSuiteId),
-          },
-        },
-        include: {
-          tags: true,
-          testCases: {
-            include: {
-              tags: true,
-            },
-          },
-        },
-      })
-
-      if (selectedSuites.length !== value.testSuites.length) {
-        return {
-          status: 400,
-          error: 'One or more selected test suites could not be found.',
-        }
-      }
-
-      const selectedSuiteById = new Map(selectedSuites.map(testSuite => [testSuite.id, testSuite]))
-      const suiteClauses: string[] = []
-
-      for (const suiteSelection of value.testSuites) {
-        const selectedSuite = selectedSuiteById.get(suiteSelection.testSuiteId)
-        if (!selectedSuite) {
-          continue
-        }
-
-        if (selectedSuite.testCases.length === 0) {
-          continue
-        }
-
-        const normalizedSelection = normalizeSuiteSelection(
-          suiteSelection,
-          selectedSuite.testCases.map(testCase => testCase.id),
-        )
-
-        if (!normalizedSelection) {
-          continue
-        }
-
-        const suiteIdentifierTag = getIdentifierTagByPrefix(selectedSuite.tags, 'ts_')
-        if (!suiteIdentifierTag) {
-          return {
-            status: 400,
-            error: `Test suite "${selectedSuite.name}" does not have an identifier tag.`,
-          }
-        }
-
-        if (normalizedSelection.runAll) {
-          suiteClauses.push(`(${suiteIdentifierTag.tagExpression})`)
-          testRunTestCases.push(
-            ...selectedSuite.testCases.map(testCase => ({
-              testCaseId: testCase.id,
-              testSuiteId: selectedSuite.id,
-            })),
-          )
-          continue
-        }
-
-        const selectedTestCases = selectedSuite.testCases.filter(testCase =>
-          normalizedSelection.testCaseIds.includes(testCase.id),
-        )
-
-        if (selectedTestCases.length === 0) {
-          return {
-            status: 400,
-            error: `Test suite "${selectedSuite.name}" requires at least one selected test case.`,
-          }
-        }
-
-        const missingIdentifierTestCase = selectedTestCases.find(
-          testCase => !getIdentifierTagByPrefix(testCase.tags, 'tc_'),
-        )
-        if (missingIdentifierTestCase) {
-          return {
-            status: 400,
-            error: `Test case "${missingIdentifierTestCase.title}" does not have an identifier tag.`,
-          }
-        }
-
-        const testCaseTagExpressions = selectedTestCases.map(testCase => {
-          const identifierTag = getIdentifierTagByPrefix(testCase.tags, 'tc_')
-          return identifierTag!.tagExpression
-        })
-
-        suiteClauses.push(
-          `(${suiteIdentifierTag.tagExpression}) and (${testCaseTagExpressions.map(tag => `(${tag})`).join(' or ')})`,
-        )
-        testRunTestCases.push(
-          ...selectedTestCases.map(testCase => ({
-            testCaseId: testCase.id,
-            testSuiteId: selectedSuite.id,
-          })),
-        )
-      }
-
-      tagExpression = buildOrExpression(suiteClauses.map(clause => `(${clause})`))
-    }
-
-    if (!tagExpression) {
-      return {
-        status: 400,
-        error: 'No executable tests were resolved from the selected filters.',
-      }
-    }
-
-    // Create TestRun record in database with RUNNING status
-    const testRun = await prisma.testRun.create({
-      data: {
-        name: value.name,
-        environmentId: value.environmentId,
-        testWorkersCount: value.testWorkersCount || 1,
-        browserEngine: value.browserEngine,
-        status: TestRunStatus.RUNNING,
-        result: TestRunResult.PENDING,
-        tags: {
-          connect: tags.map(tag => ({ id: tag.id })),
-        },
-        testCases: {
-          create: testRunTestCases.map(tc => ({
-            testCaseId: tc.testCaseId,
-            testSuiteId: tc.testSuiteId ?? null,
-          })),
-        },
-      },
-    })
-
-    // Initialize Winston logger for this test run
-    const logger = await createTestRunLogger(testRun.runId)
-    const logFilePath = getLogFilePath(testRun.runId)
-
-    // Store log file path in database
-    await prisma.testRun.update({
-      where: { id: testRun.id },
-      data: {
-        logPath: logFilePath,
-      },
-    })
-
-    // Execute test run asynchronously (don't await, let it run in background)
-    try {
-      const { process: spawnedProcess, reportPath } = await localExecutorAdapter.executeTestRun({
-        testRunId: testRun.runId,
-        environment,
-        tagExpression,
-        testWorkersCount: value.testWorkersCount || 1,
-        browserEngine: value.browserEngine,
-        headless: true, // Default to headless
-      })
-
-      // Store report path in TestRun record
-      await prisma.testRun.update({
-        where: { id: testRun.id },
-        data: {
-          reportPath,
-        },
-      })
-
-      const executePromise = Promise.resolve(spawnedProcess)
-
-      // Set up server-side listener for scenario::end events to update test case statuses
-      // This ensures status updates happen even if no client is connected
-      const onScenarioEnd = async (eventData: {
-        testRunId: string
-        scenarioName: string
-        status: string
-        tracePath?: string
-        featureName?: string
-        scenarioTags?: string[]
-      }) => {
-        // Only process events for this test run
-        if (eventData.testRunId === testRun.runId) {
-          console.log(
-            `[TestRunAction] Server-side scenario::end event for testRunId: ${testRun.runId}, scenario: ${eventData.scenarioName}, status: ${eventData.status}${eventData.tracePath ? `, tracePath: ${eventData.tracePath}` : ''}`,
-          )
-          // Map the status string to the expected format
-          const statusMap: Record<string, 'passed' | 'failed' | 'skipped' | 'unknown'> = {
-            passed: 'passed',
-            failed: 'failed',
-            skipped: 'skipped',
-          }
-          const mappedStatus = statusMap[eventData.status] || 'unknown'
-          // Update test case status in database
-          await updateTestRunTestCaseStatusAction(testRun.runId, {
-            scenarioName: eventData.scenarioName,
-            status: mappedStatus,
-            tracePath: eventData.tracePath,
-            featureName: eventData.featureName,
-            scenarioTags: eventData.scenarioTags,
-          })
-        }
-      }
-
-      // Register the server-side listener
-      processManager.on('scenario::end', onScenarioEnd)
-      console.log(`[TestRunAction] Registered server-side scenario::end listener for testRunId: ${testRun.runId}`)
-
-      // Cleanup function to remove the listener
-      const cleanupListener = () => {
-        processManager.removeListener('scenario::end', onScenarioEnd)
-        console.log(`[TestRunAction] Removed server-side scenario::end listener for testRunId: ${testRun.runId}`)
-      }
-
-      executePromise
-        .then(async spawnedProcess => {
-          // Wait for process to complete
-          const exitCode = await localExecutorAdapter.waitForProcess(spawnedProcess.name)
-
-          // Collect all logs from the process output
-          const logEntries: LogEntry[] = []
-
-          // Add stdout logs
-          if (spawnedProcess.output.stdout.length > 0) {
-            const stdoutText = spawnedProcess.output.stdout.join('')
-            const stdoutLines = stdoutText.split('\n').filter(line => line.trim() !== '')
-            stdoutLines.forEach((line, index) => {
-              const timestamp = new Date(spawnedProcess.startTime.getTime() + index * 10)
-              logEntries.push({
-                type: 'stdout',
-                message: line,
-                timestamp,
-              })
-              // Log to Winston logger
-              logger.info(line)
-            })
-          }
-
-          // Add stderr logs
-          if (spawnedProcess.output.stderr.length > 0) {
-            const stderrText = spawnedProcess.output.stderr.join('')
-            const stderrLines = stderrText.split('\n').filter(line => line.trim() !== '')
-            const stdoutCount = logEntries.filter(e => e.type === 'stdout').length
-            stderrLines.forEach((line, index) => {
-              const timestamp = new Date(spawnedProcess.startTime.getTime() + stdoutCount * 10 + index * 10)
-              logEntries.push({
-                type: 'stderr',
-                message: line,
-                timestamp,
-              })
-              // Log to Winston logger
-              logger.error(line)
-            })
-          }
-
-          // Add exit status log
-          const exitMessage = `Process exited with code ${exitCode}`
-          logEntries.push({
-            type: 'status',
-            message: exitMessage,
-            timestamp: spawnedProcess.endTime || new Date(),
-          })
-          // Log exit status to Winston logger
-          logger.info(exitMessage)
-
-          // Store logs in database
-          await storeTestRunLogsAction(testRun.runId, logEntries)
-
-          // Close Winston logger
-          await closeLogger(logger)
-
-          // Check current status before updating - preserve CANCELLED status if already set
-          const currentTestRun = await prisma.testRun.findUnique({
-            where: { id: testRun.id },
-            select: { status: true, result: true },
-          })
-
-          // Only update to COMPLETED if not already CANCELLED or CANCELLING
-          if (
-            currentTestRun &&
-            currentTestRun.status !== TestRunStatus.CANCELLED &&
-            currentTestRun.status !== TestRunStatus.CANCELLING
-          ) {
-            // Update TestRun status based on exit code
-            const status = exitCode === 0 ? TestRunStatus.COMPLETED : TestRunStatus.COMPLETED
-            const result = exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED
-
-            await prisma.testRun.update({
-              where: { id: testRun.id },
-              data: {
-                status,
-                result,
-                completedAt: new Date(),
-              },
-            })
-
-            // Update metrics for the completed test run
-            try {
-              await updateMetricsForTestRun(testRun.id)
-            } catch (error) {
-              console.error(`[TestRunAction] Error updating metrics for test run ${testRun.id}:`, error)
-              // Don't fail the test run if metrics update fails
-            }
-          } else {
-            // Status is already CANCELLED or CANCELLING, just update completedAt if not set
-            if (currentTestRun && !currentTestRun.result) {
-              await prisma.testRun.update({
-                where: { id: testRun.id },
-                data: {
-                  completedAt: new Date(),
-                },
-              })
-            }
-          }
-
-          // Clean up the server-side event listener
-          cleanupListener()
-
-          // Store report in database if report path exists and test run is not cancelled
-          // Check current status again to ensure we don't generate reports for cancelled runs
-          const finalTestRunStatus = await prisma.testRun.findUnique({
-            where: { id: testRun.id },
-            select: { status: true },
-          })
-
-          if (
-            finalTestRunStatus &&
-            (finalTestRunStatus.status === TestRunStatus.CANCELLED ||
-              finalTestRunStatus.status === TestRunStatus.CANCELLING)
-          ) {
-            console.log(
-              `[TestRunAction] Skipping report generation for testRunId: ${testRun.runId} - test run was cancelled`,
-            )
-          } else if (reportPath) {
-            try {
-              const { storeReportFromFile } = await import('@/actions/reports/report-actions')
-              const reportResult = await storeReportFromFile(testRun.runId, reportPath)
-              if (reportResult.status === 200) {
-                console.log(`[TestRunAction] Report stored successfully for testRunId: ${testRun.runId}`)
-              } else {
-                console.warn(
-                  `[TestRunAction] Failed to store report for testRunId: ${testRun.runId}: ${reportResult.error}`,
-                )
-              }
-            } catch (error) {
-              console.error(`[TestRunAction] Error storing report for testRunId: ${testRun.runId}:`, error)
-              // Don't fail the test run if report storage fails
-            }
-          } else {
-            console.warn(`[TestRunAction] No report path available for testRunId: ${testRun.runId}`)
-          }
-        })
-        .catch(async error => {
-          console.error(`[TestRunAction] Error executing test run for testRunId: ${testRun.runId}:`, error)
-
-          // Log error to Winston logger
-          logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
-          if (error instanceof Error && error.stack) {
-            logger.error(error.stack)
-          }
-
-          // Close Winston logger
-          await closeLogger(logger).catch(err => {
-            console.error(`[TestRunAction] Error closing logger for testRunId: ${testRun.runId}:`, err)
-          })
-
-          // Check current status before updating - preserve CANCELLED status if already set
-          const currentTestRun = await prisma.testRun.findUnique({
-            where: { id: testRun.id },
-            select: { status: true, result: true },
-          })
-
-          // Only update to COMPLETED if not already CANCELLED or CANCELLING
-          if (
-            currentTestRun &&
-            currentTestRun.status !== TestRunStatus.CANCELLED &&
-            currentTestRun.status !== TestRunStatus.CANCELLING
-          ) {
-            // Update TestRun status to indicate failure
-            await prisma.testRun.update({
-              where: { id: testRun.id },
-              data: {
-                status: TestRunStatus.COMPLETED,
-                result: TestRunResult.FAILED,
-                completedAt: new Date(),
-              },
-            })
-          } else {
-            // Status is already CANCELLED or CANCELLING, just update completedAt if not set
-            if (currentTestRun && !currentTestRun.result) {
-              await prisma.testRun.update({
-                where: { id: testRun.id },
-                data: {
-                  completedAt: new Date(),
-                },
-              })
-            }
-          }
-
-          // Clean up the server-side event listener
-          cleanupListener()
-        })
-    } catch (error) {
-      // Catch any synchronous errors
-      console.error(`[TestRunAction] Synchronous error calling executeTestRun for testRunId: ${testRun.runId}:`, error)
-      console.error(`[TestRunAction] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
-      // Note: If executeTestRun throws synchronously, the listener won't be set up, so no cleanup needed
-    }
+    const result = await createTestRunFromValidatedValue(value)
 
     return {
       status: 200,
+      success: true,
       message: 'Test run created successfully',
-      data: { testRunId: testRun.runId, id: testRun.id },
+      data: { testRunId: result.runId, id: result.id },
     }
   } catch (error) {
     console.error('Error creating test run:', error)
-    // Handle Prisma unique constraint error
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return {
         status: 400,
+        success: false,
         error: 'A test run with this name already exists. Please choose a different name.',
       }
     }
-    return {
-      status: 500,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
-/**
- * Updates a test case status and result in a test run based on scenario completion
- * @param testRunId - The test run ID (runId, not id)
- * @param scenarioName - The scenario name from cucumber (format: "[Test Case Title] Description")
- * @param status - The scenario status (passed, failed, skipped)
- * @param tracePath - Optional trace path for failed scenarios
- */
 export async function updateTestRunTestCaseStatusAction(
   testRunId: string,
   scenario: {
@@ -868,91 +202,27 @@ export async function updateTestRunTestCaseStatusAction(
   },
 ): Promise<ActionResponse> {
   try {
-    // Find the test run by runId
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId: testRunId },
-      include: {
-        testCases: {
-          include: {
-            testCase: {
-              include: {
-                tags: true,
-              },
-            },
-            testSuite: {
-              include: {
-                tags: true,
-              },
-            },
-          },
-        },
-      },
-    })
+    const result = await updateTestRunTestCaseStatusFromScenario(testRunId, scenario)
 
-    if (!testRun) {
+    if (result.kind === 'test_run_not_found') {
       return {
         status: 404,
+        success: false,
         error: 'Test run not found',
       }
     }
 
-    const matchingTestCase = findMatchingTestRunTestCase(testRun.testCases, {
-      scenarioName: scenario.scenarioName,
-      scenarioTags: scenario.scenarioTags,
-    })
-
-    if (!matchingTestCase) {
-      console.log(
-        `[TestRunAction] No matching test case found for scenario: ${scenario.scenarioName}. This is expected when scenarios run without corresponding test cases in this test run.`,
-      )
+    if (result.kind === 'no_match') {
       return {
         status: 200,
-        message: `Scenario "${scenario.scenarioName}" completed but has no corresponding test case in this test run`,
+        success: true,
+        message: result.message,
       }
-    }
-
-    // Map status to TestRunTestCaseStatus and TestRunTestCaseResult
-    const testCaseStatus: TestRunTestCaseStatus = TestRunTestCaseStatus.COMPLETED
-    let testCaseResult: TestRunTestCaseResult
-
-    switch (scenario.status) {
-      case 'passed':
-        testCaseResult = TestRunTestCaseResult.PASSED
-        break
-      case 'failed':
-        testCaseResult = TestRunTestCaseResult.FAILED
-        break
-      case 'skipped':
-        testCaseResult = TestRunTestCaseResult.UNTESTED // Skipped is treated as untested
-        break
-      default:
-        testCaseResult = TestRunTestCaseResult.UNTESTED
-    }
-
-    // Update the TestRunTestCase
-    await prisma.testRunTestCase.update({
-      where: { id: matchingTestCase.id },
-      data: {
-        status: testCaseStatus,
-        result: testCaseResult,
-        tracePath: scenario.tracePath || null,
-      },
-    })
-
-    // Update test case metrics
-    try {
-      await updateTestCaseMetrics(
-        matchingTestCase.testCaseId,
-        testCaseResult,
-        testRun.completedAt || testRun.startedAt || new Date(),
-      )
-    } catch (error) {
-      console.error(`[TestRunAction] Error updating metrics for test case ${matchingTestCase.testCaseId}:`, error)
-      // Don't fail the action if metrics update fails
     }
 
     return {
       status: 200,
+      success: true,
       message: 'Test case status updated successfully',
     }
   } catch (error) {
@@ -960,57 +230,36 @@ export async function updateTestRunTestCaseStatusAction(
       `[TestRunAction] Error updating test case status for testRunId: ${testRunId}, scenario: ${scenario.scenarioName}:`,
       error,
     )
-    return {
-      status: 500,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
-/**
- * Checks if a trace viewer is currently running for a test case
- * @param testRunId - The test run ID (runId, not id)
- * @param testCaseId - The test case ID (TestRunTestCase id, not TestCase id)
- * @returns ActionResponse with isRunning status
- */
 export async function checkTraceViewerStatusAction(testRunId: string, testCaseId: string): Promise<ActionResponse> {
   try {
-    // Verify test run exists
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId: testRunId },
-      include: {
-        testCases: {
-          where: { id: testCaseId },
-        },
-      },
-    })
+    const outcome = await checkTraceViewerStatusService(testRunId, testCaseId)
 
-    if (!testRun) {
+    if (outcome.kind === 'test_run_not_found') {
       return {
         status: 404,
+        success: false,
         error: 'Test run not found',
       }
     }
 
-    // Verify test case belongs to this test run
-    const testRunTestCase = testRun.testCases.find(tc => tc.id === testCaseId)
-    if (!testRunTestCase) {
+    if (outcome.kind === 'test_case_not_in_run') {
       return {
         status: 404,
+        success: false,
         error: 'Test case not found in this test run',
       }
     }
 
-    // Check if trace viewer process is running
-    const processName = `trace-viewer-${testCaseId}`
-    const process = localExecutorAdapter.getProcess(processName)
-    const isRunning = process?.isRunning ?? false
-
     return {
       status: 200,
+      success: true,
       data: {
-        isRunning,
-        processName: isRunning ? processName : null,
+        isRunning: outcome.isRunning,
+        processName: outcome.processName,
       },
     }
   } catch (error) {
@@ -1018,84 +267,52 @@ export async function checkTraceViewerStatusAction(testRunId: string, testCaseId
       `[TestRunAction] Error checking trace viewer status for testRunId: ${testRunId}, testCaseId: ${testCaseId}:`,
       error,
     )
-    return {
-      status: 500,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
-/**
- * Spawns Playwright trace viewer for a failed test case
- * @param testRunId - The test run ID (runId, not id)
- * @param testCaseId - The test case ID (TestRunTestCase id, not TestCase id)
- * @returns ActionResponse indicating success or failure
- */
 export async function spawnTraceViewerAction(testRunId: string, testCaseId: string): Promise<ActionResponse> {
   try {
-    // Verify test run exists
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId: testRunId },
-      include: {
-        testCases: {
-          where: { id: testCaseId },
-          include: {
-            testCase: true,
-          },
-        },
-      },
-    })
+    const outcome = await spawnTraceViewerService(testRunId, testCaseId)
 
-    if (!testRun) {
+    if (outcome.kind === 'test_run_not_found') {
       return {
         status: 404,
+        success: false,
         error: 'Test run not found',
       }
     }
 
-    // Verify test case belongs to this test run
-    const testRunTestCase = testRun.testCases.find(tc => tc.id === testCaseId)
-    if (!testRunTestCase) {
+    if (outcome.kind === 'test_case_not_in_run') {
       return {
         status: 404,
+        success: false,
         error: 'Test case not found in this test run',
       }
     }
 
-    // Get trace path from database
-    const tracePath = testRunTestCase.tracePath
-    if (!tracePath) {
+    if (outcome.kind === 'no_trace_path') {
       return {
         status: 400,
+        success: false,
         error: 'No trace path available for this test case',
       }
     }
 
-    const absoluteTracePath = resolveStoredPath(tracePath)
-
-    // Validate trace file exists
-    try {
-      await fs.access(absoluteTracePath)
-    } catch {
+    if (outcome.kind === 'trace_file_missing') {
       return {
         status: 404,
-        error: `Trace file not found at path: ${tracePath}`,
+        success: false,
+        error: `Trace file not found at path: ${outcome.path}`,
       }
     }
 
-    // Spawn playwright show-trace command
-    // The process is self-closing when the user closes the trace viewer
-    const spawnedProcess = await localExecutorAdapter.spawnTraceViewer(testCaseId, absoluteTracePath)
-
-    console.log(
-      `[TestRunAction] Spawned trace viewer process for testCaseId: ${testCaseId}, tracePath: ${absoluteTracePath}`,
-    )
-
     return {
       status: 200,
+      success: true,
       message: 'Trace viewer launched successfully',
       data: {
-        processName: spawnedProcess.name,
+        processName: outcome.processName,
       },
     }
   } catch (error) {
@@ -1103,115 +320,57 @@ export async function spawnTraceViewerAction(testRunId: string, testCaseId: stri
       `[TestRunAction] Error spawning trace viewer for testRunId: ${testRunId}, testCaseId: ${testCaseId}:`,
       error,
     )
-    return {
-      status: 500,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function cancelTestRunAction(testRunId: string): Promise<ActionResponse> {
   try {
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId: testRunId },
-    })
-    if (!testRun) {
+    const outcome = await cancelTestRunService(testRunId)
+
+    if (outcome.kind === 'not_found') {
       return {
         status: 404,
+        success: false,
         error: 'Test run not found',
       }
     }
 
-    if (
-      testRun.status !== TestRunStatus.RUNNING &&
-      testRun.status !== TestRunStatus.QUEUED &&
-      testRun.status !== TestRunStatus.CANCELLING
-    ) {
+    if (outcome.kind === 'invalid_state') {
       return {
         status: 400,
-        error: 'Test run is not running, queued, or already being cancelled',
+        success: false,
+        error: outcome.message,
       }
     }
 
-    // If already cancelling, don't proceed
-    if (testRun.status === TestRunStatus.CANCELLING) {
+    if (outcome.kind === 'already_cancelling') {
       return {
         status: 200,
+        success: true,
         message: 'Test run cancellation is already in progress',
       }
     }
 
-    // Set status to CANCELLING immediately
-    await prisma.testRun.update({
-      where: { id: testRun.id },
-      data: {
-        status: TestRunStatus.CANCELLING,
-      },
-    })
-
-    const process = processManager.get(testRunId)
-    console.log(`[TestRunAction] Process: ${JSON.stringify(process)}`)
-
-    if (!process) {
-      console.warn(`[TestRunAction] No process found for testRunId: ${testRunId}`)
-      await prisma.testRun.update({
-        where: { id: testRun.id },
-        data: {
-          status: TestRunStatus.CANCELLED,
-          result: TestRunResult.CANCELLED,
-          completedAt: new Date(),
-        },
-      })
+    if (outcome.kind === 'cancelled_no_process') {
       return {
         status: 200,
+        success: true,
         message: 'Test run cancelled successfully',
       }
     }
-
-    const killed = localExecutorAdapter.killProcess(process.name, 'SIGTERM')
-    console.log(`[TestRunAction] Killed: ${killed}`)
-    if (!killed) {
-      const forceKilled = localExecutorAdapter.killProcess(process.name, 'SIGKILL')
-      if (!forceKilled) {
-        console.warn(`[TestRunAction] Failed to force kill process for testRunId: ${testRunId}`)
-      }
-    }
-
-    await prisma.testRun.update({
-      where: { id: testRun.id },
-      data: {
-        status: TestRunStatus.CANCELLED,
-        result: TestRunResult.CANCELLED,
-        completedAt: new Date(),
-      },
-    })
-
-    await prisma.testRunTestCase.updateMany({
-      where: {
-        testRunId: testRun.id,
-        status: {
-          in: [TestRunTestCaseStatus.PENDING, TestRunTestCaseStatus.RUNNING],
-        },
-      },
-      data: {
-        status: TestRunTestCaseStatus.CANCELLED,
-        result: TestRunTestCaseResult.UNTESTED,
-      },
-    })
 
     revalidatePath('/test-runs')
     revalidatePath(`/test-runs/${testRunId}`)
 
     return {
       status: 200,
+      success: true,
       message: 'Test run stopped successfully',
     }
   } catch (error) {
     console.error(`[TestRunAction] Error stopping test run ${testRunId}:`, error)
-    return {
-      status: 500,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -1228,7 +387,7 @@ export async function getMostRecentTestRunAction(): Promise<ActionResponse> {
           include: {
             testCase: {
               include: {
-                metrics: true, // Include metrics if needed
+                metrics: true,
               },
             },
           },
@@ -1241,36 +400,30 @@ export async function getMostRecentTestRunAction(): Promise<ActionResponse> {
     if (!testRun) {
       return {
         status: 404,
+        success: false,
         error: 'No completed test run found',
       }
     }
 
     return {
       status: 200,
+      success: true,
       data: testRun,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
-/**
- * Check if a test run name is unique
- */
 export async function checkTestRunNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
   try {
-    const nameExists = await checkUniqueName(name, excludeId)
+    const nameExists = await isTestRunNameTaken(name, excludeId)
     return {
       status: 200,
+      success: true,
       data: { isUnique: !nameExists },
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }

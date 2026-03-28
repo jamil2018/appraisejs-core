@@ -6,6 +6,7 @@ import { automationProjectionService } from '@/lib/automation/projection-service
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 export async function getAllModulesAction(): Promise<ActionResponse> {
   try {
@@ -20,13 +21,11 @@ export async function getAllModulesAction(): Promise<ActionResponse> {
     })
     return {
       status: 200,
+      success: true,
       data: modules,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -41,13 +40,11 @@ export async function deleteModuleAction(ids: string[]): Promise<ActionResponse>
     revalidatePath('/modules')
     return {
       status: 200,
+      success: true,
       message: 'Modules deleted successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -67,20 +64,18 @@ export async function createModuleAction(_prev: unknown, value: z.infer<typeof m
     revalidatePath('/modules')
     return {
       status: 200,
+      success: true,
       data: newModule,
       message: 'Module created successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function getModuleByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const moduleData = await prisma.module.findUniqueOrThrow({
+    const moduleData = await prisma.module.findUnique({
       where: { id },
       include: {
         parent: {
@@ -90,15 +85,20 @@ export async function getModuleByIdAction(id: string): Promise<ActionResponse> {
         },
       },
     })
+    if (!moduleData) {
+      return {
+        status: 404,
+        success: false,
+        error: 'Module not found',
+      }
+    }
     return {
       status: 200,
+      success: true,
       data: moduleData,
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -109,6 +109,13 @@ export async function updateModuleAction(
 ): Promise<ActionResponse> {
   try {
     moduleSchema.parse(value)
+    if (!id) {
+      return {
+        status: 400,
+        success: false,
+        error: 'Module id is required',
+      }
+    }
 
     const moduleData = {
       ...value,
@@ -123,13 +130,11 @@ export async function updateModuleAction(
     revalidatePath('/modules')
     return {
       status: 200,
+      success: true,
       data: updatedModule,
       message: 'Module updated successfully',
     }
   } catch (error) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${error}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
