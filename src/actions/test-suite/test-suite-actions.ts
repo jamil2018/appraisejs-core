@@ -1,31 +1,21 @@
 'use server'
 
-import prisma from '@/config/db-config'
 import { testSuiteSchema } from '@/constants/form-opts/test-suite-form-opts'
-import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { TagType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
-import { z, ZodError } from 'zod'
-import { Prisma } from '@prisma/client'
+import { z } from 'zod'
 import {
   createTestSuiteFromInput,
   deleteTestSuitesByIds,
+  getTestSuiteByIdOrThrow,
+  listTestSuites,
   updateTestSuiteFromInput,
 } from '@/services/test-suite/test-suite-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 
 export async function getAllTestSuitesAction(): Promise<ActionResponse> {
   try {
-    await ensureTestSuiteIdentifierTags()
-
-    const testSuites = await prisma.testSuite.findMany({
-      include: {
-        module: true,
-        testCases: true,
-        tags: true,
-      },
-    })
+    const testSuites = await listTestSuites()
     return {
       status: 200,
       success: true,
@@ -51,28 +41,10 @@ export async function createTestSuiteAction(
       message: 'Test suite created successfully',
     }
   } catch (error) {
-    if (error instanceof ZodError) {
-      return {
-        status: 400,
-        success: false,
-        error: error.message,
-      }
-    }
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      return {
-        status: 500,
-        success: false,
-        error: error.message,
-      }
-    }
     if (error instanceof ServiceError) {
       return serviceErrorToActionResponse(error)
     }
-    return {
-      status: 500,
-      success: false,
-      error: 'Server error occurred',
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -93,35 +65,16 @@ export async function deleteTestSuiteAction(id: string[]): Promise<ActionRespons
 
 export async function getTestSuiteByIdAction(id: string): Promise<ActionResponse> {
   try {
-    await ensureTestSuiteIdentifierTags([id])
-
-    const testSuite = await prisma.testSuite.findUnique({
-      where: { id },
-      include: {
-        testCases: true,
-        tags: {
-          where: {
-            type: TagType.FILTER,
-          },
-        },
-      },
-    })
-
-    if (!testSuite) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Test suite not found',
-      }
-    }
-
+    const testSuite = await getTestSuiteByIdOrThrow(id)
     return {
       status: 200,
       success: true,
       data: testSuite,
     }
   } catch (error) {
-    console.error(error)
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }
@@ -141,7 +94,6 @@ export async function updateTestSuiteAction(
       }
     }
 
-    await ensureTestSuiteIdentifierTags([id])
     await updateTestSuiteFromInput(value, id)
 
     revalidatePath('/test-suites')

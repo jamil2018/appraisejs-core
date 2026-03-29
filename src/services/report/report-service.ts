@@ -3,9 +3,10 @@ import { parseCucumberReport, getStepStatusEnum, getStepKeywordEnum } from '@/li
 import { Prisma } from '@prisma/client'
 import { existsSync } from 'fs'
 import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
-import { resolveStoredPath, toProjectRelativePath } from '@/lib/automation/paths'
+import { resolveStoredPath, toProjectRelativePath } from '@/lib/automation/automation-path-roots'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
+import { ServiceError } from '@/services/shared/errors'
 
 export type ReportWithRelations = Prisma.ReportGetPayload<{
   include: {
@@ -82,6 +83,169 @@ export type ReportDetailWithRelations = Prisma.ReportGetPayload<{
 export type StoreReportOutcome =
   | { success: true; reportId: string }
   | { success: false; reason: 'file_not_found' | 'test_run_not_found' | 'storage_failed'; message: string }
+
+export async function listReports(): Promise<ReportWithRelations[]> {
+  const reports = await prisma.report.findMany({
+    include: {
+      testRun: {
+        include: {
+          environment: true,
+          tags: true,
+        },
+      },
+      testCases: {
+        include: {
+          testRunTestCase: {
+            include: {
+              testCase: {
+                include: {
+                  tags: true,
+                },
+              },
+              testSuite: true,
+            },
+          },
+          reportScenario: {
+            include: {
+              reportFeature: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+
+  return reports as ReportWithRelations[]
+}
+
+export async function getReportByIdOrThrow(reportId: string): Promise<ReportDetailWithRelations> {
+  const report = await prisma.report.findUnique({
+    where: { id: reportId },
+    include: {
+      testRun: {
+        include: {
+          environment: true,
+          tags: true,
+        },
+      },
+      features: {
+        include: {
+          tags: true,
+          scenarios: {
+            include: {
+              tags: true,
+              steps: {
+                orderBy: {
+                  order: 'asc',
+                },
+              },
+              hooks: true,
+            },
+          },
+        },
+      },
+      testCases: {
+        include: {
+          testRunTestCase: {
+            include: {
+              testCase: {
+                include: {
+                  tags: true,
+                },
+              },
+              testSuite: true,
+            },
+          },
+          reportScenario: {
+            include: {
+              reportFeature: true,
+              tags: true,
+              steps: {
+                orderBy: {
+                  order: 'asc',
+                },
+              },
+              hooks: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!report) {
+    throw new ServiceError('Report not found', 'NOT_FOUND', 404)
+  }
+
+  return report as ReportDetailWithRelations
+}
+
+export async function getReportByTestRunIdOrThrow(testRunId: string): Promise<ReportDetailWithRelations> {
+  const testRun = await prisma.testRun.findUnique({
+    where: { runId: testRunId },
+    select: { id: true },
+  })
+
+  if (!testRun) {
+    throw new ServiceError('Test run not found', 'NOT_FOUND', 404)
+  }
+
+  const report = await prisma.report.findFirst({
+    where: { testRunId: testRun.id },
+    include: {
+      testRun: {
+        include: {
+          environment: true,
+          tags: true,
+        },
+      },
+      features: {
+        include: {
+          tags: true,
+          scenarios: {
+            include: {
+              tags: true,
+              steps: {
+                orderBy: {
+                  order: 'asc',
+                },
+              },
+              hooks: true,
+            },
+          },
+        },
+      },
+      testCases: {
+        include: {
+          testRunTestCase: {
+            include: {
+              testCase: {
+                include: {
+                  tags: true,
+                },
+              },
+              testSuite: true,
+            },
+          },
+          reportScenario: {
+            include: {
+              reportFeature: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!report) {
+    throw new ServiceError('Report not found for this test run', 'NOT_FOUND', 404)
+  }
+
+  return report as ReportDetailWithRelations
+}
 
 /**
  * Persists a cucumber.json report and linked graph into the database.

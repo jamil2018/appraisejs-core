@@ -93,6 +93,20 @@ export async function deleteTestCasesByIds(ids: string[]): Promise<void> {
   await Promise.all(affectedTestSuites.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 }
 
+export async function listTestCases() {
+  return prisma.testCase.findMany({
+    include: {
+      steps: {
+        include: {
+          parameters: true,
+        },
+      },
+      TestSuite: true,
+      tags: true,
+    },
+  })
+}
+
 export async function createTestCaseFromInput(value: z.infer<typeof testCaseSchema>) {
   const uniqueTestCaseIdentifier = generateUniqueTestCaseIdentifier()
   const testCaseIdentifierTag = await prisma.tag.create({
@@ -157,6 +171,42 @@ export async function createTestCaseFromInput(value: z.infer<typeof testCaseSche
   await Promise.all(newTestCase.TestSuite.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 
   return newTestCase
+}
+
+export async function getTestCaseByIdOrThrow(id: string) {
+  const testCase = await prisma.testCase.findUnique({
+    where: { id },
+    include: {
+      steps: {
+        include: {
+          parameters: true,
+        },
+      },
+      TestSuite: {
+        select: {
+          id: true,
+        },
+      },
+      tags: {
+        select: {
+          id: true,
+        },
+        where: {
+          type: TagType.FILTER,
+        },
+      },
+    },
+  })
+
+  if (!testCase) {
+    throw new ServiceError('Test case not found', 'NOT_FOUND', 404)
+  }
+
+  return {
+    ...testCase,
+    testSuiteIds: testCase.TestSuite.map(suite => suite.id),
+    tagIds: testCase.tags.map(tag => tag.id),
+  }
 }
 
 export async function updateTestCaseFromInput(value: z.infer<typeof testCaseSchema>, id: string) {

@@ -1,4 +1,4 @@
-import { getAutomationLocatorsDir } from '@/lib/automation/paths'
+import { getAutomationLocatorsDir } from '@/lib/automation/automation-path-roots'
 import path from 'path'
 
 export function extractModulePathFromLocatorFile(filePath: string): string {

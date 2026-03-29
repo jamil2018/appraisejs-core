@@ -1,8 +1,7 @@
 import prisma from '@/config/db-config'
-import { testRunSchema, type TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
+import type { TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
 import { ServiceError } from '@/services/shared/errors'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
-import { z } from 'zod'
 import {
   TestRunStatus,
   TestRunResult,
@@ -17,7 +16,7 @@ import { processManager } from '@/lib/test-run/process-manager'
 import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
 import { promises as fs } from 'fs'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
-import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/paths'
+import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/automation-path-roots'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { getIdentifierTagByPrefix } from '@/lib/tag-utils'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
@@ -44,6 +43,88 @@ export async function isTestRunNameTaken(name: string, excludeId?: string): Prom
     },
   })
   return !!existing
+}
+
+export async function listTestRuns(filter?: string) {
+  const whereClause = buildTestRunsWhereClause(filter)
+
+  return prisma.testRun.findMany({
+    where: whereClause,
+    include: {
+      testCases: true,
+      tags: true,
+      environment: true,
+    },
+  })
+}
+
+export async function getTestRunByIdOrThrow(id: string) {
+  const testRun = await prisma.testRun.findUnique({
+    where: { id },
+    include: {
+      testCases: {
+        include: {
+          testCase: true,
+          testSuite: true,
+        },
+      },
+      tags: true,
+      environment: true,
+      reports: true,
+    },
+  })
+
+  if (!testRun) {
+    throw new ServiceError('Test run not found', 'NOT_FOUND', 404)
+  }
+
+  return testRun
+}
+
+export async function listTestSuiteTestCases() {
+  await ensureTestSuiteIdentifierTags()
+
+  return prisma.testSuite.findMany({
+    include: {
+      module: true,
+      tags: true,
+      testCases: {
+        include: {
+          steps: true,
+          tags: true,
+        },
+      },
+    },
+  })
+}
+
+export async function getMostRecentCompletedTestRunOrThrow() {
+  const testRun = await prisma.testRun.findFirst({
+    orderBy: { completedAt: 'desc' },
+    where: {
+      completedAt: { not: null },
+      status: TestRunStatus.COMPLETED,
+    },
+    include: {
+      testCases: {
+        include: {
+          testCase: {
+            include: {
+              metrics: true,
+            },
+          },
+        },
+      },
+      environment: true,
+      tags: true,
+    },
+  })
+
+  if (!testRun) {
+    throw new ServiceError('No completed test run found', 'NOT_FOUND', 404)
+  }
+
+  return testRun
 }
 
 type TestRunTestCaseLink = { testCaseId: string; testSuiteId?: string | null }

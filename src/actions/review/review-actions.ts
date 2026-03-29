@@ -1,38 +1,25 @@
 'use server'
 
-import prisma from '@/config/db-config'
 import { reviewSchema } from '@/constants/form-opts/review-form-opts'
+import {
+  createReview,
+  deleteReviews,
+  getReviewByIdOrThrow,
+  listReviewsWithTestCaseTitle,
+  updateReview,
+} from '@/services/review/review-service'
+import type { ReviewWithTestCaseTitle } from '@/services/review/review-service'
+import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { Review } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
-export interface ReviewWithRelations extends Review {
-  testCase: {
-    title: string
-  }
-  reviewer: {
-    username: string
-  }
-}
+/** @deprecated Prefer `ReviewWithTestCaseTitle` from `@/services/review/review-service`. */
+export type ReviewWithRelations = ReviewWithTestCaseTitle
 
-async function fetchAllReviewsWithTestCaseTitle() {
-  return prisma.review.findMany({
-    include: {
-      testCase: {
-        select: {
-          title: true,
-        },
-      },
-    },
-  })
-}
-
-/** Lists all reviews (auth removed; previously filtered by reviewer). */
 export async function getReviewsByReviewerAction(): Promise<ActionResponse> {
   try {
-    const reviews = await fetchAllReviewsWithTestCaseTitle()
+    const reviews = await listReviewsWithTestCaseTitle()
     return {
       status: 200,
       success: true,
@@ -43,16 +30,9 @@ export async function getReviewsByReviewerAction(): Promise<ActionResponse> {
   }
 }
 
-/** @deprecated Use getReviewsByReviewerAction — identical behavior after auth removal. */
-export async function getAllReviewsByCreatorAction(): Promise<ActionResponse> {
-  return getReviewsByReviewerAction()
-}
-
 export async function deleteReviewAction(id: string[]): Promise<ActionResponse> {
   try {
-    await prisma.review.deleteMany({
-      where: { id: { in: id } },
-    })
+    await deleteReviews(id)
     revalidatePath('/reviews')
     return {
       status: 200,
@@ -66,22 +46,16 @@ export async function deleteReviewAction(id: string[]): Promise<ActionResponse> 
 
 export async function getReviewByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const review = await prisma.review.findUnique({
-      where: { id },
-    })
-    if (!review) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Review not found',
-      }
-    }
+    const review = await getReviewByIdOrThrow(id)
     return {
       status: 200,
       success: true,
       data: review,
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }
@@ -93,17 +67,7 @@ export async function updateReviewAction(
 ): Promise<ActionResponse> {
   try {
     reviewSchema.parse(value)
-    if (!id) {
-      return {
-        status: 400,
-        success: false,
-        error: 'Review id is required',
-      }
-    }
-    const updatedReview = await prisma.review.update({
-      where: { id },
-      data: value,
-    })
+    const updatedReview = await updateReview(id, value)
     revalidatePath('/reviews')
     return {
       status: 200,
@@ -112,6 +76,9 @@ export async function updateReviewAction(
       message: 'Review updated successfully',
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }
@@ -119,11 +86,7 @@ export async function updateReviewAction(
 export async function createReviewAction(_prev: unknown, value: z.infer<typeof reviewSchema>): Promise<ActionResponse> {
   try {
     reviewSchema.parse(value)
-    const newReview = await prisma.review.create({
-      data: {
-        ...value,
-      },
-    })
+    const newReview = await createReview(value)
     revalidatePath('/reviews')
     return {
       status: 200,
@@ -132,6 +95,9 @@ export async function createReviewAction(_prev: unknown, value: z.infer<typeof r
       message: 'Review created successfully',
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }

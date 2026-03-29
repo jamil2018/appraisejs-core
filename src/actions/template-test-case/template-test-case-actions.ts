@@ -1,29 +1,21 @@
 'use server'
 
-import prisma from '@/config/db-config'
+import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
+import {
+  createTemplateTestCase,
+  deleteTemplateTestCases,
+  getTemplateTestCaseByIdOrThrow,
+  listTemplateTestCases,
+  updateTemplateTestCase,
+} from '@/services/template-test-case/template-test-case-service'
+import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
-import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
-import { StepParameterType } from '@prisma/client'
 import { z } from 'zod'
-import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
-/**
- * Get all template test cases
- * @returns ActionResponse
- */
 export async function getAllTemplateTestCasesAction(): Promise<ActionResponse> {
   try {
-    const templateTestCases = await prisma.templateTestCase.findMany({
-      include: {
-        steps: {
-          include: {
-            parameters: true,
-          },
-        },
-      },
-    })
-
+    const templateTestCases = await listTemplateTestCases()
     return {
       status: 200,
       success: true,
@@ -34,40 +26,9 @@ export async function getAllTemplateTestCasesAction(): Promise<ActionResponse> {
   }
 }
 
-/**
- * Delete a template test case
- * @param id - Template test case id
- * @returns ActionResponse
- */
 export async function deleteTemplateTestCaseAction(id: string[]): Promise<ActionResponse> {
   try {
-    await prisma.$transaction(async tx => {
-      // Delete all step parameters associated with the test case steps
-      await tx.templateTestCaseStepParameter.deleteMany({
-        where: {
-          templateTestCaseStep: {
-            templateTestCaseId: {
-              in: id,
-            },
-          },
-        },
-      })
-
-      // Delete all test case steps
-      await tx.templateTestCaseStep.deleteMany({
-        where: {
-          templateTestCaseId: {
-            in: id,
-          },
-        },
-      })
-
-      // Delete the test cases
-      await tx.templateTestCase.deleteMany({
-        where: { id: { in: id } },
-      })
-    })
-
+    await deleteTemplateTestCases(id)
     revalidatePath('/template-test-cases')
     return {
       status: 200,
@@ -79,44 +40,10 @@ export async function deleteTemplateTestCaseAction(id: string[]): Promise<Action
   }
 }
 
-/**
- * Create a template test case
- * @param value - Template test case
- * @returns ActionResponse
- */
-export async function createTemplateTestCaseAction(
-  value: z.infer<typeof templateTestCaseSchema>,
-): Promise<ActionResponse> {
+export async function createTemplateTestCaseAction(value: z.infer<typeof templateTestCaseSchema>): Promise<ActionResponse> {
   try {
     templateTestCaseSchema.parse(value)
-    const newTemplateTestCase = await prisma.templateTestCase.create({
-      data: {
-        name: value.title,
-        description: value.description ?? '',
-
-        steps: {
-          create: value.steps.map(step => ({
-            gherkinStep: step.gherkinStep,
-            label: step.label,
-            icon: step.icon,
-            parameters: {
-              create: step.parameters.map(param => ({
-                name: param.name,
-                defaultValue: param.value,
-                type: param.type as StepParameterType,
-                order: param.order,
-              })),
-            },
-            TemplateStep: {
-              connect: {
-                id: step.templateStepId,
-              },
-            },
-            order: step.order,
-          })),
-        },
-      },
-    })
+    const newTemplateTestCase = await createTemplateTestCase(value)
     revalidatePath('/template-test-cases')
     return {
       status: 200,
@@ -125,109 +52,37 @@ export async function createTemplateTestCaseAction(
       data: newTemplateTestCase,
     }
   } catch (e) {
+    if (e instanceof ServiceError) {
+      return serviceErrorToActionResponse(e)
+    }
     return unknownErrorToActionResponse(e)
   }
 }
 
-/**
- * Get a template test case by id
- * @param id - Template test case id
- * @returns ActionResponse
- */
 export async function getTemplateTestCaseByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const templateTestCase = await prisma.templateTestCase.findUnique({
-      where: { id },
-      include: {
-        steps: {
-          include: {
-            parameters: true,
-          },
-        },
-      },
-    })
-    if (!templateTestCase) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Template test case not found',
-      }
-    }
+    const templateTestCase = await getTemplateTestCaseByIdOrThrow(id)
     return {
       status: 200,
       success: true,
       data: templateTestCase,
     }
   } catch (e) {
+    if (e instanceof ServiceError) {
+      return serviceErrorToActionResponse(e)
+    }
     return unknownErrorToActionResponse(e)
   }
 }
 
-/**
- * Update a template test case
- * @param value - Template test case
- * @param id - Template test case id
- * @returns ActionResponse
- */
 export async function updateTemplateTestCaseAction(
   value: z.infer<typeof templateTestCaseSchema>,
   id?: string,
 ): Promise<ActionResponse> {
-  if (!id) {
-    return {
-      status: 400,
-      success: false,
-      error: "updateTemplateTestCaseAction: 'id' parameter is required for updating a template test case.",
-    }
-  }
   try {
-    // 1. Find all step IDs for the test case
-    const steps = await prisma.templateTestCaseStep.findMany({
-      where: { templateTestCaseId: id },
-      select: { id: true },
-    })
-    const stepIds = steps.map(step => step.id)
-
-    // 2. Delete all parameters for those steps
-    if (stepIds.length > 0) {
-      await prisma.templateTestCaseStepParameter.deleteMany({
-        where: { templateTestCaseStep: { id: { in: stepIds } } },
-      })
-    }
-
-    // 3. Delete all steps for the test case
-    await prisma.templateTestCaseStep.deleteMany({
-      where: { templateTestCaseId: id },
-    })
-
-    // 4. Then, update the test case with new steps
-    const templateTestCase = await prisma.templateTestCase.update({
-      where: { id },
-      data: {
-        name: value.title,
-        description: value.description ?? '',
-        steps: {
-          create: value.steps.map(step => ({
-            gherkinStep: step.gherkinStep,
-            label: step.label ?? '',
-            icon: step.icon ?? '',
-            parameters: {
-              create: step.parameters.map(param => ({
-                name: param.name,
-                defaultValue: param.value,
-                type: param.type as StepParameterType,
-                order: param.order,
-              })),
-            },
-            templateStepId: step.templateStepId,
-            order: step.order,
-          })),
-        },
-      },
-      include: {
-        steps: true,
-      },
-    })
+    templateTestCaseSchema.parse(value)
+    const templateTestCase = await updateTemplateTestCase(id, value)
+    revalidatePath('/template-test-cases')
     return {
       status: 200,
       success: true,
@@ -235,6 +90,9 @@ export async function updateTemplateTestCaseAction(
       data: templateTestCase,
     }
   } catch (e) {
+    if (e instanceof ServiceError) {
+      return serviceErrorToActionResponse(e)
+    }
     return unknownErrorToActionResponse(e)
   }
 }

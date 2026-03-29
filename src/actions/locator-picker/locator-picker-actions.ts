@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { locatorPickerSessionManager } from '@/lib/locator-picker/session-manager'
 import { savePickedLocatorFromRequest } from '@/services/locator/locator-service'
-import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 const startLocatorPickerSessionSchema = z
   .object({

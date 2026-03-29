@@ -9,6 +9,12 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['scripts/lib/**/*.test.ts', 'src/services/**/*.test.ts'],
+    include: [
+      'scripts/lib/**/*.test.ts',
+      'src/services/**/*.test.ts',
+      'src/app/api/**/*.test.ts',
+      'src/actions/**/*.test.ts',
+      'src/lib/sync/**/*.test.ts',
+    ],
   },
 })

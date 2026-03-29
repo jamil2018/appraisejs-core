@@ -1,31 +1,21 @@
 'use server'
 
-import prisma from '@/config/db-config'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { z } from 'zod'
-import { TagType } from '@prisma/client'
 import {
   createTestCaseFromInput,
   deleteTestCasesByIds,
+  getTestCaseByIdOrThrow,
+  listTestCases,
   updateTestCaseFromInput,
 } from '@/services/test-case/test-case-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 
 export async function getAllTestCasesAction(): Promise<ActionResponse> {
   try {
-    const testCases = await prisma.testCase.findMany({
-      include: {
-        steps: {
-          include: {
-            parameters: true,
-          },
-        },
-        TestSuite: true,
-        tags: true,
-      },
-    })
+    const testCases = await listTestCases()
     return {
       status: 200,
       success: true,
@@ -73,48 +63,16 @@ export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>
 
 export async function getTestCaseByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const testCase = await prisma.testCase.findUnique({
-      where: { id },
-      include: {
-        steps: {
-          include: {
-            parameters: true,
-          },
-        },
-        TestSuite: {
-          select: {
-            id: true,
-          },
-        },
-        tags: {
-          select: {
-            id: true,
-          },
-          where: {
-            type: TagType.FILTER,
-          },
-        },
-      },
-    })
-
-    if (!testCase) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Test case not found',
-      }
-    }
-
+    const testCase = await getTestCaseByIdOrThrow(id)
     return {
       status: 200,
       success: true,
-      data: {
-        ...testCase,
-        testSuiteIds: testCase.TestSuite.map(suite => suite.id),
-        tagIds: testCase.tags.map(tag => tag.id) || [],
-      },
+      data: testCase,
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }

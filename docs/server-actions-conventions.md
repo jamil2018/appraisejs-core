@@ -6,6 +6,8 @@
 2. **Service** (`src/services/**`): Business rules and orchestration. Returns data or throws `ServiceError` from `@/services/shared/errors`. No `revalidatePath`, no `ActionResponse`.
 3. **Persistence / I/O**: Prefer Prisma via `@/config/db-config`; use dedicated helpers when logic is file/process heavy (e.g. test run executor, report parser).
 
+Domains with a `*-service.ts` include: `test-run`, `report`, `test-case`, `test-suite`, `locator`, `dashboard`, `environment`, `module`, `tag`, `locator-group`, `review`, `conflict`, `template-step`, `template-step-group`, `template-test-case`. Thin actions (`settings/sync`, stub `user`) may remain without a service.
+
 ## Responses
 
 - Use `ActionResponse` from `@/types/form/actionHandler`.

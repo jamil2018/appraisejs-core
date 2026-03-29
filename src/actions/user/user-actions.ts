@@ -1,3 +1,5 @@
+'use server'
+
 // User actions removed since authentication system was removed
 // This file is kept for potential future use but all user-related functionality is disabled
 
@@ -7,6 +9,7 @@ export async function getAllUsersAction(): Promise<ActionResponse> {
   // Since User model was removed, return empty array
   return {
     status: 200,
+    success: true,
     data: [],
     message: 'No users available - authentication system removed',
   }

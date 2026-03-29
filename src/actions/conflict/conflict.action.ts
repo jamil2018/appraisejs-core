@@ -1,33 +1,24 @@
 'use server'
 
+import { resolveConflictsByEntityIds } from '@/services/conflict/conflict-service'
+import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { ActionResponse } from '@/types/form/actionHandler'
-import prisma from '@/config/db-config'
 import { revalidatePath } from 'next/cache'
-import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 export async function resolveConflictsAction(conflictIds: string[]): Promise<ActionResponse> {
   try {
-    const updatedConflicts = await prisma.conflictResolution.updateMany({
-      where: { entityId: { in: conflictIds } },
-      data: { resolved: true },
-    })
-
+    const count = await resolveConflictsByEntityIds(conflictIds)
     revalidatePath('/locators')
-
-    if (updatedConflicts.count === 0) {
-      return {
-        status: 404,
-        success: false,
-        error: 'No conflicts found',
-      }
-    }
     return {
       status: 200,
       success: true,
-      data: updatedConflicts.count,
+      data: count,
       message: 'Conflicts resolved successfully',
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }

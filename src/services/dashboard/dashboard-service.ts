@@ -11,6 +11,47 @@ export type TestSuiteExecutionData = Array<{
   total: number
 }>
 
+export type EntityMetrics = {
+  testCasesCount: number
+  testSuitesCount: number
+  templateStepsCount: number
+  runningTestRunsCount: number
+}
+
+export async function getDashboardMetrics() {
+  return prisma.dashboardMetrics.findFirst()
+}
+
+export async function getEntityMetrics(): Promise<EntityMetrics> {
+  const testCases = await prisma.testCase.count()
+  const testSuites = await prisma.testSuite.count()
+  const templateSteps = await prisma.templateStep.count()
+  const runningTestRuns = await prisma.testRun.count({
+    where: {
+      status: {
+        in: [TestRunStatus.RUNNING, TestRunStatus.QUEUED, TestRunStatus.CANCELLING],
+      },
+    },
+  })
+
+  return {
+    testCasesCount: testCases,
+    testSuitesCount: testSuites,
+    templateStepsCount: templateSteps,
+    runningTestRunsCount: runningTestRuns,
+  }
+}
+
+export async function getRunningTestRunsCount(): Promise<number> {
+  return prisma.testRun.count({
+    where: {
+      status: {
+        in: [TestRunStatus.RUNNING, TestRunStatus.QUEUED, TestRunStatus.CANCELLING],
+      },
+    },
+  })
+}
+
 export async function getTestSuiteExecutionData(): Promise<TestSuiteExecutionData> {
   const testRuns = await prisma.testRun.findMany({
     where: {
@@ -112,7 +153,7 @@ export async function getTestSuiteExecutionData(): Promise<TestSuiteExecutionDat
 
   const result: TestSuiteExecutionData = []
 
-  for (const [_suiteId, data] of suiteDataMap.entries()) {
+  for (const [, data] of suiteDataMap.entries()) {
     const total = data.total
     if (total === 0) continue
 

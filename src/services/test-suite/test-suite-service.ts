@@ -2,10 +2,23 @@ import prisma from '@/config/db-config'
 import { testSuiteSchema } from '@/constants/form-opts/test-suite-form-opts'
 import { automationProjectionService } from '@/lib/automation/projection-service'
 import { getOrCreateTestSuiteIdentifierTagId } from '@/lib/test-suite-identifier-service'
+import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { generateUniqueTestSuiteIdentifier } from '@/lib/test-suite-utils'
 import { ServiceError } from '@/services/shared/errors'
 import { TagType } from '@prisma/client'
 import { z } from 'zod'
+
+export async function listTestSuites() {
+  await ensureTestSuiteIdentifierTags()
+
+  return prisma.testSuite.findMany({
+    include: {
+      module: true,
+      testCases: true,
+      tags: true,
+    },
+  })
+}
 
 export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSchema>) {
   const suiteIdentifier = generateUniqueTestSuiteIdentifier()
@@ -44,6 +57,28 @@ export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSc
   }
 
   return newTestSuite
+}
+
+export async function getTestSuiteByIdOrThrow(id: string) {
+  await ensureTestSuiteIdentifierTags([id])
+
+  const testSuite = await prisma.testSuite.findUnique({
+    where: { id },
+    include: {
+      testCases: true,
+      tags: {
+        where: {
+          type: TagType.FILTER,
+        },
+      },
+    },
+  })
+
+  if (!testSuite) {
+    throw new ServiceError('Test suite not found', 'NOT_FOUND', 404)
+  }
+
+  return testSuite
 }
 
 export async function deleteTestSuitesByIds(ids: string[]): Promise<void> {

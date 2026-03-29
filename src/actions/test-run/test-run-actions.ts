@@ -1,22 +1,21 @@
 'use server'
 
-import prisma from '@/config/db-config'
 import { testRunSchema } from '@/constants/form-opts/test-run-form-opts'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { z } from 'zod'
-import { TestRunStatus, TestRunResult, TestRunTestCaseStatus } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { type LogEntry } from '@/lib/test-run/log-formatter'
-import { Prisma } from '@prisma/client'
-import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import {
-  buildTestRunsWhereClause,
   cancelTestRunService,
   checkTraceViewerStatusService,
   createTestRunFromValidatedValue,
   deleteTestRunsByIds,
   getTestRunLogsService,
+  getMostRecentCompletedTestRunOrThrow,
+  getTestRunByIdOrThrow,
   isTestRunNameTaken,
+  listTestRuns,
+  listTestSuiteTestCases,
   spawnTraceViewerService,
   storeTestRunLogsService,
   updateTestRunTestCaseStatusFromScenario,
@@ -25,16 +24,7 @@ import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionRespons
 
 export async function getAllTestRunsAction(filter?: string): Promise<ActionResponse> {
   try {
-    const whereClause: Prisma.TestRunWhereInput = buildTestRunsWhereClause(filter)
-
-    const testRuns = await prisma.testRun.findMany({
-      where: whereClause,
-      include: {
-        testCases: true,
-        tags: true,
-        environment: true,
-      },
-    })
+    const testRuns = await listTestRuns(filter)
     return {
       status: 200,
       success: true,
@@ -47,35 +37,16 @@ export async function getAllTestRunsAction(filter?: string): Promise<ActionRespo
 
 export async function getTestRunByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const testRun = await prisma.testRun.findUnique({
-      where: { id },
-      include: {
-        testCases: {
-          include: {
-            testCase: true,
-            testSuite: true,
-          },
-        },
-        tags: true,
-        environment: true,
-        reports: true,
-      },
-    })
-
-    if (!testRun) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Test run not found',
-      }
-    }
-
+    const testRun = await getTestRunByIdOrThrow(id)
     return {
       status: 200,
       success: true,
       data: testRun,
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }
@@ -98,20 +69,7 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
 
 export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> {
   try {
-    await ensureTestSuiteIdentifierTags()
-
-    const testSuiteTestCases = await prisma.testSuite.findMany({
-      include: {
-        module: true,
-        tags: true,
-        testCases: {
-          include: {
-            steps: true,
-            tags: true,
-          },
-        },
-      },
-    })
+    const testSuiteTestCases = await listTestSuiteTestCases()
     return {
       status: 200,
       success: true,
@@ -179,13 +137,6 @@ export async function createTestRunAction(
     console.error('Error creating test run:', error)
     if (error instanceof ServiceError) {
       return serviceErrorToActionResponse(error)
-    }
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return {
-        status: 400,
-        success: false,
-        error: 'A test run with this name already exists. Please choose a different name.',
-      }
     }
     return unknownErrorToActionResponse(error)
   }
@@ -376,41 +327,16 @@ export async function cancelTestRunAction(testRunId: string): Promise<ActionResp
 
 export async function getMostRecentTestRunAction(): Promise<ActionResponse> {
   try {
-    const testRun = await prisma.testRun.findFirst({
-      orderBy: { completedAt: 'desc' },
-      where: {
-        completedAt: { not: null },
-        status: TestRunStatus.COMPLETED,
-      },
-      include: {
-        testCases: {
-          include: {
-            testCase: {
-              include: {
-                metrics: true,
-              },
-            },
-          },
-        },
-        environment: true,
-        tags: true,
-      },
-    })
-
-    if (!testRun) {
-      return {
-        status: 404,
-        success: false,
-        error: 'No completed test run found',
-      }
-    }
-
+    const testRun = await getMostRecentCompletedTestRunOrThrow()
     return {
       status: 200,
       success: true,
       data: testRun,
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }

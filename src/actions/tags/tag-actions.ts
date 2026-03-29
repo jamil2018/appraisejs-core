@@ -1,21 +1,21 @@
 'use server'
 
-import prisma from '@/config/db-config'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
-import { automationProjectionService } from '@/lib/automation/projection-service'
+import {
+  createTag,
+  deleteTags,
+  getTagByIdOrThrow,
+  listFilterTags,
+  updateTag,
+} from '@/services/tag/tag-service'
+import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { TagType } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { unknownErrorToActionResponse } from '@/services/shared/errors'
 
 export async function getAllTagsAction(): Promise<ActionResponse> {
   try {
-    const tags = await prisma.tag.findMany({
-      where: {
-        type: TagType.FILTER,
-      },
-    })
+    const tags = await listFilterTags()
     return {
       status: 200,
       success: true,
@@ -28,10 +28,8 @@ export async function getAllTagsAction(): Promise<ActionResponse> {
 
 export async function deleteTagAction(ids: string[]): Promise<ActionResponse> {
   try {
-    await prisma.tag.deleteMany({ where: { id: { in: ids } } })
-    await automationProjectionService.regenerateAllFeatures()
+    await deleteTags(ids)
     revalidatePath('/tags')
-
     return {
       status: 200,
       success: true,
@@ -45,13 +43,8 @@ export async function deleteTagAction(ids: string[]): Promise<ActionResponse> {
 export async function createTagAction(_prev: unknown, value: z.infer<typeof tagSchema>): Promise<ActionResponse> {
   try {
     tagSchema.parse(value)
-    const newTag = await prisma.tag.create({
-      data: value,
-    })
-
-    await automationProjectionService.regenerateAllFeatures()
+    const newTag = await createTag(value)
     revalidatePath('/tags')
-
     return {
       status: 200,
       success: true,
@@ -59,26 +52,25 @@ export async function createTagAction(_prev: unknown, value: z.infer<typeof tagS
       message: 'Tag created successfully',
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }
 
 export async function getTagByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const tag = await prisma.tag.findUnique({ where: { id } })
-    if (!tag) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Tag not found',
-      }
-    }
+    const tag = await getTagByIdOrThrow(id)
     return {
       status: 200,
       success: true,
       data: tag,
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }
@@ -90,18 +82,8 @@ export async function updateTagAction(
 ): Promise<ActionResponse> {
   try {
     tagSchema.parse(value)
-    if (!id) {
-      return {
-        status: 400,
-        success: false,
-        error: 'Tag id is required',
-      }
-    }
-    const updatedTag = await prisma.tag.update({ where: { id }, data: value })
-
-    await automationProjectionService.regenerateAllFeatures()
+    const updatedTag = await updateTag(id, value)
     revalidatePath('/tags')
-
     return {
       status: 200,
       success: true,
@@ -109,6 +91,9 @@ export async function updateTagAction(
       message: 'Tag updated successfully',
     }
   } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
+    }
     return unknownErrorToActionResponse(error)
   }
 }

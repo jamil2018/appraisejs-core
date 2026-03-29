@@ -1,14 +1,15 @@
 'use server'
 
 import { ActionResponse } from '@/types/form/actionHandler'
-import prisma from '@/config/db-config'
 import {
   getAllTestCaseMetricsForFilter,
   getAllTestSuiteMetricsForFilter,
+  getReportByIdOrThrow,
+  getReportByTestRunIdOrThrow,
+  listReports,
   storeReportFromFileService,
-  type ReportDetailWithRelations,
-  type ReportWithRelations,
 } from '@/services/report/report-service'
+import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 
 /**
  * Stores a cucumber.json report in the database (delegates to report service).
@@ -33,215 +34,52 @@ export async function storeReportFromFile(testRunId: string, reportPath: string)
 
 export async function getAllReportsAction(): Promise<ActionResponse> {
   try {
-    const reports = await prisma.report.findMany({
-      include: {
-        testRun: {
-          include: {
-            environment: true,
-            tags: true,
-          },
-        },
-        testCases: {
-          include: {
-            testRunTestCase: {
-              include: {
-                testCase: {
-                  include: {
-                    tags: true,
-                  },
-                },
-                testSuite: true,
-              },
-            },
-            reportScenario: {
-              include: {
-                reportFeature: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    const reports = await listReports()
 
     return {
       status: 200,
       success: true,
-      data: reports as ReportWithRelations[],
+      data: reports,
     }
   } catch (error) {
     console.error('[ReportActions] Error fetching all reports:', error)
-    return {
-      status: 500,
-      success: false,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    }
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function getReportByIdAction(reportId: string): Promise<ActionResponse> {
   try {
-    const report = await prisma.report.findUnique({
-      where: { id: reportId },
-      include: {
-        testRun: {
-          include: {
-            environment: true,
-            tags: true,
-          },
-        },
-        features: {
-          include: {
-            tags: true,
-            scenarios: {
-              include: {
-                tags: true,
-                steps: {
-                  orderBy: {
-                    order: 'asc',
-                  },
-                },
-                hooks: true,
-              },
-            },
-          },
-        },
-        testCases: {
-          include: {
-            testRunTestCase: {
-              include: {
-                testCase: {
-                  include: {
-                    tags: true,
-                  },
-                },
-                testSuite: true,
-              },
-            },
-            reportScenario: {
-              include: {
-                reportFeature: true,
-                tags: true,
-                steps: {
-                  orderBy: {
-                    order: 'asc',
-                  },
-                },
-                hooks: true,
-              },
-            },
-          },
-        },
-      },
-    })
-
-    if (!report) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Report not found',
-      }
-    }
+    const report = await getReportByIdOrThrow(reportId)
 
     return {
       status: 200,
       success: true,
-      data: report as ReportDetailWithRelations,
+      data: report,
     }
   } catch (error) {
     console.error(`[ReportActions] Error fetching report ${reportId}:`, error)
-    return {
-      status: 500,
-      success: false,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
     }
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function getReportByTestRunIdAction(testRunId: string): Promise<ActionResponse> {
   try {
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId: testRunId },
-      select: { id: true },
-    })
-
-    if (!testRun) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Test run not found',
-      }
-    }
-
-    const report = await prisma.report.findFirst({
-      where: { testRunId: testRun.id },
-      include: {
-        testRun: {
-          include: {
-            environment: true,
-            tags: true,
-          },
-        },
-        features: {
-          include: {
-            tags: true,
-            scenarios: {
-              include: {
-                tags: true,
-                steps: {
-                  orderBy: {
-                    order: 'asc',
-                  },
-                },
-                hooks: true,
-              },
-            },
-          },
-        },
-        testCases: {
-          include: {
-            testRunTestCase: {
-              include: {
-                testCase: {
-                  include: {
-                    tags: true,
-                  },
-                },
-                testSuite: true,
-              },
-            },
-            reportScenario: {
-              include: {
-                reportFeature: true,
-              },
-            },
-          },
-        },
-      },
-    })
-
-    if (!report) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Report not found for this test run',
-      }
-    }
+    const report = await getReportByTestRunIdOrThrow(testRunId)
 
     return {
       status: 200,
       success: true,
-      data: report as ReportDetailWithRelations,
+      data: report,
     }
   } catch (error) {
     console.error(`[ReportActions] Error fetching report for testRunId ${testRunId}:`, error)
-    return {
-      status: 500,
-      success: false,
-      error: `Server error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
     }
+    return unknownErrorToActionResponse(error)
   }
 }
 

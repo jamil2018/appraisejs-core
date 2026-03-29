@@ -200,3 +200,13 @@ Introduce a `ServiceError` class that services throw for domain-level failures (
 - No changes to UI components or form schemas.
 - No changes to the `automation/` layer or sync scripts.
 - Template directories (`templates/default/`, `packages/create-appraisejs/templates/default/`) are out of scope -- they will be synced later via existing `sync-template` mechanisms.
+
+---
+
+## Verification (follow-up)
+
+Unit tests under `src/services/**/*.test.ts` cover dashboard aggregation, environment CRUD guards, locator-group name/id checks, template *ByIdOrThrow* not-found paths, `detectAndCreateConflicts` (with `session-manager` mocked), `deleteTestCasesByIds` (transaction + projection mocks), `getAllTestCaseMetricsForFilter` / `getAllTestSuiteMetricsForFilter`, shared `ServiceError` helpers, and other batch-1/2 services. Tests are co-located as `*-service.test.ts` (not under `__tests__/`) for consistency with the repo.
+
+`ActionResponse` exposes a named `ActionResponseData` alias and documents success/error usage; call sites still use a single structural type so `error` remains optional on all responses. `RECENT_PERIOD_DAYS` is imported from `src/services/shared/constants.ts` in metrics code paths that participate in the report/dashboard window.
+
+Run `npx tsc --noEmit` and `npx vitest run` locally after install; if Vitest fails on missing `@rolldown/binding-win32-x64-msvc`, run `npm install` (or install that optional package) so Rolldown’s native binding is present.
