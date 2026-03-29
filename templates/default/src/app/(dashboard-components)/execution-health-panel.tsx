@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartConfig } from '@/components/ui/chart'
 import FeatureChart from '../(base)/reports/feature-chart'
-import { TestSuiteExecutionData } from '@/actions/dashboard/dashboard-actions'
+import type { TestSuiteExecutionData } from '@/services/dashboard/dashboard-service'
 
 const colorMap = {
     passed: 'oklch(59.6% 0.145 163.225)',

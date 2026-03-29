@@ -2,11 +2,8 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import prisma from '@/config/db-config'
 import { buildModulePath } from '@/lib/path-helpers/module-path'
-import {
-  ensureAutomationWorkspaceReady,
-  getAutomationLocatorsDir,
-  getAutomationMappingDir,
-} from '@/lib/automation/paths'
+import { getAutomationLocatorsDir, getAutomationMappingDir } from '@/lib/automation/automation-path-roots'
+import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 
 export async function getLocatorGroupFilePath(locatorGroupId: string): Promise<string | null> {
   try {

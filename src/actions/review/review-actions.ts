@@ -1,102 +1,62 @@
 'use server'
 
-import prisma from '@/config/db-config'
 import { reviewSchema } from '@/constants/form-opts/review-form-opts'
+import {
+  createReview,
+  deleteReviews,
+  getReviewByIdOrThrow,
+  listReviewsWithTestCaseTitle,
+  updateReview,
+} from '@/services/review/review-service'
+import type { ReviewWithTestCaseTitle } from '@/services/review/review-service'
+import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { ActionResponse } from '@/types/form/actionHandler'
-import { Review } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
-
 import { z } from 'zod'
 
-export interface ReviewWithRelations extends Review {
-  testCase: {
-    title: string
-  }
-  reviewer: {
-    username: string
-  }
-}
+/** @deprecated Prefer `ReviewWithTestCaseTitle` from `@/services/review/review-service`. */
+export type ReviewWithRelations = ReviewWithTestCaseTitle
 
 export async function getReviewsByReviewerAction(): Promise<ActionResponse> {
   try {
-    // Since auth is removed, return all reviews (or you may want to remove this function)
-    const reviews = await prisma.review.findMany({
-      include: {
-        testCase: {
-          select: {
-            title: true,
-          },
-        },
-      },
-    })
+    const reviews = await listReviewsWithTestCaseTitle()
     return {
       status: 200,
+      success: true,
       data: reviews,
     }
-  } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
-    }
-  }
-}
-
-export async function getAllReviewsByCreatorAction(): Promise<ActionResponse> {
-  try {
-    // Since auth is removed, return all reviews (or you may want to remove this function)
-    const reviews = await prisma.review.findMany({
-      include: {
-        testCase: {
-          select: {
-            title: true,
-          },
-        },
-      },
-    })
-    return {
-      status: 200,
-      data: reviews,
-    }
-  } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
-    }
+  } catch (error) {
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function deleteReviewAction(id: string[]): Promise<ActionResponse> {
   try {
-    await prisma.review.deleteMany({
-      where: { id: { in: id } },
-    })
+    await deleteReviews(id)
     revalidatePath('/reviews')
     return {
       status: 200,
+      success: true,
       data: 'Review deleted successfully',
     }
-  } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
-    }
+  } catch (error) {
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function getReviewByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const review = await prisma.review.findUnique({
-      where: { id },
-    })
+    const review = await getReviewByIdOrThrow(id)
     return {
       status: 200,
+      success: true,
       data: review,
     }
-  } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
     }
+    return unknownErrorToActionResponse(error)
   }
 }
 
@@ -106,42 +66,38 @@ export async function updateReviewAction(
   id?: string,
 ): Promise<ActionResponse> {
   try {
-    const updatedReview = await prisma.review.update({
-      where: { id },
-      data: value,
-    })
+    reviewSchema.parse(value)
+    const updatedReview = await updateReview(id, value)
     revalidatePath('/reviews')
     return {
       status: 200,
+      success: true,
       data: updatedReview,
       message: 'Review updated successfully',
     }
-  } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
     }
+    return unknownErrorToActionResponse(error)
   }
 }
 
 export async function createReviewAction(_prev: unknown, value: z.infer<typeof reviewSchema>): Promise<ActionResponse> {
   try {
     reviewSchema.parse(value)
-    const newReview = await prisma.review.create({
-      data: {
-        ...value,
-      },
-    })
+    const newReview = await createReview(value)
     revalidatePath('/reviews')
     return {
       status: 200,
+      success: true,
       data: newReview,
       message: 'Review created successfully',
     }
-  } catch (e) {
-    return {
-      status: 500,
-      error: `Server error occurred: ${e}`,
+  } catch (error) {
+    if (error instanceof ServiceError) {
+      return serviceErrorToActionResponse(error)
     }
+    return unknownErrorToActionResponse(error)
   }
 }

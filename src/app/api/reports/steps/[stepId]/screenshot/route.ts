@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { promises as fs, createReadStream } from 'fs'
 import { Readable } from 'stream'
 import prisma from '@/config/db-config'
-import { resolveStoredPath } from '@/lib/automation/paths'
+import { resolveStoredPath } from '@/lib/automation/automation-path-roots'
 
 export const runtime = 'nodejs'
 

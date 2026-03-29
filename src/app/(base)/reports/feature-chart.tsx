@@ -5,6 +5,7 @@ import { Bar, BarChart, XAxis, YAxis } from 'recharts'
 
 interface FeatureChartProps {
   config: ChartConfig
+  /** Stacked segments are counts; `total` should equal the sum of the four outcome columns (used for the value axis). */
   data: Array<{
     feature: string
     passed: number
