@@ -4,21 +4,17 @@ import { testRunSchema } from '@/constants/form-opts/test-run-form-opts'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
-import { type LogEntry } from '@/lib/test-run/log-formatter'
 import {
   cancelTestRunService,
   checkTraceViewerStatusService,
   createTestRunFromValidatedValue,
   deleteTestRunsByIds,
   getTestRunLogsService,
-  getMostRecentCompletedTestRunOrThrow,
   getTestRunByIdOrThrow,
   isTestRunNameTaken,
   listTestRuns,
   listTestSuiteTestCases,
   spawnTraceViewerService,
-  storeTestRunLogsService,
-  updateTestRunTestCaseStatusFromScenario,
 } from '@/services/test-run/test-run-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 
@@ -80,29 +76,6 @@ export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> 
   }
 }
 
-export async function storeTestRunLogsAction(testRunId: string, logs: LogEntry[]): Promise<ActionResponse> {
-  try {
-    if (logs.length === 0) {
-      return {
-        status: 200,
-        success: true,
-        message: 'No logs to store',
-      }
-    }
-
-    await storeTestRunLogsService(testRunId, logs)
-
-    return {
-      status: 200,
-      success: true,
-      message: 'Logs stored successfully',
-    }
-  } catch (error) {
-    console.error(`[TestRunAction] Error storing logs for testRunId: ${testRunId}:`, error)
-    return unknownErrorToActionResponse(error, `[TestRunAction] storeTestRunLogs`)
-  }
-}
-
 export async function getTestRunLogsAction(testRunId: string): Promise<ActionResponse> {
   try {
     const logs = await getTestRunLogsService(testRunId)
@@ -138,49 +111,6 @@ export async function createTestRunAction(
     if (error instanceof ServiceError) {
       return serviceErrorToActionResponse(error)
     }
-    return unknownErrorToActionResponse(error)
-  }
-}
-
-export async function updateTestRunTestCaseStatusAction(
-  testRunId: string,
-  scenario: {
-    scenarioName: string
-    status: 'passed' | 'failed' | 'skipped' | 'unknown'
-    tracePath?: string
-    featureName?: string
-    scenarioTags?: string[]
-  },
-): Promise<ActionResponse> {
-  try {
-    const result = await updateTestRunTestCaseStatusFromScenario(testRunId, scenario)
-
-    if (result.kind === 'test_run_not_found') {
-      return {
-        status: 404,
-        success: false,
-        error: 'Test run not found',
-      }
-    }
-
-    if (result.kind === 'no_match') {
-      return {
-        status: 200,
-        success: true,
-        message: result.message,
-      }
-    }
-
-    return {
-      status: 200,
-      success: true,
-      message: 'Test case status updated successfully',
-    }
-  } catch (error) {
-    console.error(
-      `[TestRunAction] Error updating test case status for testRunId: ${testRunId}, scenario: ${scenario.scenarioName}:`,
-      error,
-    )
     return unknownErrorToActionResponse(error)
   }
 }
@@ -321,22 +251,6 @@ export async function cancelTestRunAction(testRunId: string): Promise<ActionResp
     }
   } catch (error) {
     console.error(`[TestRunAction] Error stopping test run ${testRunId}:`, error)
-    return unknownErrorToActionResponse(error)
-  }
-}
-
-export async function getMostRecentTestRunAction(): Promise<ActionResponse> {
-  try {
-    const testRun = await getMostRecentCompletedTestRunOrThrow()
-    return {
-      status: 200,
-      success: true,
-      data: testRun,
-    }
-  } catch (error) {
-    if (error instanceof ServiceError) {
-      return serviceErrorToActionResponse(error)
-    }
     return unknownErrorToActionResponse(error)
   }
 }

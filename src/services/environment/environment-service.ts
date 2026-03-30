@@ -94,7 +94,3 @@ export async function updateEnvironment(
   await automationProjectionService.syncEnvironments()
   return updatedEnvironment
 }
-
-export async function checkEnvironmentNameUnique(name: string, excludeId?: string): Promise<boolean> {
-  return !(await checkUniqueName(name, excludeId))
-}

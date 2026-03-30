@@ -1,5 +1,4 @@
 import prisma from '@/config/db-config'
-import { locatorSchema } from '@/constants/form-opts/locator-form-opts'
 import { z } from 'zod'
 import { automationProjectionService } from '@/lib/automation/projection-service'
 import { extractLocatorGroupName, extractModulePathFromLocatorFile } from '@/services/locator/locator-path-utils'
@@ -63,77 +62,6 @@ export async function deleteLocators(ids: string[]) {
   return result
 }
 
-export async function createLocator(value: z.infer<typeof locatorSchema>) {
-  const newLocator = await prisma.locator.create({
-    data: {
-      name: value.name,
-      value: value.value,
-      locatorGroupId: value.locatorGroupId,
-    },
-    include: {
-      locatorGroup: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  })
-
-  if (value.locatorGroupId) {
-    await updateLocatorGroupFile(value.locatorGroupId)
-  }
-
-  return newLocator
-}
-
-export async function updateLocator(id: string | undefined, value: z.infer<typeof locatorSchema>) {
-  if (!id) {
-    throw new ServiceError('Locator id is required', 'VALIDATION', 400)
-  }
-
-  const currentLocator = await prisma.locator.findUnique({
-    where: { id },
-    select: { locatorGroupId: true },
-  })
-
-  if (!currentLocator) {
-    throw new ServiceError('Locator not found', 'NOT_FOUND', 404)
-  }
-
-  const updatedLocator = await prisma.locator.update({
-    where: { id },
-    data: {
-      name: value.name,
-      value: value.value,
-      locatorGroupId: value.locatorGroupId,
-    },
-    include: {
-      locatorGroup: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  })
-
-  const groupsToUpdate = new Set<string>()
-
-  if (currentLocator.locatorGroupId !== value.locatorGroupId) {
-    if (currentLocator.locatorGroupId) {
-      groupsToUpdate.add(currentLocator.locatorGroupId)
-    }
-    if (value.locatorGroupId) {
-      groupsToUpdate.add(value.locatorGroupId)
-    }
-  } else if (value.locatorGroupId) {
-    groupsToUpdate.add(value.locatorGroupId)
-  }
-
-  await Promise.all(Array.from(groupsToUpdate).map(groupId => updateLocatorGroupFile(groupId)))
-
-  return updatedLocator
-}
-
 export async function getLocatorByIdOrThrow(id: string) {
   const locator = await prisma.locator.findUnique({
     where: { id },
@@ -151,19 +79,6 @@ export async function getLocatorByIdOrThrow(id: string) {
   }
 
   return locator
-}
-
-export async function listUngroupedLocators() {
-  return prisma.locator.findMany({
-    where: {
-      locatorGroupId: null,
-    },
-    select: {
-      id: true,
-      name: true,
-      value: true,
-    },
-  })
 }
 
 export async function detectAndCreateConflicts(
