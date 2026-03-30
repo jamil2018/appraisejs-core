@@ -63,31 +63,6 @@ export async function getLocatorPickerSessionAction(sessionId: string): Promise<
   }
 }
 
-export async function closeLocatorPickerSessionAction(sessionId: string): Promise<ActionResponse> {
-  try {
-    const session = await locatorPickerSessionManager.closeSession(sessionId)
-    if (!session) {
-      return {
-        status: 404,
-        success: false,
-        error: 'Locator picker session not found.',
-      }
-    }
-
-    return {
-      status: 200,
-      success: true,
-      data: session,
-    }
-  } catch (error) {
-    return {
-      status: 500,
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to close the locator picker session.',
-    }
-  }
-}
-
 export async function savePickedLocatorAction(request: SavePickedLocatorRequest): Promise<ActionResponse> {
   try {
     const outcome = await savePickedLocatorFromRequest(request)

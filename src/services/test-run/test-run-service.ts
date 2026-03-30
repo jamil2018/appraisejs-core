@@ -98,35 +98,6 @@ export async function listTestSuiteTestCases() {
   })
 }
 
-export async function getMostRecentCompletedTestRunOrThrow() {
-  const testRun = await prisma.testRun.findFirst({
-    orderBy: { completedAt: 'desc' },
-    where: {
-      completedAt: { not: null },
-      status: TestRunStatus.COMPLETED,
-    },
-    include: {
-      testCases: {
-        include: {
-          testCase: {
-            include: {
-              metrics: true,
-            },
-          },
-        },
-      },
-      environment: true,
-      tags: true,
-    },
-  })
-
-  if (!testRun) {
-    throw new ServiceError('No completed test run found', 'NOT_FOUND', 404)
-  }
-
-  return testRun
-}
-
 type TestRunTestCaseLink = { testCaseId: string; testSuiteId?: string | null }
 
 async function resolveTagExpressionAndTestCases(value: TestRunFormValue): Promise<{

@@ -2,7 +2,6 @@
 
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
 import {
-  checkEnvironmentNameUnique,
   createEnvironment,
   deleteEnvironments,
   getEnvironmentByIdOrThrow,
@@ -98,19 +97,6 @@ export async function updateEnvironmentAction(
     if (error instanceof ServiceError) {
       return serviceErrorToActionResponse(error)
     }
-    return unknownErrorToActionResponse(error)
-  }
-}
-
-export async function checkEnvironmentNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
-  try {
-    const isUnique = await checkEnvironmentNameUnique(name, excludeId)
-    return {
-      status: 200,
-      success: true,
-      data: { isUnique },
-    }
-  } catch (error) {
     return unknownErrorToActionResponse(error)
   }
 }

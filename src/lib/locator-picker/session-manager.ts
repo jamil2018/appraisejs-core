@@ -426,27 +426,6 @@ class LocatorPickerSessionManager {
       error: undefined,
     }))
   }
-
-  async closeSession(sessionId: string): Promise<LocatorPickerSession | null> {
-    const sessionFilePath = getLocatorPickerSessionFilePath(sessionId)
-    const current = await readLocatorPickerSessionFile(sessionFilePath)
-    if (!current) {
-      return null
-    }
-
-    if (current.companionPid) {
-      await shutdownCompanionProcess(current.companionPid).catch(() => undefined)
-    }
-
-    const nextRecord = await patchLocatorPickerSessionFile(sessionFilePath, {
-      status: 'closed',
-      companionPid: null,
-    })
-
-    await removeLocatorPickerProfileDir(sessionId).catch(() => undefined)
-
-    return nextRecord ? toSessionSnapshot(nextRecord) : null
-  }
 }
 
 export const locatorPickerSessionManager = LocatorPickerSessionManager.getInstance()

@@ -71,7 +71,6 @@ import {
   getAllTestCaseMetricsForFilter,
   getAllTestSuiteMetricsForFilter,
   getReportByIdOrThrow,
-  getReportByTestRunIdOrThrow,
   storeReportFromFileService,
 } from './report-service'
 
@@ -179,27 +178,6 @@ describe('getReportByIdOrThrow', () => {
 
     await expect(getReportByIdOrThrow('missing')).rejects.toMatchObject({
       message: 'Report not found',
-      statusCode: 404,
-    })
-  })
-})
-
-describe('getReportByTestRunIdOrThrow', () => {
-  it('throws when the test run is missing', async () => {
-    mockTestRunFindUnique.mockResolvedValue(null)
-
-    await expect(getReportByTestRunIdOrThrow('run-1')).rejects.toMatchObject({
-      message: 'Test run not found',
-      statusCode: 404,
-    })
-  })
-
-  it('throws when the report for the run is missing', async () => {
-    mockTestRunFindUnique.mockResolvedValue({ id: 'db-run-1' })
-    mockReportFindFirst.mockResolvedValue(null)
-
-    await expect(getReportByTestRunIdOrThrow('run-1')).rejects.toMatchObject({
-      message: 'Report not found for this test run',
       statusCode: 404,
     })
   })

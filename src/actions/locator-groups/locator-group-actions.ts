@@ -7,8 +7,6 @@ import {
   deleteLocatorGroups,
   getLocatorGroupByIdOrThrow,
   listLocatorGroups,
-  readLocatorGroupFileContent,
-  regenerateAllLocatorGroupFiles,
   updateLocatorGroup,
 } from '@/services/locator-group/locator-group-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
@@ -103,22 +101,6 @@ export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionRes
   }
 }
 
-export async function getLocatorGroupFileContentAction(locatorGroupId: string): Promise<ActionResponse> {
-  try {
-    const fileData = await readLocatorGroupFileContent(locatorGroupId)
-    return {
-      status: 200,
-      success: true,
-      data: fileData,
-    }
-  } catch (error) {
-    if (error instanceof ServiceError) {
-      return serviceErrorToActionResponse(error)
-    }
-    return unknownErrorToActionResponse(error)
-  }
-}
-
 export async function checkLocatorGroupNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
   try {
     const isUnique = await checkLocatorGroupNameUnique(name, excludeId)
@@ -126,24 +108,6 @@ export async function checkLocatorGroupNameUniqueAction(name: string, excludeId?
       status: 200,
       success: true,
       data: { isUnique },
-    }
-  } catch (error) {
-    return unknownErrorToActionResponse(error)
-  }
-}
-
-export async function regenerateAllLocatorGroupFilesAction(): Promise<ActionResponse> {
-  try {
-    const result = await regenerateAllLocatorGroupFiles()
-    return {
-      status: 200,
-      success: true,
-      data: {
-        total: result.total,
-        success: result.success,
-        errors: result.errors,
-      },
-      message: `Regenerated ${result.success} files successfully. ${result.errors} errors encountered.`,
     }
   } catch (error) {
     return unknownErrorToActionResponse(error)

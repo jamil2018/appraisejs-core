@@ -1,7 +1,7 @@
 import prisma from '@/config/db-config'
 import { locatorGroupSchema } from '@/constants/form-opts/locator-group-form-opts'
 import { automationProjectionService } from '@/lib/automation/projection-service'
-import { getLocatorGroupFilePath, readLocatorGroupFile } from '@/lib/locator-group-file-utils'
+import { getLocatorGroupFilePath } from '@/lib/locator-group-file-utils'
 import { ServiceError } from '@/services/shared/errors'
 import type { LocatorGroup } from '@prisma/client'
 import { Prisma } from '@prisma/client'
@@ -175,35 +175,6 @@ export async function deleteLocatorGroups(ids: string[]): Promise<string[]> {
   return ids
 }
 
-export async function readLocatorGroupFileContent(
-  locatorGroupId: string,
-): Promise<{ filePath: string; content: Record<string, string> }> {
-  const fileData = await readLocatorGroupFile(locatorGroupId)
-  if (!fileData) {
-    throw new ServiceError('Locator group not found or file path could not be determined', 'NOT_FOUND', 404)
-  }
-  return fileData
-}
-
 export async function checkLocatorGroupNameUnique(name: string, excludeId?: string): Promise<boolean> {
   return !(await checkUniqueName(name, excludeId))
-}
-
-export async function regenerateAllLocatorGroupFiles(): Promise<{ total: number; success: number; errors: number }> {
-  const locatorGroups = await prisma.locatorGroup.findMany({
-    select: { id: true },
-  })
-
-  const results = await Promise.allSettled(
-    locatorGroups.map(locatorGroup => automationProjectionService.syncLocatorGroup(locatorGroup.id)),
-  )
-
-  const successCount = results.filter(result => result.status === 'fulfilled' && result.value).length
-  const errorCount = results.length - successCount
-
-  return {
-    total: locatorGroups.length,
-    success: successCount,
-    errors: errorCount,
-  }
 }

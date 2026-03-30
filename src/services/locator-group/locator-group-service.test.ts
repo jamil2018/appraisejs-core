@@ -5,8 +5,6 @@ import {
   createLocatorGroup,
   deleteLocatorGroups,
   getLocatorGroupByIdOrThrow,
-  readLocatorGroupFileContent,
-  regenerateAllLocatorGroupFiles,
   updateLocatorGroup,
 } from './locator-group-service'
 
@@ -25,7 +23,6 @@ vi.mock('@/config/db-config', () => ({
 
 vi.mock('@/lib/locator-group-file-utils', () => ({
   getLocatorGroupFilePath: vi.fn().mockResolvedValue('/tmp/group.json'),
-  readLocatorGroupFile: vi.fn(),
 }))
 
 vi.mock('@/lib/automation/projection-service', () => ({
@@ -41,7 +38,6 @@ vi.mock('@/lib/automation/projection-service', () => ({
 }))
 
 import prisma from '@/config/db-config'
-import { readLocatorGroupFile } from '@/lib/locator-group-file-utils'
 
 describe('getLocatorGroupByIdOrThrow', () => {
   it('throws when locator group is missing', async () => {
@@ -122,35 +118,6 @@ describe('deleteLocatorGroups', () => {
     expect(automationProjectionService.deleteLocatorGroup).toHaveBeenCalledWith('group-1')
     expect(prisma.locatorGroup.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ['group-1'] } },
-    })
-  })
-})
-
-describe('readLocatorGroupFileContent', () => {
-  it('returns file contents from disk-backed locator groups', async () => {
-    vi.mocked(readLocatorGroupFile).mockResolvedValue({
-      filePath: '/tmp/group.json',
-      content: { submit: '#submit' },
-    } as never)
-
-    await expect(readLocatorGroupFileContent('group-1')).resolves.toEqual({
-      filePath: '/tmp/group.json',
-      content: { submit: '#submit' },
-    })
-  })
-})
-
-describe('regenerateAllLocatorGroupFiles', () => {
-  it('reports the number of successful and failed regenerations', async () => {
-    vi.mocked(prisma.locatorGroup.findMany).mockResolvedValue([{ id: 'group-1' }, { id: 'group-2' }] as never)
-    vi.mocked(automationProjectionService.syncLocatorGroup)
-      .mockResolvedValueOnce(true)
-      .mockRejectedValueOnce(new Error('boom'))
-
-    await expect(regenerateAllLocatorGroupFiles()).resolves.toEqual({
-      total: 2,
-      success: 1,
-      errors: 1,
     })
   })
 })

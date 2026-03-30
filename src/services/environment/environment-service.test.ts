@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
 import { automationProjectionService } from '@/lib/automation/projection-service'
 import {
-  checkEnvironmentNameUnique,
   createEnvironment,
   deleteEnvironments,
   getEnvironmentByIdOrThrow,
@@ -134,17 +133,5 @@ describe('updateEnvironment', () => {
       },
     })
     expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()
-  })
-})
-
-describe('checkEnvironmentNameUnique', () => {
-  it('returns false when name is taken', async () => {
-    vi.mocked(prisma.environment.findFirst).mockResolvedValue({ id: 'x' } as never)
-    await expect(checkEnvironmentNameUnique('Taken')).resolves.toBe(false)
-  })
-
-  it('returns true when name is free', async () => {
-    vi.mocked(prisma.environment.findFirst).mockResolvedValue(null)
-    await expect(checkEnvironmentNameUnique('Free')).resolves.toBe(true)
   })
 })
