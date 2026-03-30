@@ -54,14 +54,14 @@ const TableActions = ({
 }) => {
   const [isCancelling, setIsCancelling] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  
+
   const handleDelete = async () => {
     const res = await deleteHandler()
     if (res.status === 200) {
       toast({
         title: 'Item(s) deleted successfully',
       })
-      setIsDeleteDialogOpen(false)
+      return true
     } else {
       toast({
         title: `${res.message}`,
@@ -69,8 +69,10 @@ const TableActions = ({
         variant: 'destructive',
       })
     }
+
+    return false
   }
-  
+
   return (
     <>
       <DeletePrompt

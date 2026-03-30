@@ -9,12 +9,16 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    setupFiles: ['./vitest.setup.ts'],
     include: [
       'scripts/lib/**/*.test.ts',
       'src/services/**/*.test.ts',
-      'src/app/api/**/*.test.ts',
+      'src/app/**/*.test.ts',
+      'src/app/**/*.test.tsx',
       'src/actions/**/*.test.ts',
       'src/lib/sync/**/*.test.ts',
+      'src/components/**/*.test.ts',
+      'src/components/**/*.test.tsx',
     ],
   },
 })

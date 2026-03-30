@@ -2,6 +2,7 @@
 
 import {
   ColumnDef,
+  type RowSelectionState,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -32,7 +33,18 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu'
 
-interface DataTableProps<TData, TValue> {
+type DataTableRowLike = {
+  id?: string
+  conflicts?: unknown[]
+}
+
+type DataTableCreateButtonOption = {
+  label: string
+  link: string
+  icon?: React.ReactNode
+}
+
+export type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   filterColumn: string
@@ -41,13 +53,43 @@ interface DataTableProps<TData, TValue> {
   modifyLink?: string
   deleteAction?: (id: string[]) => Promise<ActionResponse>
   multiOptionCreateButton?: boolean
-  createButtonOptions?: {
-    label: string
-    link: string
-    icon?: React.ReactNode
-  }[]
+  createButtonOptions?: DataTableCreateButtonOption[]
+  createMenuLabel?: string
   viewLink?: string
   showSelectedRows?: boolean
+  getRowId?: (row: TData, index: number) => string
+}
+
+function hasDataTableRowShape(value: unknown): value is DataTableRowLike {
+  return typeof value === 'object' && value !== null
+}
+
+function getResolvedRowId<TData>(row: TData, index: number, getRowId?: (row: TData, index: number) => string) {
+  if (getRowId) {
+    return getRowId(row, index)
+  }
+
+  if (hasDataTableRowShape(row) && typeof row.id === 'string') {
+    return row.id
+  }
+
+  return `row-${index}`
+}
+
+function getEntityId<TData>(row: TData, index: number, getRowId?: (row: TData, index: number) => string) {
+  if (getRowId) {
+    return getRowId(row, index)
+  }
+
+  if (hasDataTableRowShape(row) && typeof row.id === 'string') {
+    return row.id
+  }
+
+  return null
+}
+
+function rowHasConflicts(value: unknown) {
+  return hasDataTableRowShape(value) && Array.isArray(value.conflicts) && value.conflicts.length > 0
 }
 
 export function DataTable<TData, TValue>({
@@ -62,10 +104,12 @@ export function DataTable<TData, TValue>({
   viewLink,
   deleteAction,
   showSelectedRows = true,
+  createMenuLabel = 'Create item',
+  getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [rowSelection, setRowSelection] = useState({})
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -89,37 +133,36 @@ export function DataTable<TData, TValue>({
       rowSelection,
       pagination,
     },
-    getRowId: (row, index) => {
-      // getRowId receives the raw data object directly, not a row object with .original
-      // Handle case where row might be undefined or null
-      if (!row || typeof row !== 'object') {
-        console.error('DataTable: getRowId received invalid row data', { row, index })
-        return `row-${index}` // Fallback using index
-      }
-      const id = (row as unknown as { id: string }).id
-      if (!id) {
-        console.error('DataTable: row data missing id property', { row, index })
-        return `row-${index}` // Fallback using index
-      }
-      return id
-    },
+    getRowId: (row, index) => getResolvedRowId(row, index, getRowId),
   })
 
+  const selectedRows = table.getSelectedRowModel().rows
+  const selectedIds = selectedRows
+    .map(row => getEntityId(row.original, row.index, getRowId))
+    .filter((value): value is string => value !== null)
+  const selectedRowCount = selectedRows.length
+  const singleSelectedId = selectedRowCount === 1 ? selectedIds[0] ?? null : null
+
   const deleteHandler = async () => {
-    const selectedIds = table.getSelectedRowModel().rows.map(row => (row.original as { id: string }).id)
-    if (deleteAction) {
-      const res = await deleteAction(selectedIds)
-      if (res.status === 200) {
-        toast({
-          title: 'Item(s) deleted successfully',
-        })
-      } else {
-        toast({
-          title: 'Error deleting item(s)',
-          description: res.message,
-        })
-      }
+    if (!deleteAction || selectedIds.length === 0) {
+      return false
     }
+
+    const res = await deleteAction(selectedIds)
+    if (res.status === 200) {
+      toast({
+        title: 'Item(s) deleted successfully',
+      })
+      return true
+    }
+
+    toast({
+      title: 'Error deleting item(s)',
+      description: res.message,
+      variant: 'destructive',
+    })
+
+    return false
   }
 
   return (
@@ -127,21 +170,23 @@ export function DataTable<TData, TValue>({
       <div className="flex justify-end">
         <div className="mb-4 flex gap-2">
           {createLink && (
-            <Button variant="default" size="icon" asChild>
+            <Button variant="default" size="icon" aria-label="Create item" asChild>
               <Link href={createLink}>
-                <PlusCircle className="h-4 w-4" />
+                <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Create item</span>
               </Link>
             </Button>
           )}
           {multiOptionCreateButton && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="default" size="icon">
-                  <PlusCircle className="h-4 w-4" />
+                <Button variant="default" size="icon" aria-label={createMenuLabel}>
+                  <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                  <span className="sr-only">{createMenuLabel}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel>Create Test Case</DropdownMenuLabel>
+                <DropdownMenuLabel>{createMenuLabel}</DropdownMenuLabel>
                 {createButtonOptions?.map(option => (
                   <DropdownMenuItem key={option.label} asChild>
                     <Link href={option.link}>
@@ -154,48 +199,43 @@ export function DataTable<TData, TValue>({
             </DropdownMenu>
           )}
           {modifyLink && (
-            (() => {
-              const disabled =
-                table.getSelectedRowModel().rows.length === 0 || table.getSelectedRowModel().rows.length > 1
-              const href = `${modifyLink}/${disabled ? '' : (table.getSelectedRowModel().rows[0].original as { id: string }).id}`
-              return disabled ? (
-                <Button variant="outline" size="icon" disabled>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button variant="outline" size="icon" asChild>
-                  <Link href={href}>
-                    <Pencil className="h-4 w-4" />
-                  </Link>
-                </Button>
-              )
-            })()
+            singleSelectedId ? (
+              <Button variant="outline" size="icon" aria-label="Edit selected item" asChild>
+                <Link href={`${modifyLink}/${singleSelectedId}`}>
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  <span className="sr-only">Edit selected item</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="icon" aria-label="Edit selected item" disabled>
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Edit selected item</span>
+              </Button>
+            )
           )}
           {viewLink && (
-            (() => {
-              const disabled =
-                table.getSelectedRowModel().rows.length === 0 || table.getSelectedRowModel().rows.length > 1
-              const href = `${viewLink}/${disabled ? '' : (table.getSelectedRowModel().rows[0].original as { id: string }).id}`
-              return disabled ? (
-                <Button variant="outline" size="icon" disabled>
-                  <Eye className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button variant="outline" size="icon" asChild>
-                  <Link href={href}>
-                    <Eye className="h-4 w-4" />
-                  </Link>
-                </Button>
-              )
-            })()
+            singleSelectedId ? (
+              <Button variant="outline" size="icon" aria-label="View selected item" asChild>
+                <Link href={`${viewLink}/${singleSelectedId}`}>
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                  <span className="sr-only">View selected item</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" size="icon" aria-label="View selected item" disabled>
+                <Eye className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">View selected item</span>
+              </Button>
+            )
           )}
           {deleteAction && (
             <DeletePrompt
-              isDisabled={table.getSelectedRowModel().rows.length === 0}
+              isDisabled={selectedIds.length === 0}
               dialogTitle="Delete Item"
               dialogDescription="Please confirm your action"
               confirmationText="Are you sure you want to delete the selected item(s)?"
               deleteHandler={deleteHandler}
+              triggerLabel="Delete selected item(s)"
             />
           )}
         </div>
@@ -230,14 +270,11 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map(row => {
-                const rowData = row.original as TData & { conflicts?: unknown[] }
-                const hasConflicts =
-                  rowData.conflicts && Array.isArray(rowData.conflicts) && rowData.conflicts.length > 0
                 return (
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className={hasConflicts ? 'bg-destructive/10' : ''}
+                    className={rowHasConflicts(row.original) ? 'bg-destructive/10' : ''}
                   >
                     {row.getVisibleCells().map(cell => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
