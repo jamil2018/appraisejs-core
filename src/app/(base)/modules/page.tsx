@@ -7,8 +7,8 @@ import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import EmptyState from '@/components/data-state/empty-state'
-import { Module } from '@prisma/client'
 import { Metadata } from 'next'
+import { getModuleTableRows } from './module-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modules',
@@ -22,7 +22,7 @@ const Modules = async () => {
     return <div>Error: {modulesError}</div>
   }
 
-  const modulesData = modules as (Module & { parent: { name: string } })[]
+  const modulesData = getModuleTableRows(modules)
 
   if (!modulesData || modulesData.length === 0) {
     return (

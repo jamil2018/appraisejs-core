@@ -6,8 +6,8 @@ import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { getAllTemplateStepGroupsAction } from '@/actions/template-step-group/template-step-group-actions'
 import EmptyState from '@/components/data-state/empty-state'
-import { TemplateStepGroup } from '@prisma/client'
 import { Metadata } from 'next'
+import { getTemplateStepGroupRows } from './template-step-group-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Template Step Groups',
@@ -21,7 +21,7 @@ const TemplateStepGroups = async () => {
     return <div>Error: {templateStepGroupsError}</div>
   }
 
-  const templateStepGroupsData = templateStepGroups as TemplateStepGroup[]
+  const templateStepGroupsData = getTemplateStepGroupRows(templateStepGroups)
 
   if (!templateStepGroupsData || templateStepGroupsData.length === 0) {
     return (

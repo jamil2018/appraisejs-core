@@ -41,4 +41,16 @@ if (typeof window !== 'undefined') {
   if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.scrollIntoView) {
     HTMLElement.prototype.scrollIntoView = vi.fn()
   }
+
+  if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.hasPointerCapture) {
+    HTMLElement.prototype.hasPointerCapture = vi.fn().mockReturnValue(false)
+  }
+
+  if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.setPointerCapture) {
+    HTMLElement.prototype.setPointerCapture = vi.fn()
+  }
+
+  if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.releasePointerCapture) {
+    HTMLElement.prototype.releasePointerCapture = vi.fn()
+  }
 }

@@ -1,17 +1,17 @@
 'use client'
 
+import { deleteTemplateStepGroupAction } from '@/actions/template-step-group/template-step-group-actions'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { TemplateStepGroup, TemplateStepGroupType } from '@prisma/client'
+import TableActions from '@/components/table/table-actions'
+import { formatDateTime } from '@/lib/utils'
+import { CheckCheck, MousePointer2 } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 
-import { Checkbox } from '@/components/ui/checkbox'
-import TableActions from '@/components/table/table-actions'
-import { deleteTemplateStepGroupAction } from '@/actions/template-step-group/template-step-group-actions'
-import { formatDateTime } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
-import { CheckCheck, MousePointer2 } from 'lucide-react'
+import { type TemplateStepGroupTableRow } from './template-step-group-helpers'
 
-export const templateStepGroupTableCols: ColumnDef<TemplateStepGroup>[] = [
+export const templateStepGroupTableCols: ColumnDef<TemplateStepGroupTableRow>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -47,7 +47,7 @@ export const templateStepGroupTableCols: ColumnDef<TemplateStepGroup>[] = [
     cell: ({ row }) => {
       const templateStepGroup = row.original
       const icon =
-        templateStepGroup.type === TemplateStepGroupType.ACTION ? (
+        templateStepGroup.type === 'ACTION' ? (
           <MousePointer2 className="h-4 w-4" />
         ) : (
           <CheckCheck className="h-4 w-4" />

@@ -5,11 +5,11 @@ import { ColumnDef } from '@tanstack/react-table'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
-import { Environment } from '@prisma/client'
 import { deleteEnvironmentAction } from '@/actions/environments/environment-actions'
 import { formatDateTime } from '@/lib/utils'
+import { type EnvironmentTableRow } from './environment-helpers'
 
-export const environmentTableCols: ColumnDef<Environment>[] = [
+export const environmentTableCols: ColumnDef<EnvironmentTableRow>[] = [
   {
     id: 'select',
     header: ({ table }) => (

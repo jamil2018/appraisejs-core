@@ -1,9 +1,9 @@
 import { getEnvironmentByIdAction, updateEnvironmentAction } from '@/actions/environments/environment-actions'
-import { Environment } from '@prisma/client'
 import EnvironmentForm from '../../environment-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Metadata } from 'next'
+import { getEnvironmentTableRows } from '../../environment-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Environment',
@@ -18,7 +18,10 @@ const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }
     return <div>Error: {environmentToBeEditedError}</div>
   }
 
-  const environmentData = environmentToBeEditedData as Environment
+  const [environmentData] = getEnvironmentTableRows([environmentToBeEditedData])
+  if (!environmentData) {
+    return <div>Error: Environment data is unavailable.</div>
+  }
 
   return (
     <>

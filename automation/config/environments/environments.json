@@ -4,5 +4,11 @@
     "apiBaseUrl": "",
     "email": "",
     "password": ""
+  },
+  "tests": {
+    "baseUrl": "http://tests.coms",
+    "apiBaseUrl": "http://tests.com/apis",
+    "email": "admins",
+    "password": "test34s"
   }
 }
