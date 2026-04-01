@@ -6,8 +6,13 @@
 @ts_7f0cc2cc4b0782cv
 Feature: Testing login feature
 
+  @tc_cf9206036bdf0d90
+  Scenario: [Login] Validate login url
+    Given the user navigates to the base url of the selected environment
+    Then the url route should be equal to "/login"
+
   @tc_7f0cc2cc4b0782cv
-  Scenario: [Testing login with valid credentials] 
+  Scenario: [Login] Login with valid credentials
     Given the user navigates to the base url of the selected environment
     When the user fills in the "email" input field with value "demo@example.com"
     And the user fills in the "password" input field with value "test1234"
