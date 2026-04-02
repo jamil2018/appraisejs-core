@@ -12,6 +12,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Copy, Target, MousePointer, Info } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
+import {
+  createLocatorInspectorInjectionScript,
+  generateCSSPath,
+  generateXPath,
+  getLocatorInspectorOrigin,
+  isLocatorInspectorMessage,
+} from './locator-inspector-helpers'
 
 interface SelectedElementDetails {
   tag: string
@@ -33,107 +40,6 @@ export default function LocatorInspector({ iframeUrl = '/sample-page' }: Locator
   const [selectedElementDetails, setSelectedElementDetails] = useState<SelectedElementDetails | undefined>()
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  // Injection script - optimized and cleaned up
-  const injectionScript = `
-    (function() {
-      if (window.locatorInspectorInjected) return;
-      window.locatorInspectorInjected = true;
-      
-      let isSelectionMode = false;
-      let hoveredElement = null;
-      
-      // Inject CSS for hover effects
-      const style = document.createElement('style');
-      style.textContent = \`
-        .locator-inspector-hover {
-          outline: 2px solid #3b82f6 !important;
-          background-color: rgba(59, 130, 246, 0.1) !important;
-          cursor: crosshair !important;
-        }
-        .locator-inspector-selection-mode * {
-          cursor: crosshair !important;
-        }
-      \`;
-      document.head.appendChild(style);
-      
-      function handleElementClick(event) {
-        if (!isSelectionMode) return;
-        
-        event.preventDefault();
-        event.stopPropagation();
-        
-        const target = event.target;
-        
-        // Send element data to parent
-        window.parent.postMessage({
-          type: 'ELEMENT_SELECTED',
-          elementData: {
-            tagName: target.tagName,
-            id: target.id,
-            className: target.className,
-            name: target.name,
-            textContent: target.textContent?.trim(),
-            outerHTML: target.outerHTML,
-          }
-        }, '*');
-        
-        exitSelectionMode();
-      }
-      
-      function handleElementHover(event) {
-        if (!isSelectionMode) return;
-        
-        if (hoveredElement) {
-          hoveredElement.classList.remove('locator-inspector-hover');
-        }
-        
-        hoveredElement = event.target;
-        hoveredElement.classList.add('locator-inspector-hover');
-      }
-      
-      function handleElementLeave(event) {
-        if (!isSelectionMode) return;
-        event.target.classList.remove('locator-inspector-hover');
-      }
-      
-      function enterSelectionMode() {
-        isSelectionMode = true;
-        document.body.classList.add('locator-inspector-selection-mode');
-        document.addEventListener('click', handleElementClick, true);
-        document.addEventListener('mouseover', handleElementHover, true);
-        document.addEventListener('mouseout', handleElementLeave, true);
-      }
-      
-      function exitSelectionMode() {
-        isSelectionMode = false;
-        document.body.classList.remove('locator-inspector-selection-mode');
-        document.removeEventListener('click', handleElementClick, true);
-        document.removeEventListener('mouseover', handleElementHover, true);
-        document.removeEventListener('mouseout', handleElementLeave, true);
-        
-        // Clean up hover effects
-        document.querySelectorAll('.locator-inspector-hover').forEach(el => {
-          el.classList.remove('locator-inspector-hover');
-        });
-        
-        hoveredElement = null;
-        
-        window.parent.postMessage({ type: 'SELECTION_MODE_OFF' }, '*');
-      }
-      
-      // Listen for toggle messages
-      window.addEventListener('message', function(event) {
-        if (event.data.type === 'TOGGLE_SELECTION_MODE') {
-          if (event.data.isSelectionMode) {
-            enterSelectionMode();
-          } else {
-            exitSelectionMode();
-          }
-        }
-      });
-    })();
-  `
-
   // Inject script when iframe loads
   const handleIframeLoad = () => {
     const iframe = iframeRef.current
@@ -142,7 +48,7 @@ export default function LocatorInspector({ iframeUrl = '/sample-page' }: Locator
     try {
       const script = iframe.contentDocument?.createElement('script')
       if (script) {
-        script.textContent = injectionScript
+        script.textContent = createLocatorInspectorInjectionScript(window.location.origin)
         iframe.contentDocument?.head.appendChild(script)
       }
     } catch (error) {
@@ -150,34 +56,16 @@ export default function LocatorInspector({ iframeUrl = '/sample-page' }: Locator
     }
   }
 
-  // Generate CSS selector
-  const generateCSSPath = (element: { tagName: string; className?: string; id?: string }) => {
-    if (element.id) return `#${element.id}`
-
-    let path = element.tagName.toLowerCase()
-    if (element.className) {
-      const classes = element.className.split(' ').filter(Boolean)
-      if (classes.length > 0) {
-        path += '.' + classes.join('.')
-      }
-    }
-    return path
-  }
-
-  // Generate XPath
-  const generateXPath = (element: { tagName: string; className?: string; id?: string }) => {
-    if (element.id) return `//*[@id="${element.id}"]`
-
-    let path = `//${element.tagName.toLowerCase()}`
-    if (element.className) {
-      path += `[@class="${element.className}"]`
-    }
-    return path
-  }
-
   // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow
+      const iframeOrigin = getLocatorInspectorOrigin(iframeUrl, window.location.href)
+
+      if (event.source !== iframeWindow || event.origin !== iframeOrigin || !isLocatorInspectorMessage(event.data)) {
+        return
+      }
+
       if (event.data.type === 'SELECTION_MODE_OFF') {
         setIsSelectionMode(false)
       } else if (event.data.type === 'ELEMENT_SELECTED') {
@@ -197,7 +85,7 @@ export default function LocatorInspector({ iframeUrl = '/sample-page' }: Locator
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [])
+  }, [iframeUrl])
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -208,13 +96,14 @@ export default function LocatorInspector({ iframeUrl = '/sample-page' }: Locator
     setIsSelectionMode(newSelectionMode)
 
     const iframe = iframeRef.current
+    const iframeOrigin = getLocatorInspectorOrigin(iframeUrl, window.location.href)
     if (iframe?.contentWindow) {
       iframe.contentWindow.postMessage(
         {
           type: 'TOGGLE_SELECTION_MODE',
           isSelectionMode: newSelectionMode,
         },
-        '*',
+        iframeOrigin,
       )
     }
   }

@@ -1,5 +1,12 @@
 import { format } from 'date-fns'
-import { StepParameterType, TemplateStepIcon, type TemplateStep, type TemplateStepParameter } from '@prisma/client'
+import {
+  StepParameterType,
+  TemplateStepIcon,
+  type Locator,
+  type LocatorGroup,
+  type TemplateStep,
+  type TemplateStepParameter,
+} from '@prisma/client'
 import { z } from 'zod'
 
 import type { NodeData } from '@/constants/form-opts/diagram/node-form'
@@ -18,8 +25,8 @@ export type NodeFormProps = {
   templateSteps: TemplateStep[]
   templateStepParams: TemplateStepParameter[]
   showAddNodeDialog: boolean
-  locators: Array<{ id: string; name: string; locatorGroupId: string | null }>
-  locatorGroups: Array<{ id: string; name: string }>
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name'>>
   setShowAddNodeDialog: (show: boolean) => void
   defaultValueInput?: boolean
 }

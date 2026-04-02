@@ -11,6 +11,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TestRunDetails } from './test-run-details'
+import type { TestRunDetailsData } from './test-run-details-helpers'
 
 const {
   getTestRunByIdAction,
@@ -44,7 +45,7 @@ vi.mock('motion/react', () => ({
   },
 }))
 
-function createTestRunDetails(overrides?: Partial<Parameters<typeof TestRunDetails>[0]['testRun']>) {
+function createTestRunDetails(overrides?: Partial<TestRunDetailsData>): TestRunDetailsData {
   return {
     id: 'run-db-id',
     name: 'Nightly run',
@@ -90,7 +91,7 @@ function createTestRunDetails(overrides?: Partial<Parameters<typeof TestRunDetai
     },
     reports: [],
     ...overrides,
-  } as never
+  } as TestRunDetailsData
 }
 
 describe('TestRunDetails', () => {

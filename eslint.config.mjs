@@ -9,6 +9,9 @@ const eslintConfig = [
       'automation/steps/**/*.step.ts',
       'automation/steps/**/*',
       'packages/cucumber-runtime/dist/**/*',
+      'packages/locator-picker-companion/dist/**/*',
+      'templates/**/*',
+      'packages/create-appraisejs/templates/**/*',
     ],
   },
 ];

@@ -23,9 +23,9 @@ describe('node-form helpers', () => {
     {
       id: 'step-2',
       name: 'Check',
-      icon: TemplateStepIcon.EYE,
+      icon: TemplateStepIcon.VALIDATION,
       signature: 'see {string}',
-      type: TemplateStepType.VALIDATION,
+      type: TemplateStepType.ASSERTION,
     },
   ] as never
 

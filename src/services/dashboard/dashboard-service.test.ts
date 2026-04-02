@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { TestRunStatus, TestRunTestCaseResult } from '@prisma/client'
+import { TestRunTestCaseResult } from '@prisma/client'
 import { getTestSuiteExecutionData } from './dashboard-service'
 
 vi.mock('@/config/db-config', () => ({

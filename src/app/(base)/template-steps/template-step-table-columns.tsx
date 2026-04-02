@@ -6,14 +6,15 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
 import { deleteTemplateStepAction } from '@/actions/template-step/template-step-actions'
-import { TemplateStep, TemplateStepParameter, TemplateStepType } from '@prisma/client'
+import { TemplateStepType } from '@prisma/client'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { CheckCheck, MousePointer2 } from 'lucide-react'
 import { KeyToIconTransformer } from '@/lib/transformers/key-to-icon-transformer'
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
+import type { TemplateStepTableRow } from './template-step-helpers'
 
-export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
+export const templateStepTableCols: ColumnDef<TemplateStepTableRow>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -78,16 +79,10 @@ export const templateStepTableCols: ColumnDef<TemplateStep>[] = [
     accessorKey: 'parameters',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Parameters" />,
     cell: ({ row }) => {
-      const parameters = row.original as TemplateStep & {
-        parameters: TemplateStepParameter[]
-      }
       return (
         <KbdGroup className="flex flex-wrap gap-1">
-          {parameters.parameters.map((parameter: TemplateStepParameter) => (
-            <Kbd
-              key={parameter.id}
-              className="bg-gray-200 px-2 text-xs text-gray-600 dark:bg-gray-700/55 dark:text-gray-400"
-            >
+          {row.original.parameters.map(parameter => (
+            <Kbd key={parameter.id} className="bg-gray-200 px-2 text-xs text-gray-600 dark:bg-gray-700/55 dark:text-gray-400">
               {parameter.name}
             </Kbd>
           ))}

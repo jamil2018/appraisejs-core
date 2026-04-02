@@ -134,6 +134,8 @@ export function getTestRunStatusMeta(status: TestRunStatus, result: TestRunResul
       }
     case 'CANCELLED':
       return { label: 'Cancelled', icon: XCircle, badgeClassName: 'bg-red-500' }
+    default:
+      return { label: 'Unknown', icon: Clock, badgeClassName: 'bg-gray-500' }
   }
 }
 
@@ -147,6 +149,8 @@ export function getTestRunResultText(result: TestRunResult) {
       return 'Failed'
     case 'CANCELLED':
       return 'Cancelled'
+    default:
+      return 'Unknown'
   }
 }
 
@@ -160,6 +164,8 @@ export function getTestCaseStatusMeta(status: TestRunTestCaseStatus): StatusMeta
       return { label: 'Completed', icon: CheckCircle, iconClassName: 'text-green-500' }
     case 'CANCELLED':
       return { label: 'Cancelled', icon: XCircle }
+    default:
+      return { label: 'Unknown', icon: Clock }
   }
 }
 
@@ -171,6 +177,8 @@ export function getTestCaseResultMeta(result: TestRunTestCaseResult): StatusMeta
       return { label: 'Failed', icon: ClipboardX, iconClassName: 'text-red-500' }
     case 'UNTESTED':
       return { label: 'Untested', icon: Clock }
+    default:
+      return { label: 'Unknown', icon: Clock }
   }
 }
 

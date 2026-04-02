@@ -66,7 +66,7 @@ export function getDynamicParameterInitialValues(
 export function getInitialSelectedLocatorGroups(
   templateStepParams: TemplateStepParameter[],
   initialParameterValues: DynamicParameterInput[] | undefined,
-  locators: Locator[],
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>,
 ) {
   const initialValueMap = Object.fromEntries((initialParameterValues ?? []).map(parameter => [parameter.name, parameter]))
 
@@ -153,6 +153,6 @@ export function formatDynamicParameterValues(
   })
 }
 
-export function getLocatorsForGroup(locators: Locator[], groupId: string) {
+export function getLocatorsForGroup(locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>, groupId: string) {
   return locators.filter(locator => locator.locatorGroupId === groupId)
 }

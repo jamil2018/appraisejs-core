@@ -29,8 +29,15 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import {
+  createSelectionState,
+  getSavedTestCases,
+  getSelectedIdsFromRowSelection,
+  getSelectionSummaryLabel,
+  testCaseMatchesQuery,
+} from './test-case-picker-helpers'
 
 type TestCasePickerProps = {
   testCases: TestCasePickerRow[]
@@ -41,12 +48,6 @@ type TestCasePickerProps = {
   dialogDescription: string
   selectedLabel: string
 }
-
-const createSelectionState = (selectedIds: string[]): RowSelectionState =>
-  selectedIds.reduce<RowSelectionState>((acc, id) => {
-    acc[id] = true
-    return acc
-  }, {})
 
 export function TestCasePicker({
   testCases,
@@ -67,11 +68,7 @@ export function TestCasePicker({
     pageSize: 10,
   })
 
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-
+  const openDialog = () => {
     setRowSelection(createSelectionState(selectedIds))
     setColumnFilters([])
     setGlobalFilter('')
@@ -79,7 +76,8 @@ export function TestCasePicker({
       ...current,
       pageIndex: 0,
     }))
-  }, [open, selectedIds])
+    setOpen(true)
+  }
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table's useReactTable returns unstable refs; React Compiler skips memoization
   const table = useReactTable({
@@ -103,32 +101,15 @@ export function TestCasePicker({
       rowSelection,
       pagination,
     },
-    globalFilterFn: (row, _columnId, filterValue) => {
-      const query = String(filterValue).trim().toLowerCase()
-      if (!query) {
-        return true
-      }
-
-      const searchableText = [
-        row.original.title,
-        row.original.description ?? '',
-        ...row.original.tags.map(tag => tag.name),
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      return searchableText.includes(query)
-    },
+    globalFilterFn: (row, _columnId, filterValue) => testCaseMatchesQuery(row.original, filterValue),
   })
 
-  const savedTestCases = selectedIds
-    .map(selectedId => testCases.find(testCase => testCase.id === selectedId))
-    .filter((testCase): testCase is TestCasePickerRow => Boolean(testCase))
-  const selectionSummaryLabel = selectedLabel.replace(/^selected\s+/i, '')
+  const savedTestCases = getSavedTestCases(testCases, selectedIds)
+  const selectionSummaryLabel = getSelectionSummaryLabel(selectedLabel)
   const shouldConstrainSavedListHeight = savedTestCases.length > 3
 
   const saveDraftSelection = () => {
-    const nextSelectedIds = testCases.filter(testCase => rowSelection[testCase.id]).map(testCase => testCase.id)
+    const nextSelectedIds = getSelectedIdsFromRowSelection(testCases, rowSelection)
 
     onSave(nextSelectedIds)
     setOpen(false)
@@ -136,7 +117,7 @@ export function TestCasePicker({
 
   return (
     <div className="flex flex-col gap-3">
-      <Button type="button" variant="outline" className="justify-between" onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" className="justify-between" onClick={openDialog}>
         <span className={selectedIds.length > 0 ? 'text-foreground' : 'text-muted-foreground'}>
           {selectedIds.length > 0 ? `${selectedIds.length} ${selectionSummaryLabel.toLowerCase()} selected` : triggerPlaceholder}
         </span>

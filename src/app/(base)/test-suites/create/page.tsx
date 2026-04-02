@@ -3,11 +3,11 @@ import { TestSuiteForm } from '../test-suite-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
-import { TestCasePickerRow } from '@/types/test-case-picker'
-import { Module, Tag } from '@prisma/client'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
+
+import { getModuleRows, getTagRows, getTestCasePickerRows } from '../test-suite-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Suite',
@@ -15,15 +15,20 @@ export const metadata: Metadata = {
 }
 
 const CreateTestSuite = async () => {
-  const { data: testCases, error: testCasesError } = await getAllTestCasesAction()
+  const [testCasesResponse, moduleListResponse, tagsResponse] = await Promise.all([
+    getAllTestCasesAction(),
+    getAllModulesAction(),
+    getAllTagsAction(),
+  ])
 
-  const { data: moduleList, error: moduleListError } = await getAllModulesAction()
-
-  const { data: tags, error: tagsError } = await getAllTagsAction()
-
-  if (testCasesError || moduleListError || tagsError) {
-    return <div>Error: {testCasesError || moduleListError || tagsError}</div>
+  const loadError = testCasesResponse.error || moduleListResponse.error || tagsResponse.error
+  if (loadError) {
+    return <div>Error: {loadError}</div>
   }
+
+  const testCases = getTestCasePickerRows(testCasesResponse.data)
+  const moduleList = getModuleRows(moduleListResponse.data)
+  const tags = getTagRows(tagsResponse.data)
 
   return (
     <>
@@ -35,9 +40,9 @@ const CreateTestSuite = async () => {
         successTitle="Suite created"
         successMessage="Test suite created successfully"
         onSubmitAction={createTestSuiteAction}
-        testCases={testCases as TestCasePickerRow[]}
-        moduleList={moduleList as Module[]}
-        tags={tags as Tag[]}
+        testCases={testCases}
+        moduleList={moduleList}
+        tags={tags}
       />
     </>
   )

@@ -10,6 +10,20 @@ type DiagramParameter =
   | TemplateTestCaseNodeData['parameters'][number]
 
 type DiagramNodeOrder = NodeOrderMap | TemplateTestCaseNodeOrderMap
+type FlowNodeData = {
+  label: string
+  gherkinStep: string
+  icon: string
+  parameters: Array<{
+    name: string
+    value: string
+    type: StepParameterType
+    order: number
+  }>
+  templateStepId: string
+  isFirstNode?: boolean
+  isMissingParams?: true
+}
 
 function toRuntimeParameters(parameters: DiagramParameter[]) {
   return parameters.map(parameter => ({
@@ -45,15 +59,15 @@ export function buildFlowNodeData(
   nodeData: DiagramNodeOrder[string],
   templateStepParams: TemplateStepParameter[],
   defaultValueInput: boolean,
-) {
+): FlowNodeData {
   const parameters = toRuntimeParameters(nodeData.parameters ?? [])
   const baseNodeData = {
     label: nodeData.label,
     gherkinStep: nodeData.gherkinStep ?? '',
-    isFirstNode: nodeData.isFirstNode ?? false,
     icon: nodeData.icon ?? '',
     parameters,
     templateStepId: nodeData.templateStepId ?? '',
+    ...('isFirstNode' in nodeData ? { isFirstNode: nodeData.isFirstNode ?? false } : {}),
   }
 
   const isMissingParams = checkMissingMandatoryParams(

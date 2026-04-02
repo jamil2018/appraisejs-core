@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StepParameterType, TemplateStepParameter, Locator, LocatorGroup } from '@prisma/client'
+import { StepParameterType, TemplateStepParameter, type Locator, type LocatorGroup } from '@prisma/client'
 import { format } from 'date-fns'
 import ErrorMessage from '@/components/form/error-message'
 import {
@@ -25,8 +25,8 @@ type DynamicParameterValue = string | number | boolean | Date
 
 type DynamicFormFieldsProps = {
   templateStepParams: TemplateStepParameter[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name'>>
   defaultValueInput?: boolean
   onChange?: (
     values: {
