@@ -34,7 +34,7 @@ export async function updateTestCaseMetrics(
 ): Promise<void> {
   try {
     // Get existing metrics or create new one
-    const _existingMetrics = await prisma.testCaseMetrics.findUnique({
+    await prisma.testCaseMetrics.findUnique({
       where: { testCaseId },
     })
 

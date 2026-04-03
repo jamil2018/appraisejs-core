@@ -1,24 +1,60 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import ErrorMessage from '@/components/form/error-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formOpts, TemplateStepGroup } from '@/constants/form-opts/template-step-group-form-opts'
+import { formOpts, type TemplateStepGroup } from '@/constants/form-opts/template-step-group-form-opts'
 import { toast } from '@/hooks/use-toast'
-import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
-import { z } from 'zod'
+import {
+  getActionErrorMessage,
+  templateStepGroupFieldValidators,
+  templateStepGroupTypes,
+  type TemplateStepGroupFormSubmitAction,
+  type TemplateStepGroupType,
+} from './template-step-group-helpers'
 
-// TemplateStepGroupType values
-const TemplateStepGroupType = {
-  ACTION: 'ACTION',
-  VALIDATION: 'VALIDATION',
-} as const
+type TemplateStepGroupFormProps = {
+  defaultValues?: TemplateStepGroup
+  successTitle: string
+  successMessage: string
+  id?: string
+  onSubmitAction: TemplateStepGroupFormSubmitAction
+}
 
-// Enum validator for type field
-const TemplateStepGroupTypeEnum = z.enum(['ACTION', 'VALIDATION'])
+type TemplateStepGroupFieldErrorsProps = {
+  errors: unknown[]
+  isTouched: boolean
+}
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+
+  return String(error)
+}
+
+function TemplateStepGroupFieldErrors({ errors, isTouched }: TemplateStepGroupFieldErrorsProps) {
+  if (!isTouched) {
+    return null
+  }
+
+  return (
+    <div className="flex flex-col gap-1" aria-live="polite">
+      {errors.map((error, index) => (
+        <ErrorMessage key={`${String(error)}-${index}`} message={getErrorMessage(error)} visible={true} />
+      ))}
+    </div>
+  )
+}
 
 export const TemplateStepGroupForm = ({
   defaultValues,
@@ -26,21 +62,11 @@ export const TemplateStepGroupForm = ({
   successMessage,
   id,
   onSubmitAction,
-}: {
-  defaultValues?: TemplateStepGroup
-  successTitle: string
-  successMessage: string
-  id?: string
-  onSubmitAction: (
-    _prev: unknown,
-    value: TemplateStepGroup,
-    id?: string,
-  ) => Promise<ActionResponse>
-}) => {
+}: TemplateStepGroupFormProps) => {
   const router = useRouter()
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts?.defaultValues,
-    validators: formOpts?.validators,
+    defaultValues: defaultValues ?? formOpts.defaultValues,
+    validators: formOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
@@ -53,14 +79,14 @@ export const TemplateStepGroupForm = ({
       if (res.status === 400) {
         toast({
           title: 'Error',
-          description: res.error,
+          description: getActionErrorMessage(res),
           variant: 'destructive',
         })
       }
       if (res.status === 500) {
         toast({
           title: 'Error',
-          description: res.error,
+          description: getActionErrorMessage(res),
           variant: 'destructive',
         })
       }
@@ -77,7 +103,7 @@ export const TemplateStepGroupForm = ({
       <form.Field
         name="name"
         validators={{
-          onChange: z.string().min(3, { message: 'Name must be at least 3 characters' }),
+          onChange: templateStepGroupFieldValidators.name,
         }}
       >
         {field => {
@@ -90,11 +116,7 @@ export const TemplateStepGroupForm = ({
                 value={field.state.value}
                 onChange={e => field.handleChange(e.target.value)}
               />
-              {field.state.meta.errors.map((error, index) => (
-                <p key={index} className="text-xs text-pink-500">
-                  {typeof error === 'string' ? error : error?.message || String(error)}
-                </p>
-              ))}
+              <TemplateStepGroupFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}
@@ -110,11 +132,7 @@ export const TemplateStepGroupForm = ({
                 value={field.state.value}
                 onChange={e => field.handleChange(e.target.value)}
               />
-              {field.state.meta.errors.map((error, index) => (
-                <p key={index} className="text-xs text-pink-500">
-                  {typeof error === 'string' ? error : error?.message || String(error)}
-                </p>
-              ))}
+              <TemplateStepGroupFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}
@@ -122,7 +140,7 @@ export const TemplateStepGroupForm = ({
       <form.Field
         name="type"
         validators={{
-          onChange: TemplateStepGroupTypeEnum,
+          onChange: templateStepGroupFieldValidators.type,
         }}
       >
         {field => {
@@ -131,7 +149,7 @@ export const TemplateStepGroupForm = ({
               <Label htmlFor={field.name}>Type</Label>
               <Select
                 onValueChange={value => {
-                  field.handleChange(value as 'ACTION' | 'VALIDATION')
+                  field.handleChange(value as TemplateStepGroupType)
                 }}
                 value={field.state.value}
               >
@@ -139,18 +157,14 @@ export const TemplateStepGroupForm = ({
                   <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(TemplateStepGroupType).map(type => (
-                    <SelectItem key={type} value={type as string}>
+                  {templateStepGroupTypes.map(type => (
+                    <SelectItem key={type} value={type}>
                       {type}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors.map((error, index) => (
-                <p key={index} className="text-xs text-pink-500">
-                  {typeof error === 'string' ? error : error?.message || String(error)}
-                </p>
-              ))}
+              <TemplateStepGroupFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}

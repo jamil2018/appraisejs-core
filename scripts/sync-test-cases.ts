@@ -16,7 +16,7 @@ import {
   ParsedStep,
 } from '../src/lib/gherkin-parser'
 import { buildModuleHierarchy, findModuleByPath } from '../src/lib/module-hierarchy-builder'
-import { TemplateStepType, TemplateStepIcon, StepParameterType, TagType } from '@prisma/client'
+import { StepParameterType, TagType } from '@prisma/client'
 import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '../src/lib/automation/paths'
 import {
   determineProjectedStepIcon,
@@ -29,7 +29,6 @@ import {
   determineStepTypeAndIcon,
   findMatchingTemplateStep,
   sameResolvedParameters,
-  ParameterMatch,
 } from './lib/step-matcher'
 import { printSyncSummary } from './lib/sync-summary'
 import { runSyncScript } from './lib/sync-script-runner'
@@ -716,4 +715,3 @@ async function main(): Promise<SyncResult | void> {
 }
 
 runSyncScript(main)
-

@@ -1,9 +1,9 @@
 import { getTestRunByIdAction } from '@/actions/test-run/test-run-actions'
 import { TestRunDetails } from '@/components/test-run/test-run-details'
 import { TestRunHeader } from '@/components/test-run/test-run-header'
+import { getTestRunDetailsData } from '@/components/test-run/test-run-details-helpers'
 import { LogViewer } from '@/components/test-run/log-viewer'
 import { Separator } from '@/components/ui/separator'
-import { TestRun, TestRunTestCase, Tag, Environment, Report } from '@prisma/client'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -32,15 +32,16 @@ export default async function TestRunDetailPage({ params }: TestRunDetailPagePro
     )
   }
 
-  // TypeScript now knows response.data is defined
-  const testRun = response.data as TestRun & {
-    testCases: (TestRunTestCase & {
-      testCase: { title: string; description: string }
-      testSuite: { id: string; name: string } | null
-    })[]
-    tags: Tag[]
-    environment: Environment
-    reports: Report[]
+  const testRun = getTestRunDetailsData(response.data)
+  if (!testRun) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Test Run Not Found</h2>
+          <p className="mt-2 text-muted-foreground">The test run data could not be parsed.</p>
+        </div>
+      </div>
+    )
   }
 
   return (

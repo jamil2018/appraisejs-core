@@ -6,7 +6,6 @@ import {
   getAllTemplateStepParamsAction,
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
-import { Locator, LocatorGroup, TemplateStep, TemplateStepParameter, TestSuite, Tag } from '@prisma/client'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { createTestCaseAction } from '@/actions/test-case/test-case-actions'
@@ -14,44 +13,59 @@ import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-grou
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
 
+import {
+  getLocatorGroupRows,
+  getLocatorRows,
+  getTagRows,
+  getTemplateStepParamRows,
+  getTemplateStepRows,
+  getTestSuiteRows,
+} from '../test-case-route-helpers'
+
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Case',
   description: 'Create a new test from scratch to execute against your application',
 }
 
 const CreateTestCase = async () => {
-  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
+  const [
+    templateStepParamsResponse,
+    templateStepsResponse,
+    testSuitesResponse,
+    locatorsResponse,
+    locatorGroupsResponse,
+    tagsResponse,
+  ] = await Promise.all([
+    getAllTemplateStepParamsAction(),
+    getAllTemplateStepsAction(),
+    getAllTestSuitesAction(),
+    getAllLocatorsAction(),
+    getAllLocatorGroupsAction(),
+    getAllTagsAction(),
+  ])
 
-  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
+  const loadError =
+    templateStepParamsResponse.error ||
+    templateStepsResponse.error ||
+    locatorsResponse.error ||
+    testSuitesResponse.error ||
+    locatorGroupsResponse.error ||
+    tagsResponse.error
 
-  const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
-
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
-
-  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
-
-  const { data: tags, error: tagsError } = await getAllTagsAction()
-
-  if (
-    templateStepParamsError ||
-    templateStepsError ||
-    locatorsError ||
-    testSuitesError ||
-    locatorGroupsError ||
-    tagsError
-  ) {
+  if (loadError) {
     return (
       <div>
-        Error:{' '}
-        {templateStepParamsError ||
-          templateStepsError ||
-          locatorsError ||
-          testSuitesError ||
-          locatorGroupsError ||
-          tagsError}
+        Error: {loadError}
       </div>
     )
   }
+
+  const templateStepParams = getTemplateStepParamRows(templateStepParamsResponse.data)
+  const templateSteps = getTemplateStepRows(templateStepsResponse.data)
+  const testSuites = getTestSuiteRows(testSuitesResponse.data)
+  const locators = getLocatorRows(locatorsResponse.data)
+  const locatorGroups = getLocatorGroupRows(locatorGroupsResponse.data)
+  const tags = getTagRows(tagsResponse.data)
 
   return (
     <div>
@@ -61,12 +75,12 @@ const CreateTestCase = async () => {
       </div>
       <TestCaseForm
         defaultNodesOrder={{}}
-        templateStepParams={templateStepParams as TemplateStepParameter[]}
-        templateSteps={templateSteps as TemplateStep[]}
-        locators={locators as Locator[]}
-        locatorGroups={locatorGroups as LocatorGroup[]}
-        testSuites={testSuites as TestSuite[]}
-        tags={tags as Tag[]}
+        templateStepParams={templateStepParams}
+        templateSteps={templateSteps}
+        locators={locators}
+        locatorGroups={locatorGroups}
+        testSuites={testSuites}
+        tags={tags}
         onSubmitAction={createTestCaseAction}
       />
     </div>

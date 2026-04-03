@@ -55,7 +55,7 @@ describe('deleteTestSuitesByIds', () => {
 
 describe('createTestSuiteFromInput', () => {
   it('creates a suite with an identifier tag and generates its feature', async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+    vi.mocked(prisma.$transaction).mockImplementation(async callback => {
       const tx = {
         tag: {
           create: vi.fn().mockResolvedValue({ id: 'identifier-tag' }),
@@ -65,7 +65,7 @@ describe('createTestSuiteFromInput', () => {
         },
       }
 
-      return callback(tx)
+      return callback(tx as never)
     })
 
     const result = await createTestSuiteFromInput({

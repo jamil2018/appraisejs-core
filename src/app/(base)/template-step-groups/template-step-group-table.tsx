@@ -5,7 +5,7 @@ import {
   getAllTemplateStepGroupsAction,
   deleteTemplateStepGroupAction,
 } from '@/actions/template-step-group/template-step-group-actions'
-import { TemplateStepGroup } from '@prisma/client'
+import { getTemplateStepGroupRows } from './template-step-group-helpers'
 
 const TemplateStepGroupTable = async () => {
   const { data: templateStepGroups, error: templateStepGroupsError } = await getAllTemplateStepGroupsAction()
@@ -14,11 +14,13 @@ const TemplateStepGroupTable = async () => {
     return <div>Error: {templateStepGroupsError}</div>
   }
 
+  const templateStepGroupRows = getTemplateStepGroupRows(templateStepGroups)
+
   return (
     <>
       <DataTable
         columns={templateStepGroupTableCols}
-        data={templateStepGroups as TemplateStepGroup[]}
+        data={templateStepGroupRows}
         filterColumn="name"
         filterPlaceholder="Filter by name..."
         createLink="/template-step-groups/create"

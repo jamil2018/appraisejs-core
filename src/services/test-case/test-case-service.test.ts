@@ -31,7 +31,7 @@ const baseInput = {
     {
       gherkinStep: 'Given I log in',
       label: 'Login',
-      icon: TemplateStepIcon.ACTION,
+      icon: TemplateStepIcon.MOUSE,
       parameters: [
         {
           name: 'username',
@@ -68,8 +68,8 @@ describe('deleteTestCasesByIds', () => {
     vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: 'tag-1' }] as never)
 
     const tx = createMockTx()
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
-      await fn(tx)
+    vi.mocked(prisma.$transaction).mockImplementation(async fn => {
+      await fn(tx as never)
     })
 
     await deleteTestCasesByIds(['tc-1', 'tc-2'])
@@ -90,8 +90,8 @@ describe('deleteTestCasesByIds', () => {
     vi.mocked(prisma.testSuite.findMany).mockResolvedValue([] as never)
     vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
     const tx = createMockTx()
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
-      await fn(tx)
+    vi.mocked(prisma.$transaction).mockImplementation(async fn => {
+      await fn(tx as never)
     })
 
     await deleteTestCasesByIds(['tc-x'])

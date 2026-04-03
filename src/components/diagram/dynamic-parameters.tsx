@@ -10,14 +10,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StepParameterType, TemplateStepParameter, Locator, LocatorGroup } from '@prisma/client'
+import { StepParameterType, TemplateStepParameter, type Locator, type LocatorGroup } from '@prisma/client'
 import { format } from 'date-fns'
 import ErrorMessage from '@/components/form/error-message'
+import {
+  formatDynamicParameterValues,
+  getDynamicParameterInitialValues,
+  getInitialSelectedLocatorGroups,
+  getLocatorsForGroup,
+  validateDynamicParameters,
+} from './dynamic-parameters-helpers'
 
-interface DynamicFormFieldsProps {
+type DynamicParameterValue = string | number | boolean | Date
+
+type DynamicFormFieldsProps = {
   templateStepParams: TemplateStepParameter[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name'>>
   defaultValueInput?: boolean
   onChange?: (
     values: {
@@ -30,9 +39,9 @@ interface DynamicFormFieldsProps {
   initialParameterValues?: {
     name: string
     value: string
-    type: StepParameterType
-    order: number
-  }[]
+      type: StepParameterType
+      order: number
+    }[]
 }
 
 export interface DynamicFormFieldsRef {
@@ -57,82 +66,19 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   }, [templateStepParams, initialParameterValues])
 
   // Create initial values only once when component mounts
-  const initialValues = useMemo(() => {
-    const values: { [key: string]: string | number | boolean | Date } = {}
-    // Build a map for quick lookup of initial values by name
-    const initialValueMap: Record<string, { value: string; type: StepParameterType }> = {}
-    initialParameterValues?.forEach(v => {
-      initialValueMap[v.name] = { value: v.value, type: v.type }
-    })
-    templateStepParams.forEach(param => {
-      const initial = initialValueMap[param.name]
-      if (initial) {
-        switch (param.type) {
-          case 'NUMBER':
-            values[param.name] = Number(initial.value)
-            break
-          case 'STRING':
-          case 'LOCATOR':
-            values[param.name] = initial.value
-            break
-          case 'DATE':
-            // Try to parse date from string
-            const date = new Date(initial.value)
-            values[param.name] = isNaN(date.getTime()) ? new Date() : date
-            break
-          case 'BOOLEAN':
-            values[param.name] = initial.value === 'true'
-            break
-        }
-      } else {
-        // fallback to default
-        switch (param.type) {
-          case 'NUMBER':
-            values[param.name] = 0
-            break
-          case 'STRING':
-            values[param.name] = ''
-            break
-          case 'DATE':
-            values[param.name] = new Date()
-            break
-          case 'BOOLEAN':
-            values[param.name] = false
-            break
-          case 'LOCATOR':
-            values[param.name] = ''
-            break
-        }
-      }
-    })
-    return values
-  }, [templateStepParams, initialParameterValues])
+  const initialValues = useMemo(
+    () => getDynamicParameterInitialValues(templateStepParams, initialParameterValues),
+    [templateStepParams, initialParameterValues],
+  )
 
   // Derive initial locator groups from initialParameterValues (locator name -> group id via locators lookup)
-  const initialSelectedLocatorGroups = useMemo(() => {
-    const groups: Record<string, string> = {}
-    const initialValueMap: Record<string, string> = {}
-    initialParameterValues?.forEach(v => {
-      initialValueMap[v.name] = v.value
-    })
-    templateStepParams.forEach(param => {
-      if (param.type === 'LOCATOR') {
-        const locatorName = initialValueMap[param.name]
-        if (locatorName) {
-          const locator = locators.find(l => l.name === locatorName)
-          if (locator?.locatorGroupId) {
-            groups[param.name] = locator.locatorGroupId
-          }
-        }
-      }
-    })
-    return groups
-  }, [templateStepParams, initialParameterValues, locators])
+  const initialSelectedLocatorGroups = useMemo(
+    () => getInitialSelectedLocatorGroups(templateStepParams, initialParameterValues, locators),
+    [templateStepParams, initialParameterValues, locators],
+  )
 
   // Initialize state with initial values
-  const [values, setValues] = useState<{
-    [key: string]: string | number | boolean | Date
-  }>(initialValues)
+  const [values, setValues] = useState<Record<string, DynamicParameterValue>>(initialValues)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // State for locator group selection (initialized from initial data so edit restores group + locator)
@@ -154,32 +100,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
   useImperativeHandle(ref, () => ({
     validate: () => {
-      // Skip all validation if defaultValueInput is true (all fields are optional)
-      if (defaultValueInput) {
-        setErrors({})
-        return true
-      }
-
-      const newErrors: Record<string, string> = {}
-      templateStepParams.forEach(param => {
-        const value = values[param.name]
-
-        if (param.type === 'LOCATOR') {
-          const selectedGroup = selectedLocatorGroups[param.name]
-          if (!selectedGroup) {
-            newErrors[param.name] = 'Locator group is required'
-          } else if (!value) {
-            newErrors[param.name] = 'Locator is required'
-          }
-        }
-        if (param.type === 'STRING' && !value) {
-          newErrors[param.name] = 'This field is required'
-        }
-        if (param.type === 'NUMBER' && !value) {
-          newErrors[param.name] = 'This field is required'
-        }
-        // Add other validation rules here if needed
-      })
+      const newErrors = validateDynamicParameters(templateStepParams, values, selectedLocatorGroups, defaultValueInput)
       setErrors(newErrors)
       return Object.keys(newErrors).length === 0
     },
@@ -187,7 +108,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
   // Update values when an input changes
   const handleInputChange = (name: string, value: string | number | boolean | Date) => {
-    const newValues = {
+    const newValues: Record<string, DynamicParameterValue> = {
       ...values,
       [name]: value,
     }
@@ -203,48 +124,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
     // Notify parent component of changes
     if (onChange) {
-      // We need to calculate formatted values based on the new state
-      const formattedValues = templateStepParams.map(param => {
-        let stringValue = ''
-        // Use the new value if it's the one that changed, otherwise use the current state
-        const currentValue = param.name === name ? value : values[param.name]
-
-        switch (param.type) {
-          case 'NUMBER':
-            stringValue = currentValue !== undefined && currentValue !== null ? String(currentValue) : ''
-            break
-          case 'STRING':
-            stringValue = currentValue !== undefined && currentValue !== null ? (currentValue as string) : ''
-            break
-          case 'DATE':
-            if (
-              currentValue &&
-              currentValue instanceof Date &&
-              typeof currentValue.getTime === 'function' &&
-              !Number.isNaN(currentValue.getTime())
-            ) {
-              stringValue = format(currentValue as Date, 'PPP')
-            } else {
-              stringValue = ''
-            }
-            break
-          case 'BOOLEAN':
-            stringValue = currentValue !== undefined && currentValue !== null ? String(currentValue) : ''
-            break
-          case 'LOCATOR':
-            stringValue = currentValue !== undefined && currentValue !== null ? (currentValue as string) : ''
-            break
-        }
-
-        return {
-          name: param.name,
-          value: stringValue,
-          type: param.type,
-          order: param.order,
-        }
-      })
-
-      onChange(formattedValues)
+      onChange(formatDynamicParameterValues(templateStepParams, newValues))
     }
   }
 
@@ -270,10 +150,6 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   }
 
   // Get locators for a specific group
-  const getLocatorsForGroup = (groupId: string) => {
-    return locators.filter(locator => locator.locatorGroupId === groupId)
-  }
-
   // Render the appropriate input field based on the parameter type
   const renderInputField = (param: TemplateStepParameter) => {
     const { name, type } = param
@@ -378,7 +254,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
       case 'LOCATOR':
         const selectedGroupId = selectedLocatorGroups[name] || ''
-        const availableLocators = selectedGroupId ? getLocatorsForGroup(selectedGroupId) : []
+        const availableLocators = selectedGroupId ? getLocatorsForGroup(locators, selectedGroupId) : []
 
         return (
           <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">

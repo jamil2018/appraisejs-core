@@ -21,12 +21,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-// Define the item type
-type Param = {
-  id: string
+export type ParamChipValue = {
   name: string
   type: string
   order: number
+}
+
+type ParamItem = ParamChipValue & {
+  id: string
 }
 
 export default function ParamChip({
@@ -35,14 +37,31 @@ export default function ParamChip({
   defaultValues,
 }: {
   types: string[]
-  onSubmit: (value: Param[]) => void
-  defaultValues?: Param[]
+  onSubmit: (value: ParamChipValue[]) => void
+  defaultValues?: ParamChipValue[]
 }) {
+  const stripItemId = (item: ParamItem): ParamChipValue => ({
+    name: item.name,
+    type: item.type,
+    order: item.order,
+  })
   const [isOpen, setIsOpen] = useState(false)
-  const [items, setItems] = useState<Param[]>(defaultValues || [])
+  const [items, setItems] = useState<ParamItem[]>(() =>
+    (defaultValues || []).map(item => ({
+      id: crypto.randomUUID(),
+      ...item,
+    })),
+  )
   // Sync items when defaultValues changes (defer setState to avoid sync setState in effect)
   useEffect(() => {
-    queueMicrotask(() => setItems(defaultValues || []))
+    queueMicrotask(() =>
+      setItems(
+        (defaultValues || []).map(item => ({
+          id: crypto.randomUUID(),
+          ...item,
+        })),
+      ),
+    )
   }, [defaultValues])
 
   // Form state
@@ -114,7 +133,7 @@ export default function ParamChip({
       })
 
       // Call the onSubmit callback with the new item
-      onSubmit([...items, newItem])
+      onSubmit([...items, newItem].map(stripItemId))
 
       // Close the modal
       setIsOpen(false)
@@ -123,8 +142,9 @@ export default function ParamChip({
 
   // Handle removing an item
   const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id))
-    onSubmit(items.filter(item => item.id !== id))
+    const nextItems = items.filter(item => item.id !== id)
+    setItems(nextItems)
+    onSubmit(nextItems.map(stripItemId))
   }
 
   return (

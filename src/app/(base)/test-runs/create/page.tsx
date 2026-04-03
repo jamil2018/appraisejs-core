@@ -1,14 +1,13 @@
 import { createTestRunAction } from '@/actions/test-run/test-run-actions'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { Environment, Tag } from '@prisma/client'
 import React from 'react'
 import TestRunForm from '../test-run-form'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
 import { getAllTestSuiteTestCasesAction } from '@/actions/test-run/test-run-actions'
-import { TestSuitePickerRow } from '@/types/test-suite-picker'
+import { getEnvironmentRows, getTagRows, getTestSuitePickerRows } from '../test-run-form-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Run',
@@ -24,9 +23,9 @@ const CreateTestRun = async () => {
     return <div>Error: {testSuitesError || environmentsError || tagsError}</div>
   }
 
-  const testSuitesData = testSuites as TestSuitePickerRow[]
-  const environmentsData = environments as Environment[]
-  const tagsData = tags as Tag[]
+  const testSuitesData = getTestSuitePickerRows(testSuites)
+  const environmentsData = getEnvironmentRows(environments)
+  const tagsData = getTagRows(tags)
 
   return (
     <>

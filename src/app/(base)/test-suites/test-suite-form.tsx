@@ -1,22 +1,31 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import TestCasePicker from '@/components/test-case/test-case-picker'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import MultiSelectWithPreview from '@/components/ui/multi-select-with-preview'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { formOpts, TestSuite } from '@/constants/form-opts/test-suite-form-opts'
+import { formOpts, type TestSuite } from '@/constants/form-opts/test-suite-form-opts'
 import { toast } from '@/hooks/use-toast'
-import { TestCasePickerRow } from '@/types/test-case-picker'
-import { ActionResponse } from '@/types/form/actionHandler'
-import { Module, Tag } from '@prisma/client'
+import type { TestCasePickerRow } from '@/types/test-case-picker'
+import type { Module, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { Info, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { z } from 'zod'
+
+import TestCasePicker from '@/components/test-case/test-case-picker'
+
+import {
+  getActionErrorMessage,
+  getFieldErrorMessage,
+  getModuleOptions,
+  getTagOptions,
+  testSuiteFieldValidators,
+  testSuiteQuickTips,
+  type TestSuiteFormSubmitAction,
+} from './test-suite-helpers'
 
 export const TestSuiteForm = ({
   defaultValues,
@@ -32,7 +41,7 @@ export const TestSuiteForm = ({
   successTitle: string
   successMessage: string
   id?: string
-  onSubmitAction: (_prev: unknown, value: TestSuite, id?: string) => Promise<ActionResponse>
+  onSubmitAction: TestSuiteFormSubmitAction
   testCases: TestCasePickerRow[]
   moduleList: Module[]
   tags: Tag[]
@@ -53,19 +62,26 @@ export const TestSuiteForm = ({
       if (res.status === 400) {
         toast({
           title: 'Error',
-          description: res.error,
+          description: getActionErrorMessage(res),
           variant: 'destructive',
         })
       }
       if (res.status === 500) {
         toast({
           title: 'Error',
-          description: res.error,
+          description: getActionErrorMessage(res),
           variant: 'destructive',
         })
       }
     },
   })
+  const moduleOptions = getModuleOptions(moduleList)
+  const tagOptions = getTagOptions(tags)
+  const renderError = (error: unknown, index: number) => (
+    <p key={index} className="text-xs text-pink-500">
+      {getFieldErrorMessage(error)}
+    </p>
+  )
   return (
     <div className="flex justify-between gap-20 overflow-x-hidden">
       <Card className="w-2/3 border-gray-700 bg-gray-500/10">
@@ -84,7 +100,7 @@ export const TestSuiteForm = ({
             <form.Field
               name="name"
               validators={{
-                onChange: z.string().min(3, { message: 'Name must be at least 3 characters' }),
+                onChange: testSuiteFieldValidators.name,
               }}
             >
               {field => {
@@ -101,11 +117,7 @@ export const TestSuiteForm = ({
                       onChange={e => field.handleChange(e.target.value)}
                       placeholder="Enter name for your test suite"
                     />
-                    {field.state.meta.errors.map((error, index) => (
-                      <p key={index} className="text-xs text-pink-500">
-                        {typeof error === 'string' ? error : error?.message || String(error)}
-                      </p>
-                    ))}
+                    {field.state.meta.errors.map(renderError)}
                   </div>
                 )
               }}
@@ -125,11 +137,7 @@ export const TestSuiteForm = ({
                       onChange={e => field.handleChange(e.target.value)}
                       placeholder="Enter description for your test suite"
                     />
-                    {field.state.meta.errors.map((error, index) => (
-                      <p key={index} className="text-xs text-pink-500">
-                        {typeof error === 'string' ? error : error?.message || String(error)}
-                      </p>
-                    ))}
+                    {field.state.meta.errors.map(renderError)}
                   </div>
                 )
               }}
@@ -150,11 +158,7 @@ export const TestSuiteForm = ({
                       dialogDescription="Search and select the test cases to include in this suite."
                       selectedLabel="Selected test case(s)"
                     />
-                    {field.state.meta.errors.map((error, index) => (
-                      <p key={index} className="text-xs text-pink-500">
-                        {typeof error === 'string' ? error : error?.message || String(error)}
-                      </p>
-                    ))}
+                    {field.state.meta.errors.map(renderError)}
                   </div>
                 )
               }}
@@ -167,27 +171,24 @@ export const TestSuiteForm = ({
                       Module
                     </Label>
                     <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
-                      <SelectTrigger className="w-full bg-background">
+                      <SelectTrigger id={field.name} className="w-full bg-background">
                         <SelectValue placeholder="Select a module" />
                       </SelectTrigger>
-                      <SelectContent className="w-full" isEmpty={moduleList.length === 0}>
-                        {moduleList.map(module => (
-                          <SelectItem key={module.id} value={module.id}>
-                            {module.name}
+                      <SelectContent className="w-full" isEmpty={moduleOptions.length === 0}>
+                        {moduleOptions.map(moduleOption => (
+                          <SelectItem key={moduleOption.value} value={moduleOption.value}>
+                            {moduleOption.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {field.state.meta.errors.map(renderError)}
                   </div>
                 )
               }}
             </form.Field>
             <form.Field name="tagIds">
               {field => {
-                const tagsOptions = tags.map(tag => ({
-                  value: tag.id,
-                  label: tag.name,
-                }))
                 return (
                   <div className="mb-6 flex flex-col gap-2">
                     <Label htmlFor={field.name} className="font-bold">
@@ -195,7 +196,7 @@ export const TestSuiteForm = ({
                     </Label>
                     <MultiSelectWithPreview
                       id={field.name}
-                      options={tagsOptions}
+                      options={tagOptions}
                       onSelectChange={value => {
                         field.handleChange(value)
                       }}
@@ -229,37 +230,17 @@ export const TestSuiteForm = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
-            <div className="flex items-start gap-4">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                1
-              </span>
-              <div className="flex flex-col gap-1">
-                <span className="text-base font-bold">Choose a descriptive name</span>
-                <span className="text-sm text-muted-foreground">
-                  Use clear, specific names that indicate the purpose
+            {testSuiteQuickTips.map((tip, index) => (
+              <div key={tip.title} className="flex items-start gap-4">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                  {index + 1}
                 </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-base font-bold">{tip.title}</span>
+                  <span className="text-sm text-muted-foreground">{tip.description}</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                2
-              </span>
-              <div className="flex flex-col gap-1">
-                <span className="text-base font-bold">Group related tests</span>
-                <span className="text-sm text-muted-foreground">
-                  Organize tests that validate the same feature together
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                3
-              </span>
-              <div className="flex flex-col gap-1">
-                <span className="text-base font-bold">Use meaningful tags</span>
-                <span className="text-sm text-muted-foreground">Tags help filter and categorize effectively</span>
-              </div>
-            </div>
+            ))}
           </CardContent>
         </Card>
       </div>

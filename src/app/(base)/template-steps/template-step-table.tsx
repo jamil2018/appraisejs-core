@@ -1,16 +1,18 @@
 import { deleteTemplateStepAction, getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import { DataTable } from '@/components/ui/data-table'
 import { templateStepTableCols } from './template-step-table-columns'
-import { TemplateStep } from '@prisma/client'
+
+import { getTemplateStepRows } from './template-step-helpers'
 
 const TemplateStepTable = async () => {
   const { data: templateSteps } = await getAllTemplateStepsAction()
+  const rows = getTemplateStepRows(templateSteps)
 
   return (
     <>
       <DataTable
         columns={templateStepTableCols}
-        data={templateSteps as TemplateStep[]}
+        data={rows}
         filterColumn="name"
         filterPlaceholder="Filter by name..."
         createLink="/template-steps/create"
