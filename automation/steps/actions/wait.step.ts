@@ -1,20 +1,9 @@
+import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name wait
  * @description Template steps that handles waiting
  * @type ACTION
  */
-import {
-  When,
-  Then,
-  CustomWorld,
-  expect,
-  SelectorName,
-  resolveLocator,
-  getEnvironment,
-  generateRandomData,
-  RandomDataType,
-} from '../../../packages/cucumber-runtime/src/index.js';
-
 /**
  * @name wait for page load
  * @description Template step for waiting till page becomes interactive
