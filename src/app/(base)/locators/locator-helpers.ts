@@ -1,48 +1,32 @@
 import type { ActionResponseData } from '@/types/form/actionHandler'
-import type { ConflictResolution, Locator, LocatorGroup } from '@prisma/client'
+import type { ConflictResolution, Locator } from '@prisma/client'
 
 export type LocatorTableRow = Locator & {
-  locatorGroup: LocatorGroup | null
-  conflicts: ConflictResolution[]
+  locatorGroup: LocatorGroupSummary | null
+  conflicts: ConflictResolutionSummary[]
 }
 
-function isLocatorGroupRow(value: unknown): value is LocatorGroup {
+export type LocatorGroupSummary = {
+  name: string
+}
+
+export type ConflictResolutionSummary = Pick<ConflictResolution, 'id'>
+
+function isLocatorGroupRow(value: unknown): value is LocatorGroupSummary {
   return (
     typeof value === 'object' &&
     value !== null &&
-    'id' in value &&
-    typeof value.id === 'string' &&
     'name' in value &&
-    typeof value.name === 'string' &&
-    'route' in value &&
-    typeof value.route === 'string' &&
-    'moduleId' in value &&
-    typeof value.moduleId === 'string' &&
-    'createdAt' in value &&
-    value.createdAt instanceof Date &&
-    'updatedAt' in value &&
-    value.updatedAt instanceof Date
+    typeof value.name === 'string'
   )
 }
 
-function isConflictRow(value: unknown): value is ConflictResolution {
+function isConflictRow(value: unknown): value is ConflictResolutionSummary {
   return (
     typeof value === 'object' &&
     value !== null &&
     'id' in value &&
-    typeof value.id === 'string' &&
-    'locatorId' in value &&
-    typeof value.locatorId === 'string' &&
-    'originalSelector' in value &&
-    typeof value.originalSelector === 'string' &&
-    'resolvedSelector' in value &&
-    (typeof value.resolvedSelector === 'string' || value.resolvedSelector === null) &&
-    'status' in value &&
-    typeof value.status === 'string' &&
-    'createdAt' in value &&
-    value.createdAt instanceof Date &&
-    'updatedAt' in value &&
-    value.updatedAt instanceof Date
+    typeof value.id === 'string'
   )
 }
 

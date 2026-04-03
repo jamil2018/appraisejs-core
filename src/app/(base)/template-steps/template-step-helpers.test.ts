@@ -1,4 +1,4 @@
-import { StepParameterType, TemplateStepType } from '@prisma/client'
+import { StepParameterType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 
 import { buildFunctionDefinitionPreview, getTemplateStepFormDefaults, getTemplateStepRows } from './template-step-helpers'
@@ -33,16 +33,57 @@ describe('template-step helpers', () => {
     })
   })
 
-  it('narrows template step table rows with parameters', () => {
+  it('keeps template step list rows when parameters only include id and name', () => {
     expect(
       getTemplateStepRows([
         {
           id: 'step-1',
           name: 'Click',
+          description: null,
           type: TemplateStepType.ACTION,
           signature: 'click',
-          icon: 'MOUSE',
+          icon: TemplateStepIcon.MOUSE,
           templateStepGroupId: 'group-1',
+          templateStepGroup: {
+            id: 'group-1',
+            name: 'Actions',
+            description: null,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+          parameters: [
+            {
+              id: 'param-1',
+              name: 'target',
+            },
+          ],
+        },
+      ]),
+    ).toHaveLength(1)
+  })
+
+  it('narrows editable template step details with full parameter rows', () => {
+    expect(
+      getTemplateStepRows([
+        {
+          id: 'step-1',
+          name: 'Click',
+          description: null,
+          type: TemplateStepType.ACTION,
+          signature: 'click',
+          icon: TemplateStepIcon.MOUSE,
+          templateStepGroupId: 'group-1',
+          templateStepGroup: {
+            id: 'group-1',
+            name: 'Actions',
+            description: null,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
           parameters: [
             {
               id: 'param-1',

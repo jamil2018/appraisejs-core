@@ -3,6 +3,7 @@ import {
   TemplateStepIcon,
   TemplateStepType,
   type TemplateStep as PrismaTemplateStep,
+  type TemplateStepGroup,
   type TemplateStepParameter,
 } from '@prisma/client'
 
@@ -19,10 +20,14 @@ export type TemplateStepGroupOption = {
 
 export type EditableTemplateStep = PrismaTemplateStep & {
   parameters: TemplateStepParameter[]
+  templateStepGroup: TemplateStepGroup
 }
 
+export type TemplateStepParameterSummary = Pick<TemplateStepParameter, 'id' | 'name'>
+
 export type TemplateStepTableRow = PrismaTemplateStep & {
-  parameters: TemplateStepParameter[]
+  parameters: TemplateStepParameterSummary[]
+  templateStepGroup: TemplateStepGroup
 }
 
 export type TemplateStepFormSubmitAction = (
@@ -104,6 +109,10 @@ function isTemplateStepParameterRow(value: unknown): value is TemplateStepParame
   )
 }
 
+function isTemplateStepParameterSummary(value: unknown): value is TemplateStepParameterSummary {
+  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
+}
+
 function isEditableTemplateStep(value: unknown): value is EditableTemplateStep {
   return (
     typeof value === 'object' &&
@@ -116,9 +125,29 @@ function isEditableTemplateStep(value: unknown): value is EditableTemplateStep {
     'signature' in value &&
     'icon' in value &&
     'templateStepGroupId' in value &&
+    'templateStepGroup' in value &&
     'parameters' in value &&
     Array.isArray(value.parameters) &&
     value.parameters.every(isTemplateStepParameterRow)
+  )
+}
+
+function isTemplateStepTableRow(value: unknown): value is TemplateStepTableRow {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'name' in value &&
+    'createdAt' in value &&
+    'updatedAt' in value &&
+    'type' in value &&
+    'signature' in value &&
+    'icon' in value &&
+    'templateStepGroupId' in value &&
+    'templateStepGroup' in value &&
+    'parameters' in value &&
+    Array.isArray(value.parameters) &&
+    value.parameters.every(isTemplateStepParameterSummary)
   )
 }
 
@@ -131,7 +160,7 @@ export function getEditableTemplateStep(data: ActionResponseData | undefined) {
 }
 
 export function getTemplateStepRows(data: ActionResponseData | undefined): TemplateStepTableRow[] {
-  return Array.isArray(data) ? data.filter(isEditableTemplateStep) : []
+  return Array.isArray(data) ? data.filter(isTemplateStepTableRow) : []
 }
 
 export function getTemplateStepIconOptions() {
