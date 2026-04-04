@@ -49,6 +49,12 @@ Then follow the setup instructions in the docs:
 - [AppraiseJS Documentation](https://appraisejs.dev/)
 - [create-appraisejs on npm](https://www.npmjs.com/package/create-appraisejs)
 
+Install additional reusable template steps into an existing AppraiseJS project with:
+
+```bash
+npx appraisejs@latest add step <group-slug>/<step-slug>
+```
+
 ## How to Contribute
 
 - Read the contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
@@ -63,4 +69,3 @@ Then follow the setup instructions in the docs:
 ## License
 
 AppraiseJS is licensed under Apache-2.0. See [LICENSE](./LICENSE).
-

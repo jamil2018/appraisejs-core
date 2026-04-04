@@ -16,7 +16,10 @@ npm run setup
 # 2. Optional: install Playwright browsers when you need test execution
 npm run install-playwright -- chromium
 
-# 3. Start the local production server
+# 3. Optional: install an extra published template step
+npx appraisejs@latest add step <group-slug>/<step-slug>
+
+# 4. Start the local production server
 npm run start
 ```
 
@@ -40,6 +43,7 @@ npm run start
 | `npm run setup:full` | Reinstall dependencies, rebuild the DB, rerun `sync-all`, and rebuild the production app |
 | `npm run sync-all` | Sync all starter entities from the bundled automation workspace into the database |
 | `npm run appraisejs:sync` | Alias for `sync-all` |
+| `npm run appraisejs:install-step -- --payload-file <path>` | Internal script used by `npx appraisejs@latest add step ...` |
 
 ## Configuration
 

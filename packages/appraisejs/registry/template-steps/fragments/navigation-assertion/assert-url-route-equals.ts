@@ -1,0 +1,14 @@
+/**
+ * @name assert url route equals
+ * @description Template step for validating whether a url route equals the provided value or not
+ * @icon VALIDATION
+ */
+Then('the url route should be equal to {string}', async function (this: CustomWorld, route: string) {
+  try {
+    await this.page.waitForLoadState('networkidle')
+    const currentRoute = new URL(this.page.url()).pathname
+    expect(currentRoute, `Expected the current route to be "${route}"`).to.equal(route.toLowerCase())
+  } catch (error) {
+    throw new Error(`Failed to validate the equality of the current route to the route "${route}": ${error}`)
+  }
+})

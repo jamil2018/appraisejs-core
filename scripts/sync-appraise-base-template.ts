@@ -222,7 +222,10 @@ rootPkg.scripts = {
   'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
   'appraisejs:setup': 'npm run setup',
   'appraisejs:sync': 'npm run sync-all',
+  'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
 }
+delete rootPkg.scripts['build:appraisejs']
+delete rootPkg.scripts['build-step-registry']
 writeFileSync(join(target, 'package.json'), JSON.stringify(rootPkg, null, 2) + '\n')
 console.log('Wrote template package.json with production-first scaffold scripts.')
 

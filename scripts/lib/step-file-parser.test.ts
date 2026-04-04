@@ -65,5 +65,7 @@ When("enter {string}", async function (value: string) {
     expect(parsed?.steps).toHaveLength(1)
     expect(parsed?.steps[0].signature).toBe('enter {string}')
     expect(parsed?.steps[0].keyword).toBe('When')
+    expect(parsed?.steps[0].source).toContain('@name Enter Email')
+    expect(parsed?.steps[0].source).toContain('When("enter {string}"')
   })
 })

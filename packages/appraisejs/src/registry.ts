@@ -1,0 +1,108 @@
+import { promises as fs } from 'fs'
+import { createHash } from 'crypto'
+import { type RegistryStepEntry, type StepRegistryManifest, type TemplateStepInstallPayload } from './types.js'
+
+const DEFAULT_REGISTRY_REPO_BASE_URL = 'https://raw.githubusercontent.com/jamil2018/appraisejs-core'
+const DEFAULT_REGISTRY_DIR = 'packages/appraisejs/registry/template-steps'
+
+export function resolveBundledManifestUrl(): URL {
+  return new URL('../registry/template-steps/manifest.json', import.meta.url)
+}
+
+export function resolveManifestUrl(branch: string, registryUrl?: string, useBundledRegistry = true): URL {
+  if (registryUrl) {
+    return registryUrl.endsWith('.json') ? new URL(registryUrl) : new URL(`${trimTrailingSlash(registryUrl)}/manifest.json`)
+  }
+
+  if (useBundledRegistry) {
+    return resolveBundledManifestUrl()
+  }
+
+  return new URL(`${DEFAULT_REGISTRY_REPO_BASE_URL}/${branch}/${DEFAULT_REGISTRY_DIR}/manifest.json`)
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/g, '')
+}
+
+export async function fetchJson<T>(url: URL, fetchFn: typeof fetch = fetch): Promise<T> {
+  if (url.protocol === 'file:') {
+    return JSON.parse(await fs.readFile(url, 'utf8')) as T
+  }
+
+  const response = await fetchFn(url, {
+    headers: {
+      accept: 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Request failed for ${url.toString()} (${response.status} ${response.statusText})`)
+  }
+
+  return (await response.json()) as T
+}
+
+export async function fetchText(url: URL, fetchFn: typeof fetch = fetch): Promise<string> {
+  if (url.protocol === 'file:') {
+    return await fs.readFile(url, 'utf8')
+  }
+
+  const response = await fetchFn(url, {
+    headers: {
+      accept: 'text/plain, application/typescript;q=0.9, */*;q=0.1',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Request failed for ${url.toString()} (${response.status} ${response.statusText})`)
+  }
+
+  return await response.text()
+}
+
+export async function fetchRegistryManifest(
+  branch: string,
+  registryUrl?: string,
+  fetchFn: typeof fetch = fetch,
+  useBundledRegistry = true,
+): Promise<{ manifest: StepRegistryManifest; manifestUrl: URL }> {
+  const manifestUrl = resolveManifestUrl(branch, registryUrl, useBundledRegistry)
+  const manifest = await fetchJson<StepRegistryManifest>(manifestUrl, fetchFn)
+
+  if (manifest.version !== 1 || !Array.isArray(manifest.steps)) {
+    throw new Error(`Unsupported registry manifest at ${manifestUrl.toString()}`)
+  }
+
+  return { manifest, manifestUrl }
+}
+
+export function resolveStepEntry(manifest: StepRegistryManifest, slug: string): RegistryStepEntry {
+  const entry = manifest.steps.find(step => step.slug === slug)
+  if (!entry) {
+    throw new Error(`Step "${slug}" was not found in the registry manifest.`)
+  }
+
+  return entry
+}
+
+export async function downloadStepPayload(
+  manifestUrl: URL,
+  entry: RegistryStepEntry,
+  fetchFn: typeof fetch = fetch,
+): Promise<TemplateStepInstallPayload> {
+  const sourceUrl = new URL(entry.sourcePath, manifestUrl)
+  const source = await fetchText(sourceUrl, fetchFn)
+  const normalizedSource = source.endsWith('\n') ? source : `${source}\n`
+  const actualSha = createHash('sha256').update(normalizedSource).digest('hex')
+
+  if (actualSha !== entry.sourceSha256) {
+    throw new Error(`Checksum mismatch for ${entry.slug}. Expected ${entry.sourceSha256}, received ${actualSha}.`)
+  }
+
+  return {
+    version: 1,
+    step: entry,
+    source,
+  }
+}
