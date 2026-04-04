@@ -9,10 +9,5 @@
     .dot{fill:#999;stroke:#d4d4d4}
     .ring{stroke:#eee}
     .ck{stroke:#5cb85c}
-    @media(prefers-color-scheme:light){
-      .ln{stroke:#555}
-      .dot{fill:#aaa;stroke:#555}
-      .ring{stroke:#333}
-    }
   </style>
 </svg>

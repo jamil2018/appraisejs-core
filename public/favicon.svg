@@ -4,8 +4,5 @@
   <style>
     .ring{stroke:#d4d4d4}
     .ck{stroke:#5cb85c}
-    @media(prefers-color-scheme:light){
-      .ring{stroke:#bbb}
-    }
   </style>
 </svg>

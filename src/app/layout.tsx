@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Inter_Tight } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/theme-provider'
-import { ModeToggle } from '@/components/theme/mode-toggle'
 import { Toaster } from '@/components/ui/toaster'
 import Logo from '@/components/logo'
 import Link from 'next/link'
@@ -44,11 +43,8 @@ const appDescription =
   'AppraiseJS helps teams organize automated tests, execute suites, and review results from one dashboard.'
 
 export const viewport: Viewport = {
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
-  ],
+  colorScheme: 'dark',
+  themeColor: '#09090b',
 }
 
 export const metadata: Metadata = {
@@ -73,7 +69,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: appTitle,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
   },
   icons: {
     icon: [
@@ -91,10 +87,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${interTight.variable} min-h-screen antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ModeToggle />
+        <ThemeProvider>
           <div className="mx-auto lg:max-w-screen-xl 2xl:max-w-screen-2xl">
             <nav className="mb-6 py-2">
               <div className="flex items-center gap-1">
