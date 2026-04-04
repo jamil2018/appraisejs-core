@@ -8,7 +8,8 @@
     "init": "DISABLE_DEVTOOLS=1 NEXT_PUBLIC_DISABLE_DEVTOOLS=1 next dev",
     "build:cucumber-runtime": "tsc -p packages/cucumber-runtime/tsconfig.json",
     "build:locator-picker-companion": "tsc -p packages/locator-picker-companion/tsconfig.json",
-    "build": "npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build",
+    "build:appraisejs": "tsc -p packages/appraisejs/tsconfig.json",
+    "build": "npm run build:cucumber-runtime && npm run build:locator-picker-companion && npm run build:appraisejs && next build",
     "start": "ENVIRONMENT=local next start",
     "lint": "eslint .",
     "install-playwright": "tsx scripts/install-playwright.ts",
@@ -29,6 +30,8 @@
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",
     "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
+    "build-step-registry": "npx tsx scripts/build-step-registry.ts",
+    "appraisejs:install-step": "npx tsx scripts/install-template-step.ts",
     "test": "cucumber-js",
     "validate": "node --import tsx scripts/run-vitest.ts"
   },

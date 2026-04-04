@@ -1,0 +1,60 @@
+{
+  "name": "appraisejs",
+  "version": "0.3.0-alpha.0",
+  "description": "Install AppraiseJS template steps into an existing project",
+  "license": "Apache-2.0",
+  "author": "Hasnat Jamil",
+  "homepage": "https://github.com/jamil2018/appraisejs-core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamil2018/appraisejs-core.git",
+    "directory": "packages/appraisejs"
+  },
+  "bugs": {
+    "url": "https://github.com/jamil2018/appraisejs-core/issues"
+  },
+  "keywords": [
+    "appraisejs",
+    "testing",
+    "qa",
+    "cli",
+    "steps"
+  ],
+  "type": "module",
+  "main": "./dist/cli.js",
+  "bin": {
+    "appraisejs": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "registry"
+  ],
+  "scripts": {
+    "prepublishOnly": "node --import tsx ../../scripts/build-step-registry.ts && npm run build",
+    "build": "tsc",
+    "test": "vitest run",
+    "publish:alpha": "npm publish --tag alpha",
+    "publish:beta": "npm publish --tag beta",
+    "bump:alpha": "npm version prerelease --preid alpha",
+    "bump:beta": "npm version prerelease --preid beta",
+    "bump:release": "npm version patch",
+    "bump:major": "npm version major",
+    "bump:minor": "npm version minor",
+    "bump:patch": "npm version patch"
+  },
+  "dependencies": {
+    "commander": "^14.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.16",
+    "tsx": "^4.20.4",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

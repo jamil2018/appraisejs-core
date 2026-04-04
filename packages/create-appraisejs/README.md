@@ -54,7 +54,7 @@ The generated project includes:
 - a seeded SQLite database at `prisma/dev.db`
 - the AppraiseJS dashboard and application code
 - automation sync scripts and reusable step definitions
-- package-manager-aware scripts such as `setup`, `setup:db`, `setup:full`, and `appraisejs:sync`
+- package-manager-aware scripts such as `setup`, `setup:db`, `setup:full`, `appraisejs:sync`, and `appraisejs:install-step`
 
 The generated project does not include:
 
@@ -92,8 +92,19 @@ CREATE_APPRAISE_BRANCH=main CREATE_APPRAISE_TEMPLATE_SUBPATH=templates/default n
 | `npm run install-playwright -- <browser...>` | Install selected Playwright browsers |
 | `npm run sync-all` | Run the full sync pipeline |
 | `npm run appraisejs:sync` | Alias for `sync-all` |
+| `npm run appraisejs:install-step -- --payload-file <path>` | Internal script used by the public `appraisejs add step` CLI |
 | `npm run start` | Start the local production server |
 | `npm run dev` | Start the Next.js development server |
+
+## Install Additional Template Steps
+
+After dependencies are installed in a generated project, you can pull an individual published template step into `automation/steps` with:
+
+```bash
+npx appraisejs@latest add step <group-slug>/<step-slug>
+```
+
+The CLI downloads the step fragment, merges it into the correct step group file, and then runs `sync-template-step-groups` followed by `sync-template-steps`.
 
 ## Notes
 
