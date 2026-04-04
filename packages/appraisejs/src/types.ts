@@ -35,4 +35,5 @@ export type AddStepOptions = {
   dryRun: boolean
   registryUrl?: string
   branch: string
+  useBundledRegistry: boolean
 }

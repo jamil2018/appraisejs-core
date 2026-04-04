@@ -39,6 +39,7 @@ describe('addStepBySlug', () => {
         overwrite: true,
         dryRun: false,
         branch: 'main',
+        useBundledRegistry: true,
       },
       {
         fetchRegistryManifest: vi.fn().mockResolvedValue({
@@ -71,11 +72,12 @@ describe('addStepBySlug', () => {
         'click/click-element',
         {
           cwd: '/tmp/appraise-project',
-          overwrite: false,
-          dryRun: true,
-          branch: 'main',
-        },
-        {
+        overwrite: false,
+        dryRun: true,
+        branch: 'main',
+        useBundledRegistry: false,
+      },
+      {
           fetchRegistryManifest: vi.fn().mockResolvedValue({
             manifest: { version: 1, generatedAt: '2026-01-01T00:00:00.000Z', steps: [PAYLOAD.step] },
             manifestUrl: new URL('https://example.com/registry/template-steps/manifest.json'),

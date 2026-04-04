@@ -1,10 +1,15 @@
+import path from 'path'
 import { createHash } from 'crypto'
 import { describe, expect, it } from 'vitest'
-import { downloadStepPayload, resolveManifestUrl } from './registry.js'
+import { downloadStepPayload, fetchRegistryManifest, resolveBundledManifestUrl, resolveManifestUrl } from './registry.js'
 
 describe('resolveManifestUrl', () => {
-  it('uses the default GitHub raw registry when no override is provided', () => {
-    expect(resolveManifestUrl('feature/registry').toString()).toBe(
+  it('uses the bundled package registry when no override is provided', () => {
+    expect(resolveManifestUrl('feature/registry').toString()).toBe(resolveBundledManifestUrl().toString())
+  })
+
+  it('uses the GitHub raw registry when explicitly requested', () => {
+    expect(resolveManifestUrl('feature/registry', undefined, false).toString()).toBe(
       'https://raw.githubusercontent.com/jamil2018/appraisejs-core/feature/registry/packages/appraisejs/registry/template-steps/manifest.json',
     )
   })
@@ -16,6 +21,17 @@ describe('resolveManifestUrl', () => {
     expect(resolveManifestUrl('main', 'https://example.com/custom/manifest.json').toString()).toBe(
       'https://example.com/custom/manifest.json',
     )
+  })
+})
+
+describe('fetchRegistryManifest', () => {
+  it('loads the bundled manifest from the package filesystem', async () => {
+    const { manifest, manifestUrl } = await fetchRegistryManifest('main')
+
+    expect(manifest.version).toBe(1)
+    expect(manifest.steps.length).toBeGreaterThan(0)
+    expect(manifestUrl.protocol).toBe('file:')
+    expect(manifestUrl.pathname).toContain(path.posix.join('registry', 'template-steps', 'manifest.json'))
   })
 })
 
@@ -52,5 +68,14 @@ When('click {string}', async function () {})
 
     expect(payload.source).toBe(source)
     expect(payload.step.slug).toBe('click/click-element')
+  })
+
+  it('loads step source from the package filesystem when using the bundled registry', async () => {
+    const { manifest, manifestUrl } = await fetchRegistryManifest('main')
+    const entry = manifest.steps[0]
+    const payload = await downloadStepPayload(manifestUrl, entry)
+
+    expect(payload.step.slug).toBe(entry.slug)
+    expect(payload.source).toContain('@name')
   })
 })

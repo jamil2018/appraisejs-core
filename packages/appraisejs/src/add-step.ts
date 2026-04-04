@@ -31,7 +31,12 @@ export async function addStepBySlug(
   dependencies: AddStepDependencies = defaultDependencies,
 ): Promise<void> {
   const project = await dependencies.validateAppraiseProject(options.cwd)
-  const { manifest, manifestUrl } = await dependencies.fetchRegistryManifest(options.branch, options.registryUrl)
+  const { manifest, manifestUrl } = await dependencies.fetchRegistryManifest(
+    options.branch,
+    options.registryUrl,
+    fetch,
+    options.useBundledRegistry,
+  )
   const entry = dependencies.resolveStepEntry(manifest, slug)
   const payload = await dependencies.downloadStepPayload(manifestUrl, entry)
 

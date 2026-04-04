@@ -1,12 +1,21 @@
+import { promises as fs } from 'fs'
 import { createHash } from 'crypto'
 import { type RegistryStepEntry, type StepRegistryManifest, type TemplateStepInstallPayload } from './types.js'
 
 const DEFAULT_REGISTRY_REPO_BASE_URL = 'https://raw.githubusercontent.com/jamil2018/appraisejs-core'
 const DEFAULT_REGISTRY_DIR = 'packages/appraisejs/registry/template-steps'
 
-export function resolveManifestUrl(branch: string, registryUrl?: string): URL {
+export function resolveBundledManifestUrl(): URL {
+  return new URL('../registry/template-steps/manifest.json', import.meta.url)
+}
+
+export function resolveManifestUrl(branch: string, registryUrl?: string, useBundledRegistry = true): URL {
   if (registryUrl) {
     return registryUrl.endsWith('.json') ? new URL(registryUrl) : new URL(`${trimTrailingSlash(registryUrl)}/manifest.json`)
+  }
+
+  if (useBundledRegistry) {
+    return resolveBundledManifestUrl()
   }
 
   return new URL(`${DEFAULT_REGISTRY_REPO_BASE_URL}/${branch}/${DEFAULT_REGISTRY_DIR}/manifest.json`)
@@ -17,6 +26,10 @@ function trimTrailingSlash(value: string): string {
 }
 
 export async function fetchJson<T>(url: URL, fetchFn: typeof fetch = fetch): Promise<T> {
+  if (url.protocol === 'file:') {
+    return JSON.parse(await fs.readFile(url, 'utf8')) as T
+  }
+
   const response = await fetchFn(url, {
     headers: {
       accept: 'application/json',
@@ -31,6 +44,10 @@ export async function fetchJson<T>(url: URL, fetchFn: typeof fetch = fetch): Pro
 }
 
 export async function fetchText(url: URL, fetchFn: typeof fetch = fetch): Promise<string> {
+  if (url.protocol === 'file:') {
+    return await fs.readFile(url, 'utf8')
+  }
+
   const response = await fetchFn(url, {
     headers: {
       accept: 'text/plain, application/typescript;q=0.9, */*;q=0.1',
@@ -48,8 +65,9 @@ export async function fetchRegistryManifest(
   branch: string,
   registryUrl?: string,
   fetchFn: typeof fetch = fetch,
+  useBundledRegistry = true,
 ): Promise<{ manifest: StepRegistryManifest; manifestUrl: URL }> {
-  const manifestUrl = resolveManifestUrl(branch, registryUrl)
+  const manifestUrl = resolveManifestUrl(branch, registryUrl, useBundledRegistry)
   const manifest = await fetchJson<StepRegistryManifest>(manifestUrl, fetchFn)
 
   if (manifest.version !== 1 || !Array.isArray(manifest.steps)) {
