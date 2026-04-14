@@ -103,7 +103,7 @@
     "@types/chai": "^5.2.2",
     "@types/chai-as-promised": "^8.0.2",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.17.16",
+    "@types/node": "^20.19.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "baseline-browser-mapping": "^2.9.3",
@@ -128,7 +128,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
     "typescript": "^5.7.3",
-    "vitest": "^4.1.1"
+    "vitest": "^4.1.4"
   },
   "overrides": {
     "react-is": "^19.2.1",
