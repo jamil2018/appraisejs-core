@@ -3,6 +3,8 @@ import path from 'path'
 import { runPrompts, type PlaywrightBrowser } from './prompts.js'
 import { createProject } from './create-project.js'
 import { getInstallCommand } from './install.js'
+import { parseCliArgs } from './cli-args.js'
+import type { TemplateId } from './template-catalog.js'
 
 function formatBrowserInstallStep(packageManager: string, browsers: PlaywrightBrowser[]): string | null {
   if (browsers.length === 0) {
@@ -14,6 +16,7 @@ function formatBrowserInstallStep(packageManager: string, browsers: PlaywrightBr
 
 export function getSuccessMessageLines(
   targetDir: string,
+  template: TemplateId,
   packageManager: string,
   didInstall: boolean,
   playwrightBrowsers: PlaywrightBrowser[],
@@ -21,7 +24,12 @@ export function getSuccessMessageLines(
   const relativePath = path.relative(process.cwd(), targetDir)
   const cdPath = relativePath.startsWith('..') ? targetDir : `./${relativePath}`
   const browserInstallStep = formatBrowserInstallStep(packageManager, playwrightBrowsers)
-  const lines = ['\n\u2713 Appraise app created successfully!\n', `  Location: ${targetDir}\n`, '  Next steps:\n']
+  const lines = [
+    '\n\u2713 Appraise app created successfully!\n',
+    `  Location: ${targetDir}\n`,
+    `  Template: ${template}\n`,
+    '  Next steps:\n',
+  ]
 
   const pm = packageManager as 'npm' | 'pnpm' | 'yarn' | 'bun'
   if (!didInstall) {
@@ -44,11 +52,12 @@ export function getSuccessMessageLines(
 
 function printSuccessMessage(
   targetDir: string,
+  template: TemplateId,
   packageManager: string,
   didInstall: boolean,
   playwrightBrowsers: PlaywrightBrowser[],
 ): void {
-  for (const line of getSuccessMessageLines(targetDir, packageManager, didInstall, playwrightBrowsers)) {
+  for (const line of getSuccessMessageLines(targetDir, template, packageManager, didInstall, playwrightBrowsers)) {
     console.log(line)
   }
 }
@@ -57,20 +66,22 @@ async function main(): Promise<void> {
   console.log('\n  Create Appraise\n')
   const cwd = process.cwd()
 
+  let cliOptions
   let answers
   try {
-    answers = await runPrompts(cwd)
+    cliOptions = parseCliArgs(process.argv.slice(2))
+    answers = await runPrompts(cwd, cliOptions)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('\n\u2717', message)
     process.exit(1)
   }
 
-  const { directory, packageManager, runInstall: shouldRunInstall, playwrightBrowsers } = answers
+  const { directory, template, packageManager, runInstall: shouldRunInstall, playwrightBrowsers } = answers
 
   try {
-    await createProject({ directory, packageManager, runInstall: shouldRunInstall, playwrightBrowsers })
-    printSuccessMessage(directory, packageManager, shouldRunInstall, playwrightBrowsers)
+    await createProject({ directory, template, packageManager, runInstall: shouldRunInstall, playwrightBrowsers })
+    printSuccessMessage(directory, template, packageManager, shouldRunInstall, playwrightBrowsers)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('\n\u2717', message)

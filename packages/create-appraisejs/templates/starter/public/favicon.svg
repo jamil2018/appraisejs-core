@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <circle class="ring" cx="64" cy="64" r="50" fill="none" stroke-width="5.5"/>
+  <polyline class="ck" points="38,66 55,83 92,41" fill="none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <style>
+    .ring{stroke:#d4d4d4}
+    .ck{stroke:#5cb85c}
+  </style>
+</svg>

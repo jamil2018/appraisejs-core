@@ -18,9 +18,14 @@ describe('copy-template', () => {
   })
 
   describe('getTemplatePath', () => {
-    it('returns a path ending with templates/default', () => {
-      const templatePath = getTemplatePath()
-      expect(templatePath).toMatch(/[\\/]templates[\\/]default$/)
+    it('returns a path ending with templates/starter for starter', () => {
+      const templatePath = getTemplatePath('starter')
+      expect(templatePath).toMatch(/[\\/]templates[\\/]starter$/)
+    })
+
+    it('returns a path ending with templates/blank for blank', () => {
+      const templatePath = getTemplatePath('blank')
+      expect(templatePath).toMatch(/[\\/]templates[\\/]blank$/)
     })
   })
 
@@ -38,7 +43,7 @@ describe('copy-template', () => {
       await fs.writeFile(path.join(fixtureDir, 'src', 'app', 'page.tsx'), 'export default function Page() {}')
 
       const files = getTemplatePath()
-      expect(files).toMatch(/[\\/]templates[\\/]default$/)
+      expect(files).toMatch(/[\\/]templates[\\/]starter$/)
 
       const { getCollectedFilesForTest } = await import('./copy-template.js')
       const collectedFiles = getCollectedFilesForTest(fixtureDir, 'npm')
@@ -66,6 +71,17 @@ describe('copy-template', () => {
       expect(hasNodeModules).toBe(false)
       expect(hasEnv).toBe(false)
       expect(hasLock).toBe(true)
+    })
+
+    it('does not copy .DS_Store artifacts', async () => {
+      const fixtureDir = path.join(tempDir, 'fixture')
+      await fs.ensureDir(path.join(fixtureDir, 'automation', 'steps'))
+      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' })
+      await fs.writeFile(path.join(fixtureDir, 'automation', 'steps', '.DS_Store'), 'artifact')
+
+      await copyTemplate(destDir, undefined, fixtureDir, 'npm')
+
+      expect(await fs.pathExists(path.join(destDir, 'automation', 'steps', '.DS_Store'))).toBe(false)
     })
 
     it('copies package-lock.json when packageManager is npm', async () => {

@@ -13,7 +13,7 @@ describe('downloadRepo', () => {
     globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
 
     await expect(
-      downloadRepo('https://github.com/invalid/repo', 'main', 'templates/default')
+      downloadRepo('https://github.com/invalid/repo', 'main', 'templates/starter')
     ).rejects.toThrow(/CREATE_APPRAISE_USE_BUNDLED/);
   }, 15000);
 });

@@ -1,10 +1,9 @@
 import fs from 'fs-extra'
 import path from 'path'
-import { fileURLToPath } from 'url'
 import cliProgress from 'cli-progress'
 import type { PackageManager } from './prompts.js'
+import { DEFAULT_TEMPLATE_ID, resolveBundledTemplatePath, type TemplateId } from './template-catalog.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SEEDED_DB_PATH = path.join('prisma', 'dev.db')
 const PACKAGED_GITIGNORE_PATH = 'gitignore'
 
@@ -17,6 +16,7 @@ const EXCLUDED_FILES = new Set([
   'yarn.lock',
   'pnpm-lock.yaml',
   'bun.lockb',
+  '.DS_Store',
 ])
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3'])
 
@@ -74,9 +74,8 @@ export function getCollectedFilesForTest(src: string, packageManager?: PackageMa
   return collectFiles(src, '', packageManager)
 }
 
-export function getTemplatePath(): string {
-  const packageDir = path.resolve(__dirname, '..')
-  return path.join(packageDir, 'templates', 'default')
+export function getTemplatePath(template: TemplateId = DEFAULT_TEMPLATE_ID): string {
+  return resolveBundledTemplatePath(template)
 }
 
 function getDestinationRelativePath(relativePath: string): string {
@@ -88,8 +87,9 @@ export async function copyTemplate(
   onProgress?: (current: number, total: number, filename: string) => void,
   templatePathOverride?: string,
   packageManager?: PackageManager,
+  template: TemplateId = DEFAULT_TEMPLATE_ID,
 ): Promise<void> {
-  const templatePath = templatePathOverride ?? getTemplatePath()
+  const templatePath = templatePathOverride ?? getTemplatePath(template)
   if (!(await fs.pathExists(templatePath))) {
     throw new Error(`Template not found at: ${templatePath}`)
   }
