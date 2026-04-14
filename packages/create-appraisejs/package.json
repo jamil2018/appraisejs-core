@@ -34,8 +34,10 @@
   "files": [
     "dist",
     "templates",
-    "templates/default/prisma/dev.db",
-    "templates/default/automation/config/environments/environments.json"
+    "templates/starter/prisma/dev.db",
+    "templates/starter/automation/config/environments/environments.json",
+    "templates/blank/prisma/dev.db",
+    "templates/blank/automation/config/environments/environments.json"
   ],
   "scripts": {
     "prepublishOnly": "npm run build",

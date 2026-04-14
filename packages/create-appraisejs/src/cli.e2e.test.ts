@@ -19,7 +19,7 @@ describe('CLI E2E', () => {
   })
 
   it('scaffolds app from the bundled template with a seeded database', async () => {
-    const templatePath = getTemplatePath()
+    const templatePath = getTemplatePath('starter')
     if (!(await fs.pathExists(templatePath))) {
       console.warn('Skipping E2E: template not found (run npm run build first)')
       return
@@ -32,12 +32,13 @@ describe('CLI E2E', () => {
     const staleNestedDbPath = path.join(destDir, 'prisma', 'prisma', 'dev.db')
 
     const { copyTemplate } = await import('./copy-template.js')
-    await copyTemplate(destDir, undefined, undefined, 'npm')
+    await copyTemplate(destDir, undefined, undefined, 'npm', 'starter')
 
     expect(await fs.pathExists(pkgJsonPath)).toBe(true)
     expect(await fs.pathExists(gitignorePath)).toBe(true)
     expect(await fs.pathExists(seededDbPath)).toBe(true)
     expect(await fs.pathExists(staleNestedDbPath)).toBe(false)
+    expect(await fs.pathExists(path.join(destDir, 'automation', 'steps', 'actions', 'click.step.ts'))).toBe(true)
     const pkg = await fs.readJson(pkgJsonPath)
     expect(pkg.scripts?.dev).toBeDefined()
     expect(pkg.scripts?.setup).toContain('setup:db')
@@ -51,14 +52,14 @@ describe('CLI E2E', () => {
   })
 
   it('patchPackageJsonScripts rewrites real template scripts for chosen package manager', async () => {
-    const templatePath = getTemplatePath()
+    const templatePath = getTemplatePath('starter')
     if (!(await fs.pathExists(templatePath))) {
       console.warn('Skipping E2E: template not found (run npm run build first)')
       return
     }
 
     const { copyTemplate } = await import('./copy-template.js')
-    await copyTemplate(destDir, undefined, undefined, 'npm')
+    await copyTemplate(destDir, undefined, undefined, 'npm', 'starter')
 
     const pkgBefore = await fs.readJson(path.join(destDir, 'package.json'))
     expect(pkgBefore.scripts['install-dependencies']).toBe('npm install --legacy-peer-deps')
@@ -85,14 +86,14 @@ describe('CLI E2E', () => {
   })
 
   it('patchPackageJsonScripts rewrites npx-using scripts for bun', async () => {
-    const templatePath = getTemplatePath()
+    const templatePath = getTemplatePath('starter')
     if (!(await fs.pathExists(templatePath))) {
       console.warn('Skipping E2E: template not found (run npm run build first)')
       return
     }
 
     const { copyTemplate } = await import('./copy-template.js')
-    await copyTemplate(destDir, undefined, undefined, 'npm')
+    await copyTemplate(destDir, undefined, undefined, 'npm', 'starter')
 
     await patchPackageJsonScripts(destDir, 'bun')
 
@@ -103,5 +104,25 @@ describe('CLI E2E', () => {
     expect(pkgAfter.scripts['install-playwright']).toContain('bunx ')
     expect(pkgAfter.scripts['protect-seeded-files']).not.toContain('npx ')
     expect(pkgAfter.scripts['setup-env']).not.toContain('npx ')
+  })
+
+  it('scaffolds blank without bundled step files while keeping setup prerequisites', async () => {
+    const templatePath = getTemplatePath('blank')
+    if (!(await fs.pathExists(templatePath))) {
+      console.warn('Skipping E2E: blank template not found (run npm run build first)')
+      return
+    }
+
+    const { copyTemplate } = await import('./copy-template.js')
+    await copyTemplate(destDir, undefined, undefined, 'npm', 'blank')
+
+    expect(await fs.pathExists(path.join(destDir, 'package.json'))).toBe(true)
+    expect(await fs.pathExists(path.join(destDir, '.gitignore'))).toBe(true)
+    expect(await fs.pathExists(path.join(destDir, 'prisma', 'dev.db'))).toBe(true)
+    expect(await fs.pathExists(path.join(destDir, 'automation', 'config', 'environments', 'environments.json'))).toBe(
+      true,
+    )
+    expect(await fs.pathExists(path.join(destDir, 'automation', 'mapping', 'locator-map.json'))).toBe(true)
+    expect(await fs.pathExists(path.join(destDir, 'automation', 'steps'))).toBe(false)
   })
 })

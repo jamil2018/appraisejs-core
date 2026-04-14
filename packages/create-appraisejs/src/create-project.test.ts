@@ -12,7 +12,7 @@ function createDependencies(overrides: Partial<CreateProjectDependencies> = {}):
     getConfig: vi.fn().mockReturnValue({
       repoBase: 'https://github.com/jamil2018/appraisejs-core',
       branch: 'main',
-      templateSubpath: 'templates/default',
+      templateSubpath: 'templates/starter',
       useBundled: true,
     }),
     patchPackageJsonScripts: vi.fn().mockResolvedValue(undefined),
@@ -36,6 +36,7 @@ function createLogger(): { logger: CreateProjectLogger; messages: string[] } {
 
 const ANSWERS: PromptAnswers = {
   directory: '/tmp/my-appraise-app',
+  template: 'starter',
   packageManager: 'pnpm',
   runInstall: true,
   playwrightBrowsers: ['chromium'],
@@ -48,7 +49,14 @@ describe('createProject', () => {
 
     const result = await createProject(ANSWERS, dependencies, logger)
 
-    expect(dependencies.copyTemplate).toHaveBeenCalledWith(ANSWERS.directory, undefined, undefined, ANSWERS.packageManager)
+    expect(dependencies.getConfig).toHaveBeenCalledWith(ANSWERS.template)
+    expect(dependencies.copyTemplate).toHaveBeenCalledWith(
+      ANSWERS.directory,
+      undefined,
+      undefined,
+      ANSWERS.packageManager,
+      ANSWERS.template,
+    )
     expect(dependencies.downloadRepo).not.toHaveBeenCalled()
     expect(dependencies.patchPackageJsonScripts).toHaveBeenCalledWith(ANSWERS.directory, ANSWERS.packageManager)
     expect(dependencies.runSetup).toHaveBeenCalledWith(
@@ -78,6 +86,7 @@ describe('createProject', () => {
       undefined,
       '/tmp/remote-repo/templates/custom',
       ANSWERS.packageManager,
+      ANSWERS.template,
     )
     expect(dependencies.removeDirectory).toHaveBeenCalledWith('/tmp/remote-checkout')
     expect(dependencies.runSetup).not.toHaveBeenCalled()
@@ -96,5 +105,20 @@ describe('createProject', () => {
 
     await expect(createProject({ ...ANSWERS, runInstall: false }, dependencies)).rejects.toThrow('copy failed')
     expect(dependencies.removeDirectory).toHaveBeenCalledWith('/tmp/remote-checkout')
+  })
+
+  it('passes blank template selection through to config and bundled copy resolution', async () => {
+    const dependencies = createDependencies()
+
+    await createProject({ ...ANSWERS, template: 'blank', runInstall: false }, dependencies)
+
+    expect(dependencies.getConfig).toHaveBeenCalledWith('blank')
+    expect(dependencies.copyTemplate).toHaveBeenCalledWith(
+      ANSWERS.directory,
+      undefined,
+      undefined,
+      ANSWERS.packageManager,
+      'blank',
+    )
   })
 })
