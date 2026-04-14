@@ -1,16 +1,59 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import ErrorMessage from '@/components/form/error-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formOpts, type Environment } from '@/constants/form-opts/environment-form-opts'
 import { toast } from '@/hooks/use-toast'
-import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
-import { z } from 'zod'
+import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
+import {
+  environmentFieldValidators,
+  getActionErrorMessage,
+  type EnvironmentFormSubmitAction,
+} from './environment-helpers'
+
+type EnvironmentFormProps = {
+  defaultValues?: Environment
+  successTitle: string
+  successMessage: string
+  id?: string
+  onSubmitAction: EnvironmentFormSubmitAction
+}
+
+type EnvironmentFieldErrorsProps = {
+  errors: unknown[]
+  isTouched: boolean
+}
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+
+  return String(error)
+}
+
+function EnvironmentFieldErrors({ errors, isTouched }: EnvironmentFieldErrorsProps) {
+  if (!isTouched) {
+    return null
+  }
+
+  return (
+    <div className="flex flex-col gap-1" aria-live="polite">
+      {errors.map((error, index) => (
+        <ErrorMessage key={`${String(error)}-${index}`} message={getErrorMessage(error)} visible={true} />
+      ))}
+    </div>
+  )
+}
 
 const EnvironmentForm = ({
   defaultValues,
@@ -18,22 +61,12 @@ const EnvironmentForm = ({
   successMessage,
   id,
   onSubmitAction,
-}: {
-  defaultValues?: Environment
-  successTitle: string
-  successMessage: string
-  id?: string
-  onSubmitAction: (
-    _prev: unknown,
-    value: Environment,
-    id?: string,
-  ) => Promise<ActionResponse>
-}) => {
+}: EnvironmentFormProps) => {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts?.defaultValues,
-    validators: formOpts?.validators,
+    defaultValues: defaultValues ?? formOpts.defaultValues,
+    validators: formOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
@@ -46,14 +79,14 @@ const EnvironmentForm = ({
       if (res.status === 400) {
         toast({
           title: 'Error',
-          description: res.error,
+          description: getActionErrorMessage(res),
           variant: 'destructive',
         })
       }
       if (res.status === 500) {
         toast({
           title: 'Error',
-          description: res.error,
+          description: getActionErrorMessage(res),
           variant: 'destructive',
         })
       }
@@ -70,7 +103,7 @@ const EnvironmentForm = ({
       <form.Field
         name="name"
         validators={{
-          onChange: z.string().min(1, { message: 'Name is required' }),
+          onChange: environmentFieldValidators.name,
         }}
       >
         {field => {
@@ -78,12 +111,7 @@ const EnvironmentForm = ({
             <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
               <Label htmlFor={field.name}>Name</Label>
               <Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
-                    {typeof error === 'string' ? error : error?.message || String(error)}
-                  </p>
-                ))}
+              <EnvironmentFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}
@@ -91,7 +119,7 @@ const EnvironmentForm = ({
       <form.Field
         name="baseUrl"
         validators={{
-          onChange: z.string().url({ message: 'Base URL must be a valid URL' }),
+          onChange: environmentFieldValidators.baseUrl,
         }}
       >
         {field => {
@@ -104,12 +132,7 @@ const EnvironmentForm = ({
                 onChange={e => field.handleChange(e.target.value)}
                 placeholder="https://example.com"
               />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
-                    {typeof error === 'string' ? error : error?.message || String(error)}
-                  </p>
-                ))}
+              <EnvironmentFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}
@@ -117,7 +140,7 @@ const EnvironmentForm = ({
       <form.Field
         name="apiBaseUrl"
         validators={{
-          onChange: z.string().url({ message: 'API Base URL must be a valid URL' }).optional().or(z.literal('')),
+          onChange: environmentFieldValidators.apiBaseUrl,
         }}
       >
         {field => {
@@ -130,12 +153,7 @@ const EnvironmentForm = ({
                 onChange={e => field.handleChange(e.target.value)}
                 placeholder="https://api.example.com"
               />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
-                    {typeof error === 'string' ? error : error?.message || String(error)}
-                  </p>
-                ))}
+              <EnvironmentFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}
@@ -143,7 +161,7 @@ const EnvironmentForm = ({
       <form.Field
         name="username"
         validators={{
-          onChange: z.string().optional().or(z.literal('')),
+          onChange: environmentFieldValidators.username,
         }}
       >
         {field => {
@@ -156,12 +174,7 @@ const EnvironmentForm = ({
                 onChange={e => field.handleChange(e.target.value)}
                 placeholder="Enter username"
               />
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
-                    {typeof error === 'string' ? error : error?.message || String(error)}
-                  </p>
-                ))}
+              <EnvironmentFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}
@@ -169,7 +182,7 @@ const EnvironmentForm = ({
       <form.Field
         name="password"
         validators={{
-          onChange: z.string().optional().or(z.literal('')),
+          onChange: environmentFieldValidators.password,
         }}
       >
         {field => {
@@ -189,18 +202,14 @@ const EnvironmentForm = ({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
                 </Button>
               </div>
-              {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
-                    {typeof error === 'string' ? error : error?.message || String(error)}
-                  </p>
-                ))}
+              <EnvironmentFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
             </div>
           )
         }}

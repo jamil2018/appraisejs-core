@@ -13,7 +13,7 @@ export type Option = {
   disabled?: boolean
 }
 
-interface MultiSelectProps {
+export type MultiSelectProps = {
   options: Option[]
   selected: string[]
   onChange: (selected: string[]) => void
@@ -21,6 +21,8 @@ interface MultiSelectProps {
   className?: string
   badgeClassName?: string
   emptyMessage?: string
+  label?: string
+  searchPlaceholder?: string
 }
 
 export function MultiSelect({
@@ -31,48 +33,60 @@ export function MultiSelect({
   className,
   badgeClassName,
   emptyMessage = 'No options found.',
+  label = 'Select options',
+  searchPlaceholder = 'Search options...',
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
+  const listboxId = React.useId()
 
   const handleUnselect = (value: string) => {
     onChange(selected.filter(item => item !== value))
   }
 
   const handleSelect = (value: string) => {
+    const option = options.find(currentOption => currentOption.value === value)
+    if (option?.disabled) {
+      return
+    }
+
     if (selected.includes(value)) {
       onChange(selected.filter(item => item !== value))
     } else {
       onChange([...selected, value])
     }
-    // Keep the popover open for multiple selections
   }
 
-  const selectedLabels = selected.map(value => options.find(option => option.value === value)?.label || value)
+  const selectedOptions = selected.map(value => options.find(option => option.value === value) ?? { label: value, value })
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div
-          // eslint-disable-next-line jsx-a11y/role-has-required-aria-props
           role="combobox"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-haspopup="listbox"
+          aria-label={label}
+          tabIndex={0}
           className={cn(
             'flex min-h-10 w-full flex-wrap items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
             className,
           )}
-          onClick={() => setOpen(true)}
+          onKeyDown={event => {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+              event.preventDefault()
+              setOpen(true)
+            }
+          }}
         >
           <div className="flex flex-1 flex-wrap gap-1">
             {selected.length === 0 && <span className="text-muted-foreground">{placeholder}</span>}
-            {selectedLabels.map(label => (
-              <Badge key={label} variant="secondary" className={cn('mb-1 mr-1 text-xs', badgeClassName)}>
-                {label}
+            {selectedOptions.map(option => (
+              <Badge key={option.value} variant="secondary" className={cn('mb-1 mr-1 text-xs', badgeClassName)}>
+                {option.label}
                 <button
+                  type="button"
                   className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      handleUnselect(selected[selectedLabels.indexOf(label)])
-                    }
-                  }}
                   onMouseDown={e => {
                     e.preventDefault()
                     e.stopPropagation()
@@ -80,11 +94,11 @@ export function MultiSelect({
                   onClick={e => {
                     e.preventDefault()
                     e.stopPropagation()
-                    handleUnselect(selected[selectedLabels.indexOf(label)])
+                    handleUnselect(option.value)
                   }}
                 >
                   <X className="h-3 w-3" />
-                  <span className="sr-only">Remove {label}</span>
+                  <span className="sr-only">Remove {option.label}</span>
                 </button>
               </Badge>
             ))}
@@ -92,10 +106,10 @@ export function MultiSelect({
           <ChevronDown className={cn('h-4 w-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search options..." />
-          <CommandList>
+          <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
+          <CommandList id={listboxId} role="listbox" aria-multiselectable="true">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
               {options.map(option => {
@@ -105,6 +119,8 @@ export function MultiSelect({
                     key={option.value}
                     value={option.value}
                     disabled={option.disabled}
+                    role="option"
+                    aria-selected={isSelected}
                     onSelect={() => handleSelect(option.value)}
                     className={cn('flex items-center gap-2', isSelected ? 'bg-accent' : '')}
                   >

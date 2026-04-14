@@ -7,8 +7,8 @@ import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import EmptyState from '@/components/data-state/empty-state'
-import { Environment } from '@prisma/client'
 import { Metadata } from 'next'
+import { getEnvironmentTableRows } from './environment-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Environments',
@@ -22,7 +22,7 @@ const Environments = async () => {
     return <div>Error: {environmentsError}</div>
   }
 
-  const environmentsData = environments as Environment[]
+  const environmentsData = getEnvironmentTableRows(environments)
 
   if (!environmentsData || environmentsData.length === 0) {
     return (

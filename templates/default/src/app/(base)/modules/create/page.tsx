@@ -1,9 +1,9 @@
 import { createModuleAction, getAllModulesAction } from '@/actions/modules/module-actions'
 import ModuleForm from '../module-form'
-import { Module } from '@prisma/client'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Metadata } from 'next'
+import { getModuleParentOptions, getModuleTableRows } from '../module-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Module',
@@ -12,8 +12,7 @@ export const metadata: Metadata = {
 
 const CreateModule = async () => {
   const { data: modules } = await getAllModulesAction()
-
-  const parentOptions = (Array.isArray(modules) ? modules : []) as (Module & { parent: { name: string } })[]
+  const parentOptions = getModuleParentOptions(getModuleTableRows(modules))
 
   return (
     <>

@@ -1,3 +1,5 @@
 {
-  "Email": "role=textbox[name=\"Email\"]"
+  "Email": "role=textbox[name=\"Email\"]",
+  "Password": "role=textbox[name=\"Password\"]",
+  "Login Button": "role=button[name=\"Login\"]"
 }

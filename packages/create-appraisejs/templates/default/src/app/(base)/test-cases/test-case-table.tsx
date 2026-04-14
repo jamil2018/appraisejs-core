@@ -1,17 +1,19 @@
 import { deleteTestCaseAction, getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { DataTable } from '@/components/ui/data-table'
-import { TestCasePickerRow } from '@/types/test-case-picker'
 import { testCaseTableCols } from './test-case-table-columns'
 import { Cog, LayoutPanelTop } from 'lucide-react'
 
+import { getTestCaseRows } from './test-case-route-helpers'
+
 export default async function TestCaseTable() {
   const { data: testCases } = await getAllTestCasesAction()
+  const testCaseRows = getTestCaseRows(testCases)
 
   return (
     <>
       <DataTable
         columns={testCaseTableCols}
-        data={testCases as TestCasePickerRow[]}
+        data={testCaseRows}
         filterColumn="title"
         filterPlaceholder="Filter by title..."
         modifyLink="/test-cases/modify"

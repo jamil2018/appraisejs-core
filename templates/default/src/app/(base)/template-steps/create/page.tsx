@@ -6,16 +6,19 @@ import { createTemplateStepAction } from '@/actions/template-step/template-step-
 import { getAllTemplateStepGroupsAction } from '@/actions/template-step-group/template-step-group-actions'
 import { Metadata } from 'next'
 
+import { getTemplateStepGroupRows } from '../template-step-helpers'
+
 export const metadata: Metadata = {
   title: 'Appraise | Create Template Step',
   description: 'Create a new template step to be used in test cases',
 }
 
 const CreateTemplateStep = async () => {
-  const { data: templateStepGroups, error: templateStepGroupsError } = await getAllTemplateStepGroupsAction()
+  const response = await getAllTemplateStepGroupsAction()
+  const templateStepGroups = getTemplateStepGroupRows(response.data)
 
-  if (templateStepGroupsError) {
-    return <div>Error: {templateStepGroupsError}</div>
+  if (response.error) {
+    return <div>Error: {response.error}</div>
   }
 
   return (
@@ -28,7 +31,7 @@ const CreateTemplateStep = async () => {
         successTitle="Template Step Created"
         successMessage="The template step has been created successfully"
         onSubmitAction={createTemplateStepAction}
-        templateStepGroups={templateStepGroups as Array<{ id: string; name: string }>}
+        templateStepGroups={templateStepGroups}
       />
     </>
   )

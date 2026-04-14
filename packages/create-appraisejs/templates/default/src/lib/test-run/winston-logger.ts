@@ -1,7 +1,8 @@
 import winston from 'winston'
 import path from 'path'
 import { promises as fs } from 'fs'
-import { ensureAutomationWorkspaceReady, getAutomationRunLogPath, toProjectRelativePath } from '@/lib/automation/paths'
+import { getAutomationRunLogPath, toProjectRelativePath } from '@/lib/automation/automation-path-roots'
+import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 
 async function ensureLogsDirectory(testRunId: string): Promise<void> {
   await ensureAutomationWorkspaceReady()

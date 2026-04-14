@@ -1,54 +1,45 @@
 'use client'
 import React, { useCallback, useState } from 'react'
+
 import TemplateTestCaseFlow from './template-test-case-flow'
-import { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import type { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import {
-  Locator,
-  LocatorGroup,
-  StepParameterType,
-  TemplateStep,
-  TemplateStepIcon,
-  TemplateStepParameter,
+  type Locator,
+  type LocatorGroup,
+  type TemplateStep,
+  type TemplateStepParameter,
 } from '@prisma/client'
+import { useRouter } from 'next/navigation'
+import { z } from 'zod'
+
+import ErrorMessage from '@/components/form/error-message'
+import { TestScenarioPreview } from '@/components/test-case/test-scenario-preview'
+import {
+  buildScenarioPreview,
+  buildScenarioSteps,
+  getActionErrorMessage,
+  templateTestCaseSubmitSchema,
+} from '@/components/test-case/test-case-form-helpers'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import ErrorMessage from '@/components/form/error-message'
-import { z } from 'zod'
-import { toast } from '@/hooks/use-toast'
-import { useRouter } from 'next/navigation'
-import { IconToKeyTransformer } from '@/lib/transformers/key-to-icon-transformer'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import CodeMirror, { EditorView } from '@uiw/react-codemirror'
-import { langs } from '@uiw/codemirror-extensions-langs'
-import { githubDark } from '@uiw/codemirror-theme-github'
-import { ActionResponse } from '@/types/form/actionHandler'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
+import { toast } from '@/hooks/use-toast'
+import type { ActionResponse } from '@/types/form/actionHandler'
 
-const errorSchema = z.object({
-  title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
-  description: z.string().optional(),
-  steps: z
-    .array(
-      z.object({
-        gherkinStep: z.string(),
-        label: z.string(),
-        icon: z.nativeEnum(TemplateStepIcon),
-        parameters: z.array(
-          z.object({
-            name: z.string(),
-            value: z.string(),
-            type: z.nativeEnum(StepParameterType),
-            order: z.number(),
-          }),
-        ),
-        order: z.number(),
-        templateStepId: z.string(),
-      }),
-    )
-    .min(1, { message: 'At least one step is required' }),
-})
+type TemplateTestCaseFormProps = {
+  defaultNodesOrder: TemplateTestCaseNodeOrderMap
+  templateStepParams: TemplateStepParameter[]
+  templateSteps: TemplateStep[]
+  locators: Locator[]
+  locatorGroups: LocatorGroup[]
+  onSubmitAction: (value: z.infer<typeof templateTestCaseSchema>, id?: string) => Promise<ActionResponse>
+  id?: string
+  defaultTitle?: string
+  defaultDescription?: string
+  defaultValueInput?: boolean
+}
 
 const TemplateTestCaseForm = ({
   defaultNodesOrder,
@@ -61,98 +52,20 @@ const TemplateTestCaseForm = ({
   defaultDescription,
   defaultValueInput = false,
   onSubmitAction,
-}: {
-  defaultNodesOrder: TemplateTestCaseNodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
-  onSubmitAction: (value: z.infer<typeof templateTestCaseSchema>, id?: string) => Promise<ActionResponse>
-  id?: string
-  defaultTitle?: string
-  defaultDescription?: string
-  defaultValueInput?: boolean
-}) => {
+}: TemplateTestCaseFormProps) => {
   const router = useRouter()
-  // states
   const [nodesOrder, setNodesOrder] = useState<TemplateTestCaseNodeOrderMap>(defaultNodesOrder)
-  const [title, setTitle] = useState<string>(defaultTitle || '')
-  const [description, setDescription] = useState<string>(defaultDescription || '')
+  const [title, setTitle] = useState(defaultTitle || '')
+  const [description, setDescription] = useState(defaultDescription || '')
   const [errors, setErrors] = useState<{
     title?: string[]
     description?: string[]
     steps?: string[]
   }>({})
 
-  const generateGherkinSyntax = useCallback(() => {
-    if (!title) return ''
+  const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
+  const renderError = (message?: string[]) => <ErrorMessage message={message?.[0] || ''} visible={!!message} />
 
-    const scenarioHeader = `Scenario: [${title}] ${description || ''}`
-
-    // Filter out nodes with order -1 and sort the remaining nodes
-    const validSteps = Object.entries(nodesOrder)
-      .map(([, value]) => value)
-      .filter(step => step.order !== -1)
-      .sort((a, b) => a.order - b.order)
-
-    // Generate Gherkin steps with proper keywords
-    let hasThenInPrevious = false
-    let hasWhenInPrevious = false
-
-    const gherkinSteps = validSteps.map((step, index) => {
-      const gherkinStep = step.gherkinStep?.trim() || ''
-      const firstWord = gherkinStep.split(' ')[0].toLowerCase()
-      const hasGherkinKeyword = ['given', 'when', 'then', 'and', 'but'].includes(firstWord)
-      const stepWithoutKeyword = hasGherkinKeyword ? gherkinStep.split(' ').slice(1).join(' ') : gherkinStep
-
-      // First step always starts with Given
-      if (index === 0) {
-        return `Given ${stepWithoutKeyword}`
-      }
-
-      // Check if this step should be a Then statement
-      const isThenStatement =
-        firstWord === 'then' ||
-        stepWithoutKeyword.toLowerCase().startsWith('should') ||
-        stepWithoutKeyword.toLowerCase().startsWith('must') ||
-        stepWithoutKeyword.toLowerCase().startsWith('will')
-
-      // If we haven't seen a Then yet
-      if (!hasThenInPrevious) {
-        // If this is a Then statement
-        if (isThenStatement) {
-          hasThenInPrevious = true
-          return `Then ${stepWithoutKeyword}`
-        }
-
-        // If we haven't seen a When yet, use When
-        if (!hasWhenInPrevious) {
-          hasWhenInPrevious = true
-          return `When ${stepWithoutKeyword}`
-        }
-        // After When, use And
-        return `And ${stepWithoutKeyword}`
-      }
-
-      // After Then
-      if (isThenStatement) {
-        // If it's another Then statement, use And
-        return `And ${stepWithoutKeyword}`
-      }
-      // After Then, use When for new actions
-      hasThenInPrevious = false
-      hasWhenInPrevious = false
-      return `When ${stepWithoutKeyword}`
-    })
-
-    // Update the flags after processing all steps
-    hasThenInPrevious = gherkinSteps.some(step => step.toLowerCase().startsWith('then'))
-    hasWhenInPrevious = gherkinSteps.some(step => step.toLowerCase().startsWith('when'))
-
-    return [scenarioHeader, ...gherkinSteps].join('\n')
-  }, [title, description, nodesOrder])
-
-  // handlers
   const onNodeOrderChange = useCallback((nodesOrder: TemplateTestCaseNodeOrderMap) => {
     setNodesOrder(nodesOrder)
   }, [])
@@ -166,17 +79,10 @@ const TemplateTestCaseForm = ({
   }, [])
 
   const handleSubmit = useCallback(async () => {
-    const result = errorSchema.safeParse({
+    const result = templateTestCaseSubmitSchema.safeParse({
       title,
       description,
-      steps: Object.entries(nodesOrder).map(([, value]) => ({
-        gherkinStep: value.gherkinStep || '',
-        label: value.label,
-        icon: IconToKeyTransformer(value.icon),
-        parameters: value.parameters,
-        order: value.order,
-        templateStepId: value.templateStepId,
-      })),
+      steps: buildScenarioSteps(nodesOrder),
     })
 
     if (!result.success) {
@@ -196,7 +102,7 @@ const TemplateTestCaseForm = ({
     if (response.status === 500) {
       toast({
         title: 'Error',
-        description: response.error || 'An error occurred',
+        description: getActionErrorMessage(response),
         variant: 'destructive',
       })
     }
@@ -209,31 +115,17 @@ const TemplateTestCaseForm = ({
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" name="title" value={title} onChange={onTitleChange} />
-            <ErrorMessage message={errors.title?.[0] || ''} visible={!!errors.title} />
+            {renderError(errors.title)}
           </div>
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" name="description" value={description} onChange={onDescriptionChange} />
-            <ErrorMessage message={errors.description?.[0] || ''} visible={!!errors.description} />
+            {renderError(errors.description)}
           </div>
         </div>
         <div className="w-1/2">
           <div className="mb-4 flex flex-col gap-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Test Scenario(Preview)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CodeMirror
-                  editable={false}
-                  value={generateGherkinSyntax()}
-                  onChange={() => {}}
-                  height="200px"
-                  extensions={[langs.feature(), EditorView.lineWrapping]}
-                  theme={githubDark}
-                />
-              </CardContent>
-            </Card>
+            <TestScenarioPreview title="Test Scenario(Preview)" scenario={scenarioPreview} />
           </div>
         </div>
       </div>
@@ -249,7 +141,7 @@ const TemplateTestCaseForm = ({
           defaultValueInput={defaultValueInput}
         />
       </div>
-      <ErrorMessage message={errors.steps?.[0] || ''} visible={!!errors.steps} />
+      {renderError(errors.steps)}
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={handleSubmit} className="w-fit px-6">
           Save

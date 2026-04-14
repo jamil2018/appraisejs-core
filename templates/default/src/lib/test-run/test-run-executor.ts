@@ -1,6 +1,6 @@
 import type { TestRunExecutionRequest, TestRunExecutionResult } from '@/lib/executor/types'
 import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
-import { getAutomationRunReportPath } from '@/lib/automation/paths'
+import { getAutomationRunReportPath } from '@/lib/automation/automation-path-roots'
 
 export type TestRunExecutionConfig = TestRunExecutionRequest
 

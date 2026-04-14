@@ -1,16 +1,16 @@
 'use client'
 
+import TableActions from '@/components/table/table-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import { Checkbox } from '@/components/ui/checkbox'
+import { deleteModuleAction } from '@/actions/modules/module-actions'
+import { buildModulePath } from '@/lib/path-helpers/module-path'
+import { formatDateTime } from '@/lib/utils'
 import { ColumnDef } from '@tanstack/react-table'
 
-import { Checkbox } from '@/components/ui/checkbox'
-import TableActions from '@/components/table/table-actions'
-import { Module } from '@prisma/client'
-import { deleteModuleAction } from '@/actions/modules/module-actions'
-import { buildModulePathFromParent } from '@/lib/path-helpers/module-path'
-import { formatDateTime } from '@/lib/utils'
+import { type ModuleTableRow } from './module-helpers'
 
-export const moduleTableCols: ColumnDef<Module & { parent: { name: string } }>[] = [
+export const moduleTableCols: ColumnDef<ModuleTableRow>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -48,11 +48,7 @@ export const moduleTableCols: ColumnDef<Module & { parent: { name: string } }>[]
     id: 'path',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Path" />,
     cell: ({ row, table }) => {
-      const modules = table.options.data as (Module & {
-        parent: { name: string }
-      })[]
-      const currentModule = row.original
-      const path = buildModulePathFromParent(modules, currentModule)
+      const path = buildModulePath(table.options.data, row.original)
       return <div className="font-mono text-sm">{path}</div>
     },
   },

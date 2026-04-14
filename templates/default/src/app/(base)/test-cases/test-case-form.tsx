@@ -1,59 +1,55 @@
 'use client'
 import React, { useCallback, useState } from 'react'
+
 import TestCaseFlow from './test-case-flow'
-import { NodeOrderMap } from '@/types/diagram/diagram'
+import type { NodeOrderMap } from '@/types/diagram/diagram'
 import {
-  Locator,
-  LocatorGroup,
-  StepParameterType,
-  TemplateStep,
-  TemplateStepIcon,
-  TemplateStepParameter,
-  TestSuite,
-  Tag,
+  type Locator,
+  type LocatorGroup,
+  type TemplateStep,
+  type TemplateStepParameter,
+  type TestSuite,
+  type Tag,
 } from '@prisma/client'
+import { Info, Save } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { z } from 'zod'
+
+import ErrorMessage from '@/components/form/error-message'
+import { TestScenarioPreview } from '@/components/test-case/test-scenario-preview'
+import {
+  buildScenarioPreview,
+  buildScenarioSteps,
+  getActionErrorMessage,
+  getNodesWithMissingMandatoryParams,
+  testCaseQuickTips,
+  testCaseSubmitSchema,
+} from '@/components/test-case/test-case-form-helpers'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { MultiSelect } from '@/components/ui/multi-select'
-import { Button } from '@/components/ui/button'
-import ErrorMessage from '@/components/form/error-message'
-import { z } from 'zod'
-import { toast } from '@/hooks/use-toast'
-import { useRouter } from 'next/navigation'
-import { IconToKeyTransformer } from '@/lib/transformers/key-to-icon-transformer'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import CodeMirror, { EditorView } from '@uiw/react-codemirror'
-import { langs } from '@uiw/codemirror-extensions-langs'
-import { githubDark } from '@uiw/codemirror-theme-github'
-import { ActionResponse } from '@/types/form/actionHandler'
+import { Textarea } from '@/components/ui/textarea'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
-import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
-import { Info, Save } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
+import type { ActionResponse } from '@/types/form/actionHandler'
 
-const errorSchema = z.object({
-  title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
-  description: z.string().optional(),
-  testSuiteIds: z.array(z.string()).min(1, { message: 'Test suites are required' }),
-  tagIds: z.array(z.string()).optional(),
-  steps: z.array(
-    z.object({
-      gherkinStep: z.string(),
-      label: z.string(),
-      icon: z.nativeEnum(TemplateStepIcon),
-      parameters: z.array(
-        z.object({
-          name: z.string(),
-          value: z.string(),
-          type: z.nativeEnum(StepParameterType),
-          order: z.number(),
-        }),
-      ),
-      order: z.number(),
-      templateStepId: z.string(),
-    }),
-  ),
-})
+type TestCaseFormProps = {
+  defaultNodesOrder: NodeOrderMap
+  templateStepParams: TemplateStepParameter[]
+  templateSteps: TemplateStep[]
+  locators: Locator[]
+  locatorGroups: LocatorGroup[]
+  testSuites: TestSuite[]
+  tags: Tag[]
+  onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
+  id?: string
+  defaultTitle?: string
+  defaultDescription?: string
+  defaultTestSuiteIds?: string[]
+  defaultTagIds?: string[]
+}
 
 const TestCaseForm = ({
   defaultNodesOrder,
@@ -69,104 +65,23 @@ const TestCaseForm = ({
   defaultTestSuiteIds,
   defaultTagIds,
   onSubmitAction,
-}: {
-  defaultNodesOrder: NodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
-  testSuites: TestSuite[]
-  tags: Tag[]
-  onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
-  id?: string
-  defaultTitle?: string
-  defaultDescription?: string
-  defaultTestSuiteIds?: string[]
-  defaultTagIds?: string[]
-}) => {
+}: TestCaseFormProps) => {
   const router = useRouter()
-  // states
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(defaultNodesOrder)
-  const [title, setTitle] = useState<string>(defaultTitle || '')
-  const [description, setDescription] = useState<string>(defaultDescription || '')
-  const [selectedTestSuites, setSelectedTestSuites] = useState<string[]>(defaultTestSuiteIds || [])
-  const [selectedTags, setSelectedTags] = useState<string[]>(defaultTagIds || [])
-  console.log(`defaultTestSuiteIds`, defaultTestSuiteIds)
+  const [title, setTitle] = useState(defaultTitle || '')
+  const [description, setDescription] = useState(defaultDescription || '')
+  const [selectedTestSuites, setSelectedTestSuites] = useState(defaultTestSuiteIds || [])
+  const [selectedTags, setSelectedTags] = useState(defaultTagIds || [])
   const [errors, setErrors] = useState<{
     title?: string[]
     description?: string[]
     testSuiteIds?: string[]
+    steps?: string[]
   }>({})
 
-  const generateGherkinSyntax = useCallback(() => {
-    if (!title) return ''
+  const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
+  const renderError = (message?: string[]) => <ErrorMessage message={message?.[0] || ''} visible={!!message} />
 
-    const scenarioHeader = `Scenario: [${title}] ${description || ''}`
-
-    // Filter out nodes with order -1 and sort the remaining nodes
-    const validSteps = Object.entries(nodesOrder)
-      .map(([, value]) => value)
-      .filter(step => step.order !== -1)
-      .sort((a, b) => a.order - b.order)
-
-    // Generate Gherkin steps with proper keywords
-    let hasThenInPrevious = false
-    let hasWhenInPrevious = false
-
-    const gherkinSteps = validSteps.map((step, index) => {
-      const gherkinStep = step.gherkinStep?.trim() || ''
-      const firstWord = gherkinStep.split(' ')[0].toLowerCase()
-      const hasGherkinKeyword = ['given', 'when', 'then', 'and', 'but'].includes(firstWord)
-      const stepWithoutKeyword = hasGherkinKeyword ? gherkinStep.split(' ').slice(1).join(' ') : gherkinStep
-
-      // First step always starts with Given
-      if (index === 0) {
-        return `Given ${stepWithoutKeyword}`
-      }
-
-      // Check if this step should be a Then statement
-      const isThenStatement =
-        firstWord === 'then' ||
-        stepWithoutKeyword.toLowerCase().startsWith('should') ||
-        stepWithoutKeyword.toLowerCase().startsWith('must') ||
-        stepWithoutKeyword.toLowerCase().startsWith('will')
-
-      // If we haven't seen a Then yet
-      if (!hasThenInPrevious) {
-        // If this is a Then statement
-        if (isThenStatement) {
-          hasThenInPrevious = true
-          return `Then ${stepWithoutKeyword}`
-        }
-
-        // If we haven't seen a When yet, use When
-        if (!hasWhenInPrevious) {
-          hasWhenInPrevious = true
-          return `When ${stepWithoutKeyword}`
-        }
-        // After When, use And
-        return `And ${stepWithoutKeyword}`
-      }
-
-      // After Then
-      if (isThenStatement) {
-        // If it's another Then statement, use And
-        return `And ${stepWithoutKeyword}`
-      }
-      // After Then, use When for new actions
-      hasThenInPrevious = false
-      hasWhenInPrevious = false
-      return `When ${stepWithoutKeyword}`
-    })
-
-    // Update the flags after processing all steps
-    hasThenInPrevious = gherkinSteps.some(step => step.toLowerCase().startsWith('then'))
-    hasWhenInPrevious = gherkinSteps.some(step => step.toLowerCase().startsWith('when'))
-
-    return [scenarioHeader, ...gherkinSteps].join('\n')
-  }, [title, description, nodesOrder])
-
-  // handlers
   const onNodeOrderChange = useCallback((nodesOrder: NodeOrderMap) => {
     setNodesOrder(nodesOrder)
   }, [])
@@ -188,25 +103,7 @@ const TestCaseForm = ({
   }, [])
 
   const handleSubmit = useCallback(async () => {
-    // Validate that all nodes have mandatory parameters filled
-    const nodesWithMissingParams: string[] = []
-    Object.entries(nodesOrder).forEach(([nodeId, nodeData]) => {
-      // Skip isolated nodes (order === -1)
-      if (nodeData.order === -1) return
-
-      const isMissingParams = checkMissingMandatoryParams(
-        {
-          parameters: nodeData.parameters,
-          templateStepId: nodeData.templateStepId,
-        },
-        templateStepParams,
-        false, // defaultValueInput is always false for test cases
-      )
-
-      if (isMissingParams) {
-        nodesWithMissingParams.push(nodeData.label || nodeId)
-      }
-    })
+    const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder, templateStepParams)
 
     if (nodesWithMissingParams.length > 0) {
       toast({
@@ -217,19 +114,12 @@ const TestCaseForm = ({
       return
     }
 
-    const result = errorSchema.safeParse({
+    const result = testCaseSubmitSchema.safeParse({
       title,
       description,
       testSuiteIds: selectedTestSuites,
       tagIds: selectedTags,
-      steps: Object.entries(nodesOrder).map(([, value]) => ({
-        gherkinStep: value.gherkinStep || '',
-        label: value.label,
-        icon: IconToKeyTransformer(value.icon),
-        parameters: value.parameters,
-        order: value.order,
-        templateStepId: value.templateStepId,
-      })),
+      steps: buildScenarioSteps(nodesOrder),
     })
 
     if (!result.success) {
@@ -249,7 +139,7 @@ const TestCaseForm = ({
     if (response.status === 500) {
       toast({
         title: 'Error',
-        description: response.error || 'An error occurred',
+        description: getActionErrorMessage(response),
         variant: 'destructive',
       })
     }
@@ -268,7 +158,7 @@ const TestCaseForm = ({
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="title">Title</Label>
                 <Input id="title" name="title" value={title} onChange={onTitleChange} />
-                <ErrorMessage message={errors.title?.[0] || ''} visible={!!errors.title} />
+                {renderError(errors.title)}
               </div>
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="description">Description</Label>
@@ -279,7 +169,7 @@ const TestCaseForm = ({
                   onChange={onDescriptionChange}
                   className="bg-background"
                 />
-                <ErrorMessage message={errors.description?.[0] || ''} visible={!!errors.description} />
+                {renderError(errors.description)}
               </div>
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="test-suites">Test Suites</Label>
@@ -293,7 +183,7 @@ const TestCaseForm = ({
                   selected={selectedTestSuites}
                   onChange={onTestSuiteChange}
                 />
-                <ErrorMessage message={errors.testSuiteIds?.[0] || ''} visible={!!errors.testSuiteIds} />
+                {renderError(errors.testSuiteIds)}
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="tags">Filter Tags</Label>
@@ -320,47 +210,24 @@ const TestCaseForm = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <div className="flex items-start gap-4">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                  1
-                </span>
-                <div className="flex flex-col gap-1">
-                  <span className="text-base font-bold">Provide a clear and descriptive title & description</span>
-                  <span className="text-sm text-muted-foreground">
-                    Use clear, specific terms that indicate the purpose of the test scenario
+              {testCaseQuickTips.map((tip, index) => (
+                <div key={tip.title} className="flex items-start gap-4">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                    {index + 1}
                   </span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-base font-bold">{tip.title}</span>
+                    <span className="text-sm text-muted-foreground">{tip.description}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                  2
-                </span>
-                <div className="flex flex-col gap-1">
-                  <span className="text-base font-bold">Build your test scenario step by step</span>
-                  <span className="text-sm text-muted-foreground">
-                    Build your test scenario step by step visually to help others understand the flow of the test
-                    scenario
-                  </span>
-                </div>
-              </div>
+              ))}
             </CardContent>
           </Card>
-          <Card className="border-gray-700 bg-gray-500/10">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-primary">Test Scenario(Preview)</CardTitle>
-              <CardDescription>Preview of the test scenario in Gherkin syntax</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CodeMirror
-                editable={false}
-                value={generateGherkinSyntax()}
-                onChange={() => {}}
-                height="200px"
-                extensions={[langs.feature(), EditorView.lineWrapping]}
-                theme={githubDark}
-              />
-            </CardContent>
-          </Card>
+          <TestScenarioPreview
+            title="Test Scenario(Preview)"
+            description="Preview of the test scenario in Gherkin syntax"
+            scenario={scenarioPreview}
+          />
         </div>
       </div>
       <Card className="mb-4 border-gray-700 bg-gray-500/10">
@@ -382,6 +249,7 @@ const TestCaseForm = ({
           </div>
         </CardContent>
       </Card>
+      {renderError(errors.steps)}
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={handleSubmit} className="w-fit px-6 hover:bg-emerald-500">
           <Save className="h-4 w-4" />

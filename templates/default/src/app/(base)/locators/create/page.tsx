@@ -3,9 +3,9 @@ import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-grou
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { Environment, LocatorGroup, Module } from '@prisma/client'
 import { Crosshair } from 'lucide-react'
 import type { Metadata } from 'next'
+import { getEnvironmentRows, getLocatorGroupRows, getModuleRows } from './create-locator-workspace-helpers'
 import CreateLocatorWorkspace from './create-locator-workspace'
 
 export const metadata: Metadata = {
@@ -25,6 +25,10 @@ const CreateLocatorPage = async () => {
     return <div>Error: {loadError}</div>
   }
 
+  const environmentRows = getEnvironmentRows(environments)
+  const locatorGroupRows = getLocatorGroupRows(locatorGroups)
+  const moduleRows = getModuleRows(modules)
+
   return (
     <>
       <div className="mb-8">
@@ -40,9 +44,9 @@ const CreateLocatorPage = async () => {
         </HeaderSubtitle>
       </div>
       <CreateLocatorWorkspace
-        environments={environments as Environment[]}
-        locatorGroups={locatorGroups as LocatorGroup[]}
-        modules={modules as Module[]}
+        environments={environmentRows}
+        locatorGroups={locatorGroupRows}
+        modules={moduleRows}
       />
     </>
   )

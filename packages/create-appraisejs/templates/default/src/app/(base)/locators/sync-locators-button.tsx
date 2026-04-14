@@ -17,8 +17,9 @@ export function SyncLocatorsButton() {
       const result = await syncLocatorsFromFilesAction()
 
       if (result.status === 200 && result.data) {
-        const { synced, conflicts, errors } = result.data as {
-          synced: number
+        const { locatorsCreated, locatorsMergedToFile, conflicts, errors } = result.data as {
+          locatorsCreated: number
+          locatorsMergedToFile: number
           conflicts: number
           errors: string[]
         }
@@ -27,12 +28,12 @@ export function SyncLocatorsButton() {
           toast({
             variant: 'destructive',
             title: 'Sync completed with errors',
-            description: `Synced ${synced} locators, ${conflicts} conflicts detected. ${errors.length} error(s) occurred.`,
+            description: `Created ${locatorsCreated} locators, merged ${locatorsMergedToFile} into files, ${conflicts} conflicts detected. ${errors.length} error(s) occurred.`,
           })
         } else {
           toast({
             title: 'Sync completed successfully',
-            description: `Synced ${synced} locators, ${conflicts} conflicts detected.`,
+            description: `Created ${locatorsCreated} locators, merged ${locatorsMergedToFile} into files, ${conflicts} conflicts detected.`,
           })
         }
 

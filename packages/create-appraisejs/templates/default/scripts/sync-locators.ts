@@ -15,7 +15,9 @@ import { glob } from 'glob'
 import prisma from '../src/config/db-config'
 import { buildModuleHierarchy } from '../src/lib/module-hierarchy-builder'
 import { getLocatorGroupFilePath } from '../src/lib/locator-group-file-utils'
-import { extractModulePathFromAutomationFile } from '../src/lib/template-sync-utils'
+import { extractLocatorGroupName, extractModulePathFromLocatorFile } from './lib/filename-utils'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 interface SyncResult {
   locatorsScanned: number
@@ -44,23 +46,6 @@ async function scanLocatorFiles(baseDir: string): Promise<string[]> {
   } catch (error) {
     throw new Error(`Error scanning locator files: ${error}`)
   }
-}
-
-/**
- * Extracts module path from locator file path
- * Example: automation/locators/users/admins/directors/directors.json -> /users/admins/directors
- */
-function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
-}
-
-/**
- * Extracts locator group name from file path
- * The group name is just the filename without extension
- */
-function extractLocatorGroupName(filePath: string): string {
-  const fileName = filePath.split(/[/\\]/).pop() || ''
-  return fileName.replace('.json', '')
 }
 
 /**
@@ -96,7 +81,6 @@ async function readLocatorFile(filePath: string): Promise<Record<string, string>
 async function findOrCreateLocatorGroup(
   groupName: string,
   moduleId: string,
-  _modulePath: string,
 ): Promise<string> {
   // Try to find existing locator group
   const existingGroup = await prisma.locatorGroup.findFirst({
@@ -144,7 +128,7 @@ async function syncLocatorsFromFile(
     const moduleId = await buildModuleHierarchy(modulePath)
 
     // Find or create locator group
-    const locatorGroupId = await findOrCreateLocatorGroup(groupName, moduleId, modulePath)
+    const locatorGroupId = await findOrCreateLocatorGroup(groupName, moduleId)
     
     // Track this group as processed (has a file)
     processedGroupIds.add(locatorGroupId)
@@ -307,57 +291,7 @@ async function syncLocatorsToDatabase(files: string[], baseDir: string): Promise
 /**
  * Generates and displays sync summary
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Locators scanned: ${result.locatorsScanned}`)
-  console.log(`   ✅ Locators existing: ${result.locatorsExisting}`)
-  console.log(`   ➕ Locators created: ${result.locatorsCreated}`)
-  console.log(`   🔄 Locators updated: ${result.locatorsUpdated}`)
-  console.log(`   🗑️  Locators deleted: ${result.locatorsDeleted}`)
-  console.log(`   🗑️  Locator groups deleted: ${result.locatorGroupsDeleted}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
-
-  if (result.createdLocators.length > 0) {
-    console.log('\n   Created locators:')
-    result.createdLocators.forEach((loc, index) => {
-      console.log(`      ${index + 1}. ${loc.name} (group: ${loc.group})`)
-    })
-  }
-
-  if (result.updatedLocators.length > 0) {
-    console.log('\n   Updated locators:')
-    result.updatedLocators.forEach((loc, index) => {
-      console.log(`      ${index + 1}. ${loc.name} (group: ${loc.group})`)
-    })
-  }
-
-  if (result.deletedLocators.length > 0) {
-    console.log('\n   Deleted locators:')
-    result.deletedLocators.forEach((loc, index) => {
-      console.log(`      ${index + 1}. ${loc.name} (group: ${loc.group})`)
-    })
-  }
-
-  if (result.deletedLocatorGroups.length > 0) {
-    console.log('\n   Deleted locator groups:')
-    result.deletedLocatorGroups.forEach((group, index) => {
-      console.log(`      ${index + 1}. ${group.name} (${group.locatorCount} locator(s) deleted)`)
-    })
-  }
-
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  try {
+async function main(): Promise<SyncResult | void> {
     console.log('🔄 Starting locators sync...')
     console.log('This will scan locator JSON files and sync locators to database.')
     console.log('Filesystem is the source of truth - locators in DB but not in FS will be deleted.\n')
@@ -378,21 +312,37 @@ async function main() {
     console.log('\n✅ Syncing locators to database...')
     const result = await syncLocatorsToDatabase(files, baseDir)
 
-    // Generate summary
-    generateSummary(result)
-
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    printSyncSummary(
+      [
+        { label: '📁 Locators scanned', value: result.locatorsScanned },
+        { label: '✅ Locators existing', value: result.locatorsExisting },
+        { label: '➕ Locators created', value: result.locatorsCreated },
+        { label: '🔄 Locators updated', value: result.locatorsUpdated },
+        { label: '🗑️  Locators deleted', value: result.locatorsDeleted },
+        { label: '🗑️  Locator groups deleted', value: result.locatorGroupsDeleted },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        {
+          title: 'Created locators',
+          items: result.createdLocators.map(loc => `${loc.name} (group: ${loc.group})`),
+        },
+        {
+          title: 'Updated locators',
+          items: result.updatedLocators.map(loc => `${loc.name} (group: ${loc.group})`),
+        },
+        {
+          title: 'Deleted locators',
+          items: result.deletedLocators.map(loc => `${loc.name} (group: ${loc.group})`),
+        },
+        {
+          title: 'Deleted locator groups',
+          items: result.deletedLocatorGroups.map(group => `${group.name} (${group.locatorCount} locator(s) deleted)`),
+        },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
+    return result
 }
 
-main()
+runSyncScript(main)

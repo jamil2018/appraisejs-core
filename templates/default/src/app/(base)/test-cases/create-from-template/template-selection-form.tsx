@@ -4,15 +4,25 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formOpts } from '@/constants/form-opts/template-selection-form-opts'
-import { TemplateTestCase } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React from 'react'
-import { z } from 'zod'
 
-const TemplateSelectionForm = ({ templateTestCases }: { templateTestCases: TemplateTestCase[] }) => {
+import {
+  getFieldErrorMessage,
+  getTemplateSelectionOptions,
+  type TemplateSelectionRow,
+  templateSelectionFieldValidator,
+} from './create-from-template-helpers'
+
+type TemplateSelectionFormProps = {
+  templateTestCases: TemplateSelectionRow[]
+}
+
+const TemplateSelectionForm = ({ templateTestCases }: TemplateSelectionFormProps) => {
   const router = useRouter()
+  const templateOptions = getTemplateSelectionOptions(templateTestCases)
   const form = useForm({
     defaultValues: formOpts?.defaultValues,
     validators: formOpts?.validators,
@@ -32,7 +42,7 @@ const TemplateSelectionForm = ({ templateTestCases }: { templateTestCases: Templ
         <form.Field
           name="templateTestCaseId"
           validators={{
-            onChange: z.string().min(1, { message: 'Template test case is required' }),
+            onChange: templateSelectionFieldValidator,
           }}
         >
           {field => {
@@ -40,20 +50,20 @@ const TemplateSelectionForm = ({ templateTestCases }: { templateTestCases: Templ
               <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
                 <Label htmlFor={field.name}>Template Test Case</Label>
                 <Select onValueChange={field.handleChange} value={field.state.value}>
-                  <SelectTrigger>
+                  <SelectTrigger id={field.name} aria-label="Template Test Case">
                     <SelectValue placeholder="Select a template test case" />
                   </SelectTrigger>
-                  <SelectContent isEmpty={templateTestCases.length === 0}>
-                    {templateTestCases.map(templateTestCase => (
-                      <SelectItem key={templateTestCase.id} value={templateTestCase.id}>
-                        {templateTestCase.name}
+                  <SelectContent isEmpty={templateOptions.length === 0}>
+                    {templateOptions.map(templateOption => (
+                      <SelectItem key={templateOption.value} value={templateOption.value}>
+                        {templateOption.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {field.state.meta.errors.map((error, index) => (
                   <p key={index} className="text-xs text-pink-500">
-                    {typeof error === 'string' ? error : error?.message || String(error)}
+                    {getFieldErrorMessage(error)}
                   </p>
                 ))}
               </div>

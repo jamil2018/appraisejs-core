@@ -3,7 +3,7 @@ import prisma from '@/config/db-config'
 import archiver from 'archiver'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/paths'
+import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/automation-path-roots'
 
 // Ensure this route runs in Node.js runtime (not Edge) for file system access
 export const runtime = 'nodejs'

@@ -1,10 +1,6 @@
 import prisma from '@/config/db-config'
+import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
 import { TestRunTestCaseResult, TestRunTestCaseStatus } from '@prisma/client'
-
-/**
- * Time period for "recent" runs in days
- */
-const RECENT_PERIOD_DAYS = 7
 
 /**
  * Threshold for consecutive failures to be considered "repeatedly failing"
@@ -38,7 +34,7 @@ export async function updateTestCaseMetrics(
 ): Promise<void> {
   try {
     // Get existing metrics or create new one
-    const _existingMetrics = await prisma.testCaseMetrics.findUnique({
+    await prisma.testCaseMetrics.findUnique({
       where: { testCaseId },
     })
 

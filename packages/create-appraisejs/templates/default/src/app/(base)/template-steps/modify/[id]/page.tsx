@@ -1,9 +1,10 @@
 import { updateTemplateStepAction } from '@/actions/template-step/template-step-actions'
 import { getTemplateStepByIdAction } from '@/actions/template-step/template-step-actions'
 import { TemplateStepForm } from '../../template-step-form'
-import { TemplateStep, TemplateStepParameter } from '@prisma/client'
 import { getAllTemplateStepGroupsAction } from '@/actions/template-step-group/template-step-group-actions'
 import { Metadata } from 'next'
+
+import { getEditableTemplateStep, getTemplateStepGroupRows } from '../../template-step-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Template Step',
@@ -12,15 +13,19 @@ export const metadata: Metadata = {
 
 export default async function ModifyTemplateStepPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { data, error } = await getTemplateStepByIdAction(id)
-  const { data: templateStepGroups, error: templateStepGroupsError } = await getAllTemplateStepGroupsAction()
+  const [templateStepResponse, templateStepGroupsResponse] = await Promise.all([
+    getTemplateStepByIdAction(id),
+    getAllTemplateStepGroupsAction(),
+  ])
 
-  if (error || templateStepGroupsError) {
-    return <div>Error: {error || templateStepGroupsError}</div>
+  if (templateStepResponse.error || templateStepGroupsResponse.error) {
+    return <div>Error: {templateStepResponse.error || templateStepGroupsResponse.error}</div>
   }
 
-  const templateStep = data as TemplateStep & {
-    parameters: TemplateStepParameter[]
+  const templateStep = getEditableTemplateStep(templateStepResponse.data)
+  const templateStepGroups = getTemplateStepGroupRows(templateStepGroupsResponse.data)
+  if (!templateStep) {
+    return <div>Error: Invalid template step</div>
   }
   return (
     <TemplateStepForm
@@ -43,7 +48,7 @@ export default async function ModifyTemplateStepPage({ params }: { params: Promi
         templateStepGroupId: templateStep.templateStepGroupId || '',
       }}
       id={id}
-      templateStepGroups={templateStepGroups as Array<{ id: string; name: string }>}
+      templateStepGroups={templateStepGroups}
     />
   )
 }

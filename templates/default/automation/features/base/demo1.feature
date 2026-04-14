@@ -3,6 +3,15 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-@ts_7f0cc2cc4b0782bd
-Feature: Testing demo one
+@ts_280de079298c199f
+@test
+Feature: Demo tests
 
+  @tc_e8e239a232d6ec53
+  Scenario: [Login] Validate user login with valid credentials
+    Given the user navigates to the base url of the selected environment
+    When the user fills in the "Email" input field with value "demo@example.com"
+    And the user fills in the "Password" input field with value "test1234"
+    And the user clicks on the "Login Button" element
+    And the user waits for the route "/home" to be loaded
+    Then the element "Welcome to Home Page" should true contain the text "Welcome to Home Page"

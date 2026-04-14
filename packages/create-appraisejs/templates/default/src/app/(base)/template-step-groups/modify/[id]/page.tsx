@@ -4,18 +4,13 @@ import {
 } from '@/actions/template-step-group/template-step-group-actions'
 import { TemplateStepGroupForm } from '../../template-step-group-form'
 import React from 'react'
-import { TemplateStepGroup } from '@prisma/client'
 import { Metadata } from 'next'
+import { getTemplateStepGroupRows } from '../../template-step-group-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Template Step Group',
   description: 'Update template step group configuration',
 }
-
-const TemplateStepGroupType = {
-  ACTION: 'ACTION',
-  VALIDATION: 'VALIDATION',
-} as const
 
 const ModifyTemplateStepGroup = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
@@ -25,14 +20,17 @@ const ModifyTemplateStepGroup = async ({ params }: { params: Promise<{ id: strin
     return <div>Error: {error}</div>
   }
 
-  const templateStepGroupData = templateStepGroup as TemplateStepGroup
+  const [templateStepGroupData] = getTemplateStepGroupRows([templateStepGroup])
+  if (!templateStepGroupData) {
+    return <div>Error: Template step group data is unavailable.</div>
+  }
 
   return (
     <TemplateStepGroupForm
       defaultValues={{
         name: templateStepGroupData.name ?? '',
         description: templateStepGroupData.description ?? '',
-        type: (templateStepGroupData as { type?: 'ACTION' | 'VALIDATION' }).type ?? TemplateStepGroupType.ACTION,
+        type: templateStepGroupData.type,
       }}
       successTitle="Group updated"
       successMessage="Template step group updated successfully"

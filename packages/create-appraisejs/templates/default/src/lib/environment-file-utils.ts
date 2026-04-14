@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import prisma from '@/config/db-config'
-import { ensureAutomationWorkspaceReady, getAutomationEnvironmentsDir } from '@/lib/automation/paths'
+import { getAutomationEnvironmentsDir } from '@/lib/automation/automation-path-roots'
+import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 
 interface EnvironmentConfig {
   baseUrl: string

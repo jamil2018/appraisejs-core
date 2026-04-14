@@ -1,7 +1,7 @@
 import { deleteLocatorAction, getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { DataTable } from '@/components/ui/data-table'
 import { locatorTableCols } from './locator-table-columns'
-import { Locator, LocatorGroup, ConflictResolution } from '@prisma/client'
+import { getLocatorTableRows } from './locator-helpers'
 
 const LocatorTable = async () => {
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()
@@ -10,11 +10,13 @@ const LocatorTable = async () => {
     return <div>Error: {locatorsError}</div>
   }
 
+  const locatorRows = getLocatorTableRows(locators)
+
   return (
     <>
       <DataTable
         columns={locatorTableCols}
-        data={locators as (Locator & { locatorGroup: LocatorGroup; conflicts: ConflictResolution[] })[]}
+        data={locatorRows}
         filterColumn="name"
         filterPlaceholder="Filter by name..."
         createLink="/locators/create"

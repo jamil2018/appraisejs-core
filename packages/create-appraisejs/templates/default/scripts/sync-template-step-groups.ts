@@ -6,7 +6,7 @@
  * Filesystem is the source of truth - groups in DB but not in FS will be deleted
  * Run this after merging changes to ensure step group sync
  *
- * Usage: npx tsx scripts/template-step-group-sync.ts
+ * Usage: npx tsx scripts/sync-template-step-groups.ts
  */
 
 import { promises as fs } from 'fs'
@@ -14,12 +14,9 @@ import { join } from 'path'
 import { glob } from 'glob'
 import prisma from '../src/config/db-config'
 import { TemplateStepGroupType } from '@prisma/client'
-
-interface StepGroupJSDoc {
-  name: string
-  description: string | null
-  type: TemplateStepGroupType
-}
+import { parseGroupJSDoc } from './lib/jsdoc-parser'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 interface StepGroupData {
   name: string
@@ -33,118 +30,11 @@ interface SyncResult {
   groupsCreated: number
   groupsDeleted: number
   groupsSkipped: number
-  groupsSkippedNoJSDoc: number
   errors: string[]
   createdGroups: string[]
   existingGroups: string[]
   deletedGroups: string[]
   skippedGroups: string[]
-  skippedNoJSDocFiles: string[]
-}
-
-/**
- * Parses JSDoc comment to extract step group metadata
- * Returns null if no valid group JSDoc is found
- */
-function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
-  const lines = content.split('\n')
-
-  if (lines.length === 0) {
-    return null
-  }
-
-  let startLine = 0
-  while (startLine < lines.length) {
-    const line = lines[startLine].trim()
-    if (line === '' || line.startsWith('import ')) {
-      startLine++
-      continue
-    }
-    break
-  }
-
-  if (startLine >= lines.length || !lines[startLine].trim().startsWith('/**')) {
-    return null
-  }
-
-  // Check if this JSDoc contains group metadata (@type distinguishes group from step JSDoc)
-  let hasType = false
-  let endLine = -1
-  let name: string | null = null
-  let description: string | null = null
-  let type: string | null = null
-
-  // Look through the JSDoc block until we find the closing */
-  // Use a reasonable limit (50 lines) to avoid parsing entire files if JSDoc is malformed
-  const maxLines = Math.min(lines.length, startLine + 50)
-  for (let i = startLine; i < maxLines; i++) {
-    const line = lines[i].trim()
-
-    // Check if this line contains the closing */ (could be on same line as content)
-    if (line.includes('*/')) {
-      // Found end of JSDoc - extract content before */
-      const beforeClose = line.split('*/')[0].trim()
-
-      // Process the content before */ if it contains JSDoc tags
-      // Since we already split by */, beforeClose doesn't contain it anymore
-      if (beforeClose.startsWith('* @name') || beforeClose.startsWith('*@name')) {
-        const match = beforeClose.match(/@name\s+(.+)/)
-        if (match) {
-          name = match[1].trim()
-        }
-      } else if (beforeClose.startsWith('* @description') || beforeClose.startsWith('*@description')) {
-        const match = beforeClose.match(/@description\s+(.+)/)
-        if (match) {
-          description = match[1].trim() || null
-        }
-      } else if (beforeClose.startsWith('* @type') || beforeClose.startsWith('*@type')) {
-        hasType = true
-        const match = beforeClose.match(/@type\s+(.+)/)
-        if (match) {
-          type = match[1].trim()
-        }
-      }
-
-      endLine = i
-      break
-    } else if (line.startsWith('* @name') || line.startsWith('*@name')) {
-      // Extract name
-      const match = line.match(/@name\s+(.+)/)
-      if (match) {
-        name = match[1].trim()
-      }
-    } else if (line.startsWith('* @description') || line.startsWith('*@description')) {
-      // Extract description
-      const match = line.match(/@description\s+(.+)/)
-      if (match) {
-        description = match[1].trim() || null
-      }
-    } else if (line.startsWith('* @type') || line.startsWith('*@type')) {
-      // Found @type - this is group metadata (steps have @icon, not @type)
-      hasType = true
-      const match = line.match(/@type\s+(.+)/)
-      if (match) {
-        type = match[1].trim()
-      }
-    }
-  }
-
-  // If we found a JSDoc block at the top with @type, return parsed data
-  if (hasType && endLine >= 0 && name && type) {
-    // Validate and map type to enum
-    const normalizedType = type.toUpperCase()
-    if (normalizedType !== 'ACTION' && normalizedType !== 'VALIDATION') {
-      throw new Error(`Invalid @type value: ${type}. Must be ACTION or VALIDATION`)
-    }
-
-    return {
-      name: name.trim(),
-      description: description ? description.trim() : null,
-      type: normalizedType as TemplateStepGroupType,
-    }
-  }
-
-  return null
 }
 
 /**
@@ -217,13 +107,11 @@ async function syncStepGroupsToDatabase(stepGroups: StepGroupData[]): Promise<Sy
     groupsCreated: 0,
     groupsDeleted: 0,
     groupsSkipped: 0,
-    groupsSkippedNoJSDoc: 0,
     errors: [],
     createdGroups: [],
     existingGroups: [],
     deletedGroups: [],
     skippedGroups: [],
-    skippedNoJSDocFiles: [],
   }
 
   // Get set of step group names from filesystem
@@ -317,56 +205,7 @@ async function syncStepGroupsToDatabase(stepGroups: StepGroupData[]): Promise<Sy
 /**
  * Generates and displays sync summary
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Step groups scanned: ${result.groupsScanned}`)
-  console.log(`   ✅ Step groups existing: ${result.groupsExisting}`)
-  console.log(`   ➕ Step groups created: ${result.groupsCreated}`)
-  console.log(`   🗑️  Step groups deleted: ${result.groupsDeleted}`)
-  console.log(`   ⚠️  Step groups skipped: ${result.groupsSkipped}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
-
-  if (result.createdGroups.length > 0) {
-    console.log('\n   Created step groups:')
-    result.createdGroups.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.existingGroups.length > 0) {
-    console.log('\n   Existing step groups:')
-    result.existingGroups.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.deletedGroups.length > 0) {
-    console.log('\n   Deleted step groups:')
-    result.deletedGroups.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.skippedGroups.length > 0) {
-    console.log('\n   Skipped step groups (have template steps):')
-    result.skippedGroups.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  try {
+async function main(): Promise<SyncResult> {
     console.log('🔄 Starting template step group sync...')
     console.log('This will scan step definition files and sync step groups to database.\n')
 
@@ -386,21 +225,24 @@ async function main() {
     console.log('\n✅ Syncing step groups to database...')
     const result = await syncStepGroupsToDatabase(stepGroups)
 
-    // Generate summary
-    generateSummary(result)
-
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    printSyncSummary(
+      [
+        { label: '📁 Step groups scanned', value: result.groupsScanned },
+        { label: '✅ Step groups existing', value: result.groupsExisting },
+        { label: '➕ Step groups created', value: result.groupsCreated },
+        { label: '🗑️  Step groups deleted', value: result.groupsDeleted },
+        { label: '⚠️  Step groups skipped', value: result.groupsSkipped },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        { title: 'Created step groups', items: result.createdGroups },
+        { title: 'Existing step groups', items: result.existingGroups },
+        { title: 'Deleted step groups', items: result.deletedGroups },
+        { title: 'Skipped step groups (have template steps)', items: result.skippedGroups },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
+    return result
 }
 
-main()
+runSyncScript(main)

@@ -4,10 +4,15 @@ import { getLocatorByIdAction } from '@/actions/locator/locator-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { Environment, Locator, LocatorGroup, Module } from '@prisma/client'
 import { Crosshair } from 'lucide-react'
 import React from 'react'
 import { Metadata } from 'next'
+import {
+  getEnvironmentRows,
+  getLocatorGroupRows,
+  getLocatorRow,
+  getModuleRows,
+} from '../../create/create-locator-workspace-helpers'
 import CreateLocatorWorkspace from '../../create/create-locator-workspace'
 
 export const metadata: Metadata = {
@@ -19,9 +24,9 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
   const { id } = await params
   const [
     { data: locatorData, error: locatorError },
-    { data: environments, error: environmentsError },
-    { data: locatorGroupList, error: locatorGroupListError },
-    { data: modules, error: modulesError },
+    { data: environmentData, error: environmentsError },
+    { data: locatorGroupData, error: locatorGroupListError },
+    { data: moduleData, error: modulesError },
   ] = await Promise.all([
     getLocatorByIdAction(id),
     getAllEnvironmentsAction(),
@@ -34,8 +39,15 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
     return <div>Error: {loadError}</div>
   }
 
-  const locator = locatorData as Locator & { locatorGroup: LocatorGroup | null }
-  const locatorGroups = locatorGroupList as LocatorGroup[]
+  const locator = getLocatorRow(locatorData)
+  const environments = getEnvironmentRows(environmentData)
+  const locatorGroups = getLocatorGroupRows(locatorGroupData)
+  const modules = getModuleRows(moduleData)
+
+  if (!locator) {
+    return <div>Error: Locator not found.</div>
+  }
+
   const currentLocatorGroup = locatorGroups.find(locatorGroup => locatorGroup.id === locator.locatorGroupId)
 
   return (
@@ -53,9 +65,9 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
         </HeaderSubtitle>
       </div>
       <CreateLocatorWorkspace
-        environments={environments as Environment[]}
+        environments={environments}
         locatorGroups={locatorGroups}
-        modules={modules as Module[]}
+        modules={modules}
         mode="modify"
         locatorId={id}
         initialValues={{
