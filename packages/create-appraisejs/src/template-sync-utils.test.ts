@@ -7,10 +7,11 @@ import {
 import { describe, expect, it } from 'vitest'
 
 describe('shouldExcludeTemplatePath', () => {
-  it('excludes report artifacts and database files', () => {
+  it('excludes report artifacts, database files, and OS artifacts', () => {
     expect(shouldExcludeTemplatePath('automation/reports/logs/run.log')).toBe(true)
     expect(shouldExcludeTemplatePath('prisma/dev.db')).toBe(true)
     expect(shouldExcludeTemplatePath('tsconfig.tsbuildinfo')).toBe(true)
+    expect(shouldExcludeTemplatePath('automation/steps/.DS_Store')).toBe(true)
   })
 
   it('keeps normal source files and config files', () => {

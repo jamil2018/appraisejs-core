@@ -6,20 +6,27 @@ import { spawn } from 'child_process'
 import { fileURLToPath, pathToFileURL } from 'url'
 import {
   collectFiles,
-  TEMPLATE_PREP_SYNC_SCRIPTS,
+  getTemplatePrepSyncScripts,
   shouldAbortOnFallbackSeed,
   verifyPreparedTemplateState,
   type TemplateMetadata,
 } from '../src/prepare-template-utils.js'
+import { getTemplateDefinition, getTemplateDefinitions, type TemplateId } from '../src/template-catalog.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.join(__dirname, '..')
 const repoRoot = path.join(packageRoot, '..', '..')
-const rootTemplateDir = path.join(repoRoot, 'templates', 'default')
-const packageTemplateDir = path.join(packageRoot, 'templates', 'default')
 const tempWorkspaceDir = path.join(repoRoot, '.tmp', 'create-appraisejs-template-build')
 const tempWorkspaceRootDir = path.dirname(tempWorkspaceDir)
-const templateMetaPath = path.join(rootTemplateDir, '.appraise-template-meta.json')
+const templateMetaPath = path.join(repoRoot, 'templates', 'starter', '.appraise-template-meta.json')
+
+function getRootTemplateDir(template: TemplateId): string {
+  return path.join(repoRoot, 'templates', getTemplateDefinition(template).internalDirectory)
+}
+
+function getPackageTemplateDir(template: TemplateId): string {
+  return path.join(packageRoot, 'templates', getTemplateDefinition(template).internalDirectory)
+}
 
 function getTsxCliPath(): string {
   return path.join(repoRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs')
@@ -164,23 +171,36 @@ function copyFallbackSeedDatabase(targetDbPath: string): void {
   cpSync(sourceDb, targetDbPath, { force: true })
 }
 
-async function seedDatabaseForWorkspace(): Promise<boolean> {
+async function runTemplateSyncScripts(template: TemplateId, cwd: string): Promise<void> {
+  for (const script of getTemplatePrepSyncScripts(template)) {
+    await runTypeScriptScript(path.join('scripts', `${script}.ts`), cwd)
+  }
+}
+
+async function seedDatabaseForWorkspace(template: TemplateId): Promise<boolean> {
   try {
     await runPrismaMigrateDeploy(tempWorkspaceDir)
-    return false
   } catch (error) {
     console.warn('Prisma migrate deploy failed during template prep, falling back to the repo seed database.')
     console.warn(error instanceof Error ? error.message : String(error))
+    copyFallbackSeedDatabase(path.join(tempWorkspaceDir, 'prisma', 'dev.db'))
+    await runTemplateSyncScripts(template, tempWorkspaceDir)
+    return true
   }
 
-  copyFallbackSeedDatabase(path.join(tempWorkspaceDir, 'prisma', 'dev.db'))
-  return true
+  await runTemplateSyncScripts(template, tempWorkspaceDir)
+  return false
 }
 
-async function seedRootTemplateDatabase(inputHash: string, previousMetadata: TemplateMetadata | null): Promise<void> {
+async function seedTemplateDatabase(
+  template: TemplateId,
+  templateDir: string,
+  inputHash: string,
+  previousMetadata: TemplateMetadata | null,
+): Promise<void> {
   rmSync(tempWorkspaceDir, { recursive: true, force: true })
   mkdirSync(tempWorkspaceRootDir, { recursive: true })
-  cpSync(rootTemplateDir, tempWorkspaceDir, { recursive: true, force: true })
+  cpSync(templateDir, tempWorkspaceDir, { recursive: true, force: true })
   rmSync(path.join(tempWorkspaceDir, '.env'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'dev.db'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'prisma'), { recursive: true, force: true })
@@ -190,12 +210,9 @@ async function seedRootTemplateDatabase(inputHash: string, previousMetadata: Tem
     '# Database configuration for local development\nDATABASE_URL="file:./dev.db"\n',
   )
 
-  let usedFallbackSeed = await seedDatabaseForWorkspace()
-
+  let usedFallbackSeed: boolean
   try {
-    for (const script of TEMPLATE_PREP_SYNC_SCRIPTS) {
-      await runTypeScriptScript(path.join('scripts', `${script}.ts`), tempWorkspaceDir)
-    }
+    usedFallbackSeed = await seedDatabaseForWorkspace(template)
   } catch (error) {
     console.warn('Template DB resync failed, falling back to the repo seed database.')
     console.warn(error instanceof Error ? error.message : String(error))
@@ -214,13 +231,21 @@ async function seedRootTemplateDatabase(inputHash: string, previousMetadata: Tem
     throw new Error(`Seeded template database was not created at ${seededDbPath}`)
   }
 
-  cpSync(seededDbPath, path.join(rootTemplateDir, 'prisma', 'dev.db'), { force: true })
-  rmSync(path.join(rootTemplateDir, 'prisma', 'prisma'), { recursive: true, force: true })
-  rmSync(path.join(rootTemplateDir, '.env'), { force: true })
-  rmSync(path.join(rootTemplateDir, 'automation', 'reports'), { recursive: true, force: true })
-  mkdirSync(path.join(rootTemplateDir, 'automation', 'reports', 'logs'), { recursive: true })
-  mkdirSync(path.join(rootTemplateDir, 'automation', 'reports', 'traces'), { recursive: true })
-  await writeTemplateMetadata(inputHash)
+  cpSync(seededDbPath, path.join(templateDir, 'prisma', 'dev.db'), { force: true })
+  rmSync(path.join(templateDir, 'prisma', 'prisma'), { recursive: true, force: true })
+  rmSync(path.join(templateDir, '.env'), { force: true })
+  rmSync(path.join(templateDir, 'automation', 'reports'), { recursive: true, force: true })
+  mkdirSync(path.join(templateDir, 'automation', 'reports', 'logs'), { recursive: true })
+  mkdirSync(path.join(templateDir, 'automation', 'reports', 'traces'), { recursive: true })
+}
+
+function createBlankRootTemplateFromStarter(): void {
+  const starterTemplateDir = getRootTemplateDir('starter')
+  const blankTemplateDir = getRootTemplateDir('blank')
+
+  rmSync(blankTemplateDir, { recursive: true, force: true })
+  cpSync(starterTemplateDir, blankTemplateDir, { recursive: true, force: true })
+  rmSync(path.join(blankTemplateDir, 'automation', 'steps'), { recursive: true, force: true })
 }
 
 function cleanupTempWorkspace(): void {
@@ -242,9 +267,16 @@ async function main(): Promise<void> {
 
   try {
     await runTypeScriptScript(path.join('scripts', 'sync-appraise-base-template.ts'), repoRoot)
-    await seedRootTemplateDatabase(inputHash, previousMetadata)
+    await seedTemplateDatabase('starter', getRootTemplateDir('starter'), inputHash, previousMetadata)
+    createBlankRootTemplateFromStarter()
+    await seedTemplateDatabase('blank', getRootTemplateDir('blank'), inputHash, previousMetadata)
     await runTypeScriptScript(path.join('packages', 'create-appraisejs', 'scripts', 'sync-templates.ts'), repoRoot)
-    await verifyPreparedTemplateState(packageTemplateDir)
+
+    for (const template of getTemplateDefinitions().map(definition => definition.id)) {
+      await verifyPreparedTemplateState(getPackageTemplateDir(template), template)
+    }
+
+    await writeTemplateMetadata(inputHash)
   } finally {
     cleanupTempWorkspace()
   }

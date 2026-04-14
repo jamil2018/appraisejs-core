@@ -1,6 +1,6 @@
 {
   "name": "appraise",
-  "version": "0.2.0-alpha",
+  "version": "0.3.0",
   "private": false,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "init": "DISABLE_DEVTOOLS=1 NEXT_PUBLIC_DISABLE_DEVTOOLS=1 next dev",
     "build:cucumber-runtime": "tsc -p packages/cucumber-runtime/tsconfig.json",
     "build:locator-picker-companion": "tsc -p packages/locator-picker-companion/tsconfig.json",
-    "build": "npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build",
+    "build:appraisejs": "tsc -p packages/appraisejs/tsconfig.json",
+    "build": "npm run build:cucumber-runtime && npm run build:locator-picker-companion && npm run build:appraisejs && next build",
     "start": "ENVIRONMENT=local next start",
     "lint": "eslint .",
     "install-playwright": "tsx scripts/install-playwright.ts",
@@ -29,7 +30,10 @@
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",
     "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
-    "test": "cucumber-js"
+    "build-step-registry": "npx tsx scripts/build-step-registry.ts",
+    "appraisejs:install-step": "npx tsx scripts/install-template-step.ts",
+    "test": "cucumber-js",
+    "validate": "node --import tsx scripts/run-vitest.ts"
   },
   "dependencies": {
     "@babel/parser": "^7.27.0",
@@ -86,12 +90,15 @@
     "@cucumber/pretty-formatter": "^3.0.0",
     "@cucumber/tag-expressions": "^8.0.0",
     "@eslint/eslintrc": "^3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/babel__traverse": "^7.28.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/chai": "^5.2.2",
     "@types/chai-as-promised": "^8.0.2",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.17.16",
+    "@types/node": "^20.19.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "baseline-browser-mapping": "^2.9.3",
@@ -105,6 +112,7 @@
     "glob": "^11.0.3",
     "globals": "^16.4.0",
     "jiti": "^2.6.1",
+    "jsdom": "^29.0.1",
     "playwright": "^1.58.0",
     "postcss": "^8",
     "prettier": "^3.6.2",
@@ -114,7 +122,8 @@
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.4"
   },
   "overrides": {
     "react-is": "^19.2.1",

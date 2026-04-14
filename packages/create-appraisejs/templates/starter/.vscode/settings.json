@@ -1,0 +1,13 @@
+{
+  "cucumber.features": ["automation/features/**/*.feature"],
+  "cucumber.glue": ["automation/steps/**/*.ts"],
+  "prisma.pinToPrisma6": true,
+  "cucumber.parameterTypes": [
+    {
+      "name": "boolean",
+      "regexp": "true|false"
+    }
+  ],
+  "postman.settings.dotenv-detection-notification-visibility": false
+}
+

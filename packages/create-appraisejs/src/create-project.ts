@@ -5,6 +5,7 @@ import { getConfig, type Config } from './config.js'
 import { downloadRepo } from './download-repo.js'
 import { patchPackageJsonScripts, runSetup } from './install.js'
 import type { PromptAnswers } from './prompts.js'
+import type { TemplateId } from './template-catalog.js'
 
 export interface CreateProjectDependencies {
   copyTemplate: typeof copyTemplate
@@ -35,17 +36,19 @@ const defaultDependencies: CreateProjectDependencies = {
 
 async function copyBundledTemplate(
   directory: string,
+  template: TemplateId,
   packageManager: PromptAnswers['packageManager'],
   dependencies: CreateProjectDependencies,
   logger: CreateProjectLogger,
 ): Promise<void> {
   logger.info('  Copying bundled template files...')
-  await dependencies.copyTemplate(directory, undefined, undefined, packageManager)
+  await dependencies.copyTemplate(directory, undefined, undefined, packageManager, template)
   logger.info('  Template files copied.\n')
 }
 
 async function copyRemoteTemplate(
   directory: string,
+  template: TemplateId,
   packageManager: PromptAnswers['packageManager'],
   config: Config,
   dependencies: CreateProjectDependencies,
@@ -64,6 +67,7 @@ async function copyRemoteTemplate(
       undefined,
       path.join(download.repoRoot, config.templateSubpath),
       packageManager,
+      template,
     )
     logger.info('  Template files copied.\n')
   } finally {
@@ -78,16 +82,16 @@ export async function createProject(
   dependencies: CreateProjectDependencies = defaultDependencies,
   logger: CreateProjectLogger = { info: message => console.log(message) },
 ): Promise<CreateProjectResult> {
-  const config = dependencies.getConfig()
-  const { directory, packageManager, runInstall, playwrightBrowsers } = answers
+  const config = dependencies.getConfig(answers.template)
+  const { directory, template, packageManager, runInstall, playwrightBrowsers } = answers
 
   logger.info('\n  Validating target directory...')
   logger.info(`  Creating project at: ${directory}\n`)
 
   if (config.useBundled) {
-    await copyBundledTemplate(directory, packageManager, dependencies, logger)
+    await copyBundledTemplate(directory, template, packageManager, dependencies, logger)
   } else {
-    await copyRemoteTemplate(directory, packageManager, config, dependencies, logger)
+    await copyRemoteTemplate(directory, template, packageManager, config, dependencies, logger)
   }
 
   await dependencies.patchPackageJsonScripts(directory, packageManager)
