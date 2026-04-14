@@ -14,7 +14,10 @@ import { join } from 'path'
 import { glob } from 'glob'
 import prisma from '../src/config/db-config'
 import { findModuleByPath, buildModuleHierarchy } from '../src/lib/module-hierarchy-builder'
-import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '../src/lib/template-sync-utils'
+import { getAutomationLocatorMapPath } from '../src/lib/template-sync-utils'
+import { extractLocatorGroupName, extractModulePathFromLocatorFile } from './lib/filename-utils'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 /**
  * Represents a locator group from the filesystem
@@ -93,24 +96,6 @@ async function scanLocatorGroupFiles(baseDir: string): Promise<string[]> {
   } catch (error) {
     throw new Error(`Error scanning locator group files: ${error}`)
   }
-}
-
-/**
- * Extracts module path from locator file path
- * Example: automation/locators/home/home.json -> /home
- * Example: automation/locators/users/admins/directors.json -> /users/admins
- */
-function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
-}
-
-/**
- * Extracts locator group name from file path
- * The group name is the filename without extension
- */
-function extractLocatorGroupName(filePath: string): string {
-  const fileName = filePath.split(/[/\\]/).pop() || ''
-  return fileName.replace('.json', '')
 }
 
 /**
@@ -301,51 +286,7 @@ async function deleteOrphanedLocatorGroups(
 /**
  * Generates and displays sync summary
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Locator groups scanned: ${result.locatorGroupsScanned}`)
-  console.log(`   ✅ Locator groups existing: ${result.locatorGroupsExisting}`)
-  console.log(`   ➕ Locator groups created: ${result.locatorGroupsCreated}`)
-  console.log(`   🔄 Locator groups updated: ${result.locatorGroupsUpdated}`)
-  console.log(`   🗑️  Locator groups deleted: ${result.locatorGroupsDeleted}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
-
-  if (result.createdLocatorGroups.length > 0) {
-    console.log('\n   Created locator groups:')
-    result.createdLocatorGroups.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.updatedLocatorGroups.length > 0) {
-    console.log('\n   Updated locator groups:')
-    result.updatedLocatorGroups.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.deletedLocatorGroups.length > 0) {
-    console.log('\n   Deleted locator groups:')
-    result.deletedLocatorGroups.forEach((group, index) => {
-      console.log(
-        `      ${index + 1}. ${group.name} (${group.locatorCount} locator(s) cascade deleted)`,
-      )
-    })
-  }
-
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  try {
+async function main(): Promise<SyncResult> {
     console.log('🔄 Starting locator groups sync...')
     console.log('This will scan filesystem directories and sync locator groups to database.')
     console.log('Filesystem is the source of truth - locator groups in DB but not in FS will be deleted.\n')
@@ -390,21 +331,28 @@ async function main() {
     const fsLocatorGroupNames = new Set(locatorGroups.map(g => g.name))
     await deleteOrphanedLocatorGroups(fsLocatorGroupNames, result)
 
-    // Generate summary
-    generateSummary(result)
-
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    printSyncSummary(
+      [
+        { label: '📁 Locator groups scanned', value: result.locatorGroupsScanned },
+        { label: '✅ Locator groups existing', value: result.locatorGroupsExisting },
+        { label: '➕ Locator groups created', value: result.locatorGroupsCreated },
+        { label: '🔄 Locator groups updated', value: result.locatorGroupsUpdated },
+        { label: '🗑️  Locator groups deleted', value: result.locatorGroupsDeleted },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        { title: 'Created locator groups', items: result.createdLocatorGroups },
+        { title: 'Updated locator groups', items: result.updatedLocatorGroups },
+        {
+          title: 'Deleted locator groups',
+          items: result.deletedLocatorGroups.map(
+            group => `${group.name} (${group.locatorCount} locator(s) cascade deleted)`,
+          ),
+        },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
+    return result
 }
 
-main()
+runSyncScript(main)

@@ -1,104 +1,26 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import {
-  CircleHelp,
-  Code,
-  Component,
-  Group,
-  LayoutTemplate,
-  Puzzle,
   RefreshCw,
-  Server,
-  Tag,
-  TestTubeDiagonal,
-  TestTubes,
 } from 'lucide-react'
-import { getSyncPendingCountsAction, runSyncAction } from '@/actions/settings/sync-actions'
 import { AppDrawerItemColor } from '@/app/(dashboard-components)/app-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { toast } from '@/hooks/use-toast'
 import {
   SYNC_ALL_REQUEST_ID,
-  getSyncScriptDefinition,
-  resolveRequestedSyncExecutionOrder,
-  syncScriptDefinitions,
   type SyncRequestId,
-  type SyncScriptId,
   type SyncScriptDefinition,
+  syncScriptDefinitions,
 } from '@/lib/sync/sync-registry'
 import type { SyncPendingCounts } from '@/lib/sync/sync-pending-counts'
-
-type SyncRunResult = Awaited<ReturnType<typeof runSyncAction>>
-type SyncTileColor = keyof typeof AppDrawerItemColor
-
-const syncPresentation: Record<SyncScriptId, { icon: ReactNode; colorKey: SyncTileColor }> = {
-  'sync-modules': {
-    icon: <Puzzle />,
-    colorKey: 'indigo',
-  },
-  'sync-environments': {
-    icon: <Server />,
-    colorKey: 'sky',
-  },
-  'sync-tags': {
-    icon: <Tag />,
-    colorKey: 'yellow',
-  },
-  'sync-template-step-groups': {
-    icon: <Component />,
-    colorKey: 'violet',
-  },
-  'sync-template-steps': {
-    icon: <LayoutTemplate />,
-    colorKey: 'purple',
-  },
-  'sync-locator-groups': {
-    icon: <Group />,
-    colorKey: 'blue',
-  },
-  'sync-locators': {
-    icon: <Code />,
-    colorKey: 'emerald',
-  },
-  'sync-test-suites': {
-    icon: <TestTubes />,
-    colorKey: 'orange',
-  },
-  'sync-test-cases': {
-    icon: <TestTubeDiagonal />,
-    colorKey: 'rose',
-  },
-}
-
-function formatExecutionSummary(result: SyncRunResult): string {
-  if (result.requestedScriptId === SYNC_ALL_REQUEST_ID) {
-    return `Completed ${result.executedScriptIds.length} sync scripts successfully.`
-  }
-
-  if (result.executedScriptIds.length <= 1) {
-    return `${result.requestedScriptId} completed successfully.`
-  }
-
-  return `${result.requestedScriptId} completed after running ${result.executedScriptIds.join(' -> ')}.`
-}
-
-function formatFailureSummary(result: SyncRunResult): string {
-  if ('failedScriptId' in result && result.failedScriptId) {
-    const exitCode = typeof result.exitCode === 'number' ? ` (exit code ${result.exitCode})` : ''
-    const cause = result.cause ?? 'No cause was reported.'
-    return `${result.failedScriptId}${exitCode} failed: ${cause}`
-  }
-
-  return result.cause ?? `Unable to run ${result.requestedScriptId}.`
-}
-
-function formatExecutionOrder(scriptIds: SyncScriptId[]): string {
-  return scriptIds.map(scriptId => getSyncScriptDefinition(scriptId).orderLabel).join(' -> ')
-}
+import {
+  getSyncTooltipCopy,
+  syncPanelInfo,
+  syncPresentation,
+} from './settings-sync-panel-helpers'
+import { useSettingsSync } from './use-settings-sync'
 
 function SyncRow({
   definition,
@@ -115,7 +37,6 @@ function SyncRow({
 }) {
   const { icon, colorKey } = syncPresentation[definition.id]
   const color = AppDrawerItemColor[colorKey]
-  const executionOrder = resolveRequestedSyncExecutionOrder(definition.id)
 
   return (
     <Tooltip>
@@ -123,6 +44,7 @@ function SyncRow({
         <Button
           variant="outline"
           disabled={disabled}
+          aria-label={definition.label}
           onClick={() => onRun(definition.id)}
           className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none px-3 py-2.5 text-left hover:text-gray-200 ${color.buttonColor}`}
         >
@@ -145,59 +67,21 @@ function SyncRow({
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
         <p>{definition.description}</p>
-        <p className="mt-1 text-primary-foreground/80">Runs synchronization in order: {formatExecutionOrder(executionOrder)}</p>
+        <p className="mt-1 text-primary-foreground/80">{getSyncTooltipCopy(definition.id)}</p>
       </TooltipContent>
     </Tooltip>
   )
 }
 
 export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendingCounts }) {
-  const router = useRouter()
-  const [activeRequestId, setActiveRequestId] = useState<SyncRequestId | null>(null)
-  const [currentPendingCounts, setCurrentPendingCounts] = useState<SyncPendingCounts>(pendingCounts)
+  const { activeRequestId, isRunning, pendingCounts: currentPendingCounts, runSync, setPendingCounts } =
+    useSettingsSync({
+      initialPendingCounts: pendingCounts,
+    })
 
   useEffect(() => {
-    setCurrentPendingCounts(pendingCounts)
-  }, [pendingCounts])
-
-  const runSync = async (requestId: SyncRequestId) => {
-    if (activeRequestId) {
-      return
-    }
-
-    setActiveRequestId(requestId)
-
-    try {
-      const result = await runSyncAction(requestId)
-
-      if (result.success) {
-        const refreshedCounts = await getSyncPendingCountsAction()
-        setCurrentPendingCounts(refreshedCounts)
-        toast({
-          title: 'Sync completed',
-          description: formatExecutionSummary(result),
-        })
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Sync failed',
-          description: formatFailureSummary(result),
-        })
-      }
-
-      router.refresh()
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Sync failed',
-        description: error instanceof Error ? error.message : String(error),
-      })
-    } finally {
-      setActiveRequestId(null)
-    }
-  }
-
-  const isRunning = activeRequestId !== null
+    setPendingCounts(pendingCounts)
+  }, [pendingCounts, setPendingCounts])
 
   return (
     <TooltipProvider>
@@ -208,7 +92,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="cursor-help text-muted-foreground">
-                  <CircleHelp className="h-4 w-4" />
+                  {syncPanelInfo.helpIcon}
                 </span>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
@@ -222,6 +106,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
             <TooltipTrigger asChild>
               <Button
                 disabled={isRunning}
+                aria-label="Sync All"
                 onClick={() => runSync(SYNC_ALL_REQUEST_ID)}
                 className="inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none bg-emerald-500/10 px-3 py-2.5 text-left text-gray-100 hover:bg-emerald-500/20 hover:text-gray-100"
               >
@@ -239,7 +124,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
               </Button>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
-              Runs synchronization in order: {formatExecutionOrder(resolveRequestedSyncExecutionOrder(SYNC_ALL_REQUEST_ID))}
+              {getSyncTooltipCopy(SYNC_ALL_REQUEST_ID)}
             </TooltipContent>
           </Tooltip>
           <div className="flex flex-wrap items-start gap-4">

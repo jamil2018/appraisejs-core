@@ -14,6 +14,10 @@ import { scanFeatureFiles, extractModulePathFromFilePath, ParsedFeature } from '
 import { buildModuleHierarchy, findModuleByPath, getAllModulesWithPaths } from '../src/lib/module-hierarchy-builder'
 import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '../src/lib/automation/paths'
 import { getTestSuiteSyncIdentity, getTestSuiteFilesystemKey } from '../src/lib/sync/projected-feature-utils'
+import { extractTestSuiteNameFromFilename } from './lib/filename-utils'
+import { splitTagLine } from './lib/tag-parsing'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 interface TestSuiteFromFS {
   name: string // From filename (without .feature extension)
@@ -33,26 +37,6 @@ interface SyncResult {
   createdTestSuites: Array<{ name: string; modulePath: string }>
   updatedTestSuites: Array<{ name: string; modulePath: string }>
   deletedTestSuites: Array<{ name: string; modulePath: string }>
-}
-
-/**
- * Extracts test suite name from filename
- * Example: "login-validation.feature" -> "login-validation"
- */
-function extractTestSuiteNameFromFilename(filePath: string): string {
-  const fileName = filePath.split(/[/\\]/).pop() || ''
-  return fileName.replace(/\.feature$/, '')
-}
-
-/**
- * Splits a tag line that may contain multiple tags separated by spaces
- * Example: "@smoke @demo" -> ["@smoke", "@demo"]
- */
-function splitTagLine(tagLine: string): string[] {
-  return tagLine
-    .split(/\s+/)
-    .filter(tag => tag.trim().startsWith('@'))
-    .map(tag => tag.trim())
 }
 
 /**
@@ -314,49 +298,7 @@ async function syncTestSuitesToDatabase(
 /**
  * Generates and displays sync summary
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Test suites scanned: ${result.testSuitesScanned}`)
-  console.log(`   ✅ Test suites existing: ${result.testSuitesExisting}`)
-  console.log(`   ➕ Test suites created: ${result.testSuitesCreated}`)
-  console.log(`   🔄 Test suites updated: ${result.testSuitesUpdated}`)
-  console.log(`   🗑️  Test suites deleted: ${result.testSuitesDeleted}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
-  
-  if (result.createdTestSuites.length > 0) {
-    console.log('\n   Created test suites:')
-    result.createdTestSuites.forEach((ts, index) => {
-      console.log(`      ${index + 1}. ${ts.name} (${ts.modulePath})`)
-    })
-  }
-  
-  if (result.updatedTestSuites.length > 0) {
-    console.log('\n   Updated test suites:')
-    result.updatedTestSuites.forEach((ts, index) => {
-      console.log(`      ${index + 1}. ${ts.name} (${ts.modulePath})`)
-    })
-  }
-  
-  if (result.deletedTestSuites.length > 0) {
-    console.log('\n   Deleted test suites:')
-    result.deletedTestSuites.forEach((ts, index) => {
-      console.log(`      ${index + 1}. ${ts.name} (${ts.modulePath})`)
-    })
-  }
-  
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  try {
+async function main(): Promise<SyncResult | void> {
     console.log('🔄 Starting test suites sync...')
     console.log('This will scan feature files and sync test suites to database.')
     console.log('Filesystem is the source of truth - test suites in DB but not in FS will be deleted.')
@@ -394,23 +336,34 @@ async function main() {
     // Sync to database
     await syncTestSuitesToDatabase(testSuitesFromFS, result)
     
-    // Generate summary
-    generateSummary(result)
-    
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    printSyncSummary(
+      [
+        { label: '📁 Test suites scanned', value: result.testSuitesScanned },
+        { label: '✅ Test suites existing', value: result.testSuitesExisting },
+        { label: '➕ Test suites created', value: result.testSuitesCreated },
+        { label: '🔄 Test suites updated', value: result.testSuitesUpdated },
+        { label: '🗑️  Test suites deleted', value: result.testSuitesDeleted },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        {
+          title: 'Created test suites',
+          items: result.createdTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
+        },
+        {
+          title: 'Updated test suites',
+          items: result.updatedTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
+        },
+        {
+          title: 'Deleted test suites',
+          items: result.deletedTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
+        },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
+    return result
 }
 
-main()
+runSyncScript(main)
 
 

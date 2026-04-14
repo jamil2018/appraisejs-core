@@ -14,6 +14,9 @@ import prisma from '../src/config/db-config'
 import { scanFeatureFiles, ParsedFeature } from '../src/lib/gherkin-parser'
 import { TagType } from '@prisma/client'
 import { getTagTypeFromName } from '../src/lib/tag-utils'
+import { splitTagLine } from './lib/tag-parsing'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 interface TagData {
   name: string // Without @ prefix, for DB storage
@@ -25,22 +28,12 @@ interface SyncResult {
   tagsScanned: number
   tagsExisting: number
   tagsCreated: number
+  tagsUpdated: number
   tagsDeleted: number
   errors: string[]
   createdTags: string[]
+  updatedTags: string[]
   deletedTags: string[]
-}
-
-/**
- * Splits a tag line that may contain multiple tags separated by spaces
- * Example: "@smoke @demo" -> ["@smoke", "@demo"]
- */
-function splitTagLine(tagLine: string): string[] {
-  // Split by spaces and filter for strings that start with @
-  return tagLine
-    .split(/\s+/)
-    .filter(tag => tag.trim().startsWith('@'))
-    .map(tag => tag.trim())
 }
 
 /**
@@ -112,9 +105,11 @@ async function syncTagsToDatabase(tagObjects: TagData[]): Promise<SyncResult> {
     tagsScanned: tagObjects.length,
     tagsExisting: 0,
     tagsCreated: 0,
+    tagsUpdated: 0,
     tagsDeleted: 0,
     errors: [],
     createdTags: [],
+    updatedTags: [],
     deletedTags: [],
   }
 
@@ -162,8 +157,8 @@ async function syncTagsToDatabase(tagObjects: TagData[]): Promise<SyncResult> {
             where: { id: existing.id },
             data: { type: tagData.type },
           })
-          result.tagsCreated++ // Count as created since we're fixing it
-          result.createdTags.push(tagData.name)
+          result.tagsUpdated++
+          result.updatedTags.push(tagData.name)
           console.log(`   🔄 Updated tag '${tagData.name}' type from ${existing.type} to ${tagData.type}`)
         } else {
           result.tagsExisting++
@@ -195,41 +190,7 @@ async function syncTagsToDatabase(tagObjects: TagData[]): Promise<SyncResult> {
 /**
  * Generates and displays sync summary
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Tags scanned: ${result.tagsScanned}`)
-  console.log(`   ✅ Tags existing: ${result.tagsExisting}`)
-  console.log(`   ➕ Tags created: ${result.tagsCreated}`)
-  console.log(`   🗑️  Tags deleted: ${result.tagsDeleted}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
-
-  if (result.createdTags.length > 0) {
-    console.log('\n   Created tags:')
-    result.createdTags.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.deletedTags.length > 0) {
-    console.log('\n   Deleted tags:')
-    result.deletedTags.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  try {
+async function main(): Promise<SyncResult | void> {
     console.log('🔄 Starting tags sync...')
     console.log('This will scan feature files and sync tags to database.')
     console.log('Filesystem is the source of truth - tags in DB but not in FS will be deleted.\n')
@@ -271,21 +232,24 @@ async function main() {
     // Sync to database
     const result = await syncTagsToDatabase(tagObjects)
 
-    // Generate summary
-    generateSummary(result)
+    printSyncSummary(
+      [
+        { label: '📁 Tags scanned', value: result.tagsScanned },
+        { label: '✅ Tags existing', value: result.tagsExisting },
+        { label: '➕ Tags created', value: result.tagsCreated },
+        { label: '🔄 Tags updated', value: result.tagsUpdated },
+        { label: '🗑️  Tags deleted', value: result.tagsDeleted },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        { title: 'Updated tags', items: result.updatedTags },
+        { title: 'Created tags', items: result.createdTags },
+        { title: 'Deleted tags', items: result.deletedTags },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
 
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    return result
 }
 
-main()
+runSyncScript(main)

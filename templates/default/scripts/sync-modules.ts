@@ -14,6 +14,9 @@ import { join } from 'path'
 import { glob } from 'glob'
 import prisma from '../src/config/db-config'
 import { extractModulePathFromAutomationFile } from '../src/lib/template-sync-utils'
+import { extractModulePathFromLocatorFile } from './lib/filename-utils'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 interface SyncResult {
   modulesScanned: number
@@ -80,14 +83,6 @@ async function scanFeatureDirectories(baseDir: string): Promise<string[]> {
   }
 
   return Array.from(modulePaths)
-}
-
-/**
- * Extracts module path from locator file path
- * Example: automation/locators/home/home.json -> /home
- */
-function extractModulePathFromLocatorFile(filePath: string, baseDir: string): string {
-  return extractModulePathFromAutomationFile(filePath, baseDir, 'locators')
 }
 
 /**
@@ -252,41 +247,7 @@ async function deleteOrphanedModules(fsModulePaths: Set<string>, result: SyncRes
 /**
  * Generates and displays sync summary
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Modules scanned: ${result.modulesScanned}`)
-  console.log(`   ✅ Modules existing: ${result.modulesExisting}`)
-  console.log(`   ➕ Modules created: ${result.modulesCreated}`)
-  console.log(`   🗑️  Modules deleted: ${result.modulesDeleted}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
-
-  if (result.createdModules.length > 0) {
-    console.log('\n   Created modules:')
-    result.createdModules.forEach((path, index) => {
-      console.log(`      ${index + 1}. ${path}`)
-    })
-  }
-
-  if (result.deletedModules.length > 0) {
-    console.log('\n   Deleted modules:')
-    result.deletedModules.forEach((path, index) => {
-      console.log(`      ${index + 1}. ${path}`)
-    })
-  }
-
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  try {
+async function main(): Promise<SyncResult> {
     console.log('🔄 Starting modules sync...')
     console.log('This will scan filesystem directories and sync module hierarchy to database.')
     console.log('Filesystem is the source of truth - modules in DB but not in FS will be deleted.\n')
@@ -321,21 +282,21 @@ async function main() {
     }
     await deleteOrphanedModules(fsModulePathsSet, result)
 
-    // Generate summary
-    generateSummary(result)
-
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    printSyncSummary(
+      [
+        { label: '📁 Modules scanned', value: result.modulesScanned },
+        { label: '✅ Modules existing', value: result.modulesExisting },
+        { label: '➕ Modules created', value: result.modulesCreated },
+        { label: '🗑️  Modules deleted', value: result.modulesDeleted },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        { title: 'Created modules', items: result.createdModules },
+        { title: 'Deleted modules', items: result.deletedModules },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
+    return result
 }
 
-main()
+runSyncScript(main)

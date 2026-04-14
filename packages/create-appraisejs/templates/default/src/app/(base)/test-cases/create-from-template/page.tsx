@@ -4,8 +4,9 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { LayoutPanelTop } from 'lucide-react'
 import React from 'react'
 import TemplateSelectionForm from './template-selection-form'
-import { TemplateTestCase } from '@prisma/client'
 import { Metadata } from 'next'
+
+import { getTemplateSelectionRows } from './create-from-template-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Case From Template',
@@ -13,9 +14,10 @@ export const metadata: Metadata = {
 }
 
 const CreateTestCaseFromTemplate = async () => {
-  const { data: templateTestCases, status } = await getAllTemplateTestCasesAction()
+  const response = await getAllTemplateTestCasesAction()
+  const templateTestCases = getTemplateSelectionRows(response.data)
 
-  if (status !== 200) {
+  if (response.status !== 200) {
     return <div className="text-red-500">Error</div>
   }
 
@@ -30,7 +32,7 @@ const CreateTestCaseFromTemplate = async () => {
         </PageHeader>
         <HeaderSubtitle>Select a template test case to create a new test case from</HeaderSubtitle>
       </div>
-      <TemplateSelectionForm templateTestCases={templateTestCases as TemplateTestCase[]} />
+      <TemplateSelectionForm templateTestCases={templateTestCases} />
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import { taskSpawner } from '@/lib/process/task-spawner'
 import prisma from '@/config/db-config'
-import { resolveStoredPath } from '@/lib/automation/paths'
+import { resolveStoredPath } from '@/lib/automation/automation-path-roots'
 
 // Ensure this route runs in Node.js runtime (not Edge) for singleton to work
 export const runtime = 'nodejs'

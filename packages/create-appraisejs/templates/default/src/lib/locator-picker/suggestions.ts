@@ -18,16 +18,18 @@ export function normalizeRoute(value: string | null | undefined): string {
     return '/'
   }
 
+  const collapseSlashes = (routeValue: string) => routeValue.replace(/\/{2,}/g, '/')
+
   try {
     const parsed = new URL(value)
-    return parsed.pathname || '/'
+    return collapseSlashes(parsed.pathname || '/')
   } catch {
     const route = value.trim()
     if (route === '') {
       return '/'
     }
 
-    return route.startsWith('/') ? route : `/${route}`
+    return collapseSlashes(route.startsWith('/') ? route : `/${route}`)
   }
 }
 

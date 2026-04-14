@@ -14,11 +14,8 @@ import {
   TemplateStepType,
 } from '@prisma/client'
 import prisma from '@/config/db-config'
-import {
-  ensureAutomationWorkspaceReady,
-  getAutomationEnvironmentsDir,
-  getAutomationFeaturesDir,
-} from '@/lib/automation/paths'
+import { getAutomationEnvironmentsDir, getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
+import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 import { extractModulePathFromFilePath, scanFeatureFiles, type ParsedFeature, type ParsedStep } from '@/lib/gherkin-parser'
 import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
 import { SYNC_ALL_REQUEST_ID, syncScriptDefinitions, type SyncRequestId, type SyncScriptId } from '@/lib/sync/sync-registry'

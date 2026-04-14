@@ -1,16 +1,13 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import React from 'react'
-import { Code, Plus } from 'lucide-react'
+import { Code } from 'lucide-react'
 import LocatorTable from './locator-table'
 import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import EmptyState from '@/components/data-state/empty-state'
-import { Locator, LocatorGroup } from '@prisma/client'
 import { Metadata } from 'next'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { getLocatorTableRows } from './locator-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Locators',
@@ -24,7 +21,7 @@ const Locators = async () => {
     return <div>Error: {locatorsError}</div>
   }
 
-  const locatorsData = locators as (Locator & { locatorGroup: LocatorGroup })[]
+  const locatorsData = getLocatorTableRows(locators)
 
   if (!locatorsData || locatorsData.length === 0) {
     return (

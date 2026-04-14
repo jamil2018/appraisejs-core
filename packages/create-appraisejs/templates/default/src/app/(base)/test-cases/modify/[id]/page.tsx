@@ -1,15 +1,4 @@
 import { getTestCaseByIdAction, updateTestCaseAction } from '@/actions/test-case/test-case-actions'
-import {
-  Locator,
-  LocatorGroup,
-  TemplateStep,
-  TemplateStepParameter,
-  TestCase,
-  TestCaseStep,
-  TestCaseStepParameter,
-  TestSuite,
-  Tag,
-} from '@prisma/client'
 import React from 'react'
 import TestCaseForm from '../../test-case-form'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
@@ -20,10 +9,20 @@ import {
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
-import { NodeOrderMap } from '@/types/diagram/diagram'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
+
+import {
+  buildNodeOrderFromTestCaseSteps,
+  getEditableTestCase,
+  getLocatorGroupRows,
+  getLocatorRows,
+  getTagRows,
+  getTemplateStepParamRows,
+  getTemplateStepRows,
+  getTestSuiteRows,
+} from '../../test-case-route-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Test Case',
@@ -32,37 +31,53 @@ export const metadata: Metadata = {
 
 const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const { data, error } = await getTestCaseByIdAction(id)
+  const [
+    testCaseResponse,
+    templateStepParamsResponse,
+    templateStepsResponse,
+    locatorsResponse,
+    testSuitesResponse,
+    locatorGroupsResponse,
+    tagsResponse,
+  ] = await Promise.all([
+    getTestCaseByIdAction(id),
+    getAllTemplateStepParamsAction(),
+    getAllTemplateStepsAction(),
+    getAllLocatorsAction(),
+    getAllTestSuitesAction(),
+    getAllLocatorGroupsAction(),
+    getAllTagsAction(),
+  ])
 
-  if (error) {
-    return <div>Error: {error}</div>
-  }
-  const testCase = data as TestCase & {
-    steps: (TestCaseStep & { parameters: TestCaseStepParameter[] })[]
-    testSuiteIds: string[]
-    tagIds: string[]
-  }
-  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
-  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
-  const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
-  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
-  const { data: tags, error: tagsError } = await getAllTagsAction()
-  if (
-    templateStepParamsError ||
-    templateStepsError ||
-    locatorsError ||
-    testSuitesError ||
-    locatorGroupsError ||
-    tagsError
-  ) {
+  const loadError =
+    testCaseResponse.error ||
+    templateStepParamsResponse.error ||
+    templateStepsResponse.error ||
+    locatorsResponse.error ||
+    testSuitesResponse.error ||
+    locatorGroupsResponse.error ||
+    tagsResponse.error
+
+  if (loadError) {
     return (
       <div>
-        Error:{' '}
-        {templateStepParamsError || templateStepsError || locatorsError || testSuitesError || locatorGroupsError || tagsError}
+        Error: {loadError}
       </div>
     )
   }
+
+  const testCase = getEditableTestCase(testCaseResponse.data)
+  if (!testCase) {
+    return <div>Error: Invalid test case</div>
+  }
+
+  const templateStepParams = getTemplateStepParamRows(templateStepParamsResponse.data)
+  const templateSteps = getTemplateStepRows(templateStepsResponse.data)
+  const locators = getLocatorRows(locatorsResponse.data)
+  const testSuites = getTestSuiteRows(testSuitesResponse.data)
+  const locatorGroups = getLocatorGroupRows(locatorGroupsResponse.data)
+  const tags = getTagRows(tagsResponse.data)
+
   return (
     <>
       <div className="mb-8">
@@ -76,28 +91,13 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         defaultDescription={testCase.description}
         defaultTestSuiteIds={testCase.testSuiteIds}
         defaultTagIds={testCase.tagIds || []}
-        templateStepParams={templateStepParams as TemplateStepParameter[]}
-        templateSteps={templateSteps as TemplateStep[]}
-        locators={locators as Locator[]}
-        locatorGroups={locatorGroups as LocatorGroup[]}
-        testSuites={testSuites as TestSuite[]}
-        tags={tags as Tag[]}
-        defaultNodesOrder={testCase.steps.reduce((acc, step) => {
-          acc[step.id] = {
-            order: step.order,
-            label: step.label,
-            gherkinStep: step.gherkinStep,
-            icon: step.icon,
-            parameters: ((step.parameters || []) as TestCaseStepParameter[]).map((param: TestCaseStepParameter) => ({
-              name: param.name,
-              value: param.value,
-              type: param.type,
-              order: param.order,
-            })),
-            templateStepId: step.templateStepId,
-          }
-          return acc
-        }, {} as NodeOrderMap)}
+        templateStepParams={templateStepParams}
+        templateSteps={templateSteps}
+        locators={locators}
+        locatorGroups={locatorGroups}
+        testSuites={testSuites}
+        tags={tags}
+        defaultNodesOrder={buildNodeOrderFromTestCaseSteps(testCase.steps)}
       />
     </>
   )

@@ -16,10 +16,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..')
 const target = join(repoRoot, 'templates', 'default')
 
+/**
+ * Delegates template path exclusion decisions to shared sync rules.
+ */
 function shouldExclude(relativePath: string): boolean {
   return shouldExcludeTemplatePath(relativePath)
 }
 
+/**
+ * Recursively copies a directory while applying path-level exclusion rules.
+ */
 function copyDirWithFilter(
   src: string,
   dest: string,
@@ -44,11 +50,17 @@ function copyDirWithFilter(
   }
 }
 
+/**
+ * Copies a file and ensures destination directory exists.
+ */
 function copyFile(src: string, dest: string): void {
   mkdirSync(dirname(dest), { recursive: true })
   cpSync(src, dest, { force: true })
 }
 
+/**
+ * Resets reports directory in template to an empty starter shape.
+ */
 function resetAutomationReports(templateRoot: string): void {
   const reportsRoot = join(templateRoot, 'automation', 'reports')
   rmSync(reportsRoot, { recursive: true, force: true })
@@ -56,12 +68,18 @@ function resetAutomationReports(templateRoot: string): void {
   mkdirSync(join(reportsRoot, 'traces'), { recursive: true })
 }
 
+/**
+ * Resets template locator map to a clean empty array.
+ */
 function resetAutomationLocatorMap(templateRoot: string): void {
   const locatorMapPath = join(templateRoot, 'automation', 'mapping', 'locator-map.json')
   mkdirSync(dirname(locatorMapPath), { recursive: true })
   writeFileSync(locatorMapPath, '[]\n')
 }
 
+/**
+ * Backfills legacy environment config when new location is missing.
+ */
 function syncLegacyEnvironmentConfig(): void {
   const legacyEnvironmentsDir = join(repoRoot, 'src', 'tests', 'config', 'environments')
   const targetEnvironmentsDir = join(target, 'automation', 'config', 'environments')
@@ -86,6 +104,9 @@ const INTERNAL_PACKAGES: InternalPackageSyncConfig[] = [
   { name: 'locator-picker-companion', directories: ['src', 'dist'] },
 ]
 
+/**
+ * Syncs one internal package into template/packages.
+ */
 function syncInternalPackage({ name, directories }: InternalPackageSyncConfig): void {
   const packageRoot = join(repoRoot, 'packages', name)
   const packageTarget = join(target, 'packages', name)
@@ -112,16 +133,17 @@ function syncInternalPackage({ name, directories }: InternalPackageSyncConfig): 
   }
 }
 
-const readmePath = join(target, 'README.md')
-const appraisejsConfigPath = join(target, 'appraisejs.config.json')
-const savedReadme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : null
-const savedAppraisejsConfig = existsSync(appraisejsConfigPath) ? readFileSync(appraisejsConfigPath, 'utf8') : null
+function main(): void {
+  const readmePath = join(target, 'README.md')
+  const appraisejsConfigPath = join(target, 'appraisejs.config.json')
+  const savedReadme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : null
+  const savedAppraisejsConfig = existsSync(appraisejsConfigPath) ? readFileSync(appraisejsConfigPath, 'utf8') : null
 
-rmSync(target, { recursive: true, force: true })
-mkdirSync(target, { recursive: true })
+  rmSync(target, { recursive: true, force: true })
+  mkdirSync(target, { recursive: true })
 
-console.log('Copying src/...')
-copyDirWithFilter(join(repoRoot, 'src'), join(target, 'src'))
+  console.log('Copying src/...')
+  copyDirWithFilter(join(repoRoot, 'src'), join(target, 'src'))
 
 console.log('Copying automation/...')
 copyDirWithFilter(join(repoRoot, 'automation'), join(target, 'automation'))
@@ -200,17 +222,23 @@ rootPkg.scripts = {
   'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
   'appraisejs:setup': 'npm run setup',
   'appraisejs:sync': 'npm run sync-all',
+  'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
 }
+delete rootPkg.scripts['build:appraisejs']
+delete rootPkg.scripts['build-step-registry']
 writeFileSync(join(target, 'package.json'), JSON.stringify(rootPkg, null, 2) + '\n')
 console.log('Wrote template package.json with production-first scaffold scripts.')
 
-if (savedReadme) {
-  writeFileSync(readmePath, savedReadme)
-  console.log('Restored README.md')
-}
-if (savedAppraisejsConfig) {
-  writeFileSync(appraisejsConfigPath, savedAppraisejsConfig)
-  console.log('Restored appraisejs.config.json')
+  if (savedReadme) {
+    writeFileSync(readmePath, savedReadme)
+    console.log('Restored README.md')
+  }
+  if (savedAppraisejsConfig) {
+    writeFileSync(appraisejsConfigPath, savedAppraisejsConfig)
+    console.log('Restored appraisejs.config.json')
+  }
+
+  console.log('Synced base app to templates/default with starter automation assets.')
 }
 
-console.log('Synced base app to templates/default with starter automation assets.')
+main()

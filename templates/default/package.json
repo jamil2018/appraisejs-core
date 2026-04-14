@@ -29,15 +29,16 @@
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",
     "sync-template": "npx tsx scripts/sync-appraise-base-template.ts",
+    "appraisejs:install-step": "npx tsx scripts/install-template-step.ts",
     "test": "cucumber-js",
+    "validate": "node --import tsx scripts/run-vitest.ts",
     "build:local": "npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build",
     "generate-db-client": "npx prisma generate --schema prisma/schema.prisma",
     "setup:db": "npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all",
     "setup:full": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",
     "protect-seeded-files": "npx tsx scripts/protect-seeded-files.ts",
     "appraisejs:setup": "npm run setup",
-    "appraisejs:sync": "npm run sync-all",
-    "appraisejs:install-step": "npx tsx scripts/install-template-step.ts"
+    "appraisejs:sync": "npm run sync-all"
   },
   "dependencies": {
     "@babel/parser": "^7.27.0",
@@ -94,6 +95,9 @@
     "@cucumber/pretty-formatter": "^3.0.0",
     "@cucumber/tag-expressions": "^8.0.0",
     "@eslint/eslintrc": "^3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/babel__traverse": "^7.28.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/chai": "^5.2.2",
@@ -113,6 +117,7 @@
     "glob": "^11.0.3",
     "globals": "^16.4.0",
     "jiti": "^2.6.1",
+    "jsdom": "^29.0.1",
     "playwright": "^1.58.0",
     "postcss": "^8",
     "prettier": "^3.6.2",
@@ -122,7 +127,8 @@
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.1"
   },
   "overrides": {
     "react-is": "^19.2.1",

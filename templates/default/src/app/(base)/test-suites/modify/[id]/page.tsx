@@ -1,13 +1,12 @@
 import { getTestSuiteByIdAction, updateTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { TestSuiteForm } from '../../test-suite-form'
 import React from 'react'
-import { TestSuite, Tag } from '@prisma/client'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
-import { Module, TestCase } from '@prisma/client'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
-import { TestCasePickerRow } from '@/types/test-case-picker'
+
+import { getEditableTestSuite, getModuleRows, getTagRows, getTestCasePickerRows } from '../../test-suite-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Test Suite',
@@ -16,22 +15,26 @@ export const metadata: Metadata = {
 
 const ModifyTestSuite = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const { data: testSuite, error } = await getTestSuiteByIdAction(id)
-  const { data: testCases } = await getAllTestCasesAction()
+  const [testSuiteResponse, testCasesResponse, moduleListResponse, tagsResponse] = await Promise.all([
+    getTestSuiteByIdAction(id),
+    getAllTestCasesAction(),
+    getAllModulesAction(),
+    getAllTagsAction(),
+  ])
 
-  const { data: moduleList, error: moduleListError } = await getAllModulesAction()
-
-  const { data: tags, error: tagsError } = await getAllTagsAction()
-
-  if (error || moduleListError || tagsError) {
-    return <div>Error: {error || moduleListError || tagsError}</div>
+  const loadError = testSuiteResponse.error || moduleListResponse.error || tagsResponse.error
+  if (loadError) {
+    return <div>Error: {loadError}</div>
   }
 
-  const testSuiteData = testSuite as TestSuite & {
-    testCases: TestCase[]
-    module: Module
-    tags: Tag[]
+  const testSuiteData = getEditableTestSuite(testSuiteResponse.data)
+  if (!testSuiteData) {
+    return <div>Error: Invalid test suite</div>
   }
+
+  const testCases = getTestCasePickerRows(testCasesResponse.data)
+  const moduleList = getModuleRows(moduleListResponse.data)
+  const tags = getTagRows(tagsResponse.data)
 
   return (
     <TestSuiteForm
@@ -46,9 +49,9 @@ const ModifyTestSuite = async ({ params }: { params: Promise<{ id: string }> }) 
       successMessage="Test suite updated successfully"
       onSubmitAction={updateTestSuiteAction}
       id={id}
-      testCases={testCases as TestCasePickerRow[]}
-      moduleList={moduleList as Module[]}
-      tags={tags as Tag[]}
+      testCases={testCases}
+      moduleList={moduleList}
+      tags={tags}
     />
   )
 }

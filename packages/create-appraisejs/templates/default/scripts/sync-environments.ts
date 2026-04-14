@@ -12,6 +12,8 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import prisma from '../src/config/db-config'
 import { ensureAutomationWorkspaceReady, getAutomationEnvironmentsDir } from '../src/lib/automation/paths'
+import { printSyncSummary } from './lib/sync-summary'
+import { runSyncScript } from './lib/sync-script-runner'
 
 interface EnvironmentConfig {
   baseUrl: string
@@ -257,56 +259,7 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
 /**
  * Generates and displays sync summary
  */
-function generateSummary(result: SyncResult): void {
-  console.log('\n📊 Sync Summary:')
-  console.log(`   📁 Environments scanned: ${result.environmentsScanned}`)
-  console.log(`   ✅ Environments existing: ${result.environmentsExisting}`)
-  console.log(`   ➕ Environments created: ${result.environmentsCreated}`)
-  console.log(`   🗑️  Environments deleted: ${result.environmentsDeleted}`)
-  console.log(`   ⚠️  Environments skipped: ${result.environmentsSkipped}`)
-  console.log(`   ❌ Errors: ${result.errors.length}`)
-
-  if (result.createdEnvironments.length > 0) {
-    console.log('\n   Created environments:')
-    result.createdEnvironments.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.existingEnvironments.length > 0) {
-    console.log('\n   Existing environments:')
-    result.existingEnvironments.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.deletedEnvironments.length > 0) {
-    console.log('\n   Deleted environments:')
-    result.deletedEnvironments.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.skippedEnvironments.length > 0) {
-    console.log('\n   Skipped environments (have test runs):')
-    result.skippedEnvironments.forEach((name, index) => {
-      console.log(`      ${index + 1}. ${name}`)
-    })
-  }
-
-  if (result.errors.length > 0) {
-    console.log('\n   Errors:')
-    result.errors.forEach((error, index) => {
-      console.log(`      ${index + 1}. ${error}`)
-    })
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  try {
+async function main(): Promise<SyncResult> {
     console.log('🔄 Starting environments sync...')
     console.log('This will scan environments.json and sync environments to database.\n')
 
@@ -327,23 +280,26 @@ async function main() {
     console.log('\n✅ Syncing environments to database...')
     const result = await syncEnvironmentsToDatabase(environments)
 
-    // Generate summary
-    generateSummary(result)
-
-    if (result.errors.length === 0) {
-      console.log('\n✅ Sync completed successfully!')
-    } else {
-      console.log('\n⚠️  Sync completed with errors. Please review the errors above.')
-      process.exit(1)
-    }
-  } catch (error) {
-    console.error('\n❌ Error during sync:', error)
-    process.exit(1)
-  } finally {
-    await prisma.$disconnect()
-  }
+    printSyncSummary(
+      [
+        { label: '📁 Environments scanned', value: result.environmentsScanned },
+        { label: '✅ Environments existing', value: result.environmentsExisting },
+        { label: '➕ Environments created', value: result.environmentsCreated },
+        { label: '🗑️  Environments deleted', value: result.environmentsDeleted },
+        { label: '⚠️  Environments skipped', value: result.environmentsSkipped },
+        { label: '❌ Errors', value: result.errors.length },
+      ],
+      [
+        { title: 'Created environments', items: result.createdEnvironments },
+        { title: 'Existing environments', items: result.existingEnvironments },
+        { title: 'Deleted environments', items: result.deletedEnvironments },
+        { title: 'Skipped environments (have test runs)', items: result.skippedEnvironments },
+        { title: 'Errors', items: result.errors },
+      ],
+    )
+    return result
 }
 
-main()
+runSyncScript(main)
 
 

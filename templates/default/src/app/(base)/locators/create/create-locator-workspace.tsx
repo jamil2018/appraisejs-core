@@ -1,10 +1,5 @@
 'use client'
 
-import {
-  getLocatorPickerSessionAction,
-  savePickedLocatorAction,
-  startLocatorPickerSessionAction,
-} from '@/actions/locator-picker/locator-picker-actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,56 +10,16 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from '@/hooks/use-toast'
-import { inferGroupSuggestion, normalizeRoute, suggestLocatorName } from '@/lib/locator-picker/suggestions'
-import type { LocatorPickerSession } from '@/types/locator-picker'
-import type { Environment, LocatorGroup, Module } from '@prisma/client'
 import { ExternalLink, Loader2, Save, Target } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
-
-interface CreateLocatorWorkspaceProps {
-  environments: Environment[]
-  locatorGroups: LocatorGroup[]
-  modules: Module[]
-  mode?: 'create' | 'modify'
-  locatorId?: string
-  initialValues?: {
-    locatorName?: string
-    selector?: string
-    resolutionMode?: 'existing' | 'create'
-    existingLocatorGroupId?: string
-    newLocatorGroupName?: string
-    route?: string
-    moduleId?: string
-  }
-}
-
-function statusTone(status: LocatorPickerSession['status']) {
-  switch (status) {
-    case 'picked':
-      return 'default'
-    case 'saving':
-      return 'secondary'
-    case 'closed':
-      return 'outline'
-    case 'error':
-      return 'destructive'
-    case 'ready':
-      return 'secondary'
-    case 'starting':
-    default:
-      return 'secondary'
-  }
-}
-
-function formatStatus(status: LocatorPickerSession['status']) {
-  if (status === 'picked') {
-    return 'Picked'
-  }
-
-  return status.charAt(0).toUpperCase() + status.slice(1)
-}
+import { normalizeRoute } from '@/lib/locator-picker/suggestions'
+import type { CreateLocatorWorkspaceProps } from './create-locator-workspace-helpers'
+import {
+  formatStatus,
+  getLocatorSourceType,
+  getLocatorWorkspaceResolutionMode,
+  statusTone,
+} from './create-locator-workspace-helpers'
+import { useLocatorWorkspace } from './use-locator-workspace'
 
 export default function CreateLocatorWorkspace({
   environments,
@@ -74,207 +29,34 @@ export default function CreateLocatorWorkspace({
   locatorId,
   initialValues,
 }: CreateLocatorWorkspaceProps) {
-  const router = useRouter()
-  const isModifyMode = mode === 'modify'
-  const [sourceType, setSourceType] = useState<'environment' | 'url'>(environments.length > 0 ? 'environment' : 'url')
-  const [environmentId, setEnvironmentId] = useState(environments[0]?.id ?? '')
-  const [url, setUrl] = useState('')
-  const [session, setSession] = useState<LocatorPickerSession | null>(null)
-  const [isStarting, setIsStarting] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const payloadSignatureRef = useRef('')
-
-  const [locatorName, setLocatorName] = useState(initialValues?.locatorName ?? '')
-  const [selector, setSelector] = useState(initialValues?.selector ?? '')
-  const [resolutionMode, setResolutionMode] = useState<'existing' | 'create'>(initialValues?.resolutionMode ?? 'existing')
-  const [existingLocatorGroupId, setExistingLocatorGroupId] = useState(initialValues?.existingLocatorGroupId ?? '')
-  const [newLocatorGroupName, setNewLocatorGroupName] = useState(initialValues?.newLocatorGroupName ?? '')
-  const [route, setRoute] = useState(normalizeRoute(initialValues?.route ?? '/'))
-  const [moduleId, setModuleId] = useState(initialValues?.moduleId ?? '')
-  const [lastAutoLocatorName, setLastAutoLocatorName] = useState(initialValues?.locatorName ?? '')
-  const [lastAutoSelector, setLastAutoSelector] = useState(initialValues?.selector ?? '')
-  const [lastAutoExistingGroupId, setLastAutoExistingGroupId] = useState(initialValues?.existingLocatorGroupId ?? '')
-  const [lastAutoGroupName, setLastAutoGroupName] = useState(initialValues?.newLocatorGroupName ?? '')
-  const [lastAutoRoute, setLastAutoRoute] = useState(normalizeRoute(initialValues?.route ?? '/'))
-  const [lastAutoModuleId, setLastAutoModuleId] = useState(initialValues?.moduleId ?? '')
-
-  const loadSession = async (sessionId: string, silent = false) => {
-    const response = await getLocatorPickerSessionAction(sessionId)
-    if (response.status === 200) {
-      setSession(response.data as LocatorPickerSession)
-    } else if (!silent) {
-      toast({
-        title: 'Unable to refresh the picker session',
-        description: response.error,
-        variant: 'destructive',
-      })
-    }
-  }
-
-  useEffect(() => {
-    if (!session?.sessionId || session.status === 'closed' || !session.companionPid) {
-      return
-    }
-
-    const intervalId = window.setInterval(() => {
-      void loadSession(session.sessionId, true)
-    }, 1500)
-
-    return () => window.clearInterval(intervalId)
-  }, [session?.companionPid, session?.sessionId, session?.status])
-
-  useEffect(() => {
-    const pickedLocator = session?.pickedLocator
-    if (!pickedLocator) {
-      return
-    }
-
-    const nextPayloadSignature = `${session?.updatedAt}:${pickedLocator.currentUrl}:${pickedLocator.selector}`
-    if (nextPayloadSignature === payloadSignatureRef.current) {
-      return
-    }
-
-    payloadSignatureRef.current = nextPayloadSignature
-    const timeoutId = window.setTimeout(() => {
-      if (selector === '' || selector === lastAutoSelector) {
-        setSelector(pickedLocator.selector)
-        setLastAutoSelector(pickedLocator.selector)
-      }
-
-      const suggestedName = suggestLocatorName(pickedLocator)
-      if (suggestedName && (locatorName === '' || locatorName === lastAutoLocatorName)) {
-        setLocatorName(suggestedName)
-        setLastAutoLocatorName(suggestedName)
-      }
-
-      const suggestion = inferGroupSuggestion(pickedLocator.pathname, pickedLocator.pageTitle, locatorGroups, modules)
-
-      if (route === '/' || route === '' || route === lastAutoRoute) {
-        setRoute(suggestion.route)
-        setLastAutoRoute(suggestion.route)
-      }
-
-      if (suggestion.mode === 'existing') {
-        setResolutionMode(currentMode => (currentMode === 'create' ? 'existing' : currentMode))
-
-        const nextExistingGroupId = suggestion.existingLocatorGroupId ?? ''
-        if (existingLocatorGroupId === '' || existingLocatorGroupId === lastAutoExistingGroupId) {
-          setExistingLocatorGroupId(nextExistingGroupId)
-          setLastAutoExistingGroupId(nextExistingGroupId)
-        }
-      } else {
-        if (
-          resolutionMode === 'create' ||
-          existingLocatorGroupId === '' ||
-          existingLocatorGroupId === lastAutoExistingGroupId
-        ) {
-          setResolutionMode('create')
-        }
-
-        if (newLocatorGroupName === '' || newLocatorGroupName === lastAutoGroupName) {
-          setNewLocatorGroupName(suggestion.suggestedGroupName)
-          setLastAutoGroupName(suggestion.suggestedGroupName)
-        }
-
-        if (moduleId === '' || moduleId === lastAutoModuleId) {
-          const nextModuleId = suggestion.suggestedModuleId ?? ''
-          setModuleId(nextModuleId)
-          setLastAutoModuleId(nextModuleId)
-        }
-      }
-    }, 0)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [
-    existingLocatorGroupId,
-    lastAutoExistingGroupId,
-    lastAutoGroupName,
-    lastAutoLocatorName,
-    lastAutoModuleId,
-    lastAutoRoute,
-    lastAutoSelector,
-    locatorGroups,
-    locatorName,
-    moduleId,
-    modules,
-    newLocatorGroupName,
-    resolutionMode,
-    route,
-    selector,
+  const {
+    isModifyMode,
     session,
-  ])
-
-  const handleStart = async () => {
-    setIsStarting(true)
-    const response = await startLocatorPickerSessionAction({
-      environmentId: sourceType === 'environment' ? environmentId : undefined,
-      url: sourceType === 'url' ? url : undefined,
-    })
-    setIsStarting(false)
-
-    if (response.status !== 200 || !response.data) {
-      toast({
-        title: 'Unable to launch Chromium',
-        description: response.error,
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setSession(response.data as LocatorPickerSession)
-    payloadSignatureRef.current = ''
-    setLastAutoLocatorName(locatorName)
-    setLastAutoSelector(selector)
-    setLastAutoExistingGroupId(existingLocatorGroupId)
-    setLastAutoGroupName(newLocatorGroupName)
-    setLastAutoRoute(route)
-    setLastAutoModuleId(moduleId)
-
-    toast({
-      title: 'Chromium launched',
-      description: 'Use the in-browser Appraise picker panel to start picking, click one element, then confirm Use selector.',
-    })
-  }
-
-  const handleSave = async () => {
-    setIsSaving(true)
-
-    const response = await savePickedLocatorAction({
-      locatorId,
-      sessionId: session?.sessionId,
-      locatorName,
-      selector,
-      resolutionMode,
-      existingLocatorGroupId: resolutionMode === 'existing' ? existingLocatorGroupId : undefined,
-      newLocatorGroupName: resolutionMode === 'create' ? newLocatorGroupName : undefined,
-      route: resolutionMode === 'create' ? route : undefined,
-      moduleId: resolutionMode === 'create' ? moduleId : undefined,
-    })
-
-    setIsSaving(false)
-
-    if (response.status === 200) {
-      toast({
-        title: isModifyMode ? 'Locator updated' : 'Locator saved',
-        description: response.message,
-      })
-      router.push('/locators')
-      router.refresh()
-      return
-    }
-
-    toast({
-      title: 'Unable to save locator',
-      description: response.error,
-      variant: 'destructive',
-    })
-  }
-
-  const canSave =
-    locatorName.trim() !== '' &&
-    selector.trim() !== '' &&
-    ((resolutionMode === 'existing' && existingLocatorGroupId !== '') ||
-      (resolutionMode === 'create' && newLocatorGroupName.trim() !== '' && moduleId !== ''))
+    state,
+    isStarting,
+    isSaving,
+    setSourceType,
+    setEnvironmentId,
+    setUrl,
+    setLocatorName,
+    setSelector,
+    setResolutionMode,
+    setExistingLocatorGroupId,
+    setNewLocatorGroupName,
+    setRoute,
+    setModuleId,
+    handleStart,
+    handleSave,
+    canLaunch,
+    canSave,
+  } = useLocatorWorkspace({
+    environments,
+    locatorGroups,
+    modules,
+    mode,
+    locatorId,
+    initialValues,
+  })
 
   return (
     <div className="space-y-6">
@@ -290,8 +72,8 @@ export default function CreateLocatorWorkspace({
           </CardHeader>
           <CardContent className="space-y-5">
             <RadioGroup
-              value={sourceType}
-              onValueChange={value => setSourceType(value as 'environment' | 'url')}
+              value={state.sourceType}
+              onValueChange={value => setSourceType(getLocatorSourceType(value))}
               className="grid gap-3"
             >
               <label className="flex items-center gap-3 rounded-lg border p-3">
@@ -310,11 +92,11 @@ export default function CreateLocatorWorkspace({
               </label>
             </RadioGroup>
 
-            {sourceType === 'environment' ? (
+            {state.sourceType === 'environment' ? (
               <div className="space-y-2">
-                <Label>Environment</Label>
-                <Select value={environmentId} onValueChange={setEnvironmentId}>
-                  <SelectTrigger>
+                <Label htmlFor="picker-environment">Environment</Label>
+                <Select value={state.environmentId} onValueChange={setEnvironmentId}>
+                  <SelectTrigger id="picker-environment">
                     <SelectValue placeholder="Select an environment" />
                   </SelectTrigger>
                   <SelectContent isEmpty={environments.length === 0}>
@@ -331,7 +113,7 @@ export default function CreateLocatorWorkspace({
                 <Label htmlFor="picker-url">URL</Label>
                 <Input
                   id="picker-url"
-                  value={url}
+                  value={state.url}
                   onChange={event => setUrl(event.target.value)}
                   placeholder="https://example.com/login"
                 />
@@ -341,7 +123,7 @@ export default function CreateLocatorWorkspace({
             <Button
               type="button"
               onClick={handleStart}
-              disabled={isStarting || (sourceType === 'environment' ? environmentId === '' : url.trim() === '')}
+              disabled={isStarting || !canLaunch}
               className="w-full"
             >
               {isStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Target className="mr-2 h-4 w-4" />}
@@ -430,7 +212,7 @@ export default function CreateLocatorWorkspace({
                 <Label htmlFor="locator-name">Locator Name</Label>
                 <Input
                   id="locator-name"
-                  value={locatorName}
+                  value={state.locatorName}
                   onChange={event => setLocatorName(event.target.value)}
                   placeholder="Enter locator name"
                 />
@@ -439,8 +221,8 @@ export default function CreateLocatorWorkspace({
               <div className="space-y-2">
                 <Label>Group Resolution</Label>
                 <RadioGroup
-                  value={resolutionMode}
-                  onValueChange={value => setResolutionMode(value as 'existing' | 'create')}
+                  value={state.resolutionMode}
+                  onValueChange={value => setResolutionMode(getLocatorWorkspaceResolutionMode(value))}
                   className="grid gap-3"
                 >
                   <label className="flex items-center gap-3 rounded-lg border p-3">
@@ -465,18 +247,18 @@ export default function CreateLocatorWorkspace({
               <Label htmlFor="locator-selector">Selector</Label>
               <Textarea
                 id="locator-selector"
-                value={selector}
+                value={state.selector}
                 onChange={event => setSelector(event.target.value)}
                 placeholder="Playwright selector or XPath"
                 className="min-h-28"
               />
             </div>
 
-            {resolutionMode === 'existing' ? (
+            {state.resolutionMode === 'existing' ? (
               <div className="space-y-2">
-                <Label>Locator Group</Label>
-                <Select value={existingLocatorGroupId} onValueChange={setExistingLocatorGroupId}>
-                  <SelectTrigger>
+                <Label htmlFor="existing-locator-group">Locator Group</Label>
+                <Select value={state.existingLocatorGroupId} onValueChange={setExistingLocatorGroupId}>
+                  <SelectTrigger id="existing-locator-group">
                     <SelectValue placeholder="Select a locator group" />
                   </SelectTrigger>
                   <SelectContent isEmpty={locatorGroups.length === 0}>
@@ -494,7 +276,7 @@ export default function CreateLocatorWorkspace({
                   <Label htmlFor="new-group-name">Locator Group Name</Label>
                   <Input
                     id="new-group-name"
-                    value={newLocatorGroupName}
+                    value={state.newLocatorGroupName}
                     onChange={event => setNewLocatorGroupName(event.target.value)}
                     placeholder="Enter group name"
                   />
@@ -504,16 +286,16 @@ export default function CreateLocatorWorkspace({
                   <Label htmlFor="new-group-route">Route</Label>
                   <Input
                     id="new-group-route"
-                    value={route}
+                    value={state.route}
                     onChange={event => setRoute(normalizeRoute(event.target.value))}
                     placeholder="/account/settings"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Module</Label>
-                  <Select value={moduleId} onValueChange={setModuleId}>
-                    <SelectTrigger>
+                  <Label htmlFor="new-group-module">Module</Label>
+                  <Select value={state.moduleId} onValueChange={setModuleId}>
+                    <SelectTrigger id="new-group-module">
                       <SelectValue placeholder="Select a module" />
                     </SelectTrigger>
                     <SelectContent isEmpty={modules.length === 0}>

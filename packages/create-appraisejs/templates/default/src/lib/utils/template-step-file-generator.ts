@@ -3,11 +3,11 @@ import { join } from 'path'
 import prettier from 'prettier'
 import { TemplateStep, TemplateStepGroupType } from '@prisma/client'
 import {
-  ensureAutomationWorkspaceReady,
   getAutomationActionStepsDir,
   getAutomationStepsDir,
   getAutomationValidationStepsDir,
-} from '@/lib/automation/paths'
+} from '@/lib/automation/automation-path-roots'
+import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 
 const RUNTIME_IMPORT = '../../../packages/cucumber-runtime/src/index.js'
 const REQUIRED_RUNTIME_IMPORT =

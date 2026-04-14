@@ -5,11 +5,11 @@ import { ColumnDef } from '@tanstack/react-table'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
-import { Locator, LocatorGroup, ConflictResolution } from '@prisma/client'
 import { deleteLocatorAction } from '@/actions/locator/locator-actions'
 import { formatDateTime } from '@/lib/utils'
+import type { LocatorTableRow } from './locator-helpers'
 
-export const locatorTableCols: ColumnDef<Locator & { locatorGroup: LocatorGroup; conflicts: ConflictResolution[] }>[] =
+export const locatorTableCols: ColumnDef<LocatorTableRow>[] =
   [
     {
       id: 'select',
@@ -43,6 +43,7 @@ export const locatorTableCols: ColumnDef<Locator & { locatorGroup: LocatorGroup;
     {
       accessorKey: 'locatorGroup.name',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Locator Group" />,
+      cell: ({ row }) => row.original.locatorGroup?.name ?? '-',
     },
     {
       accessorKey: 'createdAt',

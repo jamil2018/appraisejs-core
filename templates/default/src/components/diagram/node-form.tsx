@@ -12,21 +12,22 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
-import { Locator, LocatorGroup, StepParameterType, TemplateStep, TemplateStepIcon } from '@prisma/client'
-import { TemplateStepParameter } from '@prisma/client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import TemplateStepCombobox from './template-step-combobox'
 import { type TemplateStepWithGroup } from '@/types/diagram/template-step'
 import DynamicFormFields, { DynamicFormFieldsRef } from './dynamic-parameters'
-import { generateGherkinStep } from '@/lib/transformers/gherkin-converter'
-import { z } from 'zod'
 import ErrorMessage from '@/components/form/error-message'
-import { format } from 'date-fns'
-
-const errorSchema = z.object({
-  label: z.string().min(3, { message: 'Label must be at least 3 characters' }),
-  templateStepId: z.string().min(1, { message: 'Template step is required' }),
-})
+import {
+  buildNodeFormSubmitValue,
+  createInitialParametersForTemplateStep,
+  getGherkinPreview,
+  getSelectedTemplateIcon,
+  getSelectedTemplateStep,
+  getSelectedTemplateStepParams,
+  type NodeFormErrors,
+  type NodeFormProps,
+  validateNodeFormValues,
+} from './node-form-helpers'
 
 const NodeForm = ({
   onSubmitAction,
@@ -38,45 +39,32 @@ const NodeForm = ({
   locatorGroups,
   setShowAddNodeDialog,
   defaultValueInput = false,
-}: {
-  onSubmitAction: (values: NodeData) => void
-  initialValues: NodeData
-  templateSteps: TemplateStep[]
-  templateStepParams: TemplateStepParameter[]
-  showAddNodeDialog: boolean
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
-  setShowAddNodeDialog: (show: boolean) => void
-  defaultValueInput?: boolean
-}) => {
+}: NodeFormProps) => {
   const dynamicFormRef = useRef<DynamicFormFieldsRef>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialValues.templateStepId)
-  // states for dynamic form fields
-  const [selectedTemplateStep, setSelectedTemplateStep] = useState<TemplateStep | null>(
-    templateSteps.find(step => step.id === initialValues.templateStepId) ?? null,
+  const [selectedTemplateStep, setSelectedTemplateStep] = useState(() =>
+    getSelectedTemplateStep(templateSteps, initialValues.templateStepId),
   )
-  const [selectedTemplateStepParams, setSelectedTemplateStepParams] = useState<TemplateStepParameter[]>(
-    templateStepParams.filter(param => param.templateStepId === initialValues.templateStepId) ?? [],
+  const [selectedTemplateStepParams, setSelectedTemplateStepParams] = useState(() =>
+    getSelectedTemplateStepParams(templateStepParams, initialValues.templateStepId),
   )
   const [parameters, setParameters] = useState<
     {
       name: string
       value: string
-      type: StepParameterType
+      type: NodeData['parameters'][number]['type']
       order: number
     }[]
   >(initialValues.parameters ?? [])
   const [gherkinStep, setGherkinStep] = useState<string>(initialValues.gherkinStep ?? '')
-  const [errors, setErrors] = useState<z.inferFlattenedErrors<typeof errorSchema>['fieldErrors']>({})
-  // Synchronize state with initialValues when they change (defer setState to avoid sync setState in effect)
+  const [errors, setErrors] = useState<NodeFormErrors>({})
+
   useEffect(() => {
     queueMicrotask(() => {
       setSelectedTemplateId(initialValues.templateStepId)
-      const step = templateSteps.find(s => s.id === initialValues.templateStepId) ?? null
+      const step = getSelectedTemplateStep(templateSteps, initialValues.templateStepId)
       setSelectedTemplateStep(step)
-      setSelectedTemplateStepParams(
-        templateStepParams.filter(param => param.templateStepId === initialValues.templateStepId),
-      )
+      setSelectedTemplateStepParams(getSelectedTemplateStepParams(templateStepParams, initialValues.templateStepId))
       setParameters(initialValues.parameters ?? [])
       setGherkinStep(initialValues.gherkinStep ?? '')
     })
@@ -95,48 +83,17 @@ const NodeForm = ({
         templateStepId: value ? undefined : ['Template step is required'],
       }))
       setSelectedTemplateId(value)
-      const step = templateSteps.find(s => s.id === value)
+      const step = getSelectedTemplateStep(templateSteps, value)
       if (step) {
         setSelectedTemplateStep(step)
-        const newParams = templateStepParams.filter(param => param.templateStepId === step.id)
+        const newParams = getSelectedTemplateStepParams(templateStepParams, step.id)
         setSelectedTemplateStepParams(newParams)
-        const initialParamsForStep = newParams.map(param => {
-          let defaultValue = ''
-          switch (param.type) {
-            case 'NUMBER':
-              defaultValue = '0'
-              break
-            case 'STRING':
-              defaultValue = ''
-              break
-            case 'LOCATOR':
-              defaultValue = ''
-              break
-            case 'BOOLEAN':
-              defaultValue = 'false'
-              break
-            case 'DATE':
-              defaultValue = format(new Date(), 'PPP')
-              break
-          }
-          return {
-            name: param.name,
-            value: defaultValue,
-            type: param.type,
-            order: param.order,
-          }
-        })
+        const initialParamsForStep = createInitialParametersForTemplateStep(newParams)
         setParameters(initialParamsForStep)
-        if (step.signature) {
-          const gherkin = generateGherkinStep(step.type, step.signature, initialParamsForStep)
-          setGherkinStep(gherkin)
-        }
+        setGherkinStep(getGherkinPreview(step, initialParamsForStep))
       }
     },
-    [
-      templateSteps,
-      templateStepParams,
-    ],
+    [templateStepParams, templateSteps],
   )
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -147,12 +104,7 @@ const NodeForm = ({
     const formData = new FormData(e.currentTarget)
     const formValues = Object.fromEntries(formData.entries())
 
-    const dataToValidate = {
-      label: formValues.label,
-      templateStepId: selectedTemplateId,
-    }
-
-    const parsed = errorSchema.safeParse(dataToValidate)
+    const parsed = validateNodeFormValues(formValues.label, selectedTemplateId)
 
     if (!parsed.success || !isDynamicFormValid) {
       if (!parsed.success) {
@@ -162,14 +114,7 @@ const NodeForm = ({
     }
 
     setErrors({})
-    const nodeData: NodeData = {
-      ...formValues,
-      parameters: parameters,
-      label: formValues.label as string,
-      gherkinStep: gherkinStep,
-      templateStepId: selectedTemplateId as string,
-    }
-    onSubmitAction(nodeData)
+    onSubmitAction(buildNodeFormSubmitValue(formValues, parameters, gherkinStep, selectedTemplateId))
   }
 
   return (
@@ -222,15 +167,7 @@ const NodeForm = ({
                 initialParameterValues={initialValues.parameters}
                 onChange={values => {
                   setParameters([...values])
-                  // Generate gherkin step directly when parameters change
-                  if (selectedTemplateStep && selectedTemplateStep.signature) {
-                    const gherkin = generateGherkinStep(
-                      selectedTemplateStep.type,
-                      selectedTemplateStep.signature,
-                      values,
-                    )
-                    setGherkinStep(gherkin)
-                  }
+                  setGherkinStep(getGherkinPreview(selectedTemplateStep, values))
                 }}
                 defaultValueInput={defaultValueInput}
               />
@@ -244,7 +181,7 @@ const NodeForm = ({
             <input
               type="hidden"
               name="icon"
-              value={selectedTemplateStep?.icon ? selectedTemplateStep.icon : TemplateStepIcon.MOUSE}
+              value={getSelectedTemplateIcon(selectedTemplateStep)}
             />
           </div>
           <DialogFooter>

@@ -2,7 +2,8 @@ import { promises as fs } from 'fs'
 import { join, dirname } from 'path'
 import prisma from '@/config/db-config'
 import { buildModulePath } from '@/lib/path-helpers/module-path'
-import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '@/lib/automation/paths'
+import { getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
+import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 import { generateProjectedGherkinSteps, getTestSuiteFilesystemKey } from '@/lib/sync/projected-feature-utils'
 
 async function isDirectoryEmpty(dirPath: string): Promise<boolean> {

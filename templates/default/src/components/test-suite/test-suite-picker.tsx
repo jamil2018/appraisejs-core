@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -16,9 +17,11 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { getFilterTags } from '@/lib/tag-utils'
-import { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
+import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
 import { CheckedState } from '@radix-ui/react-checkbox'
 import { ChevronDown, ChevronRight, FolderTree, Search } from 'lucide-react'
+
+import { createDraftSelections, normalizeSuiteSelection, suiteMatchesQuery, type DraftSelectionMap } from './test-suite-picker-helpers'
 
 type TestSuitePickerProps = {
   testSuites: TestSuitePickerRow[]
@@ -28,77 +31,6 @@ type TestSuitePickerProps = {
   dialogTitle: string
   dialogDescription: string
   selectedLabel: string
-}
-
-type DraftSelectionMap = Record<string, TestSuiteSelection>
-
-function createDraftSelections(selectedSuites: TestSuiteSelection[]): DraftSelectionMap {
-  return selectedSuites.reduce<DraftSelectionMap>((acc, selection) => {
-    acc[selection.testSuiteId] = {
-      testSuiteId: selection.testSuiteId,
-      runAll: selection.runAll,
-      testCaseIds: selection.testCaseIds,
-    }
-    return acc
-  }, {})
-}
-
-function normalizeSuiteSelection(testSuite: TestSuitePickerRow, selection: TestSuiteSelection): TestSuiteSelection | null {
-  const childIds = testSuite.testCases.map(testCase => testCase.id)
-
-  if (childIds.length === 0) {
-    return null
-  }
-
-  if (selection.runAll) {
-    return {
-      testSuiteId: testSuite.id,
-      runAll: true,
-      testCaseIds: [],
-    }
-  }
-
-  const selectedChildIds = selection.testCaseIds.filter(testCaseId => childIds.includes(testCaseId))
-  if (selectedChildIds.length === 0) {
-    return null
-  }
-
-  if (selectedChildIds.length === childIds.length) {
-    return {
-      testSuiteId: testSuite.id,
-      runAll: true,
-      testCaseIds: [],
-    }
-  }
-
-  return {
-    testSuiteId: testSuite.id,
-    runAll: false,
-    testCaseIds: selectedChildIds,
-  }
-}
-
-function suiteMatchesQuery(testSuite: TestSuitePickerRow, query: string): boolean {
-  if (!query) {
-    return true
-  }
-
-  const normalizedQuery = query.toLowerCase()
-  const searchableText = [
-    testSuite.name,
-    testSuite.description ?? '',
-    testSuite.module.name,
-    ...getFilterTags(testSuite.tags).map(tag => tag.name),
-    ...testSuite.testCases.flatMap(testCase => [
-      testCase.title,
-      testCase.description ?? '',
-      ...getFilterTags(testCase.tags).map(tag => tag.name),
-    ]),
-  ]
-    .join(' ')
-    .toLowerCase()
-
-  return searchableText.includes(normalizedQuery)
 }
 
 export function TestSuitePicker({

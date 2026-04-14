@@ -3,12 +3,13 @@
 import * as React from 'react'
 import { useEffect, useState, useMemo } from 'react'
 import { CommandGroup, CommandItem } from '../ui/command'
-import { ActionResponse } from '@/types/form/actionHandler'
+import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
 
 export interface EntitySearchCommandProps<T extends { id: string }> {
   searchQuery: string
   entityName: string
   fetchAction: () => Promise<ActionResponse>
+  getEntities: (data: ActionResponseData | undefined) => T[]
   searchKey: keyof T
   icon?: React.ReactNode
   onSelect?: (entity: T) => void
@@ -18,6 +19,7 @@ export function EntitySearchCommand<T extends { id: string }>({
   searchQuery,
   entityName,
   fetchAction,
+  getEntities,
   searchKey,
   icon,
   onSelect,
@@ -35,8 +37,8 @@ export function EntitySearchCommand<T extends { id: string }>({
       try {
         const result = await fetchAction()
         if (isMounted) {
-          if (result.status === 200 && result.data) {
-            setEntities(result.data as T[])
+          if (result.status === 200) {
+            setEntities(getEntities(result.data))
           } else {
             setError(result.error || 'Failed to fetch entities')
           }
@@ -55,7 +57,7 @@ export function EntitySearchCommand<T extends { id: string }>({
     return () => {
       isMounted = false
     }
-  }, [fetchAction])
+  }, [fetchAction, getEntities])
 
   const filteredEntities = useMemo(() => {
     if (!searchQuery.trim()) {
