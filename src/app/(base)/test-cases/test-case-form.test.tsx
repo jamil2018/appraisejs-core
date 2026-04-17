@@ -178,6 +178,8 @@ describe('TestCaseForm', () => {
     await user.type(screen.getByLabelText('Description'), 'Ensures checkout succeeds')
     await user.click(screen.getByRole('button', { name: 'Smoke' }))
     await user.click(screen.getByRole('button', { name: 'Regression' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(screen.getByText('Mock test case flow')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
@@ -239,6 +241,7 @@ describe('TestCaseForm', () => {
     expect(push).not.toHaveBeenCalled()
 
     await user.type(screen.getByLabelText('Title'), 'Checkout flow')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
@@ -302,6 +305,7 @@ describe('TestCaseForm', () => {
     expect(push).not.toHaveBeenCalled()
 
     await user.type(screen.getByLabelText('Title'), 'Checkout flow')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
@@ -356,6 +360,7 @@ describe('TestCaseForm', () => {
 
     await user.type(screen.getByLabelText('Title'), 'Checkout flow')
     await user.click(screen.getByRole('button', { name: 'Smoke' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(onSubmitAction).not.toHaveBeenCalled()
@@ -365,5 +370,17 @@ describe('TestCaseForm', () => {
         'The following nodes have missing mandatory parameters: Click submit. Please fill in all required parameters before saving.',
       variant: 'destructive',
     })
+  })
+
+  it('keeps the user on details until the first step is valid', async () => {
+    const user = userEvent.setup()
+
+    renderForm()
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+    expect(screen.getByText('Title must be at least 3 characters')).toBeInTheDocument()
+    expect(screen.getByText('Test suites are required')).toBeInTheDocument()
+    expect(screen.queryByText('Mock test case flow')).not.toBeInTheDocument()
   })
 })
