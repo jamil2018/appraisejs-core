@@ -1,17 +1,23 @@
 'use client'
 import React, { useCallback, useState } from 'react'
 
+import { InlineTagCreationDialog } from './inline-tag-creation-dialog'
+import { InlineTestSuiteCreationDialog } from './inline-test-suite-creation-dialog'
 import TestCaseFlow from './test-case-flow'
+import type { TagFormSubmitAction } from '@/app/(base)/tags/tag-form-helpers'
+import type { TestSuiteFormSubmitAction } from '@/app/(base)/test-suites/test-suite-helpers'
 import type { NodeOrderMap } from '@/types/diagram/diagram'
+import type { TestCasePickerRow } from '@/types/test-case-picker'
 import {
   type Locator,
   type LocatorGroup,
+  type Module,
   type TemplateStep,
   type TemplateStepParameter,
   type TestSuite,
   type Tag,
 } from '@prisma/client'
-import { Info, Save } from 'lucide-react'
+import { Info, Plus, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -42,8 +48,12 @@ type TestCaseFormProps = {
   locators: Locator[]
   locatorGroups: LocatorGroup[]
   testSuites: TestSuite[]
+  testCases: TestCasePickerRow[]
+  moduleList: Module[]
   tags: Tag[]
   onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
+  onCreateTestSuiteAction: TestSuiteFormSubmitAction
+  onCreateTagAction: TagFormSubmitAction
   id?: string
   defaultTitle?: string
   defaultDescription?: string
@@ -58,6 +68,8 @@ const TestCaseForm = ({
   locators,
   locatorGroups,
   testSuites,
+  testCases,
+  moduleList,
   tags,
   id,
   defaultTitle,
@@ -65,13 +77,19 @@ const TestCaseForm = ({
   defaultTestSuiteIds,
   defaultTagIds,
   onSubmitAction,
+  onCreateTestSuiteAction,
+  onCreateTagAction,
 }: TestCaseFormProps) => {
   const router = useRouter()
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(defaultNodesOrder)
   const [title, setTitle] = useState(defaultTitle || '')
   const [description, setDescription] = useState(defaultDescription || '')
+  const [availableTestSuites, setAvailableTestSuites] = useState(testSuites)
+  const [availableTags, setAvailableTags] = useState(tags)
   const [selectedTestSuites, setSelectedTestSuites] = useState(defaultTestSuiteIds || [])
   const [selectedTags, setSelectedTags] = useState(defaultTagIds || [])
+  const [isCreateSuiteDialogOpen, setIsCreateSuiteDialogOpen] = useState(false)
+  const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false)
   const [errors, setErrors] = useState<{
     title?: string[]
     description?: string[]
@@ -98,8 +116,24 @@ const TestCaseForm = ({
     setSelectedTestSuites(selectedTestSuites)
   }, [])
 
+  const handleInlineTestSuiteSuccess = useCallback(async (createdTestSuite: TestSuite) => {
+    setAvailableTestSuites(current =>
+      current.some(testSuite => testSuite.id === createdTestSuite.id) ? current : [...current, createdTestSuite],
+    )
+    setSelectedTestSuites(current =>
+      current.includes(createdTestSuite.id) ? current : [...current, createdTestSuite.id],
+    )
+    setIsCreateSuiteDialogOpen(false)
+  }, [])
+
   const onTagChange = useCallback((selectedTags: string[]) => {
     setSelectedTags(selectedTags)
+  }, [])
+
+  const handleInlineTagSuccess = useCallback(async (createdTag: Tag) => {
+    setAvailableTags(current => (current.some(tag => tag.id === createdTag.id) ? current : [...current, createdTag]))
+    setSelectedTags(current => (current.includes(createdTag.id) ? current : [...current, createdTag.id]))
+    setIsCreateTagDialogOpen(false)
   }, [])
 
   const handleSubmit = useCallback(async () => {
@@ -173,30 +207,58 @@ const TestCaseForm = ({
               </div>
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="test-suites">Test Suites</Label>
-                <MultiSelect
-                  options={testSuites.map(testSuite => {
-                    return {
-                      label: testSuite.name,
-                      value: testSuite.id,
-                    }
-                  })}
-                  selected={selectedTestSuites}
-                  onChange={onTestSuiteChange}
-                />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <MultiSelect
+                      options={availableTestSuites.map(testSuite => {
+                        return {
+                          label: testSuite.name,
+                          value: testSuite.id,
+                        }
+                      })}
+                      selected={selectedTestSuites}
+                      onChange={onTestSuiteChange}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    aria-label="Create test suite"
+                    onClick={() => setIsCreateSuiteDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
                 {renderError(errors.testSuiteIds)}
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="tags">Filter Tags</Label>
-                <MultiSelect
-                  options={tags.map(tag => {
-                    return {
-                      label: tag.name,
-                      value: tag.id,
-                    }
-                  })}
-                  selected={selectedTags}
-                  onChange={onTagChange}
-                />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <MultiSelect
+                      options={availableTags.map(tag => {
+                        return {
+                          label: tag.name,
+                          value: tag.id,
+                        }
+                      })}
+                      selected={selectedTags}
+                      onChange={onTagChange}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    aria-label="Create filter tag"
+                    onClick={() => setIsCreateTagDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -250,6 +312,21 @@ const TestCaseForm = ({
         </CardContent>
       </Card>
       {renderError(errors.steps)}
+      <InlineTestSuiteCreationDialog
+        open={isCreateSuiteDialogOpen}
+        onOpenChange={setIsCreateSuiteDialogOpen}
+        onSubmitAction={onCreateTestSuiteAction}
+        onSuccess={handleInlineTestSuiteSuccess}
+        testCases={testCases}
+        moduleList={moduleList}
+        tags={availableTags}
+      />
+      <InlineTagCreationDialog
+        open={isCreateTagDialogOpen}
+        onOpenChange={setIsCreateTagDialogOpen}
+        onSubmitAction={onCreateTagAction}
+        onSuccess={handleInlineTagSuccess}
+      />
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={handleSubmit} className="w-fit px-6 hover:bg-emerald-500">
           <Save className="h-4 w-4" />

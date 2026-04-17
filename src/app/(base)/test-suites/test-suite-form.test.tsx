@@ -2,7 +2,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TestSuiteForm } from './test-suite-form'
 
@@ -81,8 +81,22 @@ vi.mock('@/components/ui/select', async () => {
   }
 })
 
+async function fillAndSubmitForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText('Name'), 'Smoke Suite')
+  await user.type(screen.getByLabelText('Description'), 'Important tests')
+  await user.click(screen.getByRole('button', { name: 'Select Cases' }))
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Module' }), 'module-1')
+  await user.click(screen.getByRole('button', { name: 'Select Tags' }))
+  await user.click(screen.getByRole('button', { name: 'Save' }))
+}
+
 describe('TestSuiteForm', () => {
-  it('submits valid values and navigates back to the suites list', async () => {
+  beforeEach(() => {
+    push.mockReset()
+    toast.mockReset()
+  })
+
+  it('submits valid values and navigates back to the suites list in page mode', async () => {
     const user = userEvent.setup()
     const onSubmitAction = vi.fn().mockResolvedValue({ status: 200 })
 
@@ -97,12 +111,7 @@ describe('TestSuiteForm', () => {
       />,
     )
 
-    await user.type(screen.getByLabelText('Name'), 'Smoke Suite')
-    await user.type(screen.getByLabelText('Description'), 'Important tests')
-    await user.click(screen.getByRole('button', { name: 'Select Cases' }))
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Module' }), 'module-1')
-    await user.click(screen.getByRole('button', { name: 'Select Tags' }))
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await fillAndSubmitForm(user)
 
     await waitFor(() => {
       expect(onSubmitAction).toHaveBeenCalledWith(
@@ -123,5 +132,45 @@ describe('TestSuiteForm', () => {
       description: 'Test suite created successfully',
     })
     expect(push).toHaveBeenCalledWith('/test-suites')
+  })
+
+  it('does not redirect and calls onSuccess with created suite data in dialog mode', async () => {
+    const user = userEvent.setup()
+    const onSuccess = vi.fn()
+    const onSubmitAction = vi.fn().mockResolvedValue({
+      status: 200,
+      data: {
+        id: 'suite-2',
+        name: 'Inline Suite',
+      },
+    })
+
+    render(
+      <TestSuiteForm
+        successTitle="Suite created"
+        successMessage="Test suite created successfully"
+        onSubmitAction={onSubmitAction}
+        onSuccess={onSuccess}
+        redirectPath={null}
+        testCases={[]}
+        moduleList={[{ id: 'module-1', name: 'Payments' } as never]}
+        tags={[{ id: 'tag-1', name: 'smoke' } as never]}
+      />,
+    )
+
+    await fillAndSubmitForm(user)
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith({
+        id: 'suite-2',
+        name: 'Inline Suite',
+      })
+    })
+
+    expect(toast).toHaveBeenCalledWith({
+      title: 'Suite created',
+      description: 'Test suite created successfully',
+    })
+    expect(push).not.toHaveBeenCalled()
   })
 })
