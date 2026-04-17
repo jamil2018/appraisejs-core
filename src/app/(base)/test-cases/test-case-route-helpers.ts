@@ -1,6 +1,7 @@
 import type {
   Locator,
   LocatorGroup,
+  Module,
   Tag,
   TestCase,
   TestCaseStep,
@@ -87,6 +88,10 @@ function isLocatorRow(value: unknown): value is Locator {
   return isNamedRow(value)
 }
 
+function isModuleRow(value: unknown): value is Module {
+  return isNamedRow(value)
+}
+
 function isTestSuiteRow(value: unknown): value is TestSuite {
   return isNamedRow(value)
 }
@@ -132,6 +137,10 @@ export function getTemplateStepRows(data: ActionResponseData | undefined): Templ
 
 export function getLocatorRows(data: ActionResponseData | undefined): Locator[] {
   return Array.isArray(data) ? data.filter(isLocatorRow) : []
+}
+
+export function getModuleRows(data: ActionResponseData | undefined): Module[] {
+  return Array.isArray(data) ? data.filter(isModuleRow) : []
 }
 
 export function getTestSuiteRows(data: ActionResponseData | undefined): TestSuite[] {

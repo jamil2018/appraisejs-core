@@ -8,9 +8,11 @@ import {
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
-import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
-import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
+import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
+import { createTestSuiteAction, getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
 
 import {
@@ -18,7 +20,9 @@ import {
   getEditableTestCase,
   getLocatorGroupRows,
   getLocatorRows,
+  getModuleRows,
   getTagRows,
+  getTestCaseRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
   getTestSuiteRows,
@@ -39,6 +43,8 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     testSuitesResponse,
     locatorGroupsResponse,
     tagsResponse,
+    testCasesResponse,
+    moduleListResponse,
   ] = await Promise.all([
     getTestCaseByIdAction(id),
     getAllTemplateStepParamsAction(),
@@ -47,6 +53,8 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     getAllTestSuitesAction(),
     getAllLocatorGroupsAction(),
     getAllTagsAction(),
+    getAllTestCasesAction(),
+    getAllModulesAction(),
   ])
 
   const loadError =
@@ -56,7 +64,9 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     locatorsResponse.error ||
     testSuitesResponse.error ||
     locatorGroupsResponse.error ||
-    tagsResponse.error
+    tagsResponse.error ||
+    testCasesResponse.error ||
+    moduleListResponse.error
 
   if (loadError) {
     return (
@@ -77,6 +87,8 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
   const testSuites = getTestSuiteRows(testSuitesResponse.data)
   const locatorGroups = getLocatorGroupRows(locatorGroupsResponse.data)
   const tags = getTagRows(tagsResponse.data)
+  const testCases = getTestCaseRows(testCasesResponse.data)
+  const moduleList = getModuleRows(moduleListResponse.data)
 
   return (
     <>
@@ -96,8 +108,12 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         locators={locators}
         locatorGroups={locatorGroups}
         testSuites={testSuites}
+        testCases={testCases}
+        moduleList={moduleList}
         tags={tags}
         defaultNodesOrder={buildNodeOrderFromTestCaseSteps(testCase.steps)}
+        onCreateTestSuiteAction={createTestSuiteAction}
+        onCreateTagAction={createTagAction}
       />
     </>
   )

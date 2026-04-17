@@ -4,7 +4,6 @@
 # To modify this feature, update the corresponding Test Suite in the application.
 
 @ts_280de079298c199f
-@test
 Feature: Demo tests
 
   @tc_e8e239a232d6ec53

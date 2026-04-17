@@ -32,12 +32,13 @@ export async function createTestSuiteAction(
 ): Promise<ActionResponse> {
   try {
     testSuiteSchema.parse(value)
-    await createTestSuiteFromInput(value)
+    const createdTestSuite = await createTestSuiteFromInput(value)
 
     revalidatePath('/test-suites')
     return {
       status: 200,
       success: true,
+      data: createdTestSuite,
       message: 'Test suite created successfully',
     }
   } catch (error) {

@@ -7,18 +7,22 @@ import {
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
-import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
+import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
-import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
+import { createTestSuiteAction, getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
 
 import {
   getConvertedTemplateTestCaseData,
   getLocatorGroupRows,
   getLocatorRows,
+  getModuleRows,
   getTagRows,
+  getTestCaseRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
   getTemplateTestCaseWithSteps,
@@ -40,6 +44,8 @@ const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: 
     testSuitesResponse,
     locatorGroupsResponse,
     tagsResponse,
+    testCasesResponse,
+    moduleListResponse,
   ] = await Promise.all([
     getTemplateTestCaseByIdAction(id),
     getAllTemplateStepParamsAction(),
@@ -48,6 +54,8 @@ const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: 
     getAllTestSuitesAction(),
     getAllLocatorGroupsAction(),
     getAllTagsAction(),
+    getAllTestCasesAction(),
+    getAllModulesAction(),
   ])
 
   const loadError =
@@ -57,7 +65,9 @@ const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: 
     locatorsResponse.error ||
     testSuitesResponse.error ||
     locatorGroupsResponse.error ||
-    tagsResponse.error
+    tagsResponse.error ||
+    testCasesResponse.error ||
+    moduleListResponse.error
 
   if (loadError) {
     return <div>Error: {loadError}</div>
@@ -79,6 +89,8 @@ const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: 
   const testSuites = getTestSuiteRows(testSuitesResponse.data)
   const locatorGroups = getLocatorGroupRows(locatorGroupsResponse.data)
   const tags = getTagRows(tagsResponse.data)
+  const testCases = getTestCaseRows(testCasesResponse.data)
+  const moduleList = getModuleRows(moduleListResponse.data)
 
   return (
     <div>
@@ -92,11 +104,15 @@ const GenerateTestCaseFromTemplate = async ({ params }: { params: Promise<{ id: 
         templateSteps={templateSteps}
         locators={locators}
         testSuites={testSuites}
+        testCases={testCases}
+        moduleList={moduleList}
         tags={tags}
         defaultTitle={templateTestCaseData.name || ''}
         defaultDescription={templateTestCaseData.description || ''}
         defaultTestSuiteIds={convertedData.testSuiteIds}
         locatorGroups={locatorGroups}
+        onCreateTestSuiteAction={createTestSuiteAction}
+        onCreateTagAction={createTagAction}
       />
     </div>
   )
