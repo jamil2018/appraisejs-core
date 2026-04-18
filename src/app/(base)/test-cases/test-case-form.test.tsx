@@ -2,7 +2,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StepParameterType } from '@prisma/client'
+import { StepParameterType, TemplateStepIcon } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
@@ -61,6 +61,45 @@ vi.mock('@/components/ui/multi-select', () => ({
   ),
 }))
 
+vi.mock('@/components/ui/select', async () => {
+  const ReactModule = await import('react')
+
+  const SelectContext = ReactModule.createContext<{
+    value: string
+    onValueChange: (value: string) => void
+  }>({
+    value: '',
+    onValueChange: () => {},
+  })
+
+  return {
+    Select: ({
+      value,
+      onValueChange,
+      children,
+    }: {
+      value: string
+      onValueChange: (value: string) => void
+      children: React.ReactNode
+    }) => <SelectContext.Provider value={{ value, onValueChange }}>{children}</SelectContext.Provider>,
+    SelectTrigger: ({ children, ...props }: React.ComponentProps<'div'>) => <div {...props}>{children}</div>,
+    SelectValue: ({ placeholder }: { placeholder?: string }) => <span>{placeholder}</span>,
+    SelectContent: ({ children }: { children: React.ReactNode }) => {
+      const { value, onValueChange } = ReactModule.useContext(SelectContext)
+
+      return (
+        <select aria-label="Template Test Case" value={value} onChange={event => onValueChange(event.target.value)}>
+          <option value="">Select a template test case</option>
+          {children}
+        </select>
+      )
+    },
+    SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) => (
+      <option value={value}>{children}</option>
+    ),
+  }
+})
+
 vi.mock('@/app/(base)/test-suites/test-suite-form', () => ({
   TestSuiteForm: ({
     onSuccess,
@@ -118,8 +157,10 @@ function renderForm({
   onSubmitAction = vi
     .fn<(value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>>()
     .mockResolvedValue({ status: 200 }),
+  formProps = {},
 }: {
   onSubmitAction?: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
+  formProps?: Partial<React.ComponentProps<typeof TestCaseForm>>
 } = {}) {
   const onCreateTestSuiteAction = vi.fn()
   const onCreateTagAction = vi.fn()
@@ -154,6 +195,7 @@ function renderForm({
       onSubmitAction={onSubmitAction}
       onCreateTestSuiteAction={onCreateTestSuiteAction}
       onCreateTagAction={onCreateTagAction}
+      {...formProps}
     />,
   )
 
@@ -217,6 +259,61 @@ describe('TestCaseForm', () => {
       variant: 'default',
     })
     expect(push).toHaveBeenCalledWith('/test-cases')
+  })
+
+  it('uses the selected template as the first step before showing the details form', async () => {
+    const user = userEvent.setup()
+
+    renderForm({
+      formProps: {
+        defaultNodesOrder: {},
+        templateTestCases: [
+          {
+            id: 'template-1',
+            name: 'Login flow',
+            description: 'Reusable login flow',
+            steps: [
+              {
+                id: 'template-step-row-1',
+                order: 1,
+                label: 'Fill email',
+                gherkinStep: 'fill email',
+                icon: TemplateStepIcon.INPUT,
+                templateStepId: 'step-1',
+                parameters: [
+                  {
+                    id: 'template-param-1',
+                    name: 'email',
+                    defaultValue: 'qa@appraise.dev',
+                    type: StepParameterType.STRING,
+                    order: 1,
+                    testCaseStepId: 'template-step-row-1',
+                  },
+                ],
+              },
+            ],
+          } as never,
+        ],
+      },
+    })
+
+    expect(screen.getByText('Template Selection')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Template Test Case' }), 'template-1')
+
+    expect(screen.getByText('1 step')).toBeInTheDocument()
+    expect(screen.getByText('Description included')).toBeInTheDocument()
+    expect(screen.getByText('Fill email')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+    expect(screen.getByLabelText('Title')).toHaveValue('Login flow')
+    expect(screen.getByLabelText('Description')).toHaveValue('Reusable login flow')
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+
+    expect(screen.getByText('Mock test case flow')).toBeInTheDocument()
   })
 
   it('opens inline suite creation and auto-selects the created suite without navigating away', async () => {
