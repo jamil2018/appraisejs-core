@@ -1,6 +1,13 @@
 'use client'
 import React, { useCallback, useState } from 'react'
 
+import {
+  getConvertedTemplateTestCaseData,
+  getFieldErrorMessage,
+  getTemplateSelectionOptions,
+  templateSelectionFieldValidator,
+  type TemplateTestCaseWithSteps,
+} from './create-from-template/create-from-template-helpers'
 import { InlineTagCreationDialog } from './inline-tag-creation-dialog'
 import { InlineTestSuiteCreationDialog } from './inline-test-suite-creation-dialog'
 import TestCaseFlow from './test-case-flow'
@@ -36,6 +43,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { toast } from '@/hooks/use-toast'
@@ -59,9 +67,12 @@ type TestCaseFormProps = {
   defaultDescription?: string
   defaultTestSuiteIds?: string[]
   defaultTagIds?: string[]
+  templateTestCases?: TemplateTestCaseWithSteps[]
+  defaultTemplateTestCaseId?: string
 }
 
 type TestCaseFormErrors = {
+  templateTestCaseId?: string[]
   title?: string[]
   description?: string[]
   testSuiteIds?: string[]
@@ -86,11 +97,21 @@ const TestCaseForm = ({
   defaultDescription,
   defaultTestSuiteIds,
   defaultTagIds,
+  templateTestCases,
+  defaultTemplateTestCaseId,
   onSubmitAction,
   onCreateTestSuiteAction,
   onCreateTagAction,
 }: TestCaseFormProps) => {
   const router = useRouter()
+  const hasTemplateSelectionStep = Array.isArray(templateTestCases)
+  const detailsStepIndex = hasTemplateSelectionStep ? 1 : 0
+  const flowStepIndex = hasTemplateSelectionStep ? 2 : 1
+  const wizardSteps = hasTemplateSelectionStep
+    ? ['Template Selection', 'Test Case Details', 'Test Case Flow']
+    : ['Test Case Details', 'Test Case Flow']
+  const templateOptions = getTemplateSelectionOptions(templateTestCases || [])
+
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(defaultNodesOrder)
   const [title, setTitle] = useState(defaultTitle || '')
   const [description, setDescription] = useState(defaultDescription || '')
@@ -98,17 +119,35 @@ const TestCaseForm = ({
   const [availableTags, setAvailableTags] = useState(tags)
   const [selectedTestSuites, setSelectedTestSuites] = useState(defaultTestSuiteIds || [])
   const [selectedTags, setSelectedTags] = useState(defaultTagIds || [])
-  const [currentStep, setCurrentStep] = useState(0)
+  const [selectedTemplateId, setSelectedTemplateId] = useState(defaultTemplateTestCaseId || '')
+  const [appliedTemplateId, setAppliedTemplateId] = useState(defaultTemplateTestCaseId || '')
+  const [currentStep, setCurrentStep] = useState(hasTemplateSelectionStep ? (defaultTemplateTestCaseId ? detailsStepIndex : 0) : 0)
   const [isCreateSuiteDialogOpen, setIsCreateSuiteDialogOpen] = useState(false)
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false)
   const [errors, setErrors] = useState<TestCaseFormErrors>({})
+  const selectedTemplateTestCase =
+    templateTestCases?.find(templateTestCase => templateTestCase.id === selectedTemplateId) ?? null
+  const selectedTemplateStepCount = selectedTemplateTestCase?.steps.length ?? 0
+  const selectedTemplatePreviewSteps =
+    selectedTemplateTestCase?.steps
+      .slice()
+      .sort((left, right) => left.order - right.order)
+      .slice(0, 3)
+      .map(step => step.label) ?? []
+  const stepLineInset = `${50 / wizardSteps.length}%`
+  const stepProgressWidth = wizardSteps.length > 1 ? `${(currentStep / (wizardSteps.length - 1)) * 100}%` : '0%'
 
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
-  const renderError = (message?: string[]) => <ErrorMessage message={message?.[0] || ''} visible={!!message} />
+  const renderError = (message?: string[]) => <ErrorMessage message={message?.[0] || ''} visible={Boolean(message?.[0])} />
 
   const onNodeOrderChange = useCallback((nodesOrder: NodeOrderMap) => {
     setNodesOrder(nodesOrder)
     setErrors(current => ({ ...current, steps: undefined }))
+  }, [])
+
+  const onTemplateChange = useCallback((value: string) => {
+    setSelectedTemplateId(value)
+    setErrors(current => ({ ...current, templateTestCaseId: undefined }))
   }, [])
 
   const onTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,7 +173,7 @@ const TestCaseForm = ({
       current.includes(createdTestSuite.id) ? current : [...current, createdTestSuite.id],
     )
     setIsCreateSuiteDialogOpen(false)
-  }, [])
+  }, [setIsCreateSuiteDialogOpen])
 
   const onTagChange = useCallback((selectedTags: string[]) => {
     setSelectedTags(selectedTags)
@@ -145,7 +184,62 @@ const TestCaseForm = ({
     setAvailableTags(current => (current.some(tag => tag.id === createdTag.id) ? current : [...current, createdTag]))
     setSelectedTags(current => (current.includes(createdTag.id) ? current : [...current, createdTag.id]))
     setIsCreateTagDialogOpen(false)
-  }, [])
+  }, [setIsCreateTagDialogOpen])
+
+  const goToDetailsStep = useCallback(() => {
+    if (!hasTemplateSelectionStep || !templateTestCases) {
+      setCurrentStep(detailsStepIndex)
+      return
+    }
+
+    const validation = templateSelectionFieldValidator.safeParse(selectedTemplateId)
+
+    if (!validation.success) {
+      setErrors(current => ({
+        ...current,
+        templateTestCaseId: validation.error.flatten().formErrors,
+      }))
+      return
+    }
+
+    const templateTestCase = templateTestCases.find(option => option.id === selectedTemplateId)
+
+    if (!templateTestCase) {
+      setErrors(current => ({
+        ...current,
+        templateTestCaseId: ['Template test case not found'],
+      }))
+      return
+    }
+
+    if (selectedTemplateId !== appliedTemplateId) {
+      const { convertedData, error } = getConvertedTemplateTestCaseData(templateTestCase)
+
+      if (!convertedData || error) {
+        toast({
+          title: 'Validation Error',
+          description: error || 'Invalid template test case',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      setTitle(templateTestCase.name || '')
+      setDescription(templateTestCase.description || '')
+      setNodesOrder(convertedData.nodesOrder)
+      setAppliedTemplateId(selectedTemplateId)
+      setErrors(current => ({
+        ...current,
+        steps: undefined,
+      }))
+    }
+
+    setErrors(current => ({
+      ...current,
+      templateTestCaseId: undefined,
+    }))
+    setCurrentStep(detailsStepIndex)
+  }, [appliedTemplateId, detailsStepIndex, hasTemplateSelectionStep, selectedTemplateId, templateTestCases])
 
   const goToFlowStep = useCallback(() => {
     const result = detailsStepSchema.safeParse({
@@ -174,8 +268,8 @@ const TestCaseForm = ({
       testSuiteIds: undefined,
       tagIds: undefined,
     }))
-    setCurrentStep(1)
-  }, [description, selectedTags, selectedTestSuites, title])
+    setCurrentStep(flowStepIndex)
+  }, [description, flowStepIndex, selectedTags, selectedTestSuites, title])
 
   const handleSubmit = useCallback(async () => {
     const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder, templateStepParams)
@@ -201,7 +295,7 @@ const TestCaseForm = ({
       const fieldErrors = result.error.flatten().fieldErrors
       setErrors(fieldErrors)
       if (fieldErrors.title || fieldErrors.description || fieldErrors.testSuiteIds || fieldErrors.tagIds) {
-        setCurrentStep(0)
+        setCurrentStep(detailsStepIndex)
       }
       return
     }
@@ -222,34 +316,55 @@ const TestCaseForm = ({
         variant: 'destructive',
       })
     }
-  }, [description, nodesOrder, selectedTestSuites, selectedTags, title, router, onSubmitAction, id, templateStepParams])
+  }, [
+    description,
+    detailsStepIndex,
+    nodesOrder,
+    selectedTestSuites,
+    selectedTags,
+    title,
+    router,
+    onSubmitAction,
+    id,
+    templateStepParams,
+  ])
 
   return (
     <div className="flex flex-col gap-4">
       <div className="mb-4 px-1 pt-1">
         <div className="relative">
-          <div className="pointer-events-none absolute left-3 right-3 top-[calc(100%-0.375rem)] z-0 h-px -translate-y-1/2 bg-border md:left-[calc(25%_+_0.375rem)] md:right-[calc(25%_+_0.375rem)]" />
           <div
-            className={`pointer-events-none absolute left-3 top-[calc(100%-0.375rem)] z-0 h-px -translate-y-1/2 bg-primary transition-all duration-200 md:left-[calc(25%_+_0.375rem)] ${
-              currentStep === 0 ? 'w-0' : 'w-[calc(100%-1.5rem)] md:w-[calc(50%-0.75rem)]'
-            }`}
+            className="pointer-events-none absolute z-0 h-px -translate-y-1/2 bg-border"
+            style={{
+              left: stepLineInset,
+              right: stepLineInset,
+              top: 'calc(100% - 0.375rem)',
+            }}
           />
-          <div className="grid gap-3 md:grid-cols-2">
-            {[
-              {
-                title: 'Test Case Details',
-              },
-              {
-                title: 'Test Case Flow',
-              },
-            ].map((step, index) => {
+          <div
+            className="pointer-events-none absolute z-0 h-px -translate-y-1/2 overflow-hidden"
+            style={{
+              left: stepLineInset,
+              right: stepLineInset,
+              top: 'calc(100% - 0.375rem)',
+            }}
+          >
+            <div className="h-full bg-primary transition-all duration-200" style={{ width: stepProgressWidth }} />
+          </div>
+          <div
+            className="grid gap-3"
+            style={{
+              gridTemplateColumns: `repeat(${wizardSteps.length}, minmax(0, 1fr))`,
+            }}
+          >
+            {wizardSteps.map((step, index) => {
               const isActive = currentStep === index
               const isComplete = currentStep > index
               const isFilled = isComplete || (index === 0 && isActive)
 
               return (
                 <button
-                  key={step.title}
+                  key={step}
                   type="button"
                   className="flex flex-col items-center gap-2 px-2 text-center"
                   onClick={() => {
@@ -264,7 +379,7 @@ const TestCaseForm = ({
                       isActive || isComplete ? 'text-primary' : 'text-muted-foreground'
                     }`}
                   >
-                    {step.title}
+                    {step}
                   </span>
                   <span
                     className={`relative z-10 h-3 w-3 rounded-full border transition-colors ${
@@ -282,7 +397,112 @@ const TestCaseForm = ({
         </div>
       </div>
 
-      {currentStep === 0 ? (
+      {hasTemplateSelectionStep && currentStep === 0 ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 xl:flex-row">
+            <div className="xl:w-1/2">
+              <Card className="h-full dark:border-gray-700 dark:bg-gray-500/10">
+                <CardHeader className="mb-4">
+                  <CardTitle className="text-xl font-bold text-primary">Template Selection</CardTitle>
+                  <CardDescription>Choose the template that should seed the new test case</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="templateTestCaseId">Template Test Case</Label>
+                    <Select onValueChange={onTemplateChange} value={selectedTemplateId}>
+                      <SelectTrigger id="templateTestCaseId" aria-label="Template Test Case">
+                        <SelectValue placeholder="Select a template test case" />
+                      </SelectTrigger>
+                      <SelectContent isEmpty={templateOptions.length === 0}>
+                        {templateOptions.map(templateOption => (
+                          <SelectItem key={templateOption.value} value={templateOption.value}>
+                            {templateOption.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {renderError(
+                      errors.templateTestCaseId?.map(error => getFieldErrorMessage(error)),
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="xl:w-1/2">
+              <Card className="h-full border-gray-700 bg-gray-500/10">
+                <CardHeader className="mb-2">
+                  <CardTitle className="text-xl font-bold text-primary">Selected Template</CardTitle>
+                  <CardDescription>Review what will be prefilled before moving into the form</CardDescription>
+                </CardHeader>
+                <CardContent className="flex h-full flex-col gap-3">
+                  <div className="rounded-lg border border-dashed border-border p-4">
+                    <div className="text-sm font-semibold text-foreground">
+                      {selectedTemplateTestCase?.name || 'No template selected'}
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {selectedTemplateTestCase?.description ||
+                        'The selected template will prefill the title, description, and test flow for the next steps.'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-dashed border-border p-4">
+                    {selectedTemplateTestCase ? (
+                      <div className="flex flex-col gap-3 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
+                            {selectedTemplateStepCount} {selectedTemplateStepCount === 1 ? 'step' : 'steps'}
+                          </span>
+                          <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
+                            {selectedTemplateTestCase.description ? 'Description included' : 'No description'}
+                          </span>
+                          <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
+                            Title will be prefilled
+                          </span>
+                        </div>
+                        <p>
+                          Continuing will load this template into the details and flow steps so you can edit before
+                          saving.
+                        </p>
+                        {selectedTemplatePreviewSteps.length > 0 ? (
+                          <div className="flex flex-col gap-2">
+                            <span className="text-xs font-medium uppercase tracking-wide text-foreground/80">
+                              Flow Preview
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedTemplatePreviewSteps.map(stepLabel => (
+                                <span
+                                  key={stepLabel}
+                                  className="rounded-full bg-muted px-3 py-1 text-xs text-foreground"
+                                >
+                                  {stepLabel}
+                                </span>
+                              ))}
+                              {selectedTemplateStepCount > selectedTemplatePreviewSteps.length ? (
+                                <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
+                                  +{selectedTemplateStepCount - selectedTemplatePreviewSteps.length} more
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Select a template to preview what will be prefilled in the next two steps.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          <div className="mb-4 flex flex-col gap-2">
+            <Button onClick={goToDetailsStep} className="w-fit px-6 hover:bg-emerald-500">
+              <span className="font-bold">Continue</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : currentStep === detailsStepIndex ? (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 xl:flex-row" id="meta">
             <div className="xl:w-1/2">
@@ -390,7 +610,13 @@ const TestCaseForm = ({
               </Card>
             </div>
           </div>
-          <div className="mb-4 flex flex-col gap-2">
+          <div className="mb-4 flex flex-row flex-wrap items-center justify-start gap-2">
+            {hasTemplateSelectionStep ? (
+              <Button variant="outline" onClick={() => setCurrentStep(0)} className="w-fit px-6">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="font-bold">Back</span>
+              </Button>
+            ) : null}
             <Button onClick={goToFlowStep} className="w-fit px-6 hover:bg-emerald-500">
               <span className="font-bold">Continue</span>
               <ArrowRight className="h-4 w-4" />
@@ -431,7 +657,7 @@ const TestCaseForm = ({
             </div>
           </div>
           <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setCurrentStep(0)} className="w-fit px-6">
+            <Button variant="outline" onClick={() => setCurrentStep(detailsStepIndex)} className="w-fit px-6">
               <ArrowLeft className="h-4 w-4" />
               <span className="font-bold">Back</span>
             </Button>

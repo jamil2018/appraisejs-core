@@ -141,6 +141,10 @@ export function getTemplateSelectionRows(data: ActionResponseData | undefined): 
   return Array.isArray(data) ? data.filter(isNamedRow) : []
 }
 
+export function getTemplateTestCasesWithSteps(data: ActionResponseData | undefined): TemplateTestCaseWithSteps[] {
+  return Array.isArray(data) ? data.filter(isTemplateTestCaseWithSteps) : []
+}
+
 export function getTemplateSelectionOptions(templateTestCases: TemplateSelectionRow[]) {
   return templateTestCases.map(templateTestCase => ({
     label: templateTestCase.name,
