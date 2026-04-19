@@ -13,28 +13,63 @@ import {
   useEdgesState,
   useNodesState,
   Connection,
+  DefaultEdgeOptions,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useState, useEffect, useMemo, memo, useRef } from 'react'
+import { useCallback, useState, useEffect, useMemo, memo } from 'react'
 import { Button } from '@/components/ui/button'
 import ButtonEdge from './button-edge'
 import { Plus } from 'lucide-react'
 import OptionsHeaderNode from './options-header-node'
+import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
 import NodeForm from './node-form'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
 import { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import { Locator, TemplateStep, TemplateStepParameter, LocatorGroup } from '@prisma/client'
 import {
   buildNodeFormData,
+  createAddNodePromptNode,
   createEditableNodeData,
   determineNodeOrders,
   generateInitialNodesAndEdges,
+  isAddNodePromptNode,
   isValidDiagramConnection,
   removeOrphanedEdges,
 } from './flow-diagram-helpers'
 
 const edgeTypes = {
   buttonEdge: ButtonEdge,
+}
+
+const defaultEdgeOptions: DefaultEdgeOptions = {
+  type: 'buttonEdge',
+}
+
+const flowDiagramProOptions = { hideAttribution: true }
+
+const flowDiagramHandlersRef = {
+  current: {
+    onEditNode: (_nodeId: string) => {},
+    onOpenAddNode: () => {},
+  },
+}
+
+function OptionsHeaderNodeWrapper(props: NodeProps) {
+  return <OptionsHeaderNode {...props} onEdit={nodeId => flowDiagramHandlersRef.current.onEditNode(nodeId)} />
+}
+
+function AddNodePromptNodeWrapper(props: NodeProps) {
+  return (
+    <AddNodePromptNode
+      {...(props as NodeProps<AddNodePromptFlowNode>)}
+      onOpenAddNode={() => flowDiagramHandlersRef.current.onOpenAddNode()}
+    />
+  )
+}
+
+const nodeTypes = {
+  optionsHeaderNode: OptionsHeaderNodeWrapper,
+  addNodePromptNode: AddNodePromptNodeWrapper,
 }
 
 type FlowDiagramProps = {
@@ -56,8 +91,6 @@ const FlowDiagram = ({
   onNodeOrderChange,
   defaultValueInput = false,
 }: FlowDiagramProps) => {
-  const handleEditNodeRef = useRef<(nodeId: string) => void>(() => {})
-
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => generateInitialNodesAndEdges(nodeOrder, templateStepParams, defaultValueInput),
     [defaultValueInput, nodeOrder, templateStepParams],
@@ -85,23 +118,24 @@ const FlowDiagram = ({
     [nodes],
   )
 
-  // Update the ref whenever handleEditNode changes
   useEffect(() => {
-    handleEditNodeRef.current = handleEditNode
+    flowDiagramHandlersRef.current.onEditNode = handleEditNode
+    flowDiagramHandlersRef.current.onOpenAddNode = () => setShowAddNodeDialog(true)
   }, [handleEditNode])
 
   const addNode = useCallback(
     (formData: NodeData) => {
+      const realCount = nodes.filter(n => !isAddNodePromptNode(n)).length
       const newNode: Node = {
         id: crypto.randomUUID(),
-        data: buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, nodes.length === 0),
+        data: buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, realCount === 0),
         position: { x: 0, y: 0 },
         type: 'optionsHeaderNode',
       }
-      setNodes(nds => nds.concat(newNode))
+      setNodes(nds => nds.filter(n => !isAddNodePromptNode(n)).concat(newNode))
       setShowAddNodeDialog(false)
     },
-    [setNodes, setShowAddNodeDialog, nodes, templateSteps, templateStepParams, defaultValueInput],
+    [setNodes, nodes, templateSteps, templateStepParams, defaultValueInput],
   )
 
   const handleEditNodeSubmit = useCallback(
@@ -124,7 +158,7 @@ const FlowDiagram = ({
       )
       setShowEditNodeDialog(false)
     },
-    [editNodeId, setNodes, setShowEditNodeDialog, templateSteps, templateStepParams, defaultValueInput],
+    [editNodeId, setNodes, templateSteps, templateStepParams, defaultValueInput],
   )
 
   useEffect(() => {
@@ -132,7 +166,18 @@ const FlowDiagram = ({
     onNodeOrderChange(orders)
   }, [nodes, edges, onNodeOrderChange])
 
-  // Clean up orphaned edges when nodes are deleted
+  useEffect(() => {
+    const hasRealNode = nodes.some(n => !isAddNodePromptNode(n))
+    if (hasRealNode) {
+      return
+    }
+    const hasPrompt = nodes.some(n => isAddNodePromptNode(n))
+    if (hasPrompt) {
+      return
+    }
+    setNodes([createAddNodePromptNode()])
+  }, [nodes, setNodes])
+
   useEffect(() => {
     const nextEdges = removeOrphanedEdges(nodes, edges)
 
@@ -159,21 +204,13 @@ const FlowDiagram = ({
   const memoizedTemplateStepParams = useMemo(() => templateStepParams, [templateStepParams])
   const memoizedLocators = useMemo(() => locators, [locators])
 
-  // Memoize nodeTypes to prevent recreation
-  const nodeTypes = useMemo(
-    () => ({
-      optionsHeaderNode: (props: NodeProps) => (
-        <OptionsHeaderNode {...props} onEdit={nodeId => handleEditNodeRef.current(nodeId)} />
-      ),
-    }),
-    [], // Empty dependency array - now stable since we use ref
-  )
+  const openAddNodeDialog = useCallback(() => setShowAddNodeDialog(true), [])
 
   return (
     <>
       <div className="h-[400px] w-full">
         <div className="mb-8">
-          <Button onClick={() => setShowAddNodeDialog(true)}>
+          <Button type="button" onClick={openAddNodeDialog}>
             <span className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
               Add Node
@@ -191,12 +228,10 @@ const FlowDiagram = ({
           connectionMode={ConnectionMode.Loose}
           edgeTypes={edgeTypes}
           nodeTypes={nodeTypes}
-          defaultEdgeOptions={{
-            type: 'buttonEdge',
-          }}
+          defaultEdgeOptions={defaultEdgeOptions}
           connectOnClick={false}
           isValidConnection={isValidConnection}
-          proOptions={{ hideAttribution: true }}
+          proOptions={flowDiagramProOptions}
         >
           <Background />
           <Controls />
