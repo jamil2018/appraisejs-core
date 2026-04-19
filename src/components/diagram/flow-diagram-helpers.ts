@@ -5,6 +5,27 @@ import type { NodeData as NodeFormData } from '@/constants/form-opts/diagram/nod
 import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
 import type { NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 
+/** Client-only canvas node: not persisted in node order maps. */
+export const ADD_NODE_PROMPT_NODE_ID = '__appraise_add_node_prompt__'
+
+export const ADD_NODE_PROMPT_NODE_TYPE = 'addNodePromptNode' as const
+
+export type AddNodePromptNodeData = Record<string, never>
+
+export function isAddNodePromptNode(node: Node): boolean {
+  return node.type === ADD_NODE_PROMPT_NODE_TYPE || node.id === ADD_NODE_PROMPT_NODE_ID
+}
+
+export function createAddNodePromptNode(): Node {
+  return {
+    id: ADD_NODE_PROMPT_NODE_ID,
+    type: ADD_NODE_PROMPT_NODE_TYPE,
+    position: { x: 0, y: 0 },
+    data: {},
+    draggable: false,
+  }
+}
+
 type DiagramParameter =
   | NodeFormData['parameters'][number]
   | TemplateTestCaseNodeData['parameters'][number]
@@ -87,6 +108,10 @@ export function generateInitialNodesAndEdges(
   templateStepParams: TemplateStepParameter[],
   defaultValueInput: boolean,
 ) {
+  if (Object.keys(nodeOrder).length === 0) {
+    return { nodes: [createAddNodePromptNode()], edges: [] as Edge[] }
+  }
+
   const nodes: Node[] = []
   const edges: Edge[] = []
 
@@ -133,6 +158,10 @@ export function createEditableNodeData(node: Node | undefined): NodeFormData | n
     return null
   }
 
+  if (isAddNodePromptNode(node)) {
+    return null
+  }
+
   return {
     ...(node.data as NodeFormData),
     gherkinStep: (node.data.gherkinStep as string) ?? '',
@@ -176,12 +205,14 @@ export function buildNodeFormData(
 }
 
 export function determineNodeOrders(nodes: Node[], edges: Edge[]): NodeOrderMap {
+  const realNodes = nodes.filter(node => !isAddNodePromptNode(node))
+
   const graph: Record<string, string[]> = {}
   const inDegree: Record<string, number> = {}
   const hasConnections: Record<string, boolean> = {}
-  const nodeIds = new Set(nodes.map(node => node.id))
+  const nodeIds = new Set(realNodes.map(node => node.id))
 
-  nodes.forEach(node => {
+  realNodes.forEach(node => {
     graph[node.id] = []
     inDegree[node.id] = 0
     hasConnections[node.id] = false
@@ -196,12 +227,12 @@ export function determineNodeOrders(nodes: Node[], edges: Edge[]): NodeOrderMap 
     }
   })
 
-  const queue = nodes.map(node => node.id).filter(nodeId => inDegree[nodeId] === 0 && hasConnections[nodeId])
+  const queue = realNodes.map(node => node.id).filter(nodeId => inDegree[nodeId] === 0 && hasConnections[nodeId])
 
   const orders: NodeOrderMap = {}
   let orderNumber = 1
 
-  nodes.forEach(node => {
+  realNodes.forEach(node => {
     if (!hasConnections[node.id]) {
       orders[node.id] = toDiagramNodeOrderEntry(node, -1)
     }
@@ -213,7 +244,7 @@ export function determineNodeOrders(nodes: Node[], edges: Edge[]): NodeOrderMap 
       break
     }
 
-    const currentNode = nodes.find(node => node.id === currentId)
+    const currentNode = realNodes.find(node => node.id === currentId)
     if (!currentNode) {
       continue
     }
@@ -228,7 +259,7 @@ export function determineNodeOrders(nodes: Node[], edges: Edge[]): NodeOrderMap 
     })
   }
 
-  nodes.forEach(node => {
+  realNodes.forEach(node => {
     if (!orders[node.id]) {
       orders[node.id] = toDiagramNodeOrderEntry(node, orderNumber++)
     }

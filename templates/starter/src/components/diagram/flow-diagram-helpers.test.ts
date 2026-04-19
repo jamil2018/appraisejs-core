@@ -3,13 +3,31 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildFlowNodeData,
+  createAddNodePromptNode,
   determineNodeOrders,
   generateInitialNodesAndEdges,
+  isAddNodePromptNode,
   isValidDiagramConnection,
   removeOrphanedEdges,
 } from './flow-diagram-helpers'
 
 describe('flow-diagram helpers', () => {
+  it('returns add-node prompt when node order is empty', () => {
+    const { nodes, edges } = generateInitialNodesAndEdges({}, [], false)
+
+    expect(nodes).toHaveLength(1)
+    expect(isAddNodePromptNode(nodes[0]!)).toBe(true)
+    expect(nodes[0]!.draggable).toBe(false)
+    expect(edges).toEqual([])
+  })
+
+  it('does not serialize add-node prompt into node order map', () => {
+    const prompt = createAddNodePromptNode()
+    const orders = determineNodeOrders([prompt] as never, [])
+
+    expect(orders).toEqual({})
+  })
+
   it('hydrates initial nodes and edges from ordered node maps', () => {
     const { nodes, edges } = generateInitialNodesAndEdges(
       {
