@@ -238,28 +238,28 @@ const FlowDiagram = ({
         </ReactFlow>
       </div>
 
-      {showAddNodeDialog && (
-        <NodeForm
-          onSubmitAction={addNode}
-          initialValues={{
-            label: '',
-            gherkinStep: '',
-            templateStepId: '',
-            parameters: [],
-          }}
-          templateSteps={memoizedTemplateSteps}
-          templateStepParams={memoizedTemplateStepParams}
-          showAddNodeDialog={showAddNodeDialog}
-          setShowAddNodeDialog={setShowAddNodeDialog}
-          locators={memoizedLocators}
-          defaultValueInput={defaultValueInput}
-          locatorGroups={locatorGroups}
-        />
-      )}
+      <NodeForm
+        onSubmitAction={addNode}
+        mode="add"
+        initialValues={{
+          label: '',
+          gherkinStep: '',
+          templateStepId: '',
+          parameters: [],
+        }}
+        templateSteps={memoizedTemplateSteps}
+        templateStepParams={memoizedTemplateStepParams}
+        showAddNodeDialog={showAddNodeDialog}
+        setShowAddNodeDialog={setShowAddNodeDialog}
+        locators={memoizedLocators}
+        defaultValueInput={defaultValueInput}
+        locatorGroups={locatorGroups}
+      />
 
-      {showEditNodeDialog && (
+      {editNodeData && (
         <NodeForm
           onSubmitAction={handleEditNodeSubmit}
+          mode="edit"
           initialValues={{
             label: editNodeData?.label ?? '',
             gherkinStep: editNodeData?.gherkinStep ?? '',

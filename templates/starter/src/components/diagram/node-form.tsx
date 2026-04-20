@@ -1,13 +1,13 @@
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
@@ -31,6 +31,7 @@ import {
 const NodeForm = ({
   onSubmitAction,
   initialValues,
+  mode = 'add',
   templateSteps,
   templateStepParams,
   showAddNodeDialog,
@@ -39,6 +40,8 @@ const NodeForm = ({
   setShowAddNodeDialog,
   defaultValueInput = false,
 }: NodeFormProps) => {
+  const heading = mode === 'edit' ? 'Edit Node' : 'Add Node'
+  const description = mode === 'edit' ? 'Update this node in the diagram' : 'Insert a new node to the diagram'
   const dynamicFormRef = useRef<DynamicFormFieldsRef>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialValues.templateStepId)
   const [selectedTemplateStep, setSelectedTemplateStep] = useState(() =>
@@ -117,14 +120,14 @@ const NodeForm = ({
   }
 
   return (
-    <Dialog open={showAddNodeDialog} onOpenChange={setShowAddNodeDialog}>
-      <DialogContent>
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Add Node</DialogTitle>
-          </DialogHeader>
-          <DialogDescription>Insert a new node to the diagram</DialogDescription>
-          <div className="my-4">
+    <Sheet open={showAddNodeDialog} onOpenChange={setShowAddNodeDialog}>
+      <SheetContent side="right" className="w-full sm:max-w-md">
+        <form onSubmit={handleSubmit} className="flex h-full flex-col overflow-hidden">
+          <SheetHeader className="shrink-0">
+            <SheetTitle>{heading}</SheetTitle>
+            <SheetDescription>{description}</SheetDescription>
+          </SheetHeader>
+          <div className="my-4 flex-1 overflow-y-auto pr-1">
             <div className="mb-4 flex flex-col gap-2">
               <Label htmlFor="label">Label</Label>
               <Input
@@ -172,21 +175,17 @@ const NodeForm = ({
                 <Input disabled id="gherkinStep" name="gherkinStep" value={gherkinStep} />
               </div>
             )}
-            <input
-              type="hidden"
-              name="icon"
-              value={getSelectedTemplateIcon(selectedTemplateStep)}
-            />
+            <input type="hidden" name="icon" value={getSelectedTemplateIcon(selectedTemplateStep)} />
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
+          <SheetFooter className="shrink-0 border-t pt-4">
+            <SheetClose asChild>
               <Button variant="outline">Cancel</Button>
-            </DialogClose>
+            </SheetClose>
             <Button type="submit">Save</Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }
 

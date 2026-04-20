@@ -208,7 +208,7 @@ const FlowDiagram = ({
 
   return (
     <>
-      <div className="flex h-full w-full min-h-0 flex-col">
+      <div className="flex h-full min-h-0 w-full flex-col">
         <div className="mb-8 shrink-0">
           <Button type="button" onClick={openAddNodeDialog}>
             <span className="flex items-center">
@@ -241,28 +241,28 @@ const FlowDiagram = ({
         </div>
       </div>
 
-      {showAddNodeDialog && (
-        <NodeForm
-          onSubmitAction={addNode}
-          initialValues={{
-            label: '',
-            gherkinStep: '',
-            templateStepId: '',
-            parameters: [],
-          }}
-          templateSteps={memoizedTemplateSteps}
-          templateStepParams={memoizedTemplateStepParams}
-          showAddNodeDialog={showAddNodeDialog}
-          setShowAddNodeDialog={setShowAddNodeDialog}
-          locators={memoizedLocators}
-          defaultValueInput={defaultValueInput}
-          locatorGroups={locatorGroups}
-        />
-      )}
+      <NodeForm
+        onSubmitAction={addNode}
+        mode="add"
+        initialValues={{
+          label: '',
+          gherkinStep: '',
+          templateStepId: '',
+          parameters: [],
+        }}
+        templateSteps={memoizedTemplateSteps}
+        templateStepParams={memoizedTemplateStepParams}
+        showAddNodeDialog={showAddNodeDialog}
+        setShowAddNodeDialog={setShowAddNodeDialog}
+        locators={memoizedLocators}
+        defaultValueInput={defaultValueInput}
+        locatorGroups={locatorGroups}
+      />
 
-      {showEditNodeDialog && (
+      {editNodeData && (
         <NodeForm
           onSubmitAction={handleEditNodeSubmit}
+          mode="edit"
           initialValues={{
             label: editNodeData?.label ?? '',
             gherkinStep: editNodeData?.gherkinStep ?? '',
