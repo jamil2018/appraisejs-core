@@ -7,7 +7,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -119,11 +118,6 @@ const NodeForm = ({
 
   return (
     <Dialog open={showAddNodeDialog} onOpenChange={setShowAddNodeDialog}>
-      <DialogTrigger asChild>
-        <Button type="button" onClick={e => e.preventDefault()}>
-          Add Node
-        </Button>
-      </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>

@@ -208,8 +208,8 @@ const FlowDiagram = ({
 
   return (
     <>
-      <div className="h-[400px] w-full">
-        <div className="mb-8">
+      <div className="flex h-full w-full min-h-0 flex-col">
+        <div className="mb-8 shrink-0">
           <Button type="button" onClick={openAddNodeDialog}>
             <span className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
@@ -217,25 +217,28 @@ const FlowDiagram = ({
             </span>
           </Button>
         </div>
-        <ReactFlow
-          nodes={nodes}
-          onNodesChange={onNodesChange}
-          edges={edges}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          fitView
-          colorMode="dark"
-          connectionMode={ConnectionMode.Loose}
-          edgeTypes={edgeTypes}
-          nodeTypes={nodeTypes}
-          defaultEdgeOptions={defaultEdgeOptions}
-          connectOnClick={false}
-          isValidConnection={isValidConnection}
-          proOptions={flowDiagramProOptions}
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
+        <div className="min-h-0 flex-1">
+          <ReactFlow
+            className="h-full w-full"
+            nodes={nodes}
+            onNodesChange={onNodesChange}
+            edges={edges}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            fitView
+            colorMode="dark"
+            connectionMode={ConnectionMode.Loose}
+            edgeTypes={edgeTypes}
+            nodeTypes={nodeTypes}
+            defaultEdgeOptions={defaultEdgeOptions}
+            connectOnClick={false}
+            isValidConnection={isValidConnection}
+            proOptions={flowDiagramProOptions}
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
       </div>
 
       {showAddNodeDialog && (
