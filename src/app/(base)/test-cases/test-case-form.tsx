@@ -625,16 +625,18 @@ const TestCaseForm = ({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 xl:flex-row">
-            <div className="xl:w-2/3">
-              <Card className="border-gray-700 bg-gray-500/10">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
-                  <CardDescription>Build your test scenario step by step visually</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex h-[500px] flex-col gap-2">
-                    <Label htmlFor="test-case-flow">Test Case Flow</Label>
+          <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen max-w-[100vw] overflow-x-hidden px-4 sm:px-6 lg:px-8">
+            <Card className="flex h-[max(22rem,calc(100dvh-12rem))] min-h-0 flex-col border-gray-700 bg-gray-500/10">
+              <CardHeader className="shrink-0">
+                <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+                <CardDescription>Build your test scenario step by step visually</CardDescription>
+              </CardHeader>
+              <CardContent className="flex min-h-0 flex-1 flex-col">
+                <div className="flex min-h-0 flex-1 flex-col gap-2">
+                  <Label className="shrink-0" htmlFor="test-case-flow">
+                    Test Case Flow
+                  </Label>
+                  <div className="min-h-0 flex-1">
                     <TestCaseFlow
                       initialNodesOrder={nodesOrder}
                       templateStepParams={templateStepParams}
@@ -644,18 +646,16 @@ const TestCaseForm = ({
                       locatorGroups={locatorGroups}
                     />
                   </div>
-                </CardContent>
-              </Card>
-              {renderError(errors.steps)}
-            </div>
-            <div className="xl:w-1/3">
-              <TestScenarioPreview
-                title="Test Scenario(Preview)"
-                description="Preview of the test scenario in Gherkin syntax"
-                scenario={scenarioPreview}
-              />
-            </div>
+                </div>
+              </CardContent>
+            </Card>
+            {renderError(errors.steps)}
           </div>
+          <TestScenarioPreview
+            title="Test Scenario(Preview)"
+            description="Preview of the test scenario in Gherkin syntax"
+            scenario={scenarioPreview}
+          />
           <div className="mb-4 flex flex-col gap-2 sm:flex-row">
             <Button variant="outline" onClick={() => setCurrentStep(detailsStepIndex)} className="w-fit px-6">
               <ArrowLeft className="h-4 w-4" />

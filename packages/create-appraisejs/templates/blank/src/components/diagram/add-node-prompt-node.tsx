@@ -24,7 +24,7 @@ export const AddNodePromptNode = memo(function AddNodePromptNode({
   return (
     <BaseNode selected={selected} className="max-w-80 border-dashed border-muted-foreground/50 bg-muted/30 px-4 py-3">
       <p className="mb-3 text-sm text-muted-foreground">No steps yet. Add your first node to build the flow.</p>
-      <Button type="button" className={cn('nodrag w-full')} variant="default" onClick={handleClick}>
+      <Button type="button" className={cn('nodrag w-full')} variant="outline" onClick={handleClick}>
         Add node
       </Button>
     </BaseNode>
