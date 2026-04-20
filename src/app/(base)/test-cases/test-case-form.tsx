@@ -625,7 +625,7 @@ const TestCaseForm = ({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen max-w-[100vw] overflow-x-hidden px-4 sm:px-6 lg:px-8">
+          <div className="w-full min-w-0 overflow-x-hidden">
             <Card className="flex h-[max(22rem,calc(100dvh-12rem))] min-h-0 flex-col border-gray-700 bg-gray-500/10">
               <CardHeader className="shrink-0">
                 <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
@@ -661,8 +661,13 @@ const TestCaseForm = ({
               <ArrowLeft className="h-4 w-4" />
               <span className="font-bold">Back</span>
             </Button>
-            <Button onClick={handleSubmit} className="w-fit px-6 hover:bg-emerald-500">
-              <Save className="h-4 w-4" />
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              className="w-fit px-6 hover:bg-emerald-500"
+              aria-label="Save test case"
+            >
+              <Save className="h-4 w-4" aria-hidden />
               <span className="font-bold">Save</span>
             </Button>
           </div>
