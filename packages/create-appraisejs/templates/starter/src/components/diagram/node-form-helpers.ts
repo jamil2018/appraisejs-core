@@ -22,6 +22,7 @@ export type NodeFormErrors = z.inferFlattenedErrors<typeof nodeFormErrorSchema>[
 export type NodeFormProps = {
   onSubmitAction: (values: NodeData) => void
   initialValues: NodeData
+  mode?: 'add' | 'edit'
   templateSteps: TemplateStep[]
   templateStepParams: TemplateStepParameter[]
   showAddNodeDialog: boolean

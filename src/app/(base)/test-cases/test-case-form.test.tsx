@@ -222,7 +222,7 @@ describe('TestCaseForm', () => {
     await user.click(screen.getByRole('button', { name: 'Regression' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     expect(screen.getByText('Mock test case flow')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save test case' }))
 
     await waitFor(() => {
       expect(onSubmitAction).toHaveBeenCalledWith(
@@ -297,7 +297,7 @@ describe('TestCaseForm', () => {
       },
     })
 
-    expect(screen.getByText('Template Selection')).toBeInTheDocument()
+    expect(screen.getByText('Choose the template that should seed the new test case')).toBeInTheDocument()
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Template Test Case' }), 'template-1')
@@ -311,6 +311,7 @@ describe('TestCaseForm', () => {
     expect(screen.getByLabelText('Title')).toHaveValue('Login flow')
     expect(screen.getByLabelText('Description')).toHaveValue('Reusable login flow')
 
+    await user.click(screen.getByRole('button', { name: 'Smoke' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
 
     expect(screen.getByText('Mock test case flow')).toBeInTheDocument()
@@ -339,7 +340,7 @@ describe('TestCaseForm', () => {
 
     await user.type(screen.getByLabelText('Title'), 'Checkout flow')
     await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save test case' }))
 
     await waitFor(() => {
       expect(onSubmitAction).toHaveBeenCalledWith(
@@ -352,7 +353,7 @@ describe('TestCaseForm', () => {
     })
   })
 
-  it('keeps the inline suite dialog open and preserves selection when creation does not succeed', async () => {
+  it('shows an error toast and does not redirect when save returns 500', async () => {
     const user = userEvent.setup()
     const onSubmitAction = vi.fn().mockResolvedValue({ status: 500, error: 'Save failed' })
 
@@ -363,20 +364,28 @@ describe('TestCaseForm', () => {
     expect(screen.getByText('Inline suite redirect: null')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Fail Inline Suite' })).toBeInTheDocument()
 
+    await user.keyboard('{Escape}')
+
     await user.type(screen.getByLabelText('Title'), 'Checkout flow')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Smoke' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await user.click(screen.getByRole('button', { name: 'Save test case' }))
 
     await waitFor(() => {
       expect(onSubmitAction).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Checkout flow',
-          testSuiteIds: [],
+          testSuiteIds: ['suite-1'],
         }),
         undefined,
       )
     })
 
-    expect(screen.getByText('Inline suite redirect: null')).toBeInTheDocument()
+    expect(toast).toHaveBeenCalledWith({
+      title: 'Error',
+      description: 'Save failed',
+      variant: 'destructive',
+    })
     expect(push).not.toHaveBeenCalled()
   })
 
@@ -402,8 +411,9 @@ describe('TestCaseForm', () => {
     expect(push).not.toHaveBeenCalled()
 
     await user.type(screen.getByLabelText('Title'), 'Checkout flow')
+    await user.click(screen.getByRole('button', { name: 'Smoke' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save test case' }))
 
     await waitFor(() => {
       expect(onSubmitAction).toHaveBeenCalledWith(
@@ -458,7 +468,7 @@ describe('TestCaseForm', () => {
     await user.type(screen.getByLabelText('Title'), 'Checkout flow')
     await user.click(screen.getByRole('button', { name: 'Smoke' }))
     await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save test case' }))
 
     expect(onSubmitAction).not.toHaveBeenCalled()
     expect(toast).toHaveBeenCalledWith({
