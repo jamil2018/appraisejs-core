@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formOpts, type Tag } from '@/constants/form-opts/tag-form-opts'
 import { toast } from '@/hooks/use-toast'
-import { getActionErrorMessage, tagFieldValidators, type TagFormSubmitAction } from './tag-form-helpers'
+import { getActionErrorMessage, getCreatedTag, tagFieldValidators, type TagFormSubmitAction } from './tag-form-helpers'
 
+import type { Tag as PrismaTag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
 
@@ -17,6 +18,8 @@ type TagFormProps = {
   successMessage: string
   id?: string
   onSubmitAction: TagFormSubmitAction
+  onSuccess?: (tag: PrismaTag) => void | Promise<void>
+  redirectPath?: string | null
 }
 
 type TagFieldErrorsProps = {
@@ -54,7 +57,15 @@ function TagFieldErrors({ errors, isTouched }: TagFieldErrorsProps) {
   )
 }
 
-const TagForm = ({ defaultValues, successTitle, successMessage, id, onSubmitAction }: TagFormProps) => {
+const TagForm = ({
+  defaultValues,
+  successTitle,
+  successMessage,
+  id,
+  onSubmitAction,
+  onSuccess,
+  redirectPath = '/tags',
+}: TagFormProps) => {
   const router = useRouter()
   const form = useForm({
     defaultValues: defaultValues ?? formOpts?.defaultValues,
@@ -62,11 +73,28 @@ const TagForm = ({ defaultValues, successTitle, successMessage, id, onSubmitActi
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
+        if (onSuccess) {
+          const createdTag = getCreatedTag(res.data)
+          if (!createdTag) {
+            toast({
+              title: 'Error',
+              description: 'Created tag data was not returned.',
+              variant: 'destructive',
+            })
+            return
+          }
+
+          await onSuccess(createdTag)
+        }
+
         toast({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/tags')
+
+        if (redirectPath) {
+          router.push(redirectPath)
+        }
       }
       if (res.status === 400) {
         toast({
@@ -100,7 +128,7 @@ const TagForm = ({ defaultValues, successTitle, successMessage, id, onSubmitActi
       >
         {field => {
           return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+            <div className="mb-4 flex w-full flex-col gap-2">
               <Label htmlFor={field.name}>Name</Label>
               <Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} />
               <TagFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
@@ -116,7 +144,7 @@ const TagForm = ({ defaultValues, successTitle, successMessage, id, onSubmitActi
       >
         {field => {
           return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+            <div className="mb-4 flex w-full flex-col gap-2">
               <Label htmlFor={field.name}>Tag Expression</Label>
               <Input
                 id={field.name}
