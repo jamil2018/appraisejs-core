@@ -38,6 +38,7 @@ export type TemplateStepComboboxProps = {
   placeholder?: string
   disabled?: boolean
   id?: string
+  className?: string
 }
 
 const TemplateStepCombobox = ({
@@ -47,6 +48,7 @@ const TemplateStepCombobox = ({
   placeholder = 'Select a template step',
   disabled = false,
   id,
+  className,
 }: TemplateStepComboboxProps) => {
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -115,6 +117,7 @@ const TemplateStepCombobox = ({
           'focus:outline-none focus:ring-1 focus:ring-ring',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'data-[placeholder]:text-muted-foreground [&>span]:line-clamp-1',
+          className,
         )}
       >
         <span className={cn(!selectedStep && 'text-muted-foreground')}>
