@@ -42,6 +42,7 @@ const NodeForm = ({
 }: NodeFormProps) => {
   const heading = mode === 'edit' ? 'Edit Node' : 'Add Node'
   const description = mode === 'edit' ? 'Update this node in the diagram' : 'Insert a new node to the diagram'
+  const fieldClassName = 'border-border bg-background'
   const dynamicFormRef = useRef<DynamicFormFieldsRef>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialValues.templateStepId)
   const [selectedTemplateStep, setSelectedTemplateStep] = useState(() =>
@@ -127,13 +128,14 @@ const NodeForm = ({
             <SheetTitle>{heading}</SheetTitle>
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
-          <div className="my-4 flex-1 overflow-y-auto pr-1">
+          <div className="my-4 flex-1 overflow-y-auto px-1">
             <div className="mb-4 flex flex-col gap-2">
               <Label htmlFor="label">Label</Label>
               <Input
                 id="label"
                 name="label"
                 defaultValue={initialValues.label}
+                className={fieldClassName}
                 onChange={e => {
                   setErrors(prev => ({
                     ...prev,
@@ -151,6 +153,7 @@ const NodeForm = ({
                 onValueChange={handleTemplateStepChange}
                 templateSteps={templateSteps as TemplateStepWithGroup[]}
                 placeholder="Select a template step"
+                className={fieldClassName}
               />
               <input type="hidden" name="templateStepId" value={selectedTemplateId} />
               <ErrorMessage message={errors.templateStepId?.[0] ?? ''} visible={!!errors.templateStepId} />
@@ -172,7 +175,7 @@ const NodeForm = ({
             {selectedTemplateStep && (
               <div className="mb-4 flex flex-col gap-2">
                 <Label htmlFor="gherkinStep">Gherkin Step</Label>
-                <Input disabled id="gherkinStep" name="gherkinStep" value={gherkinStep} />
+                <Input disabled id="gherkinStep" name="gherkinStep" value={gherkinStep} className={fieldClassName} />
               </div>
             )}
             <input type="hidden" name="icon" value={getSelectedTemplateIcon(selectedTemplateStep)} />

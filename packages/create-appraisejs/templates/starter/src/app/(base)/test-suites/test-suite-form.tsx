@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { formOpts, type TestSuite } from '@/constants/form-opts/test-suite-form-opts'
 import { toast } from '@/hooks/use-toast'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
-import type { Module, Tag } from '@prisma/client'
+import type { Module, Tag, TestSuite as PrismaTestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { Info, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,7 @@ import TestCasePicker from '@/components/test-case/test-case-picker'
 
 import {
   getActionErrorMessage,
+  getCreatedTestSuite,
   getFieldErrorMessage,
   getModuleOptions,
   getTagOptions,
@@ -36,6 +37,8 @@ export const TestSuiteForm = ({
   testCases,
   moduleList,
   tags,
+  onSuccess,
+  redirectPath = '/test-suites',
 }: {
   defaultValues?: TestSuite
   successTitle: string
@@ -45,6 +48,8 @@ export const TestSuiteForm = ({
   testCases: TestCasePickerRow[]
   moduleList: Module[]
   tags: Tag[]
+  onSuccess?: (suite: PrismaTestSuite) => void | Promise<void>
+  redirectPath?: string | null
 }) => {
   const router = useRouter()
   const form = useForm({
@@ -53,11 +58,28 @@ export const TestSuiteForm = ({
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
+        if (onSuccess) {
+          const createdTestSuite = getCreatedTestSuite(res.data)
+          if (!createdTestSuite) {
+            toast({
+              title: 'Error',
+              description: 'Created test suite data was not returned.',
+              variant: 'destructive',
+            })
+            return
+          }
+
+          await onSuccess(createdTestSuite)
+        }
+
         toast({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/test-suites')
+
+        if (redirectPath) {
+          router.push(redirectPath)
+        }
       }
       if (res.status === 400) {
         toast({

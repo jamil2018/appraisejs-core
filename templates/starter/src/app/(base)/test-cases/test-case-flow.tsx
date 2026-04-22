@@ -28,15 +28,17 @@ const TestCaseFlow = ({
   })
 
   return (
-    <FlowDiagram
-      nodeOrder={nodesOrder}
-      templateStepParams={templateStepParams}
-      defaultValueInput={false}
-      onNodeOrderChange={handleNodeOrderChange}
-      templateSteps={templateSteps}
-      locators={locators}
-      locatorGroups={locatorGroups}
-    />
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <FlowDiagram
+        nodeOrder={nodesOrder}
+        templateStepParams={templateStepParams}
+        defaultValueInput={false}
+        onNodeOrderChange={handleNodeOrderChange}
+        templateSteps={templateSteps}
+        locators={locators}
+        locatorGroups={locatorGroups}
+      />
+    </div>
   )
 }
 

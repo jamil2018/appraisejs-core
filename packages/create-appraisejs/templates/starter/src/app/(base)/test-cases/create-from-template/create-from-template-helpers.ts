@@ -1,7 +1,9 @@
 import type {
   Locator,
   LocatorGroup,
+  Module,
   Tag,
+  TestCaseStep,
   TemplateTestCase,
   TemplateTestCaseStep,
   TemplateTestCaseStepParameter,
@@ -17,6 +19,7 @@ import {
   type ConvertedTestCaseData,
 } from '@/lib/transformers/template-test-case-converter'
 import type { ActionResponseData } from '@/types/form/actionHandler'
+import type { TestCasePickerRow } from '@/types/test-case-picker'
 
 export type TemplateSelectionOption = {
   label: string
@@ -99,6 +102,29 @@ function isLocatorRow(value: unknown): value is Locator {
   return isNamedRow(value)
 }
 
+function isModuleRow(value: unknown): value is Module {
+  return isNamedRow(value)
+}
+
+function isTestCaseStepRow(value: unknown): value is TestCaseStep {
+  return typeof value === 'object' && value !== null && 'id' in value && 'label' in value && 'templateStepId' in value
+}
+
+function isTestCaseRow(value: unknown): value is TestCasePickerRow {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'title' in value &&
+    'steps' in value &&
+    Array.isArray(value.steps) &&
+    value.steps.every(isTestCaseStepRow) &&
+    'tags' in value &&
+    Array.isArray(value.tags) &&
+    value.tags.every(isTagRow)
+  )
+}
+
 function isTestSuiteRow(value: unknown): value is TestSuite {
   return isNamedRow(value)
 }
@@ -113,6 +139,10 @@ function isTagRow(value: unknown): value is Tag {
 
 export function getTemplateSelectionRows(data: ActionResponseData | undefined): TemplateSelectionRow[] {
   return Array.isArray(data) ? data.filter(isNamedRow) : []
+}
+
+export function getTemplateTestCasesWithSteps(data: ActionResponseData | undefined): TemplateTestCaseWithSteps[] {
+  return Array.isArray(data) ? data.filter(isTemplateTestCaseWithSteps) : []
 }
 
 export function getTemplateSelectionOptions(templateTestCases: TemplateSelectionRow[]) {
@@ -136,6 +166,14 @@ export function getTemplateStepRows(data: ActionResponseData | undefined): Templ
 
 export function getLocatorRows(data: ActionResponseData | undefined): Locator[] {
   return Array.isArray(data) ? data.filter(isLocatorRow) : []
+}
+
+export function getModuleRows(data: ActionResponseData | undefined): Module[] {
+  return Array.isArray(data) ? data.filter(isModuleRow) : []
+}
+
+export function getTestCaseRows(data: ActionResponseData | undefined): TestCasePickerRow[] {
+  return Array.isArray(data) ? data.filter(isTestCaseRow) : []
 }
 
 export function getTestSuiteRows(data: ActionResponseData | undefined): TestSuite[] {

@@ -4,11 +4,10 @@
 # To modify this feature, update the corresponding Test Suite in the application.
 
 @ts_280de079298c199f
-@test
 Feature: Demo tests
 
-  @tc_e8e239a232d6ec53
-  Scenario: [Login] Validate user login with valid credentials
+  @tc_95be4693317298de
+  Scenario: [Login 2] Login Test Flow 2
     Given the user navigates to the base url of the selected environment
     When the user fills in the "Email" input field with value "demo@example.com"
     And the user fills in the "Password" input field with value "test1234"

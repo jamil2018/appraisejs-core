@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import {
   Command,
   CommandEmpty,
@@ -10,6 +11,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
+import { KeyToIconTransformer } from '@/lib/transformers/key-to-icon-transformer'
 import { cn } from '@/lib/utils'
 import {
   capitalizeGroupName,
@@ -17,6 +19,7 @@ import {
 } from '@/types/diagram/template-step'
 
 const GROUP_KEY_OTHER = 'Other'
+const MAX_VISIBLE_PARAMETER_BADGES = 4
 
 function groupStepsByGroupName(
   steps: TemplateStepWithGroup[],
@@ -29,6 +32,32 @@ function groupStepsByGroupName(
     map.set(key, list)
   }
   return map
+}
+
+function buildStepKeywords(step: TemplateStepWithGroup, groupKey: string) {
+  return [step.description, groupKey, ...(step.parameters ?? []).map(parameter => parameter.name)].filter(Boolean)
+}
+
+function formatParameterLabel(label: string) {
+  return label
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[\s_-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, char => char.toUpperCase())
+}
+
+function StepIcon({
+  icon,
+  className,
+}: {
+  icon: TemplateStepWithGroup['icon']
+  className?: string
+}) {
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
+      {KeyToIconTransformer(icon, className ?? 'h-4 w-4')}
+    </span>
+  )
 }
 
 export type TemplateStepComboboxProps = {
@@ -53,6 +82,9 @@ const TemplateStepCombobox = ({
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const searchInputRef = React.useRef<HTMLInputElement>(null)
+  const generatedId = React.useId()
+  const comboboxId = id ?? generatedId
+  const listboxId = `${comboboxId}-listbox`
 
   const selectedStep = React.useMemo(
     () => templateSteps.find(s => s.id === value) ?? null,
@@ -104,29 +136,39 @@ const TemplateStepCombobox = ({
     <div ref={containerRef} className="relative w-full">
       <button
         type="button"
-        id={id}
+        id={comboboxId}
         role="combobox"
         aria-expanded={open}
-        aria-controls={open ? `${id}-listbox` : undefined}
+        aria-controls={open ? listboxId : undefined}
         aria-haspopup="listbox"
-        aria-label={placeholder}
+        aria-label={id ? undefined : placeholder}
         disabled={disabled}
         onClick={() => setOpen(prev => !prev)}
         className={cn(
-          'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background',
+          'flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background',
           'focus:outline-none focus:ring-1 focus:ring-ring',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          'data-[placeholder]:text-muted-foreground [&>span]:line-clamp-1',
+          'text-left',
           className,
         )}
       >
-        <span className={cn(!selectedStep && 'text-muted-foreground')}>
-          {selectedStep ? selectedStep.name : placeholder}
-        </span>
+        {selectedStep ? (
+          <span className="flex min-w-0 flex-1 items-center gap-3">
+            <StepIcon icon={selectedStep.icon} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-bold capitalize text-foreground">{selectedStep.name}</span>
+              {selectedStep.description ? (
+                <span className="block truncate text-xs text-muted-foreground">{selectedStep.description}</span>
+              ) : null}
+            </span>
+          </span>
+        ) : (
+          <span className="truncate text-muted-foreground">{placeholder}</span>
+        )}
         <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
       </button>
       {open && (
-        <div id={`${id}-listbox`} role="listbox" className="absolute left-0 right-0 top-full z-50 mt-1">
+        <div id={listboxId} role="listbox" className="absolute left-0 right-0 top-full z-50 mt-1">
           <Command shouldFilter className="rounded-md border border-input bg-popover shadow-md">
             <CommandInput ref={searchInputRef} placeholder="Search template steps…" />
             <CommandList>
@@ -134,15 +176,53 @@ const TemplateStepCombobox = ({
               {groups.map(([groupKey, steps]) => (
                 <CommandGroup
                   key={groupKey}
-                  heading={capitalizeGroupName(groupKey)}
+                  heading={
+                    <div className="flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
+                      <span>{capitalizeGroupName(groupKey)}</span>
+                      <span className="text-[10px] font-normal tracking-normal">{steps.length}</span>
+                    </div>
+                  }
                 >
                   {steps.map(step => (
                     <CommandItem
                       key={step.id}
                       value={step.name}
+                      keywords={buildStepKeywords(step, groupKey)}
                       onSelect={() => handleSelect(step.id)}
+                      className={cn(
+                        'items-start gap-3 rounded-lg border border-transparent px-3 py-3 text-left hover:cursor-pointer',
+                        'data-[selected=true]:border-emerald-500/35 data-[selected=true]:bg-emerald-500/20 dark:data-[selected=true]:bg-emerald-500/5 data-[selected=true]:text-foreground',
+                      )}
                     >
-                      {step.name}
+                      <StepIcon icon={step.icon} className="h-4 w-4" />
+                      <span className="min-w-0 flex-1 space-y-2">
+                        <span className="block space-y-1">
+                          <span className="block truncate font-bold capitalize leading-tight">{step.name}</span>
+                          {step.description ? (
+                            <span className="line-clamp-2 block text-xs leading-5 text-muted-foreground">
+                              {step.description}
+                            </span>
+                          ) : null}
+                        </span>
+                        {step.parameters?.length ? (
+                          <span className="flex flex-wrap gap-1.5">
+                            {step.parameters.slice(0, MAX_VISIBLE_PARAMETER_BADGES).map(parameter => (
+                              <Badge
+                                key={parameter.id}
+                                variant="secondary"
+                                className="max-w-full truncate text-[10px] font-medium"
+                              >
+                                {formatParameterLabel(parameter.name)}
+                              </Badge>
+                            ))}
+                            {step.parameters.length > MAX_VISIBLE_PARAMETER_BADGES ? (
+                              <Badge variant="outline" className="text-[10px] font-medium">
+                                +{step.parameters.length - MAX_VISIBLE_PARAMETER_BADGES}
+                              </Badge>
+                            ) : null}
+                          </span>
+                        ) : null}
+                      </span>
                     </CommandItem>
                   ))}
                 </CommandGroup>

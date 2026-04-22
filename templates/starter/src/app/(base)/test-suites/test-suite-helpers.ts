@@ -67,6 +67,10 @@ export function getActionErrorMessage(response: ActionResponse) {
   return response.error || 'An error occurred'
 }
 
+function isCreatedTestSuite(value: unknown): value is PrismaTestSuite {
+  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
+}
+
 export function getModuleOptions(modules: Module[]) {
   return modules.map(module => ({
     label: module.name,
@@ -146,6 +150,10 @@ export function getModuleRows(data: ActionResponseData | undefined): Module[] {
 
 export function getTagRows(data: ActionResponseData | undefined): Tag[] {
   return Array.isArray(data) ? data.filter(isTagRow) : []
+}
+
+export function getCreatedTestSuite(data: ActionResponseData | undefined) {
+  return isCreatedTestSuite(data) ? data : null
 }
 
 export function getTestSuiteTableRows(data: ActionResponseData | undefined): TestSuiteTableRow[] {

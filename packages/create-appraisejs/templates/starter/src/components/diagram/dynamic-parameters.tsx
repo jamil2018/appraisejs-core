@@ -85,6 +85,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>(
     initialSelectedLocatorGroups,
   )
+  const fieldClassName = 'w-full border-border bg-background'
 
   useEffect(() => {
     queueMicrotask(() => setErrors({}))
@@ -168,7 +169,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
               type="number"
               value={typeof values[name] === 'number' ? values[name] : 0}
               onChange={e => handleInputChange(name, Number(e.target.value))}
-              className="w-full"
+              className={fieldClassName}
             />
             <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
           </div>
@@ -186,7 +187,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
               type="text"
               value={typeof values[name] === 'string' ? values[name] : ''}
               onChange={e => handleInputChange(name, e.target.value)}
-              className="w-full"
+              className={fieldClassName}
             />
             <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
           </div>
@@ -241,7 +242,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
               onValueChange={value => handleInputChange(name, value === 'true')}
               required={!defaultValueInput}
             >
-              <SelectTrigger id={`select-${name}`} className="w-full">
+              <SelectTrigger id={`select-${name}`} className={fieldClassName}>
                 <SelectValue placeholder={defaultValueInput ? 'Select a value (optional)' : 'Select a value *'} />
               </SelectTrigger>
               <SelectContent>
@@ -273,7 +274,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
                 onValueChange={value => handleLocatorGroupChange(name, value)}
                 required={!defaultValueInput}
               >
-                <SelectTrigger id={`group-${name}`} className="w-full">
+                <SelectTrigger id={`group-${name}`} className={fieldClassName}>
                   <SelectValue placeholder="Select a locator group" />
                 </SelectTrigger>
                 <SelectContent isEmpty={locatorGroups.length === 0}>
@@ -297,7 +298,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
                 required={!defaultValueInput}
                 disabled={!selectedGroupId}
               >
-                <SelectTrigger id={`select-${name}`} className="w-full">
+                <SelectTrigger id={`select-${name}`} className={fieldClassName}>
                   <SelectValue
                     placeholder={
                       !selectedGroupId
