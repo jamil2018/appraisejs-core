@@ -72,8 +72,8 @@ describe('OptionsHeaderNode', () => {
     expect(screen.getByTestId('node-step-icon')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Click submit' })).toBeInTheDocument()
     expect(screen.getByText('When click "Submit"')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
 
     expect(screen.getAllByTestId('node-param-chip').map(chip => chip.textContent)).toEqual([
       'target: Submit',
@@ -86,6 +86,7 @@ describe('OptionsHeaderNode', () => {
     const onEdit = vi.fn()
     renderOptionsHeaderNode({}, { onEdit })
 
+    await user.hover(screen.getByTestId('options-header-node'))
     await user.click(screen.getByRole('button', { name: /edit/i }))
 
     expect(onEdit).toHaveBeenCalledWith('node-1')
@@ -95,6 +96,7 @@ describe('OptionsHeaderNode', () => {
     const user = userEvent.setup()
     renderOptionsHeaderNode()
 
+    await user.hover(screen.getByTestId('options-header-node'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
 
     expect(xyflowMocks.setNodes).toHaveBeenCalledTimes(1)
