@@ -66,19 +66,19 @@ function renderOptionsHeaderNode(
 }
 
 describe('OptionsHeaderNode', () => {
-  it('renders the large icon, title, gherkin footer, ordered param chips, and outline actions', () => {
+  it('renders the large icon, title, and hover-triggered gherkin param tooltips', async () => {
+    const user = userEvent.setup()
     renderOptionsHeaderNode()
 
     expect(screen.getByTestId('node-step-icon')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Click submit' })).toBeInTheDocument()
-    expect(screen.getByText('When click "Submit"')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
+    await user.hover(screen.getByTestId('options-header-node'))
+    expect(screen.getByText('When click "', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Submit')).toBeInTheDocument()
+    expect(screen.queryByText('target')).not.toBeInTheDocument()
+    await user.hover(screen.getByText('Submit'))
 
-    expect(screen.getAllByTestId('node-param-chip').map(chip => chip.textContent)).toEqual([
-      'target: Submit',
-      'count: 3',
-    ])
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('target')
   })
 
   it('calls the edit callback with the current node id', async () => {
@@ -108,7 +108,8 @@ describe('OptionsHeaderNode', () => {
     expect(updateNodes([{ id: 'node-1' }, { id: 'node-2' }])).toEqual([{ id: 'node-2' }])
   })
 
-  it('keeps missing-param warning nodes readable and omits empty chip rows', () => {
+  it('keeps missing-param warning nodes readable and omits empty chip rows', async () => {
+    const user = userEvent.setup()
     renderOptionsHeaderNode({
       isMissingParams: true,
       parameters: [],
@@ -116,6 +117,7 @@ describe('OptionsHeaderNode', () => {
 
     expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-missing-params', 'true')
     expect(screen.getByRole('heading', { name: 'Click submit' })).toBeInTheDocument()
+    await user.hover(screen.getByTestId('options-header-node'))
     expect(screen.getByText('When click "Submit"')).toBeInTheDocument()
     expect(screen.queryByTestId('node-param-chip-row')).not.toBeInTheDocument()
   })
