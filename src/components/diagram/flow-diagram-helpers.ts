@@ -273,6 +273,32 @@ export function removeOrphanedEdges(nodes: Node[], edges: Edge[]) {
   return edges.filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
 }
 
+export function determineStartNodeIds(nodes: Node[], edges: Edge[]) {
+  const realNodes = nodes.filter(node => !isAddNodePromptNode(node))
+  if (realNodes.length === 1) {
+    return new Set([realNodes[0]!.id])
+  }
+
+  const nodeIds = new Set(realNodes.map(node => node.id))
+  const inDegree: Record<string, number> = {}
+  const hasConnections: Record<string, boolean> = {}
+
+  realNodes.forEach(node => {
+    inDegree[node.id] = 0
+    hasConnections[node.id] = false
+  })
+
+  edges.forEach(edge => {
+    if (edge.source && edge.target && nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
+      inDegree[edge.target] = (inDegree[edge.target] || 0) + 1
+      hasConnections[edge.source] = true
+      hasConnections[edge.target] = true
+    }
+  })
+
+  return new Set(realNodes.filter(node => inDegree[node.id] === 0 && hasConnections[node.id]).map(node => node.id))
+}
+
 export function isValidDiagramConnection(edges: Edge[], connection: Connection | Edge) {
   const hasSourceConnection = edges.some(edge => edge.source === connection.source)
   const hasTargetConnection = edges.some(edge => edge.target === connection.target)

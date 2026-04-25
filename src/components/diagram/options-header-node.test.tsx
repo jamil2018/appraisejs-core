@@ -121,4 +121,13 @@ describe('OptionsHeaderNode', () => {
     expect(screen.getByText('When click "Submit"')).toBeInTheDocument()
     expect(screen.queryByTestId('node-param-chip-row')).not.toBeInTheDocument()
   })
+
+  it('styles start nodes with rounded left edge and hides incoming handle', () => {
+    renderOptionsHeaderNode({ isFirstNode: true })
+
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-first-node', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('rounded-l-3xl')
+    expect(screen.queryByTestId('target-handle')).not.toBeInTheDocument()
+    expect(screen.getByTestId('source-handle')).toBeInTheDocument()
+  })
 })

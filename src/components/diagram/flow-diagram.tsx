@@ -31,6 +31,7 @@ import {
   createAddNodePromptNode,
   createEditableNodeData,
   determineNodeOrders,
+  determineStartNodeIds,
   generateInitialNodesAndEdges,
   isAddNodePromptNode,
   isValidDiagramConnection,
@@ -185,6 +186,37 @@ const FlowDiagram = ({
       setEdges(nextEdges)
     }
   }, [nodes, edges, setEdges])
+
+  useEffect(() => {
+    const nextEdges = removeOrphanedEdges(nodes, edges)
+    const startNodeIds = determineStartNodeIds(nodes, nextEdges)
+
+    setNodes(currentNodes => {
+      let hasUpdates = false
+      const updatedNodes = currentNodes.map(node => {
+        if (isAddNodePromptNode(node)) {
+          return node
+        }
+
+        const isFirstNode = startNodeIds.has(node.id)
+        const currentIsFirstNode = Boolean((node.data as { isFirstNode?: boolean }).isFirstNode)
+        if (currentIsFirstNode === isFirstNode) {
+          return node
+        }
+
+        hasUpdates = true
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            isFirstNode,
+          },
+        }
+      })
+
+      return hasUpdates ? updatedNodes : currentNodes
+    })
+  }, [nodes, edges, setNodes])
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) => isValidDiagramConnection(edges, connection),

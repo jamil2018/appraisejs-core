@@ -133,6 +133,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodePro
       selected={selected}
       data-testid="options-header-node"
       data-missing-params={isMissingParams ? 'true' : undefined}
+      data-first-node={isFirstNode ? 'true' : undefined}
       onMouseEnter={showToolbarNow}
       onMouseLeave={hideToolbarWithDelay}
       onFocus={showToolbarNow}
@@ -142,7 +143,8 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodePro
         }
       }}
       className={cn(
-        'w-36 overflow-visible border-border/70 bg-card p-0 pt-4 shadow-lg shadow-background/30',
+        'w-36 overflow-visible border-border/70 bg-card p-0 pt-4 shadow-lg shadow-background/30 transition-[border-radius,box-shadow] duration-300 ease-out',
+        isFirstNode && 'rounded-l-3xl rounded-r-md',
         isMissingParams && 'border-destructive/70 bg-destructive/10 ring-1 ring-destructive/40',
       )}
     >
@@ -183,7 +185,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodePro
           </div>
         )}
       </AnimatePresence>
-      <div className="flex flex-col items-center gap-3 border-b border-border/70 px-4 py-5 text-center">
+      <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
         <div
           data-testid="node-step-icon"
           className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-lg shadow-primary/20 [&>svg]:size-10"
