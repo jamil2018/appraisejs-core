@@ -275,9 +275,6 @@ export function removeOrphanedEdges(nodes: Node[], edges: Edge[]) {
 
 export function determineStartNodeIds(nodes: Node[], edges: Edge[]) {
   const realNodes = nodes.filter(node => !isAddNodePromptNode(node))
-  if (realNodes.length === 1) {
-    return new Set([realNodes[0]!.id])
-  }
 
   const nodeIds = new Set(realNodes.map(node => node.id))
   const inDegree: Record<string, number> = {}
@@ -296,7 +293,15 @@ export function determineStartNodeIds(nodes: Node[], edges: Edge[]) {
     }
   })
 
-  return new Set(realNodes.filter(node => inDegree[node.id] === 0 && hasConnections[node.id]).map(node => node.id))
+  const startCandidates = realNodes
+    .filter(node => inDegree[node.id] === 0 && hasConnections[node.id])
+    .map(node => node.id)
+
+  if (startCandidates.length !== 1) {
+    return new Set<string>()
+  }
+
+  return new Set(startCandidates)
 }
 
 export function isValidDiagramConnection(edges: Edge[], connection: Connection | Edge) {
