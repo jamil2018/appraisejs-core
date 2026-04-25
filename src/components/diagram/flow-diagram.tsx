@@ -50,13 +50,23 @@ const flowDiagramProOptions = { hideAttribution: true }
 
 const flowDiagramHandlersRef = {
   current: {
-    onEditNode: (_nodeId: string) => {},
-    onOpenAddNode: () => {},
+    onEditNode: (nodeId: string) => {
+      void nodeId
+    },
+    onOpenAddNode: (sourceNodeId?: string) => {
+      void sourceNodeId
+    },
   },
 }
 
 function OptionsHeaderNodeWrapper(props: NodeProps) {
-  return <OptionsHeaderNode {...props} onEdit={nodeId => flowDiagramHandlersRef.current.onEditNode(nodeId)} />
+  return (
+    <OptionsHeaderNode
+      {...props}
+      onEdit={nodeId => flowDiagramHandlersRef.current.onEditNode(nodeId)}
+      onAddConnectedNode={nodeId => flowDiagramHandlersRef.current.onOpenAddNode(nodeId)}
+    />
+  )
 }
 
 function AddNodePromptNodeWrapper(props: NodeProps) {
@@ -103,6 +113,8 @@ const FlowDiagram = ({
   const [showEditNodeDialog, setShowEditNodeDialog] = useState(false)
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [editNodeData, setEditNodeData] = useState<NodeData | null>(null)
+  const [pendingAddSourceNodeId, setPendingAddSourceNodeId] = useState<string | null>(null)
+  const [isConnectionInProgress, setIsConnectionInProgress] = useState(false)
 
   const handleEditNode = useCallback(
     (nodeId: string) => {
@@ -121,22 +133,40 @@ const FlowDiagram = ({
 
   useEffect(() => {
     flowDiagramHandlersRef.current.onEditNode = handleEditNode
-    flowDiagramHandlersRef.current.onOpenAddNode = () => setShowAddNodeDialog(true)
+    flowDiagramHandlersRef.current.onOpenAddNode = sourceNodeId => {
+      setPendingAddSourceNodeId(sourceNodeId ?? null)
+      setShowAddNodeDialog(true)
+    }
   }, [handleEditNode])
 
   const addNode = useCallback(
     (formData: NodeData) => {
       const realCount = nodes.filter(n => !isAddNodePromptNode(n)).length
+      const sourceNode = pendingAddSourceNodeId ? nodes.find(node => node.id === pendingAddSourceNodeId) : undefined
+      const newNodeId = crypto.randomUUID()
       const newNode: Node = {
-        id: crypto.randomUUID(),
+        id: newNodeId,
         data: buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, realCount === 0),
-        position: { x: 0, y: 0 },
+        position: sourceNode ? { x: sourceNode.position.x + 500, y: sourceNode.position.y } : { x: 0, y: 0 },
         type: 'optionsHeaderNode',
       }
+      const connectedEdge: Edge | null =
+        sourceNode && pendingAddSourceNodeId
+          ? {
+              id: `${pendingAddSourceNodeId}-${newNodeId}`,
+              source: pendingAddSourceNodeId,
+              target: newNodeId,
+              type: 'buttonEdge',
+            }
+          : null
       setNodes(nds => nds.filter(n => !isAddNodePromptNode(n)).concat(newNode))
+      if (connectedEdge && isValidDiagramConnection(edges, connectedEdge)) {
+        setEdges(eds => addEdge(connectedEdge, eds))
+      }
       setShowAddNodeDialog(false)
+      setPendingAddSourceNodeId(null)
     },
-    [setNodes, nodes, templateSteps, templateStepParams, defaultValueInput],
+    [setEdges, setNodes, nodes, edges, pendingAddSourceNodeId, templateSteps, templateStepParams, defaultValueInput],
   )
 
   const handleEditNodeSubmit = useCallback(
@@ -199,8 +229,19 @@ const FlowDiagram = ({
         }
 
         const isFirstNode = startNodeIds.has(node.id)
+        const hasOutgoingConnection = nextEdges.some(edge => edge.source === node.id)
         const currentIsFirstNode = Boolean((node.data as { isFirstNode?: boolean }).isFirstNode)
-        if (currentIsFirstNode === isFirstNode) {
+        const currentHasOutgoingConnection = Boolean(
+          (node.data as { hasOutgoingConnection?: boolean }).hasOutgoingConnection,
+        )
+        const currentIsConnectionInProgress = Boolean(
+          (node.data as { isConnectionInProgress?: boolean }).isConnectionInProgress,
+        )
+        if (
+          currentIsFirstNode === isFirstNode &&
+          currentHasOutgoingConnection === hasOutgoingConnection &&
+          currentIsConnectionInProgress === isConnectionInProgress
+        ) {
           return node
         }
 
@@ -210,13 +251,15 @@ const FlowDiagram = ({
           data: {
             ...node.data,
             isFirstNode,
+            hasOutgoingConnection,
+            isConnectionInProgress,
           },
         }
       })
 
       return hasUpdates ? updatedNodes : currentNodes
     })
-  }, [nodes, edges, setNodes])
+  }, [nodes, edges, isConnectionInProgress, setNodes])
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) => isValidDiagramConnection(edges, connection),
@@ -232,11 +275,22 @@ const FlowDiagram = ({
     [setEdges, isValidConnection],
   )
 
+  const handleConnectStart = useCallback(() => {
+    setIsConnectionInProgress(true)
+  }, [])
+
+  const handleConnectEnd = useCallback(() => {
+    setIsConnectionInProgress(false)
+  }, [])
+
   const memoizedTemplateSteps = useMemo(() => templateSteps, [templateSteps])
   const memoizedTemplateStepParams = useMemo(() => templateStepParams, [templateStepParams])
   const memoizedLocators = useMemo(() => locators, [locators])
 
-  const openAddNodeDialog = useCallback(() => setShowAddNodeDialog(true), [])
+  const openAddNodeDialog = useCallback(() => {
+    setPendingAddSourceNodeId(null)
+    setShowAddNodeDialog(true)
+  }, [])
 
   return (
     <>
@@ -257,6 +311,8 @@ const FlowDiagram = ({
             edges={edges}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onConnectStart={handleConnectStart}
+            onConnectEnd={handleConnectEnd}
             fitView
             colorMode="dark"
             connectionMode={ConnectionMode.Loose}

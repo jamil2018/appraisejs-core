@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 import { Handle, NodeProps, Position, useNodeId, useReactFlow } from '@xyflow/react'
-import { Pencil, Trash } from 'lucide-react'
+import { Pencil, Plus, Trash } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { TemplateStepIcon, type StepParameterType } from '@prisma/client'
 
@@ -25,11 +25,14 @@ interface OptionsHeaderNodeData {
   isFirstNode?: boolean
   icon?: TemplateStepIcon | string
   isMissingParams?: boolean
+  hasOutgoingConnection?: boolean
+  isConnectionInProgress?: boolean
   parameters?: OptionsHeaderNodeParameter[]
 }
 
 interface OptionsHeaderNodeProps extends NodeProps {
   onEdit: (nodeId: string) => void
+  onAddConnectedNode: (nodeId: string) => void
 }
 
 function escapeRegExp(value: string) {
@@ -42,14 +45,22 @@ function getTemplateStepIcon(icon: OptionsHeaderNodeData['icon']) {
     : TemplateStepIcon.MOUSE
 }
 
-const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodeProps) => {
+const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: OptionsHeaderNodeProps) => {
   const { setNodes } = useReactFlow()
   const id = useNodeId()
   const [isToolbarVisible, setIsToolbarVisible] = useState(false)
   const hideToolbarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { label, gherkinStep, isFirstNode, icon, isMissingParams, parameters = [] } =
-    data as unknown as OptionsHeaderNodeData
+  const {
+    label,
+    gherkinStep,
+    isFirstNode,
+    icon,
+    isMissingParams,
+    hasOutgoingConnection,
+    isConnectionInProgress,
+    parameters = [],
+  } = data as unknown as OptionsHeaderNodeData
   const sortedParameters = [...parameters].sort((left, right) => left.order - right.order)
   const nonEmptyParameters = sortedParameters.filter(parameter => parameter.value.trim().length > 0)
 
@@ -57,6 +68,11 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodePro
     if (!id) return
     onEdit(id)
   }, [id, onEdit])
+
+  const handleAddConnectedNode = useCallback(() => {
+    if (!id || hasOutgoingConnection || isConnectionInProgress) return
+    onAddConnectedNode(id)
+  }, [hasOutgoingConnection, id, isConnectionInProgress, onAddConnectedNode])
 
   const handleDelete = useCallback(() => {
     if (!id) return
@@ -181,6 +197,52 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodePro
               >
                 <Trash aria-hidden="true" />
               </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {!hasOutgoingConnection && !isConnectionInProgress && (
+          <div className="absolute left-full top-1/2 z-20 -translate-y-1/2">
+            <motion.div
+              className="flex items-center"
+              initial={{ opacity: 0, x: -6, scale: 0.96 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -6, scale: 0.96 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <motion.span
+                aria-hidden="true"
+                className="h-px w-12 bg-emerald-500/70 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                initial={{ scaleX: 0, transformOrigin: 'left' }}
+                animate={{ scaleX: 1 }}
+                exit={{ scaleX: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              />
+              <motion.button
+                type="button"
+                className="nodrag nopan -ml-px flex h-5 w-5 items-center justify-center rounded border border-border/70 bg-muted/95 text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                aria-label="Add connected node"
+                onClick={handleAddConnectedNode}
+                whileHover={{ scale: 1.12 }}
+                whileTap={{ scale: 0.92 }}
+                animate={{
+                  boxShadow: [
+                    '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
+                    '0 0 0 4px rgba(16,185,129,0.12), 0 0 14px rgba(16,185,129,0.26)',
+                    '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
+                  ],
+                }}
+                transition={{
+                  boxShadow: {
+                    duration: 2.4,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  },
+                }}
+              >
+                <Plus aria-hidden="true" className="h-3 w-3" />
+              </motion.button>
             </motion.div>
           </div>
         )}

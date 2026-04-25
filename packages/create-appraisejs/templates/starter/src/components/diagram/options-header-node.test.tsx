@@ -28,9 +28,14 @@ vi.mock('@xyflow/react', () => ({
 
 function renderOptionsHeaderNode(
   data: Record<string, unknown> = {},
-  props: { selected?: boolean; onEdit?: (nodeId: string) => void } = {},
+  props: {
+    selected?: boolean
+    onEdit?: (nodeId: string) => void
+    onAddConnectedNode?: (nodeId: string) => void
+  } = {},
 ) {
   const onEdit = props.onEdit ?? vi.fn()
+  const onAddConnectedNode = props.onAddConnectedNode ?? vi.fn()
 
   render(
     <OptionsHeaderNode
@@ -59,26 +64,27 @@ function renderOptionsHeaderNode(
         },
       } as never)}
       onEdit={onEdit}
+      onAddConnectedNode={onAddConnectedNode}
     />,
   )
 
-  return { onEdit }
+  return { onEdit, onAddConnectedNode }
 }
 
 describe('OptionsHeaderNode', () => {
-  it('renders the large icon, title, gherkin footer, ordered param chips, and outline actions', () => {
+  it('renders the large icon, title, and hover-triggered gherkin param tooltips', async () => {
+    const user = userEvent.setup()
     renderOptionsHeaderNode()
 
     expect(screen.getByTestId('node-step-icon')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Click submit' })).toBeInTheDocument()
-    expect(screen.getByText('When click "Submit"')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument()
+    await user.hover(screen.getByTestId('options-header-node'))
+    expect(screen.getByText('When click "', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Submit')).toBeInTheDocument()
+    expect(screen.queryByText('target')).not.toBeInTheDocument()
+    await user.hover(screen.getByText('Submit'))
 
-    expect(screen.getAllByTestId('node-param-chip').map(chip => chip.textContent)).toEqual([
-      'target: Submit',
-      'count: 3',
-    ])
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('target')
   })
 
   it('calls the edit callback with the current node id', async () => {
@@ -86,15 +92,56 @@ describe('OptionsHeaderNode', () => {
     const onEdit = vi.fn()
     renderOptionsHeaderNode({}, { onEdit })
 
+    await user.hover(screen.getByTestId('options-header-node'))
     await user.click(screen.getByRole('button', { name: /edit/i }))
 
     expect(onEdit).toHaveBeenCalledWith('node-1')
+  })
+
+  it('always renders the add-connected button', () => {
+    renderOptionsHeaderNode()
+
+    expect(screen.getByRole('button', { name: /add connected node/i })).toBeInTheDocument()
+  })
+
+  it('renders the add-connected button when selected', () => {
+    renderOptionsHeaderNode({}, { selected: true })
+
+    expect(screen.getByRole('button', { name: /add connected node/i })).toBeInTheDocument()
+  })
+
+  it('calls the add-connected callback with the current node id', async () => {
+    const user = userEvent.setup()
+    const onAddConnectedNode = vi.fn()
+    renderOptionsHeaderNode({}, { onAddConnectedNode })
+
+    await user.hover(screen.getByTestId('options-header-node'))
+    await user.click(screen.getByRole('button', { name: /add connected node/i }))
+
+    expect(onAddConnectedNode).toHaveBeenCalledWith('node-1')
+  })
+
+  it('hides the add-connected button when the node already has an outgoing connection', () => {
+    const onAddConnectedNode = vi.fn()
+    renderOptionsHeaderNode({ hasOutgoingConnection: true }, { onAddConnectedNode })
+
+    expect(screen.queryByRole('button', { name: /add connected node/i })).not.toBeInTheDocument()
+    expect(onAddConnectedNode).not.toHaveBeenCalled()
+  })
+
+  it('hides the add-connected button while a connection drag is in progress', () => {
+    const onAddConnectedNode = vi.fn()
+    renderOptionsHeaderNode({ isConnectionInProgress: true }, { onAddConnectedNode })
+
+    expect(screen.queryByRole('button', { name: /add connected node/i })).not.toBeInTheDocument()
+    expect(onAddConnectedNode).not.toHaveBeenCalled()
   })
 
   it('removes the current node from React Flow state on delete', async () => {
     const user = userEvent.setup()
     renderOptionsHeaderNode()
 
+    await user.hover(screen.getByTestId('options-header-node'))
     await user.click(screen.getByRole('button', { name: /delete/i }))
 
     expect(xyflowMocks.setNodes).toHaveBeenCalledTimes(1)
@@ -106,7 +153,8 @@ describe('OptionsHeaderNode', () => {
     expect(updateNodes([{ id: 'node-1' }, { id: 'node-2' }])).toEqual([{ id: 'node-2' }])
   })
 
-  it('keeps missing-param warning nodes readable and omits empty chip rows', () => {
+  it('keeps missing-param warning nodes readable and omits empty chip rows', async () => {
+    const user = userEvent.setup()
     renderOptionsHeaderNode({
       isMissingParams: true,
       parameters: [],
@@ -114,7 +162,17 @@ describe('OptionsHeaderNode', () => {
 
     expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-missing-params', 'true')
     expect(screen.getByRole('heading', { name: 'Click submit' })).toBeInTheDocument()
+    await user.hover(screen.getByTestId('options-header-node'))
     expect(screen.getByText('When click "Submit"')).toBeInTheDocument()
     expect(screen.queryByTestId('node-param-chip-row')).not.toBeInTheDocument()
+  })
+
+  it('styles start nodes with rounded left edge and hides incoming handle', () => {
+    renderOptionsHeaderNode({ isFirstNode: true })
+
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-first-node', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('rounded-l-3xl')
+    expect(screen.queryByTestId('target-handle')).not.toBeInTheDocument()
+    expect(screen.getByTestId('source-handle')).toBeInTheDocument()
   })
 })
