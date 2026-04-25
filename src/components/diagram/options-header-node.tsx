@@ -192,7 +192,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit }: OptionsHeaderNodePro
         </div>
       </div>
       <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -translate-x-[47%]">
-        <h3 className="w-full text-center text-lg font-bold leading-tight text-card-foreground">{label}</h3>
+        <h3 className="relative -left-2 w-full text-center text-lg font-bold leading-tight text-card-foreground">{label}</h3>
         <AnimatePresence>
           {showToolbar && (
             <motion.div
