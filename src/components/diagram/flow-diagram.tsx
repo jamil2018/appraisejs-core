@@ -44,6 +44,12 @@ const edgeTypes = {
 
 const defaultEdgeOptions: DefaultEdgeOptions = {
   type: 'buttonEdge',
+  zIndex: 12,
+  style: {
+    stroke: 'rgb(148 163 184 / 0.9)',
+    strokeWidth: 1.75,
+    strokeLinecap: 'round',
+  },
 }
 
 const flowDiagramProOptions = { hideAttribution: true }
