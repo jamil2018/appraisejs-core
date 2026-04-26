@@ -23,8 +23,12 @@ export const testCaseQuickTips = [
     description: 'Use clear, specific terms that indicate the purpose of the test scenario',
   },
   {
-    title: 'Build your test scenario step by step',
-    description: 'Build your test scenario step by step visually to help others understand the flow of the test scenario',
+    title: 'Assign your test scenario to a test suite',
+    description: 'Organize your test scenarios into test suites for better management and categorization',
+  },
+  {
+    title: 'Add tags to your test scenario',
+    description: 'Tags help filter and categorize your test scenarios for better organization and searchability',
   },
 ] as const
 
