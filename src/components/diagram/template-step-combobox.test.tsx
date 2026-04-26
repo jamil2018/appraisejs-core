@@ -66,8 +66,8 @@ describe('TemplateStepCombobox', () => {
     expect(clickItem).not.toBeNull()
     expect(clickItem?.querySelector('svg')).not.toBeNull()
     expect(within(clickItem as HTMLElement).getByText('Clicks the target button')).toBeInTheDocument()
-    expect(within(clickItem as HTMLElement).getByText('target')).toBeInTheDocument()
-    expect(within(clickItem as HTMLElement).getByText('timeoutMs')).toBeInTheDocument()
+    expect(within(clickItem as HTMLElement).getByText('Target')).toBeInTheDocument()
+    expect(within(clickItem as HTMLElement).getByText('Timeout Ms')).toBeInTheDocument()
 
     await user.click(screen.getByText('Validate response'))
 
@@ -110,5 +110,35 @@ describe('TemplateStepCombobox', () => {
     await user.clear(searchInput)
     await user.type(searchInput, 'expectedStatus')
     expect(screen.getByText('Validate response')).toBeInTheDocument()
+  })
+
+  it('ranks exact name matches above weaker keyword matches', async () => {
+    const user = userEvent.setup()
+
+    renderCombobox([
+      buildTemplateStep({
+        id: 'step-fill',
+        name: 'Fill',
+        description: 'Fill an input field',
+        icon: TemplateStepIcon.TYPE,
+        templateStepGroup: { id: 'group-actions', name: 'actions' },
+      }),
+      buildTemplateStep({
+        id: 'step-assertion',
+        name: 'Validate profile',
+        description: 'Checks that a field is filled',
+        icon: TemplateStepIcon.VALIDATION,
+        type: TemplateStepType.ASSERTION,
+        templateStepGroupId: 'group-assertions',
+        templateStepGroup: { id: 'group-assertions', name: 'assertions' },
+      }),
+    ])
+
+    await user.click(screen.getByRole('combobox'))
+    await user.type(screen.getByPlaceholderText('Search template steps…'), 'fill')
+
+    const options = screen.getAllByRole('option')
+    expect(options).toHaveLength(2)
+    expect(within(options[0] as HTMLElement).getByText('Fill')).toBeInTheDocument()
   })
 })
