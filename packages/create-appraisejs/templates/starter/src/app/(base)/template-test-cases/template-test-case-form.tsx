@@ -130,7 +130,6 @@ const TemplateTestCaseForm = ({
         </div>
       </div>
       <div className="mb-4 flex h-[500px] flex-col gap-2">
-        <Label htmlFor="test-case-flow">Test Case Flow</Label>
         <TemplateTestCaseFlow
           initialNodesOrder={nodesOrder}
           templateStepParams={templateStepParams}

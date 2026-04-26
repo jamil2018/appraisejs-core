@@ -5,6 +5,7 @@ import {
   buildFlowNodeData,
   createAddNodePromptNode,
   determineNodeOrders,
+  determineStartNodeIds,
   generateInitialNodesAndEdges,
   isAddNodePromptNode,
   isValidDiagramConnection,
@@ -111,6 +112,84 @@ describe('flow-diagram helpers', () => {
     expect(orders['node-1']?.order).toBe(1)
     expect(orders['node-2']?.order).toBe(2)
     expect(orders['node-3']?.order).toBe(-1)
+  })
+
+  it('detects connected start nodes and excludes isolated nodes', () => {
+    const startNodeIds = determineStartNodeIds(
+      [
+        {
+          id: 'node-1',
+          data: { label: 'First', parameters: [], templateStepId: 'step-1' },
+        },
+        {
+          id: 'node-2',
+          data: { label: 'Second', parameters: [], templateStepId: 'step-2' },
+        },
+        {
+          id: 'node-3',
+          data: { label: 'Isolated', parameters: [], templateStepId: 'step-3' },
+        },
+      ] as never,
+      [
+        {
+          source: 'node-1',
+          target: 'node-2',
+        },
+      ] as never,
+    )
+
+    expect(startNodeIds.has('node-1')).toBe(true)
+    expect(startNodeIds.has('node-2')).toBe(false)
+    expect(startNodeIds.has('node-3')).toBe(false)
+  })
+
+  it('does not mark any first node when the start is ambiguous', () => {
+    const startNodeIds = determineStartNodeIds(
+      [
+        {
+          id: 'node-1',
+          data: { label: 'First chain root', parameters: [], templateStepId: 'step-1' },
+        },
+        {
+          id: 'node-2',
+          data: { label: 'First chain child', parameters: [], templateStepId: 'step-2' },
+        },
+        {
+          id: 'node-3',
+          data: { label: 'Second chain root', parameters: [], templateStepId: 'step-3' },
+        },
+        {
+          id: 'node-4',
+          data: { label: 'Second chain child', parameters: [], templateStepId: 'step-4' },
+        },
+      ] as never,
+      [
+        {
+          source: 'node-1',
+          target: 'node-2',
+        },
+        {
+          source: 'node-3',
+          target: 'node-4',
+        },
+      ] as never,
+    )
+
+    expect(startNodeIds.size).toBe(0)
+  })
+
+  it('does not mark a lone disconnected node as a start node', () => {
+    const startNodeIds = determineStartNodeIds(
+      [
+        {
+          id: 'node-1',
+          data: { label: 'Only', parameters: [], templateStepId: 'step-1' },
+        },
+      ] as never,
+      [],
+    )
+
+    expect(startNodeIds.size).toBe(0)
   })
 
   it('validates single in/out connections and removes orphaned edges', () => {

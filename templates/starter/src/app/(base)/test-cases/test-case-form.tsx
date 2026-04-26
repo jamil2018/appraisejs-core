@@ -1,5 +1,5 @@
 'use client'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 
 import {
   getConvertedTemplateTestCaseData,
@@ -24,7 +24,8 @@ import {
   type TestSuite,
   type Tag,
 } from '@prisma/client'
-import { ArrowLeft, ArrowRight, Info, Plus, Save } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Info, Maximize2, Minimize2, Plus, Save } from 'lucide-react'
+import { LayoutGroup, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -47,6 +48,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { toast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
 type TestCaseFormProps = {
@@ -124,6 +126,7 @@ const TestCaseForm = ({
   const [currentStep, setCurrentStep] = useState(hasTemplateSelectionStep ? (defaultTemplateTestCaseId ? detailsStepIndex : 0) : 0)
   const [isCreateSuiteDialogOpen, setIsCreateSuiteDialogOpen] = useState(false)
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false)
+  const [isFlowImmersive, setIsFlowImmersive] = useState(false)
   const [errors, setErrors] = useState<TestCaseFormErrors>({})
   const selectedTemplateTestCase =
     templateTestCases?.find(templateTestCase => templateTestCase.id === selectedTemplateId) ?? null
@@ -328,6 +331,62 @@ const TestCaseForm = ({
     id,
     templateStepParams,
   ])
+
+  useEffect(() => {
+    if (!isFlowImmersive) return
+    const { body } = document
+    const previousOverflow = body.style.overflow
+    body.style.overflow = 'hidden'
+
+    return () => {
+      body.style.overflow = previousOverflow
+    }
+  }, [isFlowImmersive])
+
+  const renderFlowPanel = (className: string) => (
+    <motion.div
+      layout
+      layoutId="test-case-flow-panel"
+      className={cn(
+        'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-gray-700 text-card-foreground shadow-sm will-change-transform',
+        className,
+      )}
+      transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
+    >
+      <CardHeader className="shrink-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+            <CardDescription>Build your test scenario step by step visually</CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => setIsFlowImmersive(current => !current)}
+            aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
+          >
+            {isFlowImmersive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="min-h-0 flex-1">
+            <TestCaseFlow
+              initialNodesOrder={nodesOrder}
+              templateStepParams={templateStepParams}
+              templateSteps={templateSteps}
+              onNodeOrderChange={onNodeOrderChange}
+              locators={locators}
+              locatorGroups={locatorGroups}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </motion.div>
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -625,52 +684,42 @@ const TestCaseForm = ({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="w-full min-w-0 overflow-x-hidden">
-            <Card className="flex h-[max(22rem,calc(100dvh-12rem))] min-h-0 flex-col border-gray-700 bg-gray-500/10">
-              <CardHeader className="shrink-0">
-                <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
-                <CardDescription>Build your test scenario step by step visually</CardDescription>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col">
-                <div className="flex min-h-0 flex-1 flex-col gap-2">
-                  <Label className="shrink-0" htmlFor="test-case-flow">
-                    Test Case Flow
-                  </Label>
-                  <div className="min-h-0 flex-1">
-                    <TestCaseFlow
-                      initialNodesOrder={nodesOrder}
-                      templateStepParams={templateStepParams}
-                      templateSteps={templateSteps}
-                      onNodeOrderChange={onNodeOrderChange}
-                      locators={locators}
-                      locatorGroups={locatorGroups}
-                    />
-                  </div>
+          <LayoutGroup id="test-case-flow-panel-layout">
+            <div className="w-full min-w-0 overflow-x-hidden">
+              {isFlowImmersive ? (
+                <div className="fixed inset-0 z-[70] bg-background p-3 sm:p-4">
+                  {renderFlowPanel('h-full bg-background')}
                 </div>
-              </CardContent>
-            </Card>
-            {renderError(errors.steps)}
-          </div>
-          <TestScenarioPreview
-            title="Test Scenario(Preview)"
-            description="Preview of the test scenario in Gherkin syntax"
-            scenario={scenarioPreview}
-          />
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setCurrentStep(detailsStepIndex)} className="w-fit px-6">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="font-bold">Back</span>
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              className="w-fit px-6 hover:bg-emerald-500"
-              aria-label="Save test case"
-            >
-              <Save className="h-4 w-4" aria-hidden />
-              <span className="font-bold">Save</span>
-            </Button>
-          </div>
+              ) : (
+                renderFlowPanel('relative h-[max(22rem,calc(100dvh-12rem))] bg-gray-500/10')
+              )}
+              {renderError(errors.steps)}
+            </div>
+          </LayoutGroup>
+          {!isFlowImmersive && (
+            <div className="flex flex-col gap-4">
+              <TestScenarioPreview
+                title="Test Scenario(Preview)"
+                description="Preview of the test scenario in Gherkin syntax"
+                scenario={scenarioPreview}
+              />
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                <Button variant="outline" onClick={() => setCurrentStep(detailsStepIndex)} className="w-fit px-6">
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="font-bold">Back</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="w-fit px-6 hover:bg-emerald-500"
+                  aria-label="Save test case"
+                >
+                  <Save className="h-4 w-4" aria-hidden />
+                  <span className="font-bold">Save</span>
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
