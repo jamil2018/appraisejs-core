@@ -1,5 +1,5 @@
 import React from 'react'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, type EdgeProps } from '@xyflow/react'
+import { BaseEdge, EdgeLabelRenderer, getStraightPath, useReactFlow, type EdgeProps } from '@xyflow/react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -9,19 +9,15 @@ export default function ButtonEdge({
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
   style = {},
   markerEnd,
 }: EdgeProps) {
   const { setEdges } = useReactFlow()
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
     sourceY,
-    sourcePosition,
     targetX,
     targetY,
-    targetPosition,
   })
 
   const onEdgeClick = () => {
@@ -33,7 +29,7 @@ export default function ButtonEdge({
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
       <EdgeLabelRenderer>
         <div
-          className={`nodrag nopan pointer-events-auto absolute flex items-center justify-center`}
+          className={`nodrag nopan pointer-events-auto absolute z-30 flex items-center justify-center`}
           style={{
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
           }}

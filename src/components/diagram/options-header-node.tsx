@@ -164,7 +164,13 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
         isMissingParams && 'border-destructive/70 bg-destructive/10 ring-1 ring-destructive/40',
       )}
     >
-      {!isFirstNode && <Handle type="target" position={Position.Left} />}
+      {!isFirstNode && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400"
+        />
+      )}
       <AnimatePresence>
         {showToolbar && (
           <div className="absolute -top-12 left-1/2 z-10 -translate-x-1/2">
@@ -272,7 +278,11 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
           )}
         </AnimatePresence>
       </div>
-      <Handle type="source" position={Position.Right} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400"
+      />
     </BaseNode>
   )
 })
