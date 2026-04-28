@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "fallow": {
+      "source": "fallow-rs/fallow-skills",
+      "sourceType": "github",
+      "skillPath": "fallow/skills/fallow/SKILL.md",
+      "computedHash": "f7fc6f7ecb49f1ca3f93135086013f5fec4ff5cf598bb78c89b03df1f797b2bf"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
