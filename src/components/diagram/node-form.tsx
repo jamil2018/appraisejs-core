@@ -64,6 +64,7 @@ const NodeForm = ({
   >(initialValues.parameters ?? [])
   const [gherkinStep, setGherkinStep] = useState<string>(initialValues.gherkinStep ?? '')
   const [errors, setErrors] = useState<NodeFormErrors>({})
+  const wasDialogOpenRef = useRef(showAddNodeDialog)
   const initialValuesResetKey = JSON.stringify({
     label: initialValues.label,
     gherkinStep: initialValues.gherkinStep,
@@ -72,12 +73,7 @@ const NodeForm = ({
   })
   const lastInitialValuesResetKeyRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    if (lastInitialValuesResetKeyRef.current === initialValuesResetKey) {
-      return
-    }
-
-    lastInitialValuesResetKeyRef.current = initialValuesResetKey
+  const resetFromInitialValues = useCallback(() => {
     queueMicrotask(() => {
       setSelectedTemplateId(initialValues.templateStepId)
       const step = getSelectedTemplateStep(templateSteps, initialValues.templateStepId)
@@ -85,15 +81,33 @@ const NodeForm = ({
       setSelectedTemplateStepParams(getSelectedTemplateStepParams(templateStepParams, initialValues.templateStepId))
       setParameters(initialValues.parameters ?? [])
       setGherkinStep(initialValues.gherkinStep ?? '')
+      setErrors({})
     })
   }, [
     initialValues.templateStepId,
     initialValues.parameters,
     initialValues.gherkinStep,
-    initialValuesResetKey,
     templateSteps,
     templateStepParams,
   ])
+
+  useEffect(() => {
+    if (lastInitialValuesResetKeyRef.current === initialValuesResetKey) {
+      return
+    }
+
+    lastInitialValuesResetKeyRef.current = initialValuesResetKey
+    resetFromInitialValues()
+  }, [initialValuesResetKey, resetFromInitialValues])
+
+  useEffect(() => {
+    const wasDialogOpen = wasDialogOpenRef.current
+    wasDialogOpenRef.current = showAddNodeDialog
+
+    if (mode === 'add' && showAddNodeDialog && !wasDialogOpen) {
+      resetFromInitialValues()
+    }
+  }, [mode, resetFromInitialValues, showAddNodeDialog])
 
   const handleTemplateStepChange = useCallback(
     (value: string) => {

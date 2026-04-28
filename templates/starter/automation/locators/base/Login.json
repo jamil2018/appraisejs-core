@@ -6,5 +6,7 @@
   "Email 2": "role=textbox[name=\"Email\"]",
   "Password 01": "role=textbox[name=\"Password\"]",
   "Login 23": "role=button[name=\"Login\"]",
-  "Login 343": "role=button[name=\"Login\"]"
+  "Login 343": "role=button[name=\"Login\"]",
+  "Emailcvvas": "role=textbox[name=\"Email\"]",
+  "Loginsdadsa": "role=button[name=\"Login\"]"
 }

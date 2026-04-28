@@ -220,4 +220,66 @@ describe('NodeForm', () => {
       expect(screen.getByLabelText('Template Step')).toHaveValue('step-1')
     })
   })
+
+  it('resets the selected template step when reopening the add node sidebar', async () => {
+    const user = userEvent.setup()
+    const baseInitialValues = {
+      label: '',
+      gherkinStep: '',
+      templateStepId: '',
+      parameters: [],
+    }
+
+    const { rerender } = render(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={baseInitialValues}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await user.selectOptions(screen.getByLabelText('Template Step'), 'step-1')
+    expect(screen.getByLabelText('Template Step')).toHaveValue('step-1')
+
+    rerender(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={baseInitialValues}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog={false}
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    rerender(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={{ ...baseInitialValues, parameters: [] }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Template Step')).toHaveValue('')
+    })
+  })
 })
