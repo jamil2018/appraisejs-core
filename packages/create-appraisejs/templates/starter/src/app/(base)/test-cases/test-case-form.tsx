@@ -25,7 +25,7 @@ import {
   type Tag,
 } from '@prisma/client'
 import { ArrowLeft, ArrowRight, Info, Maximize2, Minimize2, Plus, Save } from 'lucide-react'
-import { motion } from 'motion/react'
+import { LayoutGroup, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -343,6 +343,51 @@ const TestCaseForm = ({
     }
   }, [isFlowImmersive])
 
+  const renderFlowPanel = (className: string) => (
+    <motion.div
+      layout
+      layoutId="test-case-flow-panel"
+      className={cn(
+        'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-gray-700 text-card-foreground shadow-sm will-change-transform',
+        className,
+      )}
+      transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
+    >
+      <CardHeader className="shrink-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+            <CardDescription>Build your test scenario step by step visually</CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => setIsFlowImmersive(current => !current)}
+            aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
+          >
+            {isFlowImmersive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="min-h-0 flex-1">
+            <TestCaseFlow
+              initialNodesOrder={nodesOrder}
+              templateStepParams={templateStepParams}
+              templateSteps={templateSteps}
+              onNodeOrderChange={onNodeOrderChange}
+              locators={locators}
+              locatorGroups={locatorGroups}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </motion.div>
+  )
+
   return (
     <div className="flex flex-col gap-4">
       <div className="mb-4 px-1 pt-1">
@@ -639,57 +684,18 @@ const TestCaseForm = ({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="w-full min-w-0 overflow-x-hidden">
-            <motion.div
-              layout
-              transition={{ duration: 0.28, ease: 'easeInOut' }}
-              className={cn(
-                isFlowImmersive &&
-                  'fixed inset-0 z-[70] flex min-h-screen w-screen items-stretch bg-background px-4 pb-4 pt-20 sm:px-6',
+          <LayoutGroup id="test-case-flow-panel-layout">
+            <div className="w-full min-w-0 overflow-x-hidden">
+              {isFlowImmersive ? (
+                <div className="fixed inset-0 z-[70] bg-background p-3 sm:p-4">
+                  {renderFlowPanel('h-full bg-background')}
+                </div>
+              ) : (
+                renderFlowPanel('relative h-[max(22rem,calc(100dvh-12rem))] bg-gray-500/10')
               )}
-            >
-              <Card
-                className={cn(
-                  'flex min-h-0 flex-col border-gray-700 bg-gray-500/10',
-                  isFlowImmersive ? 'h-full w-full rounded-xl' : 'h-[max(22rem,calc(100dvh-12rem))]',
-                )}
-              >
-                <CardHeader className="shrink-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
-                      <CardDescription>Build your test scenario step by step visually</CardDescription>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 shrink-0"
-                      onClick={() => setIsFlowImmersive(current => !current)}
-                      aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
-                    >
-                      {isFlowImmersive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex min-h-0 flex-1 flex-col">
-                  <div className="flex min-h-0 flex-1 flex-col gap-2">
-                    <div className="min-h-0 flex-1">
-                      <TestCaseFlow
-                        initialNodesOrder={nodesOrder}
-                        templateStepParams={templateStepParams}
-                        templateSteps={templateSteps}
-                        onNodeOrderChange={onNodeOrderChange}
-                        locators={locators}
-                        locatorGroups={locatorGroups}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-            {renderError(errors.steps)}
-          </div>
+              {renderError(errors.steps)}
+            </div>
+          </LayoutGroup>
           {!isFlowImmersive && (
             <div className="flex flex-col gap-4">
               <TestScenarioPreview
