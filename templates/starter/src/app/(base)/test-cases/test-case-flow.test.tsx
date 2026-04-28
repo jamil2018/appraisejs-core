@@ -77,6 +77,8 @@ describe('TestCaseFlow', () => {
         templateSteps={[]}
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         onNodeOrderChange={onNodeOrderChange}
       />,
     )

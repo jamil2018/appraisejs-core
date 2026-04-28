@@ -2,14 +2,16 @@ import FlowDiagram from '@/components/diagram/flow-diagram'
 import { toTemplateTestCaseNodeOrderMap } from '@/components/diagram/flow-host-helpers'
 import { useFlowNodeOrder } from '@/components/diagram/use-flow-node-order'
 import type { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import type { Locator, LocatorGroup, TemplateStep, TemplateStepParameter } from '@prisma/client'
+import type { Environment, Locator, LocatorGroup, Module, TemplateStep, TemplateStepParameter } from '@prisma/client'
 
 type TemplateTestCaseFlowProps = {
   initialNodesOrder: TemplateTestCaseNodeOrderMap
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
+  environments: Array<Pick<Environment, 'id' | 'name'>>
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   onNodeOrderChange: (nodesOrder: TemplateTestCaseNodeOrderMap) => void
   defaultValueInput?: boolean
 }
@@ -20,6 +22,8 @@ const TemplateTestCaseFlow = ({
   templateSteps,
   locators,
   locatorGroups,
+  environments,
+  modules,
   onNodeOrderChange,
   defaultValueInput = false,
 }: TemplateTestCaseFlowProps) => {
@@ -37,6 +41,8 @@ const TemplateTestCaseFlow = ({
       templateSteps={templateSteps}
       locators={locators}
       locatorGroups={locatorGroups}
+      environments={environments}
+      modules={modules}
       defaultValueInput={defaultValueInput}
     />
   )

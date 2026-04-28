@@ -3,8 +3,10 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Blocks } from 'lucide-react'
 import React from 'react'
 import TemplateTestCaseForm from '../template-test-case-form'
-import { Locator, TemplateStep, TemplateStepParameter, LocatorGroup } from '@prisma/client'
+import { Environment, Locator, TemplateStep, TemplateStepParameter, LocatorGroup, Module } from '@prisma/client'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTemplateStepParamsAction } from '@/actions/template-step/template-step-actions'
 import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import { createTemplateTestCaseAction } from '@/actions/template-test-case/template-test-case-actions'
@@ -24,9 +26,15 @@ const CreateTemplateTestCase = async () => {
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()
 
   const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
+  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
+  const { data: modules, error: modulesError } = await getAllModulesAction()
 
-  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError) {
-    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError}</div>
+  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError) {
+    return (
+      <div>
+        Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError}
+      </div>
+    )
   }
 
   return (
@@ -46,6 +54,8 @@ const CreateTemplateTestCase = async () => {
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
         locatorGroups={locatorGroups as LocatorGroup[]}
+        environments={environments as Environment[]}
+        modules={modules as Module[]}
         onSubmitAction={createTemplateTestCaseAction}
         defaultValueInput={true}
       />

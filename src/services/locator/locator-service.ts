@@ -342,7 +342,18 @@ const savePickedLocatorSchema = z.object({
 })
 
 export type SavePickedLocatorOutcome =
-  | { kind: 'success'; locatorId: string; locatorGroupId: string; message: string; wasUpdate: boolean }
+  | {
+      kind: 'success'
+      locatorId: string
+      locatorName: string
+      locatorGroupId: string
+      locatorGroupName: string
+      selector: string
+      route: string
+      moduleId: string
+      message: string
+      wasUpdate: boolean
+    }
   | { kind: 'error'; status: number; message: string }
 
 export async function savePickedLocatorFromRequest(request: SavePickedLocatorRequest): Promise<SavePickedLocatorOutcome> {
@@ -358,7 +369,8 @@ export async function savePickedLocatorFromRequest(request: SavePickedLocatorReq
 
   let locatorGroupId = value.existingLocatorGroupId
   let locatorGroupName = ''
-  const route = normalizeRoute(value.route || session?.currentPathname)
+  let route = normalizeRoute(value.route || session?.currentPathname)
+  let moduleId = value.moduleId ?? ''
   const locatorName = value.locatorName.trim()
   const selector = value.selector.trim()
   const currentLocator = value.locatorId
@@ -388,6 +400,8 @@ export async function savePickedLocatorFromRequest(request: SavePickedLocatorReq
     }
 
     locatorGroupName = locatorGroup.name
+    route = locatorGroup.route
+    moduleId = locatorGroup.moduleId
   } else {
     if (!value.newLocatorGroupName || value.newLocatorGroupName.trim() === '') {
       return fail(400, 'Locator group name is required when creating a new group.')
@@ -417,6 +431,7 @@ export async function savePickedLocatorFromRequest(request: SavePickedLocatorReq
 
     locatorGroupId = newLocatorGroup.id
     locatorGroupName = newLocatorGroup.name
+    moduleId = newLocatorGroup.moduleId
 
     await automationProjectionService.createEmptyLocatorGroup(newLocatorGroup.id)
     await automationProjectionService.syncLocatorMap(newLocatorGroup.name, route)
@@ -472,7 +487,12 @@ export async function savePickedLocatorFromRequest(request: SavePickedLocatorReq
   return {
     kind: 'success',
     locatorId: locator.id,
+    locatorName: locator.name,
     locatorGroupId,
+    locatorGroupName,
+    selector: locator.value,
+    route,
+    moduleId,
     message: value.locatorId ? 'Locator updated successfully.' : 'Locator saved successfully.',
     wasUpdate: Boolean(value.locatorId),
   }

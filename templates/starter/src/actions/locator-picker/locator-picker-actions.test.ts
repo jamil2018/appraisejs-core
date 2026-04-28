@@ -31,7 +31,12 @@ describe('savePickedLocatorAction', () => {
     vi.mocked(savePickedLocatorFromRequest).mockResolvedValue({
       kind: 'success',
       locatorId: 'loc-1',
+      locatorName: 'submit',
       locatorGroupId: 'group-1',
+      locatorGroupName: 'Checkout',
+      selector: '[data-testid="submit"]',
+      route: '/checkout',
+      moduleId: 'module-1',
       message: 'Locator updated successfully.',
       wasUpdate: true,
     })
@@ -50,7 +55,12 @@ describe('savePickedLocatorAction', () => {
       success: true,
       data: {
         locatorId: 'loc-1',
+        locatorName: 'submit',
         locatorGroupId: 'group-1',
+        locatorGroupName: 'Checkout',
+        selector: '[data-testid="submit"]',
+        route: '/checkout',
+        moduleId: 'module-1',
       },
       message: 'Locator updated successfully.',
     })

@@ -2,11 +2,14 @@ import { format } from 'date-fns'
 import {
   StepParameterType,
   TemplateStepIcon,
+  type Environment,
   type Locator,
   type LocatorGroup,
+  type Module,
   type TemplateStep,
   type TemplateStepParameter,
 } from '@prisma/client'
+import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
 import { z } from 'zod'
 
 import type { NodeData } from '@/constants/form-opts/diagram/node-form'
@@ -27,7 +30,10 @@ export type NodeFormProps = {
   templateStepParams: TemplateStepParameter[]
   showAddNodeDialog: boolean
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
-  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
+  environments: Array<Pick<Environment, 'id' | 'name'>>
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
+  onLocatorCreated?: (result: InlineLocatorSaveResult) => void
   setShowAddNodeDialog: (show: boolean) => void
   defaultValueInput?: boolean
 }

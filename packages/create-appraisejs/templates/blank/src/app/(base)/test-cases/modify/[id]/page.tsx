@@ -9,6 +9,7 @@ import {
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
@@ -18,6 +19,7 @@ import { Metadata } from 'next'
 import {
   buildNodeOrderFromTestCaseSteps,
   getEditableTestCase,
+  getEnvironmentRows,
   getLocatorGroupRows,
   getLocatorRows,
   getModuleRows,
@@ -45,6 +47,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     tagsResponse,
     testCasesResponse,
     moduleListResponse,
+    environmentsResponse,
   ] = await Promise.all([
     getTestCaseByIdAction(id),
     getAllTemplateStepParamsAction(),
@@ -55,6 +58,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     getAllTagsAction(),
     getAllTestCasesAction(),
     getAllModulesAction(),
+    getAllEnvironmentsAction(),
   ])
 
   const loadError =
@@ -66,7 +70,8 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     locatorGroupsResponse.error ||
     tagsResponse.error ||
     testCasesResponse.error ||
-    moduleListResponse.error
+    moduleListResponse.error ||
+    environmentsResponse.error
 
   if (loadError) {
     return (
@@ -89,6 +94,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
   const tags = getTagRows(tagsResponse.data)
   const testCases = getTestCaseRows(testCasesResponse.data)
   const moduleList = getModuleRows(moduleListResponse.data)
+  const environments = getEnvironmentRows(environmentsResponse.data)
 
   return (
     <>
@@ -107,6 +113,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         templateSteps={templateSteps}
         locators={locators}
         locatorGroups={locatorGroups}
+        environments={environments}
         testSuites={testSuites}
         testCases={testCases}
         moduleList={moduleList}

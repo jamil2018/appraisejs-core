@@ -87,7 +87,12 @@ export async function savePickedLocatorAction(request: SavePickedLocatorRequest)
       success: true,
       data: {
         locatorId: outcome.locatorId,
+        locatorName: outcome.locatorName,
         locatorGroupId: outcome.locatorGroupId,
+        locatorGroupName: outcome.locatorGroupName,
+        selector: outcome.selector,
+        route: outcome.route,
+        moduleId: outcome.moduleId,
       },
       message: outcome.message,
     }

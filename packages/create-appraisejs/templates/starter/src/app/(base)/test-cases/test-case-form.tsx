@@ -18,6 +18,7 @@ import type { TestCasePickerRow } from '@/types/test-case-picker'
 import {
   type Locator,
   type LocatorGroup,
+  type Environment,
   type Module,
   type TemplateStep,
   type TemplateStepParameter,
@@ -55,8 +56,9 @@ type TestCaseFormProps = {
   defaultNodesOrder: NodeOrderMap
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
+  environments: Array<Pick<Environment, 'id' | 'name'>>
   testSuites: TestSuite[]
   testCases: TestCasePickerRow[]
   moduleList: Module[]
@@ -90,6 +92,7 @@ const TestCaseForm = ({
   templateSteps,
   locators,
   locatorGroups,
+  environments,
   testSuites,
   testCases,
   moduleList,
@@ -381,6 +384,8 @@ const TestCaseForm = ({
               onNodeOrderChange={onNodeOrderChange}
               locators={locators}
               locatorGroups={locatorGroups}
+              environments={environments}
+              modules={moduleList}
             />
           </div>
         </div>

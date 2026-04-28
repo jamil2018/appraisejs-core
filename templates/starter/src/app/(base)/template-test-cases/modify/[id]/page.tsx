@@ -1,6 +1,8 @@
 import {
   Locator,
   LocatorGroup,
+  Environment,
+  Module,
   TemplateStep,
   TemplateStepParameter,
   TemplateTestCase,
@@ -16,6 +18,8 @@ import {
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import {
   getTemplateTestCaseByIdAction,
@@ -45,8 +49,14 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
   const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
   const { data: locators, error: locatorsError } = await getAllLocatorsAction()
   const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
-  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError) {
-    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError}</div>
+  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
+  const { data: modules, error: modulesError } = await getAllModulesAction()
+  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError) {
+    return (
+      <div>
+        Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError}
+      </div>
+    )
   }
   return (
     <>
@@ -63,6 +73,8 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
         locatorGroups={locatorGroups as LocatorGroup[]}
+        environments={environments as Environment[]}
+        modules={modules as Module[]}
         defaultNodesOrder={templateTestCase.steps.reduce((acc, step) => {
           acc[step.id] = {
             order: step.order,

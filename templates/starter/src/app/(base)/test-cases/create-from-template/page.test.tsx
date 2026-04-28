@@ -13,6 +13,7 @@ const {
   getAllTagsAction,
   getAllTestCasesAction,
   getAllModulesAction,
+  getAllEnvironmentsAction,
   createTestCaseAction,
   createTestSuiteAction,
   createTagAction,
@@ -27,6 +28,7 @@ const {
   getAllTagsAction: vi.fn(),
   getAllTestCasesAction: vi.fn(),
   getAllModulesAction: vi.fn(),
+  getAllEnvironmentsAction: vi.fn(),
   createTestCaseAction: vi.fn(),
   createTestSuiteAction: vi.fn(),
   createTagAction: vi.fn(),
@@ -62,6 +64,10 @@ vi.mock('@/actions/tags/tag-actions', () => ({
 
 vi.mock('@/actions/modules/module-actions', () => ({
   getAllModulesAction,
+}))
+
+vi.mock('@/actions/environments/environment-actions', () => ({
+  getAllEnvironmentsAction,
 }))
 
 vi.mock('@/actions/test-suite/test-suite-actions', () => ({
@@ -112,6 +118,7 @@ describe('Create Test Case From Template page', () => {
     getAllTagsAction.mockResolvedValue({ data: [{ id: 'tag-1', name: 'Regression' }] })
     getAllTestCasesAction.mockResolvedValue({ data: [{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] }] })
     getAllModulesAction.mockResolvedValue({ data: [{ id: 'module-1', name: 'Auth' }] })
+    getAllEnvironmentsAction.mockResolvedValue({ data: [{ id: 'env-1', name: 'Staging' }] })
 
     const { default: CreateTestCaseFromTemplate } = await import('./page')
 
@@ -133,6 +140,7 @@ describe('Create Test Case From Template page', () => {
         defaultTemplateTestCaseId: 'template-1',
         defaultTitle: 'Login template',
         defaultDescription: 'Reusable login flow',
+        environments: [{ id: 'env-1', name: 'Staging' }],
         defaultNodesOrder: {
           'node-0': expect.objectContaining({
             label: 'Fill email',

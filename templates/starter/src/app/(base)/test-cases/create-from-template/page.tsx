@@ -12,11 +12,13 @@ import {
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { createTestCaseAction, getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { createTestSuiteAction, getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import {
   getLocatorGroupRows,
+  getEnvironmentRows,
   getLocatorRows,
   getModuleRows,
   getTagRows,
@@ -54,6 +56,7 @@ const CreateTestCaseFromTemplate = async ({
     tagsResponse,
     testCasesResponse,
     moduleListResponse,
+    environmentsResponse,
   ] = await Promise.all([
     getAllTemplateTestCasesAction(),
     getAllTemplateStepParamsAction(),
@@ -64,6 +67,7 @@ const CreateTestCaseFromTemplate = async ({
     getAllTagsAction(),
     getAllTestCasesAction(),
     getAllModulesAction(),
+    getAllEnvironmentsAction(),
   ])
 
   const loadError =
@@ -75,7 +79,8 @@ const CreateTestCaseFromTemplate = async ({
     locatorGroupsResponse.error ||
     tagsResponse.error ||
     testCasesResponse.error ||
-    moduleListResponse.error
+    moduleListResponse.error ||
+    environmentsResponse.error
 
   if (loadError) {
     return <div>Error: {loadError}</div>
@@ -101,6 +106,7 @@ const CreateTestCaseFromTemplate = async ({
   const tags = getTagRows(tagsResponse.data)
   const testCases = getTestCaseRows(testCasesResponse.data)
   const moduleList = getModuleRows(moduleListResponse.data)
+  const environments = getEnvironmentRows(environmentsResponse.data)
 
   return (
     <div>
@@ -119,6 +125,7 @@ const CreateTestCaseFromTemplate = async ({
         templateSteps={templateSteps}
         locators={locators}
         locatorGroups={locatorGroups}
+        environments={environments}
         testSuites={testSuites}
         testCases={testCases}
         moduleList={moduleList}

@@ -7,6 +7,21 @@ import { inferGroupSuggestion, normalizeRoute, suggestLocatorName } from '@/lib/
 export type LocatorSourceType = 'environment' | 'url'
 export type LocatorWorkspaceMode = 'create' | 'modify'
 export type GroupResolutionMode = PickerGroupResolutionMode
+export type LocatorWorkspaceDisplayMode = 'page' | 'inline'
+
+export type LocatorWorkspaceEnvironment = Pick<Environment, 'id' | 'name'>
+export type LocatorWorkspaceLocatorGroup = Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>
+export type LocatorWorkspaceModule = Pick<Module, 'id' | 'name' | 'parentId'>
+
+export type InlineLocatorSaveResult = {
+  locatorId: string
+  locatorName: string
+  locatorGroupId: string
+  locatorGroupName: string
+  selector: string
+  route: string
+  moduleId: string
+}
 
 export const locatorSourceTypes = ['environment', 'url'] as const
 export const locatorWorkspaceResolutionModes = ['existing', 'create'] as const
@@ -22,12 +37,15 @@ export type LocatorWorkspaceInitialValues = {
 }
 
 export type CreateLocatorWorkspaceProps = {
-  environments: Environment[]
-  locatorGroups: LocatorGroup[]
-  modules: Module[]
+  environments: LocatorWorkspaceEnvironment[]
+  locatorGroups: LocatorWorkspaceLocatorGroup[]
+  modules: LocatorWorkspaceModule[]
   mode?: LocatorWorkspaceMode
+  displayMode?: LocatorWorkspaceDisplayMode
   locatorId?: string
   initialValues?: LocatorWorkspaceInitialValues
+  onSaveSuccess?: (result: InlineLocatorSaveResult) => void | Promise<void>
+  onClose?: () => void
 }
 
 export type LocatorWorkspaceState = {
@@ -72,7 +90,7 @@ export function formatStatus(status: LocatorPickerSession['status']) {
 }
 
 export function createInitialWorkspaceState(
-  environments: Environment[],
+  environments: LocatorWorkspaceEnvironment[],
   initialValues?: LocatorWorkspaceInitialValues,
 ): LocatorWorkspaceState {
   const initialRoute = normalizeRoute(initialValues?.route ?? '/')
@@ -109,8 +127,8 @@ export function getPickerPayloadSignature(session: LocatorPickerSession | null) 
 export function applyPickedLocatorToWorkspaceState(
   currentState: LocatorWorkspaceState,
   session: LocatorPickerSession,
-  locatorGroups: LocatorGroup[],
-  modules: Module[],
+  locatorGroups: LocatorWorkspaceLocatorGroup[],
+  modules: LocatorWorkspaceModule[],
 ): LocatorWorkspaceState {
   const pickedLocator = session.pickedLocator
   if (!pickedLocator) {
@@ -330,4 +348,37 @@ export function getLocatorRow(data: ActionResponseData | undefined) {
 
 export function getLocatorPickerSession(data: ActionResponseData | undefined) {
   return isLocatorPickerSession(data) ? data : null
+}
+
+export function getInlineLocatorSaveResult(data: ActionResponseData | undefined): InlineLocatorSaveResult | null {
+  if (
+    typeof data === 'object' &&
+    data !== null &&
+    'locatorId' in data &&
+    typeof data.locatorId === 'string' &&
+    'locatorName' in data &&
+    typeof data.locatorName === 'string' &&
+    'locatorGroupId' in data &&
+    typeof data.locatorGroupId === 'string' &&
+    'locatorGroupName' in data &&
+    typeof data.locatorGroupName === 'string' &&
+    'selector' in data &&
+    typeof data.selector === 'string' &&
+    'route' in data &&
+    typeof data.route === 'string' &&
+    'moduleId' in data &&
+    typeof data.moduleId === 'string'
+  ) {
+    return {
+      locatorId: data.locatorId,
+      locatorName: data.locatorName,
+      locatorGroupId: data.locatorGroupId,
+      locatorGroupName: data.locatorGroupName,
+      selector: data.selector,
+      route: data.route,
+      moduleId: data.moduleId,
+    }
+  }
+
+  return null
 }

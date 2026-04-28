@@ -15,6 +15,7 @@ const {
   getAllTagsAction,
   getAllTestCasesAction,
   getAllModulesAction,
+  getAllEnvironmentsAction,
   testCaseFormSpy,
 } = vi.hoisted(() => ({
   createTestCaseAction: vi.fn(),
@@ -28,6 +29,7 @@ const {
   getAllTagsAction: vi.fn(),
   getAllTestCasesAction: vi.fn(),
   getAllModulesAction: vi.fn(),
+  getAllEnvironmentsAction: vi.fn(),
   testCaseFormSpy: vi.fn(() => <div>Mock Test Case Form</div>),
 }))
 
@@ -63,6 +65,10 @@ vi.mock('@/actions/modules/module-actions', () => ({
   getAllModulesAction,
 }))
 
+vi.mock('@/actions/environments/environment-actions', () => ({
+  getAllEnvironmentsAction,
+}))
+
 vi.mock('../test-case-form', () => ({
   __esModule: true,
   default: testCaseFormSpy,
@@ -77,6 +83,7 @@ vi.mock('../test-case-route-helpers', () => ({
   getTagRows: vi.fn(() => [{ id: 'tag-1', name: 'Regression' }]),
   getTestCaseRows: vi.fn(() => [{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] }]),
   getModuleRows: vi.fn(() => [{ id: 'module-1', name: 'Payments' }]),
+  getEnvironmentRows: vi.fn(() => [{ id: 'env-1', name: 'Staging' }]),
 }))
 
 describe('Create Test Case page', () => {
@@ -89,6 +96,7 @@ describe('Create Test Case page', () => {
     getAllTagsAction.mockResolvedValue({ data: [] })
     getAllTestCasesAction.mockResolvedValue({ data: [] })
     getAllModulesAction.mockResolvedValue({ data: [] })
+    getAllEnvironmentsAction.mockResolvedValue({ data: [] })
 
     const { default: CreateTestCase } = await import('./page')
 
@@ -99,6 +107,7 @@ describe('Create Test Case page', () => {
       expect.objectContaining({
         testCases: [{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] }],
         moduleList: [{ id: 'module-1', name: 'Payments' }],
+        environments: [{ id: 'env-1', name: 'Staging' }],
         onSubmitAction: createTestCaseAction,
         onCreateTestSuiteAction: createTestSuiteAction,
         onCreateTagAction: createTagAction,
