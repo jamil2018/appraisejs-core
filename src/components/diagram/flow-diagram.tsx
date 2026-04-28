@@ -26,7 +26,8 @@ import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt
 import NodeForm from './node-form'
 import { NodeData } from '@/constants/form-opts/diagram/node-form'
 import { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import { Locator, TemplateStep, TemplateStepParameter, LocatorGroup } from '@prisma/client'
+import { Environment, Locator, TemplateStep, TemplateStepParameter, LocatorGroup, Module } from '@prisma/client'
+import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
 import {
   buildNodeFormData,
   createAddNodePromptNode,
@@ -94,8 +95,10 @@ type FlowDiagramProps = {
   nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
+  environments: Array<Pick<Environment, 'id' | 'name'>>
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   defaultValueInput?: boolean
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
 }
@@ -106,6 +109,8 @@ const FlowDiagram = ({
   templateSteps,
   locators,
   locatorGroups,
+  environments,
+  modules,
   onNodeOrderChange,
   defaultValueInput = false,
 }: FlowDiagramProps) => {
@@ -122,6 +127,16 @@ const FlowDiagram = ({
   const [editNodeData, setEditNodeData] = useState<NodeData | null>(null)
   const [pendingAddSourceNodeId, setPendingAddSourceNodeId] = useState<string | null>(null)
   const [isConnectionInProgress, setIsConnectionInProgress] = useState(false)
+  const [availableLocators, setAvailableLocators] = useState(locators)
+  const [availableLocatorGroups, setAvailableLocatorGroups] = useState(locatorGroups)
+
+  useEffect(() => {
+    setAvailableLocators(locators)
+  }, [locators])
+
+  useEffect(() => {
+    setAvailableLocatorGroups(locatorGroups)
+  }, [locatorGroups])
 
   const handleEditNode = useCallback(
     (nodeId: string) => {
@@ -292,7 +307,35 @@ const FlowDiagram = ({
 
   const memoizedTemplateSteps = useMemo(() => templateSteps, [templateSteps])
   const memoizedTemplateStepParams = useMemo(() => templateStepParams, [templateStepParams])
-  const memoizedLocators = useMemo(() => locators, [locators])
+  const memoizedLocators = useMemo(() => availableLocators, [availableLocators])
+  const memoizedLocatorGroups = useMemo(() => availableLocatorGroups, [availableLocatorGroups])
+
+  const handleLocatorCreated = useCallback((result: InlineLocatorSaveResult) => {
+    setAvailableLocatorGroups(current => {
+      const nextGroup = {
+        id: result.locatorGroupId,
+        name: result.locatorGroupName,
+        route: result.route,
+        moduleId: result.moduleId,
+      }
+
+      return current.some(group => group.id === result.locatorGroupId)
+        ? current.map(group => (group.id === result.locatorGroupId ? { ...group, ...nextGroup } : group))
+        : [...current, nextGroup]
+    })
+
+    setAvailableLocators(current => {
+      const nextLocator = {
+        id: result.locatorId,
+        name: result.locatorName,
+        locatorGroupId: result.locatorGroupId,
+      }
+
+      return current.some(locator => locator.id === result.locatorId)
+        ? current.map(locator => (locator.id === result.locatorId ? { ...locator, ...nextLocator } : locator))
+        : [...current, nextLocator]
+    })
+  }, [])
 
   const openAddNodeDialog = useCallback(() => {
     setPendingAddSourceNodeId(null)
@@ -360,7 +403,10 @@ const FlowDiagram = ({
         setShowAddNodeDialog={setShowAddNodeDialog}
         locators={memoizedLocators}
         defaultValueInput={defaultValueInput}
-        locatorGroups={locatorGroups}
+        locatorGroups={memoizedLocatorGroups}
+        environments={environments}
+        modules={modules}
+        onLocatorCreated={handleLocatorCreated}
       />
 
       {editNodeData && (
@@ -379,7 +425,10 @@ const FlowDiagram = ({
           setShowAddNodeDialog={setShowEditNodeDialog}
           locators={memoizedLocators}
           defaultValueInput={defaultValueInput}
-          locatorGroups={locatorGroups}
+          locatorGroups={memoizedLocatorGroups}
+          environments={environments}
+          modules={modules}
+          onLocatorCreated={handleLocatorCreated}
         />
       )}
     </>

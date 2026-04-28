@@ -1,6 +1,9 @@
 import type { LocatorPickerGroupSuggestion, PickedLocatorPayload } from '@/types/locator-picker'
 import type { LocatorGroup, Module } from '@prisma/client'
 
+type SuggestionLocatorGroup = Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>
+type SuggestionModule = Pick<Module, 'id' | 'name' | 'parentId'>
+
 function normalizeText(value: string | null | undefined): string {
   return (value ?? '').replace(/\s+/g, ' ').trim()
 }
@@ -33,11 +36,11 @@ export function normalizeRoute(value: string | null | undefined): string {
   }
 }
 
-function buildModulePathMap(modules: Module[]): Map<string, string> {
+function buildModulePathMap(modules: SuggestionModule[]): Map<string, string> {
   const moduleById = new Map(modules.map(moduleRecord => [moduleRecord.id, moduleRecord]))
   const pathByModuleId = new Map<string, string>()
 
-  const buildPath = (moduleRecord: Module): string => {
+  const buildPath = (moduleRecord: SuggestionModule): string => {
     const cached = pathByModuleId.get(moduleRecord.id)
     if (cached) {
       return cached
@@ -77,8 +80,8 @@ export function suggestLocatorName(payload?: PickedLocatorPayload): string {
 export function inferGroupSuggestion(
   routeValue: string,
   pageTitle: string,
-  locatorGroups: LocatorGroup[],
-  modules: Module[],
+  locatorGroups: SuggestionLocatorGroup[],
+  modules: SuggestionModule[],
 ): LocatorPickerGroupSuggestion {
   const route = normalizeRoute(routeValue)
   const exactMatch = locatorGroups.find(group => normalizeRoute(group.route) === route)

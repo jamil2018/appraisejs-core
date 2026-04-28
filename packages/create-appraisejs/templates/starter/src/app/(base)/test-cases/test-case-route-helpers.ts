@@ -1,6 +1,7 @@
 import type {
   Locator,
   LocatorGroup,
+  Environment,
   Module,
   Tag,
   TestCase,
@@ -100,6 +101,10 @@ function isLocatorGroupRow(value: unknown): value is LocatorGroup {
   return isNamedRow(value)
 }
 
+function isEnvironmentRow(value: unknown): value is Environment {
+  return isNamedRow(value)
+}
+
 export function getTestCaseRows(data: ActionResponseData | undefined): TestCasePickerRow[] {
   return Array.isArray(data) ? data.filter(isTestCaseRow) : []
 }
@@ -149,6 +154,10 @@ export function getTestSuiteRows(data: ActionResponseData | undefined): TestSuit
 
 export function getLocatorGroupRows(data: ActionResponseData | undefined): LocatorGroup[] {
   return Array.isArray(data) ? data.filter(isLocatorGroupRow) : []
+}
+
+export function getEnvironmentRows(data: ActionResponseData | undefined): Environment[] {
+  return Array.isArray(data) ? data.filter(isEnvironmentRow) : []
 }
 
 export function getTagRows(data: ActionResponseData | undefined): Tag[] {

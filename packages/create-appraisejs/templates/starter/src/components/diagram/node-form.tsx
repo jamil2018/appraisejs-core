@@ -37,6 +37,9 @@ const NodeForm = ({
   showAddNodeDialog,
   locators,
   locatorGroups,
+  environments,
+  modules,
+  onLocatorCreated,
   setShowAddNodeDialog,
   defaultValueInput = false,
 }: NodeFormProps) => {
@@ -61,8 +64,20 @@ const NodeForm = ({
   >(initialValues.parameters ?? [])
   const [gherkinStep, setGherkinStep] = useState<string>(initialValues.gherkinStep ?? '')
   const [errors, setErrors] = useState<NodeFormErrors>({})
+  const initialValuesResetKey = JSON.stringify({
+    label: initialValues.label,
+    gherkinStep: initialValues.gherkinStep,
+    templateStepId: initialValues.templateStepId,
+    parameters: initialValues.parameters ?? [],
+  })
+  const lastInitialValuesResetKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
+    if (lastInitialValuesResetKeyRef.current === initialValuesResetKey) {
+      return
+    }
+
+    lastInitialValuesResetKeyRef.current = initialValuesResetKey
     queueMicrotask(() => {
       setSelectedTemplateId(initialValues.templateStepId)
       const step = getSelectedTemplateStep(templateSteps, initialValues.templateStepId)
@@ -75,6 +90,7 @@ const NodeForm = ({
     initialValues.templateStepId,
     initialValues.parameters,
     initialValues.gherkinStep,
+    initialValuesResetKey,
     templateSteps,
     templateStepParams,
   ])
@@ -164,6 +180,9 @@ const NodeForm = ({
                 templateStepParams={selectedTemplateStepParams}
                 locators={locators}
                 locatorGroups={locatorGroups}
+                environments={environments}
+                modules={modules}
+                onLocatorCreated={onLocatorCreated}
                 initialParameterValues={initialValues.parameters}
                 onChange={values => {
                   setParameters([...values])

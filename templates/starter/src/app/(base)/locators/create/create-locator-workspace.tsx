@@ -26,8 +26,11 @@ export default function CreateLocatorWorkspace({
   locatorGroups,
   modules,
   mode = 'create',
+  displayMode = 'page',
   locatorId,
   initialValues,
+  onSaveSuccess,
+  onClose,
 }: CreateLocatorWorkspaceProps) {
   const {
     isModifyMode,
@@ -54,8 +57,11 @@ export default function CreateLocatorWorkspace({
     locatorGroups,
     modules,
     mode,
+    displayMode,
     locatorId,
     initialValues,
+    onSaveSuccess,
+    onClose,
   })
 
   return (

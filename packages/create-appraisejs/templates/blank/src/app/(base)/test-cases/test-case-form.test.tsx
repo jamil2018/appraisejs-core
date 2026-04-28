@@ -188,6 +188,7 @@ function renderForm({
       templateSteps={[]}
       locators={[]}
       locatorGroups={[]}
+      environments={[]}
       testSuites={[{ id: 'suite-1', name: 'Smoke' } as never]}
       testCases={[{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] } as never]}
       moduleList={[{ id: 'module-1', name: 'Payments' } as never]}
@@ -455,6 +456,7 @@ describe('TestCaseForm', () => {
         templateSteps={[]}
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
         testSuites={[{ id: 'suite-1', name: 'Smoke' } as never]}
         testCases={[{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] } as never]}
         moduleList={[{ id: 'module-1', name: 'Payments' } as never]}

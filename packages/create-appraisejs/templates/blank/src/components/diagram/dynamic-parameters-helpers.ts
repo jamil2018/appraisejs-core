@@ -92,6 +92,7 @@ export function validateDynamicParameters(
   values: DynamicParameterValuesMap,
   selectedLocatorGroups: Record<string, string>,
   defaultValueInput: boolean,
+  locatorSelectionModes: Record<string, 'existing' | 'new'> = {},
 ) {
   if (defaultValueInput) {
     return {}
@@ -103,7 +104,11 @@ export function validateDynamicParameters(
     const value = values[parameter.name]
 
     if (parameter.type === StepParameterType.LOCATOR) {
-      if (!selectedLocatorGroups[parameter.name]) {
+      if (locatorSelectionModes[parameter.name] === 'new') {
+        if (!value) {
+          errors[parameter.name] = 'Locator is required'
+        }
+      } else if (!selectedLocatorGroups[parameter.name]) {
         errors[parameter.name] = 'Locator group is required'
       } else if (!value) {
         errors[parameter.name] = 'Locator is required'

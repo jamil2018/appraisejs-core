@@ -2,7 +2,7 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import CreateLocatorWorkspace from './create-locator-workspace'
 
@@ -32,6 +32,14 @@ vi.mock('@/actions/locator-picker/locator-picker-actions', () => ({
 }))
 
 describe('CreateLocatorWorkspace', () => {
+  beforeEach(() => {
+    push.mockClear()
+    refresh.mockClear()
+    toast.mockClear()
+    startLocatorPickerSessionAction.mockReset()
+    savePickedLocatorAction.mockReset()
+  })
+
   it('launches chromium from an environment', async () => {
     const user = userEvent.setup()
 
@@ -81,6 +89,15 @@ describe('CreateLocatorWorkspace', () => {
     savePickedLocatorAction.mockResolvedValue({
       status: 200,
       message: 'Locator saved successfully',
+      data: {
+        locatorId: 'locator-1',
+        locatorName: 'Login button',
+        locatorGroupId: 'group-1',
+        locatorGroupName: 'Login',
+        selector: 'button[data-testid="login"]',
+        route: '/account/login',
+        moduleId: 'module-1',
+      },
     })
 
     render(
@@ -121,5 +138,60 @@ describe('CreateLocatorWorkspace', () => {
 
     expect(push).toHaveBeenCalledWith('/locators')
     expect(refresh).toHaveBeenCalled()
+  })
+
+  it('calls onSaveSuccess and closes in inline mode without navigating', async () => {
+    const user = userEvent.setup()
+    const onSaveSuccess = vi.fn()
+    const onClose = vi.fn()
+
+    savePickedLocatorAction.mockResolvedValue({
+      status: 200,
+      message: 'Locator saved successfully',
+      data: {
+        locatorId: 'locator-1',
+        locatorName: 'Login button',
+        locatorGroupId: 'group-1',
+        locatorGroupName: 'Login',
+        selector: 'button[data-testid="login"]',
+        route: '/login',
+        moduleId: 'module-1',
+      },
+    })
+
+    render(
+      <CreateLocatorWorkspace
+        displayMode="inline"
+        environments={[{ id: 'env-1', name: 'Staging' }]}
+        locatorGroups={[{ id: 'group-1', name: 'Login', route: '/login', moduleId: 'module-1' }]}
+        modules={[{ id: 'module-1', name: 'Account', parentId: null }]}
+        initialValues={{
+          locatorName: 'Login button',
+          selector: 'button[data-testid="login"]',
+          resolutionMode: 'existing',
+          existingLocatorGroupId: 'group-1',
+        }}
+        onSaveSuccess={onSaveSuccess}
+        onClose={onClose}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Save Locator' }))
+
+    await waitFor(() => {
+      expect(onSaveSuccess).toHaveBeenCalledWith({
+        locatorId: 'locator-1',
+        locatorName: 'Login button',
+        locatorGroupId: 'group-1',
+        locatorGroupName: 'Login',
+        selector: 'button[data-testid="login"]',
+        route: '/login',
+        moduleId: 'module-1',
+      })
+    })
+
+    expect(onClose).toHaveBeenCalled()
+    expect(push).not.toHaveBeenCalled()
+    expect(refresh).not.toHaveBeenCalled()
   })
 })

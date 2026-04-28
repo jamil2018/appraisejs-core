@@ -6,6 +6,8 @@ import type { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import {
   type Locator,
   type LocatorGroup,
+  type Environment,
+  type Module,
   type TemplateStep,
   type TemplateStepParameter,
 } from '@prisma/client'
@@ -32,8 +34,10 @@ type TemplateTestCaseFormProps = {
   defaultNodesOrder: TemplateTestCaseNodeOrderMap
   templateStepParams: TemplateStepParameter[]
   templateSteps: TemplateStep[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
+  environments: Array<Pick<Environment, 'id' | 'name'>>
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   onSubmitAction: (value: z.infer<typeof templateTestCaseSchema>, id?: string) => Promise<ActionResponse>
   id?: string
   defaultTitle?: string
@@ -47,6 +51,8 @@ const TemplateTestCaseForm = ({
   templateSteps,
   locators,
   locatorGroups,
+  environments,
+  modules,
   id,
   defaultTitle,
   defaultDescription,
@@ -137,6 +143,8 @@ const TemplateTestCaseForm = ({
           onNodeOrderChange={onNodeOrderChange}
           locators={locators}
           locatorGroups={locatorGroups}
+          environments={environments}
+          modules={modules}
           defaultValueInput={defaultValueInput}
         />
       </div>

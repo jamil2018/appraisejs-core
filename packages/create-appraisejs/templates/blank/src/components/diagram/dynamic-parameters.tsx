@@ -1,16 +1,28 @@
 'use client'
 
-import { useState, useMemo, forwardRef, useImperativeHandle, useEffect } from 'react'
+import { useState, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from 'react'
 import { Calendar } from '@/components/ui/calendar'
+import CreateLocatorWorkspace from '@/app/(base)/locators/create/create-locator-workspace'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StepParameterType, TemplateStepParameter, type Locator, type LocatorGroup } from '@prisma/client'
+import { StepParameterType, TemplateStepParameter, type Locator, type LocatorGroup, type Module } from '@prisma/client'
+import type {
+  InlineLocatorSaveResult,
+  LocatorWorkspaceEnvironment,
+} from '@/app/(base)/locators/create/create-locator-workspace-helpers'
 import { format } from 'date-fns'
 import ErrorMessage from '@/components/form/error-message'
 import {
@@ -22,11 +34,17 @@ import {
 } from './dynamic-parameters-helpers'
 
 type DynamicParameterValue = string | number | boolean | Date
+type LocatorOption = Pick<Locator, 'id' | 'name' | 'locatorGroupId'>
+type LocatorGroupOption = Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>
+type LocatorSelectionMode = 'existing' | 'new'
 
 type DynamicFormFieldsProps = {
   templateStepParams: TemplateStepParameter[]
-  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
-  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name'>>
+  locators: LocatorOption[]
+  locatorGroups: LocatorGroupOption[]
+  environments: LocatorWorkspaceEnvironment[]
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
+  onLocatorCreated?: (result: InlineLocatorSaveResult) => void
   defaultValueInput?: boolean
   onChange?: (
     values: {
@@ -53,6 +71,9 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     templateStepParams,
     locators,
     locatorGroups,
+    environments,
+    modules,
+    onLocatorCreated,
     defaultValueInput = false,
     onChange,
     initialParameterValues,
@@ -85,7 +106,35 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>(
     initialSelectedLocatorGroups,
   )
+  const [inlineLocators, setInlineLocators] = useState<LocatorOption[]>([])
+  const [inlineLocatorGroups, setInlineLocatorGroups] = useState<LocatorGroupOption[]>([])
+  const [createdLocatorSelections, setCreatedLocatorSelections] = useState<Record<string, InlineLocatorSaveResult>>({})
+  const [locatorSelectionModes, setLocatorSelectionModes] = useState<Record<string, LocatorSelectionMode>>({})
+  const [createLocatorParamName, setCreateLocatorParamName] = useState<string | null>(null)
+  const lastInitialSyncKeyRef = useRef<string | null>(null)
   const fieldClassName = 'w-full border-border bg-background'
+
+  const availableLocatorGroups = useMemo(() => {
+    const groupsById = new Map<string, LocatorGroupOption>()
+    for (const group of locatorGroups) {
+      groupsById.set(group.id, group)
+    }
+    for (const group of inlineLocatorGroups) {
+      groupsById.set(group.id, group)
+    }
+    return Array.from(groupsById.values())
+  }, [inlineLocatorGroups, locatorGroups])
+
+  const availableLocatorOptions = useMemo(() => {
+    const locatorsById = new Map<string, LocatorOption>()
+    for (const locator of locators) {
+      locatorsById.set(locator.id, locator)
+    }
+    for (const locator of inlineLocators) {
+      locatorsById.set(locator.id, locator)
+    }
+    return Array.from(locatorsById.values())
+  }, [inlineLocators, locators])
 
   useEffect(() => {
     queueMicrotask(() => setErrors({}))
@@ -93,15 +142,28 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
   // Sync state when initial data changes (e.g. opening edit for a different node)
   useEffect(() => {
+    if (lastInitialSyncKeyRef.current === resetKey) {
+      return
+    }
+
+    lastInitialSyncKeyRef.current = resetKey
     queueMicrotask(() => {
       setValues(initialValues)
       setSelectedLocatorGroups(initialSelectedLocatorGroups)
+      setCreatedLocatorSelections({})
+      setLocatorSelectionModes({})
     })
-  }, [initialValues, initialSelectedLocatorGroups])
+  }, [initialValues, initialSelectedLocatorGroups, resetKey])
 
   useImperativeHandle(ref, () => ({
     validate: () => {
-      const newErrors = validateDynamicParameters(templateStepParams, values, selectedLocatorGroups, defaultValueInput)
+      const newErrors = validateDynamicParameters(
+        templateStepParams,
+        values,
+        selectedLocatorGroups,
+        defaultValueInput,
+        locatorSelectionModes,
+      )
       setErrors(newErrors)
       return Object.keys(newErrors).length === 0
     },
@@ -148,6 +210,84 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
       delete newErrors[paramName]
       setErrors(newErrors)
     }
+  }
+
+  const handleLocatorSelectionModeChange = (paramName: string, mode: LocatorSelectionMode) => {
+    setLocatorSelectionModes(prev => ({
+      ...prev,
+      [paramName]: mode,
+    }))
+
+    if (mode === 'new') {
+      const createdLocatorSelection = createdLocatorSelections[paramName]
+      if (createdLocatorSelection) {
+        const newValues: Record<string, DynamicParameterValue> = {
+          ...values,
+          [paramName]: createdLocatorSelection.locatorName,
+        }
+        setSelectedLocatorGroups(prev => ({
+          ...prev,
+          [paramName]: createdLocatorSelection.locatorGroupId,
+        }))
+        setValues(newValues)
+        onChange?.(formatDynamicParameterValues(templateStepParams, newValues))
+      }
+    }
+
+    if (errors[paramName]) {
+      const newErrors = { ...errors }
+      delete newErrors[paramName]
+      setErrors(newErrors)
+    }
+  }
+
+  const handleInlineLocatorSave = (paramName: string, result: InlineLocatorSaveResult) => {
+    const nextGroup = {
+      id: result.locatorGroupId,
+      name: result.locatorGroupName,
+      route: result.route,
+      moduleId: result.moduleId,
+    }
+    const nextLocator = {
+      id: result.locatorId,
+      name: result.locatorName,
+      locatorGroupId: result.locatorGroupId,
+    }
+
+    setInlineLocatorGroups(current =>
+      current.some(group => group.id === nextGroup.id)
+        ? current.map(group => (group.id === nextGroup.id ? nextGroup : group))
+        : [...current, nextGroup],
+    )
+    setInlineLocators(current =>
+      current.some(locator => locator.id === nextLocator.id)
+        ? current.map(locator => (locator.id === nextLocator.id ? nextLocator : locator))
+        : [...current, nextLocator],
+    )
+    setCreatedLocatorSelections(current => ({
+      ...current,
+      [paramName]: result,
+    }))
+
+    const newValues: Record<string, DynamicParameterValue> = {
+      ...values,
+      [paramName]: result.locatorName,
+    }
+
+    setSelectedLocatorGroups(prev => ({
+      ...prev,
+      [paramName]: result.locatorGroupId,
+    }))
+    setValues(newValues)
+
+    if (errors[paramName]) {
+      const newErrors = { ...errors }
+      delete newErrors[paramName]
+      setErrors(newErrors)
+    }
+
+    onChange?.(formatDynamicParameterValues(templateStepParams, newValues))
+    onLocatorCreated?.(result)
   }
 
   // Get locators for a specific group
@@ -254,8 +394,11 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
         )
 
       case 'LOCATOR':
+        const locatorSelectionMode = locatorSelectionModes[name] ?? 'existing'
         const selectedGroupId = selectedLocatorGroups[name] || ''
-        const availableLocators = selectedGroupId ? getLocatorsForGroup(locators, selectedGroupId) : []
+        const availableLocators = selectedGroupId ? getLocatorsForGroup(availableLocatorOptions, selectedGroupId) : []
+        const isCreateDialogOpen = createLocatorParamName === name
+        const createdLocatorSelection = createdLocatorSelections[name]
 
         return (
           <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
@@ -264,60 +407,136 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
               {!defaultValueInput && <span className="text-red-500">*</span>}
             </Label>
 
-            {/* Locator Group Selection */}
-            <div className="mb-2">
-              <Label htmlFor={`group-${name}`} className="text-sm text-muted-foreground">
-                Locator Group
+            <div className="space-y-2">
+              <Label htmlFor={`locator-mode-${name}`} className="text-sm text-muted-foreground">
+                Selector Source
               </Label>
               <Select
-                value={selectedGroupId}
-                onValueChange={value => handleLocatorGroupChange(name, value)}
-                required={!defaultValueInput}
+                value={locatorSelectionMode}
+                onValueChange={value => handleLocatorSelectionModeChange(name, value as LocatorSelectionMode)}
               >
-                <SelectTrigger id={`group-${name}`} className={fieldClassName}>
-                  <SelectValue placeholder="Select a locator group" />
+                <SelectTrigger id={`locator-mode-${name}`} className={fieldClassName}>
+                  <SelectValue placeholder="Choose selector source" />
                 </SelectTrigger>
-                <SelectContent isEmpty={locatorGroups.length === 0}>
-                  {locatorGroups.map(group => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
+                <SelectContent>
+                  <SelectItem value="existing">Use Existing</SelectItem>
+                  <SelectItem value="new">Create New Selector</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Locator Selection */}
-            <div>
-              <Label htmlFor={`select-${name}`} className="text-sm text-muted-foreground">
-                Locator
-              </Label>
-              <Select
-                value={typeof values[name] === 'string' ? values[name] : ''}
-                onValueChange={value => handleInputChange(name, value)}
-                required={!defaultValueInput}
-                disabled={!selectedGroupId}
-              >
-                <SelectTrigger id={`select-${name}`} className={fieldClassName}>
-                  <SelectValue
-                    placeholder={
-                      !selectedGroupId
-                        ? 'Select a locator group first'
-                        : defaultValueInput
-                          ? 'Select a locator (optional)'
-                          : 'Select a locator *'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent isEmpty={availableLocators.length === 0}>
-                  {availableLocators.map(locator => (
-                    <SelectItem key={locator.id} value={locator.name}>
-                      {locator.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {locatorSelectionMode === 'new' ? (
+              <div className="space-y-3 rounded-md border border-border bg-background/40 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-sm font-semibold text-primary">Create New Selector</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setCreateLocatorParamName(name)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Selector
+                  </Button>
+                </div>
+                <Dialog open={isCreateDialogOpen} onOpenChange={open => !open && setCreateLocatorParamName(null)}>
+                  <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create New Selector</DialogTitle>
+                      <DialogDescription>
+                        Save a selector here to use it in this node immediately.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <CreateLocatorWorkspace
+                      environments={environments}
+                      locatorGroups={availableLocatorGroups}
+                      modules={modules}
+                      displayMode="inline"
+                      onSaveSuccess={result => handleInlineLocatorSave(name, result)}
+                      onClose={() => setCreateLocatorParamName(null)}
+                    />
+                  </DialogContent>
+                </Dialog>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor={`created-group-${name}`} className="text-sm text-muted-foreground">
+                      Locator Group
+                    </Label>
+                    <Input
+                      id={`created-group-${name}`}
+                      value={createdLocatorSelection?.locatorGroupName ?? ''}
+                      placeholder="Created group will appear here"
+                      readOnly
+                      className={fieldClassName}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`created-locator-${name}`} className="text-sm text-muted-foreground">
+                      Locator
+                    </Label>
+                    <Input
+                      id={`created-locator-${name}`}
+                      value={createdLocatorSelection?.locatorName ?? ''}
+                      placeholder="Created locator will appear here"
+                      readOnly
+                      className={fieldClassName}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 rounded-md border border-border bg-background/40 p-3">
+                <Label className="text-sm font-semibold text-primary">Use Existing</Label>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`group-${name}`} className="text-sm text-muted-foreground">
+                    Locator Group
+                  </Label>
+                  <Select
+                    value={selectedGroupId}
+                    onValueChange={value => handleLocatorGroupChange(name, value)}
+                    required={!defaultValueInput}
+                  >
+                    <SelectTrigger id={`group-${name}`} className={fieldClassName}>
+                      <SelectValue placeholder="Select a locator group" />
+                    </SelectTrigger>
+                    <SelectContent isEmpty={availableLocatorGroups.length === 0}>
+                      {availableLocatorGroups.map(group => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`select-${name}`} className="text-sm text-muted-foreground">
+                    Locator
+                  </Label>
+                  <Select
+                    value={typeof values[name] === 'string' ? values[name] : ''}
+                    onValueChange={value => handleInputChange(name, value)}
+                    required={!defaultValueInput}
+                    disabled={!selectedGroupId}
+                  >
+                    <SelectTrigger id={`select-${name}`} className={fieldClassName}>
+                      <SelectValue
+                        placeholder={
+                          !selectedGroupId
+                            ? 'Select a locator group first'
+                            : defaultValueInput
+                              ? 'Select a locator (optional)'
+                              : 'Select a locator *'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent isEmpty={availableLocators.length === 0}>
+                      {availableLocators.map(locator => (
+                        <SelectItem key={locator.id} value={locator.name}>
+                          {locator.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
           </div>
         )

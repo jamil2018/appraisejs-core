@@ -73,6 +73,8 @@ describe('TemplateTestCaseForm', () => {
         templateSteps={[]}
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         onSubmitAction={onSubmitAction}
       />,
     )
@@ -127,6 +129,8 @@ describe('TemplateTestCaseForm', () => {
         templateSteps={[]}
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         onSubmitAction={onSubmitAction}
       />,
     )
