@@ -18,6 +18,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useCallback, useState, useEffect, useMemo, memo } from 'react'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ButtonEdge from './button-edge'
 import { Plus } from 'lucide-react'
 import OptionsHeaderNode from './options-header-node'
@@ -44,6 +45,12 @@ const edgeTypes = {
 
 const defaultEdgeOptions: DefaultEdgeOptions = {
   type: 'buttonEdge',
+  zIndex: 12,
+  style: {
+    stroke: 'rgb(148 163 184 / 0.9)',
+    strokeWidth: 1.75,
+    strokeLinecap: 'round',
+  },
 }
 
 const flowDiagramProOptions = { hideAttribution: true }
@@ -294,15 +301,24 @@ const FlowDiagram = ({
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full flex-col">
-        <div className="mb-8 shrink-0">
-          <Button type="button" onClick={openAddNodeDialog}>
-            <span className="flex items-center">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Node
-            </span>
-          </Button>
-        </div>
+      <div className="relative flex h-full min-h-0 w-full flex-col">
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute right-4 top-4 z-20"
+                onClick={openAddNodeDialog}
+                aria-label="Add Node"
+              >
+                <Plus />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Add Node</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <div className="min-h-0 flex-1">
           <ReactFlow
             className="h-full w-full"

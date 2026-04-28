@@ -20,6 +20,12 @@ import {
 
 const GROUP_KEY_OTHER = 'Other'
 const MAX_VISIBLE_PARAMETER_BADGES = 4
+const SCORE_EXACT_NAME_MATCH = 400
+const SCORE_PREFIX_NAME_MATCH = 300
+const SCORE_CONTAINS_NAME_MATCH = 200
+const SCORE_EXACT_KEYWORD_MATCH = 120
+const SCORE_PREFIX_KEYWORD_MATCH = 100
+const SCORE_CONTAINS_KEYWORD_MATCH = 80
 
 function groupStepsByGroupName(
   steps: TemplateStepWithGroup[],
@@ -36,6 +42,34 @@ function groupStepsByGroupName(
 
 function buildStepKeywords(step: TemplateStepWithGroup, groupKey: string) {
   return [step.description, groupKey, ...(step.parameters ?? []).map(parameter => parameter.name)].filter(Boolean)
+}
+
+function normalizeForSearch(value: string) {
+  return value.trim().toLowerCase()
+}
+
+function scoreMatch(candidate: string, search: string) {
+  if (!search) return 0
+  if (candidate === search) return SCORE_EXACT_NAME_MATCH
+  if (candidate.startsWith(search)) return SCORE_PREFIX_NAME_MATCH
+  if (candidate.includes(search)) return SCORE_CONTAINS_NAME_MATCH
+  return 0
+}
+
+function getStepSearchScore(step: TemplateStepWithGroup, groupKey: string, search: string) {
+  if (!search) return 1
+
+  const normalizedName = normalizeForSearch(step.name)
+  const nameScore = scoreMatch(normalizedName, search)
+  if (nameScore > 0) return nameScore
+
+  const keywords = buildStepKeywords(step, groupKey).map(keyword => normalizeForSearch(keyword))
+
+  if (keywords.some(keyword => keyword === search)) return SCORE_EXACT_KEYWORD_MATCH
+  if (keywords.some(keyword => keyword.startsWith(search))) return SCORE_PREFIX_KEYWORD_MATCH
+  if (keywords.some(keyword => keyword.includes(search))) return SCORE_CONTAINS_KEYWORD_MATCH
+
+  return 0
 }
 
 function formatParameterLabel(label: string) {
@@ -80,6 +114,7 @@ const TemplateStepCombobox = ({
   className,
 }: TemplateStepComboboxProps) => {
   const [open, setOpen] = React.useState(false)
+  const [search, setSearch] = React.useState('')
   const containerRef = React.useRef<HTMLDivElement>(null)
   const searchInputRef = React.useRef<HTMLInputElement>(null)
   const generatedId = React.useId()
@@ -92,11 +127,35 @@ const TemplateStepCombobox = ({
   )
 
   const groups = React.useMemo(() => {
-    const map = groupStepsByGroupName(templateSteps)
-    return Array.from(map.entries()).sort(([a], [b]) =>
-      a.localeCompare(b, undefined, { sensitivity: 'base' }),
-    )
-  }, [templateSteps])
+    const normalizedSearch = normalizeForSearch(search)
+    const scoredSteps = templateSteps
+      .map(step => {
+        const groupKey = step.templateStepGroup?.name ?? GROUP_KEY_OTHER
+        return { step, groupKey, score: getStepSearchScore(step, groupKey, normalizedSearch) }
+      })
+      .filter(({ score }) => score > 0)
+
+    if (!normalizedSearch) {
+      const map = groupStepsByGroupName(scoredSteps.map(({ step }) => step))
+      return Array.from(map.entries()).sort(([a], [b]) =>
+        a.localeCompare(b, undefined, { sensitivity: 'base' }),
+      )
+    }
+
+    scoredSteps.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return a.step.name.localeCompare(b.step.name, undefined, { sensitivity: 'base' })
+    })
+
+    const map = new Map<string, TemplateStepWithGroup[]>()
+    for (const { step, groupKey } of scoredSteps) {
+      const list = map.get(groupKey) ?? []
+      list.push(step)
+      map.set(groupKey, list)
+    }
+
+    return Array.from(map.entries())
+  }, [search, templateSteps])
 
   const handleSelect = React.useCallback(
     (stepId: string) => {
@@ -112,6 +171,11 @@ const TemplateStepCombobox = ({
     const focusSearch = () => searchInputRef.current?.focus()
     const id = requestAnimationFrame(focusSearch)
     return () => cancelAnimationFrame(id)
+  }, [open])
+
+  React.useEffect(() => {
+    if (open) return
+    setSearch('')
   }, [open])
 
   React.useEffect(() => {
@@ -169,10 +233,15 @@ const TemplateStepCombobox = ({
       </button>
       {open && (
         <div id={listboxId} role="listbox" className="absolute left-0 right-0 top-full z-50 mt-1">
-          <Command shouldFilter className="rounded-md border border-input bg-popover shadow-md">
-            <CommandInput ref={searchInputRef} placeholder="Search template steps…" />
+          <Command shouldFilter={false} className="rounded-md border border-input bg-popover shadow-md">
+            <CommandInput
+              ref={searchInputRef}
+              placeholder="Search template steps…"
+              value={search}
+              onValueChange={setSearch}
+            />
             <CommandList>
-              <CommandEmpty>No step found.</CommandEmpty>
+              {groups.length === 0 ? <CommandEmpty>No step found.</CommandEmpty> : null}
               {groups.map(([groupKey, steps]) => (
                 <CommandGroup
                   key={groupKey}

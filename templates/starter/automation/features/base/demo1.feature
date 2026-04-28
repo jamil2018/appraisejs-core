@@ -14,3 +14,9 @@ Feature: Demo tests
     And the user clicks on the "Login Button" element
     And the user waits for the route "/home" to be loaded
     Then the element "Welcome to Home Page" should true contain the text "Welcome to Home Page"
+
+  @tc_7bf77452b93da68b
+  Scenario: [test] asdasd
+    Given the user navigates to the base url of the selected environment
+    When the user fills in the "Email" input field with value "test@test.com"
+    And the user clicks on the "Login Button" element
