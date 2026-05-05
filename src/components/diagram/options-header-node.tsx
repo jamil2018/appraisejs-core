@@ -25,6 +25,7 @@ interface OptionsHeaderNodeData {
   isFirstNode?: boolean
   icon?: TemplateStepIcon | string
   isMissingParams?: boolean
+  isSearchHighlighted?: boolean
   hasOutgoingConnection?: boolean
   isConnectionInProgress?: boolean
   parameters?: OptionsHeaderNodeParameter[]
@@ -57,6 +58,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
     isFirstNode,
     icon,
     isMissingParams,
+    isSearchHighlighted,
     hasOutgoingConnection,
     isConnectionInProgress,
     parameters = [],
@@ -150,6 +152,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
       data-testid="options-header-node"
       data-missing-params={isMissingParams ? 'true' : undefined}
       data-first-node={isFirstNode ? 'true' : undefined}
+      data-search-highlighted={isSearchHighlighted ? 'true' : undefined}
       onMouseEnter={showToolbarNow}
       onMouseLeave={hideToolbarWithDelay}
       onFocus={showToolbarNow}
@@ -162,6 +165,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
         'w-36 overflow-visible border-border/70 bg-card p-0 pt-4 shadow-lg shadow-background/30 transition-[border-radius,box-shadow] duration-300 ease-out',
         isFirstNode && 'rounded-l-3xl rounded-r-md',
         isMissingParams && 'border-destructive/70 bg-destructive/10 ring-1 ring-destructive/40',
+        isSearchHighlighted && 'ring-2 ring-emerald-500/70 shadow-[0_0_28px_rgba(16,185,129,0.34)]',
       )}
     >
       {!isFirstNode && (

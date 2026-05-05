@@ -43,6 +43,7 @@ const TestCaseFlow = ({
         locatorGroups={locatorGroups}
         environments={environments}
         modules={modules}
+        enableNodeSearch
       />
     </div>
   )

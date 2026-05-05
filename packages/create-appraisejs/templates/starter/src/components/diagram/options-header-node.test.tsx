@@ -175,4 +175,19 @@ describe('OptionsHeaderNode', () => {
     expect(screen.queryByTestId('target-handle')).not.toBeInTheDocument()
     expect(screen.getByTestId('source-handle')).toBeInTheDocument()
   })
+
+  it('marks search-highlighted nodes without removing missing-param or start-node styling', () => {
+    renderOptionsHeaderNode({
+      isSearchHighlighted: true,
+      isMissingParams: true,
+      isFirstNode: true,
+    })
+
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-search-highlighted', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-missing-params', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-first-node', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('ring-emerald-500/70')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('border-destructive/70')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('rounded-l-3xl')
+  })
 })

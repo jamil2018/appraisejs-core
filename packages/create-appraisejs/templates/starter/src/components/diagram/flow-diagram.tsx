@@ -15,12 +15,15 @@ import {
   Connection,
   DefaultEdgeOptions,
 } from '@xyflow/react'
+import type { ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useState, useEffect, useMemo, memo } from 'react'
+import { useCallback, useState, useEffect, useMemo, memo, useRef, type PointerEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ButtonEdge from './button-edge'
-import { Plus } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import OptionsHeaderNode from './options-header-node'
 import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
 import NodeForm from './node-form'
@@ -38,6 +41,7 @@ import {
   isAddNodePromptNode,
   isValidDiagramConnection,
   removeOrphanedEdges,
+  searchFlowNodesByLabel,
 } from './flow-diagram-helpers'
 
 const edgeTypes = {
@@ -100,6 +104,7 @@ type FlowDiagramProps = {
   environments: Array<Pick<Environment, 'id' | 'name'>>
   modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   defaultValueInput?: boolean
+  enableNodeSearch?: boolean
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
 }
 
@@ -113,6 +118,7 @@ const FlowDiagram = ({
   modules,
   onNodeOrderChange,
   defaultValueInput = false,
+  enableNodeSearch = false,
 }: FlowDiagramProps) => {
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => generateInitialNodesAndEdges(nodeOrder, templateStepParams, defaultValueInput),
@@ -129,6 +135,10 @@ const FlowDiagram = ({
   const [isConnectionInProgress, setIsConnectionInProgress] = useState(false)
   const [availableLocators, setAvailableLocators] = useState(locators)
   const [availableLocatorGroups, setAvailableLocatorGroups] = useState(locatorGroups)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchHighlightedNodeId, setSearchHighlightedNodeId] = useState<string | null>(null)
+  const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
 
   useEffect(() => {
     setAvailableLocators(locators)
@@ -151,6 +161,47 @@ const FlowDiagram = ({
       setShowEditNodeDialog(true)
     },
     [nodes],
+  )
+
+  const nodeSearchResults = useMemo(() => searchFlowNodesByLabel(nodes, searchQuery), [nodes, searchQuery])
+  const shouldShowSearchSuggestions = enableNodeSearch && isSearchOpen && searchQuery.trim().length >= 3
+
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false)
+    setSearchQuery('')
+  }, [])
+
+  const handleFlowPointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!isSearchOpen) {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-node-search-root="true"]')) {
+        return
+      }
+
+      closeSearch()
+    },
+    [closeSearch, isSearchOpen],
+  )
+
+  const handleSearchResultClick = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find(node => node.id === nodeId)
+      if (!node || isAddNodePromptNode(node)) {
+        return
+      }
+
+      setSearchHighlightedNodeId(nodeId)
+      flowInstanceRef.current?.setCenter(node.position.x + 72, node.position.y + 72, {
+        zoom: 1.15,
+        duration: 420,
+      })
+      handleEditNode(nodeId)
+    },
+    [handleEditNode, nodes],
   )
 
   useEffect(() => {
@@ -259,10 +310,13 @@ const FlowDiagram = ({
         const currentIsConnectionInProgress = Boolean(
           (node.data as { isConnectionInProgress?: boolean }).isConnectionInProgress,
         )
+        const currentIsSearchHighlighted = Boolean((node.data as { isSearchHighlighted?: boolean }).isSearchHighlighted)
+        const isSearchHighlighted = searchHighlightedNodeId === node.id
         if (
           currentIsFirstNode === isFirstNode &&
           currentHasOutgoingConnection === hasOutgoingConnection &&
-          currentIsConnectionInProgress === isConnectionInProgress
+          currentIsConnectionInProgress === isConnectionInProgress &&
+          currentIsSearchHighlighted === isSearchHighlighted
         ) {
           return node
         }
@@ -275,13 +329,14 @@ const FlowDiagram = ({
             isFirstNode,
             hasOutgoingConnection,
             isConnectionInProgress,
+            isSearchHighlighted,
           },
         }
       })
 
       return hasUpdates ? updatedNodes : currentNodes
     })
-  }, [nodes, edges, isConnectionInProgress, setNodes])
+  }, [nodes, edges, isConnectionInProgress, searchHighlightedNodeId, setNodes])
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) => isValidDiagramConnection(edges, connection),
@@ -344,24 +399,87 @@ const FlowDiagram = ({
 
   return (
     <>
-      <div className="relative flex h-full min-h-0 w-full flex-col">
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="absolute right-4 top-4 z-20"
-                onClick={openAddNodeDialog}
-                aria-label="Add Node"
-              >
-                <Plus />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Add Node</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      <div className="relative flex h-full min-h-0 w-full flex-col" onPointerDown={handleFlowPointerDown}>
+        <div className="absolute right-4 top-4 z-20 flex items-start gap-2" data-node-search-root="true">
+          {enableNodeSearch && (
+            <div className="relative flex items-start gap-2">
+              <AnimatePresence>
+                {isSearchOpen && (
+                  <motion.div
+                    className="flex flex-col items-end"
+                    initial={{ opacity: 0, x: 14, scale: 0.98 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 14, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                  >
+                    <Input
+                      aria-label="Search nodes"
+                      autoFocus
+                      value={searchQuery}
+                      onChange={event => setSearchQuery(event.target.value)}
+                      placeholder="Search labels..."
+                      className="h-9 w-56 border-border/70 bg-background/95 shadow-md backdrop-blur"
+                    />
+                    <AnimatePresence>
+                      {shouldShowSearchSuggestions && (
+                        <motion.div
+                          className="mt-2 w-64 overflow-hidden rounded-md border border-border/70 bg-popover text-popover-foreground shadow-xl"
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.16, ease: 'easeOut' }}
+                        >
+                          {nodeSearchResults.length > 0 ? (
+                            <div className="max-h-64 overflow-y-auto py-1">
+                              {nodeSearchResults.map(result => (
+                                <button
+                                  key={result.id}
+                                  type="button"
+                                  className="block w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
+                                  onClick={() => handleSearchResultClick(result.id)}
+                                >
+                                  {result.label}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">No matching labels</div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => (isSearchOpen ? closeSearch() : setIsSearchOpen(true))}
+                      aria-label={isSearchOpen ? 'Close node search' : 'Search nodes'}
+                    >
+                      {isSearchOpen ? <X /> : <Search />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{isSearchOpen ? 'Close search' : 'Search nodes'}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="outline" size="icon" onClick={openAddNodeDialog} aria-label="Add Node">
+                  <Plus />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">Add Node</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <div className="min-h-0 flex-1">
           <ReactFlow
             className="h-full w-full"
@@ -381,6 +499,9 @@ const FlowDiagram = ({
             connectOnClick={false}
             isValidConnection={isValidConnection}
             proOptions={flowDiagramProOptions}
+            onInit={instance => {
+              flowInstanceRef.current = instance
+            }}
           >
             <Background />
             <Controls />
