@@ -12,6 +12,7 @@ type MockFlowDiagramProps = {
   nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
   defaultValueInput?: boolean
+  enableNodeSearch?: boolean
 }
 
 const { flowDiagramRenderSpy } = vi.hoisted(() => ({
@@ -27,6 +28,7 @@ vi.mock('@/components/diagram/flow-diagram', () => ({
       <div>
         <div data-testid="node-order">{JSON.stringify(props.nodeOrder)}</div>
         <div data-testid="default-value-input">{String(props.defaultValueInput)}</div>
+        <div data-testid="enable-node-search">{String(props.enableNodeSearch)}</div>
         <button
           type="button"
           onClick={() =>
@@ -105,6 +107,7 @@ describe('TestCaseFlow', () => {
       },
     })
     expect(screen.getByTestId('default-value-input')).toHaveTextContent('false')
+    expect(screen.getByTestId('enable-node-search')).toHaveTextContent('true')
   })
 
 })

@@ -10,6 +10,7 @@ import {
   isAddNodePromptNode,
   isValidDiagramConnection,
   removeOrphanedEdges,
+  searchFlowNodesByLabel,
 } from './flow-diagram-helpers'
 
 describe('flow-diagram helpers', () => {
@@ -27,6 +28,34 @@ describe('flow-diagram helpers', () => {
     const orders = determineNodeOrders([prompt] as never, [])
 
     expect(orders).toEqual({})
+  })
+
+  it('searches real node labels case-insensitively after three trimmed characters', () => {
+    const nodes = [
+      createAddNodePromptNode(),
+      {
+        id: 'node-1',
+        data: {
+          label: 'Open Checkout',
+          gherkinStep: 'Given the cart page',
+          parameters: [{ name: 'target', value: 'cart', type: StepParameterType.STRING, order: 1 }],
+        },
+      },
+      {
+        id: 'node-2',
+        data: {
+          label: 'Submit payment',
+          gherkinStep: 'When checkout is submitted',
+          parameters: [{ name: 'card', value: 'visa', type: StepParameterType.STRING, order: 1 }],
+        },
+      },
+    ] as never
+
+    expect(searchFlowNodesByLabel(nodes, ' che ')).toEqual([{ id: 'node-1', label: 'Open Checkout' }])
+    expect(searchFlowNodesByLabel(nodes, 'PAY')).toEqual([{ id: 'node-2', label: 'Submit payment' }])
+    expect(searchFlowNodesByLabel(nodes, 'pa')).toEqual([])
+    expect(searchFlowNodesByLabel(nodes, 'cart')).toEqual([])
+    expect(searchFlowNodesByLabel(nodes, 'visa')).toEqual([])
   })
 
   it('hydrates initial nodes and edges from ordered node maps', () => {

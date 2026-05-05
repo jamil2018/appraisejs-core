@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CalendarIcon, Plus } from 'lucide-react'
+import { CalendarIcon, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StepParameterType, TemplateStepParameter, type Locator, type LocatorGroup, type Module } from '@prisma/client'
@@ -427,10 +427,16 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
             {locatorSelectionMode === 'new' ? (
               <div className="space-y-3 rounded-md border border-border bg-background/40 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-sm font-semibold text-primary">Create New Selector</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setCreateLocatorParamName(name)}>
-                    <Plus className="mr-2 h-4 w-4" />
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-primary">Create New Selector</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setCreateLocatorParamName(name)}
+                  >
+                    <Sparkles className="h-4 w-4" />
                     Create Selector
                   </Button>
                 </div>
@@ -452,9 +458,12 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
                     />
                   </DialogContent>
                 </Dialog>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor={`created-group-${name}`} className="text-sm text-muted-foreground">
+                    <Label
+                      htmlFor={`created-group-${name}`}
+                      className="text-sm text-muted-foreground cursor-not-allowed select-none pointer-events-none"
+                    >
                       Locator Group
                     </Label>
                     <Input
@@ -462,11 +471,16 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
                       value={createdLocatorSelection?.locatorGroupName ?? ''}
                       placeholder="Created group will appear here"
                       readOnly
-                      className={fieldClassName}
+                      tabIndex={-1}
+                      onMouseDown={event => event.preventDefault()}
+                      className={`${fieldClassName} cursor-not-allowed select-none`}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`created-locator-${name}`} className="text-sm text-muted-foreground">
+                    <Label
+                      htmlFor={`created-locator-${name}`}
+                      className="text-sm text-muted-foreground cursor-not-allowed select-none pointer-events-none"
+                    >
                       Locator
                     </Label>
                     <Input
@@ -474,7 +488,9 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
                       value={createdLocatorSelection?.locatorName ?? ''}
                       placeholder="Created locator will appear here"
                       readOnly
-                      className={fieldClassName}
+                      tabIndex={-1}
+                      onMouseDown={event => event.preventDefault()}
+                      className={`${fieldClassName} cursor-not-allowed select-none`}
                     />
                   </div>
                 </div>
