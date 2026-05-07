@@ -14,15 +14,17 @@ import {
   useNodesState,
   Connection,
   DefaultEdgeOptions,
+  ViewportPortal,
 } from '@xyflow/react'
 import type { ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useState, useEffect, useMemo, memo, useRef, type PointerEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import ButtonEdge from './button-edge'
-import { Plus, Search, X } from 'lucide-react'
+import ButtonEdge, { flowEdgeMutationGuardRef } from './button-edge'
+import { Boxes, MousePointer2, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import OptionsHeaderNode from './options-header-node'
 import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
@@ -31,6 +33,7 @@ import { NodeData } from '@/constants/form-opts/diagram/node-form'
 import { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import { Environment, Locator, TemplateStep, TemplateStepParameter, LocatorGroup, Module } from '@prisma/client'
 import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
+import { toast } from '@/hooks/use-toast'
 import {
   buildNodeFormData,
   createAddNodePromptNode,
@@ -38,11 +41,14 @@ import {
   determineNodeOrders,
   determineStartNodeIds,
   generateInitialNodesAndEdges,
+  getFlowBlockBounds,
+  getFlowBlockMembershipMap,
   isAddNodePromptNode,
   isValidDiagramConnection,
   removeOrphanedEdges,
   searchFlowNodesByLabel,
 } from './flow-diagram-helpers'
+import type { FlowBlock } from '@/types/diagram/diagram'
 
 const edgeTypes = {
   buttonEdge: ButtonEdge,
@@ -59,6 +65,7 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
 }
 
 const flowDiagramProOptions = { hideAttribution: true }
+const partialSelectionMode = 'partial' as never
 
 const flowDiagramHandlersRef = {
   current: {
@@ -105,6 +112,9 @@ type FlowDiagramProps = {
   modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   defaultValueInput?: boolean
   enableNodeSearch?: boolean
+  enableNodeGrouping?: boolean
+  flowBlocks?: FlowBlock[]
+  onFlowBlocksChange?: (flowBlocks: FlowBlock[]) => void
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
 }
 
@@ -119,6 +129,9 @@ const FlowDiagram = ({
   onNodeOrderChange,
   defaultValueInput = false,
   enableNodeSearch = false,
+  enableNodeGrouping = false,
+  flowBlocks = [],
+  onFlowBlocksChange,
 }: FlowDiagramProps) => {
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => generateInitialNodesAndEdges(nodeOrder, templateStepParams, defaultValueInput),
@@ -138,6 +151,12 @@ const FlowDiagram = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchHighlightedNodeId, setSearchHighlightedNodeId] = useState<string | null>(null)
+  const [isGroupingSelectionMode, setIsGroupingSelectionMode] = useState(false)
+  const [selectedGroupingNodeIds, setSelectedGroupingNodeIds] = useState<string[]>([])
+  const [pendingBlockNodeIds, setPendingBlockNodeIds] = useState<string[]>([])
+  const [blockName, setBlockName] = useState('')
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
   const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
 
   useEffect(() => {
@@ -165,6 +184,19 @@ const FlowDiagram = ({
 
   const nodeSearchResults = useMemo(() => searchFlowNodesByLabel(nodes, searchQuery), [nodes, searchQuery])
   const shouldShowSearchSuggestions = enableNodeSearch && isSearchOpen && searchQuery.trim().length >= 3
+  const realNodeIds = useMemo(() => new Set(nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id)), [nodes])
+  const flowBlockMembership = useMemo(() => getFlowBlockMembershipMap(flowBlocks), [flowBlocks])
+  const flowBlockBounds = useMemo(() => getFlowBlockBounds(nodes, flowBlocks), [nodes, flowBlocks])
+  const hasFlowBlocks = flowBlocks.length > 0
+  const blockTopologyMessage = 'Remove flow blocks before changing flow structure.'
+
+  const showTopologyBlockedToast = useCallback(() => {
+    toast({
+      title: 'Flow structure locked',
+      description: blockTopologyMessage,
+      variant: 'destructive',
+    })
+  }, [])
 
   const closeSearch = useCallback(() => {
     setIsSearchOpen(false)
@@ -207,13 +239,25 @@ const FlowDiagram = ({
   useEffect(() => {
     flowDiagramHandlersRef.current.onEditNode = handleEditNode
     flowDiagramHandlersRef.current.onOpenAddNode = sourceNodeId => {
+      if (hasFlowBlocks) {
+        showTopologyBlockedToast()
+        return
+      }
       setPendingAddSourceNodeId(sourceNodeId ?? null)
       setShowAddNodeDialog(true)
     }
-  }, [handleEditNode])
+    flowEdgeMutationGuardRef.current = {
+      isBlocked: hasFlowBlocks,
+      onBlocked: showTopologyBlockedToast,
+    }
+  }, [handleEditNode, hasFlowBlocks, showTopologyBlockedToast])
 
   const addNode = useCallback(
     (formData: NodeData) => {
+      if (hasFlowBlocks) {
+        showTopologyBlockedToast()
+        return
+      }
       const realCount = nodes.filter(n => !isAddNodePromptNode(n)).length
       const sourceNode = pendingAddSourceNodeId ? nodes.find(node => node.id === pendingAddSourceNodeId) : undefined
       const newNodeId = crypto.randomUUID()
@@ -239,7 +283,18 @@ const FlowDiagram = ({
       setShowAddNodeDialog(false)
       setPendingAddSourceNodeId(null)
     },
-    [setEdges, setNodes, nodes, edges, pendingAddSourceNodeId, templateSteps, templateStepParams, defaultValueInput],
+    [
+      setEdges,
+      setNodes,
+      nodes,
+      edges,
+      pendingAddSourceNodeId,
+      templateSteps,
+      templateStepParams,
+      defaultValueInput,
+      hasFlowBlocks,
+      showTopologyBlockedToast,
+    ],
   )
 
   const handleEditNodeSubmit = useCallback(
@@ -339,17 +394,21 @@ const FlowDiagram = ({
   }, [nodes, edges, isConnectionInProgress, searchHighlightedNodeId, setNodes])
 
   const isValidConnection = useCallback(
-    (connection: Connection | Edge) => isValidDiagramConnection(edges, connection),
-    [edges],
+    (connection: Connection | Edge) => !hasFlowBlocks && isValidDiagramConnection(edges, connection),
+    [edges, hasFlowBlocks],
   )
 
   const onConnect: OnConnect = useCallback(
     params => {
+      if (hasFlowBlocks) {
+        showTopologyBlockedToast()
+        return
+      }
       if (isValidConnection(params)) {
         setEdges(eds => addEdge(params, eds))
       }
     },
-    [setEdges, isValidConnection],
+    [setEdges, isValidConnection, hasFlowBlocks, showTopologyBlockedToast],
   )
 
   const handleConnectStart = useCallback(() => {
@@ -393,9 +452,78 @@ const FlowDiagram = ({
   }, [])
 
   const openAddNodeDialog = useCallback(() => {
+    if (hasFlowBlocks) {
+      showTopologyBlockedToast()
+      return
+    }
     setPendingAddSourceNodeId(null)
     setShowAddNodeDialog(true)
+  }, [hasFlowBlocks, showTopologyBlockedToast])
+
+  const openCreateBlockDialog = useCallback(() => {
+    if (selectedGroupingNodeIds.length < 2) {
+      return
+    }
+
+    setPendingBlockNodeIds(selectedGroupingNodeIds)
+    setEditingBlockId(null)
+    setBlockName('')
+    setIsBlockDialogOpen(true)
+  }, [selectedGroupingNodeIds])
+
+  const openRenameBlockDialog = useCallback((block: FlowBlock) => {
+    setPendingBlockNodeIds(block.nodeIds)
+    setEditingBlockId(block.id)
+    setBlockName(block.name)
+    setIsBlockDialogOpen(true)
   }, [])
+
+  const handleBlockDialogSubmit = useCallback(() => {
+    const name = blockName.trim() || 'Untitled block'
+    if (editingBlockId) {
+      onFlowBlocksChange?.(flowBlocks.map(block => (block.id === editingBlockId ? { ...block, name } : block)))
+    } else {
+      onFlowBlocksChange?.([
+        ...flowBlocks,
+        {
+          id: crypto.randomUUID(),
+          name,
+          nodeIds: pendingBlockNodeIds.filter(nodeId => realNodeIds.has(nodeId)),
+        },
+      ])
+    }
+    setIsBlockDialogOpen(false)
+    setBlockName('')
+    setPendingBlockNodeIds([])
+    setEditingBlockId(null)
+    setSelectedGroupingNodeIds([])
+  }, [blockName, editingBlockId, flowBlocks, onFlowBlocksChange, pendingBlockNodeIds, realNodeIds])
+
+  const deleteBlock = useCallback(
+    (blockId: string) => {
+      onFlowBlocksChange?.(flowBlocks.filter(block => block.id !== blockId))
+    },
+    [flowBlocks, onFlowBlocksChange],
+  )
+
+  const handleSelectionChange = useCallback(
+    ({ nodes: selectedNodes }: { nodes: Node[] }) => {
+      if (!enableNodeGrouping || !isGroupingSelectionMode) {
+        return
+      }
+
+      const selectedIds = selectedNodes
+        .filter(node => realNodeIds.has(node.id) && !flowBlockMembership.has(node.id))
+        .map(node => node.id)
+
+      setSelectedGroupingNodeIds(current =>
+        current.length === selectedIds.length && current.every((nodeId, index) => nodeId === selectedIds[index])
+          ? current
+          : selectedIds,
+      )
+    },
+    [enableNodeGrouping, flowBlockMembership, isGroupingSelectionMode, realNodeIds],
+  )
 
   return (
     <>
@@ -469,14 +597,44 @@ const FlowDiagram = ({
               </TooltipProvider>
             </div>
           )}
+          {enableNodeGrouping && (
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant={isGroupingSelectionMode ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={() => {
+                      setIsGroupingSelectionMode(current => !current)
+                      setSelectedGroupingNodeIds(current => (current.length === 0 ? current : []))
+                    }}
+                    aria-label={isGroupingSelectionMode ? 'Exit block selection mode' : 'Select nodes for block'}
+                  >
+                    {isGroupingSelectionMode ? <Boxes /> : <MousePointer2 />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {isGroupingSelectionMode ? 'Selection mode' : 'Create block'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="button" variant="outline" size="icon" onClick={openAddNodeDialog} aria-label="Add Node">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={openAddNodeDialog}
+                  disabled={hasFlowBlocks}
+                  aria-label="Add Node"
+                >
                   <Plus />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Add Node</TooltipContent>
+              <TooltipContent side="bottom">{hasFlowBlocks ? blockTopologyMessage : 'Add Node'}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -497,17 +655,92 @@ const FlowDiagram = ({
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             connectOnClick={false}
+            deleteKeyCode={hasFlowBlocks ? null : 'Backspace'}
+            edgesReconnectable={!hasFlowBlocks}
+            nodesConnectable={!hasFlowBlocks}
+            panOnDrag={!isGroupingSelectionMode}
+            selectionMode={partialSelectionMode}
+            selectionOnDrag={isGroupingSelectionMode}
+            selectNodesOnDrag={false}
+            onSelectionChange={handleSelectionChange}
             isValidConnection={isValidConnection}
             proOptions={flowDiagramProOptions}
             onInit={instance => {
               flowInstanceRef.current = instance
             }}
           >
+            {flowBlockBounds.length > 0 && (
+              <ViewportPortal>
+                {flowBlockBounds.map(block => (
+                  <div
+                    key={block.id}
+                    className="pointer-events-none absolute rounded-lg border border-emerald-400/70 bg-emerald-400/10"
+                    style={{
+                      left: block.x,
+                      top: block.y,
+                      width: block.width,
+                      height: block.height,
+                      zIndex: -1,
+                    }}
+                  >
+                    <div className="pointer-events-auto absolute -top-8 left-2 flex items-center gap-1 rounded-md border border-emerald-400/60 bg-background/95 px-2 py-1 text-xs font-medium shadow-sm">
+                      <span>{block.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => openRenameBlockDialog(block)}
+                        aria-label={`Rename ${block.name}`}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => deleteBlock(block.id)}
+                        aria-label={`Delete ${block.name}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </ViewportPortal>
+            )}
             <Background />
             <Controls />
           </ReactFlow>
         </div>
+        {enableNodeGrouping && isGroupingSelectionMode && selectedGroupingNodeIds.length >= 2 && (
+          <div className="absolute right-4 top-16 z-20 rounded-md border border-border bg-popover p-2 shadow-xl">
+            <Button type="button" size="sm" onClick={openCreateBlockDialog}>
+              Create block
+            </Button>
+          </div>
+        )}
       </div>
+
+      <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingBlockId ? 'Rename block' : 'Create block'}</DialogTitle>
+          </DialogHeader>
+          <Input
+            aria-label="Block name"
+            value={blockName}
+            onChange={event => setBlockName(event.target.value)}
+            placeholder="Block name"
+          />
+          <DialogFooter>
+            <Button type="button" onClick={handleBlockDialogSubmit}>
+              {editingBlockId ? 'Rename' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <NodeForm
         onSubmitAction={addNode}

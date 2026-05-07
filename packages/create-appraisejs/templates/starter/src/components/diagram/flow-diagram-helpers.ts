@@ -3,7 +3,7 @@ import { StepParameterType, type TemplateStep, type TemplateStepParameter } from
 
 import type { NodeData as NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
-import type { NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import type { FlowBlock, NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 
 /** Client-only canvas node: not persisted in node order maps. */
 export const ADD_NODE_PROMPT_NODE_ID = '__appraise_add_node_prompt__'
@@ -87,6 +87,7 @@ function toSerializableParameters(parameters: NodeFormData['parameters']) {
 
 function toDiagramNodeOrderEntry(node: Node, order: number) {
   return {
+    nodeId: node.id,
     order,
     label: node.data.label as string,
     gherkinStep: (node.data.gherkinStep as string) ?? '',
@@ -95,6 +96,63 @@ function toDiagramNodeOrderEntry(node: Node, order: number) {
     parameters: toSerializableParameters((node.data.parameters as NodeFormData['parameters']) ?? []),
     templateStepId: (node.data.templateStepId as string) ?? '',
   }
+}
+
+export type FlowBlockBounds = FlowBlock & {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export function normalizeFlowBlocks(flowBlocks: FlowBlock[], validNodeIds?: Set<string>): FlowBlock[] {
+  return flowBlocks
+    .map(block => {
+      const nodeIds = Array.from(
+        new Set(block.nodeIds.filter(nodeId => !validNodeIds || validNodeIds.has(nodeId))),
+      )
+      return {
+        id: block.id,
+        name: block.name.trim() || 'Untitled block',
+        nodeIds,
+      }
+    })
+    .filter(block => block.nodeIds.length >= 2)
+}
+
+export function getFlowBlockMembershipMap(flowBlocks: FlowBlock[]) {
+  const membership = new Map<string, string>()
+  flowBlocks.forEach(block => {
+    block.nodeIds.forEach(nodeId => membership.set(nodeId, block.id))
+  })
+  return membership
+}
+
+export function getFlowBlockBounds(nodes: Node[], flowBlocks: FlowBlock[]): FlowBlockBounds[] {
+  const nodeById = new Map(nodes.filter(node => !isAddNodePromptNode(node)).map(node => [node.id, node]))
+
+  return normalizeFlowBlocks(flowBlocks, new Set(nodeById.keys())).flatMap(block => {
+    const blockNodes = block.nodeIds.map(nodeId => nodeById.get(nodeId)).filter((node): node is Node => Boolean(node))
+    if (blockNodes.length < 2) {
+      return []
+    }
+
+    const padding = 32
+    const minX = Math.min(...blockNodes.map(node => node.position.x))
+    const minY = Math.min(...blockNodes.map(node => node.position.y))
+    const maxX = Math.max(...blockNodes.map(node => node.position.x + (node.measured?.width ?? node.width ?? 260)))
+    const maxY = Math.max(...blockNodes.map(node => node.position.y + (node.measured?.height ?? node.height ?? 160)))
+
+    return [
+      {
+        ...block,
+        x: minX - padding,
+        y: minY - padding,
+        width: maxX - minX + padding * 2,
+        height: maxY - minY + padding * 2,
+      },
+    ]
+  })
 }
 
 export function buildFlowNodeData(

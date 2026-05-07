@@ -7,17 +7,20 @@ import type {
   TestCase,
   TestCaseStep,
   TestCaseStepParameter,
+  TestCaseFlowBlock,
+  TestCaseFlowBlockNode,
   TestSuite,
   TemplateStep,
   TemplateStepParameter,
 } from '@prisma/client'
 
 import type { ActionResponseData } from '@/types/form/actionHandler'
-import type { NodeOrderMap } from '@/types/diagram/diagram'
+import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
 
 export type EditableTestCase = TestCase & {
   steps: (TestCaseStep & { parameters: TestCaseStepParameter[] })[]
+  flowBlocks?: (TestCaseFlowBlock & { nodes: TestCaseFlowBlockNode[] })[]
   testSuiteIds: string[]
   tagIds: string[]
 }
@@ -115,7 +118,9 @@ export function getEditableTestCase(data: ActionResponseData | undefined) {
 
 export function buildNodeOrderFromTestCaseSteps(steps: EditableTestCase['steps']): NodeOrderMap {
   return steps.reduce<NodeOrderMap>((acc, step) => {
-    acc[step.id] = {
+    const nodeId = step.flowNodeId ?? step.id
+    acc[nodeId] = {
+      nodeId,
       order: step.order,
       label: step.label,
       gherkinStep: step.gherkinStep,
@@ -130,6 +135,17 @@ export function buildNodeOrderFromTestCaseSteps(steps: EditableTestCase['steps']
     }
     return acc
   }, {})
+}
+
+export function buildFlowBlocksFromTestCaseRows(flowBlocks: EditableTestCase['flowBlocks'] = []): FlowBlock[] {
+  return flowBlocks
+    .slice()
+    .sort((left, right) => left.order - right.order)
+    .map(block => ({
+      id: block.id,
+      name: block.name,
+      nodeIds: block.nodes.map(node => node.flowNodeId),
+    }))
 }
 
 export function getTemplateStepParamRows(data: ActionResponseData | undefined): TemplateStepParameter[] {

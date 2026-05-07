@@ -72,6 +72,7 @@ function renderFlowDiagram(enableNodeSearch = true) {
             {
               name: 'card',
               value: 'visa',
+              type: 'STRING',
               order: 1,
             },
           ],
@@ -144,5 +145,23 @@ describe('FlowDiagram node search', () => {
       zoom: 1.15,
       duration: 420,
     })
+  })
+})
+
+describe('FlowDiagram node grouping', () => {
+  it('does not open block creation when selection mode is toggled on an empty flow', async () => {
+    const user = userEvent.setup()
+    render(
+      <FlowDiagram
+        {...requiredProps}
+        enableNodeGrouping
+        nodeOrder={{}}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /select nodes for block/i }))
+
+    expect(screen.queryByRole('button', { name: /create block/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

@@ -13,7 +13,7 @@ import { InlineTestSuiteCreationDialog } from './inline-test-suite-creation-dial
 import TestCaseFlow from './test-case-flow'
 import type { TagFormSubmitAction } from '@/app/(base)/tags/tag-form-helpers'
 import type { TestSuiteFormSubmitAction } from '@/app/(base)/test-suites/test-suite-helpers'
-import type { NodeOrderMap } from '@/types/diagram/diagram'
+import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
 import {
   type Locator,
@@ -73,6 +73,7 @@ type TestCaseFormProps = {
   defaultTagIds?: string[]
   templateTestCases?: TemplateTestCaseWithSteps[]
   defaultTemplateTestCaseId?: string
+  defaultFlowBlocks?: FlowBlock[]
 }
 
 type TestCaseFormErrors = {
@@ -104,6 +105,7 @@ const TestCaseForm = ({
   defaultTagIds,
   templateTestCases,
   defaultTemplateTestCaseId,
+  defaultFlowBlocks = [],
   onSubmitAction,
   onCreateTestSuiteAction,
   onCreateTagAction,
@@ -118,6 +120,7 @@ const TestCaseForm = ({
   const templateOptions = getTemplateSelectionOptions(templateTestCases || [])
 
   const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(defaultNodesOrder)
+  const [flowBlocks, setFlowBlocks] = useState<FlowBlock[]>(defaultFlowBlocks)
   const [title, setTitle] = useState(defaultTitle || '')
   const [description, setDescription] = useState(defaultDescription || '')
   const [availableTestSuites, setAvailableTestSuites] = useState(testSuites)
@@ -233,6 +236,7 @@ const TestCaseForm = ({
       setTitle(templateTestCase.name || '')
       setDescription(templateTestCase.description || '')
       setNodesOrder(convertedData.nodesOrder)
+      setFlowBlocks(convertedData.flowBlocks)
       setAppliedTemplateId(selectedTemplateId)
       setErrors(current => ({
         ...current,
@@ -295,6 +299,7 @@ const TestCaseForm = ({
       testSuiteIds: selectedTestSuites,
       tagIds: selectedTags,
       steps: buildScenarioSteps(nodesOrder),
+      flowBlocks,
     })
 
     if (!result.success) {
@@ -333,6 +338,7 @@ const TestCaseForm = ({
     onSubmitAction,
     id,
     templateStepParams,
+    flowBlocks,
   ])
 
   useEffect(() => {
@@ -386,6 +392,8 @@ const TestCaseForm = ({
               locatorGroups={locatorGroups}
               environments={environments}
               modules={moduleList}
+              flowBlocks={flowBlocks}
+              onFlowBlocksChange={setFlowBlocks}
             />
           </div>
         </div>

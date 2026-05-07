@@ -6,9 +6,19 @@ export const testCaseSchema = z.object({
   description: z.string().optional(),
   testSuiteIds: z.array(z.string()),
   tagIds: z.array(z.string()).optional(),
+  flowBlocks: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        nodeIds: z.array(z.string()),
+      }),
+    )
+    .default([]),
   steps: z
     .array(
       z.object({
+        nodeId: z.string().optional(),
         gherkinStep: z.string(),
         label: z.string(),
         icon: z.nativeEnum(TemplateStepIcon),
@@ -35,6 +45,7 @@ export const formOpts = {
     description: '',
     testSuiteIds: [],
     tagIds: [],
+    flowBlocks: [],
     steps: [],
   } as TestCase,
   validators: {

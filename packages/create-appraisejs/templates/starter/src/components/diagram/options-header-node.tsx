@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { KeyToIconTransformer } from '@/lib/transformers/key-to-icon-transformer'
 import { cn } from '@/lib/utils'
+import { flowEdgeMutationGuardRef } from './button-edge'
 
 type OptionsHeaderNodeParameter = {
   name: string
@@ -78,6 +79,10 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
 
   const handleDelete = useCallback(() => {
     if (!id) return
+    if (flowEdgeMutationGuardRef.current.isBlocked) {
+      flowEdgeMutationGuardRef.current.onBlocked()
+      return
+    }
     setNodes(prevNodes => prevNodes.filter(node => node.id !== id))
   }, [id, setNodes])
 

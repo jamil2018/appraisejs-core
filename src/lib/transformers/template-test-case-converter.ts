@@ -2,23 +2,28 @@ import {
   TemplateTestCase,
   TemplateTestCaseStep,
   TemplateTestCaseStepParameter,
+  TemplateTestCaseFlowBlock,
+  TemplateTestCaseFlowBlockNode,
   TemplateStepIcon,
   StepParameterType,
 } from '@prisma/client'
-import { NodeOrderMap } from '@/types/diagram/diagram'
+import { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 
 export interface ConvertedTestCaseData {
   title: string
   description: string
   testSuiteIds: string[]
   nodesOrder: NodeOrderMap
+  flowBlocks: FlowBlock[]
 }
 
 export interface TestCaseFormData {
   title: string
   description: string
   testSuiteIds: string[]
+  flowBlocks: FlowBlock[]
   steps: {
+    nodeId: string
     gherkinStep: string
     label: string
     icon: TemplateStepIcon
@@ -43,6 +48,7 @@ export const templateTestCaseToTestCaseConverter = (
     steps: (TemplateTestCaseStep & {
       parameters: TemplateTestCaseStepParameter[]
     })[]
+    flowBlocks?: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
   },
 ): ConvertedTestCaseData => {
   // Convert template test case to test case format
@@ -54,7 +60,7 @@ export const templateTestCaseToTestCaseConverter = (
   const nodesOrder: NodeOrderMap = {}
 
   templateTestCase.steps.forEach((step, index) => {
-    const nodeId = `node-${index}`
+    const nodeId = step.flowNodeId ?? `node-${index}`
 
     // Convert parameters from template format to test case format
     const parameters = step.parameters.map(param => ({
@@ -65,6 +71,7 @@ export const templateTestCaseToTestCaseConverter = (
     }))
 
     nodesOrder[nodeId] = {
+      nodeId,
       order: step.order,
       label: step.label,
       gherkinStep: step.gherkinStep,
@@ -79,6 +86,12 @@ export const templateTestCaseToTestCaseConverter = (
     description,
     testSuiteIds,
     nodesOrder,
+    flowBlocks:
+      templateTestCase.flowBlocks?.map(block => ({
+        id: block.id,
+        name: block.name,
+        nodeIds: block.nodes.map(node => node.flowNodeId),
+      })) ?? [],
   }
 }
 
@@ -89,7 +102,8 @@ export const templateTestCaseToTestCaseConverter = (
  */
 export const convertNodeOrderMapToTestCaseFormData = (nodesOrder: NodeOrderMap): TestCaseFormData['steps'] => {
   return Object.entries(nodesOrder)
-    .map(([, nodeData]) => ({
+    .map(([nodeId, nodeData]) => ({
+      nodeId: nodeData.nodeId ?? nodeId,
       gherkinStep: nodeData.gherkinStep || '',
       label: nodeData.label,
       icon: nodeData.icon as TemplateStepIcon,
@@ -121,6 +135,7 @@ export const templateTestCaseToTestCaseFormData = (
     description: convertedData.description,
     testSuiteIds: testSuiteIds.length > 0 ? testSuiteIds : convertedData.testSuiteIds,
     steps: convertNodeOrderMapToTestCaseFormData(convertedData.nodesOrder),
+    flowBlocks: convertedData.flowBlocks,
   }
 }
 

@@ -2,7 +2,7 @@
 import React, { useCallback, useState } from 'react'
 
 import TemplateTestCaseFlow from './template-test-case-flow'
-import type { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import type { FlowBlock, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import {
   type Locator,
   type LocatorGroup,
@@ -43,6 +43,7 @@ type TemplateTestCaseFormProps = {
   defaultTitle?: string
   defaultDescription?: string
   defaultValueInput?: boolean
+  defaultFlowBlocks?: FlowBlock[]
 }
 
 const TemplateTestCaseForm = ({
@@ -57,10 +58,12 @@ const TemplateTestCaseForm = ({
   defaultTitle,
   defaultDescription,
   defaultValueInput = false,
+  defaultFlowBlocks = [],
   onSubmitAction,
 }: TemplateTestCaseFormProps) => {
   const router = useRouter()
   const [nodesOrder, setNodesOrder] = useState<TemplateTestCaseNodeOrderMap>(defaultNodesOrder)
+  const [flowBlocks, setFlowBlocks] = useState<FlowBlock[]>(defaultFlowBlocks)
   const [title, setTitle] = useState(defaultTitle || '')
   const [description, setDescription] = useState(defaultDescription || '')
   const [errors, setErrors] = useState<{
@@ -89,6 +92,7 @@ const TemplateTestCaseForm = ({
       title,
       description,
       steps: buildScenarioSteps(nodesOrder),
+      flowBlocks,
     })
 
     if (!result.success) {
@@ -112,7 +116,7 @@ const TemplateTestCaseForm = ({
         variant: 'destructive',
       })
     }
-  }, [description, nodesOrder, title, router, onSubmitAction, id])
+  }, [description, nodesOrder, title, router, onSubmitAction, id, flowBlocks])
 
   return (
     <div className="flex flex-col gap-4">
@@ -146,6 +150,8 @@ const TemplateTestCaseForm = ({
           environments={environments}
           modules={modules}
           defaultValueInput={defaultValueInput}
+          flowBlocks={flowBlocks}
+          onFlowBlocksChange={setFlowBlocks}
         />
       </div>
       {renderError(errors.steps)}

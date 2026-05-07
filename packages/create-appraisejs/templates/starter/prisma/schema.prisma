@@ -94,10 +94,12 @@ model TestCase {
   TestRunTestCase   TestRunTestCase[]
   tags              Tag[]
   metrics           TestCaseMetrics?
+  flowBlocks        TestCaseFlowBlock[]
 }
 
 model TestCaseStep {
   id             String                  @id @default(uuid())
+  flowNodeId     String?
   testCaseId     String
   order          Int
   gherkinStep    String
@@ -109,6 +111,22 @@ model TestCaseStep {
   parameters     TestCaseStepParameter[]
 }
 
+model TestCaseFlowBlock {
+  id         String                  @id @default(uuid())
+  name       String
+  testCaseId String
+  order      Int
+  testCase   TestCase                @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  nodes      TestCaseFlowBlockNode[]
+}
+
+model TestCaseFlowBlockNode {
+  id          String            @id @default(uuid())
+  flowNodeId  String
+  flowBlockId String
+  flowBlock   TestCaseFlowBlock @relation(fields: [flowBlockId], references: [id], onDelete: Cascade)
+}
+
 model TemplateTestCase {
   id          String                 @id @default(uuid())
   name        String
@@ -116,10 +134,12 @@ model TemplateTestCase {
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   steps       TemplateTestCaseStep[]
+  flowBlocks  TemplateTestCaseFlowBlock[]
 }
 
 model TemplateTestCaseStep {
   id                 String                          @id @default(uuid())
+  flowNodeId         String?
   order              Int
   gherkinStep        String
   icon               TemplateStepIcon
@@ -129,6 +149,22 @@ model TemplateTestCaseStep {
   TemplateStep       TemplateStep                    @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
   templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
   parameters         TemplateTestCaseStepParameter[]
+}
+
+model TemplateTestCaseFlowBlock {
+  id                 String                          @id @default(uuid())
+  name               String
+  templateTestCaseId String
+  order              Int
+  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id], onDelete: Cascade)
+  nodes              TemplateTestCaseFlowBlockNode[]
+}
+
+model TemplateTestCaseFlowBlockNode {
+  id          String                    @id @default(uuid())
+  flowNodeId  String
+  flowBlockId String
+  flowBlock   TemplateTestCaseFlowBlock @relation(fields: [flowBlockId], references: [id], onDelete: Cascade)
 }
 
 model TemplateTestCaseStepParameter {

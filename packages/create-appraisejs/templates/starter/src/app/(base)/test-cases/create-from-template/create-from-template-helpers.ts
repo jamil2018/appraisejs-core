@@ -5,6 +5,8 @@ import type {
   Tag,
   TestCaseStep,
   TemplateTestCase,
+  TemplateTestCaseFlowBlock,
+  TemplateTestCaseFlowBlockNode,
   TemplateTestCaseStep,
   TemplateTestCaseStepParameter,
   TemplateStep,
@@ -35,6 +37,7 @@ export type TemplateTestCaseWithSteps = TemplateTestCase & {
   steps: (TemplateTestCaseStep & {
     parameters: TemplateTestCaseStepParameter[]
   })[]
+  flowBlocks?: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
 }
 
 export const templateSelectionFieldValidator = templateSelectionSchema.shape.templateTestCaseId

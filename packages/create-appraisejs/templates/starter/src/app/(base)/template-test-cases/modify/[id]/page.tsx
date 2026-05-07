@@ -8,6 +8,8 @@ import {
   TemplateTestCase,
   TemplateTestCaseStep,
   TemplateTestCaseStepParameter,
+  TemplateTestCaseFlowBlock,
+  TemplateTestCaseFlowBlockNode,
 } from '@prisma/client'
 import React from 'react'
 import TemplateTestCaseForm from '../../template-test-case-form'
@@ -44,6 +46,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
     steps: (TemplateTestCaseStep & {
       parameters: TemplateTestCaseStepParameter[]
     })[]
+    flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
   }
   const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
   const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
@@ -76,7 +79,9 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
         environments={environments as Environment[]}
         modules={modules as Module[]}
         defaultNodesOrder={templateTestCase.steps.reduce((acc, step) => {
-          acc[step.id] = {
+          const nodeId = step.flowNodeId ?? step.id
+          acc[nodeId] = {
+            nodeId,
             order: step.order,
             label: step.label,
             gherkinStep: step.gherkinStep,
@@ -93,6 +98,14 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
           }
           return acc
         }, {} as TemplateTestCaseNodeOrderMap)}
+        defaultFlowBlocks={templateTestCase.flowBlocks
+          .slice()
+          .sort((left, right) => left.order - right.order)
+          .map(block => ({
+            id: block.id,
+            name: block.name,
+            nodeIds: block.nodes.map(node => node.flowNodeId),
+          }))}
       />
     </>
   )

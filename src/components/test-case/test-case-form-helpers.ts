@@ -42,7 +42,8 @@ function normalizeStepParameters(parameters: ScenarioNode['parameters']) {
 }
 
 export function buildScenarioSteps(nodeOrder: ScenarioNodeOrder) {
-  return Object.entries(nodeOrder).map(([, value]) => ({
+  return Object.entries(nodeOrder).map(([nodeId, value]) => ({
+    nodeId: value.nodeId ?? nodeId,
     gherkinStep: value.gherkinStep || '',
     label: value.label,
     icon: IconToKeyTransformer(value.icon),

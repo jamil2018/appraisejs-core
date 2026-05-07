@@ -18,6 +18,7 @@ import { Metadata } from 'next'
 
 import {
   buildNodeOrderFromTestCaseSteps,
+  buildFlowBlocksFromTestCaseRows,
   getEditableTestCase,
   getEnvironmentRows,
   getLocatorGroupRows,
@@ -119,6 +120,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         moduleList={moduleList}
         tags={tags}
         defaultNodesOrder={buildNodeOrderFromTestCaseSteps(testCase.steps)}
+        defaultFlowBlocks={buildFlowBlocksFromTestCaseRows(testCase.flowBlocks)}
         onCreateTestSuiteAction={createTestSuiteAction}
         onCreateTagAction={createTagAction}
       />
