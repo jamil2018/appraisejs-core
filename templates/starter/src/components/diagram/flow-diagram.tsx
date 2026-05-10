@@ -61,7 +61,9 @@ import {
   generateInitialNodesAndEdges,
   getFlowBlockBounds,
   getFlowBlockMembershipMap,
+  hasOrphanedFlowNode,
   isAddNodePromptNode,
+  isEdgeWithinSameFlowBlock,
   isValidDiagramConnection,
   removeOrphanedEdges,
   searchFlowNodesByLabel,
@@ -279,7 +281,10 @@ const FlowDiagram = ({
 
   const nodeSearchResults = useMemo(() => searchFlowNodesByLabel(nodes, searchQuery), [nodes, searchQuery])
   const shouldShowSearchSuggestions = enableNodeSearch && isSearchOpen && searchQuery.trim().length >= 3
-  const realNodeIds = useMemo(() => new Set(nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id)), [nodes])
+  const realNodeIds = useMemo(
+    () => new Set(nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id)),
+    [nodes],
+  )
   const layoutRefreshNodeIds = useMemo(
     () => nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id),
     [nodes],
@@ -287,7 +292,9 @@ const FlowDiagram = ({
   const flowBlockMembership = useMemo(() => getFlowBlockMembershipMap(flowBlocks), [flowBlocks])
   const flowBlockBounds = useMemo(() => getFlowBlockBounds(nodes, flowBlocks), [nodes, flowBlocks])
   const hasFlowBlocks = flowBlocks.length > 0
+  const hasOrphanedNodes = useMemo(() => hasOrphanedFlowNode(nodes, edges), [nodes, edges])
   const blockTopologyMessage = 'Remove flow blocks before changing flow structure.'
+  const blockOrphanedNodeMessage = 'Connect or remove orphaned nodes before creating a block.'
 
   const showTopologyBlockedToast = useCallback(() => {
     toast({
@@ -355,25 +362,18 @@ const FlowDiagram = ({
   useEffect(() => {
     flowDiagramHandlersRef.current.onEditNode = handleEditNode
     flowDiagramHandlersRef.current.onOpenAddNode = sourceNodeId => {
-      if (hasFlowBlocks) {
-        showTopologyBlockedToast()
-        return
-      }
       setPendingAddSourceNodeId(sourceNodeId ?? null)
       setShowAddNodeDialog(true)
     }
     flowEdgeMutationGuardRef.current = {
-      isBlocked: hasFlowBlocks,
+      isEdgeDeleteBlocked: edge => isEdgeWithinSameFlowBlock(edge, flowBlockMembership),
+      isNodeDeleteBlocked: () => hasFlowBlocks,
       onBlocked: showTopologyBlockedToast,
     }
-  }, [handleEditNode, hasFlowBlocks, showTopologyBlockedToast])
+  }, [flowBlockMembership, handleEditNode, hasFlowBlocks, showTopologyBlockedToast])
 
   const addNode = useCallback(
     (formData: NodeData) => {
-      if (hasFlowBlocks) {
-        showTopologyBlockedToast()
-        return
-      }
       const realCount = nodes.filter(n => !isAddNodePromptNode(n)).length
       const sourceNode = pendingAddSourceNodeId ? nodes.find(node => node.id === pendingAddSourceNodeId) : undefined
       const newNodeId = crypto.randomUUID()
@@ -399,18 +399,7 @@ const FlowDiagram = ({
       setShowAddNodeDialog(false)
       setPendingAddSourceNodeId(null)
     },
-    [
-      setEdges,
-      setNodes,
-      nodes,
-      edges,
-      pendingAddSourceNodeId,
-      templateSteps,
-      templateStepParams,
-      defaultValueInput,
-      hasFlowBlocks,
-      showTopologyBlockedToast,
-    ],
+    [setEdges, setNodes, nodes, edges, pendingAddSourceNodeId, templateSteps, templateStepParams, defaultValueInput],
   )
 
   const handleEditNodeSubmit = useCallback(
@@ -513,13 +502,15 @@ const FlowDiagram = ({
   }, [nodes, edges, hasFlowBlocks, isConnectionInProgress, searchHighlightedNodeId, setNodes])
 
   const isValidConnection = useCallback(
-    (connection: Connection | Edge) => !hasFlowBlocks && isValidDiagramConnection(edges, connection),
-    [edges, hasFlowBlocks],
+    (connection: Connection | Edge) =>
+      !isEdgeWithinSameFlowBlock(connection as Edge, flowBlockMembership) &&
+      isValidDiagramConnection(edges, connection),
+    [edges, flowBlockMembership],
   )
 
   const onConnect: OnConnect = useCallback(
     params => {
-      if (hasFlowBlocks) {
+      if (isEdgeWithinSameFlowBlock(params as Edge, flowBlockMembership)) {
         showTopologyBlockedToast()
         return
       }
@@ -527,7 +518,39 @@ const FlowDiagram = ({
         setEdges(eds => addEdge(params, eds))
       }
     },
-    [setEdges, isValidConnection, hasFlowBlocks, showTopologyBlockedToast],
+    [setEdges, isValidConnection, flowBlockMembership, showTopologyBlockedToast],
+  )
+
+  const handleEdgesChange = useCallback(
+    (changes: Parameters<typeof onEdgesChange>[0]) => {
+      const blockedDeleteIds = new Set(
+        changes
+          .filter(change => change.type === 'remove')
+          .map(change => edges.find(edge => edge.id === change.id))
+          .filter((edge): edge is Edge => Boolean(edge && isEdgeWithinSameFlowBlock(edge, flowBlockMembership)))
+          .map(edge => edge.id),
+      )
+
+      if (blockedDeleteIds.size > 0) {
+        showTopologyBlockedToast()
+      }
+
+      onEdgesChange(changes.filter(change => change.type !== 'remove' || !blockedDeleteIds.has(change.id)))
+    },
+    [edges, flowBlockMembership, onEdgesChange, showTopologyBlockedToast],
+  )
+
+  const handleNodesChange = useCallback(
+    (changes: Parameters<typeof onNodesChange>[0]) => {
+      const hasBlockedDelete = hasFlowBlocks && changes.some(change => change.type === 'remove')
+
+      if (hasBlockedDelete) {
+        showTopologyBlockedToast()
+      }
+
+      onNodesChange(changes.filter(change => change.type !== 'remove' || !hasFlowBlocks))
+    },
+    [hasFlowBlocks, onNodesChange, showTopologyBlockedToast],
   )
 
   const handleConnectStart = useCallback(() => {
@@ -571,16 +594,12 @@ const FlowDiagram = ({
   }, [])
 
   const openAddNodeDialog = useCallback(() => {
-    if (hasFlowBlocks) {
-      showTopologyBlockedToast()
-      return
-    }
     setPendingAddSourceNodeId(null)
     setShowAddNodeDialog(true)
-  }, [hasFlowBlocks, showTopologyBlockedToast])
+  }, [])
 
   const openCreateBlockDialog = useCallback(() => {
-    if (selectedGroupingNodeIds.length < 2) {
+    if (selectedGroupingNodeIds.length < 2 || hasOrphanedNodes) {
       return
     }
 
@@ -588,7 +607,7 @@ const FlowDiagram = ({
     setEditingBlockId(null)
     setBlockName('')
     setIsBlockDialogOpen(true)
-  }, [selectedGroupingNodeIds])
+  }, [hasOrphanedNodes, selectedGroupingNodeIds])
 
   const openRenameBlockDialog = useCallback((block: FlowBlock) => {
     setPendingBlockNodeIds(block.nodeIds)
@@ -665,12 +684,12 @@ const FlowDiagram = ({
                       value={searchQuery}
                       onChange={event => setSearchQuery(event.target.value)}
                       placeholder="Search labels..."
-                      className="h-9 w-56 border-border/70 bg-background/95 shadow-md backdrop-blur"
+                      className="border-border/70 bg-background/95 h-9 w-56 shadow-md backdrop-blur"
                     />
                     <AnimatePresence>
                       {shouldShowSearchSuggestions && (
                         <motion.div
-                          className="mt-2 w-64 overflow-hidden rounded-md border border-border/70 bg-popover text-popover-foreground shadow-xl"
+                          className="border-border/70 mt-2 w-64 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-xl"
                           initial={{ opacity: 0, y: -6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -6 }}
@@ -742,18 +761,11 @@ const FlowDiagram = ({
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={openAddNodeDialog}
-                  disabled={hasFlowBlocks}
-                  aria-label="Add Node"
-                >
+                <Button type="button" variant="outline" size="icon" onClick={openAddNodeDialog} aria-label="Add Node">
                   <Plus />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">{hasFlowBlocks ? blockTopologyMessage : 'Add Node'}</TooltipContent>
+              <TooltipContent side="bottom">Add Node</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -761,9 +773,9 @@ const FlowDiagram = ({
           <ReactFlow
             className="h-full w-full"
             nodes={nodes}
-            onNodesChange={onNodesChange}
+            onNodesChange={handleNodesChange}
             edges={edges}
-            onEdgesChange={onEdgesChange}
+            onEdgesChange={handleEdgesChange}
             onConnect={onConnect}
             onConnectStart={handleConnectStart}
             onConnectEnd={handleConnectEnd}
@@ -774,9 +786,9 @@ const FlowDiagram = ({
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             connectOnClick={false}
-            deleteKeyCode={hasFlowBlocks ? null : 'Backspace'}
-            edgesReconnectable={!hasFlowBlocks}
-            nodesConnectable={!hasFlowBlocks}
+            deleteKeyCode="Backspace"
+            edgesReconnectable
+            nodesConnectable
             panOnDrag={!isGroupingSelectionMode}
             selectionMode={partialSelectionMode}
             selectionOnDrag={isGroupingSelectionMode}
@@ -809,7 +821,7 @@ const FlowDiagram = ({
                       zIndex: -1,
                     }}
                   >
-                    <div className="pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-md border border-emerald-300/80 bg-background/95 px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md shadow-background/40">
+                    <div className="bg-background/95 shadow-background/40 pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-md border border-emerald-300/80 px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md">
                       <span>{block.name}</span>
                       <Button
                         type="button"
@@ -840,11 +852,16 @@ const FlowDiagram = ({
             <Controls />
           </ReactFlow>
         </div>
-        {enableNodeGrouping && isGroupingSelectionMode && selectedGroupingNodeIds.length >= 2 && (
+        {enableNodeGrouping && isGroupingSelectionMode && selectedGroupingNodeIds.length >= 2 && !hasOrphanedNodes && (
           <div className="absolute right-4 top-16 z-20 rounded-md border border-border bg-popover p-2 shadow-xl">
             <Button type="button" size="sm" onClick={openCreateBlockDialog}>
               Create block
             </Button>
+          </div>
+        )}
+        {enableNodeGrouping && isGroupingSelectionMode && selectedGroupingNodeIds.length >= 2 && hasOrphanedNodes && (
+          <div className="absolute right-4 top-16 z-20 max-w-64 rounded-md border border-border bg-popover p-3 text-sm text-muted-foreground shadow-xl">
+            {blockOrphanedNodeMessage}
           </div>
         )}
       </div>

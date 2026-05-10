@@ -6,11 +6,3 @@
 @ts_12b8fe996cbf1bde
 Feature: this is a demo test suite
 
-  @tc_328f203195f6ffa0
-  Scenario: [teasd] desad
-    Given the user navigates to the base url of the selected environment
-    When the user fills in the "Email" input field with value "demo@example.com"
-    And the user fills in the "Password" input field with value "test1234"
-    And the user clicks on the "Login Button" element
-    And the user waits for the route "/home" to be loaded
-    Then the element "Welcome to Home Page" should true contain the text "Welcome to Home Page"

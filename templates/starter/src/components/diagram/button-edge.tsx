@@ -3,15 +3,24 @@ import { BaseEdge, EdgeLabelRenderer, getStraightPath, useReactFlow, type EdgePr
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export const flowEdgeMutationGuardRef = {
+type FlowEdgeMutationGuard = {
+  isEdgeDeleteBlocked: (edge: { id: string; source: string; target: string }) => boolean
+  isNodeDeleteBlocked: () => boolean
+  onBlocked: () => void
+}
+
+export const flowEdgeMutationGuardRef: { current: FlowEdgeMutationGuard } = {
   current: {
-    isBlocked: false,
+    isEdgeDeleteBlocked: () => false,
+    isNodeDeleteBlocked: () => false,
     onBlocked: () => {},
   },
 }
 
 export default function ButtonEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -28,7 +37,7 @@ export default function ButtonEdge({
   })
 
   const onEdgeClick = () => {
-    if (flowEdgeMutationGuardRef.current.isBlocked) {
+    if (flowEdgeMutationGuardRef.current.isEdgeDeleteBlocked({ id, source, target })) {
       flowEdgeMutationGuardRef.current.onBlocked()
       return
     }

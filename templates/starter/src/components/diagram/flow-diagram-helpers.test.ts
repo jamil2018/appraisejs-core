@@ -8,8 +8,11 @@ import {
   determineStartNodeIds,
   generateInitialNodesAndEdges,
   getFlowBlockBounds,
+  getFlowBlockMembershipMap,
+  hasOrphanedFlowNode,
   normalizeFlowBlocks,
   isAddNodePromptNode,
+  isEdgeWithinSameFlowBlock,
   isValidDiagramConnection,
   removeOrphanedEdges,
   searchFlowNodesByLabel,
@@ -232,15 +235,9 @@ describe('flow-diagram helpers', () => {
     expect(isValidDiagramConnection(edges, { source: 'node-1', target: 'node-3' } as never)).toBe(false)
     expect(isValidDiagramConnection(edges, { source: 'node-3', target: 'node-4' } as never)).toBe(true)
 
-    expect(
-      removeOrphanedEdges(
-        [
-          { id: 'node-1' },
-          { id: 'node-2' },
-        ] as never,
-        edges,
-      ),
-    ).toEqual([{ source: 'node-1', target: 'node-2' }])
+    expect(removeOrphanedEdges([{ id: 'node-1' }, { id: 'node-2' }] as never, edges)).toEqual([
+      { source: 'node-1', target: 'node-2' },
+    ])
   })
 
   it('normalizes block payloads and computes bounds from real nodes only', () => {
@@ -274,5 +271,29 @@ describe('flow-diagram helpers', () => {
         height: 184,
       },
     ])
+  })
+
+  it('detects orphaned nodes before block creation', () => {
+    const nodes = [
+      { id: 'node-1', data: {} },
+      { id: 'node-2', data: {} },
+      { id: 'node-3', data: {} },
+    ] as never
+
+    expect(hasOrphanedFlowNode(nodes, [{ source: 'node-1', target: 'node-2' }] as never)).toBe(true)
+    expect(
+      hasOrphanedFlowNode(nodes, [
+        { source: 'node-1', target: 'node-2' },
+        { source: 'node-2', target: 'node-3' },
+      ] as never),
+    ).toBe(false)
+    expect(hasOrphanedFlowNode([createAddNodePromptNode()] as never, [])).toBe(false)
+  })
+
+  it('blocks only edge mutations inside the same flow block', () => {
+    const membership = getFlowBlockMembershipMap([{ id: 'block-1', name: 'Checkout', nodeIds: ['node-1', 'node-2'] }])
+
+    expect(isEdgeWithinSameFlowBlock({ source: 'node-1', target: 'node-2' } as never, membership)).toBe(true)
+    expect(isEdgeWithinSameFlowBlock({ source: 'node-2', target: 'node-3' } as never, membership)).toBe(false)
   })
 })
