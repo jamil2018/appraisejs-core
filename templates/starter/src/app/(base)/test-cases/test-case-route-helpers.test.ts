@@ -64,6 +64,7 @@ describe('test-case route helpers', () => {
     expect(editableTestCase).not.toBeNull()
     expect(buildNodeOrderFromTestCaseSteps(editableTestCase!.steps)).toEqual({
       'step-1': {
+        nodeId: 'step-1',
         order: 1,
         label: 'Fill email',
         gherkinStep: 'fill email',

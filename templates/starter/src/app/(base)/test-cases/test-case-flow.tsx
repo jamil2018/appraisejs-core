@@ -1,7 +1,7 @@
 import FlowDiagram from '@/components/diagram/flow-diagram'
 import { toNodeOrderMap } from '@/components/diagram/flow-host-helpers'
 import { useFlowNodeOrder } from '@/components/diagram/use-flow-node-order'
-import type { NodeOrderMap } from '@/types/diagram/diagram'
+import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 import type { Environment, Locator, LocatorGroup, Module, TemplateStep, TemplateStepParameter } from '@prisma/client'
 
 type TestCaseFlowProps = {
@@ -13,6 +13,9 @@ type TestCaseFlowProps = {
   environments: Array<Pick<Environment, 'id' | 'name'>>
   modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
+  flowBlocks?: FlowBlock[]
+  layoutRefreshKey?: string | number | boolean
+  onFlowBlocksChange?: (flowBlocks: FlowBlock[]) => void
 }
 
 const TestCaseFlow = ({
@@ -24,6 +27,9 @@ const TestCaseFlow = ({
   environments,
   modules,
   onNodeOrderChange,
+  flowBlocks = [],
+  layoutRefreshKey,
+  onFlowBlocksChange,
 }: TestCaseFlowProps) => {
   const { nodesOrder, handleNodeOrderChange } = useFlowNodeOrder({
     initialNodesOrder,
@@ -44,6 +50,10 @@ const TestCaseFlow = ({
         environments={environments}
         modules={modules}
         enableNodeSearch
+        enableNodeGrouping
+        flowBlocks={flowBlocks}
+        layoutRefreshKey={layoutRefreshKey}
+        onFlowBlocksChange={onFlowBlocksChange}
       />
     </div>
   )

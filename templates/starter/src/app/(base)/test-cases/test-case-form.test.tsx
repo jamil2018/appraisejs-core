@@ -232,11 +232,13 @@ describe('TestCaseForm', () => {
           description: 'Ensures checkout succeeds',
           testSuiteIds: ['suite-1'],
           tagIds: ['tag-1'],
+          flowBlocks: [],
           steps: [
             {
               gherkinStep: 'click submit',
               label: 'Click submit',
               icon: 'MOUSE',
+              nodeId: 'node-1',
               parameters: [
                 {
                   name: 'target',
@@ -491,5 +493,18 @@ describe('TestCaseForm', () => {
     expect(screen.getByText('Title must be at least 3 characters')).toBeInTheDocument()
     expect(screen.getByText('Test suites are required')).toBeInTheDocument()
     expect(screen.queryByText('Mock test case flow')).not.toBeInTheDocument()
+  })
+
+  it('keeps immersive flow editing below overlay sidebars', async () => {
+    const user = userEvent.setup()
+
+    renderForm()
+
+    await user.type(screen.getByLabelText('Title'), 'Checkout flow')
+    await user.click(screen.getByRole('button', { name: 'Smoke' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await user.click(screen.getByRole('button', { name: 'Enter immersive flow editing' }))
+
+    expect(screen.getByText('Mock test case flow').closest('.fixed')).toHaveClass('z-40')
   })
 })

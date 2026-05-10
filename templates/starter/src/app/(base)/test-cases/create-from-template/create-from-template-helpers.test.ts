@@ -59,8 +59,10 @@ describe('create-from-template helpers', () => {
       title: 'Login flow',
       description: 'Reusable login flow',
       testSuiteIds: [],
+      flowBlocks: [],
       nodesOrder: {
         'node-0': {
+          nodeId: 'node-0',
           order: 1,
           label: 'Fill email',
           gherkinStep: 'fill email',

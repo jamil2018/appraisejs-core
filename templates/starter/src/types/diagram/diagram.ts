@@ -1,6 +1,7 @@
 import { StepParameterType } from '@prisma/client'
 
 export type NodeData = {
+  nodeId?: string
   order: number
   label: string
   gherkinStep?: string
@@ -18,6 +19,7 @@ export type NodeData = {
 export type NodeOrderMap = Record<string, NodeData>
 
 export type TemplateTestCaseNodeData = {
+  nodeId?: string
   order: number
   label: string
   gherkinStep?: string
@@ -32,3 +34,9 @@ export type TemplateTestCaseNodeData = {
 }
 
 export type TemplateTestCaseNodeOrderMap = Record<string, TemplateTestCaseNodeData>
+
+export type FlowBlock = {
+  id: string
+  name: string
+  nodeIds: string[]
+}

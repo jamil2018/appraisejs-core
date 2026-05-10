@@ -7,6 +7,8 @@ import {
   determineNodeOrders,
   determineStartNodeIds,
   generateInitialNodesAndEdges,
+  getFlowBlockBounds,
+  normalizeFlowBlocks,
   isAddNodePromptNode,
   isValidDiagramConnection,
   removeOrphanedEdges,
@@ -239,5 +241,38 @@ describe('flow-diagram helpers', () => {
         edges,
       ),
     ).toEqual([{ source: 'node-1', target: 'node-2' }])
+  })
+
+  it('normalizes block payloads and computes bounds from real nodes only', () => {
+    expect(
+      normalizeFlowBlocks(
+        [
+          { id: 'block-1', name: '  ', nodeIds: ['node-1', 'node-1', 'node-2', 'missing'] },
+          { id: 'block-2', name: 'Too small', nodeIds: ['node-1'] },
+        ],
+        new Set(['node-1', 'node-2']),
+      ),
+    ).toEqual([{ id: 'block-1', name: 'Untitled block', nodeIds: ['node-1', 'node-2'] }])
+
+    expect(
+      getFlowBlockBounds(
+        [
+          createAddNodePromptNode(),
+          { id: 'node-1', position: { x: 100, y: 50 }, data: {}, width: 200, height: 100 },
+          { id: 'node-2', position: { x: 360, y: 80 }, data: {}, width: 160, height: 90 },
+        ] as never,
+        [{ id: 'block-1', name: 'Checkout', nodeIds: ['node-1', 'node-2', 'missing'] }],
+      ),
+    ).toEqual([
+      {
+        id: 'block-1',
+        name: 'Checkout',
+        nodeIds: ['node-1', 'node-2'],
+        x: 68,
+        y: 18,
+        width: 484,
+        height: 184,
+      },
+    ])
   })
 })
