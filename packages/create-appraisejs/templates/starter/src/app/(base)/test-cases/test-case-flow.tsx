@@ -14,6 +14,7 @@ type TestCaseFlowProps = {
   modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
   flowBlocks?: FlowBlock[]
+  layoutRefreshKey?: string | number | boolean
   onFlowBlocksChange?: (flowBlocks: FlowBlock[]) => void
 }
 
@@ -27,6 +28,7 @@ const TestCaseFlow = ({
   modules,
   onNodeOrderChange,
   flowBlocks = [],
+  layoutRefreshKey,
   onFlowBlocksChange,
 }: TestCaseFlowProps) => {
   const { nodesOrder, handleNodeOrderChange } = useFlowNodeOrder({
@@ -50,6 +52,7 @@ const TestCaseFlow = ({
         enableNodeSearch
         enableNodeGrouping
         flowBlocks={flowBlocks}
+        layoutRefreshKey={layoutRefreshKey}
         onFlowBlocksChange={onFlowBlocksChange}
       />
     </div>

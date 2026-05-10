@@ -13,6 +13,7 @@ type MockFlowDiagramProps = {
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
   defaultValueInput?: boolean
   enableNodeSearch?: boolean
+  layoutRefreshKey?: string | number | boolean
 }
 
 const { flowDiagramRenderSpy } = vi.hoisted(() => ({
@@ -29,6 +30,7 @@ vi.mock('@/components/diagram/flow-diagram', () => ({
         <div data-testid="node-order">{JSON.stringify(props.nodeOrder)}</div>
         <div data-testid="default-value-input">{String(props.defaultValueInput)}</div>
         <div data-testid="enable-node-search">{String(props.enableNodeSearch)}</div>
+        <div data-testid="layout-refresh-key">{String(props.layoutRefreshKey)}</div>
         <button
           type="button"
           onClick={() =>
@@ -110,4 +112,21 @@ describe('TestCaseFlow', () => {
     expect(screen.getByTestId('enable-node-search')).toHaveTextContent('true')
   })
 
+  it('passes layout refresh changes into the shared flow diagram', () => {
+    render(
+      <TestCaseFlow
+        initialNodesOrder={{}}
+        templateStepParams={[]}
+        templateSteps={[]}
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        onNodeOrderChange={vi.fn()}
+        layoutRefreshKey
+      />,
+    )
+
+    expect(screen.getByTestId('layout-refresh-key')).toHaveTextContent('true')
+  })
 })

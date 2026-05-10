@@ -393,6 +393,7 @@ const TestCaseForm = ({
               environments={environments}
               modules={moduleList}
               flowBlocks={flowBlocks}
+              layoutRefreshKey={isFlowImmersive}
               onFlowBlocksChange={setFlowBlocks}
             />
           </div>

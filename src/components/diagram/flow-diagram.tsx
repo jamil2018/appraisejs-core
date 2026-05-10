@@ -15,10 +15,11 @@ import {
   Connection,
   DefaultEdgeOptions,
   ViewportPortal,
+  useUpdateNodeInternals,
 } from '@xyflow/react'
 import type { ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useState, useEffect, useMemo, memo, useRef, type PointerEvent } from 'react'
+import { useCallback, useState, useEffect, useMemo, memo, useRef, type PointerEvent, type RefObject } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -66,6 +67,7 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
 
 const flowDiagramProOptions = { hideAttribution: true }
 const partialSelectionMode = 'partial' as never
+const layoutRefreshDelays = [0, 80, 180, 360]
 
 const flowDiagramHandlersRef = {
   current: {
@@ -102,6 +104,77 @@ const nodeTypes = {
   addNodePromptNode: AddNodePromptNodeWrapper,
 }
 
+type FlowLayoutRefreshProps = {
+  nodeIds: string[]
+  containerRef: RefObject<HTMLDivElement | null>
+  refreshKey?: string | number | boolean
+}
+
+function FlowLayoutRefresh({ nodeIds, containerRef, refreshKey }: FlowLayoutRefreshProps) {
+  const updateNodeInternals = useUpdateNodeInternals()
+  const frameRef = useRef<number | null>(null)
+  const timeoutRefs = useRef<number[]>([])
+
+  const clearScheduledRefreshes = useCallback(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+    }
+    timeoutRefs.current.forEach(timeoutId => window.clearTimeout(timeoutId))
+    timeoutRefs.current = []
+  }, [])
+
+  const refreshNodeInternals = useCallback(() => {
+    if (nodeIds.length === 0) {
+      return
+    }
+
+    updateNodeInternals(nodeIds)
+  }, [nodeIds, updateNodeInternals])
+
+  const scheduleLayoutRefresh = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    clearScheduledRefreshes()
+    layoutRefreshDelays.forEach(delay => {
+      if (delay === 0) {
+        frameRef.current = window.requestAnimationFrame(refreshNodeInternals)
+        return
+      }
+
+      timeoutRefs.current.push(window.setTimeout(refreshNodeInternals, delay))
+    })
+  }, [clearScheduledRefreshes, refreshNodeInternals])
+
+  useEffect(() => {
+    scheduleLayoutRefresh()
+
+    return clearScheduledRefreshes
+  }, [clearScheduledRefreshes, refreshKey, scheduleLayoutRefresh])
+
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    const resizeObserver = new ResizeObserver(scheduleLayoutRefresh)
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [containerRef, scheduleLayoutRefresh])
+
+  return null
+}
+
 type FlowDiagramProps = {
   nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap
   templateStepParams: TemplateStepParameter[]
@@ -114,6 +187,7 @@ type FlowDiagramProps = {
   enableNodeSearch?: boolean
   enableNodeGrouping?: boolean
   flowBlocks?: FlowBlock[]
+  layoutRefreshKey?: string | number | boolean
   onFlowBlocksChange?: (flowBlocks: FlowBlock[]) => void
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
 }
@@ -131,6 +205,7 @@ const FlowDiagram = ({
   enableNodeSearch = false,
   enableNodeGrouping = false,
   flowBlocks = [],
+  layoutRefreshKey,
   onFlowBlocksChange,
 }: FlowDiagramProps) => {
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
@@ -158,6 +233,7 @@ const FlowDiagram = ({
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
   const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
+  const flowContainerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setAvailableLocators(locators)
@@ -185,6 +261,10 @@ const FlowDiagram = ({
   const nodeSearchResults = useMemo(() => searchFlowNodesByLabel(nodes, searchQuery), [nodes, searchQuery])
   const shouldShowSearchSuggestions = enableNodeSearch && isSearchOpen && searchQuery.trim().length >= 3
   const realNodeIds = useMemo(() => new Set(nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id)), [nodes])
+  const layoutRefreshNodeIds = useMemo(
+    () => nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id),
+    [nodes],
+  )
   const flowBlockMembership = useMemo(() => getFlowBlockMembershipMap(flowBlocks), [flowBlocks])
   const flowBlockBounds = useMemo(() => getFlowBlockBounds(nodes, flowBlocks), [nodes, flowBlocks])
   const hasFlowBlocks = flowBlocks.length > 0
@@ -641,7 +721,7 @@ const FlowDiagram = ({
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="min-h-0 flex-1">
+        <div ref={flowContainerRef} className="min-h-0 flex-1">
           <ReactFlow
             className="h-full w-full"
             nodes={nodes}
@@ -672,6 +752,11 @@ const FlowDiagram = ({
               flowInstanceRef.current = instance
             }}
           >
+            <FlowLayoutRefresh
+              nodeIds={layoutRefreshNodeIds}
+              containerRef={flowContainerRef}
+              refreshKey={layoutRefreshKey}
+            />
             {flowBlockBounds.length > 0 && (
               <ViewportPortal>
                 {flowBlockBounds.map(block => (

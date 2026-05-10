@@ -2,12 +2,13 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import FlowDiagram from './flow-diagram'
 
 const xyflowMocks = vi.hoisted(() => ({
   setCenter: vi.fn(),
+  updateNodeInternals: vi.fn(),
 }))
 
 vi.mock('@xyflow/react', async () => {
@@ -34,6 +35,7 @@ vi.mock('@xyflow/react', async () => {
       const [nodes, setNodes] = React.useState(initialNodes)
       return [nodes, setNodes, vi.fn()]
     },
+    useUpdateNodeInternals: () => xyflowMocks.updateNodeInternals,
   }
 })
 
@@ -85,6 +87,11 @@ function renderFlowDiagram(enableNodeSearch = true) {
 }
 
 describe('FlowDiagram node search', () => {
+  beforeEach(() => {
+    xyflowMocks.setCenter.mockClear()
+    xyflowMocks.updateNodeInternals.mockClear()
+  })
+
   it('reveals search input only when enabled', async () => {
     const user = userEvent.setup()
     renderFlowDiagram()
@@ -145,6 +152,50 @@ describe('FlowDiagram node search', () => {
     expect(xyflowMocks.setCenter).toHaveBeenCalledWith(1072, 72, {
       zoom: 1.15,
       duration: 420,
+    })
+  })
+
+  it('refreshes node internals when the layout refresh key changes', async () => {
+    const { rerender } = render(
+      <FlowDiagram
+        {...requiredProps}
+        layoutRefreshKey={false}
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+        }}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(xyflowMocks.updateNodeInternals).toHaveBeenCalledWith(['node-1'])
+    })
+
+    xyflowMocks.updateNodeInternals.mockClear()
+
+    rerender(
+      <FlowDiagram
+        {...requiredProps}
+        layoutRefreshKey
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+        }}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(xyflowMocks.updateNodeInternals).toHaveBeenCalledWith(['node-1'])
     })
   })
 })
