@@ -700,7 +700,7 @@ const TestCaseForm = ({
           <LayoutGroup id="test-case-flow-panel-layout">
             <div className="w-full min-w-0 overflow-x-hidden">
               {isFlowImmersive ? (
-                <div className="fixed inset-0 z-[70] bg-background p-3 sm:p-4">
+                <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">
                   {renderFlowPanel('h-full bg-background')}
                 </div>
               ) : (
