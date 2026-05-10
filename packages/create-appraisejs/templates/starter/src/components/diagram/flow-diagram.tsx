@@ -31,7 +31,14 @@ import {
   type RefObject,
 } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ButtonEdge, { flowEdgeMutationGuardRef } from './button-edge'
@@ -61,7 +68,7 @@ import {
 } from './flow-diagram-helpers'
 import type { FlowBlock } from '@/types/diagram/diagram'
 
-const edgeTypes = {
+const flowEdgeTypes = {
   buttonEdge: ButtonEdge,
 }
 
@@ -109,7 +116,7 @@ function AddNodePromptNodeWrapper(props: NodeProps) {
   )
 }
 
-const nodeTypes = {
+const flowNodeTypes = {
   optionsHeaderNode: OptionsHeaderNodeWrapper,
   addNodePromptNode: AddNodePromptNodeWrapper,
 }
@@ -244,6 +251,8 @@ const FlowDiagram = ({
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
   const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
   const flowContainerRef = useRef<HTMLDivElement | null>(null)
+  const edgeTypes = useMemo(() => flowEdgeTypes, [])
+  const nodeTypes = useMemo(() => flowNodeTypes, [])
 
   useEffect(() => {
     setAvailableLocators(locators)
@@ -748,7 +757,7 @@ const FlowDiagram = ({
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div ref={flowContainerRef} className="min-h-0 flex-1">
+        <div ref={flowContainerRef} className="h-full min-h-80 flex-1">
           <ReactFlow
             className="h-full w-full"
             nodes={nodes}
@@ -844,6 +853,11 @@ const FlowDiagram = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingBlockId ? 'Rename block' : 'Create block'}</DialogTitle>
+            <DialogDescription>
+              {editingBlockId
+                ? 'Update the display name for this flow block.'
+                : 'Name the selected nodes before saving them as a flow block.'}
+            </DialogDescription>
           </DialogHeader>
           <Input
             aria-label="Block name"
