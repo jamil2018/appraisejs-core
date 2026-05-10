@@ -19,7 +19,17 @@ import {
 } from '@xyflow/react'
 import type { ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useState, useEffect, useMemo, memo, useRef, type PointerEvent, type RefObject } from 'react'
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  memo,
+  useRef,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent,
+  type RefObject,
+} from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -283,6 +293,10 @@ const FlowDiagram = ({
     setSearchQuery('')
   }, [])
 
+  const clearSearchHighlight = useCallback(() => {
+    setSearchHighlightedNodeId(null)
+  }, [])
+
   const handleFlowPointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
       if (!isSearchOpen) {
@@ -314,6 +328,19 @@ const FlowDiagram = ({
       handleEditNode(nodeId)
     },
     [handleEditNode, nodes],
+  )
+
+  const handlePaneClick = useCallback(() => {
+    clearSearchHighlight()
+  }, [clearSearchHighlight])
+
+  const handleNodeClick = useCallback(
+    (_event: ReactMouseEvent, node: Node) => {
+      if (searchHighlightedNodeId && node.id !== searchHighlightedNodeId) {
+        clearSearchHighlight()
+      }
+    },
+    [clearSearchHighlight, searchHighlightedNodeId],
   )
 
   useEffect(() => {
@@ -746,6 +773,8 @@ const FlowDiagram = ({
             selectionOnDrag={isGroupingSelectionMode}
             selectNodesOnDrag={false}
             onSelectionChange={handleSelectionChange}
+            onPaneClick={handlePaneClick}
+            onNodeClick={handleNodeClick}
             isValidConnection={isValidConnection}
             proOptions={flowDiagramProOptions}
             onInit={instance => {

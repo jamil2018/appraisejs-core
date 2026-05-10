@@ -19,12 +19,42 @@ vi.mock('@xyflow/react', async () => {
     Background: () => <div data-testid="flow-background" />,
     ConnectionMode: { Loose: 'loose' },
     Controls: () => <div data-testid="flow-controls" />,
-    ReactFlow: ({ children, onInit }: { children: React.ReactNode; onInit?: (instance: unknown) => void }) => {
+    ReactFlow: ({
+      children,
+      nodes = [],
+      onInit,
+      onPaneClick,
+      onNodeClick,
+    }: {
+      children: React.ReactNode
+      nodes?: Array<{ id: string; data?: { isSearchHighlighted?: boolean; label?: string } }>
+      onInit?: (instance: unknown) => void
+      onPaneClick?: () => void
+      onNodeClick?: (event: React.MouseEvent, node: { id: string }) => void
+    }) => {
       React.useEffect(() => {
         onInit?.({ setCenter: xyflowMocks.setCenter })
       }, [onInit])
 
-      return <div data-testid="react-flow">{children}</div>
+      return (
+        <div data-testid="react-flow" onClick={onPaneClick}>
+          {nodes.map(node => (
+            <button
+              key={node.id}
+              type="button"
+              data-testid={`flow-node-${node.id}`}
+              data-search-highlighted={node.data?.isSearchHighlighted ? 'true' : undefined}
+              onClick={event => {
+                event.stopPropagation()
+                onNodeClick?.(event, node)
+              }}
+            >
+              {node.id}
+            </button>
+          ))}
+          {children}
+        </div>
+      )
     },
     ViewportPortal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     useEdgesState: (initialEdges: unknown[]) => {
@@ -152,6 +182,44 @@ describe('FlowDiagram node search', () => {
     expect(xyflowMocks.setCenter).toHaveBeenCalledWith(1072, 72, {
       zoom: 1.15,
       duration: 420,
+    })
+  })
+
+  it('clears the search highlight when clicking away on the canvas', async () => {
+    const user = userEvent.setup()
+    renderFlowDiagram()
+
+    await user.click(screen.getByRole('button', { name: /search nodes/i }))
+    await user.type(screen.getByRole('textbox', { name: /search nodes/i }), 'pay')
+    await user.click(screen.getByText('Submit Payment'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('flow-node-node-2')).toHaveAttribute('data-search-highlighted', 'true')
+    })
+
+    await user.click(screen.getByTestId('react-flow'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('flow-node-node-2')).not.toHaveAttribute('data-search-highlighted')
+    })
+  })
+
+  it('clears the search highlight when selecting a different node', async () => {
+    const user = userEvent.setup()
+    renderFlowDiagram()
+
+    await user.click(screen.getByRole('button', { name: /search nodes/i }))
+    await user.type(screen.getByRole('textbox', { name: /search nodes/i }), 'pay')
+    await user.click(screen.getByText('Submit Payment'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('flow-node-node-2')).toHaveAttribute('data-search-highlighted', 'true')
+    })
+
+    await user.click(screen.getByTestId('flow-node-node-1'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('flow-node-node-2')).not.toHaveAttribute('data-search-highlighted')
     })
   })
 
