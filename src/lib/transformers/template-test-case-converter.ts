@@ -5,7 +5,6 @@ import {
   TemplateTestCaseFlowBlock,
   TemplateTestCaseFlowBlockNode,
   TemplateStepIcon,
-  StepParameterType,
 } from '@prisma/client'
 import { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 

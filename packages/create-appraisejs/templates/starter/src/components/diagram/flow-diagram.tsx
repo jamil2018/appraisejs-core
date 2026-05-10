@@ -291,7 +291,6 @@ const FlowDiagram = ({
   )
   const flowBlockMembership = useMemo(() => getFlowBlockMembershipMap(flowBlocks), [flowBlocks])
   const flowBlockBounds = useMemo(() => getFlowBlockBounds(nodes, flowBlocks), [nodes, flowBlocks])
-  const hasFlowBlocks = flowBlocks.length > 0
   const hasOrphanedNodes = useMemo(() => hasOrphanedFlowNode(nodes, edges), [nodes, edges])
   const blockTopologyMessage = 'Remove flow blocks before changing flow structure.'
   const blockOrphanedNodeMessage = 'Connect or remove orphaned nodes before creating a block.'
