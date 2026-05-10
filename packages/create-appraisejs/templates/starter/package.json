@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "init": "DISABLE_DEVTOOLS=1 NEXT_PUBLIC_DISABLE_DEVTOOLS=1 next dev",
+    "prepare": "simple-git-hooks",
     "build:cucumber-runtime": "tsc -p packages/cucumber-runtime/tsconfig.json",
     "build:locator-picker-companion": "tsc -p packages/locator-picker-companion/tsconfig.json",
     "build": "npm run build:local",
@@ -32,6 +33,9 @@
     "appraisejs:install-step": "npx tsx scripts/install-template-step.ts",
     "test": "cucumber-js",
     "validate": "node --import tsx scripts/run-vitest.ts",
+    "quality:fallow": "fallow --format json --quiet --explain",
+    "quality:fallow:ci": "fallow --format json --quiet --explain --fail-on-issues",
+    "quality:fallow:commit": "fallow audit --base HEAD --format json --quiet --explain --fail-on-issues",
     "build:local": "npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build",
     "generate-db-client": "npx prisma generate --schema prisma/schema.prisma",
     "setup:db": "npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all",
@@ -115,6 +119,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
     "execa": "^9.6.0",
+    "fallow": "^2.69.0",
     "glob": "^11.0.3",
     "globals": "^16.4.0",
     "jiti": "^2.6.1",
@@ -125,11 +130,15 @@
     "prettier-plugin-tailwindcss": "^0.6.14",
     "prisma": "^6.2.1",
     "rimraf": "^6.1.2",
+    "simple-git-hooks": "^2.13.1",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
     "typescript": "^5.7.3",
     "vitest": "^4.1.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run quality:fallow:commit"
   },
   "overrides": {
     "react-is": "^19.2.1",

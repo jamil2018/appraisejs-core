@@ -7,3 +7,7 @@
 @ts_0f27b215d17bf42e
 Feature: Verify user login flows
 
+  @tc_c943885716196fa8
+  Scenario: [test] asdasd
+    Given the element "Email" should have active status false
+    When the user clicks on the "Home Title" element

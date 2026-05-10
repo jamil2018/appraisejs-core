@@ -3,7 +3,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { testCaseTableCols } from './test-case-table-columns'
 import { Cog, LayoutPanelTop } from 'lucide-react'
 
-import { getTestCaseRows } from './test-case-route-helpers'
+import { getTestCaseRows } from './test-case-row-helpers'
 
 export default async function TestCaseTable() {
   const { data: testCases } = await getAllTestCasesAction()

@@ -87,6 +87,163 @@ type TestCaseFormErrors = {
 
 const detailsStepSchema = testCaseSubmitSchema.omit({ steps: true })
 
+type WizardProgressProps = {
+  steps: string[]
+  currentStep: number
+  onStepClick: (stepIndex: number) => void
+}
+
+function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps) {
+  const stepLineInset = `${50 / steps.length}%`
+  const stepProgressWidth = steps.length > 1 ? `${(currentStep / (steps.length - 1)) * 100}%` : '0%'
+
+  return (
+    <div className="mb-4 px-1 pt-1">
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute z-0 h-px -translate-y-1/2 bg-border"
+          style={{
+            left: stepLineInset,
+            right: stepLineInset,
+            top: 'calc(100% - 0.375rem)',
+          }}
+        />
+        <div
+          className="pointer-events-none absolute z-0 h-px -translate-y-1/2 overflow-hidden"
+          style={{
+            left: stepLineInset,
+            right: stepLineInset,
+            top: 'calc(100% - 0.375rem)',
+          }}
+        >
+          <div className="h-full bg-primary transition-all duration-200" style={{ width: stepProgressWidth }} />
+        </div>
+        <div
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {steps.map((step, index) => {
+            const isActive = currentStep === index
+            const isComplete = currentStep > index
+            const isFilled = isComplete || (index === 0 && isActive)
+
+            return (
+              <button
+                key={step}
+                type="button"
+                className="flex flex-col items-center gap-2 px-2 text-center"
+                onClick={() => onStepClick(index)}
+                aria-current={isActive ? 'step' : undefined}
+              >
+                <span
+                  className={`text-xs font-medium transition-colors sm:text-sm ${
+                    isActive || isComplete ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  {step}
+                </span>
+                <span
+                  className={`relative z-10 h-3 w-3 rounded-full border transition-colors ${
+                    isFilled
+                      ? 'border-primary bg-primary'
+                      : isActive
+                        ? 'border-primary bg-background'
+                        : 'border-border bg-background'
+                  }`}
+                />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type FlowPanelProps = {
+  className: string
+  nodesOrder: NodeOrderMap
+  templateStepParams: TemplateStepParameter[]
+  templateSteps: TemplateStep[]
+  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
+  environments: Array<Pick<Environment, 'id' | 'name'>>
+  moduleList: Module[]
+  flowBlocks: FlowBlock[]
+  isFlowImmersive: boolean
+  onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
+  onFlowBlocksChange: (flowBlocks: FlowBlock[]) => void
+  onToggleImmersive: () => void
+}
+
+function FlowPanel({
+  className,
+  nodesOrder,
+  templateStepParams,
+  templateSteps,
+  locators,
+  locatorGroups,
+  environments,
+  moduleList,
+  flowBlocks,
+  isFlowImmersive,
+  onNodeOrderChange,
+  onFlowBlocksChange,
+  onToggleImmersive,
+}: FlowPanelProps) {
+  return (
+    <motion.div
+      layout
+      layoutId="test-case-flow-panel"
+      className={cn(
+        'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-gray-700 text-card-foreground shadow-sm will-change-transform',
+        className,
+      )}
+      transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
+    >
+      <CardHeader className="shrink-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+            <CardDescription>Build your test scenario step by step visually</CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={onToggleImmersive}
+            aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
+          >
+            {isFlowImmersive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="min-h-0 flex-1">
+            <TestCaseFlow
+              initialNodesOrder={nodesOrder}
+              templateStepParams={templateStepParams}
+              templateSteps={templateSteps}
+              onNodeOrderChange={onNodeOrderChange}
+              locators={locators}
+              locatorGroups={locatorGroups}
+              environments={environments}
+              modules={moduleList}
+              flowBlocks={flowBlocks}
+              layoutRefreshKey={isFlowImmersive}
+              onFlowBlocksChange={onFlowBlocksChange}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </motion.div>
+  )
+}
+
 const TestCaseForm = ({
   defaultNodesOrder,
   templateStepParams,
@@ -143,8 +300,6 @@ const TestCaseForm = ({
       .sort((left, right) => left.order - right.order)
       .slice(0, 3)
       .map(step => step.label) ?? []
-  const stepLineInset = `${50 / wizardSteps.length}%`
-  const stepProgressWidth = wizardSteps.length > 1 ? `${(currentStep / (wizardSteps.length - 1)) * 100}%` : '0%'
 
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
   const renderError = (message?: string[]) => <ErrorMessage message={message?.[0] || ''} visible={Boolean(message?.[0])} />
@@ -167,6 +322,16 @@ const TestCaseForm = ({
   const onDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDescription(e.target.value)
     setErrors(current => ({ ...current, description: undefined }))
+  }, [])
+
+  const onWizardStepClick = useCallback((stepIndex: number) => {
+    if (stepIndex <= currentStep) {
+      setCurrentStep(stepIndex)
+    }
+  }, [currentStep])
+
+  const onToggleFlowImmersive = useCallback(() => {
+    setIsFlowImmersive(current => !current)
   }, [])
 
   const onTestSuiteChange = useCallback((selectedTestSuites: string[]) => {
@@ -353,122 +518,26 @@ const TestCaseForm = ({
   }, [isFlowImmersive])
 
   const renderFlowPanel = (className: string) => (
-    <motion.div
-      layout
-      layoutId="test-case-flow-panel"
-      className={cn(
-        'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-gray-700 text-card-foreground shadow-sm will-change-transform',
-        className,
-      )}
-      transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
-    >
-      <CardHeader className="shrink-0">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
-            <CardDescription>Build your test scenario step by step visually</CardDescription>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={() => setIsFlowImmersive(current => !current)}
-            aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
-          >
-            {isFlowImmersive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
-          <div className="min-h-0 flex-1">
-            <TestCaseFlow
-              initialNodesOrder={nodesOrder}
-              templateStepParams={templateStepParams}
-              templateSteps={templateSteps}
-              onNodeOrderChange={onNodeOrderChange}
-              locators={locators}
-              locatorGroups={locatorGroups}
-              environments={environments}
-              modules={moduleList}
-              flowBlocks={flowBlocks}
-              layoutRefreshKey={isFlowImmersive}
-              onFlowBlocksChange={setFlowBlocks}
-            />
-          </div>
-        </div>
-      </CardContent>
-    </motion.div>
+    <FlowPanel
+      className={className}
+      nodesOrder={nodesOrder}
+      templateStepParams={templateStepParams}
+      templateSteps={templateSteps}
+      locators={locators}
+      locatorGroups={locatorGroups}
+      environments={environments}
+      moduleList={moduleList}
+      flowBlocks={flowBlocks}
+      isFlowImmersive={isFlowImmersive}
+      onNodeOrderChange={onNodeOrderChange}
+      onFlowBlocksChange={setFlowBlocks}
+      onToggleImmersive={onToggleFlowImmersive}
+    />
   )
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="mb-4 px-1 pt-1">
-        <div className="relative">
-          <div
-            className="pointer-events-none absolute z-0 h-px -translate-y-1/2 bg-border"
-            style={{
-              left: stepLineInset,
-              right: stepLineInset,
-              top: 'calc(100% - 0.375rem)',
-            }}
-          />
-          <div
-            className="pointer-events-none absolute z-0 h-px -translate-y-1/2 overflow-hidden"
-            style={{
-              left: stepLineInset,
-              right: stepLineInset,
-              top: 'calc(100% - 0.375rem)',
-            }}
-          >
-            <div className="h-full bg-primary transition-all duration-200" style={{ width: stepProgressWidth }} />
-          </div>
-          <div
-            className="grid gap-3"
-            style={{
-              gridTemplateColumns: `repeat(${wizardSteps.length}, minmax(0, 1fr))`,
-            }}
-          >
-            {wizardSteps.map((step, index) => {
-              const isActive = currentStep === index
-              const isComplete = currentStep > index
-              const isFilled = isComplete || (index === 0 && isActive)
-
-              return (
-                <button
-                  key={step}
-                  type="button"
-                  className="flex flex-col items-center gap-2 px-2 text-center"
-                  onClick={() => {
-                    if (index <= currentStep) {
-                      setCurrentStep(index)
-                    }
-                  }}
-                  aria-current={isActive ? 'step' : undefined}
-                >
-                  <span
-                    className={`text-xs font-medium transition-colors sm:text-sm ${
-                      isActive || isComplete ? 'text-primary' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {step}
-                  </span>
-                  <span
-                    className={`relative z-10 h-3 w-3 rounded-full border transition-colors ${
-                      isFilled
-                        ? 'border-primary bg-primary'
-                        : isActive
-                          ? 'border-primary bg-background'
-                          : 'border-border bg-background'
-                    }`}
-                  />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
+      <WizardProgress steps={wizardSteps} currentStep={currentStep} onStepClick={onWizardStepClick} />
 
       {hasTemplateSelectionStep && currentStep === 0 ? (
         <div className="flex flex-col gap-4">

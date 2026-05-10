@@ -18,7 +18,7 @@ import { promises as fs } from 'fs'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
 import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/automation-path-roots'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
-import { getIdentifierTagByPrefix } from '@/lib/tag-utils'
+import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 import { storeReportFromFileService } from '@/services/report/report-service'
 import {

@@ -17,27 +17,6 @@ export interface ConvertedTestCaseData {
   flowBlocks: FlowBlock[]
 }
 
-export interface TestCaseFormData {
-  title: string
-  description: string
-  testSuiteIds: string[]
-  flowBlocks: FlowBlock[]
-  steps: {
-    nodeId: string
-    gherkinStep: string
-    label: string
-    icon: TemplateStepIcon
-    parameters: {
-      name: string
-      value: string
-      type: StepParameterType
-      order: number
-    }[]
-    order: number
-    templateStepId: string
-  }[]
-}
-
 /**
  * Converts a template test case to the format expected by the test case form component
  * @param templateTestCase - The template test case with steps and parameters
@@ -92,50 +71,6 @@ export const templateTestCaseToTestCaseConverter = (
         name: block.name,
         nodeIds: block.nodes.map(node => node.flowNodeId),
       })) ?? [],
-  }
-}
-
-/**
- * Converts NodeOrderMap to the format expected by TestCaseForm and createTestCaseAction
- * @param nodesOrder - The NodeOrderMap from the converter
- * @returns Data in the format expected by the test case form
- */
-export const convertNodeOrderMapToTestCaseFormData = (nodesOrder: NodeOrderMap): TestCaseFormData['steps'] => {
-  return Object.entries(nodesOrder)
-    .map(([nodeId, nodeData]) => ({
-      nodeId: nodeData.nodeId ?? nodeId,
-      gherkinStep: nodeData.gherkinStep || '',
-      label: nodeData.label,
-      icon: nodeData.icon as TemplateStepIcon,
-      parameters: nodeData.parameters,
-      order: nodeData.order,
-      templateStepId: nodeData.templateStepId,
-    }))
-    .sort((a, b) => a.order - b.order)
-}
-
-/**
- * Converts a template test case directly to the format expected by createTestCaseAction
- * @param templateTestCase - The template test case with steps and parameters
- * @param testSuiteIds - Optional test suite IDs to assign
- * @returns Data ready for test case creation
- */
-export const templateTestCaseToTestCaseFormData = (
-  templateTestCase: TemplateTestCase & {
-    steps: (TemplateTestCaseStep & {
-      parameters: TemplateTestCaseStepParameter[]
-    })[]
-  },
-  testSuiteIds: string[] = [],
-): TestCaseFormData => {
-  const convertedData = templateTestCaseToTestCaseConverter(templateTestCase)
-
-  return {
-    title: convertedData.title,
-    description: convertedData.description,
-    testSuiteIds: testSuiteIds.length > 0 ? testSuiteIds : convertedData.testSuiteIds,
-    steps: convertNodeOrderMapToTestCaseFormData(convertedData.nodesOrder),
-    flowBlocks: convertedData.flowBlocks,
   }
 }
 

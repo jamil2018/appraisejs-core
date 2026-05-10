@@ -1,4 +1,4 @@
-import { getFilterTags } from '@/lib/tag-utils'
+import { getFilterTags } from '@/lib/tag-filters'
 import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
 
 export type DraftSelectionMap = Record<string, TestSuiteSelection>

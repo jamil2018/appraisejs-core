@@ -1,7 +1,7 @@
 import type { Module, Tag, TestCase, TestSuite as PrismaTestSuite } from '@prisma/client'
 
 import { testSuiteSchema, type TestSuite } from '@/constants/form-opts/test-suite-form-opts'
-import { getFilterTags } from '@/lib/tag-utils'
+import { getFilterTags } from '@/lib/tag-filters'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
 

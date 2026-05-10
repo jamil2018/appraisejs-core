@@ -3,7 +3,7 @@ import prisma from '@/config/db-config'
 import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
 import { TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
-import { getTagTypeFromExpression } from './tag-utils'
+import { getTagTypeFromExpression } from './tag-identifiers'
 
 /**
  * Syncs feature files to the database by creating missing test suites and test cases

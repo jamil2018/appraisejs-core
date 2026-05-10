@@ -1,5 +1,5 @@
 import { TagType, TestRunTestCaseStatus } from '@prisma/client'
-import { getIdentifierTagByPrefix } from '@/lib/tag-utils'
+import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 
 type TagLike = {
   name: string

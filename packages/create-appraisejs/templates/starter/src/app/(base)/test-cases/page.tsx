@@ -8,7 +8,7 @@ import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Metadata } from 'next'
 
-import { getTestCaseRows } from './test-case-route-helpers'
+import { getTestCaseRows } from './test-case-row-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Cases',

@@ -19,7 +19,7 @@ import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-work
 import { extractModulePathFromFilePath, scanFeatureFiles, type ParsedFeature, type ParsedStep } from '@/lib/gherkin-parser'
 import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
 import { SYNC_ALL_REQUEST_ID, syncScriptDefinitions, type SyncRequestId, type SyncScriptId } from '@/lib/sync/sync-registry'
-import { getTagTypeFromName } from '@/lib/tag-utils'
+import { getTagTypeFromName } from '@/lib/tag-identifiers'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
   determineProjectedStepIcon,
@@ -94,6 +94,8 @@ type ParsedStepFile = {
   group: StepGroupJSDoc
   steps: ParsedTemplateStep[]
 }
+
+type StepKeyword = ParsedTemplateStep['keyword']
 
 type TemplateStepFromFs = {
   step: ParsedTemplateStep
@@ -296,8 +298,18 @@ async function readLocatorFile(filePath: string): Promise<Record<string, string>
   }
 }
 
-function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
-  const lines = content.split('\n')
+function readJSDocTag(line: string, tagName: string): string | null {
+  const withoutCommentMarker = line.trim().replace(/^\*\s?/, '')
+  const prefix = `@${tagName}`
+  if (!withoutCommentMarker.startsWith(prefix)) {
+    return null
+  }
+
+  const value = withoutCommentMarker.slice(prefix.length).trim()
+  return value || null
+}
+
+function findTopLevelJSDocStart(lines: string[]): number | null {
   let startLine = 0
 
   while (startLine < lines.length) {
@@ -309,157 +321,118 @@ function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
     break
   }
 
-  if (startLine >= lines.length || !lines[startLine].trim().startsWith('/**')) {
-    return null
+  return startLine < lines.length && lines[startLine].trim().startsWith('/**') ? startLine : null
+}
+
+function findNearestJSDocStart(lines: string[], startLine: number): number | null {
+  for (let i = startLine - 1; i >= 0 && i >= startLine - 20; i--) {
+    const line = lines[i]?.trim()
+
+    if (line?.startsWith('/**')) {
+      return i
+    }
+
+    if (!line?.includes('*/')) {
+      continue
+    }
+
+    for (let j = i - 1; j >= 0 && j >= i - 10; j--) {
+      if (lines[j]?.trim().startsWith('/**')) {
+        return j
+      }
+    }
+
+    return i
   }
 
-  let hasType = false
-  let endLine = -1
-  let name: string | null = null
-  let description: string | null = null
-  let type: string | null = null
+  return null
+}
 
+function readGroupMetadataLine(
+  line: string,
+  metadata: { name: string | null; description: string | null; type: string | null },
+) {
+  metadata.name = readJSDocTag(line, 'name') ?? metadata.name
+  metadata.description = readJSDocTag(line, 'description') ?? metadata.description
+  metadata.type = readJSDocTag(line, 'type') ?? metadata.type
+}
+
+function readStepMetadataLine(line: string, metadata: { name: string | null; description: string | null; icon: string | null }) {
+  metadata.name = readJSDocTag(line, 'name') ?? metadata.name
+  metadata.description = readJSDocTag(line, 'description') ?? metadata.description
+  metadata.icon = readJSDocTag(line, 'icon') ?? metadata.icon
+}
+
+function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
+  const lines = content.split('\n')
+  const startLine = findTopLevelJSDocStart(lines)
+  if (startLine == null) return null
+
+  const metadata = { name: null as string | null, description: null as string | null, type: null as string | null }
   const maxLines = Math.min(lines.length, startLine + 50)
   for (let i = startLine; i < maxLines; i++) {
-    const line = lines[i].trim()
+    const line = lines[i]
 
     if (line.includes('*/')) {
       const beforeClose = line.split('*/')[0].trim()
-
-      if (beforeClose.startsWith('* @name') || beforeClose.startsWith('*@name')) {
-        const match = beforeClose.match(/@name\s+(.+)/)
-        if (match) name = match[1].trim()
-      } else if (beforeClose.startsWith('* @description') || beforeClose.startsWith('*@description')) {
-        const match = beforeClose.match(/@description\s+(.+)/)
-        if (match) description = match[1].trim() || null
-      } else if (beforeClose.startsWith('* @type') || beforeClose.startsWith('*@type')) {
-        const match = beforeClose.match(/@type\s+(.+)/)
-        if (match) {
-          hasType = true
-          type = match[1].trim()
-        }
-      }
-
-      endLine = i
+      readGroupMetadataLine(beforeClose, metadata)
       break
     }
 
-    if (line.startsWith('* @name') || line.startsWith('*@name')) {
-      const match = line.match(/@name\s+(.+)/)
-      if (match) name = match[1].trim()
-    } else if (line.startsWith('* @description') || line.startsWith('*@description')) {
-      const match = line.match(/@description\s+(.+)/)
-      if (match) description = match[1].trim() || null
-    } else if (line.startsWith('* @type') || line.startsWith('*@type')) {
-      const match = line.match(/@type\s+(.+)/)
-      if (match) {
-        hasType = true
-        type = match[1].trim()
-      }
-    }
+    readGroupMetadataLine(line, metadata)
   }
 
-  if (!hasType || endLine < 0 || !name || !type) {
+  if (!metadata.name || !metadata.type) {
     return null
   }
 
-  const normalizedType = type.toUpperCase()
+  const normalizedType = metadata.type.toUpperCase()
   if (normalizedType !== 'ACTION' && normalizedType !== 'VALIDATION') {
     return null
   }
 
   return {
-    name: name.trim(),
-    description: description ? description.trim() : null,
+    name: metadata.name.trim(),
+    description: metadata.description ? metadata.description.trim() : null,
     type: normalizedType as TemplateStepGroupType,
   }
 }
 
 function parseStepJSDoc(content: string, startLine: number): StepJSDoc | null {
   const lines = content.split('\n')
-  let jsdocStart = -1
+  const jsdocStart = findNearestJSDocStart(lines, startLine)
+  if (jsdocStart == null) return null
 
-  for (let i = startLine - 1; i >= 0 && i >= startLine - 20; i--) {
-    const line = lines[i]?.trim()
-    if (line?.includes('*/')) {
-      jsdocStart = i
-      for (let j = i - 1; j >= 0 && j >= i - 10; j--) {
-        const previousLine = lines[j]?.trim()
-        if (previousLine?.startsWith('/**')) {
-          jsdocStart = j
-          break
-        }
-      }
-      break
-    }
-
-    if (line?.startsWith('/**')) {
-      jsdocStart = i
-      break
-    }
-  }
-
-  if (jsdocStart === -1) {
-    return null
-  }
-
-  let name: string | null = null
-  let description: string | null = null
-  let icon: string | null = null
-  let foundJSDoc = false
-
+  const metadata = { name: null as string | null, description: null as string | null, icon: null as string | null }
   for (let i = jsdocStart; i < Math.min(lines.length, jsdocStart + 20); i++) {
-    const line = lines[i]?.trim()
+    const line = lines[i] ?? ''
 
-    if (line?.startsWith('/**')) {
-      foundJSDoc = true
+    if (line.trim().startsWith('/**')) {
       continue
     }
 
-    if (line?.includes('*/')) {
+    if (line.includes('*/')) {
       const beforeClose = line.split('*/')[0].trim()
-      if (beforeClose.startsWith('* @name') || beforeClose.startsWith('*@name')) {
-        const match = beforeClose.match(/@name\s+(.+)/)
-        if (match) name = match[1].trim()
-      } else if (beforeClose.startsWith('* @description') || beforeClose.startsWith('*@description')) {
-        const match = beforeClose.match(/@description\s+(.+)/)
-        if (match) description = match[1].trim() || null
-      } else if (beforeClose.startsWith('* @icon') || beforeClose.startsWith('*@icon')) {
-        const match = beforeClose.match(/@icon\s+(.+)/)
-        if (match) icon = match[1].trim()
-      }
+      readStepMetadataLine(beforeClose, metadata)
       break
     }
 
-    if (!foundJSDoc) {
-      continue
-    }
-
-    if (line?.startsWith('* @name') || line?.startsWith('*@name')) {
-      const match = line.match(/@name\s+(.+)/)
-      if (match) name = match[1].trim()
-    } else if (line?.startsWith('* @description') || line?.startsWith('*@description')) {
-      const match = line.match(/@description\s+(.+)/)
-      if (match) description = match[1].trim() || null
-    } else if (line?.startsWith('* @icon') || line?.startsWith('*@icon')) {
-      const match = line.match(/@icon\s+(.+)/)
-      if (match) icon = match[1].trim()
-    }
+    readStepMetadataLine(line, metadata)
   }
 
-  if (!name || !icon) {
+  if (!metadata.name || !metadata.icon) {
     return null
   }
 
-  const iconUpper = icon.toUpperCase()
+  const iconUpper = metadata.icon.toUpperCase()
   const validIcons = Object.values(TemplateStepIcon)
   if (!validIcons.includes(iconUpper as TemplateStepIcon)) {
     return null
   }
 
   return {
-    name: name.trim(),
-    description: description ? description.trim() : null,
+    name: metadata.name.trim(),
+    description: metadata.description ? metadata.description.trim() : null,
     icon: iconUpper as TemplateStepIcon,
   }
 }
@@ -493,6 +466,93 @@ function extractFunctionDefinition(callExpression: t.CallExpression, sourceCode:
   return code
 }
 
+function getStepKeyword(node: t.CallExpression): StepKeyword | null {
+  const callee = node.callee
+  return t.isIdentifier(callee) && (callee.name === 'When' || callee.name === 'Then' || callee.name === 'Given')
+    ? callee.name
+    : null
+}
+
+function getStepSignature(node: t.CallExpression): string | null {
+  const patternArg = node.arguments[0]
+  return t.isStringLiteral(patternArg) ? patternArg.value : null
+}
+
+function getStepFunction(node: t.CallExpression): t.Function | null {
+  const functionArg = node.arguments[1]
+  return t.isFunction(functionArg) ? functionArg : null
+}
+
+function getIdentifierParameterType(parameter: t.Identifier): string | null {
+  if (!parameter.typeAnnotation || !t.isTSTypeAnnotation(parameter.typeAnnotation)) {
+    return null
+  }
+
+  const annotation = parameter.typeAnnotation.typeAnnotation
+  if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
+    return annotation.typeName.name
+  }
+
+  if (t.isTSStringKeyword(annotation)) return 'string'
+  if (t.isTSNumberKeyword(annotation)) return 'number'
+  if (t.isTSBooleanKeyword(annotation)) return 'boolean'
+  return null
+}
+
+function parseStepParameters(parameters: t.Function['params']): StepParameter[] | null {
+  const parsedParameters: StepParameter[] = []
+
+  for (const parameter of parameters) {
+    if ((t.isIdentifier(parameter) && parameter.name === 'this') || t.isObjectPattern(parameter)) {
+      continue
+    }
+
+    if (!t.isIdentifier(parameter)) {
+      continue
+    }
+
+    const typeName = getIdentifierParameterType(parameter)
+    if (!typeName) {
+      continue
+    }
+
+    try {
+      parsedParameters.push({
+        name: parameter.name,
+        type: mapTypeToParameterType(typeName),
+        order: parsedParameters.length,
+      })
+    } catch {
+      return null
+    }
+  }
+
+  return parsedParameters
+}
+
+function parseStepCall(node: t.CallExpression, content: string): ParsedTemplateStep | null {
+  const keyword = getStepKeyword(node)
+  if (!keyword || node.arguments.length < 2) return null
+
+  const signature = getStepSignature(node)
+  const functionArg = getStepFunction(node)
+  const lineNumber = node.loc?.start?.line
+  if (!signature || !functionArg || lineNumber == null) return null
+
+  const jsdoc = parseStepJSDoc(content, lineNumber - 1)
+  const parameters = parseStepParameters(functionArg.params)
+  if (!jsdoc || !parameters) return null
+
+  return {
+    jsdoc,
+    signature,
+    functionDefinition: extractFunctionDefinition(node, content),
+    normalizedFunctionDefinition: '',
+    parameters,
+    keyword,
+  }
+}
+
 function parseStepFile(content: string): ParsedStepFile | null {
   const group = parseGroupJSDoc(content)
   if (!group) {
@@ -508,87 +568,8 @@ function parseStepFile(content: string): ParsedStepFile | null {
 
   traverse(ast, {
     CallExpression(path: NodePath<t.CallExpression>) {
-      const node = path.node
-      const callee = node.callee
-      let keyword: 'When' | 'Then' | 'Given' | null = null
-
-      if (t.isIdentifier(callee) && (callee.name === 'When' || callee.name === 'Then' || callee.name === 'Given')) {
-        keyword = callee.name as 'When' | 'Then' | 'Given'
-      }
-
-      if (!keyword || node.arguments.length < 2) {
-        return
-      }
-
-      const patternArg = node.arguments[0]
-      const functionArg = node.arguments[1]
-
-      if (!t.isStringLiteral(patternArg) || !t.isFunction(functionArg)) {
-        return
-      }
-
-      const lineNumber = node.loc?.start?.line
-      if (lineNumber == null) {
-        return
-      }
-
-      const jsdoc = parseStepJSDoc(content, lineNumber - 1)
-      if (!jsdoc) {
-        return
-      }
-
-      const parameters: StepParameter[] = []
-      let order = 0
-
-      for (const parameter of functionArg.params) {
-        if (t.isIdentifier(parameter) && parameter.name === 'this') {
-          continue
-        }
-
-        if (t.isObjectPattern(parameter)) {
-          continue
-        }
-
-        if (!t.isIdentifier(parameter) || !parameter.typeAnnotation || !t.isTSTypeAnnotation(parameter.typeAnnotation)) {
-          continue
-        }
-
-        const annotation = parameter.typeAnnotation.typeAnnotation
-        let typeName: string | null = null
-
-        if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
-          typeName = annotation.typeName.name
-        } else if (t.isTSStringKeyword(annotation)) {
-          typeName = 'string'
-        } else if (t.isTSNumberKeyword(annotation)) {
-          typeName = 'number'
-        } else if (t.isTSBooleanKeyword(annotation)) {
-          typeName = 'boolean'
-        }
-
-        if (!typeName) {
-          continue
-        }
-
-        try {
-          parameters.push({
-            name: parameter.name,
-            type: mapTypeToParameterType(typeName),
-            order: order++,
-          })
-        } catch {
-          return
-        }
-      }
-
-      steps.push({
-        jsdoc,
-        signature: patternArg.value,
-        functionDefinition: extractFunctionDefinition(node, content),
-        normalizedFunctionDefinition: '',
-        parameters,
-        keyword,
-      })
+      const step = parseStepCall(path.node, content)
+      if (step) steps.push(step)
     },
   })
 

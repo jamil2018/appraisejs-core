@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { getFilterTags } from '@/lib/tag-utils'
+import { getFilterTags } from '@/lib/tag-filters'
 import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
 import { CheckedState } from '@radix-ui/react-checkbox'
 import { ChevronDown, ChevronRight, FolderTree, Search } from 'lucide-react'
