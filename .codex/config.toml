@@ -2,7 +2,6 @@
 # Keep project workflow instructions in AGENTS.md; keep runtime defaults here.
 
 model = "gpt-5.5"
-model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 
