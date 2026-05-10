@@ -29,6 +29,7 @@ interface OptionsHeaderNodeData {
   isSearchHighlighted?: boolean
   hasOutgoingConnection?: boolean
   isConnectionInProgress?: boolean
+  isDeleteDisabled?: boolean
   parameters?: OptionsHeaderNodeParameter[]
 }
 
@@ -62,6 +63,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
     isSearchHighlighted,
     hasOutgoingConnection,
     isConnectionInProgress,
+    isDeleteDisabled,
     parameters = [],
   } = data as unknown as OptionsHeaderNodeData
   const sortedParameters = [...parameters].sort((left, right) => left.order - right.order)
@@ -209,6 +211,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
                 className="nodrag h-7 w-7"
                 aria-label="Delete"
                 onClick={handleDelete}
+                disabled={isDeleteDisabled}
               >
                 <Trash aria-hidden="true" />
               </Button>

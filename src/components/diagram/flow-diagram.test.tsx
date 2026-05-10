@@ -25,6 +25,7 @@ vi.mock('@xyflow/react', async () => {
 
       return <div data-testid="react-flow">{children}</div>
     },
+    ViewportPortal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     useEdgesState: (initialEdges: unknown[]) => {
       const [edges, setEdges] = React.useState(initialEdges)
       return [edges, setEdges, vi.fn()]
@@ -163,5 +164,33 @@ describe('FlowDiagram node grouping', () => {
 
     expect(screen.queryByRole('button', { name: /create block/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('renders block labels with stronger visual emphasis', () => {
+    render(
+      <FlowDiagram
+        {...requiredProps}
+        enableNodeGrouping
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+          'node-2': {
+            order: 2,
+            label: 'Submit Payment',
+            gherkinStep: 'When payment is submitted',
+            parameters: [],
+            templateStepId: 'step-2',
+          },
+        }}
+        flowBlocks={[{ id: 'block-1', name: 'Checkout block', nodeIds: ['node-1', 'node-2'] }]}
+      />,
+    )
+
+    expect(screen.getByText('Checkout block').parentElement).toHaveClass('text-sm', 'font-semibold', 'text-foreground')
   })
 })

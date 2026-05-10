@@ -366,12 +366,14 @@ const FlowDiagram = ({
           (node.data as { isConnectionInProgress?: boolean }).isConnectionInProgress,
         )
         const currentIsSearchHighlighted = Boolean((node.data as { isSearchHighlighted?: boolean }).isSearchHighlighted)
+        const currentIsDeleteDisabled = Boolean((node.data as { isDeleteDisabled?: boolean }).isDeleteDisabled)
         const isSearchHighlighted = searchHighlightedNodeId === node.id
         if (
           currentIsFirstNode === isFirstNode &&
           currentHasOutgoingConnection === hasOutgoingConnection &&
           currentIsConnectionInProgress === isConnectionInProgress &&
-          currentIsSearchHighlighted === isSearchHighlighted
+          currentIsSearchHighlighted === isSearchHighlighted &&
+          currentIsDeleteDisabled === hasFlowBlocks
         ) {
           return node
         }
@@ -385,13 +387,14 @@ const FlowDiagram = ({
             hasOutgoingConnection,
             isConnectionInProgress,
             isSearchHighlighted,
+            isDeleteDisabled: hasFlowBlocks,
           },
         }
       })
 
       return hasUpdates ? updatedNodes : currentNodes
     })
-  }, [nodes, edges, isConnectionInProgress, searchHighlightedNodeId, setNodes])
+  }, [nodes, edges, hasFlowBlocks, isConnectionInProgress, searchHighlightedNodeId, setNodes])
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) => !hasFlowBlocks && isValidDiagramConnection(edges, connection),
@@ -683,7 +686,7 @@ const FlowDiagram = ({
                       zIndex: -1,
                     }}
                   >
-                    <div className="pointer-events-auto absolute -top-8 left-2 flex items-center gap-1 rounded-md border border-emerald-400/60 bg-background/95 px-2 py-1 text-xs font-medium shadow-sm">
+                    <div className="pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-md border border-emerald-300/80 bg-background/95 px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md shadow-background/40">
                       <span>{block.name}</span>
                       <Button
                         type="button"
