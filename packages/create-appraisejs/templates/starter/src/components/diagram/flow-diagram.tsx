@@ -367,10 +367,10 @@ const FlowDiagram = ({
     }
     flowEdgeMutationGuardRef.current = {
       isEdgeDeleteBlocked: edge => isEdgeWithinSameFlowBlock(edge, flowBlockMembership),
-      isNodeDeleteBlocked: () => hasFlowBlocks,
+      isNodeDeleteBlocked: nodeId => flowBlockMembership.has(nodeId),
       onBlocked: showTopologyBlockedToast,
     }
-  }, [flowBlockMembership, handleEditNode, hasFlowBlocks, showTopologyBlockedToast])
+  }, [flowBlockMembership, handleEditNode, showTopologyBlockedToast])
 
   const addNode = useCallback(
     (formData: NodeData) => {
@@ -471,6 +471,7 @@ const FlowDiagram = ({
           (node.data as { isConnectionInProgress?: boolean }).isConnectionInProgress,
         )
         const currentIsSearchHighlighted = Boolean((node.data as { isSearchHighlighted?: boolean }).isSearchHighlighted)
+        const isDeleteDisabled = flowBlockMembership.has(node.id)
         const currentIsDeleteDisabled = Boolean((node.data as { isDeleteDisabled?: boolean }).isDeleteDisabled)
         const isSearchHighlighted = searchHighlightedNodeId === node.id
         if (
@@ -478,7 +479,7 @@ const FlowDiagram = ({
           currentHasOutgoingConnection === hasOutgoingConnection &&
           currentIsConnectionInProgress === isConnectionInProgress &&
           currentIsSearchHighlighted === isSearchHighlighted &&
-          currentIsDeleteDisabled === hasFlowBlocks
+          currentIsDeleteDisabled === isDeleteDisabled
         ) {
           return node
         }
@@ -492,14 +493,14 @@ const FlowDiagram = ({
             hasOutgoingConnection,
             isConnectionInProgress,
             isSearchHighlighted,
-            isDeleteDisabled: hasFlowBlocks,
+            isDeleteDisabled,
           },
         }
       })
 
       return hasUpdates ? updatedNodes : currentNodes
     })
-  }, [nodes, edges, hasFlowBlocks, isConnectionInProgress, searchHighlightedNodeId, setNodes])
+  }, [nodes, edges, flowBlockMembership, isConnectionInProgress, searchHighlightedNodeId, setNodes])
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) =>
@@ -542,15 +543,17 @@ const FlowDiagram = ({
 
   const handleNodesChange = useCallback(
     (changes: Parameters<typeof onNodesChange>[0]) => {
-      const hasBlockedDelete = hasFlowBlocks && changes.some(change => change.type === 'remove')
+      const blockedDeleteIds = new Set(
+        changes.flatMap(change => (change.type === 'remove' && flowBlockMembership.has(change.id) ? [change.id] : [])),
+      )
 
-      if (hasBlockedDelete) {
+      if (blockedDeleteIds.size > 0) {
         showTopologyBlockedToast()
       }
 
-      onNodesChange(changes.filter(change => change.type !== 'remove' || !hasFlowBlocks))
+      onNodesChange(changes.filter(change => change.type !== 'remove' || !blockedDeleteIds.has(change.id)))
     },
-    [hasFlowBlocks, onNodesChange, showTopologyBlockedToast],
+    [flowBlockMembership, onNodesChange, showTopologyBlockedToast],
   )
 
   const handleConnectStart = useCallback(() => {

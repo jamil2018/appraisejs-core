@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 
 type FlowEdgeMutationGuard = {
   isEdgeDeleteBlocked: (edge: { id: string; source: string; target: string }) => boolean
-  isNodeDeleteBlocked: () => boolean
+  isNodeDeleteBlocked: (nodeId: string) => boolean
   onBlocked: () => void
 }
 

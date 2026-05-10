@@ -81,7 +81,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
 
   const handleDelete = useCallback(() => {
     if (!id) return
-    if (flowEdgeMutationGuardRef.current.isNodeDeleteBlocked()) {
+    if (flowEdgeMutationGuardRef.current.isNodeDeleteBlocked(id)) {
       flowEdgeMutationGuardRef.current.onBlocked()
       return
     }

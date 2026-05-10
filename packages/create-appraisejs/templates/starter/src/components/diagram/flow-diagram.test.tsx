@@ -31,7 +31,10 @@ vi.mock('@xyflow/react', async () => {
     }: {
       children: React.ReactNode
       edges?: Array<{ source: string; target: string }>
-      nodes?: Array<{ id: string; data?: { isSearchHighlighted?: boolean; label?: string } }>
+      nodes?: Array<{
+        id: string
+        data?: { isDeleteDisabled?: boolean; isSearchHighlighted?: boolean; label?: string }
+      }>
       onInit?: (instance: unknown) => void
       onConnect?: (connection: { source: string; target: string }) => void
       onPaneClick?: () => void
@@ -49,6 +52,7 @@ vi.mock('@xyflow/react', async () => {
               key={node.id}
               type="button"
               data-testid={`flow-node-${node.id}`}
+              data-delete-disabled={node.data?.isDeleteDisabled ? 'true' : undefined}
               data-search-highlighted={node.data?.isSearchHighlighted ? 'true' : undefined}
               onClick={event => {
                 event.stopPropagation()
@@ -317,6 +321,44 @@ describe('FlowDiagram node grouping', () => {
     await user.click(addNodeButton)
 
     expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+  })
+
+  it('disables delete only for nodes that belong to a block', async () => {
+    render(
+      <FlowDiagram
+        {...requiredProps}
+        enableNodeGrouping
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+          'node-2': {
+            order: 2,
+            label: 'Submit Payment',
+            gherkinStep: 'When payment is submitted',
+            parameters: [],
+            templateStepId: 'step-2',
+          },
+          'node-3': {
+            order: -1,
+            label: 'Outside block',
+            gherkinStep: 'Then outside',
+            parameters: [],
+            templateStepId: 'step-3',
+          },
+        }}
+        flowBlocks={[{ id: 'block-1', name: 'Checkout block', nodeIds: ['node-1', 'node-2'] }]}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('flow-node-node-1')).toHaveAttribute('data-delete-disabled', 'true')
+      expect(screen.getByTestId('flow-node-node-3')).not.toHaveAttribute('data-delete-disabled')
+    })
   })
 
   it('does not open block creation when selection mode is toggled on an empty flow', async () => {
