@@ -3,7 +3,12 @@ import { StepParameterType, type TemplateStep, type TemplateStepParameter } from
 
 import type { NodeData as NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
-import type { FlowBlock, NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import type {
+  FlowBlock,
+  NodeOrderMap,
+  TemplateTestCaseNodeData,
+  TemplateTestCaseNodeOrderMap,
+} from '@/types/diagram/diagram'
 
 /** Client-only canvas node: not persisted in node order maps. */
 export const ADD_NODE_PROMPT_NODE_ID = '__appraise_add_node_prompt__'
@@ -47,9 +52,7 @@ export function createAddNodePromptNode(): Node {
   }
 }
 
-type DiagramParameter =
-  | NodeFormData['parameters'][number]
-  | TemplateTestCaseNodeData['parameters'][number]
+type DiagramParameter = NodeFormData['parameters'][number] | TemplateTestCaseNodeData['parameters'][number]
 
 type DiagramNodeOrder = NodeOrderMap | TemplateTestCaseNodeOrderMap
 type FlowNodeData = {
@@ -108,9 +111,7 @@ export type FlowBlockBounds = FlowBlock & {
 export function normalizeFlowBlocks(flowBlocks: FlowBlock[], validNodeIds?: Set<string>): FlowBlock[] {
   return flowBlocks
     .map(block => {
-      const nodeIds = Array.from(
-        new Set(block.nodeIds.filter(nodeId => !validNodeIds || validNodeIds.has(nodeId))),
-      )
+      const nodeIds = Array.from(new Set(block.nodeIds.filter(nodeId => !validNodeIds || validNodeIds.has(nodeId))))
       return {
         id: block.id,
         name: block.name.trim() || 'Untitled block',
@@ -126,6 +127,32 @@ export function getFlowBlockMembershipMap(flowBlocks: FlowBlock[]) {
     block.nodeIds.forEach(nodeId => membership.set(nodeId, block.id))
   })
   return membership
+}
+
+export function isEdgeWithinSameFlowBlock(
+  edge: Pick<Edge, 'source' | 'target'>,
+  flowBlockMembership: Map<string, string>,
+) {
+  const sourceBlockId = flowBlockMembership.get(edge.source)
+  return Boolean(sourceBlockId && sourceBlockId === flowBlockMembership.get(edge.target))
+}
+
+export function hasOrphanedFlowNode(nodes: Node[], edges: Edge[]) {
+  const realNodeIds = new Set(nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id))
+
+  if (realNodeIds.size === 0) {
+    return false
+  }
+
+  const connectedNodeIds = new Set<string>()
+  edges.forEach(edge => {
+    if (realNodeIds.has(edge.source) && realNodeIds.has(edge.target)) {
+      connectedNodeIds.add(edge.source)
+      connectedNodeIds.add(edge.target)
+    }
+  })
+
+  return Array.from(realNodeIds).some(nodeId => !connectedNodeIds.has(nodeId))
 }
 
 export function getFlowBlockBounds(nodes: Node[], flowBlocks: FlowBlock[]): FlowBlockBounds[] {

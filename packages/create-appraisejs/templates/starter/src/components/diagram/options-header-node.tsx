@@ -81,7 +81,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
 
   const handleDelete = useCallback(() => {
     if (!id) return
-    if (flowEdgeMutationGuardRef.current.isBlocked) {
+    if (flowEdgeMutationGuardRef.current.isNodeDeleteBlocked(id)) {
       flowEdgeMutationGuardRef.current.onBlocked()
       return
     }
@@ -139,7 +139,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
             <TooltipTrigger asChild>
               <Badge
                 variant="outline"
-                className="mx-0.5 inline-flex cursor-help border-primary/30 bg-primary/10 px-1.5 py-0 text-[11px] font-medium align-baseline text-primary"
+                className="border-primary/30 bg-primary/10 mx-0.5 inline-flex cursor-help px-1.5 py-0 align-baseline text-[11px] font-medium text-primary"
               >
                 {matchingParameter.value}
               </Badge>
@@ -169,24 +169,20 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
         }
       }}
       className={cn(
-        'w-36 overflow-visible border-border/70 bg-card p-0 pt-4 shadow-lg shadow-background/30 transition-[border-radius,box-shadow] duration-300 ease-out',
+        'border-border/70 shadow-background/30 w-36 overflow-visible bg-card p-0 pt-4 shadow-lg transition-[border-radius,box-shadow] duration-300 ease-out',
         isFirstNode && 'rounded-l-3xl rounded-r-md',
-        isMissingParams && 'border-destructive/70 bg-destructive/10 ring-1 ring-destructive/40',
-        isSearchHighlighted && 'ring-2 ring-emerald-500/70 shadow-[0_0_28px_rgba(16,185,129,0.34)]',
+        isMissingParams && 'border-destructive/70 bg-destructive/10 ring-destructive/40 ring-1',
+        isSearchHighlighted && 'shadow-[0_0_28px_rgba(16,185,129,0.34)] ring-2 ring-emerald-500/70',
       )}
     >
       {!isFirstNode && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400"
-        />
+        <Handle type="target" position={Position.Left} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400" />
       )}
       <AnimatePresence>
         {showToolbar && (
           <div className="absolute -top-12 left-1/2 z-10 -translate-x-1/2">
             <motion.div
-              className="flex items-center gap-1 rounded-md border border-border/70 bg-muted/80 p-1 shadow-md backdrop-blur"
+              className="border-border/70 bg-muted/80 flex items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
               onMouseEnter={showToolbarNow}
               onMouseLeave={hideToolbarWithDelay}
               initial={{ opacity: 0, y: 10 }}
@@ -239,7 +235,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
               />
               <motion.button
                 type="button"
-                className="nodrag nopan -ml-px flex h-5 w-5 items-center justify-center rounded border border-border/70 bg-muted/95 text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                className="nodrag nopan border-border/70 bg-muted/95 -ml-px flex h-5 w-5 items-center justify-center rounded border text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
                 aria-label="Add connected node"
                 onClick={handleAddConnectedNode}
                 whileHover={{ scale: 1.12 }}
@@ -268,13 +264,15 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
       <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
         <div
           data-testid="node-step-icon"
-          className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-lg shadow-primary/20 [&>svg]:size-10"
+          className="bg-primary/15 shadow-primary/20 flex size-20 shrink-0 items-center justify-center rounded-2xl text-primary shadow-lg [&>svg]:size-10"
         >
           {KeyToIconTransformer(getTemplateStepIcon(icon))}
         </div>
       </div>
       <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -translate-x-[47%]">
-        <h3 className="relative -left-2 w-full text-center text-lg font-bold leading-tight text-card-foreground">{label}</h3>
+        <h3 className="relative -left-2 w-full text-center text-lg font-bold leading-tight text-card-foreground">
+          {label}
+        </h3>
         <AnimatePresence>
           {showToolbar && (
             <motion.div
@@ -290,11 +288,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
           )}
         </AnimatePresence>
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400"
-      />
+      <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400" />
     </BaseNode>
   )
 })

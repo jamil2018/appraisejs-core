@@ -21,16 +21,25 @@ vi.mock('@xyflow/react', async () => {
     Controls: () => <div data-testid="flow-controls" />,
     ReactFlow: ({
       children,
+      edges = [],
       nodes = [],
       onInit,
+      onConnect,
       onPaneClick,
       onNodeClick,
+      onSelectionChange,
     }: {
       children: React.ReactNode
-      nodes?: Array<{ id: string; data?: { isSearchHighlighted?: boolean; label?: string } }>
+      edges?: Array<{ source: string; target: string }>
+      nodes?: Array<{
+        id: string
+        data?: { isDeleteDisabled?: boolean; isSearchHighlighted?: boolean; label?: string }
+      }>
       onInit?: (instance: unknown) => void
+      onConnect?: (connection: { source: string; target: string }) => void
       onPaneClick?: () => void
       onNodeClick?: (event: React.MouseEvent, node: { id: string }) => void
+      onSelectionChange?: (selection: { nodes: Array<{ id: string }> }) => void
     }) => {
       React.useEffect(() => {
         onInit?.({ setCenter: xyflowMocks.setCenter })
@@ -43,6 +52,7 @@ vi.mock('@xyflow/react', async () => {
               key={node.id}
               type="button"
               data-testid={`flow-node-${node.id}`}
+              data-delete-disabled={node.data?.isDeleteDisabled ? 'true' : undefined}
               data-search-highlighted={node.data?.isSearchHighlighted ? 'true' : undefined}
               onClick={event => {
                 event.stopPropagation()
@@ -52,6 +62,15 @@ vi.mock('@xyflow/react', async () => {
               {node.id}
             </button>
           ))}
+          <button type="button" onClick={() => onSelectionChange?.({ nodes })}>
+            Select all flow nodes
+          </button>
+          {nodes.some(node => node.id === 'node-3') && (
+            <button type="button" onClick={() => onConnect?.({ source: 'node-2', target: 'node-3' })}>
+              Connect node-2 to node-3
+            </button>
+          )}
+          <output data-testid="edge-count">{edges.length}</output>
           {children}
         </div>
       )
@@ -269,20 +288,173 @@ describe('FlowDiagram node search', () => {
 })
 
 describe('FlowDiagram node grouping', () => {
-  it('does not open block creation when selection mode is toggled on an empty flow', async () => {
+  it('keeps the main add-node action available after a block exists', async () => {
     const user = userEvent.setup()
     render(
       <FlowDiagram
         {...requiredProps}
         enableNodeGrouping
-        nodeOrder={{}}
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+          'node-2': {
+            order: 2,
+            label: 'Submit Payment',
+            gherkinStep: 'When payment is submitted',
+            parameters: [],
+            templateStepId: 'step-2',
+          },
+        }}
+        flowBlocks={[{ id: 'block-1', name: 'Checkout block', nodeIds: ['node-1', 'node-2'] }]}
       />,
     )
+
+    const addNodeButton = screen.getByRole('button', { name: 'Add Node' })
+
+    expect(addNodeButton).toBeEnabled()
+
+    await user.click(addNodeButton)
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+  })
+
+  it('disables delete only for nodes that belong to a block', async () => {
+    render(
+      <FlowDiagram
+        {...requiredProps}
+        enableNodeGrouping
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+          'node-2': {
+            order: 2,
+            label: 'Submit Payment',
+            gherkinStep: 'When payment is submitted',
+            parameters: [],
+            templateStepId: 'step-2',
+          },
+          'node-3': {
+            order: -1,
+            label: 'Outside block',
+            gherkinStep: 'Then outside',
+            parameters: [],
+            templateStepId: 'step-3',
+          },
+        }}
+        flowBlocks={[{ id: 'block-1', name: 'Checkout block', nodeIds: ['node-1', 'node-2'] }]}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('flow-node-node-1')).toHaveAttribute('data-delete-disabled', 'true')
+      expect(screen.getByTestId('flow-node-node-3')).not.toHaveAttribute('data-delete-disabled')
+    })
+  })
+
+  it('does not open block creation when selection mode is toggled on an empty flow', async () => {
+    const user = userEvent.setup()
+    render(<FlowDiagram {...requiredProps} enableNodeGrouping nodeOrder={{}} />)
 
     await user.click(screen.getByRole('button', { name: /select nodes for block/i }))
 
     expect(screen.queryByRole('button', { name: /create block/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('does not allow block creation while any real node is orphaned', async () => {
+    const user = userEvent.setup()
+    render(
+      <FlowDiagram
+        {...requiredProps}
+        enableNodeGrouping
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+          'node-2': {
+            order: 2,
+            label: 'Submit Payment',
+            gherkinStep: 'When payment is submitted',
+            parameters: [],
+            templateStepId: 'step-2',
+          },
+          'node-3': {
+            order: -1,
+            label: 'Orphaned node',
+            gherkinStep: 'Then orphaned',
+            parameters: [],
+            templateStepId: 'step-3',
+          },
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /select nodes for block/i }))
+    await user.click(screen.getByRole('button', { name: /select all flow nodes/i }))
+
+    expect(screen.queryByRole('button', { name: /create block/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Connect or remove orphaned nodes before creating a block.')).toBeInTheDocument()
+  })
+
+  it('allows a block node to connect to an outside node', async () => {
+    const user = userEvent.setup()
+    const onNodeOrderChange = vi.fn()
+
+    render(
+      <FlowDiagram
+        {...requiredProps}
+        onNodeOrderChange={onNodeOrderChange}
+        enableNodeGrouping
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+          'node-2': {
+            order: 2,
+            label: 'Submit Payment',
+            gherkinStep: 'When payment is submitted',
+            parameters: [],
+            templateStepId: 'step-2',
+          },
+          'node-3': {
+            order: -1,
+            label: 'Outside block',
+            gherkinStep: 'Then outside',
+            parameters: [],
+            templateStepId: 'step-3',
+          },
+        }}
+        flowBlocks={[{ id: 'block-1', name: 'Checkout block', nodeIds: ['node-1', 'node-2'] }]}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /connect node-2 to node-3/i }))
+
+    await waitFor(() => {
+      expect(onNodeOrderChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'node-3': expect.objectContaining({ order: 3 }),
+        }),
+      )
+    })
   })
 
   it('renders block labels with stronger visual emphasis', () => {

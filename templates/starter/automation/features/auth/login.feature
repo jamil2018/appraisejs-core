@@ -3,22 +3,7 @@
 # Any manual changes will be overwritten when the Test Suite is updated.
 # To modify this feature, update the corresponding Test Suite in the application.
 
-@ts_0f27b215d17bf42e
 @auth
+@ts_0f27b215d17bf42e
 Feature: Verify user login flows
 
-  @tc_5318c12b81d85810
-  Scenario: [test] asdasd
-    Given the user navigates to the base url of the selected environment
-    When the user fills in the "Email" input field with value "demo@example.com"
-    And the user fills in the "Password" input field with value "test1234"
-    And the user clicks on the "Login" element
-
-  @tc_7050f34a24c15cc3
-  Scenario: [Auth Test] Verify user is able to login with valid credentials
-    Given the user navigates to the base url of the selected environment
-    When the user fills in the "Email" input field with value "demo@example.com"
-    And the user fills in the "Password" input field with value "test1234"
-    And the user clicks on the "Login" element
-    And the user waits for the route "/home" to be loaded
-    Then the element "Home Title" should true contain the text "Welcome to Home Page"
