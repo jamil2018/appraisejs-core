@@ -5,7 +5,14 @@ import type React from 'react'
 import { useState, useEffect } from 'react'
 import { PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -175,6 +182,7 @@ export default function ParamChip({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Item</DialogTitle>
+            <DialogDescription>Add a parameter name, type, and display order.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
