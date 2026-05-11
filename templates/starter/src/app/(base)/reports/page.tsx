@@ -5,36 +5,7 @@ import { Metadata } from 'next'
 import ReportTable from './report-table'
 import EmptyState from '@/components/data-state/empty-state'
 import { getAllReportsAction } from '@/actions/reports/report-actions'
-import { Prisma } from '@prisma/client'
-
-type ReportWithRelations = Prisma.ReportGetPayload<{
-  include: {
-    testRun: {
-      include: {
-        environment: true
-        tags: true
-      }
-    }
-    testCases: {
-      include: {
-        testRunTestCase: {
-          include: {
-            testCase: {
-              include: {
-                tags: true
-              }
-            }
-          }
-        }
-        reportScenario: {
-          include: {
-            reportFeature: true
-          }
-        }
-      }
-    }
-  }
-}>
+import { isValidReportList } from './report-detail-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Reports',
@@ -48,21 +19,7 @@ const Reports = async () => {
     return <div>Error: {reportsError}</div>
   }
 
-  // Type guard to validate the data structure
-  const isValidReportData = (data: unknown): data is ReportWithRelations[] => {
-    if (!Array.isArray(data)) return false
-    return data.every(
-      item =>
-        item &&
-        typeof item === 'object' &&
-        'id' in item &&
-        'testRun' in item &&
-        'testCases' in item &&
-        Array.isArray(item.testCases),
-    )
-  }
-
-  if (!reports || !isValidReportData(reports)) {
+  if (!reports || !isValidReportList(reports)) {
     return <div>Error: Invalid report data format</div>
   }
 
@@ -90,7 +47,7 @@ const Reports = async () => {
         </PageHeader>
         <HeaderSubtitle>Review test execution details, identify patterns, and optimize performance</HeaderSubtitle>
       </div>
-      <ReportTable />
+      <ReportTable reports={reports} />
     </>
   )
 }

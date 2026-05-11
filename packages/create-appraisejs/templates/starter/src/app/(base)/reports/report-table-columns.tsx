@@ -1,47 +1,15 @@
 'use client'
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import {
-  Report,
-  Tag,
-  ReportTestCase,
-  TestRun,
-  TestRunTestCase,
-  TestCase,
-  TestRunStatus,
-  TestRunResult,
-  Environment,
-  TagType,
-} from '@prisma/client'
+import { TestRunStatus, TestRunResult, TagType } from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Clock, XCircle, Eye } from 'lucide-react'
 import Link from 'next/link'
-
-type ReportWithRelations = Report & {
-  testRun: TestRun & {
-    environment: Environment
-    tags: Tag[]
-  }
-  testCases: (ReportTestCase & {
-    testRunTestCase: TestRunTestCase & {
-      testCase: TestCase & { tags?: Tag[] }
-    }
-  })[]
-}
-
-const formatDuration = (startDate: Date, endDate: Date | null) => {
-  if (!endDate) return '-'
-  const diffInMs = endDate.getTime() - startDate.getTime()
-  const totalSeconds = Math.floor(diffInMs / 1000)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
-}
+import { formatDuration } from './report-detail-helpers'
+import type { ReportWithRelations } from '@/types/report'
 
 const testRunStatusToBadge = (status: TestRunStatus) => {
   switch (status) {
