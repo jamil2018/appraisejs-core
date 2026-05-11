@@ -1,8 +1,8 @@
-import test from 'node:test'
-import assert from 'node:assert/strict'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { expect, test } from 'vitest'
+
 import { parseFeatureFile } from '@/lib/gherkin-parser'
 
 async function withTempFeatureFile(content: string): Promise<string> {
@@ -23,9 +23,9 @@ Scenario: logs in
 
   const parsed = await parseFeatureFile(filePath)
 
-  assert.ok(parsed)
-  assert.equal(parsed?.featureName, 'Login workflow')
-  assert.equal(parsed?.featureDescription, 'Login workflow')
+  expect(parsed).not.toBeNull()
+  expect(parsed?.featureName).toBe('Login workflow')
+  expect(parsed?.featureDescription).toBe('Login workflow')
 })
 
 test('keeps Feature line as description even when free text follows', async () => {
@@ -39,6 +39,6 @@ Scenario: buys item
 
   const parsed = await parseFeatureFile(filePath)
 
-  assert.ok(parsed)
-  assert.equal(parsed?.featureDescription, 'Checkout flow')
+  expect(parsed).not.toBeNull()
+  expect(parsed?.featureDescription).toBe('Checkout flow')
 })

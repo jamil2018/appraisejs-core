@@ -16,7 +16,7 @@ export default defineConfig({
       'src/app/**/*.test.ts',
       'src/app/**/*.test.tsx',
       'src/actions/**/*.test.ts',
-      'src/lib/sync/**/*.test.ts',
+      'src/lib/**/*.test.ts',
       'src/components/**/*.test.ts',
       'src/components/**/*.test.tsx',
     ],
