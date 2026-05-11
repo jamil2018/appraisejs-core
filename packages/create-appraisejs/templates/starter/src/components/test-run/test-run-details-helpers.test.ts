@@ -4,11 +4,10 @@ import { TestRunResult, TestRunStatus } from '@prisma/client'
 import {
   getDurationSeconds,
   getProgressStats,
-  getTestRunDetailsData,
   getTestRunResultText,
   getTestRunStatusMeta,
-  getTraceViewerStatusData,
 } from './test-run-details-helpers'
+import { getTestRunDetailsData, getTraceViewerStatusData } from './test-run-details-guards'
 
 describe('test-run-details helpers', () => {
   const validTestRunDetails = {
@@ -41,6 +40,11 @@ describe('test-run-details helpers', () => {
     reports: [{ id: 'report-1', testRunId: 'run-row-1' }],
   }
 
+  const withTestRunDetails = (overrides: Record<string, unknown>) => ({
+    ...validTestRunDetails,
+    ...overrides,
+  })
+
   it('builds progress stats from completed and cancelled test cases', () => {
     const progress = getProgressStats([
       { status: 'COMPLETED' },
@@ -66,6 +70,58 @@ describe('test-run-details helpers', () => {
     expect(getTestRunDetailsData({ ...validTestRunDetails, startedAt: '2024-01-01T00:00:00.000Z' })).toBeNull()
     expect(getTestRunDetailsData({ ...validTestRunDetails, testCases: [{ id: 'case-run-1' }] })).toBeNull()
     expect(getTestRunDetailsData({ ...validTestRunDetails, environment: null })).toBeNull()
+  })
+
+  it('accepts valid nullable completedAt, tracePath, and testSuite values', () => {
+    const validNullablePayload = withTestRunDetails({
+      completedAt: null,
+      testCases: [
+        {
+          ...validTestRunDetails.testCases[0],
+          tracePath: '/tmp/trace.zip',
+          testSuite: null,
+        },
+      ],
+    })
+
+    expect(getTestRunDetailsData(validNullablePayload)).toBe(validNullablePayload)
+  })
+
+  it('rejects malformed top-level test run details fields', () => {
+    expect(getTestRunDetailsData(undefined)).toBeNull()
+    expect(getTestRunDetailsData(null)).toBeNull()
+    expect(getTestRunDetailsData('not-a-run')).toBeNull()
+    expect(getTestRunDetailsData(withTestRunDetails({ completedAt: '2024-01-01T00:00:07.000Z' }))).toBeNull()
+    expect(getTestRunDetailsData(withTestRunDetails({ tags: [{ id: 'tag-1' }] }))).toBeNull()
+    expect(getTestRunDetailsData(withTestRunDetails({ reports: [{ id: 'report-1' }] }))).toBeNull()
+  })
+
+  it('rejects malformed nested test case details', () => {
+    const baseTestCase = validTestRunDetails.testCases[0]
+    const testCaseWithoutTracePath: Record<string, unknown> = { ...baseTestCase }
+    delete testCaseWithoutTracePath.tracePath
+
+    expect(
+      getTestRunDetailsData(
+        withTestRunDetails({
+          testCases: [{ ...baseTestCase, testCase: { title: 'Missing description' } }],
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      getTestRunDetailsData(
+        withTestRunDetails({
+          testCases: [{ ...baseTestCase, testSuite: { id: 'suite-1' } }],
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      getTestRunDetailsData(
+        withTestRunDetails({
+          testCases: [testCaseWithoutTracePath],
+        }),
+      ),
+    ).toBeNull()
   })
 
   it('returns trace viewer status data only when isRunning is boolean', () => {

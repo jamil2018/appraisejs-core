@@ -4,71 +4,76 @@ import type { ActionResponseData } from '@/types/form/actionHandler'
 
 import type { TestRunDetailsData, TestRunDetailsTestCase } from './test-run-details-types'
 
+type UnknownRecord = Record<string, unknown>
+
+function isObjectRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null
+}
+
+function hasFields(value: UnknownRecord, fields: string[]) {
+  return fields.every(field => field in value)
+}
+
 function isTagRow(value: unknown): value is Tag {
-  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
+  return isObjectRecord(value) && hasFields(value, ['id', 'name'])
 }
 
 function isEnvironmentRow(value: unknown): value is Environment {
-  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
+  return isObjectRecord(value) && hasFields(value, ['id', 'name'])
 }
 
 function isReportRow(value: unknown): value is Report {
-  return typeof value === 'object' && value !== null && 'id' in value && 'testRunId' in value
+  return isObjectRecord(value) && hasFields(value, ['id', 'testRunId'])
 }
 
 function isTestCaseInfo(value: unknown): value is TestRunDetailsTestCase['testCase'] {
-  return typeof value === 'object' && value !== null && 'title' in value && 'description' in value
+  return isObjectRecord(value) && hasFields(value, ['title', 'description'])
 }
 
 function isTestSuiteInfo(value: unknown): value is TestRunDetailsTestCase['testSuite'] {
-  return value === null || (typeof value === 'object' && value !== null && 'id' in value && 'name' in value)
+  return value === null || (isObjectRecord(value) && hasFields(value, ['id', 'name']))
 }
 
 function isTestRunDetailsTestCase(value: unknown): value is TestRunDetailsTestCase {
+  if (!isObjectRecord(value) || !hasFields(value, ['id', 'status', 'result', 'tracePath', 'testCase', 'testSuite'])) {
+    return false
+  }
+
+  return isTestCaseInfo(value.testCase) && isTestSuiteInfo(value.testSuite)
+}
+
+function hasTestRunScalarFields(value: UnknownRecord) {
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'status' in value &&
-    'result' in value &&
-    'tracePath' in value &&
-    'testCase' in value &&
-    isTestCaseInfo(value.testCase) &&
-    'testSuite' in value &&
-    isTestSuiteInfo(value.testSuite)
+    hasFields(value, ['id', 'runId', 'status', 'result', 'startedAt', 'completedAt', 'browserEngine', 'testWorkersCount']) &&
+    value.startedAt instanceof Date &&
+    (value.completedAt instanceof Date || value.completedAt === null)
   )
 }
 
-function isTestRunDetailsData(value: unknown): value is TestRunDetailsData {
+function hasTestRunCollections(value: UnknownRecord) {
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'runId' in value &&
-    'status' in value &&
-    'result' in value &&
-    'startedAt' in value &&
-    value.startedAt instanceof Date &&
-    'completedAt' in value &&
-    (value.completedAt instanceof Date || value.completedAt === null) &&
-    'browserEngine' in value &&
-    'testWorkersCount' in value &&
-    'testCases' in value &&
+    hasFields(value, ['testCases', 'tags', 'reports']) &&
     Array.isArray(value.testCases) &&
     value.testCases.every(isTestRunDetailsTestCase) &&
-    'tags' in value &&
     Array.isArray(value.tags) &&
     value.tags.every(isTagRow) &&
-    'environment' in value &&
-    isEnvironmentRow(value.environment) &&
-    'reports' in value &&
     Array.isArray(value.reports) &&
     value.reports.every(isReportRow)
   )
 }
 
+function isTestRunDetailsData(value: unknown): value is TestRunDetailsData {
+  return (
+    isObjectRecord(value) &&
+    hasTestRunScalarFields(value) &&
+    hasTestRunCollections(value) &&
+    hasFields(value, ['environment']) &&
+    isEnvironmentRow(value.environment)
+  )
+}
+
 function isTraceViewerStatusData(value: unknown): value is { isRunning: boolean } {
-  return typeof value === 'object' && value !== null && 'isRunning' in value && typeof value.isRunning === 'boolean'
+  return isObjectRecord(value) && hasFields(value, ['isRunning']) && typeof value.isRunning === 'boolean'
 }
 
 export function getTestRunDetailsData(data: ActionResponseData | undefined) {
