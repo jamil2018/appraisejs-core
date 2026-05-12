@@ -100,6 +100,12 @@ export async function listTestSuiteTestCases() {
 
 type TestRunTestCaseLink = { testCaseId: string; testSuiteId?: string | null }
 
+type ResolvedTestRunFilters = {
+  tagExpression: string | null
+  tags: Tag[]
+  testRunTestCases: TestRunTestCaseLink[]
+}
+
 async function resolveTagExpressionAndTestCases(value: TestRunFormValue): Promise<{
   tagExpression: string
   tags: Tag[]
@@ -125,154 +131,175 @@ async function resolveTagExpressionAndTestCases(value: TestRunFormValue): Promis
     )
   }
 
-  let tags: Tag[] = []
-  let tagExpression: string | null = null
-  let testRunTestCases: TestRunTestCaseLink[] = []
-
-  if (isFilteringByTags) {
-    tags = await prisma.tag.findMany({
-      where: { id: { in: value.tags } },
-    })
-
-    tagExpression = buildOrExpression(tags.map(tag => `(${tag.tagExpression})`))
-
-    const tagFilteredTestCases = await prisma.testCase.findMany({
-      where: {
-        OR: [
-          {
-            tags: {
-              some: { id: { in: value.tags } },
-            },
-          },
-          {
-            TestSuite: {
-              some: {
-                tags: {
-                  some: { id: { in: value.tags } },
-                },
-              },
-            },
-          },
-        ],
-      },
-    })
-
-    testRunTestCases = tagFilteredTestCases.map(tc => ({
-      testCaseId: tc.id,
-      testSuiteId: null,
-    }))
-  } else if (isFilteringByTestSuites) {
-    await ensureTestSuiteIdentifierTags(value.testSuites.map(testSuite => testSuite.testSuiteId))
-
-    const selectedSuites = await prisma.testSuite.findMany({
-      where: {
-        id: {
-          in: value.testSuites.map(testSuite => testSuite.testSuiteId),
-        },
-      },
-      include: {
-        tags: true,
-        testCases: {
-          include: {
-            tags: true,
-          },
-        },
-      },
-    })
-
-    if (selectedSuites.length !== value.testSuites.length) {
-      throw new ServiceError('One or more selected test suites could not be found.', 'VALIDATION', 400)
-    }
-
-    const selectedSuiteById = new Map(selectedSuites.map(testSuite => [testSuite.id, testSuite]))
-    const suiteClauses: string[] = []
-
-    for (const suiteSelection of value.testSuites) {
-      const selectedSuite = selectedSuiteById.get(suiteSelection.testSuiteId)
-      if (!selectedSuite) {
-        continue
-      }
-
-      if (selectedSuite.testCases.length === 0) {
-        continue
-      }
-
-      const normalizedSelection = normalizeSuiteSelection(
-        suiteSelection,
-        selectedSuite.testCases.map(testCase => testCase.id),
-      )
-
-      if (!normalizedSelection) {
-        continue
-      }
-
-      const suiteIdentifierTag = getIdentifierTagByPrefix(selectedSuite.tags, 'ts_')
-      if (!suiteIdentifierTag) {
-        throw new ServiceError(
-          `Test suite "${selectedSuite.name}" does not have an identifier tag.`,
-          'VALIDATION',
-          400,
-        )
-      }
-
-      if (normalizedSelection.runAll) {
-        suiteClauses.push(`(${suiteIdentifierTag.tagExpression})`)
-        testRunTestCases.push(
-          ...selectedSuite.testCases.map(testCase => ({
-            testCaseId: testCase.id,
-            testSuiteId: selectedSuite.id,
-          })),
-        )
-        continue
-      }
-
-      const selectedTestCases = selectedSuite.testCases.filter(testCase =>
-        normalizedSelection.testCaseIds.includes(testCase.id),
-      )
-
-      if (selectedTestCases.length === 0) {
-        throw new ServiceError(
-          `Test suite "${selectedSuite.name}" requires at least one selected test case.`,
-          'VALIDATION',
-          400,
-        )
-      }
-
-      const missingIdentifierTestCase = selectedTestCases.find(
-        testCase => !getIdentifierTagByPrefix(testCase.tags, 'tc_'),
-      )
-      if (missingIdentifierTestCase) {
-        throw new ServiceError(
-          `Test case "${missingIdentifierTestCase.title}" does not have an identifier tag.`,
-          'VALIDATION',
-          400,
-        )
-      }
-
-      const testCaseTagExpressions = selectedTestCases.map(testCase => {
-        const identifierTag = getIdentifierTagByPrefix(testCase.tags, 'tc_')
-        return identifierTag!.tagExpression
-      })
-
-      suiteClauses.push(
-        `(${suiteIdentifierTag.tagExpression}) and (${testCaseTagExpressions.map(tag => `(${tag})`).join(' or ')})`,
-      )
-      testRunTestCases.push(
-        ...selectedTestCases.map(testCase => ({
-          testCaseId: testCase.id,
-          testSuiteId: selectedSuite.id,
-        })),
-      )
-    }
-
-    tagExpression = buildOrExpression(suiteClauses.map(clause => `(${clause})`))
-  }
+  const { tagExpression, tags, testRunTestCases } = isFilteringByTags
+    ? await resolveTaggedTestRunFilters(value.tags)
+    : await resolveSuiteTestRunFilters(value.testSuites)
 
   if (!tagExpression) {
     throw new ServiceError('No executable tests were resolved from the selected filters.', 'VALIDATION', 400)
   }
 
   return { tagExpression, tags, testRunTestCases, environment }
+}
+
+async function resolveTaggedTestRunFilters(tagIds: string[]): Promise<ResolvedTestRunFilters> {
+  const tags = await prisma.tag.findMany({
+    where: { id: { in: tagIds } },
+  })
+
+  const tagExpression = buildOrExpression(tags.map(tag => `(${tag.tagExpression})`))
+  const tagFilteredTestCases = await prisma.testCase.findMany({
+    where: {
+      OR: [
+        {
+          tags: {
+            some: { id: { in: tagIds } },
+          },
+        },
+        {
+          TestSuite: {
+            some: {
+              tags: {
+                some: { id: { in: tagIds } },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+
+  return {
+    tagExpression,
+    tags,
+    testRunTestCases: tagFilteredTestCases.map(testCase => ({
+      testCaseId: testCase.id,
+      testSuiteId: null,
+    })),
+  }
+}
+
+async function resolveSuiteTestRunFilters(value: TestRunFormValue['testSuites']): Promise<ResolvedTestRunFilters> {
+  await ensureTestSuiteIdentifierTags(value.map(testSuite => testSuite.testSuiteId))
+
+  const selectedSuites = await prisma.testSuite.findMany({
+    where: {
+      id: {
+        in: value.map(testSuite => testSuite.testSuiteId),
+      },
+    },
+    include: {
+      tags: true,
+      testCases: {
+        include: {
+          tags: true,
+        },
+      },
+    },
+  })
+
+  if (selectedSuites.length !== value.length) {
+    throw new ServiceError('One or more selected test suites could not be found.', 'VALIDATION', 400)
+  }
+
+  const selectedSuiteById = new Map(selectedSuites.map(testSuite => [testSuite.id, testSuite]))
+  const suiteClauses: string[] = []
+  const testRunTestCases: TestRunTestCaseLink[] = []
+
+  for (const suiteSelection of value) {
+    const suiteResult = resolveSuiteSelectionFilter(selectedSuiteById.get(suiteSelection.testSuiteId), suiteSelection)
+    if (!suiteResult) {
+      continue
+    }
+
+    suiteClauses.push(suiteResult.clause)
+    testRunTestCases.push(...suiteResult.testRunTestCases)
+  }
+
+  return {
+    tagExpression: buildOrExpression(suiteClauses.map(clause => `(${clause})`)),
+    tags: [],
+    testRunTestCases,
+  }
+}
+
+function resolveSuiteSelectionFilter(
+  selectedSuite:
+    | {
+        id: string
+        name: string
+        tags: Tag[]
+        testCases: Array<{ id: string; title: string; tags: Tag[] }>
+      }
+    | undefined,
+  suiteSelection: TestRunFormValue['testSuites'][number],
+): { clause: string; testRunTestCases: TestRunTestCaseLink[] } | null {
+  if (!selectedSuite || selectedSuite.testCases.length === 0) {
+    return null
+  }
+
+  const normalizedSelection = normalizeSuiteSelection(
+    suiteSelection,
+    selectedSuite.testCases.map(testCase => testCase.id),
+  )
+
+  if (!normalizedSelection) {
+    return null
+  }
+
+  const suiteIdentifierTag = getIdentifierTagByPrefix(selectedSuite.tags, 'ts_')
+  if (!suiteIdentifierTag) {
+    throw new ServiceError(`Test suite "${selectedSuite.name}" does not have an identifier tag.`, 'VALIDATION', 400)
+  }
+
+  if (normalizedSelection.runAll) {
+    return {
+      clause: `(${suiteIdentifierTag.tagExpression})`,
+      testRunTestCases: selectedSuite.testCases.map(testCase => ({
+        testCaseId: testCase.id,
+        testSuiteId: selectedSuite.id,
+      })),
+    }
+  }
+
+  return resolvePartialSuiteSelectionFilter(selectedSuite, normalizedSelection.testCaseIds, suiteIdentifierTag)
+}
+
+function resolvePartialSuiteSelectionFilter(
+  selectedSuite: {
+    id: string
+    name: string
+    testCases: Array<{ id: string; title: string; tags: Tag[] }>
+  },
+  selectedTestCaseIds: string[],
+  suiteIdentifierTag: Tag,
+): { clause: string; testRunTestCases: TestRunTestCaseLink[] } {
+  const selectedTestCases = selectedSuite.testCases.filter(testCase => selectedTestCaseIds.includes(testCase.id))
+
+  if (selectedTestCases.length === 0) {
+    throw new ServiceError(
+      `Test suite "${selectedSuite.name}" requires at least one selected test case.`,
+      'VALIDATION',
+      400,
+    )
+  }
+
+  const testCaseTagExpressions = selectedTestCases.map(testCase => {
+    const identifierTag = getIdentifierTagByPrefix(testCase.tags, 'tc_')
+    if (!identifierTag) {
+      throw new ServiceError(`Test case "${testCase.title}" does not have an identifier tag.`, 'VALIDATION', 400)
+    }
+
+    return identifierTag.tagExpression
+  })
+
+  return {
+    clause: `(${suiteIdentifierTag.tagExpression}) and (${testCaseTagExpressions.map(tag => `(${tag})`).join(' or ')})`,
+    testRunTestCases: selectedTestCases.map(testCase => ({
+      testCaseId: testCase.id,
+      testSuiteId: selectedSuite.id,
+    })),
+  }
 }
 
 export type UpdateScenarioStatusResult =
