@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import { TemplateStep, TemplateStepGroupType } from '@prisma/client'
 import { ensureStepsDirectory, getFilePath, formatFileContent } from './template-step-file-generator'
+import { findStepFunctionBounds } from './template-step-function-bounds'
 
 /**
  * Generates JSDoc comments for a template step group
@@ -149,116 +150,6 @@ function requiresFileUpdate(oldStep: TemplateStep, newStep: TemplateStep): boole
 
   // No file changes needed for other updates
   return false
-}
-
-/**
- * Finds the start and end lines of a step definition function in the file
- * Uses flexible signature matching to handle prettier formatting variations
- * Handles JSDoc comments that may precede the function
- */
-function findStepFunctionBounds(content: string, signature: string): { startLine: number; endLine: number } | null {
-  const lines = content.split('\n')
-
-  // Search for the signature content across multiple lines (handles prettier formatting)
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmedLine = line.trim()
-
-    // Skip JSDoc comment lines (but not the function definition itself)
-    if (
-      trimmedLine.startsWith('/**') ||
-      trimmedLine === '*/' ||
-      (trimmedLine.startsWith('*') && !trimmedLine.startsWith('When(') && !trimmedLine.startsWith('Then('))
-    ) {
-      continue
-    }
-
-    // Check if this line starts a step definition
-    if (trimmedLine.startsWith('When(') || trimmedLine.startsWith('Then(')) {
-      // Look ahead to find the complete signature across multiple lines
-      let signatureFound = false
-      let currentSignature = ''
-
-      // Collect signature content from current and following lines until we hit the function start
-      for (let j = i; j < lines.length; j++) {
-        const currentLine = lines[j]
-        currentSignature += currentLine
-
-        // Check if we've found our signature
-        if (currentSignature.includes(signature)) {
-          signatureFound = true
-          break
-        }
-
-        // If we hit the function opening brace, stop looking for signature
-        if (currentLine.includes('async function') || currentLine.includes('function(')) {
-          break
-        }
-      }
-
-      if (signatureFound) {
-        // Found the start, now find the end using bracket and parenthesis counting
-        // Also check backwards for JSDoc comments to include them in the bounds
-        let functionStartLine = i
-        let braceCount = 0
-        let parenCount = 0
-        let startParenFound = false
-
-        // Check if there are JSDoc comments before this function
-        if (i > 0) {
-          let jsdocStart = i - 1
-          // Look backwards for JSDoc comment block
-          // First, check if the previous line is the end of a JSDoc block
-          if (lines[jsdocStart].trim() === '*/') {
-            // Found end of JSDoc, continue looking backwards for the start
-            jsdocStart--
-            while (jsdocStart >= 0) {
-              const prevLine = lines[jsdocStart].trim()
-              if (prevLine.startsWith('/**')) {
-                // Found start of JSDoc block
-                functionStartLine = jsdocStart
-                break
-              } else if (prevLine.startsWith('*') || prevLine === '') {
-                jsdocStart--
-              } else {
-                break
-              }
-            }
-          }
-        }
-
-        for (let j = i; j < lines.length; j++) {
-          const currentLine = lines[j]
-
-          // Count opening and closing parentheses and braces
-          for (const char of currentLine) {
-            if (char === '(') {
-              parenCount++
-              startParenFound = true
-            } else if (char === ')') {
-              parenCount--
-            } else if (char === '{') {
-              braceCount++
-            } else if (char === '}') {
-              braceCount--
-            }
-          }
-
-          // If we found the opening parenthesis and both parentheses and braces are balanced, we're done
-          // This ensures we capture the complete When(...) or Then(...) call including the closing )
-          if (startParenFound && parenCount === 0 && braceCount === 0) {
-            return { startLine: functionStartLine, endLine: j }
-          }
-        }
-
-        // If we reach here, something went wrong with bracket counting
-        console.warn(`Could not find end of function for signature: ${signature}`)
-        return null
-      }
-    }
-  }
-
-  return null
 }
 
 /**
@@ -697,4 +588,3 @@ export async function renameTemplateStepGroupFile(
     throw new Error(`File rename failed: ${error}`)
   }
 }
-
