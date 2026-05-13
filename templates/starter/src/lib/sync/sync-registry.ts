@@ -92,7 +92,7 @@ const syncScriptDefinitionMap = new Map<SyncScriptId, (typeof syncScriptDefiniti
   syncScriptDefinitions.map(definition => [definition.id, definition]),
 )
 
-export function isSyncScriptId(value: string): value is SyncScriptId {
+function isSyncScriptId(value: string): value is SyncScriptId {
   return syncScriptDefinitionMap.has(value as SyncScriptId)
 }
 
@@ -110,7 +110,7 @@ export function getSyncScriptDefinition(scriptId: SyncScriptId) {
   return definition
 }
 
-export function resolveSyncExecutionOrder(requestedScriptId: SyncScriptId): SyncScriptId[] {
+function resolveSyncExecutionOrder(requestedScriptId: SyncScriptId): SyncScriptId[] {
   const visiting = new Set<SyncScriptId>()
   const visited = new Set<SyncScriptId>()
   const executionOrder: SyncScriptId[] = []

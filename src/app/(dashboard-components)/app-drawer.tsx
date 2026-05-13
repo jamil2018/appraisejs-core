@@ -86,7 +86,7 @@ export const AppDrawerItemColor = {
   },
 }
 
-export const AppDrawerItem = ({
+const AppDrawerItem = ({
   title,
   icon,
   colorKey,

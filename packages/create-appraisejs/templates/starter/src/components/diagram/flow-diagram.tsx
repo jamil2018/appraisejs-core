@@ -47,7 +47,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import OptionsHeaderNode from './options-header-node'
 import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
 import NodeForm from './node-form'
-import { NodeData } from '@/constants/form-opts/diagram/node-form'
+import type { NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import { Environment, Locator, TemplateStep, TemplateStepParameter, LocatorGroup, Module } from '@prisma/client'
 import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
@@ -237,7 +237,7 @@ const FlowDiagram = ({
   const [showAddNodeDialog, setShowAddNodeDialog] = useState(false)
   const [showEditNodeDialog, setShowEditNodeDialog] = useState(false)
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
-  const [editNodeData, setEditNodeData] = useState<NodeData | null>(null)
+  const [editNodeData, setEditNodeData] = useState<NodeFormData | null>(null)
   const [pendingAddSourceNodeId, setPendingAddSourceNodeId] = useState<string | null>(null)
   const [isConnectionInProgress, setIsConnectionInProgress] = useState(false)
   const [availableLocators, setAvailableLocators] = useState(locators)
@@ -372,7 +372,7 @@ const FlowDiagram = ({
   }, [flowBlockMembership, handleEditNode, showTopologyBlockedToast])
 
   const addNode = useCallback(
-    (formData: NodeData) => {
+    (formData: NodeFormData) => {
       const realCount = nodes.filter(n => !isAddNodePromptNode(n)).length
       const sourceNode = pendingAddSourceNodeId ? nodes.find(node => node.id === pendingAddSourceNodeId) : undefined
       const newNodeId = crypto.randomUUID()
@@ -402,7 +402,7 @@ const FlowDiagram = ({
   )
 
   const handleEditNodeSubmit = useCallback(
-    (formData: NodeData) => {
+    (formData: NodeFormData) => {
       if (!editNodeId) return
       const nextNodeData = buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, false)
 

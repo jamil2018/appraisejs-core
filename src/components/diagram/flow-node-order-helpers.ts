@@ -1,7 +1,7 @@
 import type { Connection, Edge, Node } from '@xyflow/react'
 import type { TemplateStepParameter } from '@prisma/client'
 
-import type { NodeData as NodeFormData } from '@/constants/form-opts/diagram/node-form'
+import type { NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import type { NodeOrderMap } from '@/types/diagram/diagram'
 
 import { createAddNodePromptNode, isAddNodePromptNode } from './flow-add-node-prompt-helpers'

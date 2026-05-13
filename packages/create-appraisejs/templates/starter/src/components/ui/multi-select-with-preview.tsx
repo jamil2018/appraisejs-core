@@ -26,7 +26,7 @@ interface MultiSelectWithPreviewProps {
   searchPlaceholder?: string
 }
 
-export function MultiSelectWithPreview({
+function MultiSelectWithPreview({
   id,
   className,
   options,

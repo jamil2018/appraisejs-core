@@ -41,7 +41,7 @@ function consumeCandidate<T extends MatchableRunTestCase>(candidates: T[]): T | 
   return unconsumed ?? candidates[0]
 }
 
-export function extractTestCaseTitleFromScenarioName(scenarioName: string): string | null {
+function extractTestCaseTitleFromScenarioName(scenarioName: string): string | null {
   const bracketMatch = scenarioName.match(/^\[([^\]]+)\]/)
   if (bracketMatch) {
     return bracketMatch[1].trim()

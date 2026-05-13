@@ -33,7 +33,7 @@ type TestSuitePickerProps = {
   selectedLabel: string
 }
 
-export function TestSuitePicker({
+function TestSuitePicker({
   testSuites,
   selectedSuites,
   onSave,

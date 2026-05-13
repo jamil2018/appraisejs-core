@@ -9,7 +9,7 @@ import { ADD_NODE_PROMPT_NODE_TYPE, type AddNodePromptNodeData } from './flow-di
 
 export type AddNodePromptFlowNode = Node<AddNodePromptNodeData, typeof ADD_NODE_PROMPT_NODE_TYPE>
 
-export type AddNodePromptNodeComponentProps = NodeProps<AddNodePromptFlowNode> & {
+type AddNodePromptNodeComponentProps = NodeProps<AddNodePromptFlowNode> & {
   onOpenAddNode: () => void
 }
 

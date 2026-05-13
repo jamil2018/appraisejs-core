@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react'
 import { StepParameterType, type TemplateStep, type TemplateStepParameter } from '@prisma/client'
 
-import type { NodeData as NodeFormData } from '@/constants/form-opts/diagram/node-form'
+import type { NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
 import type { NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 

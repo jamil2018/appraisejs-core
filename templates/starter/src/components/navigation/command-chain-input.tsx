@@ -6,7 +6,7 @@ import { Search } from 'lucide-react'
 import { CommandBadge } from './command-badge'
 import { cn } from '@/lib/utils'
 
-export interface CommandChainInputProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> {
+interface CommandChainInputProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> {
   badge?: {
     label: string
     onClose: () => void

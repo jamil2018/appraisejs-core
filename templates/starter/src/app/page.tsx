@@ -2,12 +2,11 @@ import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import AppDrawer from './(dashboard-components)/app-drawer'
 import {
-  EntityMetrics,
   getDashboardMetricsAction,
   getEntityMetricsAction,
   getTestSuiteExecutionDataAction,
 } from '@/actions/dashboard/dashboard-actions'
-import type { TestSuiteExecutionData } from '@/services/dashboard/dashboard-service'
+import type { EntityMetrics, TestSuiteExecutionData } from '@/services/dashboard/dashboard-service'
 import { DashboardMetrics } from '@prisma/client'
 import QuickActionsDrawer from './(dashboard-components)/quick-actions-drawer'
 import DataCard from './(dashboard-components)/data-card'

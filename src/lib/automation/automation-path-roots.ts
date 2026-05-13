@@ -54,20 +54,12 @@ export function getAutomationRunReportPath(runId: string): string {
   return path.join(getAutomationReportRunDir(runId), 'cucumber.json')
 }
 
-export function getAutomationReportLogsDir(runId: string): string {
+function getAutomationReportLogsDir(runId: string): string {
   return path.join(getAutomationReportRunDir(runId), 'logs')
 }
 
 export function getAutomationRunLogPath(runId: string): string {
   return path.join(getAutomationReportLogsDir(runId), 'run.log')
-}
-
-export function getAutomationReportTracesDir(runId: string): string {
-  return path.join(getAutomationReportRunDir(runId), 'traces')
-}
-
-export function getAutomationReportScreenshotsDir(runId: string): string {
-  return path.join(getAutomationReportRunDir(runId), 'screenshots')
 }
 
 export function toProjectRelativePath(targetPath: string): string {

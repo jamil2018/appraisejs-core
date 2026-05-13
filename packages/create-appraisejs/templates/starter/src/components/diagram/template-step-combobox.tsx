@@ -94,7 +94,7 @@ function StepIcon({
   )
 }
 
-export type TemplateStepComboboxProps = {
+type TemplateStepComboboxProps = {
   value: string
   onValueChange: (value: string) => void
   templateSteps: TemplateStepWithGroup[]

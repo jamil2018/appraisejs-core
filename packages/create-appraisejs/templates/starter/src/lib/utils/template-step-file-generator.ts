@@ -37,7 +37,7 @@ function generateStepDefinition(templateStep: TemplateStep): string | null {
   return `${generateStepJSDoc(templateStep)}\n${stripLeadingJSDoc(functionDefinition)}`
 }
 
-export function sanitizeFileName(groupName: string): string {
+function sanitizeFileName(groupName: string): string {
   return groupName
     .toLowerCase()
     .trim()
@@ -74,7 +74,7 @@ export async function formatFileContent(content: string): Promise<string> {
   }
 }
 
-export function getSubdirectoryName(type: TemplateStepGroupType | string): string {
+function getSubdirectoryName(type: TemplateStepGroupType | string): string {
   const typeStr = String(type)
   return typeStr === 'ACTION' ? 'actions' : 'validations'
 }
@@ -107,22 +107,5 @@ export async function writeTemplateStepFile(
   } catch (error) {
     console.error(`Failed to write template step file for group "${groupName}":`, error)
     throw new Error(`File generation failed: ${error}`)
-  }
-}
-
-export async function deleteTemplateStepFile(groupName: string, type: TemplateStepGroupType | string): Promise<void> {
-  try {
-    const filePath = getFilePath(groupName, type)
-
-    try {
-      await fs.access(filePath)
-    } catch {
-      return
-    }
-
-    await fs.unlink(filePath)
-  } catch (error) {
-    console.error(`Failed to delete template step file for group "${groupName}":`, error)
-    throw new Error(`File deletion failed: ${error}`)
   }
 }

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { NodeData } from '@/constants/form-opts/diagram/node-form'
+import type { NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import TemplateStepCombobox from './template-step-combobox'
 import { type TemplateStepWithGroup } from '@/types/diagram/template-step'
@@ -58,7 +58,7 @@ const NodeForm = ({
     {
       name: string
       value: string
-      type: NodeData['parameters'][number]['type']
+      type: NodeFormData['parameters'][number]['type']
       order: number
     }[]
   >(initialValues.parameters ?? [])

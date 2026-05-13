@@ -49,7 +49,7 @@ type TestCasePickerProps = {
   selectedLabel: string
 }
 
-export function TestCasePicker({
+function TestCasePicker({
   testCases,
   selectedIds,
   onSave,

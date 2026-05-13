@@ -24,7 +24,7 @@ export interface SpawnedProcess {
   endTime: Date | null
 }
 
-export class TaskSpawner extends EventEmitter {
+class TaskSpawner extends EventEmitter {
   private processes: Map<string, SpawnedProcess> = new Map()
   private processCounter = 0
   private outputBuffers: Map<string, { stdout: string; stderr: string }> = new Map()

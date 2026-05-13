@@ -220,7 +220,7 @@ export async function updateTestSuiteMetrics(
  * @param testRunId - The test run ID
  * @param executedAt - When the test run was executed
  */
-export async function updateTestSuitesForTestRun(
+async function updateTestSuitesForTestRun(
   testRunId: string,
   executedAt: Date,
 ): Promise<void> {

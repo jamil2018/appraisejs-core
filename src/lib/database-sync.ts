@@ -6,77 +6,6 @@ import { Prisma, TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@
 import { getTagTypeFromExpression } from './tag-identifiers'
 
 /**
- * Syncs feature files to the database by creating missing test suites and test cases
- * @param parsedFeatures - Array of parsed feature files
- * @param featuresBaseDir - Base directory for features
- * @returns Promise<{createdTestSuites: number, createdTestCases: number, createdTemplateSteps: number}>
- */
-export async function syncFeaturesToDatabase(
-  parsedFeatures: ParsedFeature[],
-  featuresBaseDir: string,
-): Promise<{
-  createdTestSuites: number
-  createdTestCases: number
-  createdTemplateSteps: number
-}> {
-  let createdTestSuites = 0
-  let createdTestCases = 0
-  let createdTemplateSteps = 0
-
-  try {
-    for (const feature of parsedFeatures) {
-      const result = await syncFeatureToDatabase(feature, featuresBaseDir)
-
-      createdTestSuites += result.createdTestSuites
-      createdTestCases += result.createdTestCases
-      createdTemplateSteps += result.createdTemplateSteps
-    }
-
-    console.log(
-      `Sync completed: ${createdTestSuites} test suites, ${createdTestCases} test cases, ${createdTemplateSteps} template steps created`,
-    )
-
-    return {
-      createdTestSuites,
-      createdTestCases,
-      createdTemplateSteps,
-    }
-  } catch (error) {
-    console.error('Error syncing features to database:', error)
-    throw error
-  }
-}
-
-async function syncFeatureToDatabase(
-  feature: ParsedFeature,
-  featuresBaseDir: string,
-): Promise<{
-  createdTestSuites: number
-  createdTestCases: number
-  createdTemplateSteps: number
-}> {
-  const moduleId = await buildModuleHierarchy(extractModulePathFromFilePath(feature.filePath, featuresBaseDir))
-  const testSuiteId = await findOrCreateTestSuite(
-    feature.featureName,
-    feature.featureDescription,
-    moduleId,
-    feature.tags,
-  )
-
-  if (!testSuiteId) {
-    return { createdTestSuites: 0, createdTestCases: 0, createdTemplateSteps: 0 }
-  }
-
-  const result = await createFeatureScenarios(feature.scenarios, testSuiteId)
-
-  return {
-    createdTestSuites: 1,
-    createdTestCases: result.createdTestCases,
-    createdTemplateSteps: result.createdTemplateSteps,
-  }
-}
-
-/**
  * Determines the tag type based on the tag expression pattern
  * Pattern: @xx_id_xxxxxxxx where xx is any 2 chars, xxxxxxxx is any chars
  * @param tagExpression - The tag expression (e.g., "@tc_id_ue4qwoml" or "@smoke")
@@ -401,28 +330,6 @@ type ExistingTestSuite = Prisma.TestSuiteGetPayload<{
     testCases: true
   }
 }>
-
-async function createFeatureScenarios(
-  scenarios: ParsedScenario[],
-  testSuiteId: string,
-): Promise<{
-  createdTestCases: number
-  createdTemplateSteps: number
-}> {
-  let createdTestCases = 0
-  let createdTemplateSteps = 0
-
-  for (const scenario of scenarios) {
-    const testCaseId = await createScenarioTestCase(scenario, testSuiteId)
-
-    if (testCaseId) {
-      createdTestCases++
-      createdTemplateSteps += await createScenarioSteps(testCaseId, scenario.steps)
-    }
-  }
-
-  return { createdTestCases, createdTemplateSteps }
-}
 
 async function createScenarioTestCase(scenario: ParsedScenario, testSuiteId: string): Promise<string | null> {
   return findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId, scenario.tags)
