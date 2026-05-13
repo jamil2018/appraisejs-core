@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
-import { join, relative } from 'path'
+import { join } from 'path'
+import { getFeatureModulePath } from '@/lib/path-helpers/feature-path'
 
 /**
  * Represents a parsed feature file with its scenarios and steps
@@ -144,7 +145,11 @@ function parseGherkinLines(lines: string[]) {
       continue
     }
 
-    const step = currentScenario ? parseStep(line, stepOrder) : null
+    if (!currentScenario) {
+      continue
+    }
+
+    const step = parseStep(line, stepOrder)
     if (step) {
       currentScenario.steps.push(step)
       stepOrder++
@@ -229,14 +234,5 @@ export async function scanFeatureFiles(directoryPath: string): Promise<ParsedFea
  * @returns string - Module path (e.g., "/module1/submodule")
  */
 export function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  // Use path.relative for cross-platform path handling
-  const relativePath = relative(featuresBaseDir, featureFilePath)
-
-  // Normalize to forward slashes for module path format (database uses /)
-  const normalizedPath = relativePath.replace(/\\/g, '/')
-  const pathParts = normalizedPath.split('/').filter(part => part && part !== '')
-
-  // Remove the filename and join the remaining parts
-  const moduleParts = pathParts.slice(0, -1)
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+  return getFeatureModulePath(featureFilePath, featuresBaseDir)
 }

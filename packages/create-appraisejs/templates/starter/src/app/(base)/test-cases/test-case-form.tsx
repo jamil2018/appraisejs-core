@@ -35,8 +35,8 @@ import { TestScenarioPreview } from '@/components/test-case/test-scenario-previe
 import {
   buildScenarioPreview,
   buildScenarioSteps,
-  getActionErrorMessage,
   getNodesWithMissingMandatoryParams,
+  handleTestCaseSaveResponse,
   testCaseQuickTips,
   testCaseSubmitSchema,
 } from '@/components/test-case/test-case-form-helpers'
@@ -133,7 +133,7 @@ function resolveTemplateSelection({
   const { convertedData, error } = getConvertedTemplateTestCaseData(templateTestCase)
 
   if (!convertedData || error) {
-    return { status: 'conversion-error', error }
+    return { status: 'conversion-error', error: error ?? undefined }
   }
 
   return { status: 'converted', templateTestCase, convertedData }
@@ -1079,21 +1079,7 @@ function useTestCaseSubmitHandler({
     }
     setErrors({})
     const response = await onSubmitAction(result.data, id)
-    if (response.status === 200) {
-      toast({
-        title: 'Success',
-        description: 'Test case saved successfully',
-        variant: 'default',
-      })
-      router.push(`/test-cases`)
-    }
-    if (response.status === 500) {
-      toast({
-        title: 'Error',
-        description: getActionErrorMessage(response),
-        variant: 'destructive',
-      })
-    }
+    handleTestCaseSaveResponse({ response, redirectPath: '/test-cases', push: router.push, toast })
   }, [
     description,
     detailsStepIndex,

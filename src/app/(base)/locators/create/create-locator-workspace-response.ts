@@ -26,7 +26,10 @@ function hasDateProp(value: UnknownRecord, property: string) {
   return value[property] instanceof Date
 }
 
-function hasStringProps(value: UnknownRecord, properties: string[]) {
+function hasStringProps<T extends string>(
+  value: UnknownRecord,
+  properties: readonly T[],
+): value is UnknownRecord & Record<T, string> {
   return properties.every(property => hasStringProp(value, property))
 }
 

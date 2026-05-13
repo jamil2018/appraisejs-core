@@ -13,6 +13,11 @@
     "public/**",
     "templates/**"
   ],
+  "ignoreDependencies": [
+    "@codemirror/lang-jinja",
+    "@faker-js/faker",
+    "dotenv"
+  ],
   "duplicates": {
     "ignore": [
       "automation/**",

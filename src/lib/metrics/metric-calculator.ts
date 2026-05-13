@@ -426,7 +426,7 @@ async function resolveRecalculatedMetricDates(
   return dates
 }
 
-function getCompletedAt(testRunTestCase?: CompletedTestRunTestCase): Date | null {
+function getCompletedAt(testRunTestCase?: CompletedTestRunTestCase | null): Date | null {
   return testRunTestCase ? testRunTestCase.testRun.completedAt || new Date() : null
 }
 

@@ -41,7 +41,9 @@ function groupStepsByGroupName(
 }
 
 function buildStepKeywords(step: TemplateStepWithGroup, groupKey: string) {
-  return [step.description, groupKey, ...(step.parameters ?? []).map(parameter => parameter.name)].filter(Boolean)
+  return [step.description, groupKey, ...(step.parameters ?? []).map(parameter => parameter.name)].filter(
+    (keyword): keyword is string => typeof keyword === 'string' && keyword.length > 0,
+  )
 }
 
 function normalizeForSearch(value: string) {

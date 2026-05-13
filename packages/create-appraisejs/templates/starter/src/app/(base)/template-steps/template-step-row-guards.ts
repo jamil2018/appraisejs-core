@@ -9,26 +9,25 @@ import type {
   TemplateStepTableRow,
 } from './template-step-types'
 
+type UnknownRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null
+}
+
 function isNamedRow(value: unknown): value is TemplateStepGroupOption {
-  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
+  return isRecord(value) && 'id' in value && 'name' in value
 }
 
 function isTemplateStepParameterRow(value: unknown): value is TemplateStepParameter {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'name' in value &&
-    'type' in value &&
-    'order' in value
-  )
+  return isRecord(value) && 'id' in value && 'name' in value && 'type' in value && 'order' in value
 }
 
 function isTemplateStepParameterSummary(value: unknown): value is TemplateStepParameterSummary {
-  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value
+  return isRecord(value) && 'id' in value && 'name' in value
 }
 
-function hasTemplateStepShape(value: unknown) {
+function hasTemplateStepShape(value: unknown): value is UnknownRecord & { parameters: unknown[] } {
   const requiredFields = [
     'id',
     'name',
@@ -43,8 +42,7 @@ function hasTemplateStepShape(value: unknown) {
   ] as const
 
   return (
-    typeof value === 'object' &&
-    value !== null &&
+    isRecord(value) &&
     requiredFields.every(field => field in value) &&
     Array.isArray(value.parameters)
   )
