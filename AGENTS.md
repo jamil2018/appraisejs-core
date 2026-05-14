@@ -53,3 +53,9 @@ Prefer canonical source files over generated artifacts. If changing authored tes
 For CRUD/domain work, start with `src/actions/*`, `prisma/schema.prisma`, and the matching page/form/table under `src/app/(base)`. For run execution or logs, start with `src/actions/test-run/test-run-actions.ts`, `src/lib/test-run/test-run-executor.ts`, `src/lib/test-run/process-manager.ts`, `src/app/api/test-runs/[runId]/logs/route.ts`, and `cucumber.mjs`.
 
 For scaffolded-app changes, edit the root/base source first, then run `npm run sync-template` and, when relevant, `npm --prefix packages/create-appraisejs run sync-templates`. Preserve unrelated worktree changes and avoid reverting generated files unless explicitly requested.
+
+### Commits, quality gates, and handoff
+
+- **Commit incrementally**: After completing a substantial slice of work (for example a single scoped code change, one logical feature, or one completed implementation todo), create a **git commit** with a short imperative subject so progress is checkpointed and pre-commit hooks run on a bounded diff.
+- **If pre-commit fails** (`npm run quality:pre-commit`, including Fallow and React Doctor): **fix the code or config you introduced** until the hook passes; do not bypass hooks or commit broken static analysis. Re-run `git commit` after fixes.
+- **Before finishing a task**: Run **`npm run validate`** (Vitest suite) and **`npm run build`** so tests and the production build both succeed; fix anything that fails before considering the task done.
