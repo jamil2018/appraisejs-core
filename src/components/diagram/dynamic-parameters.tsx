@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from 'react'
+import { useState, useMemo, useImperativeHandle, useEffect, useRef } from 'react'
 import { Calendar } from '@/components/ui/calendar'
 import CreateLocatorWorkspace from '@/app/(base)/locators/create/create-locator-workspace'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -60,18 +60,18 @@ export interface DynamicFormFieldsRef {
   validate: () => boolean
 }
 
-const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProps>((props, ref) => {
-  const {
-    templateStepParams,
-    locators,
-    locatorGroups,
-    environments,
-    modules,
-    onLocatorCreated,
-    defaultValueInput = false,
-    onChange,
-    initialParameterValues,
-  } = props
+function DynamicFormFields({
+  ref,
+  templateStepParams,
+  locators,
+  locatorGroups,
+  environments,
+  modules,
+  onLocatorCreated,
+  defaultValueInput = false,
+  onChange,
+  initialParameterValues,
+}: DynamicFormFieldsProps & React.RefAttributes<DynamicFormFieldsRef>) {
 
   const resetKey = useMemo(() => {
     return JSON.stringify({
@@ -584,6 +584,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
       </CardContent>
     </Card>
   )
-})
+}
+
 DynamicFormFields.displayName = 'DynamicFormFields'
 export default DynamicFormFields

@@ -6,19 +6,15 @@ import { Search } from 'lucide-react'
 import { CommandBadge } from './command-badge'
 import { cn } from '@/lib/utils'
 
-interface CommandChainInputProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> {
+interface CommandChainInputProps extends React.ComponentProps<typeof CommandPrimitive.Input> {
   badge?: {
     label: string
     onClose: () => void
   }
 }
 
-export const CommandChainInput = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.Input>,
-  CommandChainInputProps
->(({ badge, className, onKeyDown, ...props }, ref) => {
+export function CommandChainInput({ badge, className, onKeyDown, ...props }: CommandChainInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // If backspace is pressed and input is empty, clear the badge
     if (e.key === 'Backspace' && !(e.target as HTMLInputElement).value && badge) {
       e.preventDefault()
       badge.onClose()
@@ -36,7 +32,6 @@ export const CommandChainInput = React.forwardRef<
         </div>
       )}
       <CommandPrimitive.Input
-        ref={ref}
         className={cn(
           'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
           className,
@@ -46,6 +41,6 @@ export const CommandChainInput = React.forwardRef<
       />
     </div>
   )
-})
+}
 
 CommandChainInput.displayName = 'CommandChainInput'

@@ -12,12 +12,12 @@ const validateMock = vi.fn(() => true)
 vi.mock('./dynamic-parameters', async () => {
   const React = await import('react')
 
-  const MockDynamicFormFields = React.forwardRef<
-    { validate: () => boolean },
-    {
-      onChange?: (values: Array<{ name: string; value: string; type: StepParameterType; order: number }>) => void
-    }
-  >(({ onChange }, ref) => {
+  function MockDynamicFormFields({
+    ref,
+    onChange,
+  }: {
+    onChange?: (values: Array<{ name: string; value: string; type: StepParameterType; order: number }>) => void
+  } & React.RefAttributes<{ validate: () => boolean }>) {
     React.useImperativeHandle(ref, () => ({
       validate: validateMock,
     }))
@@ -38,7 +38,7 @@ vi.mock('./dynamic-parameters', async () => {
         Apply Parameters
       </button>
     )
-  })
+  }
 
   MockDynamicFormFields.displayName = 'MockDynamicFormFields'
 
