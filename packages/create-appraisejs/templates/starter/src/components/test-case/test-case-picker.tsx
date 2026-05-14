@@ -19,7 +19,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useState } from 'react'
+import { useReducer } from 'react'
 import { cn } from '@/lib/utils'
 import {
   createSelectionState,
@@ -28,6 +28,12 @@ import {
   getSelectionSummaryLabel,
   testCaseMatchesQuery,
 } from './test-case-picker-helpers'
+
+type Updater<T> = T | ((prev: T) => T)
+
+function applyUpdater<T>(updater: Updater<T>, prev: T): T {
+  return typeof updater === 'function' ? (updater as (p: T) => T)(prev) : updater
+}
 
 type TestCasePickerProps = {
   testCases: TestCasePickerRow[]
@@ -39,6 +45,68 @@ type TestCasePickerProps = {
   selectedLabel: string
 }
 
+const defaultPagination: PaginationState = {
+  pageIndex: 0,
+  pageSize: 10,
+}
+
+type PickerState = {
+  open: boolean
+  sorting: SortingState
+  columnFilters: ColumnFiltersState
+  globalFilter: string
+  rowSelection: RowSelectionState
+  pagination: PaginationState
+}
+
+type PickerAction =
+  | { type: 'openDialog'; selectedIds: string[] }
+  | { type: 'setOpen'; open: boolean }
+  | { type: 'setSorting'; updater: Updater<SortingState> }
+  | { type: 'setColumnFilters'; updater: Updater<ColumnFiltersState> }
+  | { type: 'setGlobalFilter'; updater: Updater<string> }
+  | { type: 'setPagination'; updater: Updater<PaginationState> }
+  | { type: 'setRowSelection'; updater: Updater<RowSelectionState> }
+
+function pickerReducer(state: PickerState, action: PickerAction): PickerState {
+  switch (action.type) {
+    case 'openDialog':
+      return {
+        ...state,
+        open: true,
+        rowSelection: createSelectionState(action.selectedIds),
+        columnFilters: [],
+        globalFilter: '',
+        pagination: { ...state.pagination, pageIndex: 0 },
+      }
+    case 'setOpen':
+      return { ...state, open: action.open }
+    case 'setSorting':
+      return { ...state, sorting: applyUpdater(action.updater, state.sorting) }
+    case 'setColumnFilters':
+      return { ...state, columnFilters: applyUpdater(action.updater, state.columnFilters) }
+    case 'setGlobalFilter':
+      return { ...state, globalFilter: applyUpdater(action.updater, state.globalFilter) }
+    case 'setPagination':
+      return { ...state, pagination: applyUpdater(action.updater, state.pagination) }
+    case 'setRowSelection':
+      return { ...state, rowSelection: applyUpdater(action.updater, state.rowSelection) }
+    default:
+      return state
+  }
+}
+
+function createInitialPickerState(selectedIds: string[]): PickerState {
+  return {
+    open: false,
+    sorting: [],
+    columnFilters: [],
+    globalFilter: '',
+    rowSelection: createSelectionState(selectedIds),
+    pagination: { ...defaultPagination },
+  }
+}
+
 function TestCasePicker({
   testCases,
   selectedIds,
@@ -48,25 +116,11 @@ function TestCasePicker({
   dialogDescription,
   selectedLabel,
 }: TestCasePickerProps) {
-  const [open, setOpen] = useState(false)
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>(() => createSelectionState(selectedIds))
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const [state, dispatch] = useReducer(pickerReducer, selectedIds, createInitialPickerState)
+  const { open, sorting, columnFilters, globalFilter, rowSelection, pagination } = state
 
   const openDialog = () => {
-    setRowSelection(createSelectionState(selectedIds))
-    setColumnFilters([])
-    setGlobalFilter('')
-    setPagination(current => ({
-      ...current,
-      pageIndex: 0,
-    }))
-    setOpen(true)
+    dispatch({ type: 'openDialog', selectedIds })
   }
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table's useReactTable returns unstable refs; React Compiler skips memoization
@@ -74,14 +128,14 @@ function TestCasePicker({
     data: testCases,
     columns: testCasePickerColumns,
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
+    onSortingChange: updater => dispatch({ type: 'setSorting', updater }),
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: updater => dispatch({ type: 'setColumnFilters', updater }),
+    onGlobalFilterChange: updater => dispatch({ type: 'setGlobalFilter', updater }),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
-    onRowSelectionChange: setRowSelection,
+    onPaginationChange: updater => dispatch({ type: 'setPagination', updater }),
+    onRowSelectionChange: updater => dispatch({ type: 'setRowSelection', updater }),
     enableRowSelection: true,
     getRowId: row => row.id,
     state: {
@@ -102,7 +156,7 @@ function TestCasePicker({
     const nextSelectedIds = getSelectedIdsFromRowSelection(testCases, rowSelection)
 
     onSave(nextSelectedIds)
-    setOpen(false)
+    dispatch({ type: 'setOpen', open: false })
   }
 
   return (
@@ -116,14 +170,14 @@ function TestCasePicker({
 
       <PickerBrowseDialogFrame
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={nextOpen => dispatch({ type: 'setOpen', open: nextOpen })}
         title={dialogTitle}
         description={dialogDescription}
         searchValue={globalFilter}
         onSearchChange={value => table.setGlobalFilter(value)}
         searchPlaceholder="Search by title, description, or tag..."
         summaryAside={`${table.getSelectedRowModel().rows.length} selected`}
-        onCancel={() => setOpen(false)}
+        onCancel={() => dispatch({ type: 'setOpen', open: false })}
         onSave={saveDraftSelection}
       >
         <ScrollArea className="h-[420px] rounded-md border">

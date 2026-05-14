@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useImperativeHandle, useEffect, useRef } from 'react'
+import { useState, useMemo, useImperativeHandle, useEffect, useRef, startTransition } from 'react'
 import { Calendar } from '@/components/ui/calendar'
 import CreateLocatorWorkspace from '@/app/(base)/locators/create/create-locator-workspace'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -130,7 +130,9 @@ function DynamicFormFields({
   }, [inlineLocators, locators])
 
   useEffect(() => {
-    queueMicrotask(() => setErrors({}))
+    startTransition(() => {
+      setErrors({})
+    })
   }, [templateStepParams])
 
   // Sync state when initial data changes (e.g. opening edit for a different node)
@@ -140,7 +142,7 @@ function DynamicFormFields({
     }
 
     lastInitialSyncKeyRef.current = resetKey
-    queueMicrotask(() => {
+    startTransition(() => {
       setValues(initialValues)
       setSelectedLocatorGroups(initialSelectedLocatorGroups)
       setCreatedLocatorSelections({})
