@@ -25,7 +25,7 @@ export function readJSDocTag(line: string, tagName: string): string | null {
   return value || null
 }
 
-export function findTopLevelJSDocStart(lines: string[]): number | null {
+function findTopLevelJSDocStart(lines: string[]): number | null {
   let startLine = 0
   let isInsideImportBlock = false
 
