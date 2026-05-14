@@ -76,12 +76,12 @@ export function DownloadLogsButton({ testRunId, className }: DownloadLogsButtonP
         >
           {isDownloading ? (
             <>
-              <LoaderCircle className="h-4 w-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
               Downloading...
             </>
           ) : (
             <>
-              <Download className="h-4 w-4" />
+              <Download className="size-4" />
               Download Run Artifacts
             </>
           )}

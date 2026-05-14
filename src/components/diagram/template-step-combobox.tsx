@@ -3,20 +3,10 @@
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { KeyToIconTransformer } from '@/lib/transformers/key-to-icon-transformer'
 import { cn } from '@/lib/utils'
-import {
-  capitalizeGroupName,
-  type TemplateStepWithGroup,
-} from '@/types/diagram/template-step'
+import { capitalizeGroupName, type TemplateStepWithGroup } from '@/types/diagram/template-step'
 
 const GROUP_KEY_OTHER = 'Other'
 const MAX_VISIBLE_PARAMETER_BADGES = 4
@@ -27,9 +17,7 @@ const SCORE_EXACT_KEYWORD_MATCH = 120
 const SCORE_PREFIX_KEYWORD_MATCH = 100
 const SCORE_CONTAINS_KEYWORD_MATCH = 80
 
-function groupStepsByGroupName(
-  steps: TemplateStepWithGroup[],
-): Map<string, TemplateStepWithGroup[]> {
+function groupStepsByGroupName(steps: TemplateStepWithGroup[]): Map<string, TemplateStepWithGroup[]> {
   const map = new Map<string, TemplateStepWithGroup[]>()
   for (const step of steps) {
     const key = step.templateStepGroup?.name ?? GROUP_KEY_OTHER
@@ -82,16 +70,10 @@ function formatParameterLabel(label: string) {
     .replace(/\b\w/g, char => char.toUpperCase())
 }
 
-function StepIcon({
-  icon,
-  className,
-}: {
-  icon: TemplateStepWithGroup['icon']
-  className?: string
-}) {
+function StepIcon({ icon, className }: { icon: TemplateStepWithGroup['icon']; className?: string }) {
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
-      {KeyToIconTransformer(icon, className ?? 'h-4 w-4')}
+    <span className="bg-muted/40 flex size-9 shrink-0 items-center justify-center rounded-md border text-muted-foreground">
+      {KeyToIconTransformer(icon, className ?? 'size-4')}
     </span>
   )
 }
@@ -123,25 +105,26 @@ const TemplateStepCombobox = ({
   const comboboxId = id ?? generatedId
   const listboxId = `${comboboxId}-listbox`
 
-  const selectedStep = React.useMemo(
-    () => templateSteps.find(s => s.id === value) ?? null,
-    [templateSteps, value],
-  )
+  const selectedStep = React.useMemo(() => templateSteps.find(s => s.id === value) ?? null, [templateSteps, value])
 
   const groups = React.useMemo(() => {
     const normalizedSearch = normalizeForSearch(search)
-    const scoredSteps = templateSteps
-      .map(step => {
+    const scoredSteps = templateSteps.reduce<{ step: TemplateStepWithGroup; groupKey: string; score: number }[]>(
+      (steps, step) => {
         const groupKey = step.templateStepGroup?.name ?? GROUP_KEY_OTHER
-        return { step, groupKey, score: getStepSearchScore(step, groupKey, normalizedSearch) }
-      })
-      .filter(({ score }) => score > 0)
+        const score = getStepSearchScore(step, groupKey, normalizedSearch)
+        if (score > 0) {
+          steps.push({ step, groupKey, score })
+        }
+
+        return steps
+      },
+      [],
+    )
 
     if (!normalizedSearch) {
       const map = groupStepsByGroupName(scoredSteps.map(({ step }) => step))
-      return Array.from(map.entries()).sort(([a], [b]) =>
-        a.localeCompare(b, undefined, { sensitivity: 'base' }),
-      )
+      return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
     }
 
     scoredSteps.sort((a, b) => {
@@ -231,7 +214,7 @@ const TemplateStepCombobox = ({
         ) : (
           <span className="truncate text-muted-foreground">{placeholder}</span>
         )}
-        <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+        <ChevronDown className="size-4 shrink-0 opacity-50" />
       </button>
       {open && (
         <div id={listboxId} role="listbox" className="absolute left-0 right-0 top-full z-50 mt-1">
@@ -248,7 +231,7 @@ const TemplateStepCombobox = ({
                 <CommandGroup
                   key={groupKey}
                   heading={
-                    <div className="flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
+                    <div className="text-muted-foreground/80 flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-[0.12em]">
                       <span>{capitalizeGroupName(groupKey)}</span>
                       <span className="text-[10px] font-normal tracking-normal">{steps.length}</span>
                     </div>
@@ -262,10 +245,10 @@ const TemplateStepCombobox = ({
                       onSelect={() => handleSelect(step.id)}
                       className={cn(
                         'items-start gap-3 rounded-lg border border-transparent px-3 py-3 text-left hover:cursor-pointer',
-                        'data-[selected=true]:border-emerald-500/35 data-[selected=true]:bg-emerald-500/20 dark:data-[selected=true]:bg-emerald-500/5 data-[selected=true]:text-foreground',
+                        'data-[selected=true]:border-emerald-500/35 data-[selected=true]:bg-emerald-500/20 data-[selected=true]:text-foreground dark:data-[selected=true]:bg-emerald-500/5',
                       )}
                     >
-                      <StepIcon icon={step.icon} className="h-4 w-4" />
+                      <StepIcon icon={step.icon} className="size-4" />
                       <span className="min-w-0 flex-1 space-y-2">
                         <span className="block space-y-1">
                           <span className="block truncate font-bold capitalize leading-tight">{step.name}</span>

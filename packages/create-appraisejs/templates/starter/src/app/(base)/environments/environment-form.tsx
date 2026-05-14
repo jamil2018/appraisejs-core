@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import ErrorMessage from '@/components/form/error-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formOpts, type Environment } from '@/constants/form-opts/environment-form-opts'
+import { environmentFormOpts, type Environment } from '@/constants/form-opts/environment-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
@@ -48,25 +48,19 @@ function EnvironmentFieldErrors({ errors, isTouched }: EnvironmentFieldErrorsPro
 
   return (
     <div className="flex flex-col gap-1" aria-live="polite">
-      {errors.map((error, index) => (
-        <ErrorMessage key={`${String(error)}-${index}`} message={getErrorMessage(error)} visible={true} />
+      {errors.map(error => (
+        <ErrorMessage key={getErrorMessage(error)} message={getErrorMessage(error)} visible={true} />
       ))}
     </div>
   )
 }
 
-const EnvironmentForm = ({
-  defaultValues,
-  successTitle,
-  successMessage,
-  id,
-  onSubmitAction,
-}: EnvironmentFormProps) => {
-  const router = useRouter()
+const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSubmitAction }: EnvironmentFormProps) => {
+  const { push } = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts.defaultValues,
-    validators: formOpts.validators,
+    defaultValues: defaultValues ?? environmentFormOpts.defaultValues,
+    validators: environmentFormOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
@@ -74,7 +68,7 @@ const EnvironmentForm = ({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/environments')
+        push('/environments')
       }
       if (res.status === 400) {
         toast({
@@ -206,7 +200,11 @@ const EnvironmentForm = ({
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                  {showPassword ? (
+                    <EyeOff className="size-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="size-4" aria-hidden="true" />
+                  )}
                 </Button>
               </div>
               <EnvironmentFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />

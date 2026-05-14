@@ -10,7 +10,7 @@ export const environmentSchema = z.object({
 
 export type Environment = z.infer<typeof environmentSchema>
 
-export const formOpts = {
+export const environmentFormOpts = {
   defaultValues: {
     name: '',
     baseUrl: '',

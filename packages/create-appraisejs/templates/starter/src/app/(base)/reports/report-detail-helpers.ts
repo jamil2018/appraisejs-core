@@ -15,9 +15,9 @@ export const reportColorMap = {
 } as const
 
 export const browserIcons = {
-  [BrowserEngine.CHROMIUM]: createElement(Flame, { className: 'h-4 w-4' }),
-  [BrowserEngine.FIREFOX]: createElement(Flame, { className: 'h-4 w-4' }),
-  [BrowserEngine.WEBKIT]: createElement(Compass, { className: 'h-4 w-4' }),
+  [BrowserEngine.CHROMIUM]: createElement(Flame, { className: 'size-4' }),
+  [BrowserEngine.FIREFOX]: createElement(Flame, { className: 'size-4' }),
+  [BrowserEngine.WEBKIT]: createElement(Compass, { className: 'size-4' }),
 } as const
 
 export const overViewPieChartConfig = {

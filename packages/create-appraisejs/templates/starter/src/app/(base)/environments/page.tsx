@@ -28,7 +28,7 @@ const Environments = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<Server className="h-8 w-8" />}
+          icon={<Server className="size-8" />}
           title="No environments found"
           description="Get started by creating an environment to manage your test configurations"
           createRoute="/environments/create"
@@ -43,7 +43,7 @@ const Environments = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Server className="mr-2 h-8 w-8" />
+            <Server className="mr-2 size-8" />
             Environments
           </span>
         </PageHeader>

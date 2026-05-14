@@ -46,7 +46,7 @@ const NavMenuCardDeck = ({
         {containerButtonIcon}
         <span className="text-sm font-medium">{containerButtonText}</span>
         <motion.div animate={{ rotate: isHovered ? 180 : 0 }} transition={{ duration: 0.2, ease: 'easeInOut' }}>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="size-4 text-muted-foreground" />
         </motion.div>
       </button>
 
@@ -88,8 +88,8 @@ const NavMenuCardDeck = ({
                         'hover:cursor-pointer',
                       )}
                     >
-                      <CardContent className="flex h-full w-full items-center gap-3 p-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md text-accent-foreground">
+                      <CardContent className="flex size-full items-center gap-3 p-4">
+                        <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-md text-accent-foreground">
                           {item.icon}
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col justify-center">

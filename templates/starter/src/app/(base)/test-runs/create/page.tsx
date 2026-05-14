@@ -15,9 +15,11 @@ export const metadata: Metadata = {
 }
 
 const CreateTestRun = async () => {
-  const { data: testSuites, error: testSuitesError } = await getAllTestSuiteTestCasesAction()
-  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
-  const { data: tags, error: tagsError } = await getAllTagsAction()
+  const [
+    { data: testSuites, error: testSuitesError },
+    { data: environments, error: environmentsError },
+    { data: tags, error: tagsError },
+  ] = await Promise.all([getAllTestSuiteTestCasesAction(), getAllEnvironmentsAction(), getAllTagsAction()])
 
   if (testSuitesError || environmentsError || tagsError) {
     return <div>Error: {testSuitesError || environmentsError || tagsError}</div>

@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 
 export function SyncLocatorsButton() {
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const { refresh } = useRouter()
 
   const handleSync = async () => {
     setIsLoading(true)
@@ -38,7 +38,7 @@ export function SyncLocatorsButton() {
         }
 
         // Refresh the page to show updated data
-        router.refresh()
+        refresh()
       } else {
         toast({
           variant: 'destructive',
@@ -59,9 +59,8 @@ export function SyncLocatorsButton() {
 
   return (
     <Button onClick={handleSync} disabled={isLoading} variant="outline">
-      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+      <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
       {isLoading ? 'Syncing...' : 'Sync Locators'}
     </Button>
   )
 }
-

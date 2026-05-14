@@ -9,7 +9,7 @@ export const locatorGroupSchema = z.object({
 
 export type LocatorGroup = z.infer<typeof locatorGroupSchema>
 
-export const formOpts = {
+export const locatorGroupFormOpts = {
   defaultValues: {
     name: '',
     moduleId: '',

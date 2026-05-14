@@ -5,13 +5,7 @@ import { Calendar } from '@/components/ui/calendar'
 import CreateLocatorWorkspace from '@/app/(base)/locators/create/create-locator-workspace'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -57,9 +51,9 @@ type DynamicFormFieldsProps = {
   initialParameterValues?: {
     name: string
     value: string
-      type: StepParameterType
-      order: number
-    }[]
+    type: StepParameterType
+    order: number
+  }[]
 }
 
 export interface DynamicFormFieldsRef {
@@ -103,9 +97,8 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // State for locator group selection (initialized from initial data so edit restores group + locator)
-  const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>(
-    initialSelectedLocatorGroups,
-  )
+  const [selectedLocatorGroups, setSelectedLocatorGroups] =
+    useState<Record<string, string>>(initialSelectedLocatorGroups)
   const [inlineLocators, setInlineLocators] = useState<LocatorOption[]>([])
   const [inlineLocatorGroups, setInlineLocatorGroups] = useState<LocatorGroupOption[]>([])
   const [createdLocatorSelections, setCreatedLocatorSelections] = useState<Record<string, InlineLocatorSaveResult>>({})
@@ -334,7 +327,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
             className={cn('w-full justify-start text-left font-normal', !values[name] && 'text-muted-foreground')}
             aria-required={!defaultValueInput}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="mr-2 size-4" />
             {values[name] instanceof Date ? (
               format(values[name] as Date, 'PPP')
             ) : (
@@ -381,7 +374,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
       <div className="space-y-2">
         <Label
           htmlFor={`created-group-${name}`}
-          className="text-sm text-muted-foreground cursor-not-allowed select-none pointer-events-none"
+          className="pointer-events-none cursor-not-allowed select-none text-sm text-muted-foreground"
         >
           Locator Group
         </Label>
@@ -398,7 +391,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
       <div className="space-y-2">
         <Label
           htmlFor={`created-locator-${name}`}
-          className="text-sm text-muted-foreground cursor-not-allowed select-none pointer-events-none"
+          className="pointer-events-none cursor-not-allowed select-none text-sm text-muted-foreground"
         >
           Locator
         </Label>
@@ -416,7 +409,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   )
 
   const renderExistingLocatorPanel = (name: string, selectedGroupId: string, availableLocators: LocatorOption[]) => (
-    <div className="space-y-3 rounded-md border border-border bg-background/40 p-3">
+    <div className="bg-background/40 space-y-3 rounded-md border border-border p-3">
       <Label className="text-sm font-semibold text-primary">Use Existing</Label>
 
       <div className="space-y-2">
@@ -474,8 +467,12 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     </div>
   )
 
-  const renderNewLocatorPanel = (name: string, isCreateDialogOpen: boolean, createdLocatorSelection?: InlineLocatorSaveResult) => (
-    <div className="space-y-3 rounded-md border border-border bg-background/40 p-3">
+  const renderNewLocatorPanel = (
+    name: string,
+    isCreateDialogOpen: boolean,
+    createdLocatorSelection?: InlineLocatorSaveResult,
+  ) => (
+    <div className="bg-background/40 space-y-3 rounded-md border border-border p-3">
       <div className="space-y-2">
         <Label className="block text-sm font-semibold text-primary">Create New Selector</Label>
         <Button
@@ -485,7 +482,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
           className="gap-1.5"
           onClick={() => setCreateLocatorParamName(name)}
         >
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="size-4" />
           Create Selector
         </Button>
       </div>

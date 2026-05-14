@@ -34,7 +34,7 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
               transition={{ duration: 0.2, delay: 0.1 }}
               className="flex items-center gap-2"
             >
-              <XCircle className="h-4 w-4" />
+              <XCircle className="size-4" />
               Report Not Available
             </motion.div>
           </Button>
@@ -60,7 +60,7 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
               transition={{ duration: 0.2, delay: 0.1 }}
               className="flex items-center gap-2"
             >
-              <LoaderCircle className="h-4 w-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
               Generating Report...
             </motion.div>
           </Button>
@@ -91,7 +91,7 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
               transition={{ duration: 0.2, delay: 0.1 }}
               className="flex items-center gap-2"
             >
-              <FileText className="h-4 w-4" />
+              <FileText className="size-4" />
               View Report
             </motion.div>
           </Button>

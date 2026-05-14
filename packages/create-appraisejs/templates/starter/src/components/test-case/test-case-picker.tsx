@@ -119,7 +119,9 @@ function TestCasePicker({
     <div className="flex flex-col gap-3">
       <Button type="button" variant="outline" className="justify-between" onClick={openDialog}>
         <span className={selectedIds.length > 0 ? 'text-foreground' : 'text-muted-foreground'}>
-          {selectedIds.length > 0 ? `${selectedIds.length} ${selectionSummaryLabel.toLowerCase()} selected` : triggerPlaceholder}
+          {selectedIds.length > 0
+            ? `${selectedIds.length} ${selectionSummaryLabel.toLowerCase()} selected`
+            : triggerPlaceholder}
         </span>
         <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Browse</span>
       </Button>
@@ -134,7 +136,7 @@ function TestCasePicker({
           <div className="flex flex-col gap-4 px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={globalFilter}
                   onChange={event => table.setGlobalFilter(event.target.value)}
@@ -152,7 +154,9 @@ function TestCasePicker({
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map(header => (
                         <TableHead key={header.id}>
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -195,14 +199,16 @@ function TestCasePicker({
       </Dialog>
 
       {savedTestCases.length > 0 && (
-        <div className="rounded-md border bg-muted/20">
+        <div className="bg-muted/20 rounded-md border">
           <div className="border-b px-4 py-3 text-sm font-medium">{selectedLabel}</div>
           <ScrollArea className={cn(shouldConstrainSavedListHeight && 'h-56')}>
             <div className="space-y-3 p-4">
               {savedTestCases.map(testCase => (
                 <div key={testCase.id} className="rounded-md border bg-background p-3">
                   <div className="mb-1 text-sm font-semibold">{testCase.title}</div>
-                  <p className="text-xs text-muted-foreground">{testCase.description?.trim() || 'No description provided.'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {testCase.description?.trim() || 'No description provided.'}
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge variant="secondary">{testCase.steps.length} steps</Badge>
                     {testCase.tags.slice(0, 3).map(tag => (

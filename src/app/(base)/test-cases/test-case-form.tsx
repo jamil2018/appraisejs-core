@@ -76,6 +76,8 @@ type TestCaseFormProps = {
   defaultFlowBlocks?: FlowBlock[]
 }
 
+const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
+
 type TestCaseFormErrors = {
   templateTestCaseId?: string[]
   title?: string[]
@@ -255,7 +257,7 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
                   {step}
                 </span>
                 <span
-                  className={`relative z-10 h-3 w-3 rounded-full border transition-colors ${
+                  className={`relative z-10 size-3 rounded-full border transition-colors ${
                     isFilled
                       ? 'border-primary bg-primary'
                       : isActive
@@ -323,11 +325,11 @@ function FlowPanel({
             type="button"
             variant="outline"
             size="icon"
-            className="h-9 w-9 shrink-0"
+            className="size-9 shrink-0"
             onClick={onToggleImmersive}
             aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
           >
-            {isFlowImmersive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            {isFlowImmersive ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </Button>
         </div>
       </CardHeader>
@@ -427,7 +429,7 @@ function TemplateSelectionStep({
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={onContinue} className="w-fit px-6 hover:bg-emerald-500">
           <span className="font-bold">Continue</span>
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="size-4" />
         </Button>
       </div>
     </div>
@@ -527,7 +529,7 @@ function TemplatePreviewSteps({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-foreground/80">Flow Preview</span>
+      <span className="text-foreground/80 text-xs font-medium uppercase tracking-wide">Flow Preview</span>
       <div className="flex flex-wrap gap-2">
         {selectedTemplatePreviewSteps.map(stepLabel => (
           <span key={stepLabel} className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
@@ -639,13 +641,13 @@ function DetailsStep({
       <div className="mb-4 flex flex-row flex-wrap items-center justify-start gap-2">
         {hasTemplateSelectionStep ? (
           <Button variant="outline" onClick={onBack} className="w-fit px-6">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="size-4" />
             <span className="font-bold">Back</span>
           </Button>
         ) : null}
         <Button onClick={onContinue} className="w-fit px-6 hover:bg-emerald-500">
           <span className="font-bold">Continue</span>
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="size-4" />
         </Button>
       </div>
     </div>
@@ -687,11 +689,11 @@ function TestSuiteSelectionField({
           type="button"
           variant="outline"
           size="icon"
-          className="h-10 w-10 shrink-0"
+          className="size-10 shrink-0"
           aria-label="Create test suite"
           onClick={onCreateClick}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
         </Button>
       </div>
       {renderError(errorMessage)}
@@ -725,11 +727,11 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
           type="button"
           variant="outline"
           size="icon"
-          className="h-10 w-10 shrink-0"
+          className="size-10 shrink-0"
           aria-label="Create filter tag"
           onClick={onCreateClick}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
         </Button>
       </div>
     </div>
@@ -742,7 +744,7 @@ function QuickTipsPanel() {
       <Card className="h-full border-gray-700 bg-gray-500/10">
         <CardHeader className="mb-2">
           <CardTitle className="flex items-center gap-2 text-xl text-primary">
-            <Info className="h-5 w-5" />
+            <Info className="size-5" />
             <span className="font-bold">Quick Tips</span>
           </CardTitle>
         </CardHeader>
@@ -750,7 +752,7 @@ function QuickTipsPanel() {
           <ol className="flex list-none flex-col gap-3">
             {testCaseQuickTips.map((tip, index) => (
               <li key={tip.title} className="grid grid-cols-[1.5rem_1fr] gap-4">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
                   {index + 1}
                 </span>
                 <span className="flex flex-col gap-1">
@@ -790,9 +792,7 @@ function FlowStep({
       <LayoutGroup id="test-case-flow-panel-layout">
         <div className="w-full min-w-0 overflow-x-hidden">
           {isFlowImmersive ? (
-            <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">
-              {renderFlowPanel('h-full bg-background')}
-            </div>
+            <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{renderFlowPanel('h-full bg-background')}</div>
           ) : (
             renderFlowPanel('relative h-[max(22rem,calc(100dvh-12rem))] bg-gray-500/10')
           )}
@@ -808,11 +808,16 @@ function FlowStep({
           />
           <div className="mb-4 flex flex-col gap-2 sm:flex-row">
             <Button variant="outline" onClick={onBack} className="w-fit px-6">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="size-4" />
               <span className="font-bold">Back</span>
             </Button>
-            <Button type="button" onClick={onSubmit} className="w-fit px-6 hover:bg-emerald-500" aria-label="Save test case">
-              <Save className="h-4 w-4" aria-hidden />
+            <Button
+              type="button"
+              onClick={onSubmit}
+              className="w-fit px-6 hover:bg-emerald-500"
+              aria-label="Save test case"
+            >
+              <Save className="size-4" aria-hidden />
               <span className="font-bold">Save</span>
             </Button>
           </div>
@@ -865,7 +870,15 @@ type WizardStepContentProps = {
   renderError: RenderError
 }
 
-function WizardStepContent({ actions, details, errors, flow, navigation, renderError, template }: WizardStepContentProps) {
+function WizardStepContent({
+  actions,
+  details,
+  errors,
+  flow,
+  navigation,
+  renderError,
+  template,
+}: WizardStepContentProps) {
   const { currentStep, detailsStepIndex, hasTemplateSelectionStep } = navigation
 
   if (hasTemplateSelectionStep && currentStep === 0) {
@@ -1026,7 +1039,7 @@ function useTestCaseSubmitHandler({
   id,
   nodesOrder,
   onSubmitAction,
-  router,
+  push,
   selectedTags,
   selectedTestSuites,
   templateStepParams,
@@ -1040,7 +1053,7 @@ function useTestCaseSubmitHandler({
   id?: string
   nodesOrder: NodeOrderMap
   onSubmitAction: TestCaseFormProps['onSubmitAction']
-  router: ReturnType<typeof useRouter>
+  push: ReturnType<typeof useRouter>['push']
   selectedTags: string[]
   selectedTestSuites: string[]
   templateStepParams: TemplateStepParameter[]
@@ -1079,7 +1092,7 @@ function useTestCaseSubmitHandler({
     }
     setErrors({})
     const response = await onSubmitAction(result.data, id)
-    handleTestCaseSaveResponse({ response, redirectPath: '/test-cases', push: router.push, toast })
+    handleTestCaseSaveResponse({ response, redirectPath: '/test-cases', push, toast })
   }, [
     description,
     detailsStepIndex,
@@ -1087,7 +1100,7 @@ function useTestCaseSubmitHandler({
     id,
     nodesOrder,
     onSubmitAction,
-    router,
+    push,
     selectedTags,
     selectedTestSuites,
     setCurrentStep,
@@ -1159,11 +1172,14 @@ function useBodyScrollLock(isLocked: boolean) {
 }
 
 function useWizardStepClick(currentStep: number, setCurrentStep: React.Dispatch<React.SetStateAction<number>>) {
-  return useCallback((stepIndex: number) => {
-    if (stepIndex <= currentStep) {
-      setCurrentStep(stepIndex)
-    }
-  }, [currentStep, setCurrentStep])
+  return useCallback(
+    (stepIndex: number) => {
+      if (stepIndex <= currentStep) {
+        setCurrentStep(stepIndex)
+      }
+    },
+    [currentStep, setCurrentStep],
+  )
 }
 
 const TestCaseForm = ({
@@ -1184,12 +1200,12 @@ const TestCaseForm = ({
   defaultTagIds,
   templateTestCases,
   defaultTemplateTestCaseId,
-  defaultFlowBlocks = [],
+  defaultFlowBlocks = EMPTY_FLOW_BLOCKS,
   onSubmitAction,
   onCreateTestSuiteAction,
   onCreateTagAction,
 }: TestCaseFormProps) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const hasTemplateSelectionStep = Array.isArray(templateTestCases)
   const { detailsStepIndex, flowStepIndex } = getWizardStepIndexes(hasTemplateSelectionStep)
   const wizardSteps = getWizardSteps(hasTemplateSelectionStep)
@@ -1220,25 +1236,37 @@ const TestCaseForm = ({
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
   const renderError = renderFormError
 
-  const onNodeOrderChange = useCallback((nodesOrder: NodeOrderMap) => {
-    setNodesOrder(nodesOrder)
-    setErrors(current => ({ ...current, steps: undefined }))
-  }, [setErrors, setNodesOrder])
+  const onNodeOrderChange = useCallback(
+    (nodesOrder: NodeOrderMap) => {
+      setNodesOrder(nodesOrder)
+      setErrors(current => ({ ...current, steps: undefined }))
+    },
+    [setErrors, setNodesOrder],
+  )
 
-  const onTemplateChange = useCallback((value: string) => {
-    setSelectedTemplateId(value)
-    setErrors(current => ({ ...current, templateTestCaseId: undefined }))
-  }, [setErrors, setSelectedTemplateId])
+  const onTemplateChange = useCallback(
+    (value: string) => {
+      setSelectedTemplateId(value)
+      setErrors(current => ({ ...current, templateTestCaseId: undefined }))
+    },
+    [setErrors, setSelectedTemplateId],
+  )
 
-  const onTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value)
-    setErrors(current => ({ ...current, title: undefined }))
-  }, [setErrors, setTitle])
+  const onTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTitle(e.target.value)
+      setErrors(current => ({ ...current, title: undefined }))
+    },
+    [setErrors, setTitle],
+  )
 
-  const onDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescription(e.target.value)
-    setErrors(current => ({ ...current, description: undefined }))
-  }, [setDescription, setErrors])
+  const onDescriptionChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setDescription(e.target.value)
+      setErrors(current => ({ ...current, description: undefined }))
+    },
+    [setDescription, setErrors],
+  )
 
   const onWizardStepClick = useWizardStepClick(currentStep, setCurrentStep)
 
@@ -1246,27 +1274,39 @@ const TestCaseForm = ({
     setIsFlowImmersive(current => !current)
   }, [])
 
-  const onTestSuiteChange = useCallback((selectedTestSuites: string[]) => {
-    setSelectedTestSuites(selectedTestSuites)
-    setErrors(current => ({ ...current, testSuiteIds: undefined }))
-  }, [setErrors, setSelectedTestSuites])
+  const onTestSuiteChange = useCallback(
+    (selectedTestSuites: string[]) => {
+      setSelectedTestSuites(selectedTestSuites)
+      setErrors(current => ({ ...current, testSuiteIds: undefined }))
+    },
+    [setErrors, setSelectedTestSuites],
+  )
 
-  const handleInlineTestSuiteSuccess = useCallback(async (createdTestSuite: TestSuite) => {
-    setAvailableTestSuites(current => appendUniqueById(current, createdTestSuite))
-    setSelectedTestSuites(current => appendUniqueId(current, createdTestSuite.id))
-    setIsCreateSuiteDialogOpen(false)
-  }, [setAvailableTestSuites, setIsCreateSuiteDialogOpen, setSelectedTestSuites])
+  const handleInlineTestSuiteSuccess = useCallback(
+    async (createdTestSuite: TestSuite) => {
+      setAvailableTestSuites(current => appendUniqueById(current, createdTestSuite))
+      setSelectedTestSuites(current => appendUniqueId(current, createdTestSuite.id))
+      setIsCreateSuiteDialogOpen(false)
+    },
+    [setAvailableTestSuites, setIsCreateSuiteDialogOpen, setSelectedTestSuites],
+  )
 
-  const onTagChange = useCallback((selectedTags: string[]) => {
-    setSelectedTags(selectedTags)
-    setErrors(current => ({ ...current, tagIds: undefined }))
-  }, [setErrors, setSelectedTags])
+  const onTagChange = useCallback(
+    (selectedTags: string[]) => {
+      setSelectedTags(selectedTags)
+      setErrors(current => ({ ...current, tagIds: undefined }))
+    },
+    [setErrors, setSelectedTags],
+  )
 
-  const handleInlineTagSuccess = useCallback(async (createdTag: Tag) => {
-    setAvailableTags(current => appendUniqueById(current, createdTag))
-    setSelectedTags(current => appendUniqueId(current, createdTag.id))
-    setIsCreateTagDialogOpen(false)
-  }, [setAvailableTags, setIsCreateTagDialogOpen, setSelectedTags])
+  const handleInlineTagSuccess = useCallback(
+    async (createdTag: Tag) => {
+      setAvailableTags(current => appendUniqueById(current, createdTag))
+      setSelectedTags(current => appendUniqueId(current, createdTag.id))
+      setIsCreateTagDialogOpen(false)
+    },
+    [setAvailableTags, setIsCreateTagDialogOpen, setSelectedTags],
+  )
 
   const goToDetailsStep = useTemplateStepNavigation({
     appliedTemplateId,
@@ -1300,7 +1340,7 @@ const TestCaseForm = ({
     id,
     nodesOrder,
     onSubmitAction,
-    router,
+    push,
     selectedTags,
     selectedTestSuites,
     templateStepParams,

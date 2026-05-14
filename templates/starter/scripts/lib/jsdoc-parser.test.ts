@@ -54,6 +54,18 @@ describe('parseGroupJSDoc', () => {
     expect(parseGroupJSDoc(content)?.name).toBe('Imported Group')
   })
 
+  it('parses when formatted multiline imports are before jsdoc', () => {
+    const content = `import {
+  x,
+  y,
+} from 'z'
+/**
+ * @name Multiline Imported Group
+ * @type ACTION
+ */`
+    expect(parseGroupJSDoc(content)?.name).toBe('Multiline Imported Group')
+  })
+
   it('returns null for malformed close', () => {
     const content = `/**
  * @name Broken

@@ -20,14 +20,17 @@ const TestRunTable = ({ initialData, filter = 'all' }: TestRunTableProps) => {
   // Memoize running test run IDs to avoid unnecessary effect re-runs
   // Include RUNNING, QUEUED, and CANCELLING statuses for polling
   const runningTestRunIds = useMemo(() => {
-    return testRuns
-      .filter(
-        tr =>
-          tr.status === TestRunStatus.RUNNING ||
-          tr.status === TestRunStatus.QUEUED ||
-          tr.status === TestRunStatus.CANCELLING,
-      )
-      .map(tr => tr.id)
+    return testRuns.reduce<string[]>((ids, tr) => {
+      if (
+        tr.status === TestRunStatus.RUNNING ||
+        tr.status === TestRunStatus.QUEUED ||
+        tr.status === TestRunStatus.CANCELLING
+      ) {
+        ids.push(tr.id)
+      }
+
+      return ids
+    }, [])
   }, [testRuns])
 
   // Create a stable dependency string for useEffect

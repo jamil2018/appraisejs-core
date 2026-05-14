@@ -5,6 +5,7 @@ import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
 import { testSuiteSchema } from '@/constants/form-opts/test-suite-form-opts'
 import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
+import { testRunSchema } from '@/constants/form-opts/test-run-form-opts'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
 import { templateStepGroupSchema } from '@/constants/form-opts/template-step-group-form-opts'
 import {
@@ -344,6 +345,7 @@ describe('module actions', () => {
       success: true,
       message: 'Modules deleted successfully',
     })
+    expect(deleteModules).toHaveBeenCalledWith(['module-1'])
 
     vi.mocked(createModule).mockResolvedValueOnce({ id: 'module-2' } as never)
     await expect(createModuleAction(null, payload as never)).resolves.toMatchObject({
@@ -376,6 +378,7 @@ describe('environment actions', () => {
       success: true,
       message: 'Environments deleted successfully',
     })
+    expect(deleteEnvironments).toHaveBeenCalledWith(['env-1'])
 
     vi.mocked(createEnvironment).mockResolvedValueOnce({ id: 'env-2' } as never)
     await expect(createEnvironmentAction(null, payload as never)).resolves.toMatchObject({
@@ -408,6 +411,7 @@ describe('tag actions', () => {
       success: true,
       message: 'Tag deleted successfully',
     })
+    expect(deleteTags).toHaveBeenCalledWith(['tag-1'])
 
     vi.mocked(createTag).mockResolvedValueOnce({ id: 'tag-2' } as never)
     await expect(createTagAction(null, payload as never)).resolves.toMatchObject({
@@ -455,6 +459,7 @@ describe('locator group actions', () => {
       success: true,
       data: ['group-1', 'group-2'],
     })
+    expect(deleteLocatorGroups).toHaveBeenCalledWith(['group-1', 'group-2'])
 
     vi.mocked(checkLocatorGroupNameUnique).mockResolvedValueOnce(true)
     await expect(checkLocatorGroupNameUniqueAction('Home', 'group-1')).resolves.toMatchObject({
@@ -514,6 +519,7 @@ describe('test suite actions', () => {
       success: true,
       message: 'Test suite(s) deleted successfully',
     })
+    expect(deleteTestSuitesByIds).toHaveBeenCalledWith(['suite-1'])
 
     await expect(updateTestSuiteAction(null, payload as never)).resolves.toMatchObject({
       status: 400,
@@ -549,6 +555,7 @@ describe('test case actions', () => {
       success: true,
       message: 'Test case(s) deleted successfully',
     })
+    expect(deleteTestCasesByIds).toHaveBeenCalledWith(['case-1'])
 
     await expect(updateTestCaseAction(payload as never)).resolves.toMatchObject({
       status: 400,
@@ -591,6 +598,7 @@ describe('template step actions', () => {
       success: true,
       message: 'Template steps deleted successfully',
     })
+    expect(deleteTemplateSteps).toHaveBeenCalledWith(['step-1'])
 
     vi.mocked(listAllTemplateStepParameters).mockResolvedValueOnce([{ name: 'value' }] as never)
     await expect(getAllTemplateStepParamsAction()).resolves.toMatchObject({
@@ -634,6 +642,7 @@ describe('template test case actions', () => {
       success: true,
       message: 'Template test case(s) deleted successfully',
     })
+    expect(deleteTemplateTestCases).toHaveBeenCalledWith(['template-case-1'])
 
     expect(templateTestCaseSchema.parse).toHaveBeenCalledTimes(2)
     expect(updateTemplateTestCase).toHaveBeenCalledWith('template-case-1', payload)
@@ -666,6 +675,7 @@ describe('template step group actions', () => {
       success: true,
       message: 'Template step group(s) deleted successfully',
     })
+    expect(deleteTemplateStepGroups).toHaveBeenCalledWith(['group-1'])
 
     expect(templateStepGroupSchema.parse).toHaveBeenCalledTimes(2)
     expect(createTemplateStepGroup).toHaveBeenCalledWith(payload)
@@ -699,6 +709,7 @@ describe('test run actions', () => {
       success: true,
       data: { id: 'db-run-1', testRunId: 'run-1' },
     })
+    expect(testRunSchema.parse).toHaveBeenCalledWith(payload)
 
     vi.mocked(checkTraceViewerStatusService).mockResolvedValueOnce({
       isRunning: true,

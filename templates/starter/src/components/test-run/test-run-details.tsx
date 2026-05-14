@@ -54,17 +54,17 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
           <CardTitle className="flex items-center justify-between">
             {testRun.status === TestRunStatus.RUNNING ? (
               <div className="flex items-center gap-2">
-                <LoaderCircle className="h-6 w-6 animate-spin text-blue-500" />
+                <LoaderCircle className="size-6 animate-spin text-blue-500" />
                 <span>Executing</span>
               </div>
             ) : testRun.status === TestRunStatus.COMPLETED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <CheckCircle className="h-6 w-6 text-green-500" />
+                <CheckCircle className="size-6 text-green-500" />
                 <span>Finished</span>
               </div>
             ) : testRun.status === TestRunStatus.CANCELLED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <XCircle className="h-6 w-6 text-red-500 duration-300 animate-in fade-in-0" />
+                <XCircle className="size-6 text-red-500 duration-300 animate-in fade-in-0" />
                 <span>Interrupted</span>
               </div>
             ) : null}
@@ -77,12 +77,12 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
               >
                 {isCancelling ? (
                   <>
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    <LoaderCircle className="size-4 animate-spin" />
                     Cancelling...
                   </>
                 ) : (
                   <>
-                    <Trash className="h-4 w-4" />
+                    <Trash className="size-4" />
                     <span>Cancel Run</span>
                   </>
                 )}
@@ -106,7 +106,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Info className="mr-2 h-6 w-6" />
+              <Info className="mr-2 size-6" />
               <h3 className="text-lg font-semibold">Test Run Information</h3>
             </CardTitle>
           </CardHeader>
@@ -119,7 +119,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
               <span className="text-sm font-medium">Status</span>
               <Badge variant="outline" className={cn(statusMeta.badgeClassName, 'py-1')}>
                 <span className="mr-1 text-white">
-                  <StatusIcon className={cn('h-4 w-4', testRun.status === TestRunStatus.RUNNING && 'animate-spin')} />
+                  <StatusIcon className={cn('size-4', testRun.status === TestRunStatus.RUNNING && 'animate-spin')} />
                 </span>
                 <span className="text-white">{statusMeta.label}</span>
               </Badge>
@@ -150,7 +150,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Timer className="mr-2 h-6 w-6" />
+              <Timer className="mr-2 size-6" />
               <h3 className="text-lg font-semibold">Timing</h3>
             </CardTitle>
           </CardHeader>
@@ -177,7 +177,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Tags className="mr-2 h-6 w-6" />
+              <Tags className="mr-2 size-6" />
               <h3 className="text-lg font-semibold">Tags</h3>
             </CardTitle>
           </CardHeader>
@@ -186,7 +186,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
               <div className="flex flex-wrap gap-2">
                 {testRun.tags.map(tag => (
                   <Badge key={tag.id} variant="outline" className="bg-gray-700 text-white">
-                    <TagIcon className="mr-2 h-4 w-4 text-white" />
+                    <TagIcon className="mr-2 size-4 text-white" />
                     <span className="text-sm">{tag.name}</span>
                   </Badge>
                 ))}
@@ -200,7 +200,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <TestTubes className="mr-2 h-6 w-6" />
+              <TestTubes className="mr-2 size-6" />
               <h3 className="text-lg font-semibold">Test Cases ({testRun.testCases.length})</h3>
             </CardTitle>
           </CardHeader>
@@ -221,7 +221,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                       <div className="flex items-center gap-2">
                         <TestTubeDiagonal
                           className={cn(
-                            'mr-2 h-6 w-6 text-white',
+                            'mr-2 size-6 text-white',
                             testCase.result === TestRunTestCaseResult.PASSED
                               ? 'text-green-500'
                               : testCase.result === TestRunTestCaseResult.FAILED
@@ -248,7 +248,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                           <div className="flex min-w-20 items-center gap-2 p-1.5">
                             <TestCaseStatusIcon
                               className={cn(
-                                'h-4 w-4',
+                                'size-4',
                                 testCase.status === 'PENDING' || testCase.status === 'RUNNING'
                                   ? 'animate-spin'
                                   : testCaseStatusMeta.iconClassName,
@@ -259,7 +259,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                         </Badge>
                         <Badge variant="outline" className="bg-gray-700 text-xs text-white">
                           <div className="flex min-w-20 items-center gap-2 p-1.5">
-                            <TestCaseResultIcon className={cn('h-4 w-4', testCaseResultMeta.iconClassName)} />
+                            <TestCaseResultIcon className={cn('size-4', testCaseResultMeta.iconClassName)} />
                             <span>{testCaseResultMeta.label}</span>
                           </div>
                         </Badge>
@@ -288,17 +288,17 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                               >
                                 {loadingTraceViewer === testCase.id ? (
                                   <>
-                                    <ExternalLink className="h-3 w-3 animate-pulse text-gray-500" />
+                                    <ExternalLink className="size-3 animate-pulse text-gray-500" />
                                     Opening
                                   </>
                                 ) : runningTraceViewers.has(testCase.id) ? (
                                   <>
-                                    <LoaderCircle className="text-white-500 h-3 w-3 animate-spin" />
+                                    <LoaderCircle className="text-white-500 size-3 animate-spin" />
                                     Running
                                   </>
                                 ) : (
                                   <>
-                                    <Binoculars className="h-3 w-3 text-blue-500" />
+                                    <Binoculars className="size-3 text-blue-500" />
                                     View Trace
                                   </>
                                 )}

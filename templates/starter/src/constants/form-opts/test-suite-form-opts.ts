@@ -10,7 +10,7 @@ export const testSuiteSchema = z.object({
 
 export type TestSuite = z.infer<typeof testSuiteSchema>
 
-export const formOpts = {
+export const testSuiteFormOpts = {
   defaultValues: {
     name: '',
     description: '',

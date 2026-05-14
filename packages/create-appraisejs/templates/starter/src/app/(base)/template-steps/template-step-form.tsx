@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formOpts, type TemplateStep } from '@/constants/form-opts/template-test-step-form-opts'
+import { templateStepFormOpts, type TemplateStep } from '@/constants/form-opts/template-test-step-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { TemplateStepType } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
@@ -46,7 +46,7 @@ export const TemplateStepForm = ({
   onSubmitAction: TemplateStepFormSubmitAction
   templateStepGroups: Array<{ id: string; name: string }>
 }) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const initialState = getTemplateStepFormDefaults(defaultValues)
   const [signature, setSignature] = useState(initialState.signature)
   const [baseFunctionDefinition, setBaseFunctionDefinition] = useState(initialState.functionDefinition)
@@ -58,8 +58,8 @@ export const TemplateStepForm = ({
   )
 
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts?.defaultValues,
-    validators: formOpts?.validators,
+    defaultValues: defaultValues ?? templateStepFormOpts.defaultValues,
+    validators: templateStepFormOpts.validators,
     onSubmit: async ({ value }) => {
       value.functionDefinition = functionDefinition
       const res = await onSubmitAction(undefined, value, id)
@@ -72,7 +72,7 @@ export const TemplateStepForm = ({
         setBaseFunctionDefinition(getInitialFunctionDefinition())
         setType(TemplateStepType.ACTION)
         setParams([])
-        router.push(`/template-steps`)
+        push(`/template-steps`)
       }
       if (res.status === 400) {
         toast({
@@ -91,8 +91,8 @@ export const TemplateStepForm = ({
     },
   })
 
-  const renderError = (error: unknown, index: number) => (
-    <p key={index} className="text-xs text-pink-500">
+  const renderError = (error: unknown) => (
+    <p key={getFieldErrorMessage(error)} className="text-xs text-pink-500">
       {getFieldErrorMessage(error)}
     </p>
   )
@@ -285,14 +285,14 @@ export const TemplateStepForm = ({
                   return (
                     <div className="mb-4 flex flex-col gap-2">
                       <Label htmlFor={field.name}>Parameters</Label>
-                        <ParamChip
-                          defaultValues={params}
-                          types={parameterTypes}
-                          onSubmit={value => {
-                            field.handleChange(value)
-                            setParams(value)
-                          }}
-                        />
+                      <ParamChip
+                        defaultValues={params}
+                        types={parameterTypes}
+                        onSubmit={value => {
+                          field.handleChange(value)
+                          setParams(value)
+                        }}
+                      />
                     </div>
                   )
                 }}
@@ -300,7 +300,7 @@ export const TemplateStepForm = ({
               <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
                 {([canSubmit, isSubmitting]) => (
                   <Button type="submit" disabled={!canSubmit}>
-                    <Save className="h-4 w-4" />
+                    <Save className="size-4" />
                     {isSubmitting ? '...' : 'Save'}
                   </Button>
                 )}

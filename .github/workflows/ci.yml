@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -26,6 +26,9 @@ jobs:
 
       - name: Fallow quality gate
         run: npm run quality:fallow:ci
+
+      - name: React Doctor
+        run: npm run quality:react-doctor:ci
 
       - name: Lint
         run: npm run lint

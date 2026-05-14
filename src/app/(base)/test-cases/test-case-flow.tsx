@@ -18,6 +18,8 @@ type TestCaseFlowProps = {
   onFlowBlocksChange?: (flowBlocks: FlowBlock[]) => void
 }
 
+const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
+
 const TestCaseFlow = ({
   initialNodesOrder,
   templateStepParams,
@@ -27,7 +29,7 @@ const TestCaseFlow = ({
   environments,
   modules,
   onNodeOrderChange,
-  flowBlocks = [],
+  flowBlocks = EMPTY_FLOW_BLOCKS,
   layoutRefreshKey,
   onFlowBlocksChange,
 }: TestCaseFlowProps) => {

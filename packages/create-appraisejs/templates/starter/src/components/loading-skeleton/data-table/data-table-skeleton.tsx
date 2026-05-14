@@ -17,7 +17,7 @@ const DataTableSkeleton = () => {
       </div>
       <div className="mb-6 mt-4 flex justify-between">
         <div className="flex items-center gap-2">
-          <Search className="mr-2 h-5 w-5" />
+          <Search className="mr-2 size-5" />
           <TextInputSkeleton />
         </div>
         <ButtonSkeleton />

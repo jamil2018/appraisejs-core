@@ -41,7 +41,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
           variant="outline"
           className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
         >
-          <CheckCircle className="h-4 w-4" />
+          <CheckCircle className="size-4" />
           PASSED
         </Badge>
       )
@@ -51,7 +51,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
           variant="outline"
           className="flex items-center gap-2 rounded-xl border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
         >
-          <XCircle className="h-4 w-4" />
+          <XCircle className="size-4" />
           FAILED
         </Badge>
       )
@@ -61,7 +61,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
           variant="outline"
           className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/35 py-1 text-sm text-gray-300"
         >
-          <XCircle className="h-4 w-4" />
+          <XCircle className="size-4" />
           CANCELLED
         </Badge>
       )
@@ -71,7 +71,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
           variant="outline"
           className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
         >
-          <Clock className="h-4 w-4" />
+          <Clock className="size-4" />
           UNKNOWN
         </Badge>
       )
@@ -130,7 +130,7 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
           variant="outline"
           className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
         >
-          <CheckCircle className="h-4 w-4" />
+          <CheckCircle className="size-4" />
           Completed
         </Badge>
       )
@@ -140,7 +140,7 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
           variant="outline"
           className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
         >
-          <XCircle className="h-4 w-4" />
+          <XCircle className="size-4" />
           Cancelled
         </Badge>
       )
@@ -150,7 +150,7 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
           variant="outline"
           className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
         >
-          <Clock className="h-4 w-4" />
+          <Clock className="size-4" />
           Unknown
         </Badge>
       )
@@ -180,11 +180,8 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <>
-
       <div>
-        <div className="w-fit mb-2">
-          {testRunResultToBadge(testRun.result)}
-        </div>
+        <div className="mb-2 w-fit">{testRunResultToBadge(testRun.result)}</div>
         <PageHeader className="mb-2 text-4xl">
           <div>
             <span>Test Run Report: </span>
@@ -194,13 +191,13 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
         <div className="flex gap-2">
           {testRun.completedAt && (
             <div className="flex items-center gap-1 text-sm text-gray-400">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="size-4" />
               {formatDateTime(testRun.completedAt)}
             </div>
           )}
           {testRun.completedAt && testRun.startedAt && (
             <div className="flex items-center gap-1 text-sm text-gray-400">
-              <Clock className="h-4 w-4" />
+              <Clock className="size-4" />
               {formatDuration(testRun.startedAt, testRun.completedAt)}
             </div>
           )}
@@ -214,10 +211,10 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
       </div>
       <Separator className="my-4 bg-muted" />
       <div className="flex gap-6">
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col shadow-none bg-gray-500/10 border-none">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-gray-500/10 shadow-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
-              <Info className="h-6 w-6" />
+              <Info className="size-6" />
               <CardTitle className="text-lg font-semibold">Configuration</CardTitle>
             </div>
           </CardHeader>
@@ -248,16 +245,16 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             </div>
           </CardContent>
         </Card>
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col shadow-none bg-gray-500/10 border-none">
-          <CardHeader className="flex-shrink-0 ">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-gray-500/10 shadow-none">
+          <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
-              <ChartLine className="h-6 w-6" />
+              <ChartLine className="size-6" />
               <CardTitle className="text-lg font-semibold">Visualizations</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col overflow-hidden">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <TabsList className="flex-shrink-0 bg-gray-500/15 w-fit mx-auto p-2">
+              <TabsList className="mx-auto w-fit flex-shrink-0 bg-gray-500/15 p-2">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="feature">Feature</TabsTrigger>
                 <TabsTrigger value="duration">Duration</TabsTrigger>

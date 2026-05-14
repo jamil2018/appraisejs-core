@@ -27,7 +27,7 @@ const Reports = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<FileCheck className="h-8 w-8" />}
+          icon={<FileCheck className="size-8" />}
           title="No reports found"
           description="Get started by creating a test run to generate reports"
           createRoute="/test-runs/create"
@@ -41,7 +41,7 @@ const Reports = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <FileCheck className="mr-2 h-8 w-8" />
+            <FileCheck className="mr-2 size-8" />
             Reports
           </span>
         </PageHeader>

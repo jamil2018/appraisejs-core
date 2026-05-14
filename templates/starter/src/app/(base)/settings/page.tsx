@@ -17,7 +17,7 @@ export default async function SettingsPage() {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Settings2 className="mr-2 h-8 w-8" />
+            <Settings2 className="mr-2 size-8" />
             Settings
           </span>
         </PageHeader>

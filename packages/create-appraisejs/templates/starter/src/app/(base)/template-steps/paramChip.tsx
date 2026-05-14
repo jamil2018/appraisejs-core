@@ -157,7 +157,7 @@ export default function ParamChip({
   return (
     <div className="space-y-6">
       <Button type="button" onClick={() => setIsOpen(true)} variant="outline" size="icon">
-        <PlusCircle className="h-4 w-4" />
+        <PlusCircle className="size-4" />
       </Button>
 
       {/* Display the added items as chips */}

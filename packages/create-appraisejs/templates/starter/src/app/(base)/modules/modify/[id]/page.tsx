@@ -10,9 +10,8 @@ export const metadata: Metadata = {
 
 const ModifyModule = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const { data: moduleToBeEditedData, error: moduleToBeEditedError } = await getModuleByIdAction(id)
-
-  const { data: modulesData, error: modulesError } = await getAllModulesAction()
+  const [{ data: moduleToBeEditedData, error: moduleToBeEditedError }, { data: modulesData, error: modulesError }] =
+    await Promise.all([getModuleByIdAction(id), getAllModulesAction()])
 
   if (moduleToBeEditedError || modulesError) {
     return <div>Error: {moduleToBeEditedError || modulesError}</div>

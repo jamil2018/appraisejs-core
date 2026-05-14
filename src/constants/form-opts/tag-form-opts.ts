@@ -31,7 +31,7 @@ export const tagSchema = z.object({
 
 export type Tag = z.infer<typeof tagSchema>
 
-export const formOpts = {
+export const tagFormOpts = {
   defaultValues: {
     name: '',
     tagExpression: '',

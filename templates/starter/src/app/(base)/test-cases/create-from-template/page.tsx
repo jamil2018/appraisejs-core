@@ -28,10 +28,7 @@ import {
 } from '../test-case-resource-rows'
 import { getTestCaseRows } from '../test-case-row-helpers'
 
-import {
-  getConvertedTemplateTestCaseData,
-  getTemplateTestCasesWithSteps,
-} from './create-from-template-helpers'
+import { getConvertedTemplateTestCaseData, getTemplateTestCasesWithSteps } from './create-from-template-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Case From Template',
@@ -113,7 +110,7 @@ const CreateTestCaseFromTemplate = async ({
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <LayoutPanelTop className="mr-2 h-8 w-8" />
+            <LayoutPanelTop className="mr-2 size-8" />
             Create Test Case From Template
           </span>
         </PageHeader>

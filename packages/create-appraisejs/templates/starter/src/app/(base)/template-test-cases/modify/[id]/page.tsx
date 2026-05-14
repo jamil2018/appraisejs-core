@@ -48,16 +48,38 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
     })[]
     flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
   }
-  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
-  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
-  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
-  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
-  const { data: modules, error: modulesError } = await getAllModulesAction()
-  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError) {
+  const [
+    { data: templateStepParams, error: templateStepParamsError },
+    { data: templateSteps, error: templateStepsError },
+    { data: locators, error: locatorsError },
+    { data: locatorGroups, error: locatorGroupsError },
+    { data: environments, error: environmentsError },
+    { data: modules, error: modulesError },
+  ] = await Promise.all([
+    getAllTemplateStepParamsAction(),
+    getAllTemplateStepsAction(),
+    getAllLocatorsAction(),
+    getAllLocatorGroupsAction(),
+    getAllEnvironmentsAction(),
+    getAllModulesAction(),
+  ])
+  if (
+    templateStepParamsError ||
+    templateStepsError ||
+    locatorsError ||
+    locatorGroupsError ||
+    environmentsError ||
+    modulesError
+  ) {
     return (
       <div>
-        Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError}
+        Error:{' '}
+        {templateStepParamsError ||
+          templateStepsError ||
+          locatorsError ||
+          locatorGroupsError ||
+          environmentsError ||
+          modulesError}
       </div>
     )
   }

@@ -47,11 +47,7 @@ export const templateStepGroupTableCols: ColumnDef<TemplateStepGroupTableRow>[] 
     cell: ({ row }) => {
       const templateStepGroup = row.original
       const icon =
-        templateStepGroup.type === 'ACTION' ? (
-          <MousePointer2 className="h-4 w-4" />
-        ) : (
-          <CheckCheck className="h-4 w-4" />
-        )
+        templateStepGroup.type === 'ACTION' ? <MousePointer2 className="size-4" /> : <CheckCheck className="size-4" />
       return (
         <Badge variant="outline" className="flex w-fit items-center gap-1">
           {icon}

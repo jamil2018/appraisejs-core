@@ -46,6 +46,8 @@ type TemplateTestCaseFormProps = {
   defaultFlowBlocks?: FlowBlock[]
 }
 
+const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
+
 const TemplateTestCaseForm = ({
   defaultNodesOrder,
   templateStepParams,
@@ -58,10 +60,10 @@ const TemplateTestCaseForm = ({
   defaultTitle,
   defaultDescription,
   defaultValueInput = false,
-  defaultFlowBlocks = [],
+  defaultFlowBlocks = EMPTY_FLOW_BLOCKS,
   onSubmitAction,
 }: TemplateTestCaseFormProps) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const [nodesOrder, setNodesOrder] = useState<TemplateTestCaseNodeOrderMap>(defaultNodesOrder)
   const [flowBlocks, setFlowBlocks] = useState<FlowBlock[]>(defaultFlowBlocks)
   const [title, setTitle] = useState(defaultTitle || '')
@@ -101,8 +103,8 @@ const TemplateTestCaseForm = ({
     }
     setErrors({})
     const response = await onSubmitAction(result.data, id)
-    handleTestCaseSaveResponse({ response, redirectPath: '/template-test-cases', push: router.push, toast })
-  }, [description, nodesOrder, title, router, onSubmitAction, id, flowBlocks])
+    handleTestCaseSaveResponse({ response, redirectPath: '/template-test-cases', push, toast })
+  }, [description, nodesOrder, title, push, onSubmitAction, id, flowBlocks])
 
   return (
     <div className="flex flex-col gap-4">

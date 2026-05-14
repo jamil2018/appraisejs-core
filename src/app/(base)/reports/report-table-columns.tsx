@@ -16,21 +16,21 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
     case TestRunStatus.COMPLETED:
       return (
         <Badge className="bg-primary">
-          <CheckCircle className="mr-1 h-4 w-4" />
+          <CheckCircle className="mr-1 size-4" />
           Completed
         </Badge>
       )
     case TestRunStatus.CANCELLED:
       return (
         <Badge className="bg-pink-500 text-white">
-          <XCircle className="mr-1 h-4 w-4" />
+          <XCircle className="mr-1 size-4" />
           Cancelled
         </Badge>
       )
     default:
       return (
         <Badge className="bg-gray-500 text-white">
-          <Clock className="mr-1 h-4 w-4" />
+          <Clock className="mr-1 size-4" />
           Unknown
         </Badge>
       )
@@ -42,28 +42,28 @@ const testRunResultToBadge = (result: TestRunResult) => {
     case TestRunResult.PASSED:
       return (
         <Badge className="bg-primary">
-          <CheckCircle className="mr-1 h-4 w-4" />
+          <CheckCircle className="mr-1 size-4" />
           Passed
         </Badge>
       )
     case TestRunResult.FAILED:
       return (
         <Badge className="bg-pink-500 text-white">
-          <XCircle className="mr-1 h-4 w-4" />
+          <XCircle className="mr-1 size-4" />
           Failed
         </Badge>
       )
     case TestRunResult.CANCELLED:
       return (
         <Badge className="bg-gray-500 text-white">
-          <XCircle className="mr-1 h-4 w-4" />
+          <XCircle className="mr-1 size-4" />
           Cancelled
         </Badge>
       )
     default:
       return (
         <Badge className="bg-gray-500 text-white">
-          <Clock className="mr-1 h-4 w-4" />
+          <Clock className="mr-1 size-4" />
           Unknown
         </Badge>
       )
@@ -147,7 +147,7 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
       return (
         <Link href={`/reports/${report.id}`}>
           <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Eye className="h-4 w-4" />
+            <Eye className="size-4" />
             View
           </Button>
         </Link>

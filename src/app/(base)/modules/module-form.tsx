@@ -5,7 +5,7 @@ import ErrorMessage from '@/components/form/error-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formOpts, type Module, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
+import { moduleFormOpts, type Module, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
@@ -30,6 +30,8 @@ type ModuleFieldErrorsProps = {
   isTouched: boolean
 }
 
+const EMPTY_PARENT_OPTIONS: ModuleParentOption[] = []
+
 function getErrorMessage(error: unknown) {
   if (typeof error === 'string') {
     return error
@@ -49,8 +51,8 @@ function ModuleFieldErrors({ errors, isTouched }: ModuleFieldErrorsProps) {
 
   return (
     <div className="flex flex-col gap-1" aria-live="polite">
-      {errors.map((error, index) => (
-        <ErrorMessage key={`${String(error)}-${index}`} message={getErrorMessage(error)} visible={true} />
+      {errors.map(error => (
+        <ErrorMessage key={getErrorMessage(error)} message={getErrorMessage(error)} visible={true} />
       ))}
     </div>
   )
@@ -60,14 +62,14 @@ const ModuleForm = ({
   defaultValues,
   successTitle,
   successMessage,
-  parentOptions = [],
+  parentOptions = EMPTY_PARENT_OPTIONS,
   id,
   onSubmitAction,
 }: ModuleFormProps) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts.defaultValues,
-    validators: formOpts.validators,
+    defaultValues: defaultValues ?? moduleFormOpts.defaultValues,
+    validators: moduleFormOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
@@ -75,7 +77,7 @@ const ModuleForm = ({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/modules')
+        push('/modules')
       }
       if (res.status === 400) {
         toast({
@@ -125,9 +127,7 @@ const ModuleForm = ({
               <Select value={field.state.value || ROOT_MODULE_UUID} onValueChange={value => field.handleChange(value)}>
                 <SelectTrigger id={field.name}>
                   <SelectValue
-                    placeholder={
-                      parentOptions.length === 0 ? 'No parent modules available' : 'Select a parent or Root'
-                    }
+                    placeholder={parentOptions.length === 0 ? 'No parent modules available' : 'Select a parent or Root'}
                   />
                 </SelectTrigger>
                 <SelectContent>

@@ -21,19 +21,40 @@ export function readJSDocTag(line: string, tagName: string): string | null {
 
 function findTopLevelJSDocStart(lines: string[]): number | null {
   let startLine = 0
+  let isInsideImportBlock = false
+
   while (startLine < lines.length) {
     const line = lines[startLine].trim()
-    if (line === '' || line.startsWith('import ')) {
+
+    if (isInsideImportBlock) {
+      if (line.includes('from ') || line.endsWith(';')) {
+        isInsideImportBlock = false
+      }
       startLine++
       continue
     }
+
+    if (line === '') {
+      startLine++
+      continue
+    }
+
+    if (line.startsWith('import ')) {
+      isInsideImportBlock = line.includes('{') && !line.includes('from ')
+      startLine++
+      continue
+    }
+
     break
   }
 
   return startLine < lines.length && lines[startLine].trim().startsWith('/**') ? startLine : null
 }
 
-function readGroupMetadataLine(line: string, metadata: { name: string | null; description: string | null; type: string | null }) {
+function readGroupMetadataLine(
+  line: string,
+  metadata: { name: string | null; description: string | null; type: string | null },
+) {
   metadata.name = readJSDocTag(line, 'name') ?? metadata.name
   metadata.description = readJSDocTag(line, 'description') ?? metadata.description
   metadata.type = readJSDocTag(line, 'type') ?? metadata.type

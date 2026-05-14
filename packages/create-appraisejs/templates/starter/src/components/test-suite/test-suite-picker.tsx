@@ -21,7 +21,12 @@ import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-
 import { CheckedState } from '@radix-ui/react-checkbox'
 import { ChevronDown, ChevronRight, FolderTree, Search } from 'lucide-react'
 
-import { createDraftSelections, normalizeSuiteSelection, suiteMatchesQuery, type DraftSelectionMap } from './test-suite-picker-helpers'
+import {
+  createDraftSelections,
+  normalizeSuiteSelection,
+  suiteMatchesQuery,
+  type DraftSelectionMap,
+} from './test-suite-picker-helpers'
 
 type TestSuitePickerProps = {
   testSuites: TestSuitePickerRow[]
@@ -91,9 +96,7 @@ function TestSuitePicker({
     setDraftSelections(current => {
       const childIds = testSuite.testCases.map(testCase => testCase.id)
       const currentSelection = current[testSuite.id]
-      const nextSelectedIds = new Set(
-        currentSelection?.runAll ? childIds : currentSelection?.testCaseIds ?? [],
-      )
+      const nextSelectedIds = new Set(currentSelection?.runAll ? childIds : (currentSelection?.testCaseIds ?? []))
 
       if (checked) {
         nextSelectedIds.add(testCaseId)
@@ -128,33 +131,41 @@ function TestSuitePicker({
   }
 
   const saveDraftSelection = () => {
-    const normalizedSelections = testSuites
-      .map(testSuite => {
-        const selection = draftSelections[testSuite.id]
-        return selection ? normalizeSuiteSelection(testSuite, selection) : null
-      })
-      .filter((selection): selection is TestSuiteSelection => Boolean(selection))
+    const normalizedSelections = testSuites.reduce<TestSuiteSelection[]>((selections, testSuite) => {
+      const selection = draftSelections[testSuite.id]
+      if (selection !== null) {
+        const normalizedSelection = normalizeSuiteSelection(testSuite, selection)
+        if (normalizedSelection) {
+          selections.push(normalizedSelection)
+        }
+      }
+
+      return selections
+    }, [])
 
     onSave(normalizedSelections)
     setOpen(false)
   }
 
-  const savedSuites = selectedSuites
-    .map(selection => {
+  const savedSuites = selectedSuites.reduce<{ suite: TestSuitePickerRow; selection: TestSuiteSelection }[]>(
+    (suites, selection) => {
       const suite = testSuites.find(testSuite => testSuite.id === selection.testSuiteId)
       if (!suite) {
-        return null
+        return suites
       }
 
-      return {
-        suite,
-        selection: normalizeSuiteSelection(suite, selection),
+      const normalizedSelection = normalizeSuiteSelection(suite, selection)
+      if (normalizedSelection) {
+        suites.push({
+          suite,
+          selection: normalizedSelection,
+        })
       }
-    })
-    .filter(
-      (entry): entry is { suite: TestSuitePickerRow; selection: TestSuiteSelection } =>
-        Boolean(entry?.suite && entry.selection),
-    )
+
+      return suites
+    },
+    [],
+  )
 
   const selectionSummaryLabel = selectedLabel.replace(/^selected\s+/i, '')
   const shouldConstrainSavedListHeight = savedSuites.length > 2
@@ -180,7 +191,7 @@ function TestSuitePicker({
           <div className="flex flex-col gap-4 px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={event => setQuery(event.target.value)}
@@ -197,7 +208,7 @@ function TestSuitePicker({
                   filteredSuites.map(testSuite => {
                     const currentSelection = draftSelections[testSuite.id]
                     const childIds = testSuite.testCases.map(testCase => testCase.id)
-                    const selectedChildIds = currentSelection?.runAll ? childIds : currentSelection?.testCaseIds ?? []
+                    const selectedChildIds = currentSelection?.runAll ? childIds : (currentSelection?.testCaseIds ?? [])
                     const selectionCount = selectedChildIds.length
                     const isExpanded = expandedSuites[testSuite.id] ?? false
                     const suiteCheckedState: CheckedState =
@@ -223,9 +234,9 @@ function TestSuitePicker({
                                 onClick={() => toggleExpanded(testSuite.id)}
                               >
                                 {isExpanded ? (
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  <ChevronDown className="size-4 text-muted-foreground" />
                                 ) : (
-                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  <ChevronRight className="size-4 text-muted-foreground" />
                                 )}
                                 <span className="font-semibold">{testSuite.name}</span>
                               </button>
@@ -260,23 +271,29 @@ function TestSuitePicker({
                         </div>
 
                         {isExpanded && (
-                          <div className="border-t bg-muted/20 px-4 py-3">
+                          <div className="bg-muted/20 border-t px-4 py-3">
                             {testSuite.testCases.length > 0 ? (
                               <div className="space-y-2">
                                 {testSuite.testCases.map(testCase => {
                                   const testCaseTags = getFilterTags(testCase.tags)
                                   const checked =
-                                    currentSelection?.runAll || currentSelection?.testCaseIds.includes(testCase.id) || false
+                                    currentSelection?.runAll ||
+                                    currentSelection?.testCaseIds.includes(testCase.id) ||
+                                    false
+
+                                  const testCaseCheckboxId = `test-suite-${testSuite.id}-test-case-${testCase.id}`
 
                                   return (
                                     <label
                                       key={testCase.id}
+                                      htmlFor={testCaseCheckboxId}
                                       className={cn(
                                         'flex items-start gap-3 rounded-md border bg-background px-3 py-3',
                                         checked && 'border-primary/40',
                                       )}
                                     >
                                       <Checkbox
+                                        id={testCaseCheckboxId}
                                         checked={checked}
                                         onCheckedChange={value => updateChildSelection(testSuite, testCase.id, !!value)}
                                         aria-label={`Select test case ${testCase.title}`}
@@ -335,7 +352,7 @@ function TestSuitePicker({
       </Dialog>
 
       {savedSuites.length > 0 && (
-        <div className="rounded-md border bg-muted/20">
+        <div className="bg-muted/20 rounded-md border">
           <div className="border-b px-4 py-3 text-sm font-medium">{selectedLabel}</div>
           <ScrollArea className={cn(shouldConstrainSavedListHeight && 'h-72')}>
             <div className="space-y-3 p-4">

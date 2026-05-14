@@ -82,14 +82,14 @@ export default function CreateLocatorWorkspace({
               onValueChange={value => setSourceType(getLocatorSourceType(value))}
               className="grid gap-3"
             >
-              <label className="flex items-center gap-3 rounded-lg border p-3">
+              <label htmlFor="source-environment" className="flex items-center gap-3 rounded-lg border p-3">
                 <RadioGroupItem value="environment" id="source-environment" disabled={environments.length === 0} />
                 <div>
                   <div className="font-medium">Saved environment</div>
                   <div className="text-sm text-muted-foreground">Launch from an existing base URL.</div>
                 </div>
               </label>
-              <label className="flex items-center gap-3 rounded-lg border p-3">
+              <label htmlFor="source-url" className="flex items-center gap-3 rounded-lg border p-3">
                 <RadioGroupItem value="url" id="source-url" />
                 <div>
                   <div className="font-medium">Direct URL</div>
@@ -126,13 +126,8 @@ export default function CreateLocatorWorkspace({
               </div>
             )}
 
-            <Button
-              type="button"
-              onClick={handleStart}
-              disabled={isStarting || !canLaunch}
-              className="w-full"
-            >
-              {isStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Target className="mr-2 h-4 w-4" />}
+            <Button type="button" onClick={handleStart} disabled={isStarting || !canLaunch} className="w-full">
+              {isStarting ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Target className="mr-2 size-4" />}
               Launch Chromium
             </Button>
 
@@ -163,7 +158,9 @@ export default function CreateLocatorWorkspace({
 
                   <div className="space-y-2 text-sm">
                     <div className="font-medium">Current page</div>
-                    <div className="break-all text-muted-foreground">{session.currentUrl || session.launchSource.url}</div>
+                    <div className="break-all text-muted-foreground">
+                      {session.currentUrl || session.launchSource.url}
+                    </div>
                     <div className="text-muted-foreground">{session.pageTitle || 'Waiting for page metadata'}</div>
                   </div>
 
@@ -189,9 +186,9 @@ export default function CreateLocatorWorkspace({
           </CardHeader>
           <CardContent className="space-y-5">
             {session?.pickedLocator ? (
-              <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="bg-muted/30 rounded-lg border p-4">
                 <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="size-4" />
                   Picked from page
                 </div>
                 <div className="space-y-2 text-sm text-muted-foreground">
@@ -225,20 +222,20 @@ export default function CreateLocatorWorkspace({
               </div>
 
               <div className="space-y-2">
-                <Label>Group Resolution</Label>
+                <div className="text-sm font-medium">Group Resolution</div>
                 <RadioGroup
                   value={state.resolutionMode}
                   onValueChange={value => setResolutionMode(getLocatorWorkspaceResolutionMode(value))}
                   className="grid gap-3"
                 >
-                  <label className="flex items-center gap-3 rounded-lg border p-3">
+                  <label htmlFor="group-existing" className="flex items-center gap-3 rounded-lg border p-3">
                     <RadioGroupItem value="existing" id="group-existing" />
                     <div>
                       <div className="font-medium">Use existing group</div>
                       <div className="text-sm text-muted-foreground">Attach the locator to a saved route group.</div>
                     </div>
                   </label>
-                  <label className="flex items-center gap-3 rounded-lg border p-3">
+                  <label htmlFor="group-create" className="flex items-center gap-3 rounded-lg border p-3">
                     <RadioGroupItem value="create" id="group-create" />
                     <div>
                       <div className="font-medium">Create new group</div>
@@ -318,7 +315,7 @@ export default function CreateLocatorWorkspace({
 
             <div className="flex justify-end">
               <Button type="button" onClick={handleSave} disabled={!canSave || isSaving}>
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                {isSaving ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Save className="mr-2 size-4" />}
                 {isModifyMode ? 'Update Locator' : 'Save Locator'}
               </Button>
             </div>

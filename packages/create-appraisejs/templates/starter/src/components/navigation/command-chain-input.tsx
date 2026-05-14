@@ -28,8 +28,8 @@ export const CommandChainInput = React.forwardRef<
   }
 
   return (
-    <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
-      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+    <div className="flex items-center border-b px-3" data-cmdk-input-wrapper="">
+      <Search className="mr-2 size-4 shrink-0 opacity-50" />
       {badge && (
         <div className="mr-2 flex-shrink-0">
           <CommandBadge label={badge.label} onClose={badge.onClose} />

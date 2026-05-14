@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import ErrorMessage from '@/components/form/error-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formOpts, type Tag } from '@/constants/form-opts/tag-form-opts'
+import { tagFormOpts, type Tag } from '@/constants/form-opts/tag-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { getActionErrorMessage, getCreatedTag, tagFieldValidators, type TagFormSubmitAction } from './tag-form-helpers'
 
@@ -46,12 +46,8 @@ function TagFieldErrors({ errors, isTouched }: TagFieldErrorsProps) {
 
   return (
     <div className="flex flex-col gap-1" aria-live="polite">
-      {errors.map((error, index) => (
-        <ErrorMessage
-          key={`${String(error)}-${index}`}
-          message={getErrorMessage(error)}
-          visible={true}
-        />
+      {errors.map(error => (
+        <ErrorMessage key={getErrorMessage(error)} message={getErrorMessage(error)} visible={true} />
       ))}
     </div>
   )
@@ -66,10 +62,10 @@ const TagForm = ({
   onSuccess,
   redirectPath = '/tags',
 }: TagFormProps) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts?.defaultValues,
-    validators: formOpts?.validators,
+    defaultValues: defaultValues ?? tagFormOpts.defaultValues,
+    validators: tagFormOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
@@ -93,7 +89,7 @@ const TagForm = ({
         })
 
         if (redirectPath) {
-          router.push(redirectPath)
+          push(redirectPath)
         }
       }
       if (res.status === 400) {

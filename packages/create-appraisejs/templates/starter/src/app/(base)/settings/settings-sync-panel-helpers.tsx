@@ -106,5 +106,5 @@ export function getSyncTooltipCopy(requestId: SyncRequestId) {
 }
 
 export const syncPanelInfo = {
-  helpIcon: <CircleHelp className="h-4 w-4" />,
+  helpIcon: <CircleHelp className="size-4" />,
 }

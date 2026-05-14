@@ -27,7 +27,7 @@ const TemplateStepGroups = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<Component className="h-8 w-8" />}
+          icon={<Component className="size-8" />}
           title="No template step groups found"
           description="Get started by creating a template step group to organize related template steps"
           createRoute="/template-step-groups/create"
@@ -42,7 +42,7 @@ const TemplateStepGroups = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Component className="mr-2 h-8 w-8" />
+            <Component className="mr-2 size-8" />
             Template Step Groups
           </span>
         </PageHeader>

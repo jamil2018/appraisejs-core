@@ -40,6 +40,8 @@ For database work, read `prisma/schema.prisma` first. The core hierarchy is `Mod
 
 Vitest covers unit and component tests named `*.test.ts` or `*.test.tsx` in `src/app`, `src/actions`, `src/components`, `src/services`, selected `src/lib` paths, and script libraries. Run focused checks with `npx vitest run path/to/file.test.tsx`, then use `npm run validate` for broader verification. Use `npm run test` for Cucumber execution behavior.
 
+React Doctor runs on the root app only (`--project appraisejs`): `npm run quality:react-doctor` for a full scan, `npm run quality:react-doctor:ci` for the same with a non-zero exit on errors (used in CI). Pre-commit runs `npm run quality:react-doctor:commit` (staged files). Configuration lives in `react-doctor.config.json`; dead-code analysis is disabled there because Fallow already covers that surface.
+
 ## Commit & Pull Request Guidelines
 
 Recent history uses short, imperative subjects such as `Fix empty flow block selection loop` or `Implement flow-builder node search with template sync`. Keep commits scoped and mention template sync when applicable. PRs should describe the change, list validation commands, link related issues, and include screenshots or clips for visible UI changes.

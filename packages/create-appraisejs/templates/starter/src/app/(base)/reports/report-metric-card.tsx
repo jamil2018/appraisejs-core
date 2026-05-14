@@ -47,13 +47,13 @@ const ReportMetricCard = ({ title, value }: { title: string; value: string }) =>
   return (
     <Card
       className={cn(
-        'group relative min-w-0 overflow-hidden rounded-2xl shadow-sm transition-colors bg-transparent border-gray-500/10',
+        'group relative min-w-0 overflow-hidden rounded-2xl border-gray-500/10 bg-transparent shadow-sm transition-colors',
         styles.card,
       )}
     >
       <div
         className={cn(
-          'pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-3xl transition-opacity group-hover:opacity-90',
+          'pointer-events-none absolute -right-10 -top-10 size-28 rounded-full blur-3xl transition-opacity group-hover:opacity-90',
           styles.glow,
         )}
       />
@@ -62,7 +62,7 @@ const ReportMetricCard = ({ title, value }: { title: string; value: string }) =>
       <CardHeader className="space-y-3 p-5 pb-3">
         <div className="flex items-center gap-3">
           <span className={cn('h-2.5 w-2.5 rounded-full shadow-sm', styles.dot)} />
-          <CardTitle className="text-sm font-medium tracking-[0.18em] text-muted-foreground uppercase">
+          <CardTitle className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
             {title}
           </CardTitle>
         </div>

@@ -24,12 +24,12 @@ export type NavCommandProps = {
 }
 
 export default function NavCommand({ className }: NavCommandProps) {
-  const router = useRouter()
+  const { push } = useRouter()
   const { open, setOpen, commandMode, searchQuery, setSearchQuery, isMac, clearSearchMode, selectSearchMode } =
     useNavCommand()
 
   const handleNavigate = (href: string) => {
-    router.push(href)
+    push(href)
     setOpen(false)
   }
 
@@ -44,9 +44,9 @@ export default function NavCommand({ className }: NavCommandProps) {
         <span>Open Command Palette</span>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <kbd className="rounded-md bg-muted px-1 text-xs text-gray-400">
-            {isMac ? <Command className="h-2 w-2 text-gray-400" /> : 'Ctrl'}
+            {isMac ? <Command className="size-2 text-gray-400" /> : 'Ctrl'}
           </kbd>
-          <Plus className="h-2 w-2 text-gray-400" />
+          <Plus className="size-2 text-gray-400" />
           <kbd className="rounded-md bg-muted px-1 text-xs text-gray-400">K</kbd>
         </div>
       </Button>
@@ -71,7 +71,7 @@ export default function NavCommand({ className }: NavCommandProps) {
                     const Icon = item.icon
                     return (
                       <CommandItem key={item.href} value={item.label} onSelect={() => handleNavigate(item.href)}>
-                        <Icon className="h-4 w-4" />
+                        <Icon className="size-4" />
                         {item.label}
                       </CommandItem>
                     )
@@ -83,7 +83,7 @@ export default function NavCommand({ className }: NavCommandProps) {
                   const Icon = item.icon
                   return (
                     <CommandItem key={item.mode} value={item.label} onSelect={() => selectSearchMode(item.mode)}>
-                      <Icon className="h-4 w-4" />
+                      <Icon className="size-4" />
                       {item.label}
                     </CommandItem>
                   )

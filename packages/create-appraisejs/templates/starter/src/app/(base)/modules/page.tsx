@@ -28,7 +28,7 @@ const Modules = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<Code className="h-8 w-8" />}
+          icon={<Code className="size-8" />}
           title="No modules found"
           description="Get started by creating a module to organize your application components"
           createRoute="/modules/create"
@@ -43,7 +43,7 @@ const Modules = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Code className="mr-2 h-8 w-8" />
+            <Code className="mr-2 size-8" />
             Modules
           </span>
         </PageHeader>

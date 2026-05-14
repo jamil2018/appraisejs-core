@@ -73,7 +73,7 @@ export default function DeletePrompt({
       {!isControlled && (
         <DialogTrigger asChild disabled={isDisabled}>
           <Button variant="outline" size="icon" aria-label={triggerLabel}>
-            <Trash className="h-4 w-4" aria-hidden="true" />
+            <Trash className="size-4" aria-hidden="true" />
             <span className="sr-only">{triggerLabel}</span>
           </Button>
         </DialogTrigger>
@@ -81,7 +81,7 @@ export default function DeletePrompt({
       <DialogContent className="border-none">
         <DialogHeader>
           <DialogTitle className="flex items-end gap-2">
-            <AlertCircle className="h-5 w-5" aria-hidden="true" />
+            <AlertCircle className="size-5" aria-hidden="true" />
             {dialogTitle}
           </DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
@@ -97,7 +97,7 @@ export default function DeletePrompt({
             disabled={isDeleting}
           >
             <span className="flex items-center gap-2 text-white">
-              <Trash className="h-4 w-4" aria-hidden="true" />
+              <Trash className="size-4" aria-hidden="true" />
               {isDeleting ? 'Deleting...' : confirmLabel}
             </span>
           </Button>
@@ -108,7 +108,7 @@ export default function DeletePrompt({
             onClick={() => handleOpenChange(false)}
             disabled={isDeleting}
           >
-            <X className="h-4 w-4" aria-hidden="true" />
+            <X className="size-4" aria-hidden="true" />
             {cancelLabel}
           </Button>
         </DialogFooter>

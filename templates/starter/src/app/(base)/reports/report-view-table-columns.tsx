@@ -51,28 +51,28 @@ const testRunTestCaseResultToBadge = (result: TestRunTestCaseResult) => {
     case TestRunTestCaseResult.PASSED:
       return (
         <Badge className="bg-primary">
-          <CheckCircle className="mr-1 h-4 w-4" />
+          <CheckCircle className="mr-1 size-4" />
           Passed
         </Badge>
       )
     case TestRunTestCaseResult.FAILED:
       return (
         <Badge className="bg-pink-500 text-white">
-          <XCircle className="mr-1 h-4 w-4" />
+          <XCircle className="mr-1 size-4" />
           Failed
         </Badge>
       )
     case TestRunTestCaseResult.UNTESTED:
       return (
         <Badge className="bg-yellow-500 text-white">
-          <Clock className="mr-1 h-4 w-4" />
+          <Clock className="mr-1 size-4" />
           Untested
         </Badge>
       )
     default:
       return (
         <Badge className="bg-gray-500 text-white">
-          <Clock className="mr-1 h-4 w-4" />
+          <Clock className="mr-1 size-4" />
           Unknown
         </Badge>
       )

@@ -23,12 +23,12 @@ export default async function TestCaseTable() {
           {
             label: 'From Scratch',
             link: '/test-cases/create',
-            icon: <Cog className="h-4 w-4" />,
+            icon: <Cog className="size-4" />,
           },
           {
             label: 'From Template',
             link: '/test-cases/create-from-template',
-            icon: <LayoutPanelTop className="h-4 w-4" />,
+            icon: <LayoutPanelTop className="size-4" />,
           },
         ]}
       />

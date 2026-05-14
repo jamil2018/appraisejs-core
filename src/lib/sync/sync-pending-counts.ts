@@ -6,19 +6,23 @@ import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
 import type { NodePath } from '@babel/traverse'
-import {
-  StepParameterType,
-  TagType,
-  TemplateStepGroupType,
-  TemplateStepIcon,
-  TemplateStepType,
-} from '@prisma/client'
+import { StepParameterType, TagType, TemplateStepGroupType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { getAutomationEnvironmentsDir, getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
-import { extractModulePathFromFilePath, scanFeatureFiles, type ParsedFeature, type ParsedStep } from '@/lib/gherkin-parser'
+import {
+  extractModulePathFromFilePath,
+  scanFeatureFiles,
+  type ParsedFeature,
+  type ParsedStep,
+} from '@/lib/gherkin-parser'
 import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
-import { SYNC_ALL_REQUEST_ID, syncScriptDefinitions, type SyncRequestId, type SyncScriptId } from '@/lib/sync/sync-registry'
+import {
+  SYNC_ALL_REQUEST_ID,
+  syncScriptDefinitions,
+  type SyncRequestId,
+  type SyncScriptId,
+} from '@/lib/sync/sync-registry'
 import { getTagTypeFromName } from '@/lib/tag-identifiers'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
@@ -311,13 +315,30 @@ function readJSDocTag(line: string, tagName: string): string | null {
 
 function findTopLevelJSDocStart(lines: string[]): number | null {
   let startLine = 0
+  let isInsideImportBlock = false
 
   while (startLine < lines.length) {
     const line = lines[startLine].trim()
-    if (line === '' || line.startsWith('import ')) {
+
+    if (isInsideImportBlock) {
+      if (line.includes('from ') || line.endsWith(';')) {
+        isInsideImportBlock = false
+      }
       startLine++
       continue
     }
+
+    if (line === '') {
+      startLine++
+      continue
+    }
+
+    if (line.startsWith('import ')) {
+      isInsideImportBlock = line.includes('{') && !line.includes('from ')
+      startLine++
+      continue
+    }
+
     break
   }
 
@@ -357,7 +378,10 @@ function readGroupMetadataLine(
   metadata.type = readJSDocTag(line, 'type') ?? metadata.type
 }
 
-function readStepMetadataLine(line: string, metadata: { name: string | null; description: string | null; icon: string | null }) {
+function readStepMetadataLine(
+  line: string,
+  metadata: { name: string | null; description: string | null; icon: string | null },
+) {
   metadata.name = readJSDocTag(line, 'name') ?? metadata.name
   metadata.description = readJSDocTag(line, 'description') ?? metadata.description
   metadata.icon = readJSDocTag(line, 'icon') ?? metadata.icon
@@ -591,7 +615,10 @@ function extractFeatureLevelTags(parsedFeature: ParsedFeature): string[] {
   return parsedFeature.tags.flatMap(splitTagLine)
 }
 
-function parseScenarioTitle(scenarioName: string, scenarioDescription?: string): { title: string; description: string } {
+function parseScenarioTitle(
+  scenarioName: string,
+  scenarioDescription?: string,
+): { title: string; description: string } {
   if (scenarioDescription) {
     return {
       title: scenarioDescription.trim(),
@@ -654,7 +681,11 @@ function matchGherkinStepToTemplateStep(
   }>,
 ): { signature: string; parameters: ParameterMatch[] } | null {
   for (const templateStep of templateSteps) {
-    const parameters = extractParametersFromGherkinStep(gherkinStep.text, templateStep.signature, templateStep.parameters)
+    const parameters = extractParametersFromGherkinStep(
+      gherkinStep.text,
+      templateStep.signature,
+      templateStep.parameters,
+    )
     if (parameters) {
       return {
         signature: templateStep.signature,
@@ -704,11 +735,7 @@ function sameStepParameters(
 
   return left.every((parameter, index) => {
     const other = right[index]
-    return (
-      parameter.name === other?.name &&
-      parameter.order === other?.order &&
-      parameter.type === other?.type
-    )
+    return parameter.name === other?.name && parameter.order === other?.order && parameter.type === other?.type
   })
 }
 
@@ -1182,7 +1209,8 @@ export function countTestCaseMismatches(
         .filter(tag => tag.type === TagType.FILTER)
         .map(tag => normalizeTagExpression(tag.tagExpression))
       const isLinkedToExpectedSuite = existing.TestSuite.some(
-        suite => getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/') === expectedSuiteIdentity,
+        suite =>
+          getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/') === expectedSuiteIdentity,
       )
 
       return (
@@ -1203,7 +1231,10 @@ export function countTestCaseMismatches(
 }
 
 function emptyCounts(): SyncPendingCounts {
-  const counts = Object.fromEntries(syncScriptDefinitions.map(definition => [definition.id, 0])) as Record<SyncScriptId, number>
+  const counts = Object.fromEntries(syncScriptDefinitions.map(definition => [definition.id, 0])) as Record<
+    SyncScriptId,
+    number
+  >
   return {
     ...counts,
     [SYNC_ALL_REQUEST_ID]: 0,
@@ -1304,13 +1335,18 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       })),
     )
 
-    const modulePathMap = new Map(dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]))
+    const modulePathMap = new Map(
+      dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]),
+    )
 
     const counts: Record<SyncScriptId, number> = {
       'sync-modules': countModuleMismatches(filesystem.modulePaths, dbModules),
       'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
       'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),
-      'sync-template-step-groups': countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
+      'sync-template-step-groups': countTemplateStepGroupMismatches(
+        filesystem.templateStepGroups,
+        dbTemplateStepGroups,
+      ),
       'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
       'sync-locator-groups': countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
       'sync-locators': countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups),
