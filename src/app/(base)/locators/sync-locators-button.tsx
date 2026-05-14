@@ -2,65 +2,71 @@
 
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useTransition } from 'react'
 import { syncLocatorsFromFilesAction } from '@/actions/locator/locator-actions'
 import { toast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
 
-export function SyncLocatorsButton() {
-  const [isLoading, setIsLoading] = useState(false)
-  const { refresh } = useRouter()
+type LocatorSyncPayload = {
+  locatorsCreated: number
+  locatorsMergedToFile: number
+  conflicts: number
+  errors: string[]
+}
 
-  const handleSync = async () => {
-    setIsLoading(true)
-    try {
-      const result = await syncLocatorsFromFilesAction()
+// fallow-ignore-next-line complexity
+async function runLocatorFileSync(refresh: () => void) {
+  try {
+    const result = await syncLocatorsFromFilesAction()
 
-      if (result.status === 200 && result.data) {
-        const { locatorsCreated, locatorsMergedToFile, conflicts, errors } = result.data as {
-          locatorsCreated: number
-          locatorsMergedToFile: number
-          conflicts: number
-          errors: string[]
-        }
+    if (result.status === 200 && result.data) {
+      const { locatorsCreated, locatorsMergedToFile, conflicts, errors } = result.data as LocatorSyncPayload
 
-        if (errors.length > 0) {
-          toast({
-            variant: 'destructive',
-            title: 'Sync completed with errors',
-            description: `Created ${locatorsCreated} locators, merged ${locatorsMergedToFile} into files, ${conflicts} conflicts detected. ${errors.length} error(s) occurred.`,
-          })
-        } else {
-          toast({
-            title: 'Sync completed successfully',
-            description: `Created ${locatorsCreated} locators, merged ${locatorsMergedToFile} into files, ${conflicts} conflicts detected.`,
-          })
-        }
-
-        // Refresh the page to show updated data
-        refresh()
-      } else {
+      if (errors.length > 0) {
         toast({
           variant: 'destructive',
-          title: 'Sync failed',
-          description: result.error || 'An error occurred during sync',
+          title: 'Sync completed with errors',
+          description: `Created ${locatorsCreated} locators, merged ${locatorsMergedToFile} into files, ${conflicts} conflicts detected. ${errors.length} error(s) occurred.`,
+        })
+      } else {
+        toast({
+          title: 'Sync completed successfully',
+          description: `Created ${locatorsCreated} locators, merged ${locatorsMergedToFile} into files, ${conflicts} conflicts detected.`,
         })
       }
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Sync failed',
-        description: `An error occurred: ${error}`,
-      })
-    } finally {
-      setIsLoading(false)
+
+      refresh()
+      return
     }
+
+    toast({
+      variant: 'destructive',
+      title: 'Sync failed',
+      description: result.error || 'An error occurred during sync',
+    })
+  } catch (error) {
+    toast({
+      variant: 'destructive',
+      title: 'Sync failed',
+      description: `An error occurred: ${error}`,
+    })
+  }
+}
+
+export function SyncLocatorsButton() {
+  const [isPending, startTransition] = useTransition()
+  const { refresh } = useRouter()
+
+  const handleSync = () => {
+    startTransition(() => {
+      void runLocatorFileSync(refresh)
+    })
   }
 
   return (
-    <Button onClick={handleSync} disabled={isLoading} variant="outline">
-      <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
-      {isLoading ? 'Syncing...' : 'Sync Locators'}
+    <Button onClick={handleSync} disabled={isPending} variant="outline">
+      <RefreshCw className={`size-4 ${isPending ? 'animate-spin' : ''}`} />
+      {isPending ? 'Syncing...' : 'Sync Locators'}
     </Button>
   )
 }

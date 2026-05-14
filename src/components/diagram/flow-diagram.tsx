@@ -278,10 +278,12 @@ const FlowDiagram = ({
   )
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prune optimistic rows once server props include them
     setPendingLocators(prev => prev.filter(p => !locators.some(l => l.id === p.id)))
   }, [locators])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prune optimistic rows once server props include them
     setPendingLocatorGroups(prev => prev.filter(p => !locatorGroups.some(g => g.id === p.id)))
   }, [locatorGroups])
 

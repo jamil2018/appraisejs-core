@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import {
   RefreshCw,
 } from 'lucide-react'
@@ -74,14 +73,9 @@ function SyncRow({
 }
 
 export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendingCounts }) {
-  const { activeRequestId, isRunning, pendingCounts: currentPendingCounts, runSync, setPendingCounts } =
-    useSettingsSync({
-      initialPendingCounts: pendingCounts,
-    })
-
-  useEffect(() => {
-    setPendingCounts(pendingCounts)
-  }, [pendingCounts, setPendingCounts])
+  const { activeRequestId, isRunning, pendingCounts: currentPendingCounts, runSync } = useSettingsSync({
+    initialPendingCounts: pendingCounts,
+  })
 
   return (
     <TooltipProvider>

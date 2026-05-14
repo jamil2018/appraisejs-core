@@ -1221,7 +1221,7 @@ const TestCaseForm = ({
   const [selectedTags, setSelectedTags] = useState(defaultTagIds ?? [])
   const [selectedTemplateId, setSelectedTemplateId] = useState(defaultTemplateTestCaseId ?? '')
   const [appliedTemplateId, setAppliedTemplateId] = useState(defaultTemplateTestCaseId ?? '')
-  const [currentStep, setCurrentStep] = useState(
+  const [currentStep, setCurrentStep] = useState(() =>
     getInitialWizardStep(hasTemplateSelectionStep, defaultTemplateTestCaseId, detailsStepIndex),
   )
   const [isCreateSuiteDialogOpen, setIsCreateSuiteDialogOpen] = useState(false)

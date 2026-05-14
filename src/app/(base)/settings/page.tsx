@@ -23,7 +23,7 @@ export default async function SettingsPage() {
         </PageHeader>
       </div>
       <section className="max-w-6xl">
-        <SettingsSyncPanel pendingCounts={pendingCounts} />
+        <SettingsSyncPanel key={JSON.stringify(pendingCounts)} pendingCounts={pendingCounts} />
       </section>
     </div>
   )

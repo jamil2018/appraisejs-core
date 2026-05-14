@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { use } from 'react'
 import * as RechartsPrimitive from 'recharts'
 
 import { cn } from '@/lib/utils'
@@ -22,7 +23,7 @@ type ChartContextProps = {
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
 function useChart() {
-  const context = React.useContext(ChartContext)
+  const context = use(ChartContext)
 
   if (!context) {
     throw new Error('useChart must be used within a <ChartContainer />')
@@ -105,6 +106,51 @@ type ChartTooltipContentProps = React.ComponentProps<typeof RechartsPrimitive.To
 
 const EMPTY_CHART_TOOLTIP_PAYLOAD = [] as NonNullable<ChartTooltipContentProps['payload']>
 
+type ChartTooltipTitleProps = {
+  config: ChartConfig
+  resolvedPayload: NonNullable<ChartTooltipContentProps['payload']>
+  hideLabel: boolean
+  label: ChartTooltipContentProps['label']
+  labelFormatter: ChartTooltipContentProps['labelFormatter']
+  labelClassName?: string
+  labelKey?: string
+}
+
+// fallow-ignore-next-line complexity
+const ChartTooltipTitle = React.memo(function ChartTooltipTitle({
+  config,
+  resolvedPayload,
+  hideLabel,
+  label,
+  labelFormatter,
+  labelClassName,
+  labelKey,
+}: ChartTooltipTitleProps) {
+  if (hideLabel || !resolvedPayload.length) {
+    return null
+  }
+
+  const [item] = resolvedPayload
+  const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
+  const itemConfig = getPayloadConfigFromPayload(config, item, key)
+  const value =
+    !labelKey && typeof label === 'string'
+      ? config[label as keyof typeof config]?.label || label
+      : itemConfig?.label
+
+  if (labelFormatter) {
+    return <div className={cn('font-medium', labelClassName)}>{labelFormatter(value, resolvedPayload)}</div>
+  }
+
+  if (!value) {
+    return null
+  }
+
+  return <div className={cn('font-medium', labelClassName)}>{value}</div>
+})
+
+ChartTooltipTitle.displayName = 'ChartTooltipTitle'
+
 function ChartTooltipContent(props: ChartTooltipContentProps) {
   const { active, payload } = props
   if (!active || !payload?.length) {
@@ -134,30 +180,6 @@ function ChartTooltipContentActive({
     [payload],
   )
 
-  const tooltipLabel = React.useMemo(() => {
-    if (hideLabel || !resolvedPayload.length) {
-      return null
-    }
-
-    const [item] = resolvedPayload
-    const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
-    const itemConfig = getPayloadConfigFromPayload(config, item, key)
-    const value =
-      !labelKey && typeof label === 'string'
-        ? config[label as keyof typeof config]?.label || label
-        : itemConfig?.label
-
-    if (labelFormatter) {
-      return <div className={cn('font-medium', labelClassName)}>{labelFormatter(value, resolvedPayload)}</div>
-    }
-
-    if (!value) {
-      return null
-    }
-
-    return <div className={cn('font-medium', labelClassName)}>{value}</div>
-  }, [label, labelFormatter, resolvedPayload, hideLabel, labelClassName, config, labelKey])
-
   if (!resolvedPayload.length) {
     return null
   }
@@ -172,7 +194,17 @@ function ChartTooltipContentActive({
         className,
       )}
     >
-      {!nestLabel ? tooltipLabel : null}
+      {!nestLabel ? (
+        <ChartTooltipTitle
+          config={config}
+          resolvedPayload={resolvedPayload}
+          hideLabel={hideLabel}
+          label={label}
+          labelFormatter={labelFormatter}
+          labelClassName={labelClassName}
+          labelKey={labelKey}
+        />
+      ) : null}
       <div className="grid gap-1.5">
         {resolvedPayload.reduce<React.ReactNode[]>((items, item, index) => {
           if (item.type === 'none') {
@@ -222,7 +254,17 @@ function ChartTooltipContentActive({
                     )}
                   >
                     <div className="grid gap-1.5">
-                      {nestLabel ? tooltipLabel : null}
+                      {nestLabel ? (
+                        <ChartTooltipTitle
+                          config={config}
+                          resolvedPayload={resolvedPayload}
+                          hideLabel={hideLabel}
+                          label={label}
+                          labelFormatter={labelFormatter}
+                          labelClassName={labelClassName}
+                          labelKey={labelKey}
+                        />
+                      ) : null}
                       <span className="text-muted-foreground">{itemConfig?.label || item.name}</span>
                     </div>
                     {item.value && (

@@ -217,7 +217,7 @@ function TestSuitePicker({
 
                     return (
                       <div key={testSuite.id} className="bg-background">
-                        <div className="flex items-start gap-3 px-4 py-4">
+                        <div className="flex items-start gap-3 p-4">
                           <Checkbox
                             checked={suiteCheckedState}
                             onCheckedChange={checked => updateSuiteSelection(testSuite, !!checked)}
@@ -241,7 +241,7 @@ function TestSuitePicker({
                                 <span className="font-semibold">{testSuite.name}</span>
                               </button>
                               <Badge variant="outline" className="gap-1">
-                                <FolderTree className="h-3.5 w-3.5" />
+                                <FolderTree className="size-3.5" />
                                 {testSuite.module.name}
                               </Badge>
                               <Badge variant="secondary">{childIds.length} test cases</Badge>

@@ -30,6 +30,10 @@ import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case
 import { toast } from '@/hooks/use-toast'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
+function TemplateTestCaseFormFieldError({ message }: { message?: string[] }) {
+  return <ErrorMessage message={message?.[0] || ''} visible={!!message} />
+}
+
 type TemplateTestCaseFormProps = {
   defaultNodesOrder: TemplateTestCaseNodeOrderMap
   templateStepParams: TemplateStepParameter[]
@@ -75,7 +79,6 @@ const TemplateTestCaseForm = ({
   }>({})
 
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
-  const renderError = (message?: string[]) => <ErrorMessage message={message?.[0] || ''} visible={!!message} />
 
   const onNodeOrderChange = useCallback((nodesOrder: TemplateTestCaseNodeOrderMap) => {
     setNodesOrder(nodesOrder)
@@ -113,12 +116,12 @@ const TemplateTestCaseForm = ({
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" name="title" value={title} onChange={onTitleChange} />
-            {renderError(errors.title)}
+            <TemplateTestCaseFormFieldError message={errors.title} />
           </div>
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" name="description" value={description} onChange={onDescriptionChange} />
-            {renderError(errors.description)}
+            <TemplateTestCaseFormFieldError message={errors.description} />
           </div>
         </div>
         <div className="w-1/2">
@@ -142,7 +145,7 @@ const TemplateTestCaseForm = ({
           onFlowBlocksChange={setFlowBlocks}
         />
       </div>
-      {renderError(errors.steps)}
+      <TemplateTestCaseFormFieldError message={errors.steps} />
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={handleSubmit} className="w-fit px-6">
           Save

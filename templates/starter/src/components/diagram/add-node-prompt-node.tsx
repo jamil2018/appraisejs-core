@@ -1,5 +1,5 @@
 import type { Node, NodeProps } from '@xyflow/react'
-import { memo, useCallback } from 'react'
+import { memo } from 'react'
 
 import { BaseNode } from '@/components/base-node'
 import { Button } from '@/components/ui/button'
@@ -17,14 +17,10 @@ export const AddNodePromptNode = memo(function AddNodePromptNode({
   selected,
   onOpenAddNode,
 }: AddNodePromptNodeComponentProps) {
-  const handleClick = useCallback(() => {
-    onOpenAddNode()
-  }, [onOpenAddNode])
-
   return (
     <BaseNode selected={selected} className="max-w-80 border-dashed border-muted-foreground/50 bg-muted/30 px-4 py-3">
       <p className="mb-3 text-sm text-muted-foreground">No steps yet. Add your first node to build the flow.</p>
-      <Button type="button" className={cn('nodrag w-full')} variant="outline" onClick={handleClick}>
+      <Button type="button" className={cn('nodrag w-full')} variant="outline" onClick={onOpenAddNode}>
         Add node
       </Button>
     </BaseNode>

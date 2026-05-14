@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useReducer } from 'react'
 import { CommandGroup, CommandItem } from '../ui/command'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
 
@@ -20,6 +20,24 @@ type LoadState<T> =
   | { status: 'error'; message: string }
   | { status: 'ready'; entities: T[] }
 
+type LoadAction<T> =
+  | { type: 'reset' }
+  | { type: 'ready'; entities: T[] }
+  | { type: 'error'; message: string }
+
+function loadReducer<T>(state: LoadState<T>, action: LoadAction<T>): LoadState<T> {
+  switch (action.type) {
+    case 'reset':
+      return { status: 'loading' }
+    case 'ready':
+      return { status: 'ready', entities: action.entities }
+    case 'error':
+      return { status: 'error', message: action.message }
+    default:
+      return state
+  }
+}
+
 export function EntitySearchCommand<T extends { id: string }>({
   searchQuery,
   entityName,
@@ -29,31 +47,31 @@ export function EntitySearchCommand<T extends { id: string }>({
   icon,
   onSelect,
 }: EntitySearchCommandProps<T>) {
-  const [state, setState] = useState<LoadState<T>>({ status: 'loading' })
+  const [state, dispatch] = useReducer(loadReducer<T>, { status: 'loading' } satisfies LoadState<T>)
 
   useEffect(() => {
     let isMounted = true
 
-    const fetchEntities = async () => {
-      setState({ status: 'loading' })
+    const run = async () => {
+      dispatch({ type: 'reset' })
       try {
         const result = await fetchAction()
         if (!isMounted) return
         if (result.status === 200) {
-          setState({ status: 'ready', entities: getEntities(result.data) })
+          dispatch({ type: 'ready', entities: getEntities(result.data) })
         } else {
-          setState({ status: 'error', message: result.error || 'Failed to fetch entities' })
+          dispatch({ type: 'error', message: result.error || 'Failed to fetch entities' })
         }
       } catch (err) {
         if (!isMounted) return
-        setState({
-          status: 'error',
+        dispatch({
+          type: 'error',
           message: err instanceof Error ? err.message : 'An error occurred',
         })
       }
     }
 
-    void fetchEntities()
+    void run()
 
     return () => {
       isMounted = false
@@ -82,7 +100,7 @@ export function EntitySearchCommand<T extends { id: string }>({
   if (state.status === 'loading') {
     return (
       <CommandGroup heading={`Searching ${entityName}...`}>
-        <CommandItem disabled>Loading...</CommandItem>
+        <CommandItem disabled>Loading…</CommandItem>
       </CommandGroup>
     )
   }

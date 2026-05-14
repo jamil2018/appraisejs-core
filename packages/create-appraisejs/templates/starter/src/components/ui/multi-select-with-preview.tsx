@@ -28,7 +28,7 @@ interface MultiSelectWithPreviewProps {
 
 const EMPTY_SELECTED_VALUES: string[] = []
 
-function MultiSelectWithPreview({
+function MultiSelectWithPreviewImpl({
   id,
   className,
   options,
@@ -41,7 +41,7 @@ function MultiSelectWithPreview({
 }: MultiSelectWithPreviewProps) {
   const listId = React.useId()
   const [open, setOpen] = React.useState(false)
-  const [selectedValues, setSelectedValues] = React.useState<string[]>(defaultSelectedValues)
+  const [selectedValues, setSelectedValues] = React.useState<string[]>(() => [...defaultSelectedValues])
 
   const handleSelect = (value: string) => {
     const newSelectedValues = selectedValues.includes(value)
@@ -115,6 +115,15 @@ function MultiSelectWithPreview({
       )}
     </TooltipProvider>
   )
+}
+
+function MultiSelectWithPreview(props: MultiSelectWithPreviewProps) {
+  const remountKey = React.useMemo(
+    () => JSON.stringify(props.defaultSelectedValues ?? EMPTY_SELECTED_VALUES),
+    [props.defaultSelectedValues],
+  )
+
+  return <MultiSelectWithPreviewImpl key={remountKey} {...props} />
 }
 
 export default MultiSelectWithPreview

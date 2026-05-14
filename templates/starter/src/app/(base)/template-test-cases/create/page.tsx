@@ -19,15 +19,18 @@ export const metadata: Metadata = {
 }
 
 const CreateTemplateTestCase = async () => {
+  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
+  if (templateStepParamsError) {
+    return <div>Error: {templateStepParamsError}</div>
+  }
+
   const [
-    { data: templateStepParams, error: templateStepParamsError },
     { data: templateSteps, error: templateStepsError },
     { data: locators, error: locatorsError },
     { data: locatorGroups, error: locatorGroupsError },
     { data: environments, error: environmentsError },
     { data: modules, error: modulesError },
   ] = await Promise.all([
-    getAllTemplateStepParamsAction(),
     getAllTemplateStepsAction(),
     getAllLocatorsAction(),
     getAllLocatorGroupsAction(),
@@ -36,7 +39,6 @@ const CreateTemplateTestCase = async () => {
   ])
 
   if (
-    templateStepParamsError ||
     templateStepsError ||
     locatorsError ||
     locatorGroupsError ||
@@ -46,8 +48,7 @@ const CreateTemplateTestCase = async () => {
     return (
       <div>
         Error:{' '}
-        {templateStepParamsError ||
-          templateStepsError ||
+        {templateStepsError ||
           locatorsError ||
           locatorGroupsError ||
           environmentsError ||
