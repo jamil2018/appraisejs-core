@@ -1,15 +1,6 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { PickerBrowseDialogFrame, PickerBrowseTriggerButton } from '@/components/ui/picker-browse-shell'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
@@ -28,7 +19,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
@@ -117,86 +107,64 @@ function TestCasePicker({
 
   return (
     <div className="flex flex-col gap-3">
-      <Button type="button" variant="outline" className="justify-between" onClick={openDialog}>
-        <span className={selectedIds.length > 0 ? 'text-foreground' : 'text-muted-foreground'}>
-          {selectedIds.length > 0
-            ? `${selectedIds.length} ${selectionSummaryLabel.toLowerCase()} selected`
-            : triggerPlaceholder}
-        </span>
-        <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Browse</span>
-      </Button>
+      <PickerBrowseTriggerButton
+        selected={selectedIds.length > 0}
+        summaryWhenSelected={`${selectedIds.length} ${selectionSummaryLabel.toLowerCase()} selected`}
+        placeholder={triggerPlaceholder}
+        onClick={openDialog}
+      />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-6xl gap-0 overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogDescription>{dialogDescription}</DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-4 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={globalFilter}
-                  onChange={event => table.setGlobalFilter(event.target.value)}
-                  placeholder="Search by title, description, or tag..."
-                  className="pl-9"
-                />
-              </div>
-              <div className="text-sm text-muted-foreground">{table.getSelectedRowModel().rows.length} selected</div>
-            </div>
-
-            <ScrollArea className="h-[420px] rounded-md border">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  {table.getHeaderGroups().map(headerGroup => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map(header => (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                      ))}
-                    </TableRow>
+      <PickerBrowseDialogFrame
+        open={open}
+        onOpenChange={setOpen}
+        title={dialogTitle}
+        description={dialogDescription}
+        searchValue={globalFilter}
+        onSearchChange={value => table.setGlobalFilter(value)}
+        searchPlaceholder="Search by title, description, or tag..."
+        summaryAside={`${table.getSelectedRowModel().rows.length} selected`}
+        onCancel={() => setOpen(false)}
+        onSave={saveDraftSelection}
+      >
+        <ScrollArea className="h-[420px] rounded-md border">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-background">
+              {table.getHeaderGroups().map(headerGroup => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows.length > 0 ? (
-                    table.getRowModel().rows.map(row => (
-                      <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                        {row.getVisibleCells().map(cell => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={testCasePickerColumns.length} className="h-24 text-center">
-                        No test cases found.
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length > 0 ? (
+                table.getRowModel().rows.map(row => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={testCasePickerColumns.length} className="h-24 text-center">
+                    No test cases found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
 
-            <DataTablePagination table={table} showSelectedRows={false} />
-          </div>
-
-          <DialogFooter className="border-t px-6 py-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={saveDraftSelection}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <DataTablePagination table={table} showSelectedRows={false} />
+      </PickerBrowseDialogFrame>
 
       {savedTestCases.length > 0 && (
         <div className="bg-muted/20 rounded-md border">
