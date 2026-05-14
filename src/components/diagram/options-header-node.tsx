@@ -66,7 +66,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
     isDeleteDisabled,
     parameters = [],
   } = data as unknown as OptionsHeaderNodeData
-  const sortedParameters = [...parameters].sort((left, right) => left.order - right.order)
+  const sortedParameters = parameters.toSorted((left, right) => left.order - right.order)
   const nonEmptyParameters = sortedParameters.filter(parameter => parameter.value.trim().length > 0)
 
   const handleEdit = useCallback(() => {
@@ -123,18 +123,18 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
     const tokenRegex = new RegExp(`(${allTokens.join('|')})`, 'g')
     const stepParts = gherkinStep.split(tokenRegex)
 
-    return stepParts.map((part, index) => {
+    return stepParts.map(part => {
       const matchingParameter = nonEmptyParameters.find(parameter => parameter.value === part)
       if (!matchingParameter) {
         return (
-          <span key={`text-${index}`} className="whitespace-pre-wrap">
+          <span key={`text-${part || 'empty'}`} className="whitespace-pre-wrap">
             {part}
           </span>
         )
       }
 
       return (
-        <TooltipProvider key={`chip-${matchingParameter.name}-${index}`} delayDuration={40}>
+        <TooltipProvider key={`chip-${matchingParameter.name}-${matchingParameter.value}`} delayDuration={40}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge
@@ -194,7 +194,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
                 type="button"
                 variant="outline"
                 size="icon"
-                className="nodrag h-7 w-7"
+                className="nodrag size-7"
                 aria-label="Edit"
                 onClick={handleEdit}
               >
@@ -204,7 +204,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
                 type="button"
                 variant="outline"
                 size="icon"
-                className="nodrag h-7 w-7"
+                className="nodrag size-7"
                 aria-label="Delete"
                 onClick={handleDelete}
                 disabled={isDeleteDisabled}
@@ -235,7 +235,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
               />
               <motion.button
                 type="button"
-                className="nodrag nopan border-border/70 bg-muted/95 -ml-px flex h-5 w-5 items-center justify-center rounded border text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                className="nodrag nopan border-border/70 bg-muted/95 -ml-px flex size-5 items-center justify-center rounded border text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
                 aria-label="Add connected node"
                 onClick={handleAddConnectedNode}
                 whileHover={{ scale: 1.12 }}
@@ -255,7 +255,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
                   },
                 }}
               >
-                <Plus aria-hidden="true" className="h-3 w-3" />
+                <Plus aria-hidden="true" className="size-3" />
               </motion.button>
             </motion.div>
           </div>
