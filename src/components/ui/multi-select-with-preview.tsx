@@ -41,7 +41,12 @@ function MultiSelectWithPreview({
 }: MultiSelectWithPreviewProps) {
   const listId = React.useId()
   const [open, setOpen] = React.useState(false)
-  const [selectedValues, setSelectedValues] = React.useState<string[]>(defaultSelectedValues)
+  const defaultSelectionKey = React.useMemo(() => JSON.stringify(defaultSelectedValues), [defaultSelectedValues])
+  const [selectedValues, setSelectedValues] = React.useState<string[]>(() => [...defaultSelectedValues])
+
+  React.useEffect(() => {
+    setSelectedValues([...defaultSelectedValues])
+  }, [defaultSelectionKey, defaultSelectedValues])
 
   const handleSelect = (value: string) => {
     const newSelectedValues = selectedValues.includes(value)
