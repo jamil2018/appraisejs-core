@@ -185,7 +185,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
             {testRun.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {testRun.tags.map(tag => (
-                  <Badge key={tag.id} variant="outline" className="bg-gray-700 text-white">
+                  <Badge key={tag.id} variant="outline" className="bg-zinc-700 text-white">
                     <TagIcon className="mr-2 size-4 text-white" />
                     <span className="text-sm">{tag.name}</span>
                   </Badge>
@@ -228,7 +228,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                                 ? 'text-red-500'
                                 : testCase.result === TestRunTestCaseResult.UNTESTED
                                   ? 'text-blue-500'
-                                  : 'text-gray-500',
+                                  : 'text-zinc-500',
                           )}
                         />
                         <div className="flex flex-col gap-1">
@@ -244,7 +244,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-gray-700 text-xs text-white">
+                        <Badge variant="outline" className="bg-zinc-700 text-xs text-white">
                           <div className="flex min-w-20 items-center gap-2 p-1.5">
                             <TestCaseStatusIcon
                               className={cn(
@@ -257,7 +257,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                             <span>{testCaseStatusMeta.label}</span>
                           </div>
                         </Badge>
-                        <Badge variant="outline" className="bg-gray-700 text-xs text-white">
+                        <Badge variant="outline" className="bg-zinc-700 text-xs text-white">
                           <div className="flex min-w-20 items-center gap-2 p-1.5">
                             <TestCaseResultIcon className={cn('size-4', testCaseResultMeta.iconClassName)} />
                             <span>{testCaseResultMeta.label}</span>
@@ -288,7 +288,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                               >
                                 {loadingTraceViewer === testCase.id ? (
                                   <>
-                                    <ExternalLink className="size-3 animate-pulse text-gray-500" />
+                                    <ExternalLink className="size-3 animate-pulse text-zinc-500" />
                                     Opening
                                   </>
                                 ) : runningTraceViewers.has(testCase.id) ? (

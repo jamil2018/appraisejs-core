@@ -84,7 +84,7 @@ export const templateStepTableCols: ColumnDef<TemplateStepTableRow>[] = [
           {row.original.parameters.map(parameter => (
             <Kbd
               key={parameter.id}
-              className="bg-gray-200 px-2 text-xs text-gray-600 dark:bg-gray-700/55 dark:text-gray-400"
+              className="bg-zinc-200 px-2 text-xs text-zinc-600 dark:bg-zinc-700/55 dark:text-zinc-400"
             >
               {parameter.name}
             </Kbd>

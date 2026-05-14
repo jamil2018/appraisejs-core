@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from 'react'
+import { useState, useMemo, useImperativeHandle, useEffect, useRef } from 'react'
 import { Calendar } from '@/components/ui/calendar'
 import CreateLocatorWorkspace from '@/app/(base)/locators/create/create-locator-workspace'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -60,18 +60,18 @@ export interface DynamicFormFieldsRef {
   validate: () => boolean
 }
 
-const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProps>((props, ref) => {
-  const {
-    templateStepParams,
-    locators,
-    locatorGroups,
-    environments,
-    modules,
-    onLocatorCreated,
-    defaultValueInput = false,
-    onChange,
-    initialParameterValues,
-  } = props
+function DynamicFormFields({
+  ref,
+  templateStepParams,
+  locators,
+  locatorGroups,
+  environments,
+  modules,
+  onLocatorCreated,
+  defaultValueInput = false,
+  onChange,
+  initialParameterValues,
+}: DynamicFormFieldsProps & React.RefAttributes<DynamicFormFieldsRef>) {
 
   const resetKey = useMemo(() => {
     return JSON.stringify({
@@ -290,7 +290,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   )
 
   const renderNumberInput = (name: string, errorMessage: string | undefined) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name, `input-${name}`)}
       <Input
         id={`input-${name}`}
@@ -304,7 +304,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   )
 
   const renderStringInput = (name: string, errorMessage: string | undefined) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name, `input-${name}`)}
       <Input
         id={`input-${name}`}
@@ -318,7 +318,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   )
 
   const renderDateInput = (name: string) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name)}
       <Popover>
         <PopoverTrigger asChild>
@@ -351,7 +351,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   )
 
   const renderBooleanInput = (name: string) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name, `select-${name}`)}
       <Select
         value={typeof values[name] === 'boolean' ? String(values[name]) : 'false'}
@@ -512,7 +512,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     const availableLocators = selectedGroupId ? getLocatorsForGroup(availableLocatorOptions, selectedGroupId) : []
 
     return (
-      <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
         {renderFieldLabel(name, `select-${name}`)}
         <div className="space-y-2">
           <Label htmlFor={`locator-mode-${name}`} className="text-sm text-muted-foreground">
@@ -571,7 +571,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   }
 
   return (
-    <Card className="border-gray-700 bg-transparent shadow-none" key={resetKey}>
+    <Card className="border-zinc-700 bg-transparent shadow-none" key={resetKey}>
       <CardHeader className="py-3">
         <CardTitle className="text-xs font-bold text-primary">Parameters</CardTitle>
       </CardHeader>
@@ -584,6 +584,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
       </CardContent>
     </Card>
   )
-})
+}
+
 DynamicFormFields.displayName = 'DynamicFormFields'
 export default DynamicFormFields

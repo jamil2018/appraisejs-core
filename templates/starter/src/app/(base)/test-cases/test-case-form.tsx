@@ -310,7 +310,7 @@ function FlowPanel({
       layout
       layoutId="test-case-flow-panel"
       className={cn(
-        'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-gray-700 text-card-foreground shadow-sm will-change-transform',
+        'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-zinc-700 text-card-foreground shadow-sm will-change-transform',
         className,
       )}
       transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
@@ -385,7 +385,7 @@ function TemplateSelectionStep({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 xl:flex-row">
         <div className="xl:w-1/2">
-          <Card className="h-full dark:border-gray-700 dark:bg-gray-500/10">
+          <Card className="h-full dark:border-zinc-700 dark:bg-zinc-500/10">
             <CardHeader className="mb-4">
               <CardTitle className="text-xl font-bold text-primary">Template Selection</CardTitle>
               <CardDescription>Choose the template that should seed the new test case</CardDescription>
@@ -411,7 +411,7 @@ function TemplateSelectionStep({
           </Card>
         </div>
         <div className="xl:w-1/2">
-          <Card className="h-full border-gray-700 bg-gray-500/10">
+          <Card className="h-full border-zinc-700 bg-zinc-500/10">
             <CardHeader className="mb-2">
               <CardTitle className="text-xl font-bold text-primary">Selected Template</CardTitle>
               <CardDescription>Review what will be prefilled before moving into the form</CardDescription>
@@ -597,7 +597,7 @@ function DetailsStep({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 xl:flex-row" id="meta">
         <div className="xl:w-1/2">
-          <Card className="h-full dark:border-gray-700 dark:bg-gray-500/10">
+          <Card className="h-full dark:border-zinc-700 dark:bg-zinc-500/10">
             <CardHeader className="mb-4">
               <CardTitle className="text-xl font-bold text-primary">Test Case Details</CardTitle>
               <CardDescription>Enter the core details of your test scenario</CardDescription>
@@ -741,7 +741,7 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
 function QuickTipsPanel() {
   return (
     <div className="xl:w-1/2">
-      <Card className="h-full border-gray-700 bg-gray-500/10">
+      <Card className="h-full border-zinc-700 bg-zinc-500/10">
         <CardHeader className="mb-2">
           <CardTitle className="flex items-center gap-2 text-xl text-primary">
             <Info className="size-5" />
@@ -794,7 +794,7 @@ function FlowStep({
           {isFlowImmersive ? (
             <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{renderFlowPanel('h-full bg-background')}</div>
           ) : (
-            renderFlowPanel('relative h-[max(22rem,calc(100dvh-12rem))] bg-gray-500/10')
+            renderFlowPanel('relative h-[max(22rem,calc(100dvh-12rem))] bg-zinc-500/10')
           )}
           {renderError(errors.steps)}
         </div>

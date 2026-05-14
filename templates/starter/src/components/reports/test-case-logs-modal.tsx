@@ -67,7 +67,7 @@ const stepStatusToBadge = (status: StepStatus) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-1 rounded-xl border-gray-700 bg-gray-700/10 py-0.5 text-xs text-gray-500"
+          className="flex items-center gap-1 rounded-xl border-zinc-700 bg-zinc-700/10 py-0.5 text-xs text-zinc-500"
         >
           <Clock className="size-3" />
           SKIPPED
@@ -77,7 +77,7 @@ const stepStatusToBadge = (status: StepStatus) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-1 rounded-xl border-gray-700 bg-gray-700/10 py-0.5 text-xs text-gray-500"
+          className="flex items-center gap-1 rounded-xl border-zinc-700 bg-zinc-700/10 py-0.5 text-xs text-zinc-500"
         >
           {status}
         </Badge>
@@ -109,7 +109,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
   }
 
   // Sort steps by order
-  const sortedSteps = [...reportScenario.steps].sort((a, b) => a.order - b.order)
+  const sortedSteps = reportScenario.steps.toSorted((a, b) => a.order - b.order)
 
   return (
     <>

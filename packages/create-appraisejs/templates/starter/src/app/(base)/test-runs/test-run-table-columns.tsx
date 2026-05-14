@@ -82,7 +82,7 @@ export const testRunTableCols: ColumnDef<
     cell: ({ row }) => {
       const status = row.original.status
       const statusColorMap = {
-        [TestRunStatus.QUEUED]: 'bg-gray-500 text-white',
+        [TestRunStatus.QUEUED]: 'bg-zinc-500 text-white',
         [TestRunStatus.RUNNING]: 'bg-blue-500 text-white',
         [TestRunStatus.CANCELLING]: 'bg-orange-500 text-white',
         [TestRunStatus.COMPLETED]: 'bg-primary',
@@ -118,7 +118,7 @@ export const testRunTableCols: ColumnDef<
       const resultColorMap = {
         [TestRunResult.PASSED]: 'bg-primary',
         [TestRunResult.FAILED]: 'bg-pink-500 text-white',
-        [TestRunResult.CANCELLED]: 'bg-gray-500 text-white',
+        [TestRunResult.CANCELLED]: 'bg-zinc-500 text-white',
         [TestRunResult.PENDING]: 'bg-yellow-500 text-white',
       }
       const resultIconMap = {

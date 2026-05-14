@@ -10,16 +10,23 @@ export const metadata: Metadata = {
 
 const ModifyModule = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const [{ data: moduleToBeEditedData, error: moduleToBeEditedError }, { data: modulesData, error: modulesError }] =
-    await Promise.all([getModuleByIdAction(id), getAllModulesAction()])
+  if (!id?.trim()) {
+    return <div>Error: Invalid module id.</div>
+  }
 
-  if (moduleToBeEditedError || modulesError) {
-    return <div>Error: {moduleToBeEditedError || modulesError}</div>
+  const { data: moduleToBeEditedData, error: moduleToBeEditedError } = await getModuleByIdAction(id)
+  if (moduleToBeEditedError) {
+    return <div>Error: {moduleToBeEditedError}</div>
   }
 
   const [moduleData] = getModuleTableRows([moduleToBeEditedData])
   if (!moduleData) {
     return <div>Error: Module data is unavailable.</div>
+  }
+
+  const { data: modulesData, error: modulesError } = await getAllModulesAction()
+  if (modulesError) {
+    return <div>Error: {modulesError}</div>
   }
 
   const parentOptions = getModuleParentOptions(getModuleTableRows(modulesData), moduleData.id)

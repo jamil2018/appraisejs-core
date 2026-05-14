@@ -122,7 +122,7 @@ export const TemplateStepForm = ({
         }}
       >
         <div className="flex gap-4">
-          <Card className="w-full bg-gray-500/10">
+          <Card className="w-full bg-zinc-500/10">
             <CardHeader>
               <CardTitle>Template Step Details</CardTitle>
               <CardDescription>Configure your template step function details</CardDescription>
@@ -308,7 +308,7 @@ export const TemplateStepForm = ({
             </CardContent>
           </Card>
           <div className="w-full">
-            <Card className="bg-gray-500/10">
+            <Card className="bg-zinc-500/10">
               <CardHeader>
                 <CardTitle>Template Step Function Definition (Preview)</CardTitle>
                 <CardDescription>

@@ -106,7 +106,7 @@ export const TestSuiteForm = ({
   )
   return (
     <div className="flex justify-between gap-20 overflow-x-hidden">
-      <Card className="w-2/3 border-gray-700 bg-gray-500/10">
+      <Card className="w-2/3 border-zinc-700 bg-zinc-500/10">
         <CardHeader>
           <CardTitle className="text-xl font-bold text-primary">Test Suite Details</CardTitle>
           <CardDescription>Enter the details for your test suite</CardDescription>
@@ -244,7 +244,7 @@ export const TestSuiteForm = ({
         </CardContent>
       </Card>
       <div className="lg:w-1/3">
-        <Card className="border-gray-700 bg-gray-500/10">
+        <Card className="border-zinc-700 bg-zinc-500/10">
           <CardHeader className="mb-2">
             <CardTitle className="flex items-center gap-2 text-xl text-primary">
               <Info className="size-5" />

@@ -47,7 +47,7 @@ const ReportMetricCard = ({ title, value }: { title: string; value: string }) =>
   return (
     <Card
       className={cn(
-        'group relative min-w-0 overflow-hidden rounded-2xl border-gray-500/10 bg-transparent shadow-sm transition-colors',
+        'group relative min-w-0 overflow-hidden rounded-2xl border-zinc-500/10 bg-transparent shadow-sm transition-colors',
         styles.card,
       )}
     >

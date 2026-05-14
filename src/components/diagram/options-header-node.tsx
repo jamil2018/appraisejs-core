@@ -176,11 +176,11 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
       )}
     >
       {!isFirstNode && (
-        <Handle type="target" position={Position.Left} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400" />
+        <Handle type="target" position={Position.Left} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
       )}
       <AnimatePresence>
         {showToolbar && (
-          <div className="absolute -top-12 left-1/2 z-10 -translate-x-1/2">
+          <div className="absolute -top-12 left-1/2 z-10 -tranzinc-x-1/2">
             <motion.div
               className="border-border/70 bg-muted/80 flex items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
               onMouseEnter={showToolbarNow}
@@ -217,7 +217,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
       </AnimatePresence>
       <AnimatePresence>
         {!hasOutgoingConnection && !isConnectionInProgress && (
-          <div className="absolute left-full top-1/2 z-20 -translate-y-1/2">
+          <div className="absolute left-full top-1/2 z-20 -tranzinc-y-1/2">
             <motion.div
               className="flex items-center"
               initial={{ opacity: 0, x: -6, scale: 0.96 }}
@@ -269,7 +269,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
           {KeyToIconTransformer(getTemplateStepIcon(icon))}
         </div>
       </div>
-      <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -translate-x-[47%]">
+      <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -tranzinc-x-[47%]">
         <h3 className="relative -left-2 w-full text-center text-lg font-bold leading-tight text-card-foreground">
           {label}
         </h3>
@@ -288,7 +288,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
           )}
         </AnimatePresence>
       </div>
-      <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400" />
+      <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
     </BaseNode>
   )
 })

@@ -49,60 +49,58 @@ const TestRunTable = ({ initialData, filter = 'all' }: TestRunTableProps) => {
       return
     }
 
-    pollingRef.current = setInterval(async () => {
-      try {
-        // Poll only running test runs in parallel
-        const updatePromises = runningTestRunIds.map(async id => {
-          const { data, error } = await getTestRunByIdAction(id)
-          if (error || !data) {
-            return null
+    pollingRef.current = setInterval(() => {
+      void (async () => {
+        try {
+          const responses = await Promise.all(runningTestRunIds.map(id => getTestRunByIdAction(id)))
+
+          const updates = responses.flatMap(({ data, error }) => {
+            if (error || !data) {
+              return []
+            }
+
+            const testRun = data as TestRun & {
+              testCases: (TestRunTestCase & { testCase: { title: string } })[]
+              tags: Tag[]
+              environment: Environment
+            }
+
+            return [
+              {
+                ...testRun,
+                testCases: testRun.testCases.map(tc => ({
+                  id: tc.id,
+                  testRunId: tc.testRunId,
+                  testCaseId: tc.testCaseId,
+                  status: tc.status,
+                  result: tc.result,
+                })) as TestRunTestCase[],
+              } as TestRunData,
+            ]
+          })
+
+          setTestRuns(prev =>
+            prev.map(tr => {
+              const update = updates.find(u => u.id === tr.id)
+              return update || tr
+            }),
+          )
+
+          const stillRunning = updates.filter(
+            u =>
+              u.status === TestRunStatus.RUNNING ||
+              u.status === TestRunStatus.QUEUED ||
+              u.status === TestRunStatus.CANCELLING,
+          )
+
+          if (stillRunning.length === 0 && pollingRef.current) {
+            clearInterval(pollingRef.current)
+            pollingRef.current = null
           }
-          // getTestRunByIdAction returns testCases with nested testCase, but we need to flatten it
-          const testRun = data as TestRun & {
-            testCases: (TestRunTestCase & { testCase: { title: string } })[]
-            tags: Tag[]
-            environment: Environment
-          }
-          // Convert to the format expected by the table (flatten testCases)
-          return {
-            ...testRun,
-            testCases: testRun.testCases.map(tc => ({
-              id: tc.id,
-              testRunId: tc.testRunId,
-              testCaseId: tc.testCaseId,
-              status: tc.status,
-              result: tc.result,
-            })) as TestRunTestCase[],
-          } as TestRunData
-        })
-
-        const updates = await Promise.all(updatePromises)
-        const validUpdates = updates.filter((u): u is TestRunData => u !== null)
-
-        // Update only the changed test runs
-        setTestRuns(prev =>
-          prev.map(tr => {
-            const update = validUpdates.find(u => u.id === tr.id)
-            return update || tr
-          }),
-        )
-
-        // Check if any are still running (including CANCELLING)
-        const stillRunning = validUpdates.filter(
-          u =>
-            u.status === TestRunStatus.RUNNING ||
-            u.status === TestRunStatus.QUEUED ||
-            u.status === TestRunStatus.CANCELLING,
-        )
-
-        // If no test runs are running anymore, stop polling
-        if (stillRunning.length === 0 && pollingRef.current) {
-          clearInterval(pollingRef.current)
-          pollingRef.current = null
+        } catch (error) {
+          console.error('Error polling test runs status:', error)
         }
-      } catch (error) {
-        console.error('Error polling test runs status:', error)
-      }
+      })()
     }, 2000) // Poll every 2 seconds
 
     return () => {

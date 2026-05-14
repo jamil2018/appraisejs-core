@@ -46,7 +46,7 @@ function SyncRow({
           disabled={disabled}
           aria-label={definition.label}
           onClick={() => onRun(definition.id)}
-          className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none px-3 py-2.5 text-left hover:text-gray-200 ${color.buttonColor}`}
+          className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none px-3 py-2.5 text-left hover:text-foreground ${color.buttonColor}`}
         >
           <div className="flex w-full items-center justify-between gap-3">
             <div className={`${color.iconColor} shrink-0 [&_svg]:!h-5 [&_svg]:!w-5`}>
@@ -61,7 +61,7 @@ function SyncRow({
             ) : null}
           </div>
           <div className="mt-3 min-w-0">
-            <p className="break-words text-xs font-medium leading-4 text-gray-100">{definition.label}</p>
+            <p className="break-words text-xs font-medium leading-4 text-foreground">{definition.label}</p>
           </div>
         </Button>
       </TooltipTrigger>
@@ -85,7 +85,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
 
   return (
     <TooltipProvider>
-      <Card className="border-gray-600/10 bg-gray-600/10 shadow-none">
+      <Card className="border-zinc-600/10 bg-zinc-600/10 shadow-none">
         <CardHeader>
           <div className="flex items-center gap-2">
             <CardTitle className="text-primary">Sync</CardTitle>
@@ -108,7 +108,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
                 disabled={isRunning}
                 aria-label="Sync All"
                 onClick={() => runSync(SYNC_ALL_REQUEST_ID)}
-                className="inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none bg-emerald-500/10 px-3 py-2.5 text-left text-gray-100 hover:bg-emerald-500/20 hover:text-gray-100"
+                className="inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none bg-emerald-500/10 px-3 py-2.5 text-left text-emerald-950 hover:bg-emerald-500/20 hover:text-emerald-950"
               >
                 <div className="flex w-full items-center justify-between gap-3">
                   <div className="text-emerald-500 [&_svg]:!h-5 [&_svg]:!w-5">

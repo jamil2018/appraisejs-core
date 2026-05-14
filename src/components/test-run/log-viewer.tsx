@@ -56,7 +56,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
     ) : connectionStatus === 'connected' ? (
       <Wifi className="size-4 text-green-500" />
     ) : connectionStatus === 'disconnected' ? (
-      <WifiOff className="size-4 text-gray-500" />
+      <WifiOff className="size-4 text-zinc-500" />
     ) : connectionStatus === 'error' ? (
       <XCircle className="size-4 text-red-500" />
     ) : (

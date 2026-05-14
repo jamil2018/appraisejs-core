@@ -37,18 +37,12 @@ export const metadata: Metadata = {
 
 const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const { data, error } = await getTemplateTestCaseByIdAction(id)
+  if (!id?.trim()) {
+    return <div>Error: Invalid template test case id.</div>
+  }
 
-  if (error) {
-    return <div>Error: {error}</div>
-  }
-  const templateTestCase = data as TemplateTestCase & {
-    steps: (TemplateTestCaseStep & {
-      parameters: TemplateTestCaseStepParameter[]
-    })[]
-    flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
-  }
   const [
+    templateCaseResponse,
     { data: templateStepParams, error: templateStepParamsError },
     { data: templateSteps, error: templateStepsError },
     { data: locators, error: locatorsError },
@@ -56,6 +50,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
     { data: environments, error: environmentsError },
     { data: modules, error: modulesError },
   ] = await Promise.all([
+    getTemplateTestCaseByIdAction(id),
     getAllTemplateStepParamsAction(),
     getAllTemplateStepsAction(),
     getAllLocatorsAction(),
@@ -63,6 +58,23 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
     getAllEnvironmentsAction(),
     getAllModulesAction(),
   ])
+
+  const { data, error } = templateCaseResponse
+
+  if (error) {
+    return <div>Error: {error}</div>
+  }
+
+  if (!data) {
+    return <div>Error: Template test case not found.</div>
+  }
+
+  const templateTestCase = data as TemplateTestCase & {
+    steps: (TemplateTestCaseStep & {
+      parameters: TemplateTestCaseStepParameter[]
+    })[]
+    flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
+  }
   if (
     templateStepParamsError ||
     templateStepsError ||

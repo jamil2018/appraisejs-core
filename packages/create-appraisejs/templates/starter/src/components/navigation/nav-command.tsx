@@ -43,11 +43,11 @@ export default function NavCommand({ className }: NavCommandProps) {
       >
         <span>Open Command Palette</span>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <kbd className="rounded-md bg-muted px-1 text-xs text-gray-400">
-            {isMac ? <Command className="size-2 text-gray-400" /> : 'Ctrl'}
+          <kbd className="rounded-md bg-muted px-1 text-xs text-zinc-400">
+            {isMac ? <Command className="size-2 text-zinc-400" /> : 'Ctrl'}
           </kbd>
-          <Plus className="size-2 text-gray-400" />
-          <kbd className="rounded-md bg-muted px-1 text-xs text-gray-400">K</kbd>
+          <Plus className="size-2 text-zinc-400" />
+          <kbd className="rounded-md bg-muted px-1 text-xs text-zinc-400">K</kbd>
         </div>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={!commandMode}>

@@ -36,7 +36,7 @@ export type SyncRunResult = {
 export const syncPresentation: Record<SyncScriptId, { icon: ReactNode; colorKey: SyncTileColor }> = {
   'sync-modules': {
     icon: <Puzzle />,
-    colorKey: 'indigo',
+    colorKey: 'violet',
   },
   'sync-environments': {
     icon: <Server />,

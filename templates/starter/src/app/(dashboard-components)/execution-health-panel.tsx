@@ -38,7 +38,7 @@ interface ExecutionHealthPanelProps {
 
 export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps) => {
   return (
-    <Card className="size-full border-gray-600/10 bg-gray-600/10">
+    <Card className="size-full border-zinc-600/10 bg-zinc-600/10">
       <CardHeader>
         <CardTitle className="text-primary">Execution Health</CardTitle>
         <CardDescription>Pass/fail counts by test suite across last 10 completed test runs</CardDescription>

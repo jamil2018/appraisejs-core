@@ -290,7 +290,7 @@ function DynamicFormFields({
   )
 
   const renderNumberInput = (name: string, errorMessage: string | undefined) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name, `input-${name}`)}
       <Input
         id={`input-${name}`}
@@ -304,7 +304,7 @@ function DynamicFormFields({
   )
 
   const renderStringInput = (name: string, errorMessage: string | undefined) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name, `input-${name}`)}
       <Input
         id={`input-${name}`}
@@ -318,7 +318,7 @@ function DynamicFormFields({
   )
 
   const renderDateInput = (name: string) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name)}
       <Popover>
         <PopoverTrigger asChild>
@@ -351,7 +351,7 @@ function DynamicFormFields({
   )
 
   const renderBooleanInput = (name: string) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
       {renderFieldLabel(name, `select-${name}`)}
       <Select
         value={typeof values[name] === 'boolean' ? String(values[name]) : 'false'}
@@ -512,7 +512,7 @@ function DynamicFormFields({
     const availableLocators = selectedGroupId ? getLocatorsForGroup(availableLocatorOptions, selectedGroupId) : []
 
     return (
-      <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
+      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
         {renderFieldLabel(name, `select-${name}`)}
         <div className="space-y-2">
           <Label htmlFor={`locator-mode-${name}`} className="text-sm text-muted-foreground">
@@ -571,7 +571,7 @@ function DynamicFormFields({
   }
 
   return (
-    <Card className="border-gray-700 bg-transparent shadow-none" key={resetKey}>
+    <Card className="border-zinc-700 bg-transparent shadow-none" key={resetKey}>
       <CardHeader className="py-3">
         <CardTitle className="text-xs font-bold text-primary">Parameters</CardTitle>
       </CardHeader>

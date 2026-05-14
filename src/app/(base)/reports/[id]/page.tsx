@@ -59,7 +59,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/35 py-1 text-sm text-gray-300"
+          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/35 py-1 text-sm text-zinc-300"
         >
           <XCircle className="size-4" />
           CANCELLED
@@ -69,7 +69,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
+          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
         >
           <Clock className="size-4" />
           UNKNOWN
@@ -114,7 +114,7 @@ const browserEngineToBadge = (browserEngine: BrowserEngine) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
+          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
         >
           Unknown
         </Badge>
@@ -138,7 +138,7 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
+          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
         >
           <XCircle className="size-4" />
           Cancelled
@@ -148,7 +148,7 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-2 rounded-xl border-gray-700 bg-gray-700/10 py-1 text-sm text-gray-500"
+          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
         >
           <Clock className="size-4" />
           Unknown
@@ -190,13 +190,13 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
         </PageHeader>
         <div className="flex gap-2">
           {testRun.completedAt && (
-            <div className="flex items-center gap-1 text-sm text-gray-400">
+            <div className="flex items-center gap-1 text-sm text-zinc-400">
               <Calendar className="size-4" />
               {formatDateTime(testRun.completedAt)}
             </div>
           )}
           {testRun.completedAt && testRun.startedAt && (
-            <div className="flex items-center gap-1 text-sm text-gray-400">
+            <div className="flex items-center gap-1 text-sm text-zinc-400">
               <Clock className="size-4" />
               {formatDuration(testRun.startedAt, testRun.completedAt)}
             </div>
@@ -211,14 +211,14 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
       </div>
       <Separator className="my-4 bg-muted" />
       <div className="flex gap-6">
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-gray-500/10 shadow-none">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-zinc-500/10 shadow-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <Info className="size-6" />
               <CardTitle className="text-lg font-semibold">Configuration</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden text-gray-200">
+          <CardContent className="flex flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden text-zinc-200">
             <div className="flex items-center justify-between gap-2 text-sm">
               <span>Environment Name</span>
               <span className="font-medium">{testRun.environment.name}</span>
@@ -245,7 +245,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             </div>
           </CardContent>
         </Card>
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-gray-500/10 shadow-none">
+        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-zinc-500/10 shadow-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <ChartLine className="size-6" />
@@ -254,7 +254,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </CardHeader>
           <CardContent className="flex flex-1 flex-col overflow-hidden">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <TabsList className="mx-auto w-fit flex-shrink-0 bg-gray-500/15 p-2">
+              <TabsList className="mx-auto w-fit flex-shrink-0 bg-zinc-500/15 p-2">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="feature">Feature</TabsTrigger>
                 <TabsTrigger value="duration">Duration</TabsTrigger>

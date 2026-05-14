@@ -104,7 +104,7 @@ export default function DeletePrompt({
           <Button
             type="button"
             variant="secondary"
-            className="bg-gray-700 text-white hover:bg-gray-800"
+            className="bg-zinc-700 text-white hover:bg-zinc-800"
             onClick={() => handleOpenChange(false)}
             disabled={isDeleting}
           >

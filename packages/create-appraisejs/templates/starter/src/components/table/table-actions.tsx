@@ -159,8 +159,12 @@ const TableActions = ({
             </span>
           </DropdownMenuItem>
           {resolveConflictsHandler && (
-            <DropdownMenuItem>
-              <span className="flex items-center gap-2" onClick={resolveConflictsHandler}>
+            <DropdownMenuItem
+              onClick={() => {
+                void resolveConflictsHandler()
+              }}
+            >
+              <span className="flex items-center gap-2">
                 <CheckCircleIcon className="size-4" /> Mark conflicts as resolved
               </span>
             </DropdownMenuItem>

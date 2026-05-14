@@ -35,7 +35,7 @@
     "validate": "node --import tsx scripts/run-vitest.ts",
     "quality:fallow": "fallow --format json --quiet --explain",
     "quality:fallow:ci": "fallow --format json --quiet --explain --fail-on-issues",
-    "quality:fallow:commit": "fallow audit --base HEAD --format json --quiet --explain --fail-on-issues",
+    "quality:fallow:commit": "node ./scripts/run-fallow-commit.mjs",
     "quality:react-doctor": "react-doctor . --project appraisejs --offline --full",
     "quality:react-doctor:ci": "react-doctor . --project appraisejs --offline --full --fail-on error",
     "quality:react-doctor:commit": "react-doctor . --project appraisejs --offline --staged --fail-on error",

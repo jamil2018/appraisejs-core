@@ -10,7 +10,7 @@ export function isTerminalTestRunStatus(status: TestRunStatus) {
 export function getTestRunStatusMeta(status: TestRunStatus, result: TestRunResult): StatusMeta {
   switch (status) {
     case 'QUEUED':
-      return { label: 'Queued', icon: ListEnd, badgeClassName: 'bg-gray-500' }
+      return { label: 'Queued', icon: ListEnd, badgeClassName: 'bg-zinc-500' }
     case 'RUNNING':
       return { label: 'Running', icon: LoaderCircle, badgeClassName: 'bg-blue-500' }
     case 'COMPLETED':
@@ -22,7 +22,7 @@ export function getTestRunStatusMeta(status: TestRunStatus, result: TestRunResul
     case 'CANCELLED':
       return { label: 'Cancelled', icon: XCircle, badgeClassName: 'bg-red-500' }
     default:
-      return { label: 'Unknown', icon: Clock, badgeClassName: 'bg-gray-500' }
+      return { label: 'Unknown', icon: Clock, badgeClassName: 'bg-zinc-500' }
   }
 }
 

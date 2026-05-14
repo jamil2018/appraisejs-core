@@ -316,7 +316,7 @@ const TestRunForm = ({
           </Card>
         </div>
         <div className="lg:w-3/7">
-          <Card className="border-gray-700 bg-gray-500/10">
+          <Card className="border-zinc-700 bg-zinc-500/10">
             <CardHeader className="mb-2">
               <CardTitle className="flex items-center gap-2 text-xl text-primary">
                 <Info className="size-5" />

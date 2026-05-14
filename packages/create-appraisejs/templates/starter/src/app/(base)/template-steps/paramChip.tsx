@@ -123,35 +123,34 @@ export default function ParamChip({
     e.preventDefault()
 
     if (validateForm()) {
-      // Create a new item with the form values
       const newItem = {
         id: crypto.randomUUID(),
         ...formValues,
       }
 
-      // Add the new item to the items array
-      setItems([...items, newItem])
+      setItems(prev => {
+        const next = [...prev, newItem]
+        onSubmit(next.map(stripItemId))
+        return next
+      })
 
-      // Reset the form
       setFormValues({
         name: '',
         type: '',
         order: 1,
       })
 
-      // Call the onSubmit callback with the new item
-      onSubmit([...items, newItem].map(stripItemId))
-
-      // Close the modal
       setIsOpen(false)
     }
   }
 
   // Handle removing an item
   const removeItem = (id: string) => {
-    const nextItems = items.filter(item => item.id !== id)
-    setItems(nextItems)
-    onSubmit(nextItems.map(stripItemId))
+    setItems(prev => {
+      const nextItems = prev.filter(item => item.id !== id)
+      onSubmit(nextItems.map(stripItemId))
+      return nextItems
+    })
   }
 
   return (

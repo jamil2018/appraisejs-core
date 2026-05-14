@@ -29,7 +29,7 @@ const testRunStatusToBadge = (status: TestRunStatus) => {
       )
     default:
       return (
-        <Badge className="bg-gray-500 text-white">
+        <Badge className="bg-zinc-500 text-white">
           <Clock className="mr-1 size-4" />
           Unknown
         </Badge>
@@ -55,14 +55,14 @@ const testRunResultToBadge = (result: TestRunResult) => {
       )
     case TestRunResult.CANCELLED:
       return (
-        <Badge className="bg-gray-500 text-white">
+        <Badge className="bg-zinc-500 text-white">
           <XCircle className="mr-1 size-4" />
           Cancelled
         </Badge>
       )
     default:
       return (
-        <Badge className="bg-gray-500 text-white">
+        <Badge className="bg-zinc-500 text-white">
           <Clock className="mr-1 size-4" />
           Unknown
         </Badge>
