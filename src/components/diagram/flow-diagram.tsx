@@ -88,6 +88,19 @@ const flowDiagramProOptions = { hideAttribution: true }
 const partialSelectionMode = 'partial' as never
 const layoutRefreshDelays = [0, 80, 180, 360]
 
+function mergeRecordsById<T extends { id: string }>(base: T[], overrides: T[]): T[] {
+  const byId = new Map<string, T>()
+  for (const item of base) {
+    byId.set(item.id, item)
+  }
+
+  for (const item of overrides) {
+    byId.set(item.id, item)
+  }
+
+  return [...byId.values()]
+}
+
 const flowDiagramHandlersRef = {
   current: {
     onEditNode: (nodeId: string) => {
@@ -211,6 +224,8 @@ type FlowDiagramProps = {
   onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
 }
 
+const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
+
 const FlowDiagram = ({
   nodeOrder,
   templateStepParams,
@@ -223,7 +238,7 @@ const FlowDiagram = ({
   defaultValueInput = false,
   enableNodeSearch = false,
   enableNodeGrouping = false,
-  flowBlocks = [],
+  flowBlocks = EMPTY_FLOW_BLOCKS,
   layoutRefreshKey,
   onFlowBlocksChange,
 }: FlowDiagramProps) => {
@@ -239,9 +254,9 @@ const FlowDiagram = ({
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [editNodeData, setEditNodeData] = useState<NodeFormData | null>(null)
   const [pendingAddSourceNodeId, setPendingAddSourceNodeId] = useState<string | null>(null)
-  const [isConnectionInProgress, setIsConnectionInProgress] = useState(false)
-  const [availableLocators, setAvailableLocators] = useState(locators)
-  const [availableLocatorGroups, setAvailableLocatorGroups] = useState(locatorGroups)
+  const isConnectionInProgressRef = useRef(false)
+  const [pendingLocators, setPendingLocators] = useState<FlowDiagramProps['locators']>([])
+  const [pendingLocatorGroups, setPendingLocatorGroups] = useState<FlowDiagramProps['locatorGroups']>([])
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchHighlightedNodeId, setSearchHighlightedNodeId] = useState<string | null>(null)
@@ -256,12 +271,18 @@ const FlowDiagram = ({
   const edgeTypes = useMemo(() => flowEdgeTypes, [])
   const nodeTypes = useMemo(() => flowNodeTypes, [])
 
+  const mergedLocators = useMemo(() => mergeRecordsById(locators, pendingLocators), [locators, pendingLocators])
+  const mergedLocatorGroups = useMemo(
+    () => mergeRecordsById(locatorGroups, pendingLocatorGroups),
+    [locatorGroups, pendingLocatorGroups],
+  )
+
   useEffect(() => {
-    setAvailableLocators(locators)
+    setPendingLocators(prev => prev.filter(p => !locators.some(l => l.id === p.id)))
   }, [locators])
 
   useEffect(() => {
-    setAvailableLocatorGroups(locatorGroups)
+    setPendingLocatorGroups(prev => prev.filter(p => !locatorGroups.some(g => g.id === p.id)))
   }, [locatorGroups])
 
   const handleEditNode = useCallback(
@@ -281,14 +302,18 @@ const FlowDiagram = ({
 
   const nodeSearchResults = useMemo(() => searchFlowNodesByLabel(nodes, searchQuery), [nodes, searchQuery])
   const shouldShowSearchSuggestions = enableNodeSearch && isSearchOpen && searchQuery.trim().length >= 3
-  const realNodeIds = useMemo(
-    () => new Set(nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id)),
-    [nodes],
-  )
   const layoutRefreshNodeIds = useMemo(
-    () => nodes.filter(node => !isAddNodePromptNode(node)).map(node => node.id),
+    () =>
+      nodes.reduce<string[]>((nodeIds, node) => {
+        if (!isAddNodePromptNode(node)) {
+          nodeIds.push(node.id)
+        }
+
+        return nodeIds
+      }, []),
     [nodes],
   )
+  const realNodeIds = useMemo(() => new Set(layoutRefreshNodeIds), [layoutRefreshNodeIds])
   const flowBlockMembership = useMemo(() => getFlowBlockMembershipMap(flowBlocks), [flowBlocks])
   const flowBlockBounds = useMemo(() => getFlowBlockBounds(nodes, flowBlocks), [nodes, flowBlocks])
   const hasOrphanedNodes = useMemo(() => hasOrphanedFlowNode(nodes, edges), [nodes, edges])
@@ -449,11 +474,12 @@ const FlowDiagram = ({
     }
   }, [nodes, edges, setEdges])
 
-  useEffect(() => {
-    const nextEdges = removeOrphanedEdges(nodes, edges)
-    const startNodeIds = determineStartNodeIds(nodes, nextEdges)
-
+  const syncNodePresentationMetadata = useCallback(() => {
     setNodes(currentNodes => {
+      const nextEdges = removeOrphanedEdges(currentNodes, edges)
+      const startNodeIds = determineStartNodeIds(currentNodes, nextEdges)
+      const isConnectionInProgress = isConnectionInProgressRef.current
+
       let hasUpdates = false
       const updatedNodes = currentNodes.map(node => {
         if (isAddNodePromptNode(node)) {
@@ -499,7 +525,11 @@ const FlowDiagram = ({
 
       return hasUpdates ? updatedNodes : currentNodes
     })
-  }, [nodes, edges, flowBlockMembership, isConnectionInProgress, searchHighlightedNodeId, setNodes])
+  }, [edges, flowBlockMembership, searchHighlightedNodeId, setNodes])
+
+  useEffect(() => {
+    syncNodePresentationMetadata()
+  }, [nodes, edges, flowBlockMembership, searchHighlightedNodeId, syncNodePresentationMetadata])
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) =>
@@ -523,13 +553,18 @@ const FlowDiagram = ({
 
   const handleEdgesChange = useCallback(
     (changes: Parameters<typeof onEdgesChange>[0]) => {
-      const blockedDeleteIds = new Set(
-        changes
-          .filter(change => change.type === 'remove')
-          .map(change => edges.find(edge => edge.id === change.id))
-          .filter((edge): edge is Edge => Boolean(edge && isEdgeWithinSameFlowBlock(edge, flowBlockMembership)))
-          .map(edge => edge.id),
-      )
+      const blockedDeleteIds = changes.reduce<Set<string>>((ids, change) => {
+        if (change.type !== 'remove') {
+          return ids
+        }
+
+        const edge = edges.find(edge => edge.id === change.id)
+        if (edge && isEdgeWithinSameFlowBlock(edge, flowBlockMembership)) {
+          ids.add(edge.id)
+        }
+
+        return ids
+      }, new Set())
 
       if (blockedDeleteIds.size > 0) {
         showTopologyBlockedToast()
@@ -556,20 +591,20 @@ const FlowDiagram = ({
   )
 
   const handleConnectStart = useCallback(() => {
-    setIsConnectionInProgress(true)
-  }, [])
+    isConnectionInProgressRef.current = true
+    syncNodePresentationMetadata()
+  }, [syncNodePresentationMetadata])
 
   const handleConnectEnd = useCallback(() => {
-    setIsConnectionInProgress(false)
-  }, [])
+    isConnectionInProgressRef.current = false
+    syncNodePresentationMetadata()
+  }, [syncNodePresentationMetadata])
 
   const memoizedTemplateSteps = useMemo(() => templateSteps, [templateSteps])
   const memoizedTemplateStepParams = useMemo(() => templateStepParams, [templateStepParams])
-  const memoizedLocators = useMemo(() => availableLocators, [availableLocators])
-  const memoizedLocatorGroups = useMemo(() => availableLocatorGroups, [availableLocatorGroups])
 
   const handleLocatorCreated = useCallback((result: InlineLocatorSaveResult) => {
-    setAvailableLocatorGroups(current => {
+    setPendingLocatorGroups(current => {
       const nextGroup = {
         id: result.locatorGroupId,
         name: result.locatorGroupName,
@@ -582,7 +617,7 @@ const FlowDiagram = ({
         : [...current, nextGroup]
     })
 
-    setAvailableLocators(current => {
+    setPendingLocators(current => {
       const nextLocator = {
         id: result.locatorId,
         name: result.locatorName,
@@ -652,9 +687,13 @@ const FlowDiagram = ({
         return
       }
 
-      const selectedIds = selectedNodes
-        .filter(node => realNodeIds.has(node.id) && !flowBlockMembership.has(node.id))
-        .map(node => node.id)
+      const selectedIds = selectedNodes.reduce<string[]>((nodeIds, node) => {
+        if (realNodeIds.has(node.id) && !flowBlockMembership.has(node.id)) {
+          nodeIds.push(node.id)
+        }
+
+        return nodeIds
+      }, [])
 
       setSelectedGroupingNodeIds(current =>
         current.length === selectedIds.length && current.every((nodeId, index) => nodeId === selectedIds[index])
@@ -773,7 +812,7 @@ const FlowDiagram = ({
         </div>
         <div ref={flowContainerRef} className="h-full min-h-80 flex-1">
           <ReactFlow
-            className="h-full w-full"
+            className="size-full"
             nodes={nodes}
             onNodesChange={handleNodesChange}
             edges={edges}
@@ -829,21 +868,21 @@ const FlowDiagram = ({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5"
+                        className="size-5"
                         onClick={() => openRenameBlockDialog(block)}
                         aria-label={`Rename ${block.name}`}
                       >
-                        <Pencil className="h-3 w-3" />
+                        <Pencil className="size-3" />
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5"
+                        className="size-5"
                         onClick={() => deleteBlock(block.id)}
                         aria-label={`Delete ${block.name}`}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="size-3" />
                       </Button>
                     </div>
                   </div>
@@ -905,9 +944,9 @@ const FlowDiagram = ({
         templateStepParams={memoizedTemplateStepParams}
         showAddNodeDialog={showAddNodeDialog}
         setShowAddNodeDialog={setShowAddNodeDialog}
-        locators={memoizedLocators}
+        locators={mergedLocators}
         defaultValueInput={defaultValueInput}
-        locatorGroups={memoizedLocatorGroups}
+        locatorGroups={mergedLocatorGroups}
         environments={environments}
         modules={modules}
         onLocatorCreated={handleLocatorCreated}
@@ -927,9 +966,9 @@ const FlowDiagram = ({
           templateStepParams={memoizedTemplateStepParams}
           showAddNodeDialog={showEditNodeDialog}
           setShowAddNodeDialog={setShowEditNodeDialog}
-          locators={memoizedLocators}
+          locators={mergedLocators}
           defaultValueInput={defaultValueInput}
-          locatorGroups={memoizedLocatorGroups}
+          locatorGroups={mergedLocatorGroups}
           environments={environments}
           modules={modules}
           onLocatorCreated={handleLocatorCreated}
