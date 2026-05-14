@@ -2,16 +2,19 @@ import { parse } from '@babel/parser'
 import _traverse from '@babel/traverse'
 import type { NodePath } from '@babel/traverse'
 import * as t from '@babel/types'
-import { StepParameterType, TemplateStepIcon } from '@prisma/client'
-import { parseGroupJSDoc, readJSDocTag, StepGroupJSDoc } from './jsdoc-parser'
+import { StepParameterType } from '@prisma/client'
+import {
+  findNearestJSDocStart,
+  parseGroupJSDocStrict as parseGroupJSDoc,
+  parseStepJSDocStrict as parseStepJSDoc,
+  type StepGroupJSDoc,
+  type StepJSDoc,
+} from '@/lib/jsdoc/template-step-jsdoc'
 
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
 
-export interface StepJSDoc {
-  name: string
-  description: string | null
-  icon: TemplateStepIcon
-}
+export type { StepJSDoc }
+export { parseStepJSDoc }
 
 export interface StepParameter {
   name: string
@@ -37,80 +40,6 @@ export interface StepData {
 }
 
 type StepKeyword = ParsedStep['keyword']
-
-function findNearestJSDocStart(lines: string[], startLine: number): number | null {
-  for (let i = startLine - 1; i >= 0 && i >= startLine - 20; i--) {
-    const line = lines[i]?.trim()
-
-    if (line?.startsWith('/**')) {
-      return i
-    }
-
-    if (!line?.includes('*/')) {
-      continue
-    }
-
-    for (let j = i - 1; j >= 0 && j >= i - 10; j--) {
-      if (lines[j]?.trim().startsWith('/**')) {
-        return j
-      }
-    }
-
-    return i
-  }
-
-  return null
-}
-
-function readStepMetadataLine(line: string, metadata: { name: string | null; description: string | null; icon: string | null }) {
-  metadata.name = readJSDocTag(line, 'name') ?? metadata.name
-  metadata.description = readJSDocTag(line, 'description') ?? metadata.description
-  metadata.icon = readJSDocTag(line, 'icon') ?? metadata.icon
-}
-
-function normalizeStepIcon(icon: string): TemplateStepIcon {
-  const iconUpper = icon.toUpperCase()
-  const validIcons = Object.values(TemplateStepIcon)
-  if (!validIcons.includes(iconUpper as TemplateStepIcon)) {
-    throw new Error(`Invalid @icon value: ${icon}. Must be one of: ${validIcons.join(', ')}`)
-  }
-
-  return iconUpper as TemplateStepIcon
-}
-
-/**
- * Reads the nearest preceding JSDoc block for a step call and extracts metadata.
- */
-export function parseStepJSDoc(content: string, startLine: number): StepJSDoc | null {
-  const lines = content.split('\n')
-  const jsdocStart = findNearestJSDocStart(lines, startLine)
-  if (jsdocStart == null) return null
-
-  const metadata = { name: null as string | null, description: null as string | null, icon: null as string | null }
-  for (let i = jsdocStart; i < Math.min(lines.length, jsdocStart + 20); i++) {
-    const line = lines[i] ?? ''
-
-    if (line.trim().startsWith('/**')) {
-      continue
-    }
-
-    if (line.includes('*/')) {
-      const beforeClose = line.split('*/')[0].trim()
-      readStepMetadataLine(beforeClose, metadata)
-      break
-    }
-
-    readStepMetadataLine(line, metadata)
-  }
-
-  if (!metadata.name || !metadata.icon) return null
-
-  return {
-    name: metadata.name.trim(),
-    description: metadata.description ? metadata.description.trim() : null,
-    icon: normalizeStepIcon(metadata.icon),
-  }
-}
 
 function findStepJSDocStartOffset(content: string, startLine: number): number | null {
   const lines = content.split('\n')
