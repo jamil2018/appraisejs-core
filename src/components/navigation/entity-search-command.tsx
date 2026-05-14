@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CommandGroup, CommandItem } from '../ui/command'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
 
@@ -15,6 +15,11 @@ export interface EntitySearchCommandProps<T extends { id: string }> {
   onSelect?: (entity: T) => void
 }
 
+type LoadState<T> =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; entities: T[] }
+
 export function EntitySearchCommand<T extends { id: string }>({
   searchQuery,
   entityName,
@@ -24,35 +29,31 @@ export function EntitySearchCommand<T extends { id: string }>({
   icon,
   onSelect,
 }: EntitySearchCommandProps<T>) {
-  const [entities, setEntities] = useState<T[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [state, setState] = useState<LoadState<T>>({ status: 'loading' })
 
   useEffect(() => {
     let isMounted = true
 
     const fetchEntities = async () => {
-      setIsLoading(true)
-      setError(null)
+      setState({ status: 'loading' })
       try {
         const result = await fetchAction()
-        if (isMounted) {
-          if (result.status === 200) {
-            setEntities(getEntities(result.data))
-          } else {
-            setError(result.error || 'Failed to fetch entities')
-          }
-          setIsLoading(false)
+        if (!isMounted) return
+        if (result.status === 200) {
+          setState({ status: 'ready', entities: getEntities(result.data) })
+        } else {
+          setState({ status: 'error', message: result.error || 'Failed to fetch entities' })
         }
       } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'An error occurred')
-          setIsLoading(false)
-        }
+        if (!isMounted) return
+        setState({
+          status: 'error',
+          message: err instanceof Error ? err.message : 'An error occurred',
+        })
       }
     }
 
-    fetchEntities()
+    void fetchEntities()
 
     return () => {
       isMounted = false
@@ -60,6 +61,10 @@ export function EntitySearchCommand<T extends { id: string }>({
   }, [fetchAction, getEntities])
 
   const filteredEntities = useMemo(() => {
+    if (state.status !== 'ready') {
+      return []
+    }
+    const entities = state.entities
     if (!searchQuery.trim()) {
       return entities
     }
@@ -72,9 +77,9 @@ export function EntitySearchCommand<T extends { id: string }>({
       }
       return false
     })
-  }, [entities, searchQuery, searchKey])
+  }, [state, searchQuery, searchKey])
 
-  if (isLoading) {
+  if (state.status === 'loading') {
     return (
       <CommandGroup heading={`Searching ${entityName}...`}>
         <CommandItem disabled>Loading...</CommandItem>
@@ -82,11 +87,11 @@ export function EntitySearchCommand<T extends { id: string }>({
     )
   }
 
-  if (error) {
+  if (state.status === 'error') {
     return (
       <CommandGroup heading="Error">
         <CommandItem disabled className="text-destructive">
-          {error}
+          {state.message}
         </CommandItem>
       </CommandGroup>
     )
