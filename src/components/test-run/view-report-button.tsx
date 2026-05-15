@@ -70,7 +70,7 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
         <Button variant="outline" size="sm" className={className}>
           <AnimatedButtonContent>
             <LoaderCircle className="size-4 animate-spin" />
-            Generating Report...
+            Generating report
           </AnimatedButtonContent>
         </Button>
       </AnimatedReportShell>

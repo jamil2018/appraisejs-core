@@ -26,7 +26,8 @@ import {
   type Tag,
 } from '@prisma/client'
 import { ArrowLeft, ArrowRight, Info, Maximize2, Minimize2, Plus, Save } from 'lucide-react'
-import { LayoutGroup, motion } from 'motion/react'
+import { LayoutGroup, LazyMotion, domAnimation } from 'motion/react'
+import * as motion from 'motion/react-m'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -306,6 +307,7 @@ function FlowPanel({
   onToggleImmersive,
 }: FlowPanelProps) {
   return (
+    <LazyMotion features={domAnimation} strict>
     <motion.div
       layout
       layoutId="test-case-flow-panel"
@@ -353,6 +355,7 @@ function FlowPanel({
         </div>
       </CardContent>
     </motion.div>
+    </LazyMotion>
   )
 }
 
@@ -789,6 +792,7 @@ function FlowStep({
 }: FlowStepProps) {
   return (
     <div className="flex flex-col gap-4">
+      <LazyMotion features={domAnimation} strict>
       <LayoutGroup id="test-case-flow-panel-layout">
         <div className="w-full min-w-0 overflow-x-hidden">
           {isFlowImmersive ? (
@@ -799,6 +803,7 @@ function FlowStep({
           {renderError(errors.steps)}
         </div>
       </LayoutGroup>
+      </LazyMotion>
       {!isFlowImmersive && (
         <div className="flex flex-col gap-4">
           <TestScenarioPreview

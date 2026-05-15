@@ -10,7 +10,7 @@ type TraceViewerButtonLabelProps = {
   children: ReactNode
 }
 
-export function TraceViewerButtonLabel({ labelKey, children }: TraceViewerButtonLabelProps) {
+function TraceViewerButtonLabel({ labelKey, children }: TraceViewerButtonLabelProps) {
   return (
     <LazyMotion features={domAnimation} strict>
       <AnimatePresence mode="wait" initial={false}>

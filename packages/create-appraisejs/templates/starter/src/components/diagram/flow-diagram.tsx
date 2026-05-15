@@ -14,7 +14,6 @@ import {
   useNodesState,
   Connection,
   DefaultEdgeOptions,
-  ViewportPortal,
   useUpdateNodeInternals,
 } from '@xyflow/react'
 import type { ReactFlowInstance } from '@xyflow/react'
@@ -31,19 +30,11 @@ import {
   type RefObject,
 } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ButtonEdge, { flowEdgeMutationGuardRef } from './button-edge'
-import { Boxes, MousePointer2, Pencil, Plus, Trash2 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { Boxes, MousePointer2, Plus } from 'lucide-react'
+import { FlowDiagramBlockDialog } from './flow-diagram-block-dialog'
+import { FlowDiagramBlockOverlays } from './flow-diagram-block-overlays'
 import { FlowDiagramNodeSearch } from './flow-diagram-node-search'
 import OptionsHeaderNode from './options-header-node'
 import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
@@ -227,6 +218,7 @@ type FlowDiagramProps = {
 
 const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
 
+// fallow-ignore-next-line complexity
 const FlowDiagram = ({
   nodeOrder,
   templateStepParams,
@@ -271,7 +263,9 @@ const FlowDiagram = ({
   const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
   const flowContainerRef = useRef<HTMLDivElement | null>(null)
   const onNodeOrderChangeRef = useRef(onNodeOrderChange)
-  onNodeOrderChangeRef.current = onNodeOrderChange
+  useEffect(() => {
+    onNodeOrderChangeRef.current = onNodeOrderChange
+  }, [onNodeOrderChange])
   const edgeTypes = useMemo(() => flowEdgeTypes, [])
   const nodeTypes = useMemo(() => flowNodeTypes, [])
 
@@ -813,47 +807,11 @@ const FlowDiagram = ({
               containerRef={flowContainerRef}
               refreshKey={layoutRefreshKey}
             />
-            {flowBlockBounds.length > 0 && (
-              <ViewportPortal>
-                {flowBlockBounds.map(block => (
-                  <div
-                    key={block.id}
-                    className="pointer-events-none absolute rounded-lg border border-emerald-400/70 bg-emerald-400/10"
-                    style={{
-                      left: block.x,
-                      top: block.y,
-                      width: block.width,
-                      height: block.height,
-                      zIndex: -1,
-                    }}
-                  >
-                    <div className="bg-background/95 shadow-background/40 pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-md border border-emerald-300/80 px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md">
-                      <span>{block.name}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-5"
-                        onClick={() => openRenameBlockDialog(block)}
-                        aria-label={`Rename ${block.name}`}
-                      >
-                        <Pencil className="size-3" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-5"
-                        onClick={() => deleteBlock(block.id)}
-                        aria-label={`Delete ${block.name}`}
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </ViewportPortal>
-            )}
+            <FlowDiagramBlockOverlays
+              flowBlockBounds={flowBlockBounds}
+              onRenameBlock={openRenameBlockDialog}
+              onDeleteBlock={deleteBlock}
+            />
             <Background />
             <Controls />
           </ReactFlow>
@@ -872,29 +830,14 @@ const FlowDiagram = ({
         )}
       </div>
 
-      <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingBlockId ? 'Rename block' : 'Create block'}</DialogTitle>
-            <DialogDescription>
-              {editingBlockId
-                ? 'Update the display name for this flow block.'
-                : 'Name the selected nodes before saving them as a flow block.'}
-            </DialogDescription>
-          </DialogHeader>
-          <Input
-            aria-label="Block name"
-            value={blockName}
-            onChange={event => setBlockName(event.target.value)}
-            placeholder="Block name"
-          />
-          <DialogFooter>
-            <Button type="button" onClick={handleBlockDialogSubmit}>
-              {editingBlockId ? 'Rename' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FlowDiagramBlockDialog
+        open={isBlockDialogOpen}
+        onOpenChange={setIsBlockDialogOpen}
+        editingBlockId={editingBlockId}
+        blockName={blockName}
+        onBlockNameChange={setBlockName}
+        onSubmit={handleBlockDialogSubmit}
+      />
 
       <NodeForm
         onSubmitAction={addNode}

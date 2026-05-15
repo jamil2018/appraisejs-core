@@ -2,13 +2,14 @@
 
 import type { RefObject } from 'react'
 import { Search, X } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react'
+import * as motion from 'motion/react-m'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
-export type FlowNodeSearchResult = {
+type FlowNodeSearchResult = {
   id: string
   label: string
 }
@@ -35,6 +36,7 @@ export function FlowDiagramNodeSearch({
   onSelectResult,
 }: FlowDiagramNodeSearchProps) {
   return (
+    <LazyMotion features={domAnimation} strict>
     <div className="relative flex items-start gap-2" data-node-search-root="true">
       <AnimatePresence>
         {isSearchOpen ? (
@@ -101,5 +103,6 @@ export function FlowDiagramNodeSearch({
         </Tooltip>
       </TooltipProvider>
     </div>
+    </LazyMotion>
   )
 }
