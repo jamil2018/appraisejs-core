@@ -42,8 +42,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ButtonEdge, { flowEdgeMutationGuardRef } from './button-edge'
-import { Boxes, MousePointer2, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Boxes, MousePointer2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { FlowDiagramNodeSearch } from './flow-diagram-node-search'
 import OptionsHeaderNode from './options-header-node'
 import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
 import NodeForm from './node-form'
@@ -269,6 +270,8 @@ const FlowDiagram = ({
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
   const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
   const flowContainerRef = useRef<HTMLDivElement | null>(null)
+  const onNodeOrderChangeRef = useRef(onNodeOrderChange)
+  onNodeOrderChangeRef.current = onNodeOrderChange
   const edgeTypes = useMemo(() => flowEdgeTypes, [])
   const nodeTypes = useMemo(() => flowNodeTypes, [])
 
@@ -469,9 +472,8 @@ const FlowDiagram = ({
   )
 
   useEffect(() => {
-    const orders = determineNodeOrders(nodes, edges)
-    onNodeOrderChange(orders)
-  }, [nodes, edges, onNodeOrderChange])
+    onNodeOrderChangeRef.current(determineNodeOrders(nodes, edges))
+  }, [nodes, edges])
 
   useEffect(() => {
     const hasRealNode = nodes.some(n => !isAddNodePromptNode(n))
@@ -726,75 +728,19 @@ const FlowDiagram = ({
   return (
     <>
       <div className="relative flex h-full min-h-0 w-full flex-col" onPointerDown={handleFlowPointerDown}>
-        <div className="absolute right-4 top-4 z-20 flex items-start gap-2" data-node-search-root="true">
-          {enableNodeSearch && (
-            <div className="relative flex items-start gap-2">
-              <AnimatePresence>
-                {isSearchOpen && (
-                  <motion.div
-                    className="flex flex-col items-end"
-                    initial={{ opacity: 0, x: 14, scale: 0.98 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 14, scale: 0.98 }}
-                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                  >
-                    <Input
-                      ref={searchInputRef}
-                      aria-label="Search nodes"
-                      value={searchQuery}
-                      onChange={event => setSearchQuery(event.target.value)}
-                      placeholder="Search labels..."
-                      className="border-border/70 bg-background/95 h-9 w-56 shadow-md backdrop-blur"
-                    />
-                    <AnimatePresence>
-                      {shouldShowSearchSuggestions && (
-                        <motion.div
-                          className="border-border/70 mt-2 w-64 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-xl"
-                          initial={{ opacity: 0, y: -6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          transition={{ duration: 0.16, ease: 'easeOut' }}
-                        >
-                          {nodeSearchResults.length > 0 ? (
-                            <div className="max-h-64 overflow-y-auto py-1">
-                              {nodeSearchResults.map(result => (
-                                <button
-                                  key={result.id}
-                                  type="button"
-                                  className="block w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                                  onClick={() => handleSearchResultClick(result.id)}
-                                >
-                                  {result.label}
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="px-3 py-2 text-sm text-muted-foreground">No matching labels</div>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={toggleSearch}
-                      aria-label={isSearchOpen ? 'Close node search' : 'Search nodes'}
-                    >
-                      {isSearchOpen ? <X /> : <Search />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">{isSearchOpen ? 'Close search' : 'Search nodes'}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
+        <div className="absolute right-4 top-4 z-20 flex items-start gap-2">
+          {enableNodeSearch ? (
+            <FlowDiagramNodeSearch
+              isSearchOpen={isSearchOpen}
+              searchQuery={searchQuery}
+              searchInputRef={searchInputRef}
+              shouldShowSearchSuggestions={shouldShowSearchSuggestions}
+              nodeSearchResults={nodeSearchResults}
+              onSearchQueryChange={setSearchQuery}
+              onToggleSearch={toggleSearch}
+              onSelectResult={handleSearchResultClick}
+            />
+          ) : null}
           {enableNodeGrouping && (
             <TooltipProvider delayDuration={0}>
               <Tooltip>

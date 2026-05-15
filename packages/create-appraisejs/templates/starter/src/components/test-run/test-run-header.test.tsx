@@ -15,8 +15,7 @@ vi.mock('@/actions/test-run/test-run-actions', () => ({
   getTestRunByIdAction,
 }))
 
-vi.mock('motion/react', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactVitestMock))
-vi.mock('motion/react-m', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactMVitestMock))
+import '@/test/setup-motion-react-mocks'
 
 const completedRunAt = new Date('2024-01-01T00:00:10.000Z')
 

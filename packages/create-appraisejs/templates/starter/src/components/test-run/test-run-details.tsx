@@ -1,11 +1,8 @@
 'use client'
 
-import { AnimatePresence, motion } from 'motion/react'
 import { TestRunStatus, TestRunTestCaseResult } from '@prisma/client'
 import {
-  Binoculars,
   CheckCircle,
-  ExternalLink,
   Info,
   LoaderCircle,
   Tag as TagIcon,
@@ -22,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { cn, formatDateTime } from '@/lib/utils'
+import { TraceViewerIdleLabel, TraceViewerOpeningLabel, TraceViewerRunningLabel } from './trace-viewer-button-label'
 
 import {
   getDurationSeconds,
@@ -271,39 +269,13 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                             disabled={loadingTraceViewer === testCase.id || runningTraceViewers.has(testCase.id)}
                             className="w-28 bg-transparent text-xs"
                           >
-                            <AnimatePresence mode="wait" initial={false}>
-                              <motion.div
-                                key={
-                                  loadingTraceViewer === testCase.id
-                                    ? 'opening'
-                                    : runningTraceViewers.has(testCase.id)
-                                      ? 'running'
-                                      : 'idle'
-                                }
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -4 }}
-                                transition={{ duration: 0.15 }}
-                                className="flex w-full items-center justify-center gap-1"
-                              >
-                                {loadingTraceViewer === testCase.id ? (
-                                  <>
-                                    <ExternalLink className="size-3 animate-pulse text-zinc-500" />
-                                    Opening
-                                  </>
-                                ) : runningTraceViewers.has(testCase.id) ? (
-                                  <>
-                                    <LoaderCircle className="text-white-500 size-3 animate-spin" />
-                                    Running
-                                  </>
-                                ) : (
-                                  <>
-                                    <Binoculars className="size-3 text-blue-500" />
-                                    View Trace
-                                  </>
-                                )}
-                              </motion.div>
-                            </AnimatePresence>
+                            {loadingTraceViewer === testCase.id ? (
+                              <TraceViewerOpeningLabel />
+                            ) : runningTraceViewers.has(testCase.id) ? (
+                              <TraceViewerRunningLabel />
+                            ) : (
+                              <TraceViewerIdleLabel />
+                            )}
                           </Button>
                         ) : null}
                       </div>

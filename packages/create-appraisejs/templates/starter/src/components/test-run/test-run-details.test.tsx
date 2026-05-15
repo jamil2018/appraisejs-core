@@ -38,8 +38,7 @@ vi.mock('@/hooks/use-toast', () => ({
   toast,
 }))
 
-vi.mock('motion/react', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactVitestMock))
-vi.mock('motion/react-m', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactMVitestMock))
+import '@/test/setup-motion-react-mocks'
 
 function createTestRunDetails(overrides?: Partial<TestRunDetailsData>): TestRunDetailsData {
   return {
