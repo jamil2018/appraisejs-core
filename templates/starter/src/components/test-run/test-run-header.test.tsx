@@ -15,12 +15,8 @@ vi.mock('@/actions/test-run/test-run-actions', () => ({
   getTestRunByIdAction,
 }))
 
-vi.mock('motion/react', () => ({
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
-  },
-}))
+vi.mock('motion/react', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactVitestMock))
+vi.mock('motion/react-m', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactMVitestMock))
 
 function createTestRun(overrides?: Partial<TestRunDetailsData>): TestRunDetailsData {
   return {

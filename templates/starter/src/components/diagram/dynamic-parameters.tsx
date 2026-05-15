@@ -32,6 +32,25 @@ type LocatorOption = Pick<Locator, 'id' | 'name' | 'locatorGroupId'>
 type LocatorGroupOption = Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>
 type LocatorSelectionMode = 'existing' | 'new'
 
+type DynamicFieldState = {
+  values: Record<string, DynamicParameterValue>
+  selectedLocatorGroups: Record<string, string>
+  createdLocatorSelections: Record<string, InlineLocatorSaveResult>
+  locatorSelectionModes: Record<string, LocatorSelectionMode>
+}
+
+function createFieldState(
+  values: Record<string, DynamicParameterValue>,
+  selectedLocatorGroups: Record<string, string>,
+): DynamicFieldState {
+  return {
+    values,
+    selectedLocatorGroups,
+    createdLocatorSelections: {},
+    locatorSelectionModes: {},
+  }
+}
+
 type DynamicFormFieldsProps = {
   templateStepParams: TemplateStepParameter[]
   locators: LocatorOption[]
@@ -92,17 +111,13 @@ function DynamicFormFields({
     [templateStepParams, initialParameterValues, locators],
   )
 
-  // Initialize state with initial values
-  const [values, setValues] = useState<Record<string, DynamicParameterValue>>(initialValues)
+  const [fieldState, setFieldState] = useState<DynamicFieldState>(() =>
+    createFieldState(initialValues, initialSelectedLocatorGroups),
+  )
+  const { values, selectedLocatorGroups, createdLocatorSelections, locatorSelectionModes } = fieldState
   const [errors, setErrors] = useState<Record<string, string>>({})
-
-  // State for locator group selection (initialized from initial data so edit restores group + locator)
-  const [selectedLocatorGroups, setSelectedLocatorGroups] =
-    useState<Record<string, string>>(initialSelectedLocatorGroups)
   const [inlineLocators, setInlineLocators] = useState<LocatorOption[]>([])
   const [inlineLocatorGroups, setInlineLocatorGroups] = useState<LocatorGroupOption[]>([])
-  const [createdLocatorSelections, setCreatedLocatorSelections] = useState<Record<string, InlineLocatorSaveResult>>({})
-  const [locatorSelectionModes, setLocatorSelectionModes] = useState<Record<string, LocatorSelectionMode>>({})
   const [createLocatorParamName, setCreateLocatorParamName] = useState<string | null>(null)
   const lastInitialSyncKeyRef = useRef<string | null>(null)
   const fieldClassName = 'w-full border-border bg-background'
@@ -143,10 +158,7 @@ function DynamicFormFields({
 
     lastInitialSyncKeyRef.current = resetKey
     startTransition(() => {
-      setValues(initialValues)
-      setSelectedLocatorGroups(initialSelectedLocatorGroups)
-      setCreatedLocatorSelections({})
-      setLocatorSelectionModes({})
+      setFieldState(createFieldState(initialValues, initialSelectedLocatorGroups))
     })
   }, [initialValues, initialSelectedLocatorGroups, resetKey])
 
@@ -171,7 +183,7 @@ function DynamicFormFields({
       [name]: value,
     }
 
-    setValues(newValues)
+    setFieldState(prev => ({ ...prev, values: newValues }))
 
     // Clear error for the field being edited
     if (errors[name]) {
@@ -188,15 +200,16 @@ function DynamicFormFields({
 
   // Handle locator group selection
   const handleLocatorGroupChange = (paramName: string, groupId: string) => {
-    setSelectedLocatorGroups(prev => ({
+    setFieldState(prev => ({
       ...prev,
-      [paramName]: groupId,
-    }))
-
-    // Clear the locator selection when group changes
-    setValues(prev => ({
-      ...prev,
-      [paramName]: '',
+      selectedLocatorGroups: {
+        ...prev.selectedLocatorGroups,
+        [paramName]: groupId,
+      },
+      values: {
+        ...prev.values,
+        [paramName]: '',
+      },
     }))
 
     // Clear errors for this field
@@ -208,11 +221,6 @@ function DynamicFormFields({
   }
 
   const handleLocatorSelectionModeChange = (paramName: string, mode: LocatorSelectionMode) => {
-    setLocatorSelectionModes(prev => ({
-      ...prev,
-      [paramName]: mode,
-    }))
-
     if (mode === 'new') {
       const createdLocatorSelection = createdLocatorSelections[paramName]
       if (createdLocatorSelection) {
@@ -220,14 +228,35 @@ function DynamicFormFields({
           ...values,
           [paramName]: createdLocatorSelection.locatorName,
         }
-        setSelectedLocatorGroups(prev => ({
+        setFieldState(prev => ({
           ...prev,
-          [paramName]: createdLocatorSelection.locatorGroupId,
+          locatorSelectionModes: {
+            ...prev.locatorSelectionModes,
+            [paramName]: mode,
+          },
+          selectedLocatorGroups: {
+            ...prev.selectedLocatorGroups,
+            [paramName]: createdLocatorSelection.locatorGroupId,
+          },
+          values: newValues,
         }))
-        setValues(newValues)
         onChange?.(formatDynamicParameterValues(templateStepParams, newValues))
+        if (errors[paramName]) {
+          const newErrors = { ...errors }
+          delete newErrors[paramName]
+          setErrors(newErrors)
+        }
+        return
       }
     }
+
+    setFieldState(prev => ({
+      ...prev,
+      locatorSelectionModes: {
+        ...prev.locatorSelectionModes,
+        [paramName]: mode,
+      },
+    }))
 
     if (errors[paramName]) {
       const newErrors = { ...errors }
@@ -259,21 +288,23 @@ function DynamicFormFields({
         ? current.map(locator => (locator.id === nextLocator.id ? nextLocator : locator))
         : [...current, nextLocator],
     )
-    setCreatedLocatorSelections(current => ({
-      ...current,
-      [paramName]: result,
-    }))
-
     const newValues: Record<string, DynamicParameterValue> = {
       ...values,
       [paramName]: result.locatorName,
     }
 
-    setSelectedLocatorGroups(prev => ({
+    setFieldState(prev => ({
       ...prev,
-      [paramName]: result.locatorGroupId,
+      createdLocatorSelections: {
+        ...prev.createdLocatorSelections,
+        [paramName]: result,
+      },
+      selectedLocatorGroups: {
+        ...prev.selectedLocatorGroups,
+        [paramName]: result.locatorGroupId,
+      },
+      values: newValues,
     }))
-    setValues(newValues)
 
     if (errors[paramName]) {
       const newErrors = { ...errors }
