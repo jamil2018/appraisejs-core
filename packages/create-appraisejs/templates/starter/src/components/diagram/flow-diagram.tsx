@@ -331,16 +331,26 @@ const FlowDiagram = ({
     })
   }, [])
 
-  useEffect(() => {
-    if (isSearchOpen) {
-      searchInputRef.current?.focus()
-    }
-  }, [isSearchOpen])
-
   const closeSearch = useCallback(() => {
     setIsSearchOpen(false)
     setSearchQuery('')
   }, [])
+
+  const openSearch = useCallback(() => {
+    setIsSearchOpen(true)
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus()
+    })
+  }, [])
+
+  const toggleSearch = useCallback(() => {
+    if (isSearchOpen) {
+      closeSearch()
+      return
+    }
+
+    openSearch()
+  }, [closeSearch, isSearchOpen, openSearch])
 
   const clearSearchHighlight = useCallback(() => {
     setSearchHighlightedNodeId(null)
@@ -774,7 +784,7 @@ const FlowDiagram = ({
                       type="button"
                       variant="outline"
                       size="icon"
-                      onClick={() => (isSearchOpen ? closeSearch() : setIsSearchOpen(true))}
+                      onClick={toggleSearch}
                       aria-label={isSearchOpen ? 'Close node search' : 'Search nodes'}
                     >
                       {isSearchOpen ? <X /> : <Search />}

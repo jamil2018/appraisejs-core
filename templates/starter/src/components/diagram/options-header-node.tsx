@@ -4,7 +4,8 @@ import { OptionsHeaderGherkinStep } from './options-header-gherkin-step'
 
 import { Handle, NodeProps, Position, useNodeId, useReactFlow } from '@xyflow/react'
 import { Pencil, Plus, Trash } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react'
+import * as motion from 'motion/react-m'
 import { TemplateStepIcon, type StepParameterType } from '@prisma/client'
 
 import { BaseNode } from '@/components/base-node'
@@ -104,6 +105,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
   useEffect(() => clearHideToolbarTimeout, [clearHideToolbarTimeout])
 
   return (
+    <LazyMotion features={domAnimation} strict>
     <BaseNode
       selected={selected}
       data-testid="options-header-node"
@@ -240,6 +242,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
       </div>
       <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
     </BaseNode>
+    </LazyMotion>
   )
 })
 

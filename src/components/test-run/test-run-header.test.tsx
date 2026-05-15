@@ -18,6 +18,8 @@ vi.mock('@/actions/test-run/test-run-actions', () => ({
 vi.mock('motion/react', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactVitestMock))
 vi.mock('motion/react-m', () => import('@/test/motion-react-vitest-mocks').then(m => m.motionReactMVitestMock))
 
+const completedRunAt = new Date('2024-01-01T00:00:10.000Z')
+
 function createTestRun(overrides?: Partial<TestRunDetailsData>): TestRunDetailsData {
   return {
     id: 'run-db-id',
@@ -63,7 +65,7 @@ describe('TestRunHeader', () => {
       data: createTestRun({
         status: TestRunStatus.COMPLETED,
         result: TestRunResult.PASSED,
-        completedAt: new Date('2024-01-01T00:00:10.000Z'),
+        completedAt: completedRunAt,
         reports: [
           {
             id: 'report-1',
@@ -71,22 +73,20 @@ describe('TestRunHeader', () => {
             description: null,
             reportPath: null,
             testRunId: 'run-db-id',
-            createdAt: new Date('2024-01-01T00:00:10.000Z'),
-            updatedAt: new Date('2024-01-01T00:00:10.000Z'),
+            createdAt: completedRunAt,
+            updatedAt: completedRunAt,
           },
         ],
       }),
     })
 
-    render(
-      <TestRunHeader
-        initialTestRun={createTestRun({
-          status: TestRunStatus.COMPLETED,
-          result: TestRunResult.PASSED,
-          completedAt: new Date('2024-01-01T00:00:10.000Z'),
-        })}
-      />,
-    )
+    const initialTestRun = createTestRun({
+      status: TestRunStatus.COMPLETED,
+      result: TestRunResult.PASSED,
+      completedAt: completedRunAt,
+    })
+
+    render(<TestRunHeader initialTestRun={initialTestRun} />)
 
     expect(screen.getByRole('button', { name: /generating report/i })).toBeInTheDocument()
 

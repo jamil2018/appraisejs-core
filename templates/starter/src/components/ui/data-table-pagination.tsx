@@ -18,8 +18,8 @@ export function DataTablePagination<TData>({ table, showSelectedRows }: DataTabl
           selected.
         </div>
       )}
-      <div className={`flex items-center space-x-6 lg:space-x-8 ${!showSelectedRows && 'w-full justify-center'}`}>
-        <div className="flex items-center space-x-2">
+      <div className={`flex items-center gap-x-6 lg:gap-x-8 ${!showSelectedRows && 'w-full justify-center'}`}>
+        <div className="flex items-center gap-x-2">
           <p className="text-sm font-medium">Rows per page</p>
           <Select
             value={`${table.getState().pagination.pageSize}`}
@@ -43,7 +43,7 @@ export function DataTablePagination<TData>({ table, showSelectedRows }: DataTabl
           Page {table.getState().pagination.pageIndex + 1} of{' '}
           {table.getRowCount() === 0 ? table.getPageCount() + 1 : table.getPageCount()}
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-x-2">
           <Button
             variant="outline"
             className="hidden size-8 p-0 lg:flex"
