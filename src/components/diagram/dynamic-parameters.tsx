@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useImperativeHandle, useEffect, useRef, startTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StepParameterType, TemplateStepParameter, type Locator, type LocatorGroup, type Module } from '@prisma/client'
+import { StepParameterType, TemplateStepParameter, type Module } from '@prisma/client'
 import type {
   InlineLocatorSaveResult,
   LocatorWorkspaceEnvironment,

@@ -81,6 +81,9 @@ export function useFlowDiagram({
   }, [onNodeOrderChange])
   const edgeTypes = useMemo(() => flowEdgeTypes, [])
   const nodeTypes = useMemo(() => flowNodeTypes, [])
+  const handleFlowInit = useCallback((instance: ReactFlowInstance) => {
+    flowInstanceRef.current = instance
+  }, [])
 
   const mergedLocators = useMemo(() => mergeRecordsById(locators, pendingLocators), [locators, pendingLocators])
   const mergedLocatorGroups = useMemo(
@@ -352,7 +355,6 @@ return {
     search,
     grouping,
     flowContainerRef,
-    flowInstanceRef,
     nodes,
     handleNodesChange,
     edges,
@@ -362,6 +364,7 @@ return {
     handleConnectEnd,
     edgeTypes,
     nodeTypes,
+    handleFlowInit,
     isValidConnection,
     layoutRefreshNodeIds,
     openAddNodeDialog,
