@@ -45,8 +45,22 @@ vi.mock('@xyflow/react', async () => {
         onInit?.({ setCenter: xyflowMocks.setCenter })
       }, [onInit])
 
+      const handlePaneKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onPaneClick?.()
+        }
+      }
+
       return (
-        <div data-testid="react-flow" onClick={onPaneClick}>
+        <div
+          data-testid="react-flow"
+          role="group"
+          aria-label="Flow canvas mock"
+          tabIndex={0}
+          onClick={onPaneClick}
+          onKeyDown={handlePaneKeyDown}
+        >
           {nodes.map(node => (
             <button
               key={node.id}

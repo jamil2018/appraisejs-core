@@ -1,3 +1,5 @@
+'use client'
+
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -11,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { NodeFormData } from '@/constants/form-opts/diagram/node-form'
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import TemplateStepCombobox from './template-step-combobox'
 import { type TemplateStepWithGroup } from '@/types/diagram/template-step'
 import DynamicFormFields, { DynamicFormFieldsRef } from './dynamic-parameters'
@@ -28,23 +30,37 @@ import {
   validateNodeFormValues,
 } from './node-form-helpers'
 
-const NodeForm = ({
+function buildFormResetKey(
+  initialValues: NodeFormProps['initialValues'],
+  mode: NodeFormProps['mode'],
+  showAddNodeDialog: boolean,
+) {
+  return JSON.stringify({
+    label: initialValues.label,
+    gherkinStep: initialValues.gherkinStep,
+    templateStepId: initialValues.templateStepId,
+    parameters: initialValues.parameters ?? [],
+    mode,
+    dialog: mode === 'add' ? showAddNodeDialog : 'edit',
+  })
+}
+
+type NodeFormFieldsProps = Omit<NodeFormProps, 'showAddNodeDialog' | 'setShowAddNodeDialog'>
+
+// fallow-ignore-next-line complexity
+function NodeFormFields({
   onSubmitAction,
   initialValues,
   mode = 'add',
   templateSteps,
   templateStepParams,
-  showAddNodeDialog,
   locators,
   locatorGroups,
   environments,
   modules,
   onLocatorCreated,
-  setShowAddNodeDialog,
   defaultValueInput = false,
-}: NodeFormProps) => {
-  const heading = mode === 'edit' ? 'Edit Node' : 'Add Node'
-  const description = mode === 'edit' ? 'Update this node in the diagram' : 'Insert a new node to the diagram'
+}: NodeFormFieldsProps) {
   const fieldClassName = 'border-border bg-background'
   const dynamicFormRef = useRef<DynamicFormFieldsRef>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialValues.templateStepId)
@@ -64,50 +80,6 @@ const NodeForm = ({
   >(initialValues.parameters ?? [])
   const [gherkinStep, setGherkinStep] = useState<string>(initialValues.gherkinStep ?? '')
   const [errors, setErrors] = useState<NodeFormErrors>({})
-  const wasDialogOpenRef = useRef(showAddNodeDialog)
-  const initialValuesResetKey = JSON.stringify({
-    label: initialValues.label,
-    gherkinStep: initialValues.gherkinStep,
-    templateStepId: initialValues.templateStepId,
-    parameters: initialValues.parameters ?? [],
-  })
-  const lastInitialValuesResetKeyRef = useRef<string | null>(null)
-
-  const resetFromInitialValues = useCallback(() => {
-    queueMicrotask(() => {
-      setSelectedTemplateId(initialValues.templateStepId)
-      const step = getSelectedTemplateStep(templateSteps, initialValues.templateStepId)
-      setSelectedTemplateStep(step)
-      setSelectedTemplateStepParams(getSelectedTemplateStepParams(templateStepParams, initialValues.templateStepId))
-      setParameters(initialValues.parameters ?? [])
-      setGherkinStep(initialValues.gherkinStep ?? '')
-      setErrors({})
-    })
-  }, [
-    initialValues.templateStepId,
-    initialValues.parameters,
-    initialValues.gherkinStep,
-    templateSteps,
-    templateStepParams,
-  ])
-
-  useEffect(() => {
-    if (lastInitialValuesResetKeyRef.current === initialValuesResetKey) {
-      return
-    }
-
-    lastInitialValuesResetKeyRef.current = initialValuesResetKey
-    resetFromInitialValues()
-  }, [initialValuesResetKey, resetFromInitialValues])
-
-  useEffect(() => {
-    const wasDialogOpen = wasDialogOpenRef.current
-    wasDialogOpenRef.current = showAddNodeDialog
-
-    if (mode === 'add' && showAddNodeDialog && !wasDialogOpen) {
-      resetFromInitialValues()
-    }
-  }, [mode, resetFromInitialValues, showAddNodeDialog])
 
   const handleTemplateStepChange = useCallback(
     (value: string) => {
@@ -151,14 +123,14 @@ const NodeForm = ({
   }
 
   return (
-    <Sheet open={showAddNodeDialog} onOpenChange={setShowAddNodeDialog}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
-        <form onSubmit={handleSubmit} className="flex h-full flex-col overflow-hidden">
-          <SheetHeader className="shrink-0">
-            <SheetTitle>{heading}</SheetTitle>
-            <SheetDescription>{description}</SheetDescription>
-          </SheetHeader>
-          <div className="my-4 flex-1 overflow-y-auto px-1">
+    <form onSubmit={handleSubmit} className="flex h-full flex-col overflow-hidden">
+      <SheetHeader className="shrink-0">
+        <SheetTitle>{mode === 'edit' ? 'Edit Node' : 'Add Node'}</SheetTitle>
+        <SheetDescription>
+          {mode === 'edit' ? 'Update this node in the diagram' : 'Insert a new node to the diagram'}
+        </SheetDescription>
+      </SheetHeader>
+      <div className="my-4 flex-1 overflow-y-auto px-1">
             <div className="mb-4 flex flex-col gap-2">
               <Label htmlFor="label">Label</Label>
               <Input
@@ -219,7 +191,23 @@ const NodeForm = ({
             </SheetClose>
             <Button type="submit">Save</Button>
           </SheetFooter>
-        </form>
+    </form>
+  )
+}
+
+function NodeForm({
+  showAddNodeDialog,
+  setShowAddNodeDialog,
+  initialValues,
+  mode,
+  ...fieldsProps
+}: NodeFormProps) {
+  const formResetKey = buildFormResetKey(initialValues, mode ?? 'add', showAddNodeDialog)
+
+  return (
+    <Sheet open={showAddNodeDialog} onOpenChange={setShowAddNodeDialog}>
+      <SheetContent side="right" className="w-full sm:max-w-md">
+        <NodeFormFields key={formResetKey} initialValues={initialValues} mode={mode} {...fieldsProps} />
       </SheetContent>
     </Sheet>
   )

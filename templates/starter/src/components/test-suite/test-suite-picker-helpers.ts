@@ -52,6 +52,85 @@ export function normalizeSuiteSelection(
   }
 }
 
+export function applySuiteCheckboxSelection(
+  current: DraftSelectionMap,
+  testSuite: TestSuitePickerRow,
+  checked: boolean,
+): DraftSelectionMap {
+  const next = { ...current }
+
+  if (!checked) {
+    delete next[testSuite.id]
+    return next
+  }
+
+  next[testSuite.id] = {
+    testSuiteId: testSuite.id,
+    runAll: true,
+    testCaseIds: [],
+  }
+
+  return next
+}
+
+export function applyChildCheckboxSelection(
+  current: DraftSelectionMap,
+  testSuite: TestSuitePickerRow,
+  testCaseId: string,
+  checked: boolean,
+): DraftSelectionMap {
+  const childIds = testSuite.testCases.map(testCase => testCase.id)
+  const currentSelection = current[testSuite.id]
+  const nextSelectedIds = new Set(currentSelection?.runAll ? childIds : (currentSelection?.testCaseIds ?? []))
+
+  if (checked) {
+    nextSelectedIds.add(testCaseId)
+  } else {
+    nextSelectedIds.delete(testCaseId)
+  }
+
+  const next = { ...current }
+
+  if (nextSelectedIds.size === 0) {
+    delete next[testSuite.id]
+    return next
+  }
+
+  if (nextSelectedIds.size === childIds.length) {
+    next[testSuite.id] = {
+      testSuiteId: testSuite.id,
+      runAll: true,
+      testCaseIds: [],
+    }
+    return next
+  }
+
+  next[testSuite.id] = {
+    testSuiteId: testSuite.id,
+    runAll: false,
+    testCaseIds: Array.from(nextSelectedIds),
+  }
+
+  return next
+}
+
+export function buildNormalizedSelectionsFromDraft(
+  testSuites: TestSuitePickerRow[],
+  draftSelections: DraftSelectionMap,
+): TestSuiteSelection[] {
+  return testSuites.reduce<TestSuiteSelection[]>((selections, testSuite) => {
+    const selection = draftSelections[testSuite.id]
+    if (selection !== null && selection !== undefined) {
+      const normalizedSelection = normalizeSuiteSelection(testSuite, selection)
+      if (normalizedSelection) {
+        selections.push(normalizedSelection)
+      }
+    }
+
+    return selections
+  }, [])
+}
+
 export function suiteMatchesQuery(testSuite: TestSuitePickerRow, query: string): boolean {
   if (!query) {
     return true

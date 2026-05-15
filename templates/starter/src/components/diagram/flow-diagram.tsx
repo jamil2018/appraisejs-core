@@ -259,6 +259,7 @@ const FlowDiagram = ({
   const [pendingLocatorGroups, setPendingLocatorGroups] = useState<FlowDiagramProps['locatorGroups']>([])
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [searchHighlightedNodeId, setSearchHighlightedNodeId] = useState<string | null>(null)
   const [isGroupingSelectionMode, setIsGroupingSelectionMode] = useState(false)
   const [selectedGroupingNodeIds, setSelectedGroupingNodeIds] = useState<string[]>([])
@@ -329,6 +330,12 @@ const FlowDiagram = ({
       variant: 'destructive',
     })
   }, [])
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      searchInputRef.current?.focus()
+    }
+  }, [isSearchOpen])
 
   const closeSearch = useCallback(() => {
     setIsSearchOpen(false)
@@ -722,8 +729,8 @@ const FlowDiagram = ({
                     transition={{ duration: 0.18, ease: 'easeOut' }}
                   >
                     <Input
+                      ref={searchInputRef}
                       aria-label="Search nodes"
-                      autoFocus
                       value={searchQuery}
                       onChange={event => setSearchQuery(event.target.value)}
                       placeholder="Search labels..."

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useReducer } from 'react'
 
 import { PickerBrowseDialogFrame, PickerBrowseTriggerButton } from '@/components/ui/picker-browse-shell'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils'
 import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
 
 import {
+  applyChildCheckboxSelection,
+  applySuiteCheckboxSelection,
+  buildNormalizedSelectionsFromDraft,
   createDraftSelections,
   normalizeSuiteSelection,
   suiteMatchesQuery,
@@ -26,6 +29,63 @@ type TestSuitePickerProps = {
   selectedLabel: string
 }
 
+type Updater<T> = T | ((prev: T) => T)
+
+function applyUpdater<T>(updater: Updater<T>, prev: T): T {
+  return typeof updater === 'function' ? (updater as (p: T) => T)(prev) : updater
+}
+
+type SuitePickerState = {
+  open: boolean
+  query: string
+  draftSelections: DraftSelectionMap
+  expandedSuites: Record<string, boolean>
+}
+
+type SuitePickerAction =
+  | { type: 'openDialog'; selectedSuites: TestSuiteSelection[] }
+  | { type: 'setOpen'; open: boolean }
+  | { type: 'setQuery'; query: string }
+  | { type: 'setDraftSelections'; updater: Updater<DraftSelectionMap> }
+  | { type: 'toggleExpanded'; suiteId: string }
+
+function suitePickerReducer(state: SuitePickerState, action: SuitePickerAction): SuitePickerState {
+  switch (action.type) {
+    case 'openDialog':
+      return {
+        open: true,
+        query: '',
+        draftSelections: createDraftSelections(action.selectedSuites),
+        expandedSuites: {},
+      }
+    case 'setOpen':
+      return { ...state, open: action.open }
+    case 'setQuery':
+      return { ...state, query: action.query }
+    case 'setDraftSelections':
+      return { ...state, draftSelections: applyUpdater(action.updater, state.draftSelections) }
+    case 'toggleExpanded':
+      return {
+        ...state,
+        expandedSuites: {
+          ...state.expandedSuites,
+          [action.suiteId]: !state.expandedSuites[action.suiteId],
+        },
+      }
+    default:
+      return state
+  }
+}
+
+function createInitialSuitePickerState(): SuitePickerState {
+  return {
+    open: false,
+    query: '',
+    draftSelections: {},
+    expandedSuites: {},
+  }
+}
+
 function TestSuitePicker({
   testSuites,
   selectedSuites,
@@ -35,10 +95,8 @@ function TestSuitePicker({
   dialogDescription,
   selectedLabel,
 }: TestSuitePickerProps) {
-  const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [draftSelections, setDraftSelections] = useState<DraftSelectionMap>(() => createDraftSelections(selectedSuites))
-  const [expandedSuites, setExpandedSuites] = useState<Record<string, boolean>>({})
+  const [state, dispatch] = useReducer(suitePickerReducer, undefined, createInitialSuitePickerState)
+  const { open, query, draftSelections, expandedSuites } = state
 
   const filteredSuites = useMemo(
     () => testSuites.filter(testSuite => suiteMatchesQuery(testSuite, query.trim())),
@@ -48,91 +106,26 @@ function TestSuitePicker({
   const totalSelectedSuites = Object.keys(draftSelections).length
 
   const openDialog = () => {
-    setQuery('')
-    setDraftSelections(createDraftSelections(selectedSuites))
-    setExpandedSuites({})
-    setOpen(true)
-  }
-
-  const toggleExpanded = (testSuiteId: string) => {
-    setExpandedSuites(current => ({
-      ...current,
-      [testSuiteId]: !current[testSuiteId],
-    }))
+    dispatch({ type: 'openDialog', selectedSuites })
   }
 
   const updateSuiteSelection = (testSuite: TestSuitePickerRow, checked: boolean) => {
-    setDraftSelections(current => {
-      const next = { ...current }
-
-      if (!checked) {
-        delete next[testSuite.id]
-        return next
-      }
-
-      next[testSuite.id] = {
-        testSuiteId: testSuite.id,
-        runAll: true,
-        testCaseIds: [],
-      }
-
-      return next
+    dispatch({
+      type: 'setDraftSelections',
+      updater: current => applySuiteCheckboxSelection(current, testSuite, checked),
     })
   }
 
   const updateChildSelection = (testSuite: TestSuitePickerRow, testCaseId: string, checked: boolean) => {
-    setDraftSelections(current => {
-      const childIds = testSuite.testCases.map(testCase => testCase.id)
-      const currentSelection = current[testSuite.id]
-      const nextSelectedIds = new Set(currentSelection?.runAll ? childIds : (currentSelection?.testCaseIds ?? []))
-
-      if (checked) {
-        nextSelectedIds.add(testCaseId)
-      } else {
-        nextSelectedIds.delete(testCaseId)
-      }
-
-      const next = { ...current }
-
-      if (nextSelectedIds.size === 0) {
-        delete next[testSuite.id]
-        return next
-      }
-
-      if (nextSelectedIds.size === childIds.length) {
-        next[testSuite.id] = {
-          testSuiteId: testSuite.id,
-          runAll: true,
-          testCaseIds: [],
-        }
-        return next
-      }
-
-      next[testSuite.id] = {
-        testSuiteId: testSuite.id,
-        runAll: false,
-        testCaseIds: Array.from(nextSelectedIds),
-      }
-
-      return next
+    dispatch({
+      type: 'setDraftSelections',
+      updater: current => applyChildCheckboxSelection(current, testSuite, testCaseId, checked),
     })
   }
 
   const saveDraftSelection = () => {
-    const normalizedSelections = testSuites.reduce<TestSuiteSelection[]>((selections, testSuite) => {
-      const selection = draftSelections[testSuite.id]
-      if (selection !== null) {
-        const normalizedSelection = normalizeSuiteSelection(testSuite, selection)
-        if (normalizedSelection) {
-          selections.push(normalizedSelection)
-        }
-      }
-
-      return selections
-    }, [])
-
-    onSave(normalizedSelections)
-    setOpen(false)
+    onSave(buildNormalizedSelectionsFromDraft(testSuites, draftSelections))
+    dispatch({ type: 'setOpen', open: false })
   }
 
   const savedSuites = selectedSuites.reduce<{ suite: TestSuitePickerRow; selection: TestSuiteSelection }[]>(
@@ -169,14 +162,14 @@ function TestSuitePicker({
 
       <PickerBrowseDialogFrame
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={nextOpen => dispatch({ type: 'setOpen', open: nextOpen })}
         title={dialogTitle}
         description={dialogDescription}
         searchValue={query}
-        onSearchChange={setQuery}
+        onSearchChange={value => dispatch({ type: 'setQuery', query: value })}
         searchPlaceholder="Search suites, modules, tags, or child test cases..."
         summaryAside={`${totalSelectedSuites} suites selected`}
-        onCancel={() => setOpen(false)}
+        onCancel={() => dispatch({ type: 'setOpen', open: false })}
         onSave={saveDraftSelection}
       >
         <ScrollArea className="h-[480px] rounded-md border">
@@ -188,7 +181,7 @@ function TestSuitePicker({
                   testSuite={testSuite}
                   currentSelection={draftSelections[testSuite.id]}
                   isExpanded={expandedSuites[testSuite.id] ?? false}
-                  onToggleExpand={toggleExpanded}
+                  onToggleExpand={suiteId => dispatch({ type: 'toggleExpanded', suiteId })}
                   onSuiteSelection={updateSuiteSelection}
                   onChildSelection={updateChildSelection}
                 />
