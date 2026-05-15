@@ -14,15 +14,21 @@ export const metadata: Metadata = {
   description: 'Create a new test run to execute your selected suites or tagged tests',
 }
 
+// fallow-ignore-next-line complexity
 const CreateTestRun = async () => {
-  const [
-    { data: testSuites, error: testSuitesError },
-    { data: environments, error: environmentsError },
-    { data: tags, error: tagsError },
-  ] = await Promise.all([getAllTestSuiteTestCasesAction(), getAllEnvironmentsAction(), getAllTagsAction()])
+  const [{ data: environments, error: environmentsError }, { data: tags, error: tagsError }] = await Promise.all([
+    getAllEnvironmentsAction(),
+    getAllTagsAction(),
+  ])
 
   if (environmentsError || tagsError) {
     return <div>Error: {environmentsError || tagsError}</div>
+  }
+
+  const { data: testSuites, error: testSuitesError } = await getAllTestSuiteTestCasesAction()
+
+  if (testSuitesError) {
+    return <div>Error: {testSuitesError}</div>
   }
 
   const testSuitesData = getTestSuitePickerRows(testSuites)

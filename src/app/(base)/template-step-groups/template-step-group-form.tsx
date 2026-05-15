@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { templateStepGroupFormOpts, type TemplateStepGroup } from '@/constants/form-opts/template-step-group-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import {
   getActionErrorMessage,
@@ -93,13 +94,7 @@ export const TemplateStepGroupForm = ({
     },
   })
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
         name="name"
         validators={{
@@ -176,6 +171,6 @@ export const TemplateStepGroupForm = ({
           </Button>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }

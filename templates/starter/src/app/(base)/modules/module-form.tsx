@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { moduleFormOpts, type Module, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import {
   getActionErrorMessage,
@@ -96,13 +97,7 @@ const ModuleForm = ({
     },
   })
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
         name="name"
         validators={{
@@ -152,7 +147,7 @@ const ModuleForm = ({
           </Button>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }
 

@@ -11,6 +11,7 @@ import { getActionErrorMessage, getCreatedTag, tagFieldValidators, type TagFormS
 import type { Tag as PrismaTag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 
 type TagFormProps = {
   defaultValues?: Tag
@@ -109,13 +110,7 @@ const TagForm = ({
     },
   })
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
         name="name"
         validators={{
@@ -160,7 +155,7 @@ const TagForm = ({
           </Button>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }
 

@@ -7,6 +7,7 @@ import { locatorGroupFormOpts, LocatorGroup } from '@/constants/form-opts/locato
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import React, { useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
@@ -95,13 +96,7 @@ const LocatorGroupForm = ({
     },
   })
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
         name="name"
         validators={{
@@ -213,7 +208,7 @@ const LocatorGroupForm = ({
           </Button>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }
 

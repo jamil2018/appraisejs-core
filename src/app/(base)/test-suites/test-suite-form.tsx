@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
 import type { Module, Tag, TestSuite as PrismaTestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { Info, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -112,13 +113,7 @@ export const TestSuiteForm = ({
           <CardDescription>Enter the details for your test suite</CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={e => {
-              e.preventDefault()
-              e.stopPropagation()
-              form.handleSubmit()
-            }}
-          >
+          <TanStackForm onSubmit={() => form.handleSubmit()}>
             <form.Field
               name="name"
               validators={{
@@ -240,7 +235,7 @@ export const TestSuiteForm = ({
                 </Button>
               )}
             </form.Subscribe>
-          </form>
+          </TanStackForm>
         </CardContent>
       </Card>
       <div className="lg:w-1/3">

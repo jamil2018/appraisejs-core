@@ -9,6 +9,7 @@ import { templateStepFormOpts, type TemplateStep } from '@/constants/form-opts/t
 import { toast } from '@/hooks/use-toast'
 import { TemplateStepType } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import CodeMirror, { EditorView } from '@uiw/react-codemirror'
 import { langs } from '@uiw/codemirror-extensions-langs'
 import { githubDark } from '@uiw/codemirror-theme-github'
@@ -114,13 +115,7 @@ export const TemplateStepForm = ({
           </p>
         </AlertDescription>
       </Alert>
-      <form
-        onSubmit={e => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
-        }}
-      >
+      <TanStackForm onSubmit={() => form.handleSubmit()}>
         <div className="flex gap-4">
           <Card className="w-full bg-zinc-500/10">
             <CardHeader>
@@ -336,7 +331,7 @@ export const TemplateStepForm = ({
             </Card>
           </div>
         </div>
-      </form>
+      </TanStackForm>
     </>
   )
 }

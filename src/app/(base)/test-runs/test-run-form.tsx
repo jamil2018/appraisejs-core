@@ -11,6 +11,7 @@ import { testRunFormOpts, type TestRun } from '@/constants/form-opts/test-run-fo
 import { toast } from '@/hooks/use-toast'
 import { BrowserEngine, Environment, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -126,13 +127,7 @@ const TestRunForm = ({
   }
 
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <div className="flex justify-between gap-5 overflow-x-hidden">
         <div className="lg:w-1/2">
           <Card className="mb-4 h-fit">
@@ -349,7 +344,7 @@ const TestRunForm = ({
           </>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }
 

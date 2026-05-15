@@ -1,5 +1,5 @@
 'use client'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useReducer } from 'react'
 
 import {
   getConvertedTemplateTestCaseData,
@@ -52,6 +52,11 @@ import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import type { ActionResponse } from '@/types/form/actionHandler'
+import {
+  createTestCaseFormState,
+  testCaseFormReducer,
+  type TestCaseFormErrors,
+} from './test-case-form-reducer'
 
 type TestCaseFormProps = {
   defaultNodesOrder: NodeOrderMap
@@ -78,15 +83,6 @@ type TestCaseFormProps = {
 }
 
 const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
-
-type TestCaseFormErrors = {
-  templateTestCaseId?: string[]
-  title?: string[]
-  description?: string[]
-  testSuiteIds?: string[]
-  tagIds?: string[]
-  steps?: string[]
-}
 
 const detailsStepSchema = testCaseSubmitSchema.omit({ steps: true })
 
@@ -172,14 +168,6 @@ function getInitialWizardStep(
   }
 
   return defaultTemplateTestCaseId ? detailsStepIndex : 0
-}
-
-function appendUniqueById<T extends { id: string }>(items: T[], item: T): T[] {
-  return items.some(currentItem => currentItem.id === item.id) ? items : [...items, item]
-}
-
-function appendUniqueId(ids: string[], id: string): string[] {
-  return ids.includes(id) ? ids : [...ids, id]
 }
 
 function buildTemplatePreviewSteps(templateTestCase: TemplateTestCaseWithSteps | null): string[] {
@@ -861,9 +849,10 @@ type WizardStepContentProps = {
     onTemplateChange: (value: string) => void
     onTestSuiteChange: (selectedTestSuites: string[]) => void
     onTitleChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-    setCurrentStep: React.Dispatch<React.SetStateAction<number>>
-    setIsCreateSuiteDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
-    setIsCreateTagDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
+    onWizardBack: () => void
+    onDetailsBack: () => void
+    onCreateSuiteClick: () => void
+    onCreateTagClick: () => void
   }
   errors: TestCaseFormErrors
 }
@@ -908,10 +897,10 @@ function WizardStepContent({
         onDescriptionChange={actions.onDescriptionChange}
         onTestSuiteChange={actions.onTestSuiteChange}
         onTagChange={actions.onTagChange}
-        onBack={() => actions.setCurrentStep(0)}
+        onBack={actions.onWizardBack}
         onContinue={actions.goToFlowStep}
-        onCreateSuiteClick={() => actions.setIsCreateSuiteDialogOpen(true)}
-        onCreateTagClick={() => actions.setIsCreateTagDialogOpen(true)}
+        onCreateSuiteClick={actions.onCreateSuiteClick}
+        onCreateTagClick={actions.onCreateTagClick}
       />
     )
   }
@@ -923,7 +912,7 @@ function WizardStepContent({
       errors={errors}
       flowPanel={flow.flowPanel}
       immersiveFlowPanel={flow.immersiveFlowPanel}
-      onBack={() => actions.setCurrentStep(detailsStepIndex)}
+      onBack={actions.onDetailsBack}
       onSubmit={actions.handleSubmit}
     />
   )
@@ -932,29 +921,17 @@ function WizardStepContent({
 function useTemplateStepNavigation({
   appliedTemplateId,
   detailsStepIndex,
+  dispatch,
   hasTemplateSelectionStep,
   selectedTemplateId,
   templateTestCases,
-  setAppliedTemplateId,
-  setCurrentStep,
-  setDescription,
-  setErrors,
-  setFlowBlocks,
-  setNodesOrder,
-  setTitle,
 }: {
   appliedTemplateId: string
   detailsStepIndex: number
+  dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>
   hasTemplateSelectionStep: boolean
   selectedTemplateId: string
   templateTestCases?: TemplateTestCaseWithSteps[]
-  setAppliedTemplateId: React.Dispatch<React.SetStateAction<string>>
-  setCurrentStep: React.Dispatch<React.SetStateAction<number>>
-  setDescription: React.Dispatch<React.SetStateAction<string>>
-  setErrors: React.Dispatch<React.SetStateAction<TestCaseFormErrors>>
-  setFlowBlocks: React.Dispatch<React.SetStateAction<FlowBlock[]>>
-  setNodesOrder: React.Dispatch<React.SetStateAction<NodeOrderMap>>
-  setTitle: React.Dispatch<React.SetStateAction<string>>
 }) {
   return useCallback(() => {
     const resolution = resolveTemplateSelection({
@@ -965,23 +942,29 @@ function useTemplateStepNavigation({
     })
 
     if (resolution.status === 'skip') {
-      setCurrentStep(detailsStepIndex)
+      dispatch({ type: 'setCurrentStep', step: detailsStepIndex })
       return
     }
 
     if (resolution.status === 'invalid') {
-      setErrors(current => ({
-        ...current,
-        templateTestCaseId: resolution.errors,
-      }))
+      dispatch({
+        type: 'patchErrors',
+        updater: current => ({
+          ...current,
+          templateTestCaseId: resolution.errors,
+        }),
+      })
       return
     }
 
     if (resolution.status === 'not-found') {
-      setErrors(current => ({
-        ...current,
-        templateTestCaseId: ['Template test case not found'],
-      }))
+      dispatch({
+        type: 'patchErrors',
+        updater: current => ({
+          ...current,
+          templateTestCaseId: ['Template test case not found'],
+        }),
+      })
       return
     }
 
@@ -995,36 +978,28 @@ function useTemplateStepNavigation({
     }
 
     if (resolution.status === 'converted') {
-      setTitle(resolution.templateTestCase.name || '')
-      setDescription(resolution.templateTestCase.description || '')
-      setNodesOrder(resolution.convertedData.nodesOrder)
-      setFlowBlocks(resolution.convertedData.flowBlocks)
-      setAppliedTemplateId(selectedTemplateId)
-      setErrors(current => ({
-        ...current,
-        steps: undefined,
-      }))
+      dispatch({
+        type: 'applyTemplateConversion',
+        payload: {
+          title: resolution.templateTestCase.name || '',
+          description: resolution.templateTestCase.description || '',
+          nodesOrder: resolution.convertedData.nodesOrder,
+          flowBlocks: resolution.convertedData.flowBlocks,
+          appliedTemplateId: selectedTemplateId,
+        },
+      })
+    } else {
+      dispatch({
+        type: 'patchErrors',
+        updater: current => ({
+          ...current,
+          templateTestCaseId: undefined,
+        }),
+      })
     }
 
-    setErrors(current => ({
-      ...current,
-      templateTestCaseId: undefined,
-    }))
-    setCurrentStep(detailsStepIndex)
-  }, [
-    appliedTemplateId,
-    detailsStepIndex,
-    hasTemplateSelectionStep,
-    selectedTemplateId,
-    setAppliedTemplateId,
-    setCurrentStep,
-    setDescription,
-    setErrors,
-    setFlowBlocks,
-    setNodesOrder,
-    setTitle,
-    templateTestCases,
-  ])
+    dispatch({ type: 'setCurrentStep', step: detailsStepIndex })
+  }, [appliedTemplateId, detailsStepIndex, dispatch, hasTemplateSelectionStep, selectedTemplateId, templateTestCases])
 }
 
 function useTestCaseSubmitHandler({
@@ -1039,8 +1014,7 @@ function useTestCaseSubmitHandler({
   selectedTestSuites,
   templateStepParams,
   title,
-  setCurrentStep,
-  setErrors,
+  dispatch,
 }: {
   description: string
   detailsStepIndex: number
@@ -1053,8 +1027,7 @@ function useTestCaseSubmitHandler({
   selectedTestSuites: string[]
   templateStepParams: TemplateStepParameter[]
   title: string
-  setCurrentStep: React.Dispatch<React.SetStateAction<number>>
-  setErrors: React.Dispatch<React.SetStateAction<TestCaseFormErrors>>
+  dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>
 }) {
   return useCallback(async () => {
     const nodesWithMissingParams = getNodesWithMissingMandatoryParams(nodesOrder, templateStepParams)
@@ -1079,13 +1052,13 @@ function useTestCaseSubmitHandler({
 
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors
-      setErrors(fieldErrors)
+      dispatch({ type: 'setErrors', errors: fieldErrors })
       if (isDetailFieldError(fieldErrors)) {
-        setCurrentStep(detailsStepIndex)
+        dispatch({ type: 'setCurrentStep', step: detailsStepIndex })
       }
       return
     }
-    setErrors({})
+    dispatch({ type: 'clearErrors' })
     const response = await onSubmitAction(result.data, id)
     handleTestCaseSaveResponse({ response, redirectPath: '/test-cases', push, toast })
   }, [
@@ -1098,8 +1071,7 @@ function useTestCaseSubmitHandler({
     push,
     selectedTags,
     selectedTestSuites,
-    setCurrentStep,
-    setErrors,
+    dispatch,
     templateStepParams,
     title,
   ])
@@ -1107,20 +1079,18 @@ function useTestCaseSubmitHandler({
 
 function useFlowStepNavigation({
   description,
+  dispatch,
   flowStepIndex,
   selectedTags,
   selectedTestSuites,
   title,
-  setCurrentStep,
-  setErrors,
 }: {
   description: string
+  dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>
   flowStepIndex: number
   selectedTags: string[]
   selectedTestSuites: string[]
   title: string
-  setCurrentStep: React.Dispatch<React.SetStateAction<number>>
-  setErrors: React.Dispatch<React.SetStateAction<TestCaseFormErrors>>
 }) {
   return useCallback(() => {
     const result = detailsStepSchema.safeParse({
@@ -1132,25 +1102,31 @@ function useFlowStepNavigation({
 
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors
-      setErrors(current => ({
-        ...current,
-        title: fieldErrors.title,
-        description: fieldErrors.description,
-        testSuiteIds: fieldErrors.testSuiteIds,
-        tagIds: fieldErrors.tagIds,
-      }))
+      dispatch({
+        type: 'patchErrors',
+        updater: current => ({
+          ...current,
+          title: fieldErrors.title,
+          description: fieldErrors.description,
+          testSuiteIds: fieldErrors.testSuiteIds,
+          tagIds: fieldErrors.tagIds,
+        }),
+      })
       return
     }
 
-    setErrors(current => ({
-      ...current,
-      title: undefined,
-      description: undefined,
-      testSuiteIds: undefined,
-      tagIds: undefined,
-    }))
-    setCurrentStep(flowStepIndex)
-  }, [description, flowStepIndex, selectedTags, selectedTestSuites, setCurrentStep, setErrors, title])
+    dispatch({
+      type: 'patchErrors',
+      updater: current => ({
+        ...current,
+        title: undefined,
+        description: undefined,
+        testSuiteIds: undefined,
+        tagIds: undefined,
+      }),
+    })
+    dispatch({ type: 'setCurrentStep', step: flowStepIndex })
+  }, [description, dispatch, flowStepIndex, selectedTags, selectedTestSuites, title])
 }
 
 function useBodyScrollLock(isLocked: boolean) {
@@ -1166,14 +1142,14 @@ function useBodyScrollLock(isLocked: boolean) {
   }, [isLocked])
 }
 
-function useWizardStepClick(currentStep: number, setCurrentStep: React.Dispatch<React.SetStateAction<number>>) {
+function useWizardStepClick(currentStep: number, dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>) {
   return useCallback(
     (stepIndex: number) => {
       if (stepIndex <= currentStep) {
-        setCurrentStep(stepIndex)
+        dispatch({ type: 'setCurrentStep', step: stepIndex })
       }
     },
-    [currentStep, setCurrentStep],
+    [currentStep, dispatch],
   )
 }
 
@@ -1206,129 +1182,141 @@ const TestCaseForm = ({
   const wizardSteps = getWizardSteps(hasTemplateSelectionStep)
   const templateOptions = getTemplateSelectionOptions(templateTestCases ?? [])
 
-  const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(defaultNodesOrder)
-  const [flowBlocks, setFlowBlocks] = useState<FlowBlock[]>(defaultFlowBlocks)
-  const [title, setTitle] = useState(defaultTitle ?? '')
-  const [description, setDescription] = useState(defaultDescription ?? '')
-  const [availableTestSuites, setAvailableTestSuites] = useState(testSuites)
-  const [availableTags, setAvailableTags] = useState(tags)
-  const [selectedTestSuites, setSelectedTestSuites] = useState(defaultTestSuiteIds ?? [])
-  const [selectedTags, setSelectedTags] = useState(defaultTagIds ?? [])
-  const [selectedTemplateId, setSelectedTemplateId] = useState(defaultTemplateTestCaseId ?? '')
-  const [appliedTemplateId, setAppliedTemplateId] = useState(defaultTemplateTestCaseId ?? '')
-  const [currentStep, setCurrentStep] = useState(() =>
-    getInitialWizardStep(hasTemplateSelectionStep, defaultTemplateTestCaseId, detailsStepIndex),
+  const [formState, dispatch] = useReducer(
+    testCaseFormReducer,
+    {
+      defaultNodesOrder,
+      defaultFlowBlocks,
+      defaultTitle,
+      defaultDescription,
+      testSuites,
+      tags,
+      defaultTestSuiteIds,
+      defaultTagIds,
+      defaultTemplateTestCaseId,
+      initialWizardStep: getInitialWizardStep(
+        hasTemplateSelectionStep,
+        defaultTemplateTestCaseId,
+        detailsStepIndex,
+      ),
+    },
+    createTestCaseFormState,
   )
-  const [isCreateSuiteDialogOpen, setIsCreateSuiteDialogOpen] = useState(false)
-  const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false)
-  const [isFlowImmersive, setIsFlowImmersive] = useState(false)
-  const [errors, setErrors] = useState<TestCaseFormErrors>({})
-  const selectedTemplateTestCase =
-    templateTestCases?.find(templateTestCase => templateTestCase.id === selectedTemplateId) ?? null
-  const selectedTemplateStepCount = getTemplateStepCount(selectedTemplateTestCase)
-  const selectedTemplatePreviewSteps = buildTemplatePreviewSteps(selectedTemplateTestCase)
+  const {
+    nodesOrder,
+    flowBlocks,
+    title,
+    description,
+    availableTestSuites,
+    availableTags,
+    selectedTestSuites,
+    selectedTags,
+    selectedTemplateId,
+    appliedTemplateId,
+    currentStep,
+    isCreateSuiteDialogOpen,
+    isCreateTagDialogOpen,
+    isFlowImmersive,
+    errors,
+  } = formState
+  const selectedTemplateTestCase = useMemo(
+    () => templateTestCases?.find(templateTestCase => templateTestCase.id === selectedTemplateId) ?? null,
+    [selectedTemplateId, templateTestCases],
+  )
+  const selectedTemplateStepCount = useMemo(
+    () => getTemplateStepCount(selectedTemplateTestCase),
+    [selectedTemplateTestCase],
+  )
+  const selectedTemplatePreviewSteps = useMemo(
+    () => buildTemplatePreviewSteps(selectedTemplateTestCase),
+    [selectedTemplateTestCase],
+  )
 
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
   const onNodeOrderChange = useCallback(
     (nodesOrder: NodeOrderMap) => {
-      setNodesOrder(nodesOrder)
-      setErrors(current => ({ ...current, steps: undefined }))
+      dispatch({ type: 'setNodesOrder', nodesOrder })
     },
-    [setErrors, setNodesOrder],
+    [dispatch],
   )
 
   const onTemplateChange = useCallback(
     (value: string) => {
-      setSelectedTemplateId(value)
-      setErrors(current => ({ ...current, templateTestCaseId: undefined }))
+      dispatch({ type: 'setSelectedTemplateId', templateId: value })
     },
-    [setErrors, setSelectedTemplateId],
+    [dispatch],
   )
 
   const onTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setTitle(e.target.value)
-      setErrors(current => ({ ...current, title: undefined }))
+      dispatch({ type: 'setTitle', title: e.target.value })
     },
-    [setErrors, setTitle],
+    [dispatch],
   )
 
   const onDescriptionChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setDescription(e.target.value)
-      setErrors(current => ({ ...current, description: undefined }))
+      dispatch({ type: 'setDescription', description: e.target.value })
     },
-    [setDescription, setErrors],
+    [dispatch],
   )
 
-  const onWizardStepClick = useWizardStepClick(currentStep, setCurrentStep)
+  const onWizardStepClick = useWizardStepClick(currentStep, dispatch)
 
   const onToggleFlowImmersive = useCallback(() => {
-    setIsFlowImmersive(current => !current)
-  }, [])
+    dispatch({ type: 'toggleFlowImmersive' })
+  }, [dispatch])
 
   const onTestSuiteChange = useCallback(
     (selectedTestSuites: string[]) => {
-      setSelectedTestSuites(selectedTestSuites)
-      setErrors(current => ({ ...current, testSuiteIds: undefined }))
+      dispatch({ type: 'setSelectedTestSuites', testSuiteIds: selectedTestSuites })
     },
-    [setErrors, setSelectedTestSuites],
+    [dispatch],
   )
 
   const handleInlineTestSuiteSuccess = useCallback(
     async (createdTestSuite: TestSuite) => {
-      setAvailableTestSuites(current => appendUniqueById(current, createdTestSuite))
-      setSelectedTestSuites(current => appendUniqueId(current, createdTestSuite.id))
-      setIsCreateSuiteDialogOpen(false)
+      dispatch({ type: 'addTestSuite', testSuite: createdTestSuite })
     },
-    [setAvailableTestSuites, setIsCreateSuiteDialogOpen, setSelectedTestSuites],
+    [dispatch],
   )
 
   const onTagChange = useCallback(
     (selectedTags: string[]) => {
-      setSelectedTags(selectedTags)
-      setErrors(current => ({ ...current, tagIds: undefined }))
+      dispatch({ type: 'setSelectedTags', tagIds: selectedTags })
     },
-    [setErrors, setSelectedTags],
+    [dispatch],
   )
 
   const handleInlineTagSuccess = useCallback(
     async (createdTag: Tag) => {
-      setAvailableTags(current => appendUniqueById(current, createdTag))
-      setSelectedTags(current => appendUniqueId(current, createdTag.id))
-      setIsCreateTagDialogOpen(false)
+      dispatch({ type: 'addTag', tag: createdTag })
     },
-    [setAvailableTags, setIsCreateTagDialogOpen, setSelectedTags],
+    [dispatch],
   )
 
   const goToDetailsStep = useTemplateStepNavigation({
     appliedTemplateId,
     detailsStepIndex,
+    dispatch,
     hasTemplateSelectionStep,
     selectedTemplateId,
     templateTestCases,
-    setAppliedTemplateId,
-    setCurrentStep,
-    setDescription,
-    setErrors,
-    setFlowBlocks,
-    setNodesOrder,
-    setTitle,
   })
 
   const goToFlowStep = useFlowStepNavigation({
     description,
+    dispatch,
     flowStepIndex,
     selectedTags,
     selectedTestSuites,
     title,
-    setCurrentStep,
-    setErrors,
   })
 
   const handleSubmit = useTestCaseSubmitHandler({
     description,
     detailsStepIndex,
+    dispatch,
     flowBlocks,
     id,
     nodesOrder,
@@ -1338,8 +1326,6 @@ const TestCaseForm = ({
     selectedTestSuites,
     templateStepParams,
     title,
-    setCurrentStep,
-    setErrors,
   })
 
   useBodyScrollLock(isFlowImmersive)
@@ -1355,7 +1341,7 @@ const TestCaseForm = ({
     flowBlocks,
     isFlowImmersive,
     onNodeOrderChange,
-    onFlowBlocksChange: setFlowBlocks,
+    onFlowBlocksChange: flowBlocks => dispatch({ type: 'setFlowBlocks', flowBlocks }),
     onToggleImmersive: onToggleFlowImmersive,
   }
 
@@ -1400,9 +1386,10 @@ const TestCaseForm = ({
       onTemplateChange,
       onTestSuiteChange,
       onTitleChange,
-      setCurrentStep,
-      setIsCreateSuiteDialogOpen,
-      setIsCreateTagDialogOpen,
+      onWizardBack: () => dispatch({ type: 'setCurrentStep', step: 0 }),
+      onDetailsBack: () => dispatch({ type: 'setCurrentStep', step: detailsStepIndex }),
+      onCreateSuiteClick: () => dispatch({ type: 'setIsCreateSuiteDialogOpen', open: true }),
+      onCreateTagClick: () => dispatch({ type: 'setIsCreateTagDialogOpen', open: true }),
     },
     errors,
   }
@@ -1415,7 +1402,7 @@ const TestCaseForm = ({
 
       <InlineTestSuiteCreationDialog
         open={isCreateSuiteDialogOpen}
-        onOpenChange={setIsCreateSuiteDialogOpen}
+        onOpenChange={open => dispatch({ type: 'setIsCreateSuiteDialogOpen', open })}
         onSubmitAction={onCreateTestSuiteAction}
         onSuccess={handleInlineTestSuiteSuccess}
         testCases={testCases}
@@ -1424,7 +1411,7 @@ const TestCaseForm = ({
       />
       <InlineTagCreationDialog
         open={isCreateTagDialogOpen}
-        onOpenChange={setIsCreateTagDialogOpen}
+        onOpenChange={open => dispatch({ type: 'setIsCreateTagDialogOpen', open })}
         onSubmitAction={onCreateTagAction}
         onSuccess={handleInlineTagSuccess}
       />

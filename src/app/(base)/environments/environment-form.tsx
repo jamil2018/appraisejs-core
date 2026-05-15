@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { environmentFormOpts, type Environment } from '@/constants/form-opts/environment-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
@@ -87,13 +88,7 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
     },
   })
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
         name="name"
         validators={{
@@ -219,7 +214,7 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
           </Button>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }
 

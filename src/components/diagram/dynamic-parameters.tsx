@@ -79,6 +79,317 @@ export interface DynamicFormFieldsRef {
   validate: () => boolean
 }
 
+
+type DynamicParameterInputFieldProps = {
+  param: TemplateStepParameter
+  values: Record<string, DynamicParameterValue>
+  errors: Record<string, string>
+  defaultValueInput: boolean
+  fieldClassName: string
+  selectedLocatorGroups: Record<string, string>
+  locatorSelectionModes: Record<string, LocatorSelectionMode>
+  createdLocatorSelections: Record<string, InlineLocatorSaveResult>
+  availableLocatorGroups: LocatorGroupOption[]
+  availableLocatorOptions: LocatorOption[]
+  createLocatorParamName: string | null
+  environments: LocatorWorkspaceEnvironment[]
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
+  onInputChange: (name: string, value: DynamicParameterValue) => void
+  onLocatorGroupChange: (paramName: string, groupId: string) => void
+  onLocatorSelectionModeChange: (paramName: string, mode: LocatorSelectionMode) => void
+  onInlineLocatorSave: (paramName: string, result: InlineLocatorSaveResult) => void
+  onOpenCreateLocator: (paramName: string | null) => void
+}
+
+function DynamicParameterFieldLabel({
+  name,
+  defaultValueInput,
+  htmlFor,
+}: {
+  name: string
+  defaultValueInput: boolean
+  htmlFor?: string
+}) {
+  return (
+    <Label htmlFor={htmlFor} className="text-primary">
+      {defaultValueInput ? `Default ${name}` : name} {!defaultValueInput && <span className="text-red-500">*</span>}
+    </Label>
+  )
+}
+
+// fallow-ignore-next-line complexity
+function DynamicParameterInputField({
+  param,
+  values,
+  errors,
+  defaultValueInput,
+  fieldClassName,
+  selectedLocatorGroups,
+  locatorSelectionModes,
+  createdLocatorSelections,
+  availableLocatorGroups,
+  availableLocatorOptions,
+  createLocatorParamName,
+  environments,
+  modules,
+  onInputChange,
+  onLocatorGroupChange,
+  onLocatorSelectionModeChange,
+  onInlineLocatorSave,
+  onOpenCreateLocator,
+}: DynamicParameterInputFieldProps) {
+  const { name, type } = param
+  const errorMessage = errors[name]
+
+  if (type === 'NUMBER') {
+    return (
+      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
+        <DynamicParameterFieldLabel name={name} defaultValueInput={defaultValueInput} htmlFor={`input-${name}`} />
+        <Input
+          id={`input-${name}`}
+          type="number"
+          value={typeof values[name] === 'number' ? values[name] : 0}
+          onChange={e => onInputChange(name, Number(e.target.value))}
+          className={fieldClassName}
+        />
+        <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
+      </div>
+    )
+  }
+
+  if (type === 'STRING') {
+    return (
+      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
+        <DynamicParameterFieldLabel name={name} defaultValueInput={defaultValueInput} htmlFor={`input-${name}`} />
+        <Input
+          id={`input-${name}`}
+          type="text"
+          value={typeof values[name] === 'string' ? values[name] : ''}
+          onChange={e => onInputChange(name, e.target.value)}
+          className={fieldClassName}
+        />
+        <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
+      </div>
+    )
+  }
+
+  if (type === 'DATE') {
+    return (
+      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
+        <DynamicParameterFieldLabel name={name} defaultValueInput={defaultValueInput} />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn('w-full justify-start text-left font-normal', !values[name] && 'text-muted-foreground')}
+              aria-required={!defaultValueInput}
+            >
+              <CalendarIcon className="mr-2 size-4" />
+              {values[name] instanceof Date ? (
+                format(values[name] as Date, 'PPP')
+              ) : (
+                <span className={defaultValueInput ? 'text-muted-foreground' : 'text-red-500'}>
+                  {defaultValueInput ? 'Pick a date (optional)' : 'Pick a date *'}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={values[name] instanceof Date ? (values[name] as Date) : undefined}
+              onSelect={(date: Date | undefined) => onInputChange(name, date as Date)}
+              initialFocus
+              required={!defaultValueInput}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    )
+  }
+
+  if (type === 'BOOLEAN') {
+    return (
+      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
+        <DynamicParameterFieldLabel name={name} defaultValueInput={defaultValueInput} htmlFor={`select-${name}`} />
+        <Select
+          value={typeof values[name] === 'boolean' ? String(values[name]) : 'false'}
+          onValueChange={value => onInputChange(name, value === 'true')}
+          required={!defaultValueInput}
+        >
+          <SelectTrigger id={`select-${name}`} className={fieldClassName}>
+            <SelectValue placeholder={defaultValueInput ? 'Select a value (optional)' : 'Select a value *'} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">True</SelectItem>
+            <SelectItem value="false">False</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    )
+  }
+
+  if (type === 'LOCATOR') {
+    const locatorSelectionMode = locatorSelectionModes[name] ?? 'existing'
+    const selectedGroupId = selectedLocatorGroups[name] || ''
+    const availableLocators = selectedGroupId ? getLocatorsForGroup(availableLocatorOptions, selectedGroupId) : []
+    const createdLocatorSelection = createdLocatorSelections[name]
+
+    return (
+      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
+        <DynamicParameterFieldLabel name={name} defaultValueInput={defaultValueInput} htmlFor={`select-${name}`} />
+        <div className="space-y-2">
+          <Label htmlFor={`locator-mode-${name}`} className="text-sm text-muted-foreground">
+            Selector Source
+          </Label>
+          <Select
+            value={locatorSelectionMode}
+            onValueChange={value => onLocatorSelectionModeChange(name, value as LocatorSelectionMode)}
+          >
+            <SelectTrigger id={`locator-mode-${name}`} className={fieldClassName}>
+              <SelectValue placeholder="Choose selector source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="existing">Use Existing</SelectItem>
+              <SelectItem value="new">Create New Selector</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {locatorSelectionMode === 'new' ? (
+          <div className="bg-background/40 space-y-3 rounded-md border border-border p-3">
+            <div className="space-y-2">
+              <Label className="block text-sm font-semibold text-primary">Create New Selector</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => onOpenCreateLocator(name)}
+              >
+                <Sparkles className="size-4" />
+                Create Selector
+              </Button>
+            </div>
+            <Dialog
+              open={createLocatorParamName === name}
+              onOpenChange={open => !open && onOpenCreateLocator(null)}
+            >
+              <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Selector</DialogTitle>
+                  <DialogDescription>Save a selector here to use it in this node immediately.</DialogDescription>
+                </DialogHeader>
+                <CreateLocatorWorkspace
+                  environments={environments}
+                  locatorGroups={availableLocatorGroups}
+                  modules={modules}
+                  displayMode="inline"
+                  onSaveSuccess={result => onInlineLocatorSave(name, result)}
+                  onClose={() => onOpenCreateLocator(null)}
+                />
+              </DialogContent>
+            </Dialog>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label
+                  htmlFor={`created-group-${name}`}
+                  className="pointer-events-none cursor-not-allowed select-none text-sm text-muted-foreground"
+                >
+                  Locator Group
+                </Label>
+                <Input
+                  id={`created-group-${name}`}
+                  value={createdLocatorSelection?.locatorGroupName ?? ''}
+                  placeholder="Created group will appear here"
+                  readOnly
+                  tabIndex={-1}
+                  onMouseDown={event => event.preventDefault()}
+                  className={`${fieldClassName} cursor-not-allowed select-none`}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor={`created-locator-${name}`}
+                  className="pointer-events-none cursor-not-allowed select-none text-sm text-muted-foreground"
+                >
+                  Locator
+                </Label>
+                <Input
+                  id={`created-locator-${name}`}
+                  value={createdLocatorSelection?.locatorName ?? ''}
+                  placeholder="Created locator will appear here"
+                  readOnly
+                  tabIndex={-1}
+                  onMouseDown={event => event.preventDefault()}
+                  className={`${fieldClassName} cursor-not-allowed select-none`}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-background/40 space-y-3 rounded-md border border-border p-3">
+            <Label className="text-sm font-semibold text-primary">Use Existing</Label>
+            <div className="space-y-2">
+              <Label htmlFor={`group-${name}`} className="text-sm text-muted-foreground">
+                Locator Group
+              </Label>
+              <Select
+                value={selectedGroupId}
+                onValueChange={value => onLocatorGroupChange(name, value)}
+                required={!defaultValueInput}
+              >
+                <SelectTrigger id={`group-${name}`} className={fieldClassName}>
+                  <SelectValue placeholder="Select a locator group" />
+                </SelectTrigger>
+                <SelectContent isEmpty={availableLocatorGroups.length === 0}>
+                  {availableLocatorGroups.map(group => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`select-${name}`} className="text-sm text-muted-foreground">
+                Locator
+              </Label>
+              <Select
+                value={typeof values[name] === 'string' ? values[name] : ''}
+                onValueChange={value => onInputChange(name, value)}
+                required={!defaultValueInput}
+                disabled={!selectedGroupId}
+              >
+                <SelectTrigger id={`select-${name}`} className={fieldClassName}>
+                  <SelectValue
+                    placeholder={
+                      !selectedGroupId
+                        ? 'Select a locator group first'
+                        : defaultValueInput
+                          ? 'Select a locator (optional)'
+                          : 'Select a locator *'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent isEmpty={availableLocators.length === 0}>
+                  {availableLocators.map(locator => (
+                    <SelectItem key={locator.id} value={locator.name}>
+                      {locator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+        <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
+      </div>
+    )
+  }
+
+  return null
+}
+
 function DynamicFormFields({
   ref,
   templateStepParams,
@@ -316,288 +627,6 @@ function DynamicFormFields({
     onLocatorCreated?.(result)
   }
 
-  const renderFieldLabel = (name: string, htmlFor?: string) => (
-    <Label htmlFor={htmlFor} className="text-primary">
-      {defaultValueInput ? `Default ${name}` : name} {!defaultValueInput && <span className="text-red-500">*</span>}
-    </Label>
-  )
-
-  const renderNumberInput = (name: string, errorMessage: string | undefined) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
-      {renderFieldLabel(name, `input-${name}`)}
-      <Input
-        id={`input-${name}`}
-        type="number"
-        value={typeof values[name] === 'number' ? values[name] : 0}
-        onChange={e => handleInputChange(name, Number(e.target.value))}
-        className={fieldClassName}
-      />
-      <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
-    </div>
-  )
-
-  const renderStringInput = (name: string, errorMessage: string | undefined) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
-      {renderFieldLabel(name, `input-${name}`)}
-      <Input
-        id={`input-${name}`}
-        type="text"
-        value={typeof values[name] === 'string' ? values[name] : ''}
-        onChange={e => handleInputChange(name, e.target.value)}
-        className={fieldClassName}
-      />
-      <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
-    </div>
-  )
-
-  const renderDateInput = (name: string) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
-      {renderFieldLabel(name)}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn('w-full justify-start text-left font-normal', !values[name] && 'text-muted-foreground')}
-            aria-required={!defaultValueInput}
-          >
-            <CalendarIcon className="mr-2 size-4" />
-            {values[name] instanceof Date ? (
-              format(values[name] as Date, 'PPP')
-            ) : (
-              <span className={defaultValueInput ? 'text-muted-foreground' : 'text-red-500'}>
-                {defaultValueInput ? 'Pick a date (optional)' : 'Pick a date *'}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={values[name] instanceof Date ? (values[name] as Date) : undefined}
-            onSelect={(date: Date | undefined) => handleInputChange(name, date as Date)}
-            initialFocus
-            required={!defaultValueInput}
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
-  )
-
-  const renderBooleanInput = (name: string) => (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
-      {renderFieldLabel(name, `select-${name}`)}
-      <Select
-        value={typeof values[name] === 'boolean' ? String(values[name]) : 'false'}
-        onValueChange={value => handleInputChange(name, value === 'true')}
-        required={!defaultValueInput}
-      >
-        <SelectTrigger id={`select-${name}`} className={fieldClassName}>
-          <SelectValue placeholder={defaultValueInput ? 'Select a value (optional)' : 'Select a value *'} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="true">True</SelectItem>
-          <SelectItem value="false">False</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  )
-
-  const renderCreatedLocatorFields = (name: string, createdLocatorSelection: InlineLocatorSaveResult | undefined) => (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <Label
-          htmlFor={`created-group-${name}`}
-          className="pointer-events-none cursor-not-allowed select-none text-sm text-muted-foreground"
-        >
-          Locator Group
-        </Label>
-        <Input
-          id={`created-group-${name}`}
-          value={createdLocatorSelection?.locatorGroupName ?? ''}
-          placeholder="Created group will appear here"
-          readOnly
-          tabIndex={-1}
-          onMouseDown={event => event.preventDefault()}
-          className={`${fieldClassName} cursor-not-allowed select-none`}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label
-          htmlFor={`created-locator-${name}`}
-          className="pointer-events-none cursor-not-allowed select-none text-sm text-muted-foreground"
-        >
-          Locator
-        </Label>
-        <Input
-          id={`created-locator-${name}`}
-          value={createdLocatorSelection?.locatorName ?? ''}
-          placeholder="Created locator will appear here"
-          readOnly
-          tabIndex={-1}
-          onMouseDown={event => event.preventDefault()}
-          className={`${fieldClassName} cursor-not-allowed select-none`}
-        />
-      </div>
-    </div>
-  )
-
-  const renderExistingLocatorPanel = (name: string, selectedGroupId: string, availableLocators: LocatorOption[]) => (
-    <div className="bg-background/40 space-y-3 rounded-md border border-border p-3">
-      <Label className="text-sm font-semibold text-primary">Use Existing</Label>
-
-      <div className="space-y-2">
-        <Label htmlFor={`group-${name}`} className="text-sm text-muted-foreground">
-          Locator Group
-        </Label>
-        <Select
-          value={selectedGroupId}
-          onValueChange={value => handleLocatorGroupChange(name, value)}
-          required={!defaultValueInput}
-        >
-          <SelectTrigger id={`group-${name}`} className={fieldClassName}>
-            <SelectValue placeholder="Select a locator group" />
-          </SelectTrigger>
-          <SelectContent isEmpty={availableLocatorGroups.length === 0}>
-            {availableLocatorGroups.map(group => (
-              <SelectItem key={group.id} value={group.id}>
-                {group.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor={`select-${name}`} className="text-sm text-muted-foreground">
-          Locator
-        </Label>
-        <Select
-          value={typeof values[name] === 'string' ? values[name] : ''}
-          onValueChange={value => handleInputChange(name, value)}
-          required={!defaultValueInput}
-          disabled={!selectedGroupId}
-        >
-          <SelectTrigger id={`select-${name}`} className={fieldClassName}>
-            <SelectValue
-              placeholder={
-                !selectedGroupId
-                  ? 'Select a locator group first'
-                  : defaultValueInput
-                    ? 'Select a locator (optional)'
-                    : 'Select a locator *'
-              }
-            />
-          </SelectTrigger>
-          <SelectContent isEmpty={availableLocators.length === 0}>
-            {availableLocators.map(locator => (
-              <SelectItem key={locator.id} value={locator.name}>
-                {locator.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  )
-
-  const renderNewLocatorPanel = (
-    name: string,
-    isCreateDialogOpen: boolean,
-    createdLocatorSelection?: InlineLocatorSaveResult,
-  ) => (
-    <div className="bg-background/40 space-y-3 rounded-md border border-border p-3">
-      <div className="space-y-2">
-        <Label className="block text-sm font-semibold text-primary">Create New Selector</Label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setCreateLocatorParamName(name)}
-        >
-          <Sparkles className="size-4" />
-          Create Selector
-        </Button>
-      </div>
-      <Dialog open={isCreateDialogOpen} onOpenChange={open => !open && setCreateLocatorParamName(null)}>
-        <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Selector</DialogTitle>
-            <DialogDescription>Save a selector here to use it in this node immediately.</DialogDescription>
-          </DialogHeader>
-          <CreateLocatorWorkspace
-            environments={environments}
-            locatorGroups={availableLocatorGroups}
-            modules={modules}
-            displayMode="inline"
-            onSaveSuccess={result => handleInlineLocatorSave(name, result)}
-            onClose={() => setCreateLocatorParamName(null)}
-          />
-        </DialogContent>
-      </Dialog>
-      {renderCreatedLocatorFields(name, createdLocatorSelection)}
-    </div>
-  )
-
-  const renderLocatorInput = (name: string, errorMessage: string | undefined) => {
-    const locatorSelectionMode = locatorSelectionModes[name] ?? 'existing'
-    const selectedGroupId = selectedLocatorGroups[name] || ''
-    const availableLocators = selectedGroupId ? getLocatorsForGroup(availableLocatorOptions, selectedGroupId) : []
-
-    return (
-      <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
-        {renderFieldLabel(name, `select-${name}`)}
-        <div className="space-y-2">
-          <Label htmlFor={`locator-mode-${name}`} className="text-sm text-muted-foreground">
-            Selector Source
-          </Label>
-          <Select
-            value={locatorSelectionMode}
-            onValueChange={value => handleLocatorSelectionModeChange(name, value as LocatorSelectionMode)}
-          >
-            <SelectTrigger id={`locator-mode-${name}`} className={fieldClassName}>
-              <SelectValue placeholder="Choose selector source" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="existing">Use Existing</SelectItem>
-              <SelectItem value="new">Create New Selector</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {locatorSelectionMode === 'new'
-          ? renderNewLocatorPanel(name, createLocatorParamName === name, createdLocatorSelections[name])
-          : renderExistingLocatorPanel(name, selectedGroupId, availableLocators)}
-        <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
-      </div>
-    )
-  }
-
-  // Render the appropriate input field based on the parameter type
-  const renderInputField = (param: TemplateStepParameter) => {
-    const { name, type } = param
-    const errorMessage = errors[name]
-
-    switch (type) {
-      case 'NUMBER':
-        return renderNumberInput(name, errorMessage)
-
-      case 'STRING':
-        return renderStringInput(name, errorMessage)
-
-      case 'DATE':
-        return renderDateInput(name)
-
-      case 'BOOLEAN':
-        return renderBooleanInput(name)
-
-      case 'LOCATOR':
-        return renderLocatorInput(name, errorMessage)
-
-      default:
-        return null
-    }
-  }
-
   // Guard: do not render if no parameters
   if (!templateStepParams || templateStepParams.length === 0) {
     return null
@@ -611,7 +640,28 @@ function DynamicFormFields({
       <CardContent>
         <div className="space-y-6">
           {templateStepParams.map(param => (
-            <div key={param.name}>{renderInputField(param)}</div>
+            <div key={param.name}>
+              <DynamicParameterInputField
+                param={param}
+                values={values}
+                errors={errors}
+                defaultValueInput={defaultValueInput}
+                fieldClassName={fieldClassName}
+                selectedLocatorGroups={selectedLocatorGroups}
+                locatorSelectionModes={locatorSelectionModes}
+                createdLocatorSelections={createdLocatorSelections}
+                availableLocatorGroups={availableLocatorGroups}
+                availableLocatorOptions={availableLocatorOptions}
+                createLocatorParamName={createLocatorParamName}
+                environments={environments}
+                modules={modules}
+                onInputChange={handleInputChange}
+                onLocatorGroupChange={handleLocatorGroupChange}
+                onLocatorSelectionModeChange={handleLocatorSelectionModeChange}
+                onInlineLocatorSave={handleInlineLocatorSave}
+                onOpenCreateLocator={setCreateLocatorParamName}
+              />
+            </div>
           ))}
         </div>
       </CardContent>

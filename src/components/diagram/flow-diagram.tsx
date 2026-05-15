@@ -29,13 +29,11 @@ import {
   type PointerEvent,
   type RefObject,
 } from 'react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ButtonEdge, { flowEdgeMutationGuardRef } from './button-edge'
-import { Boxes, MousePointer2, Plus } from 'lucide-react'
 import { FlowDiagramBlockDialog } from './flow-diagram-block-dialog'
 import { FlowDiagramBlockOverlays } from './flow-diagram-block-overlays'
-import { FlowDiagramNodeSearch } from './flow-diagram-node-search'
+import { FlowDiagramGroupingHints } from './flow-diagram-grouping-hints'
+import { FlowDiagramToolbar } from './flow-diagram-toolbar'
 import OptionsHeaderNode from './options-header-node'
 import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
 import NodeForm from './node-form'
@@ -722,53 +720,24 @@ const FlowDiagram = ({
   return (
     <>
       <div className="relative flex h-full min-h-0 w-full flex-col" onPointerDown={handleFlowPointerDown}>
-        <div className="absolute right-4 top-4 z-20 flex items-start gap-2">
-          {enableNodeSearch ? (
-            <FlowDiagramNodeSearch
-              isSearchOpen={isSearchOpen}
-              searchQuery={searchQuery}
-              searchInputRef={searchInputRef}
-              shouldShowSearchSuggestions={shouldShowSearchSuggestions}
-              nodeSearchResults={nodeSearchResults}
-              onSearchQueryChange={setSearchQuery}
-              onToggleSearch={toggleSearch}
-              onSelectResult={handleSearchResultClick}
-            />
-          ) : null}
-          {enableNodeGrouping && (
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant={isGroupingSelectionMode ? 'default' : 'outline'}
-                    size="icon"
-                    onClick={() => {
-                      setIsGroupingSelectionMode(current => !current)
-                      setSelectedGroupingNodeIds(current => (current.length === 0 ? current : []))
-                    }}
-                    aria-label={isGroupingSelectionMode ? 'Exit block selection mode' : 'Select nodes for block'}
-                  >
-                    {isGroupingSelectionMode ? <Boxes /> : <MousePointer2 />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {isGroupingSelectionMode ? 'Selection mode' : 'Create block'}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button type="button" variant="outline" size="icon" onClick={openAddNodeDialog} aria-label="Add Node">
-                  <Plus />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Add Node</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <FlowDiagramToolbar
+          enableNodeSearch={enableNodeSearch}
+          enableNodeGrouping={enableNodeGrouping}
+          isSearchOpen={isSearchOpen}
+          searchQuery={searchQuery}
+          searchInputRef={searchInputRef}
+          shouldShowSearchSuggestions={shouldShowSearchSuggestions}
+          nodeSearchResults={nodeSearchResults}
+          isGroupingSelectionMode={isGroupingSelectionMode}
+          onSearchQueryChange={setSearchQuery}
+          onToggleSearch={toggleSearch}
+          onSearchResultSelect={handleSearchResultClick}
+          onToggleGroupingSelectionMode={() => {
+            setIsGroupingSelectionMode(current => !current)
+            setSelectedGroupingNodeIds(current => (current.length === 0 ? current : []))
+          }}
+          onOpenAddNodeDialog={openAddNodeDialog}
+        />
         <div ref={flowContainerRef} className="h-full min-h-80 flex-1">
           <ReactFlow
             className="size-full"
@@ -816,18 +785,22 @@ const FlowDiagram = ({
             <Controls />
           </ReactFlow>
         </div>
-        {enableNodeGrouping && isGroupingSelectionMode && selectedGroupingNodeIds.length >= 2 && !hasOrphanedNodes && (
-          <div className="absolute right-4 top-16 z-20 rounded-md border border-border bg-popover p-2 shadow-xl">
-            <Button type="button" size="sm" onClick={openCreateBlockDialog}>
-              Create block
-            </Button>
-          </div>
-        )}
-        {enableNodeGrouping && isGroupingSelectionMode && selectedGroupingNodeIds.length >= 2 && hasOrphanedNodes && (
-          <div className="absolute right-4 top-16 z-20 max-w-64 rounded-md border border-border bg-popover p-3 text-sm text-muted-foreground shadow-xl">
-            {blockOrphanedNodeMessage}
-          </div>
-        )}
+        <FlowDiagramGroupingHints
+          showCreateBlock={
+            enableNodeGrouping &&
+            isGroupingSelectionMode &&
+            selectedGroupingNodeIds.length >= 2 &&
+            !hasOrphanedNodes
+          }
+          showOrphanMessage={
+            enableNodeGrouping &&
+            isGroupingSelectionMode &&
+            selectedGroupingNodeIds.length >= 2 &&
+            hasOrphanedNodes
+          }
+          orphanMessage={blockOrphanedNodeMessage}
+          onCreateBlock={openCreateBlockDialog}
+        />
       </div>
 
       <FlowDiagramBlockDialog
