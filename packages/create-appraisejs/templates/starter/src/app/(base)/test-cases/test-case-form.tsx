@@ -196,7 +196,7 @@ function getTemplateStepCount(templateTestCase: TemplateTestCaseWithSteps | null
   return templateTestCase?.steps.length ?? 0
 }
 
-function renderFormError(message?: string[]) {
+function TestCaseFormFieldError({ message }: { message?: string[] }) {
   return <ErrorMessage message={message?.[0] || ''} visible={Boolean(message?.[0])} />
 }
 
@@ -359,8 +359,6 @@ function FlowPanel({
   )
 }
 
-type RenderError = (message?: string[]) => React.ReactNode
-
 type TemplateSelectionStepProps = {
   templateOptions: ReturnType<typeof getTemplateSelectionOptions>
   selectedTemplateId: string
@@ -368,7 +366,6 @@ type TemplateSelectionStepProps = {
   selectedTemplateStepCount: number
   selectedTemplatePreviewSteps: string[]
   errors: TestCaseFormErrors
-  renderError: RenderError
   onTemplateChange: (value: string) => void
   onContinue: () => void
 }
@@ -380,7 +377,6 @@ function TemplateSelectionStep({
   selectedTemplateStepCount,
   selectedTemplatePreviewSteps,
   errors,
-  renderError,
   onTemplateChange,
   onContinue,
 }: TemplateSelectionStepProps) {
@@ -408,7 +404,9 @@ function TemplateSelectionStep({
                     ))}
                   </SelectContent>
                 </Select>
-                {renderError(errors.templateTestCaseId?.map(error => getFieldErrorMessage(error)))}
+                <TestCaseFormFieldError
+                  message={errors.templateTestCaseId?.map(error => getFieldErrorMessage(error))}
+                />
               </div>
             </CardContent>
           </Card>
@@ -566,7 +564,6 @@ type DetailsStepProps = {
   selectedTestSuites: string[]
   selectedTags: string[]
   errors: TestCaseFormErrors
-  renderError: RenderError
   onTitleChange: (event: React.ChangeEvent<HTMLInputElement>) => void
   onDescriptionChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void
   onTestSuiteChange: (selectedTestSuites: string[]) => void
@@ -586,7 +583,6 @@ function DetailsStep({
   selectedTestSuites,
   selectedTags,
   errors,
-  renderError,
   onTitleChange,
   onDescriptionChange,
   onTestSuiteChange,
@@ -609,7 +605,7 @@ function DetailsStep({
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="title">Title</Label>
                 <Input id="title" name="title" value={title} onChange={onTitleChange} />
-                {renderError(errors.title)}
+                <TestCaseFormFieldError message={errors.title} />
               </div>
               <div className="mb-6 flex flex-col gap-2">
                 <Label htmlFor="description">Description</Label>
@@ -620,13 +616,12 @@ function DetailsStep({
                   onChange={onDescriptionChange}
                   className="bg-background"
                 />
-                {renderError(errors.description)}
+                <TestCaseFormFieldError message={errors.description} />
               </div>
               <TestSuiteSelectionField
                 availableTestSuites={availableTestSuites}
                 selectedTestSuites={selectedTestSuites}
                 errorMessage={errors.testSuiteIds}
-                renderError={renderError}
                 onChange={onTestSuiteChange}
                 onCreateClick={onCreateSuiteClick}
               />
@@ -661,7 +656,6 @@ type TestSuiteSelectionFieldProps = {
   availableTestSuites: TestSuite[]
   selectedTestSuites: string[]
   errorMessage?: string[]
-  renderError: RenderError
   onChange: (selectedTestSuites: string[]) => void
   onCreateClick: () => void
 }
@@ -670,7 +664,6 @@ function TestSuiteSelectionField({
   availableTestSuites,
   selectedTestSuites,
   errorMessage,
-  renderError,
   onChange,
   onCreateClick,
 }: TestSuiteSelectionFieldProps) {
@@ -699,7 +692,7 @@ function TestSuiteSelectionField({
           <Plus className="size-4" />
         </Button>
       </div>
-      {renderError(errorMessage)}
+      <TestCaseFormFieldError message={errorMessage} />
     </div>
   )
 }
@@ -775,8 +768,8 @@ type FlowStepProps = {
   isFlowImmersive: boolean
   scenarioPreview: string
   errors: TestCaseFormErrors
-  renderError: RenderError
-  renderFlowPanel: (className: string) => React.ReactNode
+  flowPanel: React.ReactNode
+  immersiveFlowPanel: React.ReactNode
   onBack: () => void
   onSubmit: () => void
 }
@@ -785,8 +778,8 @@ function FlowStep({
   isFlowImmersive,
   scenarioPreview,
   errors,
-  renderError,
-  renderFlowPanel,
+  flowPanel,
+  immersiveFlowPanel,
   onBack,
   onSubmit,
 }: FlowStepProps) {
@@ -796,11 +789,11 @@ function FlowStep({
       <LayoutGroup id="test-case-flow-panel-layout">
         <div className="w-full min-w-0 overflow-x-hidden">
           {isFlowImmersive ? (
-            <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{renderFlowPanel('h-full bg-background')}</div>
+            <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{immersiveFlowPanel}</div>
           ) : (
-            renderFlowPanel('relative h-[max(22rem,calc(100dvh-12rem))] bg-zinc-500/10')
+            flowPanel
           )}
-          {renderError(errors.steps)}
+          <TestCaseFormFieldError message={errors.steps} />
         </div>
       </LayoutGroup>
       </LazyMotion>
@@ -843,7 +836,8 @@ type WizardStepContentProps = {
   }
   flow: {
     isFlowImmersive: boolean
-    renderFlowPanel: (className: string) => React.ReactNode
+    flowPanel: React.ReactNode
+    immersiveFlowPanel: React.ReactNode
     scenarioPreview: string
   }
   navigation: {
@@ -872,7 +866,6 @@ type WizardStepContentProps = {
     setIsCreateTagDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
   }
   errors: TestCaseFormErrors
-  renderError: RenderError
 }
 
 function WizardStepContent({
@@ -881,7 +874,6 @@ function WizardStepContent({
   errors,
   flow,
   navigation,
-  renderError,
   template,
 }: WizardStepContentProps) {
   const { currentStep, detailsStepIndex, hasTemplateSelectionStep } = navigation
@@ -895,7 +887,6 @@ function WizardStepContent({
         selectedTemplateStepCount={template.stepCount}
         selectedTemplatePreviewSteps={template.previewSteps}
         errors={errors}
-        renderError={renderError}
         onTemplateChange={actions.onTemplateChange}
         onContinue={actions.goToDetailsStep}
       />
@@ -913,7 +904,6 @@ function WizardStepContent({
         selectedTestSuites={details.selectedTestSuites}
         selectedTags={details.selectedTags}
         errors={errors}
-        renderError={renderError}
         onTitleChange={actions.onTitleChange}
         onDescriptionChange={actions.onDescriptionChange}
         onTestSuiteChange={actions.onTestSuiteChange}
@@ -931,8 +921,8 @@ function WizardStepContent({
       isFlowImmersive={flow.isFlowImmersive}
       scenarioPreview={flow.scenarioPreview}
       errors={errors}
-      renderError={renderError}
-      renderFlowPanel={flow.renderFlowPanel}
+      flowPanel={flow.flowPanel}
+      immersiveFlowPanel={flow.immersiveFlowPanel}
       onBack={() => actions.setCurrentStep(detailsStepIndex)}
       onSubmit={actions.handleSubmit}
     />
@@ -1239,8 +1229,6 @@ const TestCaseForm = ({
   const selectedTemplatePreviewSteps = buildTemplatePreviewSteps(selectedTemplateTestCase)
 
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
-  const renderError = renderFormError
-
   const onNodeOrderChange = useCallback(
     (nodesOrder: NodeOrderMap) => {
       setNodesOrder(nodesOrder)
@@ -1356,23 +1344,20 @@ const TestCaseForm = ({
 
   useBodyScrollLock(isFlowImmersive)
 
-  const renderFlowPanel = (className: string) => (
-    <FlowPanel
-      className={className}
-      nodesOrder={nodesOrder}
-      templateStepParams={templateStepParams}
-      templateSteps={templateSteps}
-      locators={locators}
-      locatorGroups={locatorGroups}
-      environments={environments}
-      moduleList={moduleList}
-      flowBlocks={flowBlocks}
-      isFlowImmersive={isFlowImmersive}
-      onNodeOrderChange={onNodeOrderChange}
-      onFlowBlocksChange={setFlowBlocks}
-      onToggleImmersive={onToggleFlowImmersive}
-    />
-  )
+  const flowPanelProps: Omit<FlowPanelProps, 'className'> = {
+    nodesOrder,
+    templateStepParams,
+    templateSteps,
+    locators,
+    locatorGroups,
+    environments,
+    moduleList,
+    flowBlocks,
+    isFlowImmersive,
+    onNodeOrderChange,
+    onFlowBlocksChange: setFlowBlocks,
+    onToggleImmersive: onToggleFlowImmersive,
+  }
 
   const wizardStepContentProps: WizardStepContentProps = {
     details: {
@@ -1385,7 +1370,13 @@ const TestCaseForm = ({
     },
     flow: {
       isFlowImmersive,
-      renderFlowPanel,
+      flowPanel: (
+        <FlowPanel
+          {...flowPanelProps}
+          className="relative h-[max(22rem,calc(100dvh-12rem))] bg-zinc-500/10"
+        />
+      ),
+      immersiveFlowPanel: <FlowPanel {...flowPanelProps} className="h-full bg-background" />,
       scenarioPreview,
     },
     navigation: {
@@ -1414,7 +1405,6 @@ const TestCaseForm = ({
       setIsCreateTagDialogOpen,
     },
     errors,
-    renderError,
   }
 
   return (
