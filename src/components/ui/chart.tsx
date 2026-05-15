@@ -5,6 +5,7 @@ import { use } from 'react'
 import * as RechartsPrimitive from 'recharts'
 
 import { cn } from '@/lib/utils'
+import { getPayloadConfigFromPayload, resolveChartTooltipLabelValue } from './chart-utils'
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: '', dark: '.dark' } as const
@@ -112,7 +113,6 @@ type ChartTooltipTitleProps = {
   labelKey?: string
 }
 
-// fallow-ignore-next-line complexity
 const ChartTooltipTitle = React.memo(function ChartTooltipTitle({
   config,
   resolvedPayload,
@@ -127,12 +127,7 @@ const ChartTooltipTitle = React.memo(function ChartTooltipTitle({
   }
 
   const [item] = resolvedPayload
-  const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
-  const itemConfig = getPayloadConfigFromPayload(config, item, key)
-  const value =
-    !labelKey && typeof label === 'string'
-      ? config[label as keyof typeof config]?.label || label
-      : itemConfig?.label
+  const value = resolveChartTooltipLabelValue(config, item, label, labelKey)
 
   if (labelFormatter) {
     return <div className={cn('font-medium', labelClassName)}>{labelFormatter(value, resolvedPayload)}</div>
@@ -283,31 +278,5 @@ function ChartTooltipContentActive({
 
 ChartTooltipContent.displayName = 'ChartTooltip'
 ChartTooltipContentActive.displayName = 'ChartTooltipContentActive'
-
-// Helper to extract item config from a payload.
-function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string) {
-  if (typeof payload !== 'object' || payload === null) {
-    return undefined
-  }
-
-  const payloadPayload =
-    'payload' in payload && typeof payload.payload === 'object' && payload.payload !== null
-      ? payload.payload
-      : undefined
-
-  let configLabelKey: string = key
-
-  if (key in payload && typeof payload[key as keyof typeof payload] === 'string') {
-    configLabelKey = payload[key as keyof typeof payload] as string
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    typeof payloadPayload[key as keyof typeof payloadPayload] === 'string'
-  ) {
-    configLabelKey = payloadPayload[key as keyof typeof payloadPayload] as string
-  }
-
-  return configLabelKey in config ? config[configLabelKey] : config[key as keyof typeof config]
-}
 
 export { ChartContainer, ChartTooltip, ChartTooltipContent }

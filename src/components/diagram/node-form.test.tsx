@@ -145,6 +145,36 @@ describe('NodeForm', () => {
     })
   })
 
+  it('blocks submit when dynamic parameter validation fails', async () => {
+    const user = userEvent.setup()
+    const onSubmitAction = vi.fn()
+    validateMock.mockReturnValue(false)
+
+    render(
+      <NodeForm
+        onSubmitAction={onSubmitAction}
+        initialValues={{
+          label: 'Valid label',
+          gherkinStep: '',
+          templateStepId: 'step-1',
+          parameters: [],
+        }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(onSubmitAction).not.toHaveBeenCalled()
+  })
+
   it('shows validation feedback when required fields are missing', async () => {
     const user = userEvent.setup()
 
