@@ -1,9 +1,11 @@
 'use client'
 
-import { TestRunStatus, Report } from '@prisma/client'
+import type { ReactNode } from 'react'
+import { TestRunStatus, type Report } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { FileText, LoaderCircle, XCircle } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react'
+import * as motion from 'motion/react-m'
 import Link from 'next/link'
 
 interface ViewReportButtonProps {
@@ -12,60 +14,66 @@ interface ViewReportButtonProps {
   className?: string
 }
 
+const fadeSlideTransition = { duration: 0.3, ease: 'easeOut' as const }
+const scaleFadeTransition = { duration: 0.2, delay: 0.1 }
+
+function AnimatedReportShell({ children }: { children: ReactNode }) {
+  return (
+    <LazyMotion features={domAnimation} strict>
+      <AnimatePresence mode="wait">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={fadeSlideTransition}
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
+    </LazyMotion>
+  )
+}
+
+function AnimatedButtonContent({ children }: { children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={scaleFadeTransition}
+      className="flex items-center gap-2"
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export function ViewReportButton({ testRunStatus, reports, className }: ViewReportButtonProps) {
-  // Button should only be visible when test run is completed/cancelled AND a report exists
   const shouldShowReportButton =
     (testRunStatus === TestRunStatus.COMPLETED || testRunStatus === TestRunStatus.CANCELLED) && reports.length > 0
 
-  // Show cancelled status if test run is cancelled and no report exists
   if (testRunStatus === TestRunStatus.CANCELLED && reports.length === 0) {
     return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-        >
-          <Button variant="outline" size="sm" className={className} disabled>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: 0.1 }}
-              className="flex items-center gap-2"
-            >
-              <XCircle className="h-4 w-4" />
-              Report Not Available
-            </motion.div>
-          </Button>
-        </motion.div>
-      </AnimatePresence>
+      <AnimatedReportShell>
+        <Button variant="outline" size="sm" className={className} disabled>
+          <AnimatedButtonContent>
+            <XCircle className="size-4" />
+            Report Not Available
+          </AnimatedButtonContent>
+        </Button>
+      </AnimatedReportShell>
     )
   }
 
-  // Show generating report message only for completed (not cancelled) runs without reports
   if (testRunStatus === TestRunStatus.COMPLETED && reports.length === 0) {
     return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-        >
-          <Button variant="outline" size="sm" className={className}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: 0.1 }}
-              className="flex items-center gap-2"
-            >
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              Generating Report...
-            </motion.div>
-          </Button>
-        </motion.div>
-      </AnimatePresence>
+      <AnimatedReportShell>
+        <Button variant="outline" size="sm" className={className}>
+          <AnimatedButtonContent>
+            <LoaderCircle className="size-4 animate-spin" />
+            Generating report
+          </AnimatedButtonContent>
+        </Button>
+      </AnimatedReportShell>
     )
   }
 
@@ -76,27 +84,15 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
   const reportId = reports[0].id
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
-      >
-        <Link href={`/reports/${reportId}`}>
-          <Button variant="outline" size="sm" className={className}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: 0.1 }}
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              View Report
-            </motion.div>
-          </Button>
-        </Link>
-      </motion.div>
-    </AnimatePresence>
+    <AnimatedReportShell>
+      <Link href={`/reports/${reportId}`}>
+        <Button variant="outline" size="sm" className={className}>
+          <AnimatedButtonContent>
+            <FileText className="size-4" />
+            View Report
+          </AnimatedButtonContent>
+        </Button>
+      </Link>
+    </AnimatedReportShell>
   )
 }

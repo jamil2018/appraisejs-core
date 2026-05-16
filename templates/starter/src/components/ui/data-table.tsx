@@ -137,11 +137,16 @@ export function DataTable<TData, TValue>({
   })
 
   const selectedRows = table.getSelectedRowModel().rows
-  const selectedIds = selectedRows
-    .map(row => getEntityId(row.original, row.index, getRowId))
-    .filter((value): value is string => value !== null)
+  const selectedIds = selectedRows.reduce<string[]>((ids, row) => {
+    const value = getEntityId(row.original, row.index, getRowId)
+    if (value !== null) {
+      ids.push(value)
+    }
+
+    return ids
+  }, [])
   const selectedRowCount = selectedRows.length
-  const singleSelectedId = selectedRowCount === 1 ? selectedIds[0] ?? null : null
+  const singleSelectedId = selectedRowCount === 1 ? (selectedIds[0] ?? null) : null
 
   const deleteHandler = async () => {
     if (!deleteAction || selectedIds.length === 0) {
@@ -172,7 +177,7 @@ export function DataTable<TData, TValue>({
           {createLink && (
             <Button variant="default" size="icon" aria-label="Create item" asChild>
               <Link href={createLink}>
-                <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                <PlusCircle className="size-4" aria-hidden="true" />
                 <span className="sr-only">Create item</span>
               </Link>
             </Button>
@@ -181,7 +186,7 @@ export function DataTable<TData, TValue>({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="default" size="icon" aria-label={createMenuLabel}>
-                  <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                  <PlusCircle className="size-4" aria-hidden="true" />
                   <span className="sr-only">{createMenuLabel}</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -198,36 +203,34 @@ export function DataTable<TData, TValue>({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {modifyLink && (
-            singleSelectedId ? (
+          {modifyLink &&
+            (singleSelectedId ? (
               <Button variant="outline" size="icon" aria-label="Edit selected item" asChild>
                 <Link href={`${modifyLink}/${singleSelectedId}`}>
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  <Pencil className="size-4" aria-hidden="true" />
                   <span className="sr-only">Edit selected item</span>
                 </Link>
               </Button>
             ) : (
               <Button variant="outline" size="icon" aria-label="Edit selected item" disabled>
-                <Pencil className="h-4 w-4" aria-hidden="true" />
+                <Pencil className="size-4" aria-hidden="true" />
                 <span className="sr-only">Edit selected item</span>
               </Button>
-            )
-          )}
-          {viewLink && (
-            singleSelectedId ? (
+            ))}
+          {viewLink &&
+            (singleSelectedId ? (
               <Button variant="outline" size="icon" aria-label="View selected item" asChild>
                 <Link href={`${viewLink}/${singleSelectedId}`}>
-                  <Eye className="h-4 w-4" aria-hidden="true" />
+                  <Eye className="size-4" aria-hidden="true" />
                   <span className="sr-only">View selected item</span>
                 </Link>
               </Button>
             ) : (
               <Button variant="outline" size="icon" aria-label="View selected item" disabled>
-                <Eye className="h-4 w-4" aria-hidden="true" />
+                <Eye className="size-4" aria-hidden="true" />
                 <span className="sr-only">View selected item</span>
               </Button>
-            )
-          )}
+            ))}
           {deleteAction && (
             <DeletePrompt
               isDisabled={selectedIds.length === 0}
@@ -242,7 +245,7 @@ export function DataTable<TData, TValue>({
       </div>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center">
-          <Search className="mr-2 h-6 w-6" />
+          <Search className="mr-2 size-6" />
           <Input
             placeholder={filterPlaceholder}
             value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}

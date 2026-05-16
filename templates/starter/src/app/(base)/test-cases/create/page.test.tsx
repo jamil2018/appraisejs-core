@@ -74,16 +74,19 @@ vi.mock('../test-case-form', () => ({
   default: testCaseFormSpy,
 }))
 
-vi.mock('../test-case-route-helpers', () => ({
+vi.mock('../test-case-resource-rows', () => ({
   getTemplateStepParamRows: vi.fn(() => [{ id: 'param-1' }]),
   getTemplateStepRows: vi.fn(() => [{ id: 'template-step-1', name: 'Click' }]),
   getTestSuiteRows: vi.fn(() => [{ id: 'suite-1', name: 'Smoke' }]),
   getLocatorRows: vi.fn(() => [{ id: 'locator-1', name: 'Submit button' }]),
   getLocatorGroupRows: vi.fn(() => [{ id: 'group-1', name: 'Checkout' }]),
   getTagRows: vi.fn(() => [{ id: 'tag-1', name: 'Regression' }]),
-  getTestCaseRows: vi.fn(() => [{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] }]),
   getModuleRows: vi.fn(() => [{ id: 'module-1', name: 'Payments' }]),
   getEnvironmentRows: vi.fn(() => [{ id: 'env-1', name: 'Staging' }]),
+}))
+
+vi.mock('../test-case-row-helpers', () => ({
+  getTestCaseRows: vi.fn(() => [{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] }]),
 }))
 
 describe('Create Test Case page', () => {

@@ -31,7 +31,7 @@ const BrowserEngineIcon = {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-4 w-4"
+      className="size-4"
     >
       <path d="M10.88 21.94 15.46 14" />
       <path d="M21.17 8H12" />
@@ -40,8 +40,8 @@ const BrowserEngineIcon = {
       <circle cx="12" cy="12" r="4" />
     </svg>
   ),
-  [BrowserEngine.FIREFOX]: <Flame className="h-4 w-4" />,
-  [BrowserEngine.WEBKIT]: <Compass className="h-4 w-4" />,
+  [BrowserEngine.FIREFOX]: <Flame className="size-4" />,
+  [BrowserEngine.WEBKIT]: <Compass className="size-4" />,
 }
 
 export const testRunTableCols: ColumnDef<
@@ -82,18 +82,18 @@ export const testRunTableCols: ColumnDef<
     cell: ({ row }) => {
       const status = row.original.status
       const statusColorMap = {
-        [TestRunStatus.QUEUED]: 'bg-gray-500 text-white',
+        [TestRunStatus.QUEUED]: 'bg-zinc-500 text-white',
         [TestRunStatus.RUNNING]: 'bg-blue-500 text-white',
         [TestRunStatus.CANCELLING]: 'bg-orange-500 text-white',
         [TestRunStatus.COMPLETED]: 'bg-primary',
         [TestRunStatus.CANCELLED]: 'bg-pink-500 text-white',
       }
       const statusIconMap = {
-        [TestRunStatus.QUEUED]: <ListEnd className="h-4 w-4" />,
-        [TestRunStatus.RUNNING]: <LoaderCircle className="h-4 w-4 animate-spin" />,
-        [TestRunStatus.CANCELLING]: <LoaderCircle className="h-4 w-4 animate-spin" />,
-        [TestRunStatus.COMPLETED]: <CheckCircle className="h-4 w-4" />,
-        [TestRunStatus.CANCELLED]: <XCircle className="h-4 w-4" />,
+        [TestRunStatus.QUEUED]: <ListEnd className="size-4" />,
+        [TestRunStatus.RUNNING]: <LoaderCircle className="size-4 animate-spin" />,
+        [TestRunStatus.CANCELLING]: <LoaderCircle className="size-4 animate-spin" />,
+        [TestRunStatus.COMPLETED]: <CheckCircle className="size-4" />,
+        [TestRunStatus.CANCELLED]: <XCircle className="size-4" />,
       }
       const statusTextMap = {
         [TestRunStatus.QUEUED]: 'Queued',
@@ -118,14 +118,14 @@ export const testRunTableCols: ColumnDef<
       const resultColorMap = {
         [TestRunResult.PASSED]: 'bg-primary',
         [TestRunResult.FAILED]: 'bg-pink-500 text-white',
-        [TestRunResult.CANCELLED]: 'bg-gray-500 text-white',
+        [TestRunResult.CANCELLED]: 'bg-zinc-500 text-white',
         [TestRunResult.PENDING]: 'bg-yellow-500 text-white',
       }
       const resultIconMap = {
-        [TestRunResult.PASSED]: <CheckCircle className="h-4 w-4" />,
-        [TestRunResult.FAILED]: <XCircle className="h-4 w-4" />,
-        [TestRunResult.CANCELLED]: <XCircle className="h-4 w-4" />,
-        [TestRunResult.PENDING]: <LoaderCircle className="h-4 w-4 animate-spin" />,
+        [TestRunResult.PASSED]: <CheckCircle className="size-4" />,
+        [TestRunResult.FAILED]: <XCircle className="size-4" />,
+        [TestRunResult.CANCELLED]: <XCircle className="size-4" />,
+        [TestRunResult.PENDING]: <LoaderCircle className="size-4 animate-spin" />,
       }
       const resultTextMap = {
         [TestRunResult.PASSED]: 'Passed',

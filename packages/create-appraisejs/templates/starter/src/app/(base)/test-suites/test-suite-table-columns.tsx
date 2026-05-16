@@ -9,7 +9,7 @@ import TableActions from '@/components/table/table-actions'
 import { deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { getFilterTags } from '@/lib/tag-utils'
+import { getFilterTags } from '@/lib/tag-filters'
 export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: Module; testCases: TestCase[] }>[] = [
   {
     id: 'select',

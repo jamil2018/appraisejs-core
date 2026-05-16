@@ -30,10 +30,10 @@ const TableActions = ({
   editActionText = 'Edit',
   deleteActionText = 'Delete',
   cancelActionText = 'Cancel',
-  editActionIcon = <Pencil className="h-4 w-4" />,
-  deleteActionIcon = <Trash className="h-4 w-4" />,
-  viewActionIcon = <Eye className="h-4 w-4" />,
-  cancelActionIcon = <XCircle className="h-4 w-4" />,
+  editActionIcon = <Pencil className="size-4" />,
+  deleteActionIcon = <Trash className="size-4" />,
+  viewActionIcon = <Eye className="size-4" />,
+  cancelActionIcon = <XCircle className="size-4" />,
 }: {
   modifyLink?: string
   deleteHandler: () => Promise<ActionResponse>
@@ -85,9 +85,9 @@ const TableActions = ({
       />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
+          <Button variant="ghost" className="size-8 p-0">
             <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -159,9 +159,13 @@ const TableActions = ({
             </span>
           </DropdownMenuItem>
           {resolveConflictsHandler && (
-            <DropdownMenuItem>
-              <span className="flex items-center gap-2" onClick={resolveConflictsHandler}>
-                <CheckCircleIcon className="h-4 w-4" /> Mark conflicts as resolved
+            <DropdownMenuItem
+              onClick={() => {
+                void resolveConflictsHandler()
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <CheckCircleIcon className="size-4" /> Mark conflicts as resolved
               </span>
             </DropdownMenuItem>
           )}

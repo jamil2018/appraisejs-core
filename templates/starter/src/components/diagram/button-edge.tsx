@@ -3,6 +3,8 @@ import { BaseEdge, EdgeLabelRenderer, getStraightPath, useReactFlow, type EdgePr
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const DEFAULT_EDGE_STYLE: React.CSSProperties = {}
+
 type FlowEdgeMutationGuard = {
   isEdgeDeleteBlocked: (edge: { id: string; source: string; target: string }) => boolean
   isNodeDeleteBlocked: (nodeId: string) => boolean
@@ -25,7 +27,7 @@ export default function ButtonEdge({
   sourceY,
   targetX,
   targetY,
-  style = {},
+  style = DEFAULT_EDGE_STYLE,
   markerEnd,
 }: EdgeProps) {
   const { setEdges } = useReactFlow()
@@ -59,7 +61,7 @@ export default function ButtonEdge({
             onClick={onEdgeClick}
             title="Delete Edge"
             size="icon"
-            className="h-7 w-7 rounded-full p-0"
+            className="size-7 rounded-full p-0"
           >
             <Trash2 className="text-muted-foreground" />
           </Button>

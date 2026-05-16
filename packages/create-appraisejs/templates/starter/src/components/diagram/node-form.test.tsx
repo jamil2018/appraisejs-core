@@ -12,12 +12,12 @@ const validateMock = vi.fn(() => true)
 vi.mock('./dynamic-parameters', async () => {
   const React = await import('react')
 
-  const MockDynamicFormFields = React.forwardRef<
-    { validate: () => boolean },
-    {
-      onChange?: (values: Array<{ name: string; value: string; type: StepParameterType; order: number }>) => void
-    }
-  >(({ onChange }, ref) => {
+  function MockDynamicFormFields({
+    ref,
+    onChange,
+  }: {
+    onChange?: (values: Array<{ name: string; value: string; type: StepParameterType; order: number }>) => void
+  } & React.RefAttributes<{ validate: () => boolean }>) {
     React.useImperativeHandle(ref, () => ({
       validate: validateMock,
     }))
@@ -38,7 +38,7 @@ vi.mock('./dynamic-parameters', async () => {
         Apply Parameters
       </button>
     )
-  })
+  }
 
   MockDynamicFormFields.displayName = 'MockDynamicFormFields'
 
@@ -143,6 +143,36 @@ describe('NodeForm', () => {
         templateStepId: 'step-1',
       })
     })
+  })
+
+  it('blocks submit when dynamic parameter validation fails', async () => {
+    const user = userEvent.setup()
+    const onSubmitAction = vi.fn()
+    validateMock.mockReturnValue(false)
+
+    render(
+      <NodeForm
+        onSubmitAction={onSubmitAction}
+        initialValues={{
+          label: 'Valid label',
+          gherkinStep: '',
+          templateStepId: 'step-1',
+          parameters: [],
+        }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(onSubmitAction).not.toHaveBeenCalled()
   })
 
   it('shows validation feedback when required fields are missing', async () => {

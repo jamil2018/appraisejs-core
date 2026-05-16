@@ -24,7 +24,7 @@ export interface SpawnedProcess {
   endTime: Date | null
 }
 
-export class TaskSpawner extends EventEmitter {
+class TaskSpawner extends EventEmitter {
   private processes: Map<string, SpawnedProcess> = new Map()
   private processCounter = 0
   private outputBuffers: Map<string, { stdout: string; stderr: string }> = new Map()
@@ -158,6 +158,54 @@ export class TaskSpawner extends EventEmitter {
     }
   }
 
+  private emitOutputLine(
+    processName: string,
+    stream: 'stdout' | 'stderr',
+    data: string,
+    streamLogs: boolean,
+    prefixLogs: boolean,
+    captureOutput: boolean,
+    spawnedProcess: SpawnedProcess,
+  ): void {
+    if (captureOutput) {
+      spawnedProcess.output[stream].push(data)
+    }
+
+    if (streamLogs) {
+      const prefix = prefixLogs ? `[${processName}] ` : ''
+      if (stream === 'stdout') {
+        console.log(`${prefix}${data}`)
+      } else {
+        console.error(`${prefix}${data}`)
+      }
+    }
+
+    this.emit(stream, { processName, data })
+  }
+
+  private flushBufferedOutput(
+    processName: string,
+    streamLogs: boolean,
+    prefixLogs: boolean,
+    captureOutput: boolean,
+    spawnedProcess: SpawnedProcess,
+  ): void {
+    const buffer = this.outputBuffers.get(processName)
+    if (!buffer) {
+      return
+    }
+
+    if (buffer.stdout) {
+      this.emitOutputLine(processName, 'stdout', buffer.stdout, streamLogs, prefixLogs, captureOutput, spawnedProcess)
+    }
+
+    if (buffer.stderr) {
+      this.emitOutputLine(processName, 'stderr', buffer.stderr, streamLogs, prefixLogs, captureOutput, spawnedProcess)
+    }
+
+    this.outputBuffers.delete(processName)
+  }
+
   private setupProcessListeners(
     spawnedProcess: SpawnedProcess,
     options: {
@@ -195,32 +243,7 @@ export class TaskSpawner extends EventEmitter {
 
     childProcess.on('exit', (code: number | null) => {
       if (stdioConfig === 'pipe') {
-        const buffer = this.outputBuffers.get(name)
-        if (buffer) {
-          if (buffer.stdout) {
-            if (captureOutput) {
-              spawnedProcess.output.stdout.push(buffer.stdout)
-            }
-            if (streamLogs) {
-              const prefix = prefixLogs ? `[${name}] ` : ''
-              console.log(`${prefix}${buffer.stdout}`)
-            }
-            this.emit('stdout', { processName: name, data: buffer.stdout })
-          }
-
-          if (buffer.stderr) {
-            if (captureOutput) {
-              spawnedProcess.output.stderr.push(buffer.stderr)
-            }
-            if (streamLogs) {
-              const prefix = prefixLogs ? `[${name}] ` : ''
-              console.error(`${prefix}${buffer.stderr}`)
-            }
-            this.emit('stderr', { processName: name, data: buffer.stderr })
-          }
-
-          this.outputBuffers.delete(name)
-        }
+        this.flushBufferedOutput(name, streamLogs, prefixLogs, captureOutput, spawnedProcess)
       }
 
       spawnedProcess.isRunning = false

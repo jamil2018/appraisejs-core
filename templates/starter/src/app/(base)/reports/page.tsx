@@ -5,36 +5,7 @@ import { Metadata } from 'next'
 import ReportTable from './report-table'
 import EmptyState from '@/components/data-state/empty-state'
 import { getAllReportsAction } from '@/actions/reports/report-actions'
-import { Prisma } from '@prisma/client'
-
-type ReportWithRelations = Prisma.ReportGetPayload<{
-  include: {
-    testRun: {
-      include: {
-        environment: true
-        tags: true
-      }
-    }
-    testCases: {
-      include: {
-        testRunTestCase: {
-          include: {
-            testCase: {
-              include: {
-                tags: true
-              }
-            }
-          }
-        }
-        reportScenario: {
-          include: {
-            reportFeature: true
-          }
-        }
-      }
-    }
-  }
-}>
+import { isValidReportList } from './report-detail-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Reports',
@@ -48,21 +19,7 @@ const Reports = async () => {
     return <div>Error: {reportsError}</div>
   }
 
-  // Type guard to validate the data structure
-  const isValidReportData = (data: unknown): data is ReportWithRelations[] => {
-    if (!Array.isArray(data)) return false
-    return data.every(
-      item =>
-        item &&
-        typeof item === 'object' &&
-        'id' in item &&
-        'testRun' in item &&
-        'testCases' in item &&
-        Array.isArray(item.testCases),
-    )
-  }
-
-  if (!reports || !isValidReportData(reports)) {
+  if (!reports || !isValidReportList(reports)) {
     return <div>Error: Invalid report data format</div>
   }
 
@@ -70,7 +27,7 @@ const Reports = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<FileCheck className="h-8 w-8" />}
+          icon={<FileCheck className="size-8" />}
           title="No reports found"
           description="Get started by creating a test run to generate reports"
           createRoute="/test-runs/create"
@@ -84,13 +41,13 @@ const Reports = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <FileCheck className="mr-2 h-8 w-8" />
+            <FileCheck className="mr-2 size-8" />
             Reports
           </span>
         </PageHeader>
         <HeaderSubtitle>Review test execution details, identify patterns, and optimize performance</HeaderSubtitle>
       </div>
-      <ReportTable />
+      <ReportTable reports={reports} />
     </>
   )
 }

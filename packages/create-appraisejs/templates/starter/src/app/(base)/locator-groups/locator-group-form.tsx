@@ -3,10 +3,11 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formOpts, LocatorGroup } from '@/constants/form-opts/locator-group-form-opts'
+import { locatorGroupFormOpts, LocatorGroup } from '@/constants/form-opts/locator-group-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import React, { useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
@@ -28,13 +29,9 @@ const LocatorGroupForm = ({
   successMessage: string
   moduleList: Module[]
   id?: string
-  onSubmitAction: (
-    _prev: unknown,
-    value: LocatorGroup,
-    id?: string,
-  ) => Promise<ActionResponse>
+  onSubmitAction: (_prev: unknown, value: LocatorGroup, id?: string) => Promise<ActionResponse>
 }) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Debounced function to check name uniqueness
@@ -71,8 +68,8 @@ const LocatorGroupForm = ({
   )
 
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts?.defaultValues,
-    validators: formOpts?.validators,
+    defaultValues: defaultValues ?? locatorGroupFormOpts.defaultValues,
+    validators: locatorGroupFormOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
@@ -80,7 +77,7 @@ const LocatorGroupForm = ({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/locator-groups')
+        push('/locator-groups')
       }
       if (res.status === 400) {
         toast({
@@ -99,13 +96,7 @@ const LocatorGroupForm = ({
     },
   })
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
         name="name"
         validators={{
@@ -130,8 +121,11 @@ const LocatorGroupForm = ({
                 placeholder="Enter locator group name"
               />
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
+                field.state.meta.errors.map(error => (
+                  <p
+                    key={typeof error === 'string' ? error : error?.message || String(error)}
+                    className="text-xs text-pink-500"
+                  >
                     {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
@@ -165,8 +159,11 @@ const LocatorGroupForm = ({
                 </SelectContent>
               </Select>
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
+                field.state.meta.errors.map(error => (
+                  <p
+                    key={typeof error === 'string' ? error : error?.message || String(error)}
+                    className="text-xs text-pink-500"
+                  >
                     {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
@@ -191,8 +188,11 @@ const LocatorGroupForm = ({
                 placeholder="Enter the route of page the locator group is for. Default is '/' (root)"
               />
               {field.state.meta.isTouched &&
-                field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-xs text-pink-500">
+                field.state.meta.errors.map(error => (
+                  <p
+                    key={typeof error === 'string' ? error : error?.message || String(error)}
+                    className="text-xs text-pink-500"
+                  >
                     {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
@@ -208,7 +208,7 @@ const LocatorGroupForm = ({
           </Button>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }
 

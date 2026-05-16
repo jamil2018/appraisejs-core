@@ -18,6 +18,8 @@ type TemplateTestCaseFlowProps = {
   defaultValueInput?: boolean
 }
 
+const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
+
 const TemplateTestCaseFlow = ({
   initialNodesOrder,
   templateStepParams,
@@ -27,7 +29,7 @@ const TemplateTestCaseFlow = ({
   environments,
   modules,
   onNodeOrderChange,
-  flowBlocks = [],
+  flowBlocks = EMPTY_FLOW_BLOCKS,
   onFlowBlocksChange,
   defaultValueInput = false,
 }: TemplateTestCaseFlowProps) => {

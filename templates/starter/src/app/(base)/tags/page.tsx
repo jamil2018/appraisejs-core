@@ -27,7 +27,7 @@ const Tags = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<Tag className="h-8 w-8" />}
+          icon={<Tag className="size-8" />}
           title="No tags found"
           description="Get started by creating a tag to categorize your test cases and test runs"
           createRoute="/tags/create"
@@ -42,7 +42,7 @@ const Tags = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Tag className="mr-2 h-8 w-8" />
+            <Tag className="mr-2 size-8" />
             Tags
           </span>
         </PageHeader>

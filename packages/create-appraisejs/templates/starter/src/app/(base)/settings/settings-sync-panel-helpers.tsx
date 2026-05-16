@@ -36,7 +36,7 @@ export type SyncRunResult = {
 export const syncPresentation: Record<SyncScriptId, { icon: ReactNode; colorKey: SyncTileColor }> = {
   'sync-modules': {
     icon: <Puzzle />,
-    colorKey: 'indigo',
+    colorKey: 'violet',
   },
   'sync-environments': {
     icon: <Server />,
@@ -106,5 +106,5 @@ export function getSyncTooltipCopy(requestId: SyncRequestId) {
 }
 
 export const syncPanelInfo = {
-  helpIcon: <CircleHelp className="h-4 w-4" />,
+  helpIcon: <CircleHelp className="size-4" />,
 }

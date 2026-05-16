@@ -6,26 +6,36 @@ import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
 import type { NodePath } from '@babel/traverse'
-import {
-  StepParameterType,
-  TagType,
-  TemplateStepGroupType,
-  TemplateStepIcon,
-  TemplateStepType,
-} from '@prisma/client'
+import { StepParameterType, TagType, TemplateStepGroupType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { getAutomationEnvironmentsDir, getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
-import { extractModulePathFromFilePath, scanFeatureFiles, type ParsedFeature, type ParsedStep } from '@/lib/gherkin-parser'
+import {
+  extractModulePathFromFilePath,
+  scanFeatureFiles,
+  type ParsedFeature,
+  type ParsedStep,
+} from '@/lib/gherkin-parser'
 import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
-import { SYNC_ALL_REQUEST_ID, syncScriptDefinitions, type SyncRequestId, type SyncScriptId } from '@/lib/sync/sync-registry'
-import { getTagTypeFromName } from '@/lib/tag-utils'
+import {
+  SYNC_ALL_REQUEST_ID,
+  syncScriptDefinitions,
+  type SyncRequestId,
+  type SyncScriptId,
+} from '@/lib/sync/sync-registry'
+import { getTagTypeFromName } from '@/lib/tag-identifiers'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
   determineProjectedStepIcon,
   getTestSuiteSyncIdentity,
   normalizeProjectedDbTestCaseSteps,
 } from '@/lib/sync/projected-feature-utils'
+import {
+  parseGroupJSDocLenient as parseGroupJSDoc,
+  parseStepJSDocLenient as parseStepJSDoc,
+  type StepGroupJSDoc,
+  type StepJSDoc,
+} from '@/lib/jsdoc/template-step-jsdoc'
 
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
 
@@ -63,18 +73,6 @@ type LocatorFileData = {
   locators: Record<string, string>
 }
 
-type StepGroupJSDoc = {
-  name: string
-  description: string | null
-  type: TemplateStepGroupType
-}
-
-type StepJSDoc = {
-  name: string
-  description: string | null
-  icon: TemplateStepIcon
-}
-
 type StepParameter = {
   name: string
   type: StepParameterType
@@ -94,6 +92,8 @@ type ParsedStepFile = {
   group: StepGroupJSDoc
   steps: ParsedTemplateStep[]
 }
+
+type StepKeyword = ParsedTemplateStep['keyword']
 
 type TemplateStepFromFs = {
   step: ParsedTemplateStep
@@ -296,174 +296,6 @@ async function readLocatorFile(filePath: string): Promise<Record<string, string>
   }
 }
 
-function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
-  const lines = content.split('\n')
-  let startLine = 0
-
-  while (startLine < lines.length) {
-    const line = lines[startLine].trim()
-    if (line === '' || line.startsWith('import ')) {
-      startLine++
-      continue
-    }
-    break
-  }
-
-  if (startLine >= lines.length || !lines[startLine].trim().startsWith('/**')) {
-    return null
-  }
-
-  let hasType = false
-  let endLine = -1
-  let name: string | null = null
-  let description: string | null = null
-  let type: string | null = null
-
-  const maxLines = Math.min(lines.length, startLine + 50)
-  for (let i = startLine; i < maxLines; i++) {
-    const line = lines[i].trim()
-
-    if (line.includes('*/')) {
-      const beforeClose = line.split('*/')[0].trim()
-
-      if (beforeClose.startsWith('* @name') || beforeClose.startsWith('*@name')) {
-        const match = beforeClose.match(/@name\s+(.+)/)
-        if (match) name = match[1].trim()
-      } else if (beforeClose.startsWith('* @description') || beforeClose.startsWith('*@description')) {
-        const match = beforeClose.match(/@description\s+(.+)/)
-        if (match) description = match[1].trim() || null
-      } else if (beforeClose.startsWith('* @type') || beforeClose.startsWith('*@type')) {
-        const match = beforeClose.match(/@type\s+(.+)/)
-        if (match) {
-          hasType = true
-          type = match[1].trim()
-        }
-      }
-
-      endLine = i
-      break
-    }
-
-    if (line.startsWith('* @name') || line.startsWith('*@name')) {
-      const match = line.match(/@name\s+(.+)/)
-      if (match) name = match[1].trim()
-    } else if (line.startsWith('* @description') || line.startsWith('*@description')) {
-      const match = line.match(/@description\s+(.+)/)
-      if (match) description = match[1].trim() || null
-    } else if (line.startsWith('* @type') || line.startsWith('*@type')) {
-      const match = line.match(/@type\s+(.+)/)
-      if (match) {
-        hasType = true
-        type = match[1].trim()
-      }
-    }
-  }
-
-  if (!hasType || endLine < 0 || !name || !type) {
-    return null
-  }
-
-  const normalizedType = type.toUpperCase()
-  if (normalizedType !== 'ACTION' && normalizedType !== 'VALIDATION') {
-    return null
-  }
-
-  return {
-    name: name.trim(),
-    description: description ? description.trim() : null,
-    type: normalizedType as TemplateStepGroupType,
-  }
-}
-
-function parseStepJSDoc(content: string, startLine: number): StepJSDoc | null {
-  const lines = content.split('\n')
-  let jsdocStart = -1
-
-  for (let i = startLine - 1; i >= 0 && i >= startLine - 20; i--) {
-    const line = lines[i]?.trim()
-    if (line?.includes('*/')) {
-      jsdocStart = i
-      for (let j = i - 1; j >= 0 && j >= i - 10; j--) {
-        const previousLine = lines[j]?.trim()
-        if (previousLine?.startsWith('/**')) {
-          jsdocStart = j
-          break
-        }
-      }
-      break
-    }
-
-    if (line?.startsWith('/**')) {
-      jsdocStart = i
-      break
-    }
-  }
-
-  if (jsdocStart === -1) {
-    return null
-  }
-
-  let name: string | null = null
-  let description: string | null = null
-  let icon: string | null = null
-  let foundJSDoc = false
-
-  for (let i = jsdocStart; i < Math.min(lines.length, jsdocStart + 20); i++) {
-    const line = lines[i]?.trim()
-
-    if (line?.startsWith('/**')) {
-      foundJSDoc = true
-      continue
-    }
-
-    if (line?.includes('*/')) {
-      const beforeClose = line.split('*/')[0].trim()
-      if (beforeClose.startsWith('* @name') || beforeClose.startsWith('*@name')) {
-        const match = beforeClose.match(/@name\s+(.+)/)
-        if (match) name = match[1].trim()
-      } else if (beforeClose.startsWith('* @description') || beforeClose.startsWith('*@description')) {
-        const match = beforeClose.match(/@description\s+(.+)/)
-        if (match) description = match[1].trim() || null
-      } else if (beforeClose.startsWith('* @icon') || beforeClose.startsWith('*@icon')) {
-        const match = beforeClose.match(/@icon\s+(.+)/)
-        if (match) icon = match[1].trim()
-      }
-      break
-    }
-
-    if (!foundJSDoc) {
-      continue
-    }
-
-    if (line?.startsWith('* @name') || line?.startsWith('*@name')) {
-      const match = line.match(/@name\s+(.+)/)
-      if (match) name = match[1].trim()
-    } else if (line?.startsWith('* @description') || line?.startsWith('*@description')) {
-      const match = line.match(/@description\s+(.+)/)
-      if (match) description = match[1].trim() || null
-    } else if (line?.startsWith('* @icon') || line?.startsWith('*@icon')) {
-      const match = line.match(/@icon\s+(.+)/)
-      if (match) icon = match[1].trim()
-    }
-  }
-
-  if (!name || !icon) {
-    return null
-  }
-
-  const iconUpper = icon.toUpperCase()
-  const validIcons = Object.values(TemplateStepIcon)
-  if (!validIcons.includes(iconUpper as TemplateStepIcon)) {
-    return null
-  }
-
-  return {
-    name: name.trim(),
-    description: description ? description.trim() : null,
-    icon: iconUpper as TemplateStepIcon,
-  }
-}
-
 function mapTypeToParameterType(typeName: string): StepParameterType {
   const normalized = typeName.trim()
 
@@ -493,6 +325,93 @@ function extractFunctionDefinition(callExpression: t.CallExpression, sourceCode:
   return code
 }
 
+function getStepKeyword(node: t.CallExpression): StepKeyword | null {
+  const callee = node.callee
+  return t.isIdentifier(callee) && (callee.name === 'When' || callee.name === 'Then' || callee.name === 'Given')
+    ? callee.name
+    : null
+}
+
+function getStepSignature(node: t.CallExpression): string | null {
+  const patternArg = node.arguments[0]
+  return t.isStringLiteral(patternArg) ? patternArg.value : null
+}
+
+function getStepFunction(node: t.CallExpression): t.Function | null {
+  const functionArg = node.arguments[1]
+  return t.isFunction(functionArg) ? functionArg : null
+}
+
+function getIdentifierParameterType(parameter: t.Identifier): string | null {
+  if (!parameter.typeAnnotation || !t.isTSTypeAnnotation(parameter.typeAnnotation)) {
+    return null
+  }
+
+  const annotation = parameter.typeAnnotation.typeAnnotation
+  if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
+    return annotation.typeName.name
+  }
+
+  if (t.isTSStringKeyword(annotation)) return 'string'
+  if (t.isTSNumberKeyword(annotation)) return 'number'
+  if (t.isTSBooleanKeyword(annotation)) return 'boolean'
+  return null
+}
+
+function parseStepParameters(parameters: t.Function['params']): StepParameter[] | null {
+  const parsedParameters: StepParameter[] = []
+
+  for (const parameter of parameters) {
+    if ((t.isIdentifier(parameter) && parameter.name === 'this') || t.isObjectPattern(parameter)) {
+      continue
+    }
+
+    if (!t.isIdentifier(parameter)) {
+      continue
+    }
+
+    const typeName = getIdentifierParameterType(parameter)
+    if (!typeName) {
+      continue
+    }
+
+    try {
+      parsedParameters.push({
+        name: parameter.name,
+        type: mapTypeToParameterType(typeName),
+        order: parsedParameters.length,
+      })
+    } catch {
+      return null
+    }
+  }
+
+  return parsedParameters
+}
+
+function parseStepCall(node: t.CallExpression, content: string): ParsedTemplateStep | null {
+  const keyword = getStepKeyword(node)
+  if (!keyword || node.arguments.length < 2) return null
+
+  const signature = getStepSignature(node)
+  const functionArg = getStepFunction(node)
+  const lineNumber = node.loc?.start?.line
+  if (!signature || !functionArg || lineNumber == null) return null
+
+  const jsdoc = parseStepJSDoc(content, lineNumber - 1)
+  const parameters = parseStepParameters(functionArg.params)
+  if (!jsdoc || !parameters) return null
+
+  return {
+    jsdoc,
+    signature,
+    functionDefinition: extractFunctionDefinition(node, content),
+    normalizedFunctionDefinition: '',
+    parameters,
+    keyword,
+  }
+}
+
 function parseStepFile(content: string): ParsedStepFile | null {
   const group = parseGroupJSDoc(content)
   if (!group) {
@@ -508,87 +427,8 @@ function parseStepFile(content: string): ParsedStepFile | null {
 
   traverse(ast, {
     CallExpression(path: NodePath<t.CallExpression>) {
-      const node = path.node
-      const callee = node.callee
-      let keyword: 'When' | 'Then' | 'Given' | null = null
-
-      if (t.isIdentifier(callee) && (callee.name === 'When' || callee.name === 'Then' || callee.name === 'Given')) {
-        keyword = callee.name as 'When' | 'Then' | 'Given'
-      }
-
-      if (!keyword || node.arguments.length < 2) {
-        return
-      }
-
-      const patternArg = node.arguments[0]
-      const functionArg = node.arguments[1]
-
-      if (!t.isStringLiteral(patternArg) || !t.isFunction(functionArg)) {
-        return
-      }
-
-      const lineNumber = node.loc?.start?.line
-      if (lineNumber == null) {
-        return
-      }
-
-      const jsdoc = parseStepJSDoc(content, lineNumber - 1)
-      if (!jsdoc) {
-        return
-      }
-
-      const parameters: StepParameter[] = []
-      let order = 0
-
-      for (const parameter of functionArg.params) {
-        if (t.isIdentifier(parameter) && parameter.name === 'this') {
-          continue
-        }
-
-        if (t.isObjectPattern(parameter)) {
-          continue
-        }
-
-        if (!t.isIdentifier(parameter) || !parameter.typeAnnotation || !t.isTSTypeAnnotation(parameter.typeAnnotation)) {
-          continue
-        }
-
-        const annotation = parameter.typeAnnotation.typeAnnotation
-        let typeName: string | null = null
-
-        if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
-          typeName = annotation.typeName.name
-        } else if (t.isTSStringKeyword(annotation)) {
-          typeName = 'string'
-        } else if (t.isTSNumberKeyword(annotation)) {
-          typeName = 'number'
-        } else if (t.isTSBooleanKeyword(annotation)) {
-          typeName = 'boolean'
-        }
-
-        if (!typeName) {
-          continue
-        }
-
-        try {
-          parameters.push({
-            name: parameter.name,
-            type: mapTypeToParameterType(typeName),
-            order: order++,
-          })
-        } catch {
-          return
-        }
-      }
-
-      steps.push({
-        jsdoc,
-        signature: patternArg.value,
-        functionDefinition: extractFunctionDefinition(node, content),
-        normalizedFunctionDefinition: '',
-        parameters,
-        keyword,
-      })
+      const step = parseStepCall(path.node, content)
+      if (step) steps.push(step)
     },
   })
 
@@ -610,7 +450,10 @@ function extractFeatureLevelTags(parsedFeature: ParsedFeature): string[] {
   return parsedFeature.tags.flatMap(splitTagLine)
 }
 
-function parseScenarioTitle(scenarioName: string, scenarioDescription?: string): { title: string; description: string } {
+function parseScenarioTitle(
+  scenarioName: string,
+  scenarioDescription?: string,
+): { title: string; description: string } {
   if (scenarioDescription) {
     return {
       title: scenarioDescription.trim(),
@@ -673,7 +516,11 @@ function matchGherkinStepToTemplateStep(
   }>,
 ): { signature: string; parameters: ParameterMatch[] } | null {
   for (const templateStep of templateSteps) {
-    const parameters = extractParametersFromGherkinStep(gherkinStep.text, templateStep.signature, templateStep.parameters)
+    const parameters = extractParametersFromGherkinStep(
+      gherkinStep.text,
+      templateStep.signature,
+      templateStep.parameters,
+    )
     if (parameters) {
       return {
         signature: templateStep.signature,
@@ -723,11 +570,7 @@ function sameStepParameters(
 
   return left.every((parameter, index) => {
     const other = right[index]
-    return (
-      parameter.name === other?.name &&
-      parameter.order === other?.order &&
-      parameter.type === other?.type
-    )
+    return parameter.name === other?.name && parameter.order === other?.order && parameter.type === other?.type
   })
 }
 
@@ -1201,7 +1044,8 @@ export function countTestCaseMismatches(
         .filter(tag => tag.type === TagType.FILTER)
         .map(tag => normalizeTagExpression(tag.tagExpression))
       const isLinkedToExpectedSuite = existing.TestSuite.some(
-        suite => getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/') === expectedSuiteIdentity,
+        suite =>
+          getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/') === expectedSuiteIdentity,
       )
 
       return (
@@ -1222,7 +1066,10 @@ export function countTestCaseMismatches(
 }
 
 function emptyCounts(): SyncPendingCounts {
-  const counts = Object.fromEntries(syncScriptDefinitions.map(definition => [definition.id, 0])) as Record<SyncScriptId, number>
+  const counts = Object.fromEntries(syncScriptDefinitions.map(definition => [definition.id, 0])) as Record<
+    SyncScriptId,
+    number
+  >
   return {
     ...counts,
     [SYNC_ALL_REQUEST_ID]: 0,
@@ -1323,13 +1170,18 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       })),
     )
 
-    const modulePathMap = new Map(dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]))
+    const modulePathMap = new Map(
+      dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]),
+    )
 
     const counts: Record<SyncScriptId, number> = {
       'sync-modules': countModuleMismatches(filesystem.modulePaths, dbModules),
       'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
       'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),
-      'sync-template-step-groups': countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
+      'sync-template-step-groups': countTemplateStepGroupMismatches(
+        filesystem.templateStepGroups,
+        dbTemplateStepGroups,
+      ),
       'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
       'sync-locator-groups': countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
       'sync-locators': countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups),

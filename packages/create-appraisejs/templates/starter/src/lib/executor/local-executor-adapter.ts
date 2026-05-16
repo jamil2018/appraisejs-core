@@ -25,7 +25,7 @@ function generateReportPath(testRunId: string): string {
   return getAutomationRunReportPath(testRunId)
 }
 
-export class LocalExecutorAdapter implements ExecutorAdapter {
+class LocalExecutorAdapter implements ExecutorAdapter {
   async executeTestRun(config: TestRunExecutionRequest): Promise<TestRunExecutionResult> {
     await ensureAutomationWorkspaceReady()
 

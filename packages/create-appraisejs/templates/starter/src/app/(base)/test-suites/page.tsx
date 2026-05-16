@@ -31,11 +31,11 @@ const TestSuites = async () => {
     ...card,
     icon:
       card.legend === 'Empty test suite(s)' ? (
-        <EmptyTube className="h-12 w-12 rounded-sm bg-muted p-2" />
+        <EmptyTube className="size-12 rounded-sm bg-muted p-2" />
       ) : card.legend === 'Latest test suite' ? (
-        <TubePlus className="h-12 w-12 rounded-sm bg-muted p-2" />
+        <TubePlus className="size-12 rounded-sm bg-muted p-2" />
       ) : (
-        <TagIcon className="h-12 w-12 rounded-sm bg-muted p-2" />
+        <TagIcon className="size-12 rounded-sm bg-muted p-2" />
       ),
   }))
 
@@ -43,7 +43,7 @@ const TestSuites = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<TestTubes className="h-8 w-8" />}
+          icon={<TestTubes className="size-8" />}
           title="No test suites found"
           description="Get started by creating a test suite and grouping tests together"
           createRoute="/test-suites/create"
@@ -57,7 +57,7 @@ const TestSuites = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <TestTubes className="mr-2 h-8 w-8" />
+            <TestTubes className="mr-2 size-8" />
             Test Suites
           </span>
         </PageHeader>

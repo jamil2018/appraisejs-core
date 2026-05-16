@@ -37,27 +37,61 @@ export const metadata: Metadata = {
 
 const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const { data, error } = await getTemplateTestCaseByIdAction(id)
+  if (!id?.trim()) {
+    return <div>Error: Invalid template test case id.</div>
+  }
+
+  const [
+    templateCaseResponse,
+    { data: templateStepParams, error: templateStepParamsError },
+    { data: templateSteps, error: templateStepsError },
+    { data: locators, error: locatorsError },
+    { data: locatorGroups, error: locatorGroupsError },
+    { data: environments, error: environmentsError },
+    { data: modules, error: modulesError },
+  ] = await Promise.all([
+    getTemplateTestCaseByIdAction(id),
+    getAllTemplateStepParamsAction(),
+    getAllTemplateStepsAction(),
+    getAllLocatorsAction(),
+    getAllLocatorGroupsAction(),
+    getAllEnvironmentsAction(),
+    getAllModulesAction(),
+  ])
+
+  const { data, error } = templateCaseResponse
 
   if (error) {
     return <div>Error: {error}</div>
   }
+
+  if (!data) {
+    return <div>Error: Template test case not found.</div>
+  }
+
   const templateTestCase = data as TemplateTestCase & {
     steps: (TemplateTestCaseStep & {
       parameters: TemplateTestCaseStepParameter[]
     })[]
     flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
   }
-  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
-  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
-  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
-  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
-  const { data: modules, error: modulesError } = await getAllModulesAction()
-  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError) {
+  if (
+    templateStepParamsError ||
+    templateStepsError ||
+    locatorsError ||
+    locatorGroupsError ||
+    environmentsError ||
+    modulesError
+  ) {
     return (
       <div>
-        Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError}
+        Error:{' '}
+        {templateStepParamsError ||
+          templateStepsError ||
+          locatorsError ||
+          locatorGroupsError ||
+          environmentsError ||
+          modulesError}
       </div>
     )
   }

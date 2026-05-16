@@ -29,7 +29,7 @@ const TestRuns = async ({ searchParams }: { searchParams: Promise<{ filter?: str
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<ListChecks className="h-8 w-8" />}
+          icon={<ListChecks className="size-8" />}
           title="No test runs found"
           description="Get started by creating a test run to execute your test cases"
           createRoute="/test-runs/create"
@@ -44,7 +44,7 @@ const TestRuns = async ({ searchParams }: { searchParams: Promise<{ filter?: str
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <ListChecks className="mr-2 h-8 w-8" />
+            <ListChecks className="mr-2 size-8" />
             Test Runs
           </span>
         </PageHeader>

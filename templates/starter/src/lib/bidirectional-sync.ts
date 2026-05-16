@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs'
-import { join, relative } from 'path'
-import { scanFeatureFiles } from './gherkin-parser'
+import { join } from 'path'
+import { extractModulePathFromFilePath, scanFeatureFiles } from './gherkin-parser'
 import { mergeScenariosWithExistingTestSuites } from './database-sync'
 import { generateFeatureFile } from './feature-file-generator'
 import prisma from '@/config/db-config'
@@ -170,82 +170,8 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
   try {
     console.log('🔍 Performing dry run of bidirectional sync...')
 
-    // Check filesystem -> database sync
-    const parsedFeatures = await scanFeatureFiles(featuresBaseDir)
-
-    for (const feature of parsedFeatures) {
-      const modulePath = extractModulePathFromFilePath(feature.filePath, featuresBaseDir)
-
-      // Check if module exists
-      const moduleExists = await checkModuleExists(modulePath)
-      if (!moduleExists) {
-        wouldCreate.testSuites.push(`Module: ${modulePath}`)
-      }
-
-      // Check if test suite exists
-      const testSuiteExists = await checkTestSuiteExists(feature.featureName, modulePath)
-      if (!testSuiteExists) {
-        wouldCreate.testSuites.push(`Test Suite: ${feature.featureName}`)
-      }
-
-      // Check scenarios
-      for (const scenario of feature.scenarios) {
-        const testCaseExists = await checkTestCaseExists(scenario.name, feature.featureName, modulePath)
-        if (!testCaseExists) {
-          wouldCreate.testCases.push(`Test Case: ${scenario.name}`)
-        }
-
-        // Check template steps
-        for (const step of scenario.steps) {
-          const templateStepExists = await checkTemplateStepExists(step)
-          if (!templateStepExists) {
-            wouldCreate.templateSteps.push(`Template Step: ${step.keyword} ${step.text}`)
-          }
-        }
-
-        // Check scenario-level tags
-        for (const tag of scenario.tags) {
-          const tagExists = await checkTagExists(tag)
-          if (!tagExists) {
-            if (!wouldCreate.tags.includes(tag)) {
-              wouldCreate.tags.push(tag)
-            }
-          }
-        }
-      }
-
-      // Check feature-level tags
-      for (const tag of feature.tags) {
-        const tagExists = await checkTagExists(tag)
-        if (!tagExists) {
-          if (!wouldCreate.tags.includes(tag)) {
-            wouldCreate.tags.push(tag)
-          }
-        }
-      }
-    }
-
-    // Check database -> filesystem sync
-    const testSuites = await prisma.testSuite.findMany({
-      include: {
-        testCases: true,
-        module: true,
-      },
-    })
-
-    for (const testSuite of testSuites) {
-      const expectedPath = buildExpectedFeatureFilePath(testSuite, featuresBaseDir)
-      const fileExists = await fs
-        .access(expectedPath)
-        .then(() => true)
-        .catch(() => false)
-
-      if (fileExists) {
-        wouldUpdate.push(expectedPath)
-      } else {
-        wouldGenerate.push(expectedPath)
-      }
-    }
+    await collectFilesystemDryRunChanges(featuresBaseDir, wouldCreate)
+    await collectDatabaseDryRunChanges(featuresBaseDir, wouldGenerate, wouldUpdate)
 
     console.log('🔍 Dry run completed!')
     console.log(`Would generate ${wouldGenerate.length} feature files`)
@@ -268,38 +194,19 @@ export async function performDryRunSync(featuresBaseDir: string): Promise<{
 
 // Helper functions for dry run
 
-function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  // Use path.relative for cross-platform path handling
-  const relativePath = relative(featuresBaseDir, featureFilePath)
-
-  // Normalize to forward slashes for module path format (database uses /)
-  const normalizedPath = relativePath.replace(/\\/g, '/')
-  const pathParts = normalizedPath.split('/').filter(part => part && part !== '')
-  const moduleParts = pathParts.slice(0, -1)
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
+type DryRunCreateSummary = {
+  testSuites: string[]
+  testCases: string[]
+  templateSteps: string[]
+  tags: string[]
 }
 
+type ParsedDryRunFeature = Awaited<ReturnType<typeof scanFeatureFiles>>[number]
+type ParsedDryRunScenario = ParsedDryRunFeature['scenarios'][number]
+
 async function checkModuleExists(modulePath: string): Promise<boolean> {
-  try {
-    const pathParts = modulePath.split('/').filter(part => part && part !== '')
-    if (pathParts.length === 0) return true
-
-    let currentParentId: string | null = null
-
-    for (const moduleName of pathParts) {
-      const foundModule: Module | null = await prisma.module.findFirst({
-        where: {
-          name: moduleName,
-          parentId: currentParentId,
-        },
-      })
-      if (!foundModule) return false
-      currentParentId = foundModule.id
-    }
-    return true
-  } catch {
-    return false
-  }
+  const pathParts = modulePath.split('/').filter(part => part && part !== '')
+  return pathParts.length === 0 || (await findModuleIdByPath(modulePath)) !== null
 }
 
 async function checkTestSuiteExists(featureName: string, modulePath: string): Promise<boolean> {
@@ -429,4 +336,106 @@ function buildExpectedFeatureFilePath(testSuite: TestSuiteWithModule, featuresBa
 function buildModulePathFromTestSuite(testSuite: TestSuiteWithModule): string {
   // Simplified module path building - in practice, you'd use the existing logic
   return `/${testSuite.module.name}`
+}
+
+async function collectFilesystemDryRunChanges(featuresBaseDir: string, wouldCreate: DryRunCreateSummary) {
+  const parsedFeatures = await scanFeatureFiles(featuresBaseDir)
+
+  for (const feature of parsedFeatures) {
+    await collectFeatureDryRunChanges(feature, featuresBaseDir, wouldCreate)
+  }
+}
+
+async function collectFeatureDryRunChanges(
+  feature: ParsedDryRunFeature,
+  featuresBaseDir: string,
+  wouldCreate: DryRunCreateSummary,
+) {
+  const modulePath = extractModulePathFromFilePath(feature.filePath, featuresBaseDir)
+
+  await collectModuleAndSuiteDryRunChanges(feature.featureName, modulePath, wouldCreate)
+
+  for (const scenario of feature.scenarios) {
+    await collectScenarioDryRunChanges(scenario, feature.featureName, modulePath, wouldCreate)
+  }
+
+  await collectMissingTags(feature.tags, wouldCreate)
+}
+
+async function collectModuleAndSuiteDryRunChanges(
+  featureName: string,
+  modulePath: string,
+  wouldCreate: DryRunCreateSummary,
+) {
+  const moduleExists = await checkModuleExists(modulePath)
+  if (!moduleExists) {
+    wouldCreate.testSuites.push(`Module: ${modulePath}`)
+  }
+
+  const testSuiteExists = await checkTestSuiteExists(featureName, modulePath)
+  if (!testSuiteExists) {
+    wouldCreate.testSuites.push(`Test Suite: ${featureName}`)
+  }
+}
+
+async function collectScenarioDryRunChanges(
+  scenario: ParsedDryRunScenario,
+  featureName: string,
+  modulePath: string,
+  wouldCreate: DryRunCreateSummary,
+) {
+  const testCaseExists = await checkTestCaseExists(scenario.name, featureName, modulePath)
+  if (!testCaseExists) {
+    wouldCreate.testCases.push(`Test Case: ${scenario.name}`)
+  }
+
+  for (const step of scenario.steps) {
+    const templateStepExists = await checkTemplateStepExists(step)
+    if (!templateStepExists) {
+      wouldCreate.templateSteps.push(`Template Step: ${step.keyword} ${step.text}`)
+    }
+  }
+
+  await collectMissingTags(scenario.tags, wouldCreate)
+}
+
+async function collectMissingTags(tags: string[], wouldCreate: DryRunCreateSummary) {
+  for (const tag of tags) {
+    const tagExists = await checkTagExists(tag)
+    if (!tagExists && !wouldCreate.tags.includes(tag)) {
+      wouldCreate.tags.push(tag)
+    }
+  }
+}
+
+async function collectDatabaseDryRunChanges(featuresBaseDir: string, wouldGenerate: string[], wouldUpdate: string[]) {
+  const testSuites = await prisma.testSuite.findMany({
+    include: {
+      testCases: true,
+      module: true,
+    },
+  })
+
+  for (const testSuite of testSuites) {
+    await collectFeatureFileDryRunChange(testSuite, featuresBaseDir, wouldGenerate, wouldUpdate)
+  }
+}
+
+async function collectFeatureFileDryRunChange(
+  testSuite: TestSuiteWithModule,
+  featuresBaseDir: string,
+  wouldGenerate: string[],
+  wouldUpdate: string[],
+) {
+  const expectedPath = buildExpectedFeatureFilePath(testSuite, featuresBaseDir)
+  const fileExists = await fs
+    .access(expectedPath)
+    .then(() => true)
+    .catch(() => false)
+
+  if (fileExists) {
+    wouldUpdate.push(expectedPath)
+  } else {
+    wouldGenerate.push(expectedPath)
+  }
 }

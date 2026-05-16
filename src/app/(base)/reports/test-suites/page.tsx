@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: 'Manage test suites report for identifying test suites that are not executed recently',
 }
 
-const TestSuitesMetricsReport = async ({searchParams}: {searchParams: Promise<{filter?: string}>}) => {
+const TestSuitesMetricsReport = async ({ searchParams }: { searchParams: Promise<{ filter?: string }> }) => {
   const resolvedSearchParams = await searchParams
   const filter = resolvedSearchParams?.filter as 'notExecutedRecently' | undefined
 
@@ -22,7 +22,7 @@ const TestSuitesMetricsReport = async ({searchParams}: {searchParams: Promise<{f
           <div>
             <PageHeader>
               <span className="flex items-center">
-                <TestTubes className="mr-2 h-8 w-8" />
+                <TestTubes className="mr-2 size-8" />
                 Test Suites Report
               </span>
             </PageHeader>

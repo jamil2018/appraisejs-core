@@ -1,14 +1,15 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
+import { OptionsHeaderGherkinStep } from './options-header-gherkin-step'
+
 import { Handle, NodeProps, Position, useNodeId, useReactFlow } from '@xyflow/react'
 import { Pencil, Plus, Trash } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react'
+import * as motion from 'motion/react-m'
 import { TemplateStepIcon, type StepParameterType } from '@prisma/client'
 
 import { BaseNode } from '@/components/base-node'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { KeyToIconTransformer } from '@/lib/transformers/key-to-icon-transformer'
 import { cn } from '@/lib/utils'
 import { flowEdgeMutationGuardRef } from './button-edge'
@@ -38,10 +39,6 @@ interface OptionsHeaderNodeProps extends NodeProps {
   onAddConnectedNode: (nodeId: string) => void
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
 function getTemplateStepIcon(icon: OptionsHeaderNodeData['icon']) {
   return Object.values(TemplateStepIcon).includes(icon as TemplateStepIcon)
     ? (icon as TemplateStepIcon)
@@ -66,9 +63,6 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
     isDeleteDisabled,
     parameters = [],
   } = data as unknown as OptionsHeaderNodeData
-  const sortedParameters = [...parameters].sort((left, right) => left.order - right.order)
-  const nonEmptyParameters = sortedParameters.filter(parameter => parameter.value.trim().length > 0)
-
   const handleEdit = useCallback(() => {
     if (!id) return
     onEdit(id)
@@ -110,50 +104,8 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
 
   useEffect(() => clearHideToolbarTimeout, [clearHideToolbarTimeout])
 
-  const renderGherkinWithParamChips = useCallback(() => {
-    if (!nonEmptyParameters.length) {
-      return gherkinStep
-    }
-
-    const allTokens = nonEmptyParameters
-      .map(parameter => parameter.value)
-      .sort((left, right) => right.length - left.length)
-      .map(escapeRegExp)
-
-    const tokenRegex = new RegExp(`(${allTokens.join('|')})`, 'g')
-    const stepParts = gherkinStep.split(tokenRegex)
-
-    return stepParts.map((part, index) => {
-      const matchingParameter = nonEmptyParameters.find(parameter => parameter.value === part)
-      if (!matchingParameter) {
-        return (
-          <span key={`text-${index}`} className="whitespace-pre-wrap">
-            {part}
-          </span>
-        )
-      }
-
-      return (
-        <TooltipProvider key={`chip-${matchingParameter.name}-${index}`} delayDuration={40}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge
-                variant="outline"
-                className="border-primary/30 bg-primary/10 mx-0.5 inline-flex cursor-help px-1.5 py-0 align-baseline text-[11px] font-medium text-primary"
-              >
-                {matchingParameter.value}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="font-mono text-[10px] font-medium">
-              {matchingParameter.name}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )
-    })
-  }, [gherkinStep, nonEmptyParameters])
-
   return (
+    <LazyMotion features={domAnimation} strict>
     <BaseNode
       selected={selected}
       data-testid="options-header-node"
@@ -176,11 +128,11 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
       )}
     >
       {!isFirstNode && (
-        <Handle type="target" position={Position.Left} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400" />
+        <Handle type="target" position={Position.Left} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
       )}
       <AnimatePresence>
         {showToolbar && (
-          <div className="absolute -top-12 left-1/2 z-10 -translate-x-1/2">
+          <div className="absolute -top-12 left-1/2 z-10 -tranzinc-x-1/2">
             <motion.div
               className="border-border/70 bg-muted/80 flex items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
               onMouseEnter={showToolbarNow}
@@ -194,7 +146,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
                 type="button"
                 variant="outline"
                 size="icon"
-                className="nodrag h-7 w-7"
+                className="nodrag size-7"
                 aria-label="Edit"
                 onClick={handleEdit}
               >
@@ -204,7 +156,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
                 type="button"
                 variant="outline"
                 size="icon"
-                className="nodrag h-7 w-7"
+                className="nodrag size-7"
                 aria-label="Delete"
                 onClick={handleDelete}
                 disabled={isDeleteDisabled}
@@ -217,7 +169,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
       </AnimatePresence>
       <AnimatePresence>
         {!hasOutgoingConnection && !isConnectionInProgress && (
-          <div className="absolute left-full top-1/2 z-20 -translate-y-1/2">
+          <div className="absolute left-full top-1/2 z-20 -tranzinc-y-1/2">
             <motion.div
               className="flex items-center"
               initial={{ opacity: 0, x: -6, scale: 0.96 }}
@@ -235,7 +187,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
               />
               <motion.button
                 type="button"
-                className="nodrag nopan border-border/70 bg-muted/95 -ml-px flex h-5 w-5 items-center justify-center rounded border text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                className="nodrag nopan border-border/70 bg-muted/95 -ml-px flex size-5 items-center justify-center rounded border text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
                 aria-label="Add connected node"
                 onClick={handleAddConnectedNode}
                 whileHover={{ scale: 1.12 }}
@@ -255,7 +207,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
                   },
                 }}
               >
-                <Plus aria-hidden="true" className="h-3 w-3" />
+                <Plus aria-hidden="true" className="size-3" />
               </motion.button>
             </motion.div>
           </div>
@@ -269,7 +221,7 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
           {KeyToIconTransformer(getTemplateStepIcon(icon))}
         </div>
       </div>
-      <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -translate-x-[47%]">
+      <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -tranzinc-x-[47%]">
         <h3 className="relative -left-2 w-full text-center text-lg font-bold leading-tight text-card-foreground">
           {label}
         </h3>
@@ -283,13 +235,14 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
               exit={{ opacity: 0, y: 6 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              {renderGherkinWithParamChips()}
+              <OptionsHeaderGherkinStep gherkinStep={gherkinStep} parameters={parameters} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-slate-400" />
+      <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
     </BaseNode>
+    </LazyMotion>
   )
 })
 

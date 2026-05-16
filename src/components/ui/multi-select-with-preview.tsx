@@ -26,7 +26,9 @@ interface MultiSelectWithPreviewProps {
   searchPlaceholder?: string
 }
 
-export function MultiSelectWithPreview({
+const EMPTY_SELECTED_VALUES: string[] = []
+
+function MultiSelectWithPreviewImpl({
   id,
   className,
   options,
@@ -34,11 +36,12 @@ export function MultiSelectWithPreview({
   emptyMessage = 'No option found.',
   selectedLabel = 'option(s) selected',
   onSelectChange,
-  defaultSelectedValues = [],
+  defaultSelectedValues = EMPTY_SELECTED_VALUES,
   searchPlaceholder = 'Search options...',
 }: MultiSelectWithPreviewProps) {
+  const listId = React.useId()
   const [open, setOpen] = React.useState(false)
-  const [selectedValues, setSelectedValues] = React.useState<string[]>(defaultSelectedValues)
+  const [selectedValues, setSelectedValues] = React.useState<string[]>(() => [...defaultSelectedValues])
 
   const handleSelect = (value: string) => {
     const newSelectedValues = selectedValues.includes(value)
@@ -56,16 +59,17 @@ export function MultiSelectWithPreview({
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-controls={listId}
             className={cn('w-full justify-between text-muted-foreground', className)}
           >
             {selectedValues.length > 0 ? `${selectedValues.length} ${selectedLabel.toLowerCase()}` : placeholder}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className={cn('w-full max-w-[600px] p-0', className)} align="start">
           <Command className={cn('w-full', className)}>
             <CommandInput placeholder={searchPlaceholder ?? `Search item(s)...`} className="w-full" />
-            <CommandList className={cn('w-full', className)}>
+            <CommandList id={listId} className={cn('w-full', className)}>
               <CommandEmpty>{emptyMessage}</CommandEmpty>
               <CommandGroup className={cn('w-full', className)}>
                 {options.map(option => (
@@ -77,7 +81,7 @@ export function MultiSelectWithPreview({
                   >
                     <Check
                       className={cn(
-                        'mr-2 h-4 w-4 flex-shrink-0',
+                        'mr-2 size-4 flex-shrink-0',
                         selectedValues.includes(option.value) ? 'opacity-100' : 'opacity-0',
                       )}
                     />
@@ -100,7 +104,7 @@ export function MultiSelectWithPreview({
                 <li key={value} className="flex items-center justify-between rounded-md bg-secondary p-2">
                   <span className="text-sm">{option.label}</span>
                   <Button variant="ghost" size="sm" onClick={() => handleSelect(value)} className="h-auto p-1">
-                    <X className="h-4 w-4" />
+                    <X className="size-4" />
                     <span className="sr-only">Remove</span>
                   </Button>
                 </li>
@@ -111,6 +115,15 @@ export function MultiSelectWithPreview({
       )}
     </TooltipProvider>
   )
+}
+
+function MultiSelectWithPreview(props: MultiSelectWithPreviewProps) {
+  const remountKey = React.useMemo(
+    () => JSON.stringify(props.defaultSelectedValues ?? EMPTY_SELECTED_VALUES),
+    [props.defaultSelectedValues],
+  )
+
+  return <MultiSelectWithPreviewImpl key={remountKey} {...props} />
 }
 
 export default MultiSelectWithPreview

@@ -33,7 +33,7 @@
     "registry"
   ],
   "scripts": {
-    "prepare": "node --import tsx ../../scripts/build-step-registry.ts && npm run build",
+    "prepare": "npm run build",
     "build": "tsc",
     "test": "vitest run",
     "publish:alpha": "npm publish --tag alpha",

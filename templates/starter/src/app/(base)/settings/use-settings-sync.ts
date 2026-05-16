@@ -61,6 +61,5 @@ export function useSettingsSync({ initialPendingCounts }: UseSettingsSyncOptions
     isRunning: activeRequestId !== null,
     pendingCounts,
     runSync,
-    setPendingCounts,
   }
 }

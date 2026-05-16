@@ -52,15 +52,15 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
 
   const statusIcon =
     connectionStatus === 'connecting' || connectionStatus === 'loading' ? (
-      <LoaderCircle className="h-4 w-4 animate-spin" />
+      <LoaderCircle className="size-4 animate-spin" />
     ) : connectionStatus === 'connected' ? (
-      <Wifi className="h-4 w-4 text-green-500" />
+      <Wifi className="size-4 text-green-500" />
     ) : connectionStatus === 'disconnected' ? (
-      <WifiOff className="h-4 w-4 text-gray-500" />
+      <WifiOff className="size-4 text-zinc-500" />
     ) : connectionStatus === 'error' ? (
-      <XCircle className="h-4 w-4 text-red-500" />
+      <XCircle className="size-4 text-red-500" />
     ) : (
-      <CheckCircle className="h-4 w-4 text-blue-500" />
+      <CheckCircle className="size-4 text-blue-500" />
     )
 
   return (
@@ -68,7 +68,7 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Logs className="h-6 w-6" />
+            <Logs className="size-6" />
             Live Logs
           </span>
           {connectionStatus === 'completed' || connectionStatus === 'disconnected' ? (
@@ -103,16 +103,16 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
           >
             {logs.length === 0 && (connectionStatus === 'connecting' || connectionStatus === 'loading') ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                <LoaderCircle className="mr-2 size-4 animate-spin" />
                 {connectionStatus === 'loading' ? 'Loading logs...' : 'Connecting to log stream...'}
               </div>
             ) : null}
             {logs.length === 0 && connectionStatus !== 'connecting' && connectionStatus !== 'loading' ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">No logs available</div>
             ) : null}
-            {logs.map((log, index) => (
+            {logs.map(log => (
               <div
-                key={index}
+                key={`${log.timestamp.toISOString()}-${log.type}-${log.message}`}
                 className={cn(
                   'mb-1 flex items-start gap-2 whitespace-pre-wrap break-words',
                   log.type === 'stderr' && 'text-red-400',

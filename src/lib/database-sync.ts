@@ -1,91 +1,9 @@
-import { relative } from 'path'
 import prisma from '@/config/db-config'
 import { ParsedFeature, ParsedStep } from './gherkin-parser'
 import { buildModuleHierarchy } from './module-hierarchy-builder'
-import { TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
-import { getTagTypeFromExpression } from './tag-utils'
-
-/**
- * Syncs feature files to the database by creating missing test suites and test cases
- * @param parsedFeatures - Array of parsed feature files
- * @param featuresBaseDir - Base directory for features
- * @returns Promise<{createdTestSuites: number, createdTestCases: number, createdTemplateSteps: number}>
- */
-export async function syncFeaturesToDatabase(
-  parsedFeatures: ParsedFeature[],
-  featuresBaseDir: string,
-): Promise<{
-  createdTestSuites: number
-  createdTestCases: number
-  createdTemplateSteps: number
-}> {
-  let createdTestSuites = 0
-  let createdTestCases = 0
-  let createdTemplateSteps = 0
-
-  try {
-    for (const feature of parsedFeatures) {
-      // Extract module path from file path
-      const modulePath = extractModulePathFromFilePath(feature.filePath, featuresBaseDir)
-
-      // Build or find the module hierarchy
-      const moduleId = await buildModuleHierarchy(modulePath)
-
-      // Find or create test suite
-      const testSuiteId = await findOrCreateTestSuite(
-        feature.featureName,
-        feature.featureDescription,
-        moduleId,
-        feature.tags,
-      )
-
-      if (testSuiteId) {
-        createdTestSuites++
-
-        // Process each scenario in the feature
-        for (const scenario of feature.scenarios) {
-          const testCaseId = await findOrCreateTestCase(
-            scenario.name,
-            scenario.description || '',
-            testSuiteId,
-            scenario.tags,
-          )
-
-          if (testCaseId) {
-            createdTestCases++
-
-            // Process steps for this test case
-            for (const step of scenario.steps) {
-              const templateStepId = await findOrCreateTemplateStep(step)
-
-              if (templateStepId) {
-                createdTemplateSteps++
-              }
-
-              // Create or update test case step
-              if (testCaseId && templateStepId) {
-                await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
-              }
-            }
-          }
-        }
-      }
-    }
-
-    console.log(
-      `Sync completed: ${createdTestSuites} test suites, ${createdTestCases} test cases, ${createdTemplateSteps} template steps created`,
-    )
-
-    return {
-      createdTestSuites,
-      createdTestCases,
-      createdTemplateSteps,
-    }
-  } catch (error) {
-    console.error('Error syncing features to database:', error)
-    throw error
-  }
-}
+import { Prisma, TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
+import { getTagTypeFromExpression } from './tag-identifiers'
+import { getFeatureModulePath } from './path-helpers/feature-path'
 
 /**
  * Determines the tag type based on the tag expression pattern
@@ -151,23 +69,6 @@ async function findOrCreateTag(tagExpression: string): Promise<string> {
     console.error(`Error finding/creating tag ${tagExpression}:`, error)
     throw error
   }
-}
-
-/**
- * Extracts module path from feature file path
- * Works cross-platform (Windows, Mac, Linux)
- */
-function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  // Use path.relative for cross-platform path handling
-  const relativePath = relative(featuresBaseDir, featureFilePath)
-
-  // Normalize to forward slashes for module path format (database uses /)
-  const normalizedPath = relativePath.replace(/\\/g, '/')
-  const pathParts = normalizedPath.split('/').filter(part => part && part !== '')
-
-  // Remove the filename and join the remaining parts
-  const moduleParts = pathParts.slice(0, -1)
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
 }
 
 /**
@@ -406,6 +307,115 @@ async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, 
   }
 }
 
+type ParsedScenario = ParsedFeature['scenarios'][number]
+type ExistingTestSuite = Prisma.TestSuiteGetPayload<{
+  include: {
+    testCases: true
+  }
+}>
+
+async function createScenarioTestCase(scenario: ParsedScenario, testSuiteId: string): Promise<string | null> {
+  return findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId, scenario.tags)
+}
+
+async function createScenarioSteps(testCaseId: string, steps: ParsedStep[]): Promise<number> {
+  let createdTemplateSteps = 0
+
+  for (const step of steps) {
+    const templateStepId = await findOrCreateTemplateStep(step)
+
+    if (templateStepId) {
+      createdTemplateSteps++
+      await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
+    }
+  }
+
+  return createdTemplateSteps
+}
+
+async function findExistingTestSuite(feature: ParsedFeature, moduleId: string): Promise<ExistingTestSuite | null> {
+  return prisma.testSuite.findFirst({
+    where: {
+      name: feature.featureName,
+      moduleId: moduleId,
+    },
+    include: {
+      testCases: true,
+    },
+  })
+}
+
+async function connectTagsToTestSuite(testSuiteId: string, tags?: string[]): Promise<void> {
+  if (!tags || tags.length === 0) {
+    return
+  }
+
+  const tagIds = await Promise.all(tags.map(tag => findOrCreateTag(tag)))
+
+  await prisma.testSuite.update({
+    where: { id: testSuiteId },
+    data: {
+      tags: {
+        connect: tagIds.map(id => ({ id })),
+      },
+    },
+  })
+}
+
+async function addMissingScenariosToTestSuite(feature: ParsedFeature, testSuite: ExistingTestSuite): Promise<number> {
+  let addedScenarios = 0
+
+  for (const scenario of feature.scenarios) {
+    const existingTestCase = testSuite.testCases.find(tc => tc.title === scenario.name)
+
+    if (!existingTestCase && (await addScenarioToTestSuite(scenario, testSuite.id))) {
+      addedScenarios++
+    }
+  }
+
+  return addedScenarios
+}
+
+async function addScenarioToTestSuite(scenario: ParsedScenario, testSuiteId: string): Promise<boolean> {
+  const testCaseId = await createScenarioTestCase(scenario, testSuiteId)
+
+  if (!testCaseId) {
+    return false
+  }
+
+  await createScenarioSteps(testCaseId, scenario.steps)
+  return true
+}
+
+async function createTestSuiteWithScenarios(
+  feature: ParsedFeature,
+  moduleId: string,
+): Promise<{
+  createdTestSuite: boolean
+  addedScenarios: number
+}> {
+  const testSuiteId = await findOrCreateTestSuite(
+    feature.featureName,
+    feature.featureDescription,
+    moduleId,
+    feature.tags,
+  )
+
+  if (!testSuiteId) {
+    return { createdTestSuite: false, addedScenarios: 0 }
+  }
+
+  let addedScenarios = 0
+
+  for (const scenario of feature.scenarios) {
+    if (await addScenarioToTestSuite(scenario, testSuiteId)) {
+      addedScenarios++
+    }
+  }
+
+  return { createdTestSuite: true, addedScenarios }
+}
+
 /**
  * Merges scenarios from feature files with existing test suites
  * This handles conflicts by adding missing scenarios to existing test suites
@@ -422,95 +432,10 @@ export async function mergeScenariosWithExistingTestSuites(
 
   try {
     for (const feature of parsedFeatures) {
-      const modulePath = extractModulePathFromFilePath(feature.filePath, featuresBaseDir)
-      const moduleId = await buildModuleHierarchy(modulePath)
+      const result = await mergeFeatureScenarios(feature, featuresBaseDir)
 
-      // Find existing test suite
-      const existingTestSuite = await prisma.testSuite.findFirst({
-        where: {
-          name: feature.featureName,
-          moduleId: moduleId,
-        },
-        include: {
-          testCases: true,
-        },
-      })
-
-      if (existingTestSuite) {
-        mergedTestSuites++
-
-        // Associate feature-level tags with existing test suite
-        if (feature.tags && feature.tags.length > 0) {
-          const tagIds = await Promise.all(feature.tags.map(tag => findOrCreateTag(tag)))
-          await prisma.testSuite.update({
-            where: { id: existingTestSuite.id },
-            data: {
-              tags: {
-                connect: tagIds.map(id => ({ id })),
-              },
-            },
-          })
-        }
-
-        // Check each scenario and add if it doesn't exist
-        for (const scenario of feature.scenarios) {
-          const existingTestCase = existingTestSuite.testCases.find(tc => tc.title === scenario.name)
-
-          if (!existingTestCase) {
-            // Create new test case for this scenario
-            const testCaseId = await findOrCreateTestCase(
-              scenario.name,
-              scenario.description || '',
-              existingTestSuite.id,
-              scenario.tags,
-            )
-
-            if (testCaseId) {
-              addedScenarios++
-
-              // Add steps for this test case
-              for (const step of scenario.steps) {
-                const templateStepId = await findOrCreateTemplateStep(step)
-                if (templateStepId && testCaseId) {
-                  await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
-                }
-              }
-            }
-          }
-        }
-      } else {
-        // Create new test suite with all scenarios
-        const testSuiteId = await findOrCreateTestSuite(
-          feature.featureName,
-          feature.featureDescription,
-          moduleId,
-          feature.tags,
-        )
-
-        if (testSuiteId) {
-          mergedTestSuites++
-
-          for (const scenario of feature.scenarios) {
-            const testCaseId = await findOrCreateTestCase(
-              scenario.name,
-              scenario.description || '',
-              testSuiteId,
-              scenario.tags,
-            )
-
-            if (testCaseId) {
-              addedScenarios++
-
-              for (const step of scenario.steps) {
-                const templateStepId = await findOrCreateTemplateStep(step)
-                if (templateStepId && testCaseId) {
-                  await createOrUpdateTestCaseStep(testCaseId, step, templateStepId)
-                }
-              }
-            }
-          }
-        }
-      }
+      mergedTestSuites += result.mergedTestSuites
+      addedScenarios += result.addedScenarios
     }
 
     console.log(`Merge completed: ${mergedTestSuites} test suites processed, ${addedScenarios} new scenarios added`)
@@ -522,5 +447,32 @@ export async function mergeScenariosWithExistingTestSuites(
   } catch (error) {
     console.error('Error merging scenarios with existing test suites:', error)
     throw error
+  }
+}
+
+async function mergeFeatureScenarios(
+  feature: ParsedFeature,
+  featuresBaseDir: string,
+): Promise<{
+  mergedTestSuites: number
+  addedScenarios: number
+}> {
+  const moduleId = await buildModuleHierarchy(getFeatureModulePath(feature.filePath, featuresBaseDir))
+  const existingTestSuite = await findExistingTestSuite(feature, moduleId)
+
+  if (existingTestSuite) {
+    await connectTagsToTestSuite(existingTestSuite.id, feature.tags)
+
+    return {
+      mergedTestSuites: 1,
+      addedScenarios: await addMissingScenariosToTestSuite(feature, existingTestSuite),
+    }
+  }
+
+  const result = await createTestSuiteWithScenarios(feature, moduleId)
+
+  return {
+    mergedTestSuites: result.createdTestSuite ? 1 : 0,
+    addedScenarios: result.addedScenarios,
   }
 }

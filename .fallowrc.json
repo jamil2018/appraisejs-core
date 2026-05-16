@@ -1,0 +1,66 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "src/app/(base)/**/*.{ts,tsx}",
+    "scripts/**/*.{ts,tsx,js,mjs,cjs}"
+  ],
+  "ignorePatterns": [
+    ".next/**",
+    ".fallow/**",
+    "automation/**",
+    "docs/**",
+    "packages/**",
+    "public/**",
+    "templates/**"
+  ],
+  "ignoreDependencies": [
+    "@codemirror/lang-jinja",
+    "@faker-js/faker",
+    "dotenv"
+  ],
+  "duplicates": {
+    "ignore": [
+      "automation/**",
+      "packages/**",
+      "templates/**"
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/actions/**",
+        "src/app/(dashboard-components)/**",
+        "src/app/api/**",
+        "src/app/globals.css",
+        "src/app/layout.tsx",
+        "src/app/page.tsx",
+        "src/assets/**",
+        "src/components/**",
+        "src/config/**",
+        "src/constants/**",
+        "src/hooks/**",
+        "src/lib/**",
+        "src/services/**",
+        "src/types/**"
+      ],
+      "rules": {
+        "unused-files": "warn",
+        "unused-exports": "warn",
+        "unused-types": "warn",
+        "unused-dependencies": "warn",
+        "duplicate-exports": "warn"
+      }
+    }
+  ],
+  "rules": {
+    "unused-files": "error",
+    "unused-exports": "error",
+    "unused-types": "error",
+    "unused-dependencies": "error",
+    "duplicate-exports": "error",
+    "circular-dependencies": "error",
+    "unresolved-imports": "error",
+    "complexity": "warn",
+    "duplicates": "warn"
+  }
+}

@@ -29,6 +29,11 @@ const basePayload = tagSchema.parse({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(prisma.tag.findFirst).mockReset()
+  vi.mocked(prisma.tag.findUnique).mockReset()
+  vi.mocked(prisma.tag.create).mockReset()
+  vi.mocked(prisma.tag.update).mockReset()
+  vi.mocked(automationProjectionService.regenerateAllFeatures).mockResolvedValue(undefined)
 })
 
 describe('getTagByIdOrThrow', () => {
@@ -101,9 +106,7 @@ describe('updateTag', () => {
 
   it('throws when tag expression already exists on another tag', async () => {
     vi.mocked(prisma.tag.findUnique).mockResolvedValue({ name: 'Smoke', tagExpression: '@old-smoke' } as never)
-    vi.mocked(prisma.tag.findFirst)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'tag-2' } as never)
+    vi.mocked(prisma.tag.findFirst).mockResolvedValueOnce({ id: 'tag-2' } as never)
 
     await expect(
       updateTag(

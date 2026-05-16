@@ -20,16 +20,18 @@ import {
   buildNodeOrderFromTestCaseSteps,
   buildFlowBlocksFromTestCaseRows,
   getEditableTestCase,
+} from '../../editable-test-case-helpers'
+import {
   getEnvironmentRows,
   getLocatorGroupRows,
   getLocatorRows,
   getModuleRows,
   getTagRows,
-  getTestCaseRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
   getTestSuiteRows,
-} from '../../test-case-route-helpers'
+} from '../../test-case-resource-rows'
+import { getTestCaseRows } from '../../test-case-row-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Test Case',

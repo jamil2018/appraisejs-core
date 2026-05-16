@@ -69,7 +69,7 @@ export function NavCommandSearch({ commandMode, searchQuery, onSelectRoute }: Na
           fetchAction={getAllTestSuitesAction}
           getEntities={getTestSuiteRows}
           searchKey="name"
-          icon={<TestTubes className="h-4 w-4" />}
+          icon={<TestTubes className="size-4" />}
           onSelect={testSuite => onSelectRoute(`/test-suites/modify/${testSuite.id}`)}
         />
       )
@@ -81,7 +81,7 @@ export function NavCommandSearch({ commandMode, searchQuery, onSelectRoute }: Na
           fetchAction={getAllTestCasesAction}
           getEntities={getTestCaseRows}
           searchKey="title"
-          icon={<TestTubeDiagonal className="h-4 w-4" />}
+          icon={<TestTubeDiagonal className="size-4" />}
           onSelect={testCase => onSelectRoute(`/test-cases/modify/${testCase.id}`)}
         />
       )
@@ -93,7 +93,7 @@ export function NavCommandSearch({ commandMode, searchQuery, onSelectRoute }: Na
           fetchAction={getAllTemplateStepsAction}
           getEntities={getTemplateStepRows}
           searchKey="name"
-          icon={<LayoutTemplate className="h-4 w-4" />}
+          icon={<LayoutTemplate className="size-4" />}
           onSelect={templateStep => onSelectRoute(`/template-steps/modify/${templateStep.id}`)}
         />
       )
@@ -105,7 +105,7 @@ export function NavCommandSearch({ commandMode, searchQuery, onSelectRoute }: Na
           fetchAction={getAllTestRunsAction}
           getEntities={getTestRunRows}
           searchKey="name"
-          icon={<ListChecks className="h-4 w-4" />}
+          icon={<ListChecks className="size-4" />}
           onSelect={testRun => onSelectRoute(`/test-runs/${testRun.id}`)}
         />
       )
@@ -117,7 +117,7 @@ export function NavCommandSearch({ commandMode, searchQuery, onSelectRoute }: Na
           fetchAction={getAllTemplateTestCasesAction}
           getEntities={getTemplateTestCaseRows}
           searchKey="name"
-          icon={<Blocks className="h-4 w-4" />}
+          icon={<Blocks className="size-4" />}
           onSelect={templateTestCase => onSelectRoute(`/template-test-cases/modify/${templateTestCase.id}`)}
         />
       )

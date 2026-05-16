@@ -10,7 +10,7 @@ export const moduleSchema = z.object({
 
 export type Module = z.infer<typeof moduleSchema>
 
-export const formOpts = {
+export const moduleFormOpts = {
   defaultValues: {
     name: '',
     parentId: ROOT_MODULE_UUID,

@@ -41,13 +41,13 @@ export function TestScenarioPreview({ title, description, scenario }: TestScenar
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className={cn('fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full shadow-lg')}
+              className={cn('fixed bottom-6 right-6 z-50 size-12 rounded-full shadow-lg')}
               type="button"
               variant="default"
               size="icon"
               aria-expanded={open}
               aria-label={open ? 'Hide test scenario preview' : 'Show test scenario preview'}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen(v => !v)}
             >
               {open ? <EyeOff /> : <Eye />}
             </Button>
