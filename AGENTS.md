@@ -59,3 +59,23 @@ For scaffolded-app changes, edit the root/base source first, then run `npm run s
 - **Commit incrementally**: After completing a substantial slice of work (for example a single scoped code change, one logical feature, or one completed implementation todo), create a **git commit** with a short imperative subject so progress is checkpointed and pre-commit hooks run on a bounded diff.
 - **If pre-commit fails** (`npm run quality:pre-commit`, including Fallow and React Doctor): **fix the code or config you introduced** until the hook passes; do not bypass hooks or commit broken static analysis. Re-run `git commit` after fixes.
 - **Before finishing a task**: Run **`npm run validate`** (Vitest suite) and **`npm run build`** so tests and the production build both succeed; fix anything that fails before considering the task done.
+
+## graphify
+
+This project has a knowledge graph at `graphify-out/` (gitignored) with god nodes, communities, and cross-file relationships.
+
+When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
+
+**Do not read** `graphify-out/graph.json` or `graphify-out/graph.html` into context — they are multi-megabyte.
+
+Rules (token-efficient):
+
+- For architecture / flow / dependency questions, run `npm run graphify:query -- "<question>"` when `graphify-out/graph.json` exists (1500-token subgraph cap). Equivalent: `graphify query "<question>" --budget 1500`.
+- Use `npm run graphify:path -- "A" "B"` or `npm run graphify:explain -- "Name"` for targeted lookups.
+- If `graphify-out/wiki/index.md` exists, start there and open only linked community articles — not broad repo greps.
+- Read `graphify-out/GRAPH_REPORT.md` only when query / path / explain / wiki are insufficient.
+- After modifying code, run `npm run graphify:update` (AST-only, no LLM cost). Git `post-commit` / `post-checkout` hooks also refresh the graph on code-only changes.
+- Rebuild from scratch: `/graphify .` (skill: `.agents/skills/graphify/SKILL.md`). `.graphifyignore` excludes `templates/` and vendored `.agents/skills/`.
+- Check `graphify-out/memory/` for saved Q&A before re-deriving the same answer.
+
+**Codex:** `.codex/hooks.json` runs `graphify hook-check` on Bash (PreToolUse) to prefer graph navigation over raw search. Enable `multi_agent = true` under `[features]` in `.codex/config.toml` for parallel `/graphify` extraction.

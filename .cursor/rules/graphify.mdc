@@ -1,0 +1,32 @@
+---
+description: graphify knowledge graph — query-first, low-token codebase navigation
+alwaysApply: true
+---
+
+This project has a graphify knowledge graph at `graphify-out/`.
+
+## Before reading source files
+
+When `graphify-out/graph.json` exists and the question is about architecture, flows, dependencies, or "how does X work":
+
+1. Run **`npm run graphify:query -- "<question>"`** (or `graphify query "<question>" --budget 1500`). Default cap is 1500 tokens of subgraph output — do not raise the budget unless the user asks for depth.
+2. For two named concepts, use **`npm run graphify:path -- "A" "B"`** or `graphify path "A" "B"`.
+3. For one symbol, use **`npm run graphify:explain -- "Name"`** or `graphify explain "Name"`.
+4. If **`graphify-out/wiki/index.md`** exists, open that index and only the linked community articles needed — do not read raw repo files for orientation.
+5. Use **`graphify-out/GRAPH_REPORT.md`** only for a broad audit (god nodes, surprises) when query/path/explain/wiki are insufficient.
+
+## Do not load these into context
+
+- `graphify-out/graph.json` (multi-MB)
+- `graphify-out/graph.html`
+- Whole-directory greps across `src/` when a graph query would answer the question
+
+Prefer graph tools over `Grep`/`SemanticSearch` for structural "what connects to what" questions.
+
+## After code changes
+
+Run **`npm run graphify:update`** (AST-only, no LLM) so the graph stays accurate. Post-commit hook also rebuilds on code-only commits.
+
+## Optional deeper context
+
+Prior Q&A saved under `graphify-out/memory/` — check before re-deriving the same answer.

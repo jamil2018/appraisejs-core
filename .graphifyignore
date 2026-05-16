@@ -1,0 +1,34 @@
+# Sync-managed template copies (see AGENTS.md)
+templates/
+
+# Vendored agent skills (not application architecture; large markdown corpus)
+.agents/skills/
+
+# Ephemeral / duplicate tooling trees
+codex/
+src/tests/reports/
+
+# Lock and config-only JSON (no structural signal)
+skills-lock.json
+**/package-lock.json
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+
+# Generated / local artifacts
+graphify-out/
+automation/reports/
+*.db
+*.sqlite
+*.sqlite3
+.tmp
+.fallow
+
+# Package build output
+packages/appraisejs/dist/
+packages/cucumber-runtime/dist/
