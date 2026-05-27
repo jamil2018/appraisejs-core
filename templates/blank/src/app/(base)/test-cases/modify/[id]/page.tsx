@@ -18,17 +18,20 @@ import { Metadata } from 'next'
 
 import {
   buildNodeOrderFromTestCaseSteps,
+  buildFlowBlocksFromTestCaseRows,
   getEditableTestCase,
+} from '../../editable-test-case-helpers'
+import {
   getEnvironmentRows,
   getLocatorGroupRows,
   getLocatorRows,
   getModuleRows,
   getTagRows,
-  getTestCaseRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
   getTestSuiteRows,
-} from '../../test-case-route-helpers'
+} from '../../test-case-resource-rows'
+import { getTestCaseRows } from '../../test-case-row-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Test Case',
@@ -119,6 +122,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         moduleList={moduleList}
         tags={tags}
         defaultNodesOrder={buildNodeOrderFromTestCaseSteps(testCase.steps)}
+        defaultFlowBlocks={buildFlowBlocksFromTestCaseRows(testCase.flowBlocks)}
         onCreateTestSuiteAction={createTestSuiteAction}
         onCreateTagAction={createTagAction}
       />

@@ -7,9 +7,15 @@ import {
   determineNodeOrders,
   determineStartNodeIds,
   generateInitialNodesAndEdges,
+  getFlowBlockBounds,
+  getFlowBlockMembershipMap,
+  hasOrphanedFlowNode,
+  normalizeFlowBlocks,
   isAddNodePromptNode,
+  isEdgeWithinSameFlowBlock,
   isValidDiagramConnection,
   removeOrphanedEdges,
+  searchFlowNodesByLabel,
 } from './flow-diagram-helpers'
 
 describe('flow-diagram helpers', () => {
@@ -27,6 +33,34 @@ describe('flow-diagram helpers', () => {
     const orders = determineNodeOrders([prompt] as never, [])
 
     expect(orders).toEqual({})
+  })
+
+  it('searches real node labels case-insensitively after three trimmed characters', () => {
+    const nodes = [
+      createAddNodePromptNode(),
+      {
+        id: 'node-1',
+        data: {
+          label: 'Open Checkout',
+          gherkinStep: 'Given the cart page',
+          parameters: [{ name: 'target', value: 'cart', type: StepParameterType.STRING, order: 1 }],
+        },
+      },
+      {
+        id: 'node-2',
+        data: {
+          label: 'Submit payment',
+          gherkinStep: 'When checkout is submitted',
+          parameters: [{ name: 'card', value: 'visa', type: StepParameterType.STRING, order: 1 }],
+        },
+      },
+    ] as never
+
+    expect(searchFlowNodesByLabel(nodes, ' che ')).toEqual([{ id: 'node-1', label: 'Open Checkout' }])
+    expect(searchFlowNodesByLabel(nodes, 'PAY')).toEqual([{ id: 'node-2', label: 'Submit payment' }])
+    expect(searchFlowNodesByLabel(nodes, 'pa')).toEqual([])
+    expect(searchFlowNodesByLabel(nodes, 'cart')).toEqual([])
+    expect(searchFlowNodesByLabel(nodes, 'visa')).toEqual([])
   })
 
   it('hydrates initial nodes and edges from ordered node maps', () => {
@@ -201,14 +235,65 @@ describe('flow-diagram helpers', () => {
     expect(isValidDiagramConnection(edges, { source: 'node-1', target: 'node-3' } as never)).toBe(false)
     expect(isValidDiagramConnection(edges, { source: 'node-3', target: 'node-4' } as never)).toBe(true)
 
+    expect(removeOrphanedEdges([{ id: 'node-1' }, { id: 'node-2' }] as never, edges)).toEqual([
+      { source: 'node-1', target: 'node-2' },
+    ])
+  })
+
+  it('normalizes block payloads and computes bounds from real nodes only', () => {
     expect(
-      removeOrphanedEdges(
+      normalizeFlowBlocks(
         [
-          { id: 'node-1' },
-          { id: 'node-2' },
-        ] as never,
-        edges,
+          { id: 'block-1', name: '  ', nodeIds: ['node-1', 'node-1', 'node-2', 'missing'] },
+          { id: 'block-2', name: 'Too small', nodeIds: ['node-1'] },
+        ],
+        new Set(['node-1', 'node-2']),
       ),
-    ).toEqual([{ source: 'node-1', target: 'node-2' }])
+    ).toEqual([{ id: 'block-1', name: 'Untitled block', nodeIds: ['node-1', 'node-2'] }])
+
+    expect(
+      getFlowBlockBounds(
+        [
+          createAddNodePromptNode(),
+          { id: 'node-1', position: { x: 100, y: 50 }, data: {}, width: 200, height: 100 },
+          { id: 'node-2', position: { x: 360, y: 80 }, data: {}, width: 160, height: 90 },
+        ] as never,
+        [{ id: 'block-1', name: 'Checkout', nodeIds: ['node-1', 'node-2', 'missing'] }],
+      ),
+    ).toEqual([
+      {
+        id: 'block-1',
+        name: 'Checkout',
+        nodeIds: ['node-1', 'node-2'],
+        x: 68,
+        y: 18,
+        width: 484,
+        height: 184,
+      },
+    ])
+  })
+
+  it('detects orphaned nodes before block creation', () => {
+    const nodes = [
+      { id: 'node-1', data: {} },
+      { id: 'node-2', data: {} },
+      { id: 'node-3', data: {} },
+    ] as never
+
+    expect(hasOrphanedFlowNode(nodes, [{ source: 'node-1', target: 'node-2' }] as never)).toBe(true)
+    expect(
+      hasOrphanedFlowNode(nodes, [
+        { source: 'node-1', target: 'node-2' },
+        { source: 'node-2', target: 'node-3' },
+      ] as never),
+    ).toBe(false)
+    expect(hasOrphanedFlowNode([createAddNodePromptNode()] as never, [])).toBe(false)
+  })
+
+  it('blocks only edge mutations inside the same flow block', () => {
+    const membership = getFlowBlockMembershipMap([{ id: 'block-1', name: 'Checkout', nodeIds: ['node-1', 'node-2'] }])
+
+    expect(isEdgeWithinSameFlowBlock({ source: 'node-1', target: 'node-2' } as never, membership)).toBe(true)
+    expect(isEdgeWithinSameFlowBlock({ source: 'node-2', target: 'node-3' } as never, membership)).toBe(false)
   })
 })

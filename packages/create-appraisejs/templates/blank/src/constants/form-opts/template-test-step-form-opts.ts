@@ -19,7 +19,7 @@ export const templateStepSchema = z.object({
 
 export type TemplateStep = z.infer<typeof templateStepSchema>
 
-export const formOpts = {
+export const templateStepFormOpts = {
   defaultValues: {
     name: '',
     description: '',

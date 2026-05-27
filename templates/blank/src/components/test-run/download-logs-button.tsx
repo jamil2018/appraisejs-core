@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download, LoaderCircle } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
 import { toast } from '@/hooks/use-toast'
 
 interface DownloadLogsButtonProps {
@@ -24,7 +23,6 @@ export function DownloadLogsButton({ testRunId, className }: DownloadLogsButtonP
         throw new Error(errorData.error || `Failed to download: ${response.statusText}`)
       }
 
-      // Get the filename from Content-Disposition header or use a default
       const contentDisposition = response.headers.get('Content-Disposition')
       let filename = `test-run-${testRunId}.zip`
       if (contentDisposition) {
@@ -34,10 +32,8 @@ export function DownloadLogsButton({ testRunId, className }: DownloadLogsButtonP
         }
       }
 
-      // Create a blob from the response
       const blob = await response.blob()
 
-      // Create a download link and trigger it
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -65,28 +61,19 @@ export function DownloadLogsButton({ testRunId, className }: DownloadLogsButtonP
 
   return (
     <Button onClick={handleDownload} disabled={isDownloading} variant="outline" size="sm" className={className}>
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={isDownloading ? 'downloading' : 'idle'}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.15 }}
-          className="flex items-center gap-2"
-        >
-          {isDownloading ? (
-            <>
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              Downloading...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4" />
-              Download Run Artifacts
-            </>
-          )}
-        </motion.div>
-      </AnimatePresence>
+      <span className="flex items-center gap-2">
+        {isDownloading ? (
+          <>
+            <LoaderCircle className="size-4 animate-spin" />
+            Downloading…
+          </>
+        ) : (
+          <>
+            <Download className="size-4" />
+            Download Run Artifacts
+          </>
+        )}
+      </span>
     </Button>
   )
 }

@@ -54,5 +54,9 @@ packages/cucumber-runtime/dist/*
 
 # temporary files
 .tmp
+.fallow
+
+# graphify knowledge graph output (regenerate with: graphify extract .)
+/graphify-out/
 !prisma/dev.db
 !automation/config/environments/environments.json

@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable react-hooks/refs -- The composite view model forwards refs without reading `.current` during render. */
+
 import {
   Background,
   ConnectionMode,
@@ -86,9 +88,7 @@ export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewPro
             onNodeClick={model.search.handleNodeClick}
             isValidConnection={model.isValidConnection}
             proOptions={flowDiagramProOptions}
-            onInit={instance => {
-              model.flowInstanceRef.current = instance
-            }}
+            onInit={model.handleFlowInit}
           >
             <FlowLayoutRefresh
               nodeIds={model.layoutRefreshNodeIds}

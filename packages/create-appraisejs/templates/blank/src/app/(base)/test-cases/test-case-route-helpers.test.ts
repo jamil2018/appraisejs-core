@@ -4,8 +4,10 @@ import { describe, expect, it } from 'vitest'
 import {
   buildNodeOrderFromTestCaseSteps,
   getEditableTestCase,
+} from './editable-test-case-helpers'
+import {
   getTestCaseRows,
-} from './test-case-route-helpers'
+} from './test-case-row-helpers'
 
 describe('test-case route helpers', () => {
   it('narrows test case list rows from action data', () => {
@@ -64,6 +66,7 @@ describe('test-case route helpers', () => {
     expect(editableTestCase).not.toBeNull()
     expect(buildNodeOrderFromTestCaseSteps(editableTestCase!.steps)).toEqual({
       'step-1': {
+        nodeId: 'step-1',
         order: 1,
         label: 'Fill email',
         gherkinStep: 'fill email',

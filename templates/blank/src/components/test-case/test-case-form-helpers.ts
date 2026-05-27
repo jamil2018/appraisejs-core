@@ -7,6 +7,7 @@ import { checkMissingMandatoryParams } from '@/lib/utils/node-param-validation'
 import { IconToKeyTransformer } from '@/lib/transformers/key-to-icon-transformer'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import type { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import { formatOrderedGherkinSteps } from '@/lib/gherkin-step-format'
 
 type ScenarioNodeOrder = NodeOrderMap | TemplateTestCaseNodeOrderMap
 type ScenarioNode = ScenarioNodeOrder[string]
@@ -23,8 +24,12 @@ export const testCaseQuickTips = [
     description: 'Use clear, specific terms that indicate the purpose of the test scenario',
   },
   {
-    title: 'Build your test scenario step by step',
-    description: 'Build your test scenario step by step visually to help others understand the flow of the test scenario',
+    title: 'Assign your test scenario to a test suite',
+    description: 'Organize your test scenarios into test suites for better management and categorization',
+  },
+  {
+    title: 'Add tags to your test scenario',
+    description: 'Tags help filter and categorize your test scenarios for better organization and searchability',
   },
 ] as const
 
@@ -38,7 +43,8 @@ function normalizeStepParameters(parameters: ScenarioNode['parameters']) {
 }
 
 export function buildScenarioSteps(nodeOrder: ScenarioNodeOrder) {
-  return Object.entries(nodeOrder).map(([, value]) => ({
+  return Object.entries(nodeOrder).map(([nodeId, value]) => ({
+    nodeId: value.nodeId ?? nodeId,
     gherkinStep: value.gherkinStep || '',
     label: value.label,
     icon: IconToKeyTransformer(value.icon),
@@ -62,47 +68,7 @@ export function buildScenarioPreview(
     .filter(step => step.order !== -1)
     .sort((left, right) => left.order - right.order)
 
-  let hasThenInPrevious = false
-  let hasWhenInPrevious = false
-
-  const gherkinSteps = validSteps.map((step, index) => {
-    const gherkinStep = step.gherkinStep?.trim() || ''
-    const firstWord = gherkinStep.split(' ')[0].toLowerCase()
-    const hasGherkinKeyword = ['given', 'when', 'then', 'and', 'but'].includes(firstWord)
-    const stepWithoutKeyword = hasGherkinKeyword ? gherkinStep.split(' ').slice(1).join(' ') : gherkinStep
-
-    if (index === 0) {
-      return `Given ${stepWithoutKeyword}`
-    }
-
-    const isThenStatement =
-      firstWord === 'then' ||
-      stepWithoutKeyword.toLowerCase().startsWith('should') ||
-      stepWithoutKeyword.toLowerCase().startsWith('must') ||
-      stepWithoutKeyword.toLowerCase().startsWith('will')
-
-    if (!hasThenInPrevious) {
-      if (isThenStatement) {
-        hasThenInPrevious = true
-        return `Then ${stepWithoutKeyword}`
-      }
-
-      if (!hasWhenInPrevious) {
-        hasWhenInPrevious = true
-        return `When ${stepWithoutKeyword}`
-      }
-
-      return `And ${stepWithoutKeyword}`
-    }
-
-    if (isThenStatement) {
-      return `And ${stepWithoutKeyword}`
-    }
-
-    hasThenInPrevious = false
-    hasWhenInPrevious = false
-    return `When ${stepWithoutKeyword}`
-  })
+  const gherkinSteps = formatOrderedGherkinSteps(validSteps, { resetWhenAfterThen: true })
 
   return [scenarioHeader, ...gherkinSteps].join('\n')
 }
@@ -135,6 +101,35 @@ export function getNodesWithMissingMandatoryParams(
   return nodesWithMissingParams
 }
 
-export function getActionErrorMessage(response: ActionResponse) {
+function getActionErrorMessage(response: ActionResponse) {
   return response.error || 'An error occurred'
+}
+
+export function handleTestCaseSaveResponse({
+  response,
+  redirectPath,
+  push,
+  toast,
+}: {
+  response: ActionResponse
+  redirectPath: string
+  push: (path: string) => void
+  toast: (props: { title: string; description: string; variant: 'default' | 'destructive' }) => unknown
+}) {
+  if (response.status === 200) {
+    toast({
+      title: 'Success',
+      description: 'Test case saved successfully',
+      variant: 'default',
+    })
+    push(redirectPath)
+  }
+
+  if (response.status === 500) {
+    toast({
+      title: 'Error',
+      description: getActionErrorMessage(response),
+      variant: 'destructive',
+    })
+  }
 }

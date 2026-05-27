@@ -13,8 +13,6 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { glob } from 'glob'
 
-export { extractLocatorGroupName, extractModulePathFromLocatorFile } from '@/services/locator/locator-path-utils'
-
 export async function listLocators() {
   return prisma.locator.findMany({
     include: {
@@ -43,8 +41,6 @@ async function updateLocatorGroupFile(locatorGroupId: string | null): Promise<vo
     console.error('Error updating locator group file:', error)
   }
 }
-
-export { updateLocatorGroupFile }
 
 export async function deleteLocators(ids: string[]) {
   const locatorsToDelete = await prisma.locator.findMany({

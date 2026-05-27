@@ -169,6 +169,10 @@ if (existsSync(legacyTestsRoot)) {
 }
 
 const configFiles = [
+  '.gitattributes',
+  '.gitconfig.appraise',
+  '.editorconfig',
+  '.prettierrc',
   '.gitignore',
   'eslint.config.mjs',
   'tailwind.config.ts',

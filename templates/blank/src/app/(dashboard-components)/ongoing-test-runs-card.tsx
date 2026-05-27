@@ -13,7 +13,7 @@ interface OngoingTestRunsCardProps {
 }
 
 export default function OngoingTestRunsCard({ initialCount, link }: OngoingTestRunsCardProps) {
-  const router = useRouter()
+  const { push } = useRouter()
   const [count, setCount] = useState(initialCount)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -60,25 +60,25 @@ export default function OngoingTestRunsCard({ initialCount, link }: OngoingTestR
   }, [count])
 
   return (
-    <Card className="h-fit border-gray-600/10 bg-gray-600/10 min-w-40">
-      <CardHeader className="flex items-center justify-between flex-row p-2">
-        <CardTitle className={`text-xs font-normal ${count > 0 ? 'text-primary' : 'text-gray-400'}`}>
+    <Card className="h-fit min-w-40 border-zinc-600/10 bg-zinc-600/10">
+      <CardHeader className="flex flex-row items-center justify-between p-2">
+        <CardTitle className={`text-xs font-normal ${count > 0 ? 'text-primary' : 'text-zinc-400'}`}>
           Ongoing Test Runs
         </CardTitle>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            className="text-primary hover:text-primary/80 px-2 py-1 bg-inherit border-gray-600/15 hover:bg-emerald-400/10"
+            className="hover:text-primary/80 border-zinc-600/15 bg-inherit px-2 py-1 text-primary hover:bg-emerald-400/10"
             disabled={count === 0}
-            onClick={() => router.push(link)}
+            onClick={() => push(link)}
             size="sm"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="size-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="h-full px-2 py-1">
-        <div className={`text-2xl h-full flex items-center font-bold ${count > 0 ? 'text-primary' : 'text-gray-400'}`}>
+        <div className={`flex h-full items-center text-2xl font-bold ${count > 0 ? 'text-primary' : 'text-zinc-400'}`}>
           {count}
         </div>
       </CardContent>

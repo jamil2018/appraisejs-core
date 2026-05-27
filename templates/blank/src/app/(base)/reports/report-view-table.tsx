@@ -1,54 +1,6 @@
 import { DataTable } from '@/components/ui/data-table'
 import { reportViewTableCols } from './report-view-table-columns'
-import { Prisma } from '@prisma/client'
-
-type ReportDetailWithRelations = Prisma.ReportGetPayload<{
-  include: {
-    testRun: {
-      include: {
-        environment: true
-        tags: true
-      }
-    }
-    features: {
-      include: {
-        tags: true
-        scenarios: {
-          include: {
-            tags: true
-            steps: true
-            hooks: true
-          }
-        }
-      }
-    }
-    testCases: {
-      include: {
-        testRunTestCase: {
-          include: {
-            testCase: {
-              include: {
-                tags: true
-              }
-            }
-            testSuite: true
-          }
-        }
-        reportScenario: {
-          include: {
-            tags: true
-            steps: {
-              orderBy: {
-                order: 'asc'
-              }
-            }
-            hooks: true
-          }
-        }
-      }
-    }
-  }
-}>
+import type { ReportDetailWithRelations } from '@/types/report'
 
 interface ReportViewTableProps {
   report: ReportDetailWithRelations

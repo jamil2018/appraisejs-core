@@ -27,5 +27,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "packages/create-appraisejs", "packages/appraisejs", "templates/starter"]
+  "exclude": ["node_modules", "packages/create-appraisejs", "packages/appraisejs", "templates/starter", "templates/blank"]
 }

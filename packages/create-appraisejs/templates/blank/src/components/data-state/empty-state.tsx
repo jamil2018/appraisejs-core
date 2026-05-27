@@ -27,7 +27,7 @@ const EmptyState = ({
       <EmptyContent>
         <Button asChild>
           <Link href={createRoute}>
-            <SquarePen className="h-4 w-4" />
+            <SquarePen className="size-4" />
             <span className="sr-only">{createText}</span>
             {createText}
           </Link>

@@ -39,11 +39,6 @@ export const AppDrawerItemColor = {
     iconColor: 'text-emerald-500',
     badgeColor: 'bg-emerald-400 text-emerald-800',
   },
-  indigo: {
-    buttonColor: 'bg-indigo-500/20 hover:bg-indigo-500/25',
-    iconColor: 'text-indigo-500',
-    badgeColor: 'bg-indigo-400 text-indigo-800',
-  },
   purple: {
     buttonColor: 'bg-purple-500/20 hover:bg-purple-500/25',
     iconColor: 'text-purple-500',
@@ -80,13 +75,13 @@ export const AppDrawerItemColor = {
     badgeColor: 'bg-orange-400 text-orange-800',
   },
   gray: {
-    buttonColor: 'bg-gray-500/20 hover:bg-gray-500/25',
-    iconColor: 'text-gray-500',
-    badgeColor: 'bg-gray-400 text-gray-800',
+    buttonColor: 'bg-zinc-500/20 hover:bg-zinc-500/25',
+    iconColor: 'text-zinc-500',
+    badgeColor: 'bg-zinc-400 text-zinc-800',
   },
 }
 
-export const AppDrawerItem = ({
+const AppDrawerItem = ({
   title,
   icon,
   colorKey,
@@ -105,14 +100,14 @@ export const AppDrawerItem = ({
   return (
     <Button
       variant="outline"
-      className={`relative flex h-fit w-full flex-col items-center justify-center border-none hover:text-gray-200 ${color.buttonColor} px-2`}
+      className={`relative flex h-fit w-full flex-col items-center justify-center border-none hover:text-zinc-200 ${color.buttonColor} px-2`}
       onClick={onClick}
       disabled={!isActive}
     >
       <div className={`${color.iconColor} [&_svg]:!h-6 [&_svg]:!w-6`}>{icon}</div>
-      <div className="text-xs font-medium text-gray-200">{title}</div>
+      <div className="text-xs font-medium text-zinc-200">{title}</div>
       <div
-        className={`absolute right-[-8px] top-[-8px] flex h-4 w-4 items-center justify-center rounded-full ${color.badgeColor} p-2.5 text-xs`}
+        className={`absolute right-[-8px] top-[-8px] flex size-4 items-center justify-center rounded-full ${color.badgeColor} p-2.5 text-xs`}
       >
         {count}
       </div>
@@ -120,49 +115,57 @@ export const AppDrawerItem = ({
   )
 }
 
-export default function AppDrawer({ metrics, title, description }: { metrics: DashboardMetrics | null, title: string, description: string }) {
-  const router = useRouter()
+export default function AppDrawer({
+  metrics,
+  title,
+  description,
+}: {
+  metrics: DashboardMetrics | null
+  title: string
+  description: string
+}) {
+  const { push } = useRouter()
   const items: AppDrawerItem[] = [
     {
       title: 'Failed Runs',
-      icon: <XCircle className="h-4 w-4" />,
+      icon: <XCircle className="size-4" />,
       color: 'orange',
       count: metrics?.failedRecentRunsCount ?? 0,
       onClick: () => {
-        router.push('/test-runs?filter=recentFailed')
+        push('/test-runs?filter=recentFailed')
       },
     },
     {
       title: 'Failing Tests',
-      icon: <AlertCircle className="h-4 w-4" />,
+      icon: <AlertCircle className="size-4" />,
       color: 'rose',
       count: metrics?.repeatedlyFailingTestsCount ?? 0,
       onClick: () => {
-        router.push('/reports/test-cases?filter=repeatedlyFailing')
+        push('/reports/test-cases?filter=repeatedlyFailing')
       },
     },
     {
       title: 'Flaky Tests',
-      icon: <AlertTriangle className="h-4 w-4" />,
+      icon: <AlertTriangle className="size-4" />,
       color: 'yellow',
       count: metrics?.flakyTestsCount ?? 0,
       onClick: () => {
-        router.push('/reports/test-cases?filter=flaky')
+        push('/reports/test-cases?filter=flaky')
       },
     },
     {
       title: 'Unexecuted Suites',
-      icon: <Clock className="h-4 w-4" />,
+      icon: <Clock className="size-4" />,
       color: 'blue',
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
       onClick: () => {
-        router.push('/reports/test-suites?filter=notExecutedRecently')
+        push('/reports/test-suites?filter=notExecutedRecently')
       },
     },
   ]
 
   return (
-    <Card id="container" className="w-fit border-gray-600/10 bg-gray-600/10">
+    <Card id="container" className="w-fit border-zinc-600/10 bg-zinc-600/10">
       <CardHeader id="header">
         <CardTitle className="text-primary">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

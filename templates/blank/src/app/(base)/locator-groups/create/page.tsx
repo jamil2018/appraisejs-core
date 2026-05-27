@@ -25,7 +25,7 @@ const CreateLocatorGroup = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Group className="mr-2 h-8 w-8" />
+            <Group className="mr-2 size-8" />
             Create Locator Group
           </span>
         </PageHeader>

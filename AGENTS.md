@@ -34,6 +34,8 @@ Generated or sync-managed automation output is under `automation/`, including fe
 
 Use TypeScript for new code and prefer explicit, narrow types over `any`. Prettier uses 2 spaces, single quotes, no semicolons, trailing commas, 120 character lines, and Tailwind class sorting. Use `kebab-case` file names such as `test-case-form.tsx` and `date-utils.ts`. Prefer `@/` imports for `src/*`.
 
+Line endings are **LF** (`.gitattributes`, `.editorconfig`, Prettier `endOfLine: "lf"`). On Windows, run `npm run setup:git` after clone so local Git uses the repo policy (`core.autocrlf=false`, `diff.ignoreCrAtEol=true` via `.gitconfig.appraise`). If an existing clone already committed CRLF noise, run `npm run setup:git -- --renormalize` once and review `git status` before committing.
+
 For database work, read `prisma/schema.prisma` first. The core hierarchy is `Module -> TestSuite -> TestCase -> TestCaseStep`, with related template, locator, environment, run, report, and metrics tables. Prisma client setup is centralized in `src/config/db-config.ts`.
 
 ## Testing Guidelines

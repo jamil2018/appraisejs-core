@@ -22,13 +22,6 @@ export async function getDashboardMetricsAction(): Promise<ActionResponse> {
   }
 }
 
-export type EntityMetrics = {
-  testCasesCount: number
-  testSuitesCount: number
-  templateStepsCount: number
-  runningTestRunsCount: number
-}
-
 export async function getEntityMetricsAction(): Promise<ActionResponse> {
   try {
     const metrics = await getEntityMetrics()

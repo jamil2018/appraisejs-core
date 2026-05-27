@@ -140,6 +140,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
             name: block.name,
             nodeIds: block.nodes.map(node => node.flowNodeId),
           }))}
+        defaultValueInput={true}
       />
     </>
   )

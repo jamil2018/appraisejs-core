@@ -55,3 +55,6 @@ packages/cucumber-runtime/dist/*
 # temporary files
 .tmp
 .fallow
+
+# graphify knowledge graph output (regenerate with: graphify extract .)
+/graphify-out/

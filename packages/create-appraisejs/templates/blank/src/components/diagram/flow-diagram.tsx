@@ -1,438 +1,93 @@
 'use client'
 
-import {
-  addEdge,
-  Background,
-  ConnectionMode,
-  Controls,
-  Edge,
-  Node,
-  NodeProps,
-  OnConnect,
-  ReactFlow,
-  useEdgesState,
-  useNodesState,
-  Connection,
-  DefaultEdgeOptions,
-} from '@xyflow/react'
+import { useUpdateNodeInternals } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useState, useEffect, useMemo, memo } from 'react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import ButtonEdge from './button-edge'
-import { Plus } from 'lucide-react'
-import OptionsHeaderNode from './options-header-node'
-import { AddNodePromptNode, type AddNodePromptFlowNode } from './add-node-prompt-node'
-import NodeForm from './node-form'
-import { NodeData } from '@/constants/form-opts/diagram/node-form'
-import { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import { Environment, Locator, TemplateStep, TemplateStepParameter, LocatorGroup, Module } from '@prisma/client'
-import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
-import {
-  buildNodeFormData,
-  createAddNodePromptNode,
-  createEditableNodeData,
-  determineNodeOrders,
-  determineStartNodeIds,
-  generateInitialNodesAndEdges,
-  isAddNodePromptNode,
-  isValidDiagramConnection,
-  removeOrphanedEdges,
-} from './flow-diagram-helpers'
+import { memo, useCallback, useEffect, useRef, type RefObject } from 'react'
+import { FlowDiagramView } from './flow-diagram-view'
+import type { FlowDiagramProps } from './flow-diagram-types'
+import { EMPTY_FLOW_BLOCKS } from './flow-diagram-types'
+import { useFlowDiagram } from './use-flow-diagram'
 
-const edgeTypes = {
-  buttonEdge: ButtonEdge,
+const layoutRefreshDelays = [0, 80, 180, 360]
+
+type FlowLayoutRefreshProps = {
+  nodeIds: string[]
+  containerRef: RefObject<HTMLDivElement | null>
+  refreshKey?: string | number | boolean
 }
 
-const defaultEdgeOptions: DefaultEdgeOptions = {
-  type: 'buttonEdge',
-  zIndex: 12,
-  style: {
-    stroke: 'rgb(148 163 184 / 0.9)',
-    strokeWidth: 1.75,
-    strokeLinecap: 'round',
-  },
-}
+function FlowLayoutRefresh({ nodeIds, containerRef, refreshKey }: FlowLayoutRefreshProps) {
+  const updateNodeInternals = useUpdateNodeInternals()
+  const frameRef = useRef<number | null>(null)
+  const timeoutRefs = useRef<number[]>([])
 
-const flowDiagramProOptions = { hideAttribution: true }
+  const clearScheduledRefreshes = useCallback(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+    }
+    timeoutRefs.current.forEach(timeoutId => window.clearTimeout(timeoutId))
+    timeoutRefs.current = []
+  }, [])
 
-const flowDiagramHandlersRef = {
-  current: {
-    onEditNode: (nodeId: string) => {
-      void nodeId
-    },
-    onOpenAddNode: (sourceNodeId?: string) => {
-      void sourceNodeId
-    },
-  },
-}
+  const refreshNodeInternals = useCallback(() => {
+    if (nodeIds.length === 0) {
+      return
+    }
 
-function OptionsHeaderNodeWrapper(props: NodeProps) {
-  return (
-    <OptionsHeaderNode
-      {...props}
-      onEdit={nodeId => flowDiagramHandlersRef.current.onEditNode(nodeId)}
-      onAddConnectedNode={nodeId => flowDiagramHandlersRef.current.onOpenAddNode(nodeId)}
-    />
-  )
-}
+    updateNodeInternals(nodeIds)
+  }, [nodeIds, updateNodeInternals])
 
-function AddNodePromptNodeWrapper(props: NodeProps) {
-  return (
-    <AddNodePromptNode
-      {...(props as NodeProps<AddNodePromptFlowNode>)}
-      onOpenAddNode={() => flowDiagramHandlersRef.current.onOpenAddNode()}
-    />
-  )
-}
+  const scheduleLayoutRefresh = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
 
-const nodeTypes = {
-  optionsHeaderNode: OptionsHeaderNodeWrapper,
-  addNodePromptNode: AddNodePromptNodeWrapper,
-}
-
-type FlowDiagramProps = {
-  nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
-  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
-  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
-  environments: Array<Pick<Environment, 'id' | 'name'>>
-  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
-  defaultValueInput?: boolean
-  onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
-}
-
-const FlowDiagram = ({
-  nodeOrder,
-  templateStepParams,
-  templateSteps,
-  locators,
-  locatorGroups,
-  environments,
-  modules,
-  onNodeOrderChange,
-  defaultValueInput = false,
-}: FlowDiagramProps) => {
-  const { nodes: initialNodes, edges: initialEdges } = useMemo(
-    () => generateInitialNodesAndEdges(nodeOrder, templateStepParams, defaultValueInput),
-    [defaultValueInput, nodeOrder, templateStepParams],
-  )
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-  const [showAddNodeDialog, setShowAddNodeDialog] = useState(false)
-  const [showEditNodeDialog, setShowEditNodeDialog] = useState(false)
-  const [editNodeId, setEditNodeId] = useState<string | null>(null)
-  const [editNodeData, setEditNodeData] = useState<NodeData | null>(null)
-  const [pendingAddSourceNodeId, setPendingAddSourceNodeId] = useState<string | null>(null)
-  const [isConnectionInProgress, setIsConnectionInProgress] = useState(false)
-  const [availableLocators, setAvailableLocators] = useState(locators)
-  const [availableLocatorGroups, setAvailableLocatorGroups] = useState(locatorGroups)
-
-  useEffect(() => {
-    setAvailableLocators(locators)
-  }, [locators])
-
-  useEffect(() => {
-    setAvailableLocatorGroups(locatorGroups)
-  }, [locatorGroups])
-
-  const handleEditNode = useCallback(
-    (nodeId: string) => {
-      const node = nodes.find(node => node.id === nodeId)
-      const editableNodeData = createEditableNodeData(node)
-      if (!editableNodeData) {
+    clearScheduledRefreshes()
+    layoutRefreshDelays.forEach(delay => {
+      if (delay === 0) {
+        frameRef.current = window.requestAnimationFrame(refreshNodeInternals)
         return
       }
 
-      setEditNodeData(editableNodeData)
-      setEditNodeId(nodeId)
-      setShowEditNodeDialog(true)
-    },
-    [nodes],
-  )
+      timeoutRefs.current.push(window.setTimeout(refreshNodeInternals, delay))
+    })
+  }, [clearScheduledRefreshes, refreshNodeInternals])
 
   useEffect(() => {
-    flowDiagramHandlersRef.current.onEditNode = handleEditNode
-    flowDiagramHandlersRef.current.onOpenAddNode = sourceNodeId => {
-      setPendingAddSourceNodeId(sourceNodeId ?? null)
-      setShowAddNodeDialog(true)
-    }
-  }, [handleEditNode])
+    scheduleLayoutRefresh()
 
-  const addNode = useCallback(
-    (formData: NodeData) => {
-      const realCount = nodes.filter(n => !isAddNodePromptNode(n)).length
-      const sourceNode = pendingAddSourceNodeId ? nodes.find(node => node.id === pendingAddSourceNodeId) : undefined
-      const newNodeId = crypto.randomUUID()
-      const newNode: Node = {
-        id: newNodeId,
-        data: buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, realCount === 0),
-        position: sourceNode ? { x: sourceNode.position.x + 500, y: sourceNode.position.y } : { x: 0, y: 0 },
-        type: 'optionsHeaderNode',
-      }
-      const connectedEdge: Edge | null =
-        sourceNode && pendingAddSourceNodeId
-          ? {
-              id: `${pendingAddSourceNodeId}-${newNodeId}`,
-              source: pendingAddSourceNodeId,
-              target: newNodeId,
-              type: 'buttonEdge',
-            }
-          : null
-      setNodes(nds => nds.filter(n => !isAddNodePromptNode(n)).concat(newNode))
-      if (connectedEdge && isValidDiagramConnection(edges, connectedEdge)) {
-        setEdges(eds => addEdge(connectedEdge, eds))
-      }
-      setShowAddNodeDialog(false)
-      setPendingAddSourceNodeId(null)
-    },
-    [setEdges, setNodes, nodes, edges, pendingAddSourceNodeId, templateSteps, templateStepParams, defaultValueInput],
-  )
-
-  const handleEditNodeSubmit = useCallback(
-    (formData: NodeData) => {
-      if (!editNodeId) return
-      const nextNodeData = buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, false)
-
-      setNodes(nds =>
-        nds.map(node =>
-          node.id === editNodeId
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  ...nextNodeData,
-                },
-              }
-            : node,
-        ),
-      )
-      setShowEditNodeDialog(false)
-    },
-    [editNodeId, setNodes, templateSteps, templateStepParams, defaultValueInput],
-  )
+    return clearScheduledRefreshes
+  }, [clearScheduledRefreshes, refreshKey, scheduleLayoutRefresh])
 
   useEffect(() => {
-    const orders = determineNodeOrders(nodes, edges)
-    onNodeOrderChange(orders)
-  }, [nodes, edges, onNodeOrderChange])
-
-  useEffect(() => {
-    const hasRealNode = nodes.some(n => !isAddNodePromptNode(n))
-    if (hasRealNode) {
+    if (typeof ResizeObserver === 'undefined') {
       return
     }
-    const hasPrompt = nodes.some(n => isAddNodePromptNode(n))
-    if (hasPrompt) {
+
+    const container = containerRef.current
+    if (!container) {
       return
     }
-    setNodes([createAddNodePromptNode()])
-  }, [nodes, setNodes])
 
-  useEffect(() => {
-    const nextEdges = removeOrphanedEdges(nodes, edges)
+    const resizeObserver = new ResizeObserver(scheduleLayoutRefresh)
+    resizeObserver.observe(container)
 
-    if (nextEdges.length !== edges.length) {
-      setEdges(nextEdges)
+    return () => {
+      resizeObserver.disconnect()
     }
-  }, [nodes, edges, setEdges])
+  }, [containerRef, scheduleLayoutRefresh])
 
-  useEffect(() => {
-    const nextEdges = removeOrphanedEdges(nodes, edges)
-    const startNodeIds = determineStartNodeIds(nodes, nextEdges)
+  return null
+}
 
-    setNodes(currentNodes => {
-      let hasUpdates = false
-      const updatedNodes = currentNodes.map(node => {
-        if (isAddNodePromptNode(node)) {
-          return node
-        }
+const FlowDiagram = (props: FlowDiagramProps) => {
+  const model = useFlowDiagram({
+    ...props,
+    flowBlocks: props.flowBlocks ?? EMPTY_FLOW_BLOCKS,
+  })
 
-        const isFirstNode = startNodeIds.has(node.id)
-        const hasOutgoingConnection = nextEdges.some(edge => edge.source === node.id)
-        const currentIsFirstNode = Boolean((node.data as { isFirstNode?: boolean }).isFirstNode)
-        const currentHasOutgoingConnection = Boolean(
-          (node.data as { hasOutgoingConnection?: boolean }).hasOutgoingConnection,
-        )
-        const currentIsConnectionInProgress = Boolean(
-          (node.data as { isConnectionInProgress?: boolean }).isConnectionInProgress,
-        )
-        if (
-          currentIsFirstNode === isFirstNode &&
-          currentHasOutgoingConnection === hasOutgoingConnection &&
-          currentIsConnectionInProgress === isConnectionInProgress
-        ) {
-          return node
-        }
-
-        hasUpdates = true
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            isFirstNode,
-            hasOutgoingConnection,
-            isConnectionInProgress,
-          },
-        }
-      })
-
-      return hasUpdates ? updatedNodes : currentNodes
-    })
-  }, [nodes, edges, isConnectionInProgress, setNodes])
-
-  const isValidConnection = useCallback(
-    (connection: Connection | Edge) => isValidDiagramConnection(edges, connection),
-    [edges],
-  )
-
-  const onConnect: OnConnect = useCallback(
-    params => {
-      if (isValidConnection(params)) {
-        setEdges(eds => addEdge(params, eds))
-      }
-    },
-    [setEdges, isValidConnection],
-  )
-
-  const handleConnectStart = useCallback(() => {
-    setIsConnectionInProgress(true)
-  }, [])
-
-  const handleConnectEnd = useCallback(() => {
-    setIsConnectionInProgress(false)
-  }, [])
-
-  const memoizedTemplateSteps = useMemo(() => templateSteps, [templateSteps])
-  const memoizedTemplateStepParams = useMemo(() => templateStepParams, [templateStepParams])
-  const memoizedLocators = useMemo(() => availableLocators, [availableLocators])
-  const memoizedLocatorGroups = useMemo(() => availableLocatorGroups, [availableLocatorGroups])
-
-  const handleLocatorCreated = useCallback((result: InlineLocatorSaveResult) => {
-    setAvailableLocatorGroups(current => {
-      const nextGroup = {
-        id: result.locatorGroupId,
-        name: result.locatorGroupName,
-        route: result.route,
-        moduleId: result.moduleId,
-      }
-
-      return current.some(group => group.id === result.locatorGroupId)
-        ? current.map(group => (group.id === result.locatorGroupId ? { ...group, ...nextGroup } : group))
-        : [...current, nextGroup]
-    })
-
-    setAvailableLocators(current => {
-      const nextLocator = {
-        id: result.locatorId,
-        name: result.locatorName,
-        locatorGroupId: result.locatorGroupId,
-      }
-
-      return current.some(locator => locator.id === result.locatorId)
-        ? current.map(locator => (locator.id === result.locatorId ? { ...locator, ...nextLocator } : locator))
-        : [...current, nextLocator]
-    })
-  }, [])
-
-  const openAddNodeDialog = useCallback(() => {
-    setPendingAddSourceNodeId(null)
-    setShowAddNodeDialog(true)
-  }, [])
-
-  return (
-    <>
-      <div className="relative flex h-full min-h-0 w-full flex-col">
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="absolute right-4 top-4 z-20"
-                onClick={openAddNodeDialog}
-                aria-label="Add Node"
-              >
-                <Plus />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Add Node</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <div className="min-h-0 flex-1">
-          <ReactFlow
-            className="h-full w-full"
-            nodes={nodes}
-            onNodesChange={onNodesChange}
-            edges={edges}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onConnectStart={handleConnectStart}
-            onConnectEnd={handleConnectEnd}
-            fitView
-            colorMode="dark"
-            connectionMode={ConnectionMode.Loose}
-            edgeTypes={edgeTypes}
-            nodeTypes={nodeTypes}
-            defaultEdgeOptions={defaultEdgeOptions}
-            connectOnClick={false}
-            isValidConnection={isValidConnection}
-            proOptions={flowDiagramProOptions}
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
-        </div>
-      </div>
-
-      <NodeForm
-        onSubmitAction={addNode}
-        mode="add"
-        initialValues={{
-          label: '',
-          gherkinStep: '',
-          templateStepId: '',
-          parameters: [],
-        }}
-        templateSteps={memoizedTemplateSteps}
-        templateStepParams={memoizedTemplateStepParams}
-        showAddNodeDialog={showAddNodeDialog}
-        setShowAddNodeDialog={setShowAddNodeDialog}
-        locators={memoizedLocators}
-        defaultValueInput={defaultValueInput}
-        locatorGroups={memoizedLocatorGroups}
-        environments={environments}
-        modules={modules}
-        onLocatorCreated={handleLocatorCreated}
-      />
-
-      {editNodeData && (
-        <NodeForm
-          onSubmitAction={handleEditNodeSubmit}
-          mode="edit"
-          initialValues={{
-            label: editNodeData?.label ?? '',
-            gherkinStep: editNodeData?.gherkinStep ?? '',
-            templateStepId: editNodeData?.templateStepId ?? '',
-            parameters: editNodeData?.parameters ?? [],
-          }}
-          templateSteps={memoizedTemplateSteps}
-          templateStepParams={memoizedTemplateStepParams}
-          showAddNodeDialog={showEditNodeDialog}
-          setShowAddNodeDialog={setShowEditNodeDialog}
-          locators={memoizedLocators}
-          defaultValueInput={defaultValueInput}
-          locatorGroups={memoizedLocatorGroups}
-          environments={environments}
-          modules={modules}
-          onLocatorCreated={handleLocatorCreated}
-        />
-      )}
-    </>
-  )
+  return <FlowDiagramView model={model} FlowLayoutRefresh={FlowLayoutRefresh} />
 }
 
 export default memo(FlowDiagram)

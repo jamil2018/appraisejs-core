@@ -2,7 +2,7 @@
 import React, { useCallback, useState } from 'react'
 
 import TemplateTestCaseFlow from './template-test-case-flow'
-import type { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
+import type { FlowBlock, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import {
   type Locator,
   type LocatorGroup,
@@ -19,7 +19,7 @@ import { TestScenarioPreview } from '@/components/test-case/test-scenario-previe
 import {
   buildScenarioPreview,
   buildScenarioSteps,
-  getActionErrorMessage,
+  handleTestCaseSaveResponse,
   templateTestCaseSubmitSchema,
 } from '@/components/test-case/test-case-form-helpers'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
 import { toast } from '@/hooks/use-toast'
 import type { ActionResponse } from '@/types/form/actionHandler'
+
+function TemplateTestCaseFormFieldError({ message }: { message?: string[] }) {
+  return <ErrorMessage message={message?.[0] || ''} visible={!!message} />
+}
 
 type TemplateTestCaseFormProps = {
   defaultNodesOrder: TemplateTestCaseNodeOrderMap
@@ -43,7 +47,10 @@ type TemplateTestCaseFormProps = {
   defaultTitle?: string
   defaultDescription?: string
   defaultValueInput?: boolean
+  defaultFlowBlocks?: FlowBlock[]
 }
+
+const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
 
 const TemplateTestCaseForm = ({
   defaultNodesOrder,
@@ -57,10 +64,12 @@ const TemplateTestCaseForm = ({
   defaultTitle,
   defaultDescription,
   defaultValueInput = false,
+  defaultFlowBlocks = EMPTY_FLOW_BLOCKS,
   onSubmitAction,
 }: TemplateTestCaseFormProps) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const [nodesOrder, setNodesOrder] = useState<TemplateTestCaseNodeOrderMap>(defaultNodesOrder)
+  const [flowBlocks, setFlowBlocks] = useState<FlowBlock[]>(defaultFlowBlocks)
   const [title, setTitle] = useState(defaultTitle || '')
   const [description, setDescription] = useState(defaultDescription || '')
   const [errors, setErrors] = useState<{
@@ -70,7 +79,6 @@ const TemplateTestCaseForm = ({
   }>({})
 
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
-  const renderError = (message?: string[]) => <ErrorMessage message={message?.[0] || ''} visible={!!message} />
 
   const onNodeOrderChange = useCallback((nodesOrder: TemplateTestCaseNodeOrderMap) => {
     setNodesOrder(nodesOrder)
@@ -89,6 +97,7 @@ const TemplateTestCaseForm = ({
       title,
       description,
       steps: buildScenarioSteps(nodesOrder),
+      flowBlocks,
     })
 
     if (!result.success) {
@@ -97,22 +106,8 @@ const TemplateTestCaseForm = ({
     }
     setErrors({})
     const response = await onSubmitAction(result.data, id)
-    if (response.status === 200) {
-      toast({
-        title: 'Success',
-        description: 'Test case saved successfully',
-        variant: 'default',
-      })
-      router.push(`/template-test-cases`)
-    }
-    if (response.status === 500) {
-      toast({
-        title: 'Error',
-        description: getActionErrorMessage(response),
-        variant: 'destructive',
-      })
-    }
-  }, [description, nodesOrder, title, router, onSubmitAction, id])
+    handleTestCaseSaveResponse({ response, redirectPath: '/template-test-cases', push, toast })
+  }, [description, nodesOrder, title, push, onSubmitAction, id, flowBlocks])
 
   return (
     <div className="flex flex-col gap-4">
@@ -121,12 +116,12 @@ const TemplateTestCaseForm = ({
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" name="title" value={title} onChange={onTitleChange} />
-            {renderError(errors.title)}
+            <TemplateTestCaseFormFieldError message={errors.title} />
           </div>
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" name="description" value={description} onChange={onDescriptionChange} />
-            {renderError(errors.description)}
+            <TemplateTestCaseFormFieldError message={errors.description} />
           </div>
         </div>
         <div className="w-1/2">
@@ -146,9 +141,11 @@ const TemplateTestCaseForm = ({
           environments={environments}
           modules={modules}
           defaultValueInput={defaultValueInput}
+          flowBlocks={flowBlocks}
+          onFlowBlocksChange={setFlowBlocks}
         />
       </div>
-      {renderError(errors.steps)}
+      <TemplateTestCaseFormFieldError message={errors.steps} />
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={handleSubmit} className="w-fit px-6">
           Save

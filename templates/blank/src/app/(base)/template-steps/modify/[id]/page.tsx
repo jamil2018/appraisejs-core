@@ -13,20 +13,26 @@ export const metadata: Metadata = {
 
 export default async function ModifyTemplateStepPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [templateStepResponse, templateStepGroupsResponse] = await Promise.all([
-    getTemplateStepByIdAction(id),
-    getAllTemplateStepGroupsAction(),
-  ])
+  if (!id?.trim()) {
+    return <div>Error: Invalid template step id.</div>
+  }
 
-  if (templateStepResponse.error || templateStepGroupsResponse.error) {
-    return <div>Error: {templateStepResponse.error || templateStepGroupsResponse.error}</div>
+  const templateStepResponse = await getTemplateStepByIdAction(id)
+  if (templateStepResponse.error) {
+    return <div>Error: {templateStepResponse.error}</div>
   }
 
   const templateStep = getEditableTemplateStep(templateStepResponse.data)
-  const templateStepGroups = getTemplateStepGroupRows(templateStepGroupsResponse.data)
   if (!templateStep) {
     return <div>Error: Invalid template step</div>
   }
+
+  const templateStepGroupsResponse = await getAllTemplateStepGroupsAction()
+  if (templateStepGroupsResponse.error) {
+    return <div>Error: {templateStepGroupsResponse.error}</div>
+  }
+
+  const templateStepGroups = getTemplateStepGroupRows(templateStepGroupsResponse.data)
   return (
     <TemplateStepForm
       successTitle="Template step modified"

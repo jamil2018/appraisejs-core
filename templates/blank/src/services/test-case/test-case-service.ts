@@ -101,13 +101,20 @@ export async function listTestCases() {
           parameters: true,
         },
       },
+      flowBlocks: {
+        include: {
+          nodes: true,
+        },
+      },
       TestSuite: true,
       tags: true,
     },
   })
 }
 
-export async function createTestCaseFromInput(value: z.infer<typeof testCaseSchema>) {
+type TestCaseInput = z.input<typeof testCaseSchema>
+
+export async function createTestCaseFromInput(value: TestCaseInput) {
   const uniqueTestCaseIdentifier = generateUniqueTestCaseIdentifier()
   const testCaseIdentifierTag = await prisma.tag.create({
     data: {
@@ -126,6 +133,7 @@ export async function createTestCaseFromInput(value: z.infer<typeof testCaseSche
     steps: {
       create: value.steps.map(step => ({
         gherkinStep: step.gherkinStep,
+        flowNodeId: step.nodeId,
         label: step.label,
         icon: step.icon,
         parameters: {
@@ -138,6 +146,16 @@ export async function createTestCaseFromInput(value: z.infer<typeof testCaseSche
         },
         templateStepId: step.templateStepId,
         order: step.order,
+      })),
+    },
+    flowBlocks: {
+      create: (value.flowBlocks ?? []).map((block, index) => ({
+        id: block.id,
+        name: block.name,
+        order: index,
+        nodes: {
+          create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
+        },
       })),
     },
   }
@@ -182,6 +200,11 @@ export async function getTestCaseByIdOrThrow(id: string) {
           parameters: true,
         },
       },
+      flowBlocks: {
+        include: {
+          nodes: true,
+        },
+      },
       TestSuite: {
         select: {
           id: true,
@@ -209,7 +232,7 @@ export async function getTestCaseByIdOrThrow(id: string) {
   }
 }
 
-export async function updateTestCaseFromInput(value: z.infer<typeof testCaseSchema>, id: string) {
+export async function updateTestCaseFromInput(value: TestCaseInput, id: string) {
   const affectedTestSuites = await prisma.testSuite.findMany({
     where: {
       testCases: {
@@ -236,6 +259,9 @@ export async function updateTestCaseFromInput(value: z.infer<typeof testCaseSche
   }
 
   await prisma.testCaseStep.deleteMany({
+    where: { testCaseId: id },
+  })
+  await prisma.testCaseFlowBlock.deleteMany({
     where: { testCaseId: id },
   })
 
@@ -272,6 +298,7 @@ export async function updateTestCaseFromInput(value: z.infer<typeof testCaseSche
       steps: {
         create: value.steps.map(step => ({
           gherkinStep: step.gherkinStep,
+          flowNodeId: step.nodeId,
           label: step.label ?? '',
           icon: step.icon ?? '',
           parameters: {
@@ -284,6 +311,16 @@ export async function updateTestCaseFromInput(value: z.infer<typeof testCaseSche
           },
           templateStepId: step.templateStepId,
           order: step.order,
+        })),
+      },
+      flowBlocks: {
+        create: (value.flowBlocks ?? []).map((block, index) => ({
+          id: block.id,
+          name: block.name,
+          order: index,
+          nodes: {
+            create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
+          },
         })),
       },
     },

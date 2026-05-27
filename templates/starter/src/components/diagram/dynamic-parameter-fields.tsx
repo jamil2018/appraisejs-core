@@ -58,7 +58,7 @@ function DynamicParameterStringField(props: DynamicParameterInputFieldProps) {
 }
 
 function DynamicParameterDateField(props: DynamicParameterInputFieldProps) {
-  const { param, values, errors, defaultValueInput, fieldClassName, onInputChange } = props
+  const { param, values, errors, defaultValueInput, onInputChange } = props
   const { name } = param
 
   return (

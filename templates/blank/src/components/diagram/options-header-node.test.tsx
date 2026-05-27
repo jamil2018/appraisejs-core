@@ -3,7 +3,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StepParameterType, TemplateStepIcon } from '@prisma/client'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import OptionsHeaderNode from './options-header-node'
 
@@ -72,6 +72,10 @@ function renderOptionsHeaderNode(
 }
 
 describe('OptionsHeaderNode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('renders the large icon, title, and hover-triggered gherkin param tooltips', async () => {
     const user = userEvent.setup()
     renderOptionsHeaderNode()
@@ -153,6 +157,19 @@ describe('OptionsHeaderNode', () => {
     expect(updateNodes([{ id: 'node-1' }, { id: 'node-2' }])).toEqual([{ id: 'node-2' }])
   })
 
+  it('disables node deletion when the flow structure is locked', async () => {
+    const user = userEvent.setup()
+    renderOptionsHeaderNode({ isDeleteDisabled: true })
+
+    await user.hover(screen.getByTestId('options-header-node'))
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i })
+    expect(deleteButton).toBeDisabled()
+    await user.click(deleteButton)
+
+    expect(xyflowMocks.setNodes).not.toHaveBeenCalled()
+  })
+
   it('keeps missing-param warning nodes readable and omits empty chip rows', async () => {
     const user = userEvent.setup()
     renderOptionsHeaderNode({
@@ -174,5 +191,20 @@ describe('OptionsHeaderNode', () => {
     expect(screen.getByTestId('options-header-node')).toHaveClass('rounded-l-3xl')
     expect(screen.queryByTestId('target-handle')).not.toBeInTheDocument()
     expect(screen.getByTestId('source-handle')).toBeInTheDocument()
+  })
+
+  it('marks search-highlighted nodes without removing missing-param or start-node styling', () => {
+    renderOptionsHeaderNode({
+      isSearchHighlighted: true,
+      isMissingParams: true,
+      isFirstNode: true,
+    })
+
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-search-highlighted', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-missing-params', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-first-node', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('ring-emerald-500/70')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('border-destructive/70')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('rounded-l-3xl')
   })
 })

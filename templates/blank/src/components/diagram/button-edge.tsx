@@ -1,30 +1,48 @@
 import React from 'react'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, type EdgeProps } from '@xyflow/react'
+import { BaseEdge, EdgeLabelRenderer, getStraightPath, useReactFlow, type EdgeProps } from '@xyflow/react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const DEFAULT_EDGE_STYLE: React.CSSProperties = {}
+
+type FlowEdgeMutationGuard = {
+  isEdgeDeleteBlocked: (edge: { id: string; source: string; target: string }) => boolean
+  isNodeDeleteBlocked: (nodeId: string) => boolean
+  onBlocked: () => void
+}
+
+export const flowEdgeMutationGuardRef: { current: FlowEdgeMutationGuard } = {
+  current: {
+    isEdgeDeleteBlocked: () => false,
+    isNodeDeleteBlocked: () => false,
+    onBlocked: () => {},
+  },
+}
+
 export default function ButtonEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
-  style = {},
+  style = DEFAULT_EDGE_STYLE,
   markerEnd,
 }: EdgeProps) {
   const { setEdges } = useReactFlow()
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
     sourceY,
-    sourcePosition,
     targetX,
     targetY,
-    targetPosition,
   })
 
   const onEdgeClick = () => {
+    if (flowEdgeMutationGuardRef.current.isEdgeDeleteBlocked({ id, source, target })) {
+      flowEdgeMutationGuardRef.current.onBlocked()
+      return
+    }
     setEdges(edges => edges.filter(edge => edge.id !== id))
   }
 
@@ -33,7 +51,7 @@ export default function ButtonEdge({
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
       <EdgeLabelRenderer>
         <div
-          className={`nodrag nopan pointer-events-auto absolute flex items-center justify-center`}
+          className={`nodrag nopan pointer-events-auto absolute z-30 flex items-center justify-center`}
           style={{
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
           }}
@@ -43,7 +61,7 @@ export default function ButtonEdge({
             onClick={onEdgeClick}
             title="Delete Edge"
             size="icon"
-            className="h-7 w-7 rounded-full p-0"
+            className="size-7 rounded-full p-0"
           >
             <Trash2 className="text-muted-foreground" />
           </Button>

@@ -38,12 +38,7 @@ vi.mock('@/hooks/use-toast', () => ({
   toast,
 }))
 
-vi.mock('motion/react', () => ({
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
-  },
-}))
+import '@/test/setup-motion-react-mocks'
 
 function createTestRunDetails(overrides?: Partial<TestRunDetailsData>): TestRunDetailsData {
   return {

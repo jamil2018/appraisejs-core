@@ -6,24 +6,27 @@ import { describe, expect, it, vi } from 'vitest'
 
 import TestCasePicker from './test-case-picker'
 
+const fixtureTimestamp = '2024-01-01T00:00:00.000Z'
+
 describe('TestCasePicker', () => {
   it('saves selected test cases from the dialog', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn()
+    const testCases = [
+      {
+        id: 'case-1',
+        title: 'Login test',
+        description: 'Checks login',
+        tags: [{ id: 'tag-1', name: 'smoke' }],
+        steps: [],
+        createdAt: new Date(fixtureTimestamp),
+        updatedAt: new Date(fixtureTimestamp),
+      } as never,
+    ]
 
     render(
       <TestCasePicker
-        testCases={[
-          {
-            id: 'case-1',
-            title: 'Login test',
-            description: 'Checks login',
-            tags: [{ id: 'tag-1', name: 'smoke' }],
-            steps: [],
-            createdAt: new Date('2024-01-01T00:00:00.000Z'),
-            updatedAt: new Date('2024-01-01T00:00:00.000Z'),
-          } as never,
-        ]}
+        testCases={testCases}
         selectedIds={[]}
         onSave={onSave}
         triggerPlaceholder="Select test case(s)"

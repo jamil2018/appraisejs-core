@@ -50,6 +50,7 @@ describe('test-case form helpers', () => {
       }),
     ).toEqual([
       {
+        nodeId: 'node-1',
         gherkinStep: 'fill email',
         label: 'Fill email',
         icon: TemplateStepIcon.INPUT,

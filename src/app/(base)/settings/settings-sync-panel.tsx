@@ -76,6 +76,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
   const { activeRequestId, isRunning, pendingCounts: currentPendingCounts, runSync } = useSettingsSync({
     initialPendingCounts: pendingCounts,
   })
+  const syncAllColor = AppDrawerItemColor.emerald
 
   return (
     <TooltipProvider>
@@ -99,22 +100,27 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                variant="outline"
                 disabled={isRunning}
                 aria-label="Sync All"
                 onClick={() => runSync(SYNC_ALL_REQUEST_ID)}
-                className="inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none bg-emerald-500/10 px-3 py-2.5 text-left text-emerald-950 hover:bg-emerald-500/20 hover:text-emerald-950"
+                className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none px-3 py-2.5 text-left hover:text-foreground ${syncAllColor.buttonColor}`}
               >
                 <div className="flex w-full items-center justify-between gap-3">
-                  <div className="text-emerald-500 [&_svg]:!h-5 [&_svg]:!w-5">
+                  <div className={`${syncAllColor.iconColor} shrink-0 [&_svg]:!h-5 [&_svg]:!w-5`}>
                     {activeRequestId === SYNC_ALL_REQUEST_ID ? <RefreshCw className="animate-spin" /> : <RefreshCw />}
                   </div>
                   {currentPendingCounts[SYNC_ALL_REQUEST_ID] > 0 ? (
-                    <div className="rounded-full bg-emerald-400 px-2 py-1 text-[10px] font-semibold text-emerald-900">
+                    <div
+                      className={`flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-[10px] font-semibold ${syncAllColor.badgeColor}`}
+                    >
                       {currentPendingCounts[SYNC_ALL_REQUEST_ID]}
                     </div>
                   ) : null}
                 </div>
-                <p className="mt-3 text-xs font-medium leading-4">Sync All</p>
+                <div className="mt-3 min-w-0">
+                  <p className="break-words text-xs font-medium leading-4 text-foreground">Sync All</p>
+                </div>
               </Button>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">

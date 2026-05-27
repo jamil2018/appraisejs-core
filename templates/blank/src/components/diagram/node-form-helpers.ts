@@ -12,10 +12,10 @@ import {
 import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
 import { z } from 'zod'
 
-import type { NodeData } from '@/constants/form-opts/diagram/node-form'
+import type { NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import { generateGherkinStep } from '@/lib/transformers/gherkin-converter'
 
-export const nodeFormErrorSchema = z.object({
+const nodeFormErrorSchema = z.object({
   label: z.string().min(3, { message: 'Label must be at least 3 characters' }),
   templateStepId: z.string().min(1, { message: 'Template step is required' }),
 })
@@ -23,8 +23,8 @@ export const nodeFormErrorSchema = z.object({
 export type NodeFormErrors = z.inferFlattenedErrors<typeof nodeFormErrorSchema>['fieldErrors']
 
 export type NodeFormProps = {
-  onSubmitAction: (values: NodeData) => void
-  initialValues: NodeData
+  onSubmitAction: (values: NodeFormData) => void
+  initialValues: NodeFormData
   mode?: 'add' | 'edit'
   templateSteps: TemplateStep[]
   templateStepParams: TemplateStepParameter[]
@@ -71,7 +71,7 @@ export function createInitialParametersForTemplateStep(templateStepParams: Templ
 
 export function getGherkinPreview(
   templateStep: TemplateStep | null,
-  parameters: NodeData['parameters'],
+  parameters: NodeFormData['parameters'],
 ) {
   if (!templateStep?.signature) {
     return ''
@@ -89,7 +89,7 @@ export function validateNodeFormValues(label: FormDataEntryValue | undefined, te
 
 export function buildNodeFormSubmitValue(
   formValues: Record<string, FormDataEntryValue>,
-  parameters: NodeData['parameters'],
+  parameters: NodeFormData['parameters'],
   gherkinStep: string,
   templateStepId: string,
 ) {
@@ -99,7 +99,7 @@ export function buildNodeFormSubmitValue(
     label: String(formValues.label ?? ''),
     gherkinStep,
     templateStepId,
-  } satisfies NodeData
+  } satisfies NodeFormData
 }
 
 export function getSelectedTemplateIcon(templateStep: TemplateStep | null) {

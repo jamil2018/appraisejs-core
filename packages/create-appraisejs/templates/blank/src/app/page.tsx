@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import AppDrawer from './(dashboard-components)/app-drawer'
@@ -14,18 +15,23 @@ import OngoingTestRunsCard from './(dashboard-components)/ongoing-test-runs-card
 import { DataCardGrid } from './(dashboard-components)/data-card-grid'
 import { ExecutionHealthPanel } from './(dashboard-components)/execution-health-panel'
 
+export const metadata: Metadata = {
+  title: 'Appraise | Dashboard',
+  description: 'Check metrics, entity states, execution health, and quick actions.',
+}
+
 export const dynamic = 'force-dynamic'
 
 const Dashboard = async () => {
-  const metricsResponse = await getDashboardMetricsAction()
-  const metrics = metricsResponse.status === 200 ? (metricsResponse.data as DashboardMetrics | null) : null
-
   const entityMetricsResponse = await getEntityMetricsAction()
   const entityMetrics =
     entityMetricsResponse.status === 200 ? (entityMetricsResponse.data as unknown as EntityMetrics) : null
   if (!entityMetrics) {
     return <div>Error loading entity metrics</div>
   }
+
+  const metricsResponse = await getDashboardMetricsAction()
+  const metrics = metricsResponse.status === 200 ? (metricsResponse.data as DashboardMetrics | null) : null
 
   const { testCasesCount, testSuitesCount, templateStepsCount, runningTestRunsCount } = entityMetrics
 

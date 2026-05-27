@@ -119,7 +119,7 @@ const TagForm = ({
       >
         {field => {
           return (
-            <div className="mb-4 flex w-full flex-col gap-2">
+            <div className="mb-4 flex w-full flex-col gap-2 lg:w-1/2">
               <Label htmlFor={field.name}>Name</Label>
               <Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} />
               <TagFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
@@ -135,7 +135,7 @@ const TagForm = ({
       >
         {field => {
           return (
-            <div className="mb-4 flex w-full flex-col gap-2">
+            <div className="mb-4 flex w-full flex-col gap-2 lg:w-1/2">
               <Label htmlFor={field.name}>Tag Expression</Label>
               <Input
                 id={field.name}

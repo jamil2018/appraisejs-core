@@ -8,7 +8,7 @@ import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Metadata } from 'next'
 
-import { getTestCaseRows } from './test-case-route-helpers'
+import { getTestCaseRows } from './test-case-row-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Cases',
@@ -28,7 +28,7 @@ const TestCases = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<TestTubeDiagonal className="h-8 w-8" />}
+          icon={<TestTubeDiagonal className="size-8" />}
           title="No test cases found"
           description="Get started by creating a test case to test your application functionality"
           createRoute="/test-cases/create"
@@ -43,7 +43,7 @@ const TestCases = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <TestTubeDiagonal className="mr-2 h-8 w-8" />
+            <TestTubeDiagonal className="mr-2 size-8" />
             Test Cases
           </span>
         </PageHeader>

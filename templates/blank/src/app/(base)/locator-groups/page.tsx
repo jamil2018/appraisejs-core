@@ -30,7 +30,7 @@ const LocatorGroups = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<Group className="h-8 w-8" />}
+          icon={<Group className="size-8" />}
           title="No locator groups found"
           description="Get started by creating a locator group to organize your locators"
           createRoute="/locator-groups/create"
@@ -47,7 +47,7 @@ const LocatorGroups = async () => {
           <div>
             <PageHeader>
               <span className="flex items-center">
-                <Group className="mr-2 h-8 w-8" />
+                <Group className="mr-2 size-8" />
                 Locator Groups
               </span>
             </PageHeader>
@@ -55,7 +55,7 @@ const LocatorGroups = async () => {
           </div>
           <Button variant="outline" asChild>
             <Link href="/locators/create">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 size-4" />
               Create Locator
             </Link>
           </Button>
