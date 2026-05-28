@@ -38,6 +38,7 @@
     "test": "cucumber-js",
     "validate:unit": "node --import tsx scripts/run-vitest.ts",
     "validate:e2e": "playwright test",
+    "validate:e2e:smoke": "playwright test --grep @smoke",
     "validate": "npm run validate:unit && npm run validate:e2e",
     "quality:fallow": "fallow --format json --quiet --explain",
     "quality:fallow:ci": "fallow --format json --quiet --explain --fail-on-issues",

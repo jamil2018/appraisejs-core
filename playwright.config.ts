@@ -11,6 +11,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,
+  grep: process.env.E2E_GREP ? new RegExp(process.env.E2E_GREP) : undefined,
   expect: {
     timeout: 10_000,
   },

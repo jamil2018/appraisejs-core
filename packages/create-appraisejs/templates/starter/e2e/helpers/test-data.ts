@@ -38,6 +38,17 @@ export const seededIds = {
   reportScenario: 'e2e-report-scenario',
   reportStep: 'e2e-report-step',
   reportTestCase: 'e2e-report-test-case',
+  templateTestCase: 'e2e-template-test-case',
+  templateTestCaseStep: 'e2e-template-test-case-step',
+  secondModule: 'e2e-second-module',
+  secondTestSuite: 'e2e-second-suite',
+  secondTestCase: 'e2e-second-case',
+  failedTestRun: 'e2e-failed-run',
+  failedTestRunRunId: 'e2e-failed-run-id',
+  pendingTestRun: 'e2e-pending-run',
+  pendingTestRunRunId: 'e2e-pending-run-id',
+  runningTestRun: 'e2e-running-run',
+  runningTestRunRunId: 'e2e-running-run-id',
 }
 
 const generatedFeaturePath = join(process.cwd(), 'automation', 'features', 'E2E Auth', 'e2e-auth-suite.feature')
@@ -75,6 +86,8 @@ export async function resetE2eData(): Promise<void> {
     prisma.tag.deleteMany(),
     prisma.environment.deleteMany(),
     prisma.module.deleteMany(),
+    prisma.testCaseMetrics.deleteMany(),
+    prisma.testSuiteMetrics.deleteMany(),
     prisma.dashboardMetrics.deleteMany(),
   ])
 
@@ -322,6 +335,185 @@ export async function seedCoreData(): Promise<void> {
       suitesNotExecutedRecentlyCount: 1,
     },
   })
+
+  await seedTemplateCatalog()
+  await seedSecondModuleSuite()
+  await seedTestRunVariants()
+  await seedDashboardAttentionMetrics()
+}
+
+export async function seedTemplateCatalog(): Promise<void> {
+  await prisma.templateTestCase.create({
+    data: {
+      id: seededIds.templateTestCase,
+      name: 'E2E Login Template',
+      description: 'Reusable login flow for E2E',
+      steps: {
+        create: [
+          {
+            id: seededIds.templateTestCaseStep,
+            order: 0,
+            gherkinStep: 'Given I open the seeded page',
+            icon: TemplateStepIcon.NAVIGATION,
+            label: 'Open seeded page',
+            templateStepId: seededIds.templateStep,
+            parameters: {
+              create: [
+                {
+                  name: 'url',
+                  defaultValue: '/',
+                  order: 0,
+                  type: StepParameterType.STRING,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  })
+}
+
+export async function seedSecondModuleSuite(): Promise<void> {
+  await prisma.module.create({
+    data: {
+      id: seededIds.secondModule,
+      name: 'E2E Secondary',
+    },
+  })
+
+  await prisma.testCase.create({
+    data: {
+      id: seededIds.secondTestCase,
+      title: 'E2E secondary case',
+      description: 'Secondary module assignment case',
+    },
+  })
+
+  await prisma.testSuite.create({
+    data: {
+      id: seededIds.secondTestSuite,
+      name: 'E2E Secondary Suite',
+      description: 'Suite for assignment coverage',
+      moduleId: seededIds.secondModule,
+      testCases: {
+        connect: [{ id: seededIds.secondTestCase }],
+      },
+    },
+  })
+}
+
+export async function seedTestRunVariants(): Promise<void> {
+  const recentFailedAt = new Date()
+  recentFailedAt.setDate(recentFailedAt.getDate() - 1)
+
+  await prisma.testRun.create({
+    data: {
+      id: seededIds.failedTestRun,
+      runId: seededIds.failedTestRunRunId,
+      name: 'E2E Failed Run',
+      status: TestRunStatus.COMPLETED,
+      result: TestRunResult.FAILED,
+      startedAt: recentFailedAt,
+      completedAt: recentFailedAt,
+      environmentId: seededIds.environment,
+      browserEngine: BrowserEngine.CHROMIUM,
+      testWorkersCount: 1,
+      testCases: {
+        create: [
+          {
+            testCaseId: seededIds.testCase,
+            testSuiteId: seededIds.testSuite,
+            status: TestRunTestCaseStatus.COMPLETED,
+            result: TestRunTestCaseResult.FAILED,
+          },
+        ],
+      },
+    },
+  })
+
+  await prisma.testRun.create({
+    data: {
+      id: seededIds.pendingTestRun,
+      runId: seededIds.pendingTestRunRunId,
+      name: 'E2E Queued Run',
+      status: TestRunStatus.QUEUED,
+      result: TestRunResult.PENDING,
+      environmentId: seededIds.environment,
+      browserEngine: BrowserEngine.CHROMIUM,
+      testWorkersCount: 1,
+    },
+  })
+
+  await prisma.testRun.create({
+    data: {
+      id: seededIds.runningTestRun,
+      runId: seededIds.runningTestRunRunId,
+      name: 'E2E Running Run',
+      status: TestRunStatus.RUNNING,
+      result: TestRunResult.PENDING,
+      startedAt: new Date(),
+      environmentId: seededIds.environment,
+      browserEngine: BrowserEngine.CHROMIUM,
+      testWorkersCount: 1,
+      testCases: {
+        create: [
+          {
+            testCaseId: seededIds.testCase,
+            testSuiteId: seededIds.testSuite,
+            status: TestRunTestCaseStatus.RUNNING,
+            result: TestRunTestCaseResult.UNTESTED,
+          },
+        ],
+      },
+    },
+  })
+}
+
+export async function seedDashboardAttentionMetrics(): Promise<void> {
+  await prisma.testCaseMetrics.upsert({
+    where: { testCaseId: seededIds.testCase },
+    create: {
+      testCaseId: seededIds.testCase,
+      isRepeatedlyFailing: true,
+      isFlaky: true,
+      failureRate: 0.5,
+      totalRecentRuns: 4,
+      failedRecentRuns: 2,
+      lastExecutedAt: new Date(),
+      lastFailedAt: new Date(),
+    },
+    update: {
+      isRepeatedlyFailing: true,
+      isFlaky: true,
+      failureRate: 0.5,
+      totalRecentRuns: 4,
+      failedRecentRuns: 2,
+      lastExecutedAt: new Date(),
+      lastFailedAt: new Date(),
+    },
+  })
+
+  await prisma.testSuiteMetrics.upsert({
+    where: { testSuiteId: seededIds.testSuite },
+    create: {
+      testSuiteId: seededIds.testSuite,
+      lastExecutedAt: null,
+    },
+    update: {
+      lastExecutedAt: null,
+    },
+  })
+
+  await prisma.dashboardMetrics.deleteMany()
+  await prisma.dashboardMetrics.create({
+    data: {
+      failedRecentRunsCount: 1,
+      repeatedlyFailingTestsCount: 1,
+      flakyTestsCount: 1,
+      suitesNotExecutedRecentlyCount: 1,
+    },
+  })
 }
 
 export async function generateSeededFeature(): Promise<string> {
@@ -338,6 +530,18 @@ export function readGeneratedFeature(): string {
 
 export async function findModuleByName(name: string) {
   return prisma.module.findFirst({ where: { name } })
+}
+
+export async function findTestRunById(id: string) {
+  return prisma.testRun.findUnique({ where: { id } })
+}
+
+export async function findTagByName(name: string) {
+  return prisma.tag.findFirst({ where: { name } })
+}
+
+export async function findEnvironmentByName(name: string) {
+  return prisma.environment.findFirst({ where: { name } })
 }
 
 export async function disconnectPrisma(): Promise<void> {
