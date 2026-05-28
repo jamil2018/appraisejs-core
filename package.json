@@ -36,7 +36,9 @@
     "build-step-registry": "npx tsx scripts/build-step-registry.ts",
     "appraisejs:install-step": "npx tsx scripts/install-template-step.ts",
     "test": "cucumber-js",
-    "validate": "node --import tsx scripts/run-vitest.ts",
+    "validate:unit": "node --import tsx scripts/run-vitest.ts",
+    "validate:e2e": "playwright test",
+    "validate": "npm run validate:unit && npm run validate:e2e",
     "quality:fallow": "fallow --format json --quiet --explain",
     "quality:fallow:ci": "fallow --format json --quiet --explain --fail-on-issues",
     "quality:fallow:commit": "node ./scripts/run-fallow-commit.mjs",
@@ -99,6 +101,7 @@
   "devDependencies": {
     "@babel/traverse": "^7.28.5",
     "@cucumber/cucumber": "^12.8.3",
+    "@playwright/test": "^1.58.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

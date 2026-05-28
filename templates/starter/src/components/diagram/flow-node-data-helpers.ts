@@ -117,6 +117,6 @@ export function buildNodeFormData(
     ...formData,
     icon,
     isFirstNode,
-    isMissingParams,
+    ...(isMissingParams ? { isMissingParams: true as const } : {}),
   }
 }

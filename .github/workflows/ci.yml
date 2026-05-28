@@ -10,7 +10,8 @@ jobs:
   lint-and-build:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: file:./dev.db
+      DATABASE_URL: file:./e2e.db
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,6 +25,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply database migrations
+        run: node e2e/apply-migrations.mjs
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Fallow quality gate
         run: npm run quality:fallow:ci
 
@@ -33,5 +43,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit validation
+        run: npm run validate:unit
+
       - name: Build
-        run: npx next build
+        run: npm run build
+
+      - name: E2E validation
+        run: npm run validate:e2e

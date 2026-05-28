@@ -121,9 +121,11 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
         }
       }}
       className={cn(
-        'border-border/70 shadow-background/30 w-36 overflow-visible bg-card p-0 pt-4 shadow-lg transition-[border-radius,box-shadow] duration-300 ease-out',
+        'shadow-background/30 w-36 overflow-visible p-0 pt-4 shadow-lg transition-[border-radius,box-shadow] duration-300 ease-out',
+        isMissingParams
+          ? 'border-destructive/70 bg-destructive/10 ring-destructive/40 ring-1'
+          : 'border-border/70 bg-card',
         isFirstNode && 'rounded-l-3xl rounded-r-md',
-        isMissingParams && 'border-destructive/70 bg-destructive/10 ring-destructive/40 ring-1',
         isSearchHighlighted && 'shadow-[0_0_28px_rgba(16,185,129,0.34)] ring-2 ring-emerald-500/70',
       )}
     >
