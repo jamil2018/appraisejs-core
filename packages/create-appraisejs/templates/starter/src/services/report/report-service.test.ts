@@ -17,6 +17,7 @@ const {
   mockTestRunFindUnique,
   mockTestCaseFindMany,
   mockTestCaseMetricsFindMany,
+  mockTestSuiteFindMany,
   mockTestSuiteMetricsFindMany,
   mockUpdateTestSuiteMetrics,
 } = vi.hoisted(() => ({
@@ -33,6 +34,7 @@ const {
   mockTestRunFindUnique: vi.fn(),
   mockTestCaseFindMany: vi.fn(),
   mockTestCaseMetricsFindMany: vi.fn(),
+  mockTestSuiteFindMany: vi.fn(),
   mockTestSuiteMetricsFindMany: vi.fn(),
   mockUpdateTestSuiteMetrics: vi.fn(),
 }))
@@ -53,6 +55,7 @@ vi.mock('@/config/db-config', () => ({
     reportTestCase: { create: mockReportTestCaseCreate },
     testRun: { findUnique: mockTestRunFindUnique },
     testCase: { findMany: mockTestCaseFindMany },
+    testSuite: { findMany: mockTestSuiteFindMany },
     testCaseMetrics: { findMany: mockTestCaseMetricsFindMany },
     testSuiteMetrics: { findMany: mockTestSuiteMetricsFindMany },
   },
@@ -230,15 +233,58 @@ describe('getAllTestSuiteMetricsForFilter', () => {
 
   it('keeps suites never executed or last run before the recent window', async () => {
     const old = new Date('2025-06-01T12:00:00.000Z')
-    const recent = new Date('2025-06-10T12:00:00.000Z')
-    mockTestSuiteMetricsFindMany.mockResolvedValue([
-      { id: 'a', lastExecutedAt: null, testSuite: {} },
-      { id: 'b', lastExecutedAt: old, testSuite: {} },
-      { id: 'c', lastExecutedAt: recent, testSuite: {} },
+    const neverExecutedCreatedAt = new Date('2025-05-01T12:00:00.000Z')
+    mockTestSuiteFindMany.mockResolvedValue([
+      {
+        id: 'suite-a',
+        createdAt: neverExecutedCreatedAt,
+        updatedAt: neverExecutedCreatedAt,
+        metrics: null,
+      },
+      {
+        id: 'suite-b',
+        createdAt: old,
+        updatedAt: old,
+        metrics: {
+          id: 'metric-b',
+          lastExecutedAt: old,
+          createdAt: old,
+          updatedAt: old,
+        },
+      },
     ])
 
     const r = await getAllTestSuiteMetricsForFilter('notExecutedRecently')
-    expect(r.map(x => x.id).sort()).toEqual(['a', 'b'])
+    expect(mockTestSuiteFindMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          {
+            metrics: {
+              is: null,
+            },
+          },
+          {
+            metrics: {
+              is: {
+                lastExecutedAt: {
+                  lt: new Date('2025-06-08T12:00:00.000Z'),
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        tags: true,
+        testCases: true,
+        metrics: true,
+      },
+    })
+    expect(r.map(x => x.id).sort()).toEqual(['metric-b', 'unexecuted-suite-a'])
+    expect(r.find(x => x.id === 'unexecuted-suite-a')).toMatchObject({
+      testSuiteId: 'suite-a',
+      lastExecutedAt: null,
+    })
     expect(RECENT_PERIOD_DAYS).toBe(7)
   })
 })
