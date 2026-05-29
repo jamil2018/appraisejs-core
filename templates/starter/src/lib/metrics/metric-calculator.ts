@@ -290,31 +290,45 @@ export async function updateDashboardMetrics(): Promise<void> {
       },
     })
 
-    // Count repeatedly failing tests
-    const repeatedlyFailingTestsCount = await prisma.testCaseMetrics.count({
+    // Count repeatedly failing live tests
+    const repeatedlyFailingTestsCount = await prisma.testCase.count({
       where: {
-        isRepeatedlyFailing: true,
+        metrics: {
+          is: {
+            isRepeatedlyFailing: true,
+          },
+        },
       },
     })
 
-    // Count flaky tests
-    const flakyTestsCount = await prisma.testCaseMetrics.count({
+    // Count flaky live tests
+    const flakyTestsCount = await prisma.testCase.count({
       where: {
-        isFlaky: true,
+        metrics: {
+          is: {
+            isFlaky: true,
+          },
+        },
       },
     })
 
-    // Count suites not executed recently
-    const suitesNotExecutedRecentlyCount = await prisma.testSuiteMetrics.count({
+    // Count live suites with no execution metrics or stale execution metrics
+    const suitesNotExecutedRecentlyCount = await prisma.testSuite.count({
       where: {
         OR: [
           {
-            lastExecutedAt: {
-              lt: recentPeriodDate,
+            metrics: {
+              is: null,
             },
           },
           {
-            lastExecutedAt: null,
+            metrics: {
+              is: {
+                lastExecutedAt: {
+                  lt: recentPeriodDate,
+                },
+              },
+            },
           },
         ],
       },
