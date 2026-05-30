@@ -12,6 +12,7 @@ import {
   type TemplateStepParameter,
 } from '@prisma/client'
 import { useRouter } from 'next/navigation'
+import { Save } from 'lucide-react'
 import { z } from 'zod'
 
 import ErrorMessage from '@/components/form/error-message'
@@ -148,7 +149,8 @@ const TemplateTestCaseForm = ({
       <TemplateTestCaseFormFieldError message={errors.steps} />
       <div className="mb-4 flex flex-col gap-2">
         <Button onClick={handleSubmit} className="w-fit px-6">
-          Save
+          <Save className="size-4" aria-hidden />
+          <span className="font-bold">Save</span>
         </Button>
       </div>
     </div>

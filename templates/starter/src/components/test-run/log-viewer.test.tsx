@@ -77,6 +77,30 @@ describe('LogViewer', () => {
     expect(screen.getByText('Download logs for run-1')).toBeInTheDocument()
   })
 
+  it('renders duplicate log entries without dropping repeated messages', async () => {
+    const duplicateTimestamp = '2026-05-30T09:22:19.484Z'
+    const duplicateMessage = 'Scenario completed: [Demo Run With Template] Demo run using a template test case - unknown'
+    getTestRunLogsAction.mockResolvedValue({
+      status: 200,
+      data: [
+        {
+          type: 'status',
+          message: duplicateMessage,
+          timestamp: duplicateTimestamp,
+        },
+        {
+          type: 'status',
+          message: duplicateMessage,
+          timestamp: duplicateTimestamp,
+        },
+      ],
+    })
+
+    render(<LogViewer testRunId="run-duplicates" status={TestRunStatus.COMPLETED} />)
+
+    expect(await screen.findAllByText(duplicateMessage)).toHaveLength(2)
+  })
+
   it('streams live logs and dispatches the exit event when the run completes', async () => {
     const emittedEvents: Array<Event> = []
     const addEventListenerSpy = vi.spyOn(window, 'dispatchEvent')

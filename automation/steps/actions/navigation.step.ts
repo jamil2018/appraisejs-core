@@ -4,6 +4,35 @@ import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvir
  * @description Template steps that deals with browser navigation
  * @type ACTION
  */
+/**
+ * @name navigate to url
+ * @description Navigate to the specified URL
+ * @icon NAVIGATION
+ */
+When(
+  'the user navigates to the {string} url',
+  async function (this: CustomWorld, url: string) {
+    try {
+      await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+    } catch (error) {
+      throw new Error(`Failed to navigate to the ${url} url: ${error}`);
+    }
+  }
+);
+
+/**
+ * @name reload
+ * @description Template step for reloading the current page
+ * @icon NAVIGATION
+ */
+When('the user reloads the page', async function (this: CustomWorld) {
+  try {
+    await this.page.reload();
+    await this.page.waitForLoadState('domcontentloaded');
+  } catch (error) {
+    throw new Error(`Failed to reload the page: ${error}`);
+  }
+});
 
 /**
  * @name go back
@@ -50,31 +79,11 @@ When(
 );
 
 /**
- * @name navigate to url
- * @description Navigate to the specified URL
- * @icon NAVIGATION
+ * @name demo
+ * @description test 1234
+ * @icon MOUSE
  */
 When(
-  'the user navigates to the {string} url',
-  async function (this: CustomWorld, url: string) {
-    try {
-      await this.page.goto(url, { waitUntil: 'domcontentloaded' });
-    } catch (error) {
-      throw new Error(`Failed to navigate to the ${url} url: ${error}`);
-    }
-  }
+  'the user does {string}',
+  async function (this: CustomWorld, test: string) {}
 );
-
-/**
- * @name reload
- * @description Template step for reloading the current page
- * @icon NAVIGATION
- */
-When('the user reloads the page', async function (this: CustomWorld) {
-  try {
-    await this.page.reload();
-    await this.page.waitForLoadState('domcontentloaded');
-  } catch (error) {
-    throw new Error(`Failed to reload the page: ${error}`);
-  }
-});

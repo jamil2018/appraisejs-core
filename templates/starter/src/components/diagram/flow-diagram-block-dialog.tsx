@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Save } from 'lucide-react'
 
 type FlowDiagramBlockDialogProps = {
   open: boolean
@@ -47,7 +48,8 @@ export function FlowDiagramBlockDialog({
         />
         <DialogFooter>
           <Button type="button" onClick={onSubmit}>
-            {editingBlockId ? 'Rename' : 'Create'}
+            <Save className="size-4" aria-hidden />
+            <span className="font-bold">{editingBlockId ? 'Rename' : 'Create'}</span>
           </Button>
         </DialogFooter>
       </DialogContent>

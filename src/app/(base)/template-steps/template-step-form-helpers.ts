@@ -50,7 +50,7 @@ export function buildFunctionDefinitionPreview(
     .join(', ')
 
   return updatedSignature.replace(
-    /async function\s*\(\s*this:CustomWorld(?:,\s*.*?)?\s*\)/,
+    /async function\s*\(\s*this\s*:\s*CustomWorld(?:,\s*.*?)?\s*\)/,
     `async function(this:CustomWorld${params.length > 0 ? ', ' : ''}${paramsString})`,
   )
 }

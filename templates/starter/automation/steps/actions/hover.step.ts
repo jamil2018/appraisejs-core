@@ -5,8 +5,6 @@ import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvir
  * @type ACTION
  */
 
-// This file is generated automatically. Add template steps to this group to generate content.
-
 /**
  * @name hover
  * @description Template step for hovering over an element
@@ -22,7 +20,9 @@ When(
       }
       await this.page.locator(selector).hover();
     } catch (error) {
-      throw new Error(`Failed to hover over the ${elementName} element: ${error}`);
+      throw new Error(
+        `Failed to hover over the ${elementName} element: ${error}`
+      );
     }
   }
 );
