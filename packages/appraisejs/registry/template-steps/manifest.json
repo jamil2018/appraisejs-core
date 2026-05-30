@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-28T17:26:39.487Z",
+  "generatedAt": "2026-05-30T08:48:24.478Z",
   "steps": [
     {
       "slug": "active-state-assertion/assert-element-active",
@@ -363,6 +363,51 @@
       }
     },
     {
+      "slug": "store/store-element-text",
+      "sourcePath": "fragments/store/store-element-text.ts",
+      "sourceSha256": "238dcdecde691d48eea61474e132568a59d80699dc8d8fbe0593a20d8e7ac20c",
+      "signature": "the user stores the {string} element text inside the variable {string}",
+      "name": "store element text",
+      "description": "Store an element's text content inside a runtime variable",
+      "icon": "STORE",
+      "group": {
+        "slug": "store",
+        "name": "store",
+        "description": "Template step group for storing runtime values",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "store/store-text-input-text",
+      "sourcePath": "fragments/store/store-text-input-text.ts",
+      "sourceSha256": "7dce03c673a1ee16122a2824a1c594e0e91d39da26bb0396738d495003739e04",
+      "signature": "the user stores the {string} text input value inside the variable {string}",
+      "name": "store text input text",
+      "description": "Store a text input value inside a runtime variable",
+      "icon": "STORE",
+      "group": {
+        "slug": "store",
+        "name": "store",
+        "description": "Template step group for storing runtime values",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "store/store-textarea-text",
+      "sourcePath": "fragments/store/store-textarea-text.ts",
+      "sourceSha256": "46bdc9a16c5d49cf6456a70d4140a73019a2d2ede46eb12b9ff32c751128652a",
+      "signature": "the user stores the {string} textarea input value inside the variable {string}",
+      "name": "store textarea text",
+      "description": "Store a textarea value inside a runtime variable",
+      "icon": "STORE",
+      "group": {
+        "slug": "store",
+        "name": "store",
+        "description": "Template step group for storing runtime values",
+        "type": "ACTION"
+      }
+    },
+    {
       "slug": "text-assertion/assert-element-contains-stored-variable-text",
       "sourcePath": "fragments/text-assertion/assert-element-contains-stored-variable-text.ts",
       "sourceSha256": "ac2bca7371d0f705404da10e8c92ecf655698b8a393c3f46a42dd5161c9701ee",
@@ -420,6 +465,81 @@
         "name": "visibility assertion",
         "description": "Template steps that handles the assertion of element visibility states",
         "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "wait/wait-for-element",
+      "sourcePath": "fragments/wait/wait-for-element.ts",
+      "sourceSha256": "fe7dc08b0e7638b8fdbf670628dfee7c9fbd75755aefad3f4a2f92006f02445f",
+      "signature": "the user waits for the element {string} to become visible",
+      "name": "wait for element",
+      "description": "Wait for an element to become visible",
+      "icon": "WAIT",
+      "group": {
+        "slug": "wait",
+        "name": "wait",
+        "description": "Template step group for waiting on time or page state",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "wait/wait-for-element-to-disappear",
+      "sourcePath": "fragments/wait/wait-for-element-to-disappear.ts",
+      "sourceSha256": "4a912c3587423f8d21d0079488897e301068cc201290b096bc790a231b669d30",
+      "signature": "the user waits for the {string} element to disappear",
+      "name": "wait for element to disappear",
+      "description": "Wait for an element to become hidden or detached",
+      "icon": "WAIT",
+      "group": {
+        "slug": "wait",
+        "name": "wait",
+        "description": "Template step group for waiting on time or page state",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "wait/wait-for-page-load",
+      "sourcePath": "fragments/wait/wait-for-page-load.ts",
+      "sourceSha256": "16b18639d7b548591a3b2952b1c6af60aa06fd545e094edfed69c13ba38a6cf9",
+      "signature": "the user waits for the current page to be loaded",
+      "name": "wait for page load",
+      "description": "Wait for the current page to finish loading",
+      "icon": "WAIT",
+      "group": {
+        "slug": "wait",
+        "name": "wait",
+        "description": "Template step group for waiting on time or page state",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "wait/wait-for-specific-amount-of-seconds",
+      "sourcePath": "fragments/wait/wait-for-specific-amount-of-seconds.ts",
+      "sourceSha256": "286984268ee7196c32154f506d874326a7ea64ed4a43d045ffd33dd6e6e94677",
+      "signature": "the user waits for {int} seconds",
+      "name": "wait for specific amount of seconds",
+      "description": "Wait for a specific number of seconds",
+      "icon": "WAIT",
+      "group": {
+        "slug": "wait",
+        "name": "wait",
+        "description": "Template step group for waiting on time or page state",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "wait/wait-for-url-route",
+      "sourcePath": "fragments/wait/wait-for-url-route.ts",
+      "sourceSha256": "545c7b80fc16f31d50cc4b58dbebf60723d057529b1b50dacacc63838e9d0961",
+      "signature": "the user waits for the route {string} to be loaded",
+      "name": "wait for url route",
+      "description": "Wait for the current URL path to match a route",
+      "icon": "WAIT",
+      "group": {
+        "slug": "wait",
+        "name": "wait",
+        "description": "Template step group for waiting on time or page state",
+        "type": "ACTION"
       }
     }
   ]

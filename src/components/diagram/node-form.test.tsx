@@ -145,6 +145,31 @@ describe('NodeForm', () => {
     })
   })
 
+  it('renders footer actions with icons', () => {
+    render(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={{
+          label: '',
+          gherkinStep: '',
+          templateStepId: '',
+          parameters: [],
+        }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Cancel' }).querySelector('svg')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' }).querySelector('svg')).toBeInTheDocument()
+  })
+
   it('blocks submit when dynamic parameter validation fails', async () => {
     const user = userEvent.setup()
     const onSubmitAction = vi.fn()
