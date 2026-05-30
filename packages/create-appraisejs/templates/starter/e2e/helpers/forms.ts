@@ -1,6 +1,53 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 import { saveForm, expectPageHeading } from './ui'
+
+function labeledMultiSelectCombobox(page: Page, label: string): Locator {
+  return page.getByText(label, { exact: true }).locator('..').getByRole('combobox', { name: 'Select options' })
+}
+
+export async function selectFilterTags(page: Page, ...tagNames: string[]): Promise<void> {
+  const combobox = labeledMultiSelectCombobox(page, 'Filter Tags')
+
+  for (const tagName of tagNames) {
+    await combobox.click()
+    await page.getByRole('option', { name: tagName }).click()
+  }
+}
+
+export async function selectTestSuites(page: Page, ...suiteNames: string[]): Promise<void> {
+  const combobox = labeledMultiSelectCombobox(page, 'Test Suites')
+
+  for (const suiteName of suiteNames) {
+    await combobox.click()
+    await page.getByRole('option', { name: suiteName }).click()
+  }
+}
+
+export async function addTemplateStepToFlow(page: Page, stepName = 'Open seeded page'): Promise<void> {
+  const emptyStateAdd = page.getByRole('button', { name: 'Add node', exact: true })
+  const toolbarAdd = page.getByRole('button', { name: 'Add Node' })
+
+  if (await emptyStateAdd.isVisible()) {
+    await emptyStateAdd.click()
+  } else {
+    await toolbarAdd.click()
+  }
+
+  await expect(page.getByRole('dialog', { name: 'Add Node' })).toBeVisible()
+  const addNodeDialog = page.getByRole('dialog', { name: 'Add Node' })
+  await addNodeDialog.getByRole('textbox', { name: 'Label' }).fill(stepName)
+  await addNodeDialog.getByRole('combobox', { name: 'Template Step' }).click()
+  await page.getByPlaceholder('Search template steps…').fill(stepName)
+  await page.getByRole('option', { name: stepName }).click()
+  const urlParameter = addNodeDialog.getByRole('textbox', { name: /^url/i })
+  if (await urlParameter.isVisible()) {
+    await urlParameter.fill('/')
+  }
+  await addNodeDialog.getByRole('button', { name: /^Save$/ }).click()
+  await expect(addNodeDialog).toBeHidden()
+  await expect(page.getByText(stepName, { exact: true }).first()).toBeVisible()
+}
 
 export async function editRecordName(page: Page, name: string, nextName: string): Promise<void> {
   await page.getByLabel('Name').fill(nextName)
@@ -36,8 +83,8 @@ export async function createLocator(
   await expectPageHeading(page, 'Create Locator')
   await page.getByLabel('Locator Name').fill(name)
   await page.getByLabel('Selector').fill(selector)
-  await page.getByText('Use existing group').click()
-  await page.getByLabel('Locator Group').click()
+  await page.getByRole('radio', { name: /Use existing group/i }).click()
+  await page.getByRole('combobox', { name: 'Locator Group' }).click()
   await page.getByRole('option', { name: groupName }).click()
   await page.getByRole('button', { name: 'Save Locator' }).click()
   await expect(page).toHaveURL(/\/locators$/)
@@ -69,9 +116,7 @@ export async function createTemplateTestCase(page: Page, name: string): Promise<
   await page.goto('/template-test-cases/create')
   await expectPageHeading(page, 'Create Template Test Case')
   await page.getByLabel('Title').fill(name)
-  await page.getByRole('button', { name: 'Search nodes' }).click()
-  await page.getByRole('textbox', { name: 'Search nodes' }).fill('Open seeded')
-  await page.getByRole('button', { name: 'Open seeded page', exact: true }).click()
+  await addTemplateStepToFlow(page)
   await page.getByRole('button', { name: /^Save$/ }).click()
   await expect(page).toHaveURL(/\/template-test-cases$/)
   await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
@@ -103,10 +148,11 @@ export async function fillTestCaseDetails(
   page: Page,
   title: string,
   tagName = 'E2E Smoke',
+  suiteName = 'E2E Auth Suite',
 ): Promise<void> {
   await page.getByRole('textbox', { name: 'Title' }).fill(title)
-  await page.getByRole('combobox', { name: 'Filter Tags' }).click()
-  await page.getByRole('option', { name: tagName }).click()
+  await selectTestSuites(page, suiteName)
+  await selectFilterTags(page, tagName)
   await page.getByRole('button', { name: /Continue/ }).click()
 }
 
@@ -120,9 +166,7 @@ export async function createTestCaseWithSeededStep(page: Page, title: string): P
   await expectPageHeading(page, 'Create New Test Case')
   await fillTestCaseDetails(page, title)
   await expect(page.getByText('Test Case Flow', { exact: true }).first()).toBeVisible()
-  await page.getByRole('button', { name: 'Search nodes' }).click()
-  await page.getByRole('textbox', { name: 'Search nodes' }).fill('Open seeded')
-  await page.getByRole('button', { name: 'Open seeded page', exact: true }).click()
+  await addTemplateStepToFlow(page)
   await saveTestCase(page)
   await expect(page.getByText(title, { exact: true }).first()).toBeVisible()
 }

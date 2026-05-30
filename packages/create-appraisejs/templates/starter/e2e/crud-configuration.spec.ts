@@ -19,7 +19,7 @@ import {
   editTag,
 } from './helpers/forms'
 import { createEnvironment, createModule, createTag, expectPageHeading, saveForm } from './helpers/ui'
-import { deleteRowByName, expectRowHidden, filterTableByName } from './helpers/table'
+import { deleteRowByName, editRowByName, expectRowHidden, filterTableByName } from './helpers/table'
 
 test.describe('Configuration CRUD @crud', () => {
   test.beforeEach(async () => {
@@ -55,7 +55,7 @@ test.describe('Configuration CRUD @crud', () => {
     await createLocator(page, locatorName, 'text=Config button', locatorGroupName)
 
     await page.goto(`/locators/modify/${seededIds.locator}`)
-    await expect(page.getByText('Update Locator')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Update Locator' })).toBeVisible()
     await page.getByLabel('Locator Name').fill('E2E Sign In Button Edited')
     await page.getByRole('button', { name: 'Update Locator' }).click()
     await expect(page).toHaveURL(/\/locators$/)
@@ -91,17 +91,13 @@ test.describe('Configuration CRUD @crud', () => {
     await createTemplateTestCase(page, templateCaseName)
 
     await page.goto('/template-step-groups')
-    await filterTableByName(page, groupName)
-    await page.getByRole('button', { name: 'Open menu' }).first().click()
-    await page.getByRole('menuitem', { name: /Edit/ }).click()
+    await editRowByName(page, groupName)
     await page.getByLabel('Name').fill(`${groupName} Edited`)
     await saveForm(page)
     await expect(page.getByText(`${groupName} Edited`, { exact: true }).first()).toBeVisible()
 
     await page.goto('/template-steps')
-    await filterTableByName(page, stepName)
-    await page.getByRole('button', { name: 'Open menu' }).first().click()
-    await page.getByRole('menuitem', { name: /Edit/ }).click()
+    await editRowByName(page, stepName)
     await page.getByLabel('Name').fill(`${stepName} Edited`)
     await page.getByRole('button', { name: /^Save$/ }).click()
     await expect(page.getByText(`${stepName} Edited`, { exact: true }).first()).toBeVisible()

@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test'
 import { disconnectPrisma, findModuleByName, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
 import { createTestCaseWithSeededStep, createTestSuite } from './helpers/forms'
 import { expectPageHeading, saveForm } from './helpers/ui'
-import { deleteRowByName, expectRowHidden, filterTableByName } from './helpers/table'
+import { deleteRowByName, editRowByName, expectRowHidden, filterTableByName } from './helpers/table'
+import { selectFilterTags, selectTestSuites } from './helpers/forms'
 
 test.describe('Test hierarchy CRUD @crud', () => {
   test.beforeEach(async () => {
@@ -21,10 +22,7 @@ test.describe('Test hierarchy CRUD @crud', () => {
 
     await createTestSuite(page, suiteName, 'E2E Auth', 'E2E seeded login works')
 
-    await page.goto('/test-suites')
-    await filterTableByName(page, suiteName)
-    await page.getByRole('button', { name: 'Open menu' }).first().click()
-    await page.getByRole('menuitem', { name: /Edit/ }).click()
+    await editRowByName(page, suiteName)
     await page.getByPlaceholder('Enter name for your test suite').fill(editedSuiteName)
     await saveForm(page)
     await expect(page.getByText(editedSuiteName, { exact: true }).first()).toBeVisible()
@@ -47,9 +45,9 @@ test.describe('Test hierarchy CRUD @crud', () => {
     await expect(page.getByText('Test Scenario(Preview)')).toBeVisible()
 
     await page.goto('/test-cases')
-    await deleteRowByName(page, caseTitle)
+    await deleteRowByName(page, caseTitle, 'Filter by title...')
     await page.reload()
-    await expectRowHidden(page, caseTitle)
+    await expectRowHidden(page, caseTitle, 'Filter by title...')
   })
 
   test('create test case from template lands on modify with prefilled flow', async ({ page }) => {
@@ -59,8 +57,8 @@ test.describe('Test hierarchy CRUD @crud', () => {
     await page.getByRole('option', { name: 'E2E Login Template' }).click()
     await page.getByRole('button', { name: /Continue/ }).click()
     await page.getByRole('textbox', { name: 'Title' }).fill('E2E From Template Case')
-    await page.getByRole('combobox', { name: 'Filter Tags' }).click()
-    await page.getByRole('option', { name: 'E2E Smoke' }).click()
+    await selectTestSuites(page, 'E2E Auth Suite')
+    await selectFilterTags(page, 'E2E Smoke')
     await page.getByRole('button', { name: /Continue/ }).click()
     await expect(page.getByText('Test Case Flow', { exact: true }).first()).toBeVisible()
     await page.getByRole('button', { name: 'Save test case' }).click()

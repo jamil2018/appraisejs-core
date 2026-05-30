@@ -9,7 +9,7 @@ process.env.DATABASE_URL = databaseUrl
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
-  workers: 1,
+  workers: process.env.CI ? 4 : 1,
   timeout: 60_000,
   grep: process.env.E2E_GREP ? new RegExp(process.env.E2E_GREP) : undefined,
   expect: {
