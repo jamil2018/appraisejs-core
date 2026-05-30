@@ -56,11 +56,22 @@ For CRUD/domain work, start with `src/actions/*`, `prisma/schema.prisma`, and th
 
 For scaffolded-app changes, edit the root/base source first, then run `npm run sync-template` and, when relevant, `npm --prefix packages/create-appraisejs run sync-templates`. Preserve unrelated worktree changes and avoid reverting generated files unless explicitly requested.
 
-### Commits, quality gates, and handoff
+### Repository change workflow
 
-- **Commit incrementally**: After completing a substantial slice of work (for example a single scoped code change, one logical feature, or one completed implementation todo), create a **git commit** with a short imperative subject so progress is checkpointed and pre-commit hooks run on a bounded diff.
-- **If pre-commit fails** (`npm run quality:pre-commit`, including Fallow and React Doctor): **fix the code or config you introduced** until the hook passes; do not bypass hooks or commit broken static analysis. Re-run `git commit` after fixes.
-- **Before finishing a task**: Run **`npm run validate`** (Vitest suite) and **`npm run build`** so tests and the production build both succeed; fix anything that fails before considering the task done.
+- **Investigate first**: Read the user's request carefully, inspect the relevant source, configs, generated-file relationships, tests, and hooks, then plan the smallest complete change that satisfies the objective.
+- **Clarify after analysis**: If repository inspection leaves important behavior, scope, or tradeoff questions unanswered, ask the user before editing. Do not guess when the answer changes the implementation.
+- **Do complete work**: Avoid lazy or partial implementations when a request requires substantial repository changes. Do not narrow the scope just to avoid touching necessary files, and do not over-engineer beyond the requested outcome.
+- **Confirm broad changes**: For substantial or cross-cutting work, confirm the intended behavior, scope, and tradeoffs with the user after analysis and before implementation. Substantial work includes changes across multiple subsystems, public behavior or schema changes, generated/template sync flows, runtime execution paths, or coordinated app/package/template updates.
+- **Implement carefully**: Preserve unrelated worktree changes, prefer canonical source files over generated artifacts, and check that the change does not introduce unintended side effects.
+- **Decide on tests**: Always consider whether the touched behavior benefits from unit, API, component, Cucumber, or Playwright coverage. Add or update tests when the behavior risk justifies it.
+- **Run focused linting**: Run ESLint before formatting and prefer affected-file checks such as `npx eslint <files>` over `npm run lint` unless the change is broad enough to justify the full repo command. Fix introduced lint issues.
+- **Run focused formatting**: Run Prettier after linting and prefer affected-file checks/writes such as `npx prettier --check <files>` and `npx prettier --write <files>` over full-repo formatting. Fix introduced formatting issues.
+- **Run focused static analysis**: This repo has Fallow and React Doctor. The installed pre-commit hook runs `npm run quality:pre-commit`, which runs `npm run quality:fallow:commit` and `npm run quality:react-doctor:commit`; it does not run ESLint, Prettier, tests, or builds. Run Fallow and React Doctor against staged or affected changes where their configs include the touched files, and check `.fallowrc.json`, `react-doctor.config.json`, and ESLint ignores when adding new files or folders.
+- **Run related tests before staging**: If tests were added or existing tests cover the touched surface, run those focused tests before staging. Skip tests only when no unit, API, component, Cucumber, or Playwright test is connected to the change.
+- **Commit incrementally**: After completing a substantial logical slice, create a git commit with a short imperative subject so progress is checkpointed and pre-commit hooks run on a bounded diff.
+- **Fix hook failures**: If pre-commit fails, fix the code or config you introduced until the hook passes. Do not bypass hooks or commit broken static analysis.
+- **Build when warranted**: Run `npm run build` when the change touches a fair number of files, crosses build/runtime boundaries, changes package/config/schema behavior, or otherwise has broad blast radius. For large or release-like tasks, run both `npm run validate` and `npm run build` before finishing.
+- **Verify after push**: When pushing is part of the task, check the git tree, branch/upstream state, and pushed contents after the push so the handoff is based on the remote state, not only the local commit.
 
 ## graphify
 
