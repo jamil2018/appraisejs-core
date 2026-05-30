@@ -16,6 +16,8 @@
   "ignoreDependencies": [
     "@codemirror/lang-jinja",
     "@faker-js/faker",
+    "chai",
+    "chai-as-promised",
     "dotenv"
   ],
   "duplicates": {
