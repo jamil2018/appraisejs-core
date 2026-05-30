@@ -1,74 +1,112 @@
-# Repository Guidelines
+# Repository Agent Guidance
 
-## Project Context
+## Role of This File
 
-AppraiseJS is a local-first test management and execution platform. Users author modules, suites, cases, steps, locators, environments, tags, and templates in the UI. The app persists data in SQLite through Prisma, generates Gherkin feature files, executes tests with Cucumber and Playwright, parses reports, and displays run metrics in the app.
+This file is the routing and safety layer for coding agents working in AppraiseJS. Keep detailed product docs,
+feature specs, API notes, and implementation plans in dedicated docs or source files. Use this file to decide where
+to look, what is authoritative, what not to touch, and how to validate work.
 
-This repository contains the root AppraiseJS application and the `create-appraisejs` scaffolding package. The scaffold should inherit root app changes only through the expected template sync workflow.
+## Mental Model
 
-## Project Structure & Module Organization
+AppraiseJS is a local-first test management and execution platform. The app stores authored modules, suites, cases,
+steps, locators, environments, tags, and templates in SQLite through Prisma. It generates Gherkin feature files, runs
+tests with Cucumber and Playwright, parses reports, and displays run metrics.
 
-AppraiseJS uses Next.js 16 App Router, React 19, TypeScript strict mode, Prisma/SQLite, Tailwind CSS, Radix UI, TanStack libraries, React Flow, Cucumber, and Playwright.
+This repo contains the root app and related packages, including `create-appraisejs`. Scaffold/template changes should
+originate in the root/base source and flow through the template sync workflow.
 
-Main app code lives in `src/`: routes in `src/app`, CRUD pages in `src/app/(base)`, API routes in `src/app/api`, server actions in `src/actions`, shared UI in `src/components`, orchestration helpers in `src/lib`, domain services in `src/services`, and shared types in `src/types`. Prisma schema and migrations are in `prisma/`. Utility and sync scripts are in `scripts/`. Static assets are in `public/` and `src/assets/`.
+## Instruction Priority
 
-Packages live under `packages/`: `create-appraisejs` contains the CLI/scaffold source, `cucumber-runtime` contains reusable Cucumber runtime code, and `locator-picker-companion` contains locator-picker support code. Template copies live in `templates/` and `packages/create-appraisejs/templates/`.
+When instructions conflict, follow this order:
 
-Generated or sync-managed automation output is under `automation/`, including features, locators, reports, and mapping data. Change the source data, generator, or sync script instead of patching generated output directly.
+1. The user's explicit request and constraints.
+2. This `AGENTS.md` file for repo-specific safety and routing.
+3. Source code, tests, schemas, and config files.
+4. Current docs such as `docs/*`, `README.md`, and `CONTRIBUTING.md`.
+5. Historical plans under `codex/development plan/*`, which are reference-only unless the user names one.
 
-## Build, Test, and Development Commands
+## Sources of Truth
 
-- `npm run setup`: install dependencies, create env config, migrate SQLite, install Playwright, and run sync.
-- `npm run dev`: start the local Next.js dev server.
-- `npm run build`: build packages and the production Next.js app.
-- `npm run start`: run the production server with local environment settings.
-- `npm run lint`: run ESLint over the repository.
-- `npm run validate`: run the configured Vitest suite through `scripts/run-vitest.ts`.
-- `npm run test`: run Cucumber tests with `cucumber-js`.
-- `npm run sync-all`: sync database-backed test metadata and generated files.
-- `npm run sync-features:dry-run`: preview bidirectional feature/database sync.
-- `npm run sync-template`: copy root app changes into `templates/`.
-- `npm --prefix packages/create-appraisejs run sync-templates`: copy synced templates into the scaffold package.
+- Commands and scripts: `package.json`
+- Database model: `prisma/schema.prisma`
+- Prisma client setup: `src/config/db-config.ts`
+- Automation sync rules: `docs/automation-sync-rules.md`
+- Scaffold/template sync rules: `docs/scaffold-template-sync.md`
+- Test run runtime map: `docs/test-run-runtime.md`
+- Server action/service conventions: `docs/server-actions-conventions.md`
+- Component organization rules: `docs/component-organization-rules.md`
+- Cucumber runtime config: `cucumber.mjs`
+- Formatting and line endings: `.prettierrc`, `.editorconfig`, `.gitattributes`, `.gitconfig.appraise`
+- Static analysis config: `.fallowrc.json`, `react-doctor.config.json`
 
-## Coding Style & Naming Conventions
+Generated or sync-managed automation output lives under `automation/`. Prefer changing source data, generators, or
+sync scripts instead of editing generated output directly.
 
-Use TypeScript for new code and prefer explicit, narrow types over `any`. Prettier uses 2 spaces, single quotes, no semicolons, trailing commas, 120 character lines, and Tailwind class sorting. Use `kebab-case` file names such as `test-case-form.tsx` and `date-utils.ts`. Prefer `@/` imports for `src/*`.
+## Task Routing
 
-Line endings are **LF** (`.gitattributes`, `.editorconfig`, Prettier `endOfLine: "lf"`). On Windows, run `npm run setup:git` after clone so local Git uses the repo policy (`core.autocrlf=false`, `diff.ignoreCrAtEol=true` via `.gitconfig.appraise`). If an existing clone already committed CRLF noise, run `npm run setup:git -- --renormalize` once and review `git status` before committing.
+For CRUD/domain work, start with `src/actions/*`, `src/services/*`, `prisma/schema.prisma`, and the matching
+page/form/table under `src/app/(base)`.
 
-For database work, read `prisma/schema.prisma` first. The core hierarchy is `Module -> TestSuite -> TestCase -> TestCaseStep`, with related template, locator, environment, run, report, and metrics tables. Prisma client setup is centralized in `src/config/db-config.ts`.
+For database/schema work, read `prisma/schema.prisma` first and check affected services, actions, migrations, sync
+scripts, and tests before changing the model.
 
-## Testing Guidelines
+For authored test structure, feature generation, or sync behavior, follow `docs/automation-sync-rules.md`, then check
+`src/lib/feature-file-generator.ts`, `src/lib/bidirectional-sync.ts`, `src/lib/database-sync.ts`,
+`src/lib/gherkin-parser.ts`, and the relevant `scripts/sync-*.ts`.
 
-Vitest covers unit and component tests named `*.test.ts` or `*.test.tsx` in `src/app`, `src/actions`, `src/components`, `src/services`, selected `src/lib` paths, and script libraries. Run focused checks with `npx vitest run path/to/file.test.tsx`, then use `npm run validate` for broader verification. Use `npm run test` for Cucumber execution behavior.
+For test execution, reports, or logs, follow `docs/test-run-runtime.md`, then start with
+`src/actions/test-run/test-run-actions.ts`, `src/services/test-run/test-run-service.ts`,
+`src/lib/executor/local-executor-adapter.ts`, `src/lib/test-run/process-manager.ts`,
+`src/app/api/test-runs/[runId]/logs/route.ts`, and `cucumber.mjs`.
 
-React Doctor runs on the root app only (`--project appraisejs`): `npm run quality:react-doctor` for a full scan, `npm run quality:react-doctor:ci` for the same with a non-zero exit on errors (used in CI). Pre-commit runs `npm run quality:react-doctor:commit` (staged files). Configuration lives in `react-doctor.config.json`; dead-code analysis is disabled there because Fallow already covers that surface.
+For UI organization, follow `docs/component-organization-rules.md`. Keep route-specific UI local unless reuse or
+separation clearly justifies moving it into `src/components`.
 
-## Commit & Pull Request Guidelines
+For server actions, follow `docs/server-actions-conventions.md`: actions parse input and map responses; services own
+business rules; persistence uses Prisma or dedicated helpers.
 
-Recent history uses short, imperative subjects such as `Fix empty flow block selection loop` or `Implement flow-builder node search with template sync`. Keep commits scoped and mention template sync when applicable. PRs should describe the change, list validation commands, link related issues, and include screenshots or clips for visible UI changes.
+For scaffolded-app changes, follow `docs/scaffold-template-sync.md`. Edit root/base source first, then run
+`npm run sync-template` and, when relevant, `npm --prefix packages/create-appraisejs run sync-templates`.
 
-## Agent-Specific Instructions
+## Never Do
 
-Prefer canonical source files over generated artifacts. If changing authored test structure, check `src/lib/feature-file-generator.ts`, `src/lib/bidirectional-sync.ts`, `src/lib/database-sync.ts`, `src/lib/gherkin-parser.ts`, and the relevant `scripts/sync-*.ts` file.
+- Do not patch generated automation output when a source, generator, or sync script should change instead.
+- Do not edit scaffold templates directly when the root/base source should sync.
+- Do not revert unrelated worktree changes.
+- Do not bypass pre-commit hooks or ignore hook failures.
+- Do not apply broad formatting churn unrelated to the task.
+- Do not treat historical development plans as authoritative without checking current source.
+- Do not guess on broad behavior, schema, runtime, or template-sync changes when repo inspection leaves important
+  questions unanswered.
 
-For CRUD/domain work, start with `src/actions/*`, `prisma/schema.prisma`, and the matching page/form/table under `src/app/(base)`. For run execution or logs, start with `src/actions/test-run/test-run-actions.ts`, `src/lib/test-run/test-run-executor.ts`, `src/lib/test-run/process-manager.ts`, `src/app/api/test-runs/[runId]/logs/route.ts`, and `cucumber.mjs`.
+## Validation
 
-For scaffolded-app changes, edit the root/base source first, then run `npm run sync-template` and, when relevant, `npm --prefix packages/create-appraisejs run sync-templates`. Preserve unrelated worktree changes and avoid reverting generated files unless explicitly requested.
+Use focused checks first. Prefer affected-file ESLint and Prettier checks before full-repo commands unless the change
+is broad. `package.json` is the full source of truth for scripts.
 
-### Repository change workflow
+Common validation commands:
 
-- **Investigate first**: Read the user's request carefully, inspect the relevant source, configs, generated-file relationships, tests, and hooks, then plan the smallest complete change that satisfies the objective.
-- **Clarify after analysis**: If repository inspection leaves important behavior, scope, or tradeoff questions unanswered, ask the user before editing. Do not guess when the answer changes the implementation.
-- **Do complete work**: Avoid lazy or partial implementations when a request requires substantial repository changes. Do not narrow the scope just to avoid touching necessary files, and do not over-engineer beyond the requested outcome.
-- **Confirm broad changes**: For substantial or cross-cutting work, confirm the intended behavior, scope, and tradeoffs with the user after analysis and before implementation. Substantial work includes changes across multiple subsystems, public behavior or schema changes, generated/template sync flows, runtime execution paths, or coordinated app/package/template updates.
-- **Implement carefully**: Preserve unrelated worktree changes, prefer canonical source files over generated artifacts, and check that the change does not introduce unintended side effects.
-- **Decide on tests**: Always consider whether the touched behavior benefits from unit, API, component, Cucumber, or Playwright coverage. Add or update tests when the behavior risk justifies it.
-- **Run focused linting**: Run ESLint before formatting and prefer affected-file checks such as `npx eslint <files>` over `npm run lint` unless the change is broad enough to justify the full repo command. Fix introduced lint issues.
-- **Run focused formatting**: Run Prettier after linting and prefer affected-file checks/writes such as `npx prettier --check <files>` and `npx prettier --write <files>` over full-repo formatting. Fix introduced formatting issues.
-- **Run focused static analysis**: This repo has Fallow and React Doctor. The installed pre-commit hook runs `npm run quality:pre-commit`, which runs `npm run quality:fallow:commit` and `npm run quality:react-doctor:commit`; it does not run ESLint, Prettier, tests, or builds. Run Fallow and React Doctor against staged or affected changes where their configs include the touched files, and check `.fallowrc.json`, `react-doctor.config.json`, and ESLint ignores when adding new files or folders.
-- **Run related tests before staging**: If tests were added or existing tests cover the touched surface, run those focused tests before staging. Skip tests only when no unit, API, component, Cucumber, or Playwright test is connected to the change.
-- **Commit incrementally**: After completing a substantial logical slice, create a git commit with a short imperative subject so progress is checkpointed and pre-commit hooks run on a bounded diff.
-- **Fix hook failures**: If pre-commit fails, fix the code or config you introduced until the hook passes. Do not bypass hooks or commit broken static analysis.
-- **Build when warranted**: Run `npm run build` when the change touches a fair number of files, crosses build/runtime boundaries, changes package/config/schema behavior, or otherwise has broad blast radius. For large or release-like tasks, run both `npm run validate` and `npm run build` before finishing.
-- **Verify after push**: When pushing is part of the task, check the git tree, branch/upstream state, and pushed contents after the push so the handoff is based on the remote state, not only the local commit.
+- `npm run lint`
+- `npx eslint <files>`
+- `npx prettier --check <files>`
+- `npx prettier --write <files>`
+- `npm run validate`
+- `npx vitest run <test-file>`
+- `npm run test`
+- `npm run quality:fallow:commit`
+- `npm run quality:react-doctor:commit`
+- `npm run build`
+
+Run related tests when tests exist or are added. Run `npm run build` for broad changes, package/config/schema changes,
+runtime execution changes, or release-like work.
+
+## Completion Criteria
+
+Before finishing, make sure:
+
+- The change is made in canonical source files.
+- Generated/template sync has run when applicable.
+- Focused linting and formatting have passed, or failures are explained.
+- Relevant tests, static analysis, and build checks have run based on risk.
+- Hook failures introduced by the change are fixed.
+- The final response summarizes changed areas and validation performed.
