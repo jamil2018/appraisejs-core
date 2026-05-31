@@ -27,6 +27,7 @@ import { getTagTypeFromName } from '@/lib/tag-identifiers'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
   determineProjectedStepIcon,
+  generateProjectedGherkinSteps,
   getTestSuiteSyncIdentity,
   normalizeProjectedDbTestCaseSteps,
 } from '@/lib/sync/projected-feature-utils'
@@ -987,6 +988,34 @@ export function countTestSuiteMismatches(
   return count
 }
 
+type ProjectedTestCaseStep = {
+  order: number
+  gherkinStep: string
+  label: string
+  icon: TemplateStepIcon
+}
+
+function normalizeProjectedFsTestCaseSteps(stepsFromFs: ParsedStep[]): ProjectedTestCaseStep[] {
+  const storedSteps = stepsFromFs.map(step => ({
+    order: step.order,
+    gherkinStep: `${step.keyword} ${step.text}`,
+  }))
+  const projectedGherkinSteps = generateProjectedGherkinSteps(storedSteps)
+
+  return stepsFromFs.map((step, index) => {
+    const gherkinStep = projectedGherkinSteps[index] ?? ''
+    const [keyword = '', ...textParts] = gherkinStep.split(' ')
+    const label = textParts.join(' ')
+
+    return {
+      order: step.order,
+      gherkinStep,
+      label,
+      icon: determineProjectedStepIcon(keyword),
+    }
+  })
+}
+
 function hasProjectedTestCaseStepMismatch(
   stepsFromFs: ParsedStep[],
   dbSteps: Array<{
@@ -1003,23 +1032,23 @@ function hasProjectedTestCaseStepMismatch(
   }>,
 ): boolean {
   const projectedDbSteps = normalizeProjectedDbTestCaseSteps(dbSteps)
+  const projectedFsSteps = normalizeProjectedFsTestCaseSteps(stepsFromFs)
   const dbStepsByOrder = new Map(projectedDbSteps.map(step => [step.order, step]))
+  const fsStepsByOrder = new Map(stepsFromFs.map(step => [step.order, step]))
 
-  for (const step of stepsFromFs) {
-    const existing = dbStepsByOrder.get(step.order)
-    const matchedTemplateStep = matchGherkinStepToTemplateStep(step, dbTemplateSteps)
+  for (const projectedFsStep of projectedFsSteps) {
+    const existing = dbStepsByOrder.get(projectedFsStep.order)
+    const sourceStep = fsStepsByOrder.get(projectedFsStep.order)
+    const matchedTemplateStep = sourceStep ? matchGherkinStepToTemplateStep(sourceStep, dbTemplateSteps) : null
 
     if (!existing || !matchedTemplateStep) {
       return true
     }
 
-    const expectedIcon = determineProjectedStepIcon(step.keyword)
-    const expectedGherkinStep = `${step.keyword} ${step.text}`
-
     if (
-      existing.gherkinStep !== expectedGherkinStep ||
-      existing.label !== step.text ||
-      existing.icon !== expectedIcon ||
+      existing.gherkinStep !== projectedFsStep.gherkinStep ||
+      existing.label !== projectedFsStep.label ||
+      existing.icon !== projectedFsStep.icon ||
       existing.templateStepSignature !== matchedTemplateStep.signature ||
       !sameResolvedParameters(existing.parameters, matchedTemplateStep.parameters)
     ) {

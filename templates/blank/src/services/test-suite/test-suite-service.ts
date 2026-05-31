@@ -65,6 +65,7 @@ export async function getTestSuiteByIdOrThrow(id: string) {
   const testSuite = await prisma.testSuite.findUnique({
     where: { id },
     include: {
+      module: true,
       testCases: true,
       tags: {
         where: {

@@ -17,6 +17,7 @@ import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run
 import { promises as fs } from 'fs'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
 import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/automation-path-roots'
+import { automationProjectionService } from '@/lib/automation/projection-service'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
@@ -463,16 +464,56 @@ async function storeReportAfterRunIfNeeded(
   }
 }
 
+async function ensureFeatureFilesForTestRun(testRunTestCases: TestRunTestCaseLink[]): Promise<void> {
+  if (testRunTestCases.length === 0) {
+    return
+  }
+
+  const suiteIds = new Set<string>()
+
+  for (const link of testRunTestCases) {
+    if (link.testSuiteId) {
+      suiteIds.add(link.testSuiteId)
+    }
+  }
+
+  const unresolvedTestCaseIds = testRunTestCases
+    .filter(link => !link.testSuiteId)
+    .map(link => link.testCaseId)
+
+  if (unresolvedTestCaseIds.length > 0) {
+    const testCases = await prisma.testCase.findMany({
+      where: { id: { in: unresolvedTestCaseIds } },
+      select: {
+        TestSuite: {
+          select: { id: true },
+        },
+      },
+    })
+
+    for (const testCase of testCases) {
+      for (const suite of testCase.TestSuite) {
+        suiteIds.add(suite.id)
+      }
+    }
+  }
+
+  await Promise.all([...suiteIds].map(suiteId => automationProjectionService.generateFeature(suiteId)))
+}
+
 async function scheduleTestRunCompletion(args: {
   testRun: { id: string; runId: string }
   environment: Environment
   tagExpression: string
+  testRunTestCases: TestRunTestCaseLink[]
   value: TestRunFormValue
   logger: Awaited<ReturnType<typeof createTestRunLogger>>
 }): Promise<void> {
-  const { testRun, environment, tagExpression, value, logger } = args
+  const { testRun, environment, tagExpression, testRunTestCases, value, logger } = args
 
   try {
+    await ensureFeatureFilesForTestRun(testRunTestCases)
+
     const { process: spawnedProcess, reportPath } = await localExecutorAdapter.executeTestRun({
       testRunId: testRun.runId,
       environment,
@@ -671,6 +712,7 @@ export async function createTestRunFromValidatedValue(value: TestRunFormValue): 
     testRun,
     environment,
     tagExpression,
+    testRunTestCases,
     value,
     logger,
   })

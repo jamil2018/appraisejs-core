@@ -1,15 +1,42 @@
 import { describe, expect, it, vi } from 'vitest'
 import { TestRunTestCaseResult } from '@prisma/client'
-import { getTestSuiteExecutionData } from './dashboard-service'
+import { getDashboardMetrics, getTestSuiteExecutionData } from './dashboard-service'
+
+const { updateDashboardMetricsMock } = vi.hoisted(() => ({
+  updateDashboardMetricsMock: vi.fn(),
+}))
 
 vi.mock('@/config/db-config', () => ({
   default: {
     testRun: { findMany: vi.fn() },
     report: { findMany: vi.fn() },
+    dashboardMetrics: { findFirst: vi.fn() },
   },
 }))
 
+vi.mock('@/lib/metrics/metric-calculator', () => ({
+  updateDashboardMetrics: updateDashboardMetricsMock,
+}))
+
 import prisma from '@/config/db-config'
+
+describe('getDashboardMetrics', () => {
+  it('refreshes dashboard aggregates before returning the persisted row', async () => {
+    const metrics = {
+      failedRecentRunsCount: 0,
+      repeatedlyFailingTestsCount: 0,
+      flakyTestsCount: 0,
+      suitesNotExecutedRecentlyCount: 0,
+    }
+    updateDashboardMetricsMock.mockResolvedValue(undefined)
+    vi.mocked(prisma.dashboardMetrics.findFirst).mockResolvedValue(metrics as never)
+
+    await expect(getDashboardMetrics()).resolves.toBe(metrics)
+
+    expect(updateDashboardMetricsMock).toHaveBeenCalledOnce()
+    expect(prisma.dashboardMetrics.findFirst).toHaveBeenCalledOnce()
+  })
+})
 
 describe('getTestSuiteExecutionData', () => {
   it('returns empty array when no completed test runs', async () => {

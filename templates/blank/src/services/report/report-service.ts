@@ -428,7 +428,58 @@ export async function getAllTestCaseMetricsForFilter(filter: string) {
 }
 
 export async function getAllTestSuiteMetricsForFilter(filter: string) {
-  let testSuiteMetrics = await prisma.testSuiteMetrics.findMany({
+  if (filter === 'notExecutedRecently') {
+    const recentPeriodDate = new Date()
+    recentPeriodDate.setDate(recentPeriodDate.getDate() - RECENT_PERIOD_DAYS)
+
+    const testSuites = await prisma.testSuite.findMany({
+      where: {
+        OR: [
+          {
+            metrics: {
+              is: null,
+            },
+          },
+          {
+            metrics: {
+              is: {
+                lastExecutedAt: null,
+              },
+            },
+          },
+          {
+            metrics: {
+              is: {
+                lastExecutedAt: {
+                  lt: recentPeriodDate,
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        tags: true,
+        testCases: true,
+        metrics: true,
+      },
+    })
+
+    return testSuites.map(testSuite => {
+      const metrics = testSuite.metrics
+
+      return {
+        id: metrics?.id ?? `unexecuted-${testSuite.id}`,
+        testSuiteId: testSuite.id,
+        lastExecutedAt: metrics?.lastExecutedAt ?? null,
+        createdAt: metrics?.createdAt ?? testSuite.createdAt,
+        updatedAt: metrics?.updatedAt ?? testSuite.updatedAt,
+        testSuite,
+      }
+    })
+  }
+
+  const testSuiteMetrics = await prisma.testSuiteMetrics.findMany({
     include: {
       testSuite: {
         include: {
@@ -438,11 +489,5 @@ export async function getAllTestSuiteMetricsForFilter(filter: string) {
       },
     },
   })
-  if (filter === 'notExecutedRecently') {
-    const recentPeriodDate = new Date()
-    recentPeriodDate.setDate(recentPeriodDate.getDate() - RECENT_PERIOD_DAYS)
-
-    testSuiteMetrics = testSuiteMetrics.filter(ts => ts.lastExecutedAt === null || ts.lastExecutedAt < recentPeriodDate)
-  }
   return testSuiteMetrics
 }

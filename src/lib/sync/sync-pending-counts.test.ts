@@ -402,6 +402,74 @@ describe('sync pending counts', () => {
     expect(count).toBe(0)
   })
 
+  it('treats And steps after Then as in sync when DB stores the feature-file keyword', () => {
+    const count = countTestCaseMismatches(
+      [
+        {
+          identifierTag: '@tc_route',
+          title: 'Route Check',
+          description: 'Validates route after login',
+          testSuiteName: 'authentication',
+          modulePath: '/E2E Auth',
+          filterTags: [],
+          steps: [
+            { order: 1, keyword: 'Given', text: 'open the login page' },
+            { order: 2, keyword: 'Then', text: 'the url route should be equal to "/home"' },
+            { order: 3, keyword: 'And', text: 'the page title should be "Home"' },
+          ],
+        },
+      ],
+      [
+        {
+          title: 'Route Check',
+          description: 'Validates route after login',
+          tags: [{ tagExpression: '@tc_route', type: TagType.IDENTIFIER }],
+          TestSuite: [{ name: 'Authentication', moduleId: 'module-auth' }],
+          steps: [
+            {
+              order: 1,
+              gherkinStep: 'Given open the login page',
+              label: 'open the login page',
+              icon: TemplateStepIcon.NAVIGATION,
+              TemplateStep: { signature: 'open the login page' },
+              parameters: [],
+            },
+            {
+              order: 2,
+              gherkinStep: 'Then the url route should be equal to "/home"',
+              label: 'the url route should be equal to "/home"',
+              icon: TemplateStepIcon.VALIDATION,
+              TemplateStep: { signature: 'the url route should be equal to {string}' },
+              parameters: [{ name: 'route', value: '/home', order: 0, type: StepParameterType.STRING }],
+            },
+            {
+              order: 3,
+              gherkinStep: 'And the page title should be "Home"',
+              label: 'the page title should be "Home"',
+              icon: TemplateStepIcon.MOUSE,
+              TemplateStep: { signature: 'the page title should be {string}' },
+              parameters: [{ name: 'title', value: 'Home', order: 0, type: StepParameterType.STRING }],
+            },
+          ],
+        },
+      ],
+      new Map([['module-auth', '/E2E Auth']]),
+      [
+        { signature: 'open the login page', parameters: [] },
+        {
+          signature: 'the url route should be equal to {string}',
+          parameters: [{ name: 'route', order: 0, type: StepParameterType.STRING }],
+        },
+        {
+          signature: 'the page title should be {string}',
+          parameters: [{ name: 'title', order: 0, type: StepParameterType.STRING }],
+        },
+      ],
+    )
+
+    expect(count).toBe(0)
+  })
+
   it('collapses duplicate filesystem test-case identifiers to the script final state', () => {
     const count = countTestCaseMismatches(
       [

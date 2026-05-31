@@ -1,0 +1,21 @@
+# Line endings: LF in Git (matches .editorconfig, .prettierrc endOfLine=lf).
+# Run `npm run setup:git` on Windows so local core.autocrlf does not fight this file.
+
+* text=auto eol=lf
+
+*.{ts,tsx,js,mjs,cjs,jsx,json,md,mdx,yml,yaml,css,scss,html,prisma,sql,feature} text eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

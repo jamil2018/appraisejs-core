@@ -128,11 +128,9 @@ export default function ParamChip({
         ...formValues,
       }
 
-      setItems(prev => {
-        const next = [...prev, newItem]
-        onSubmit(next.map(stripItemId))
-        return next
-      })
+      const nextItems = [...items, newItem]
+      setItems(nextItems)
+      onSubmit(nextItems.map(stripItemId))
 
       setFormValues({
         name: '',
@@ -146,11 +144,9 @@ export default function ParamChip({
 
   // Handle removing an item
   const removeItem = (id: string) => {
-    setItems(prev => {
-      const nextItems = prev.filter(item => item.id !== id)
-      onSubmit(nextItems.map(stripItemId))
-      return nextItems
-    })
+    const nextItems = items.filter(item => item.id !== id)
+    setItems(nextItems)
+    onSubmit(nextItems.map(stripItemId))
   }
 
   return (

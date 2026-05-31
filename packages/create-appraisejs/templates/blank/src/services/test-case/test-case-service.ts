@@ -101,11 +101,6 @@ export async function listTestCases() {
           parameters: true,
         },
       },
-      flowBlocks: {
-        include: {
-          nodes: true,
-        },
-      },
       TestSuite: true,
       tags: true,
     },

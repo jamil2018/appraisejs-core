@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { locatorGroupFormOpts, LocatorGroup } from '@/constants/form-opts/locator-group-form-opts'
+import { locatorGroupFormOpts, locatorGroupSchema, LocatorGroup } from '@/constants/form-opts/locator-group-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { ActionResponse } from '@/types/form/actionHandler'
 import { useForm } from '@tanstack/react-form'
@@ -175,7 +175,7 @@ const LocatorGroupForm = ({
       <form.Field
         name="route"
         validators={{
-          onChange: z.string().optional(),
+          onChange: locatorGroupSchema.shape.route,
         }}
       >
         {field => {

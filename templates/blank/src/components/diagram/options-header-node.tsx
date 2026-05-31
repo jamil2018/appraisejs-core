@@ -121,9 +121,9 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
           }
         }}
         className={cn(
-          'border-border/70 shadow-background/30 w-36 overflow-visible bg-card p-0 pt-4 shadow-lg transition-[border-radius,box-shadow] duration-300 ease-out',
+          'shadow-background/30 w-36 overflow-visible p-0 pt-4 shadow-lg transition-[border-radius,box-shadow] duration-300 ease-out',
+          isMissingParams ? 'border-red-700 bg-red-600 text-white ring-1 ring-red-800/60' : 'border-border/70 bg-card',
           isFirstNode && 'rounded-l-3xl rounded-r-md',
-          isMissingParams && 'border-destructive/70 bg-destructive/10 ring-destructive/40 ring-1',
           isSearchHighlighted && 'shadow-[0_0_28px_rgba(16,185,129,0.34)] ring-2 ring-emerald-500/70',
         )}
       >
@@ -216,20 +216,30 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
         <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
           <div
             data-testid="node-step-icon"
-            className="bg-primary/15 shadow-primary/20 flex size-20 shrink-0 items-center justify-center rounded-2xl text-primary shadow-lg [&>svg]:size-10"
+            className={cn(
+              'flex size-20 shrink-0 items-center justify-center rounded-2xl shadow-lg [&>svg]:size-10',
+              isMissingParams
+                ? 'bg-white/15 text-white shadow-black/20'
+                : 'bg-primary/15 shadow-primary/20 text-primary',
+            )}
           >
             {KeyToIconTransformer(getTemplateStepIcon(icon))}
           </div>
         </div>
         <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -translate-x-[47%]">
-          <h3 className="relative -left-2 w-full text-center text-lg font-bold leading-tight text-card-foreground">
+          <h3
+            className={cn(
+              'relative -left-2 w-full text-center text-lg font-bold leading-tight',
+              isMissingParams ? 'text-white' : 'text-card-foreground',
+            )}
+          >
             {label}
           </h3>
           <AnimatePresence>
             {showToolbar && (
               <motion.div
                 data-testid="node-gherkin-row"
-                className="mt-2 text-sm leading-relaxed text-muted-foreground"
+                className={cn('mt-2 text-sm leading-relaxed', isMissingParams ? 'text-white' : 'text-muted-foreground')}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 6 }}

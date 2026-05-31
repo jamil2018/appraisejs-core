@@ -687,11 +687,14 @@ export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
       reportPath: true,
       testCases: {
         select: {
+          testCaseId: true,
           tracePath: true,
         },
       },
     },
   })
+
+  const deletedRunTestCaseIds = testRuns.flatMap(testRun => testRun.testCases.map(testCase => testCase.testCaseId))
 
   for (const testRun of testRuns) {
     await fs.rm(getAutomationReportRunDir(testRun.runId), { recursive: true, force: true })
@@ -730,7 +733,9 @@ export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
     },
   })
 
-  const allAffectedTestCaseIds = [...new Set(allRecentTestRunTestCases.map(trtc => trtc.testCaseId))]
+  const allAffectedTestCaseIds = [
+    ...new Set([...deletedRunTestCaseIds, ...allRecentTestRunTestCases.map(trtc => trtc.testCaseId)]),
+  ]
 
   if (allAffectedTestCaseIds.length > 0) {
     await recalculateMetricsForTestCases(allAffectedTestCaseIds)

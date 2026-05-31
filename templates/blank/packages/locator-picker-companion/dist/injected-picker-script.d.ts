@@ -1,1 +1,1 @@
-export declare function installLocatorPickerOverlay(): void
+export declare function installLocatorPickerOverlay(): void;

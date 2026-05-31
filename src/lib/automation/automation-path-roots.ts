@@ -54,6 +54,10 @@ export function getAutomationRunReportPath(runId: string): string {
   return path.join(getAutomationReportRunDir(runId), 'cucumber.json')
 }
 
+export function buildJsonReportFormat(reportPath: string): string {
+  return `json:${toProjectRelativePath(reportPath)}`
+}
+
 function getAutomationReportLogsDir(runId: string): string {
   return path.join(getAutomationReportRunDir(runId), 'logs')
 }

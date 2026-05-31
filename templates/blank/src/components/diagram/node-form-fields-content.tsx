@@ -15,6 +15,7 @@ import { getSelectedTemplateIcon, type NodeFormErrors } from './node-form-helper
 import { getParameterPreviewUpdates } from './node-form-template-step-selection'
 import type { TemplateStepWithGroup } from '@/types/diagram/template-step'
 import type { NodeFormFieldsProps } from './node-form-fields-props'
+import { Save, X } from 'lucide-react'
 
 type NodeFormFieldsContentProps = NodeFormFieldsProps & {
   fieldClassName: string
@@ -111,9 +112,15 @@ export function NodeFormFieldsContent({
       </div>
       <SheetFooter className="shrink-0 border-t pt-4">
         <SheetClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">
+            <X className="size-4" aria-hidden />
+            <span>Cancel</span>
+          </Button>
         </SheetClose>
-        <Button type="submit">Save</Button>
+        <Button type="submit">
+          <Save className="size-4" aria-hidden />
+          <span className="font-bold">Save</span>
+        </Button>
       </SheetFooter>
     </>
   )

@@ -13,7 +13,7 @@ function getAutomationLocatorsDir(baseDir: string): string {
 }
 
 export function getAutomationLocatorMapPath(baseDir: string): string {
-  return join(baseDir, 'automation', 'mapping', 'locator-map.json')
+  return toPosixPath(join(baseDir, 'automation', 'mapping', 'locator-map.json'))
 }
 
 export function extractModulePathFromAutomationFile(

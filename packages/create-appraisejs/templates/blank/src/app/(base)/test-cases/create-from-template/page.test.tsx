@@ -80,6 +80,8 @@ vi.mock('../test-case-form', () => ({
   default: testCaseFormSpy,
 }))
 
+import CreateTestCaseFromTemplate from './page'
+
 describe('Create Test Case From Template page', () => {
   it('passes template options and the selected template defaults into the shared test case form', async () => {
     getAllTemplateTestCasesAction.mockResolvedValue({
@@ -119,8 +121,6 @@ describe('Create Test Case From Template page', () => {
     getAllTestCasesAction.mockResolvedValue({ data: [{ id: 'case-1', title: 'Checkout case', steps: [], tags: [] }] })
     getAllModulesAction.mockResolvedValue({ data: [{ id: 'module-1', name: 'Auth' }] })
     getAllEnvironmentsAction.mockResolvedValue({ data: [{ id: 'env-1', name: 'Staging' }] })
-
-    const { default: CreateTestCaseFromTemplate } = await import('./page')
 
     render(
       await CreateTestCaseFromTemplate({

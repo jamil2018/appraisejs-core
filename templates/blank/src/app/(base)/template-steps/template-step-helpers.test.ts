@@ -28,6 +28,20 @@ describe('template-step helpers', () => {
     ).toBe(`Then('see result', async function(this:CustomWorld){});`)
   })
 
+  it('updates function parameters when an existing definition uses formatted CustomWorld spacing', () => {
+    expect(
+      buildFunctionDefinitionPreview(
+        `When('the user does {string}', async function (this: CustomWorld, test: string) {});`,
+        'the user does {string}',
+        TemplateStepType.ACTION,
+        [
+          { name: 'terst', type: StepParameterType.STRING },
+          { name: 'gyg', type: StepParameterType.STRING },
+        ],
+      ),
+    ).toBe(`When('the user does {string}', async function(this:CustomWorld, terst: string, gyg: string) {});`)
+  })
+
   it('derives local state defaults for create and edit modes', () => {
     expect(getTemplateStepFormDefaults()).toEqual({
       signature: '',

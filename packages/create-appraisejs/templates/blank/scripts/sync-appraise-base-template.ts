@@ -162,6 +162,8 @@ function main(): void {
   copyDirWithFilter(join(repoRoot, 'public'), join(target, 'public'))
   console.log('Copying scripts/...')
   copyDirWithFilter(join(repoRoot, 'scripts'), join(target, 'scripts'))
+  console.log('Copying e2e/...')
+  copyDirWithFilter(join(repoRoot, 'e2e'), join(target, 'e2e'))
 
   const legacyTestsRoot = join(target, 'src', 'tests')
   if (existsSync(legacyTestsRoot)) {
@@ -169,6 +171,10 @@ function main(): void {
   }
 
   const configFiles = [
+    '.gitattributes',
+    '.gitconfig.appraise',
+    '.editorconfig',
+    '.prettierrc',
     '.gitignore',
     'eslint.config.mjs',
     'tailwind.config.ts',
@@ -177,6 +183,7 @@ function main(): void {
     'components.json',
     'next.config.ts',
     'next-env.d.ts',
+    'playwright.config.ts',
     '.env.example',
     'package-lock.json',
     'yarn.lock',

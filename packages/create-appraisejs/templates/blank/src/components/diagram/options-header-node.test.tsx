@@ -178,6 +178,9 @@ describe('OptionsHeaderNode', () => {
     })
 
     expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-missing-params', 'true')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('bg-red-600')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('text-white')
+    expect(screen.getByTestId('node-step-icon')).toHaveClass('text-white')
     expect(screen.getByRole('heading', { name: 'Click submit' })).toBeInTheDocument()
     await user.hover(screen.getByTestId('options-header-node'))
     expect(screen.getByText('When click "Submit"')).toBeInTheDocument()
@@ -204,7 +207,7 @@ describe('OptionsHeaderNode', () => {
     expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-missing-params', 'true')
     expect(screen.getByTestId('options-header-node')).toHaveAttribute('data-first-node', 'true')
     expect(screen.getByTestId('options-header-node')).toHaveClass('ring-emerald-500/70')
-    expect(screen.getByTestId('options-header-node')).toHaveClass('border-destructive/70')
+    expect(screen.getByTestId('options-header-node')).toHaveClass('border-red-700')
     expect(screen.getByTestId('options-header-node')).toHaveClass('rounded-l-3xl')
   })
 })
