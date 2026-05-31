@@ -4,6 +4,40 @@ import { buildModuleHierarchy } from './module-hierarchy-builder'
 import { Prisma, TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
 import { getTagTypeFromExpression } from './tag-identifiers'
 import { getFeatureModulePath } from './path-helpers/feature-path'
+import { getTestSuiteFilesystemKey } from './sync/projected-feature-utils'
+
+function splitTagLine(tagLine: string): string[] {
+  return tagLine
+    .split(/\s+/)
+    .filter(tag => tag.trim().startsWith('@'))
+    .map(tag => tag.trim())
+}
+
+function flattenFeatureTags(tags: string[]): string[] {
+  return tags.flatMap(tag => (tag.startsWith('@') ? splitTagLine(tag) : [tag]))
+}
+
+function extractTestSuiteNameFromFilename(filePath: string): string {
+  const fileName = filePath.split(/[/\\]/).pop() || ''
+  return fileName.replace(/\.feature$/, '')
+}
+
+function parseScenarioTitle(
+  scenarioName: string,
+  scenarioDescription?: string,
+): { title: string; description: string } {
+  if (scenarioDescription) {
+    return {
+      title: scenarioDescription.trim(),
+      description: scenarioName.trim(),
+    }
+  }
+
+  return {
+    title: scenarioName.trim(),
+    description: '',
+  }
+}
 
 /**
  * Determines the tag type based on the tag expression pattern
@@ -308,14 +342,22 @@ async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, 
 }
 
 type ParsedScenario = ParsedFeature['scenarios'][number]
+
+const testSuiteInclude = {
+  testCases: {
+    include: {
+      tags: true,
+    },
+  },
+} as const
+
 type ExistingTestSuite = Prisma.TestSuiteGetPayload<{
-  include: {
-    testCases: true
-  }
+  include: typeof testSuiteInclude
 }>
 
 async function createScenarioTestCase(scenario: ParsedScenario, testSuiteId: string): Promise<string | null> {
-  return findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId, scenario.tags)
+  const { title, description } = parseScenarioTitle(scenario.name, scenario.description)
+  return findOrCreateTestCase(title, description, testSuiteId, scenario.tags)
 }
 
 async function createScenarioSteps(testCaseId: string, steps: ParsedStep[]): Promise<number> {
@@ -334,14 +376,43 @@ async function createScenarioSteps(testCaseId: string, steps: ParsedStep[]): Pro
 }
 
 async function findExistingTestSuite(feature: ParsedFeature, moduleId: string): Promise<ExistingTestSuite | null> {
+  const suiteIdentifierTag = flattenFeatureTags(feature.tags).find(tag => tag.replace(/^@/, '').startsWith('ts_'))
+
+  if (suiteIdentifierTag) {
+    const suiteByTag = await prisma.testSuite.findFirst({
+      where: {
+        moduleId,
+        tags: {
+          some: {
+            tagExpression: suiteIdentifierTag,
+          },
+        },
+      },
+      include: testSuiteInclude,
+    })
+
+    if (suiteByTag) {
+      return suiteByTag
+    }
+  }
+
+  const filesystemKey = getTestSuiteFilesystemKey(extractTestSuiteNameFromFilename(feature.filePath))
+  const suitesInModule = await prisma.testSuite.findMany({
+    where: { moduleId },
+    include: testSuiteInclude,
+  })
+  const suiteByFilename = suitesInModule.find(suite => getTestSuiteFilesystemKey(suite.name) === filesystemKey)
+
+  if (suiteByFilename) {
+    return suiteByFilename
+  }
+
   return prisma.testSuite.findFirst({
     where: {
       name: feature.featureName,
-      moduleId: moduleId,
+      moduleId,
     },
-    include: {
-      testCases: true,
-    },
+    include: testSuiteInclude,
   })
 }
 
@@ -362,11 +433,25 @@ async function connectTagsToTestSuite(testSuiteId: string, tags?: string[]): Pro
   })
 }
 
+function findExistingScenarioTestCase(
+  scenario: ParsedScenario,
+  testCases: ExistingTestSuite['testCases'],
+): ExistingTestSuite['testCases'][number] | undefined {
+  const identifierTag = flattenFeatureTags(scenario.tags).find(tag => tag.replace(/^@/, '').startsWith('tc_'))
+
+  if (identifierTag) {
+    return testCases.find(testCase => testCase.tags.some(tag => tag.tagExpression === identifierTag))
+  }
+
+  const { title } = parseScenarioTitle(scenario.name, scenario.description)
+  return testCases.find(testCase => testCase.title === title)
+}
+
 async function addMissingScenariosToTestSuite(feature: ParsedFeature, testSuite: ExistingTestSuite): Promise<number> {
   let addedScenarios = 0
 
   for (const scenario of feature.scenarios) {
-    const existingTestCase = testSuite.testCases.find(tc => tc.title === scenario.name)
+    const existingTestCase = findExistingScenarioTestCase(scenario, testSuite.testCases)
 
     if (!existingTestCase && (await addScenarioToTestSuite(scenario, testSuite.id))) {
       addedScenarios++
@@ -395,8 +480,8 @@ async function createTestSuiteWithScenarios(
   addedScenarios: number
 }> {
   const testSuiteId = await findOrCreateTestSuite(
-    feature.featureName,
-    feature.featureDescription,
+    extractTestSuiteNameFromFilename(feature.filePath),
+    feature.featureDescription || feature.featureName,
     moduleId,
     feature.tags,
   )

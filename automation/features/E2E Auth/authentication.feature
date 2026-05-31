@@ -7,8 +7,8 @@
 @ts_06f2b86636b19c4d
 Feature: Tests validating the auth feature
 
-  @tc_dc6f8afe1c80b9dc
   @demo
+  @tc_dc6f8afe1c80b9dc
   Scenario: [Demo Run With Template] Demo run using a template test case
     Given the user navigates to the base url of the selected environment
     When the user fills in the "Email" input field with value "demo@example.com"
@@ -25,4 +25,4 @@ Feature: Tests validating the auth feature
     And the user clicks on the "Login" element
     And the user waits for the route "/home" to be loaded
     Then the url route should be equal to "/home"
-    And the element "Title" should true contain the text "Welcome to Home Page"
+    When the element "Title" should true contain the text "Welcome to Home Page"
