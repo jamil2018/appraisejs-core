@@ -344,8 +344,7 @@ export function useFlowDiagram({
     setShowAddNodeDialog(true)
   }, [])
 
-
-return {
+  return {
     enableNodeSearch,
     enableNodeGrouping,
     defaultValueInput,

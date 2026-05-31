@@ -1,4 +1,12 @@
-import { addEdge, type Connection, type Edge, type Node, type EdgeChange, type NodeChange, type OnConnect } from '@xyflow/react'
+import {
+  addEdge,
+  type Connection,
+  type Edge,
+  type Node,
+  type EdgeChange,
+  type NodeChange,
+  type OnConnect,
+} from '@xyflow/react'
 import {
   determineStartNodeIds,
   isAddNodePromptNode,
@@ -27,18 +35,24 @@ export function filterBlockedEdgeChanges(
 
   return {
     blockedDeleteIds,
-    allowedChanges: changes.filter(change => change.type !== 'remove' || !change.id || !blockedDeleteIds.has(change.id)),
+    allowedChanges: changes.filter(
+      change => change.type !== 'remove' || !change.id || !blockedDeleteIds.has(change.id),
+    ),
   }
 }
 
 export function filterBlockedNodeChanges(changes: NodeChange[], flowBlockMembership: Map<string, string>) {
   const blockedDeleteIds = new Set(
-    changes.flatMap(change => (change.type === 'remove' && change.id && flowBlockMembership.has(change.id) ? [change.id] : [])),
+    changes.flatMap(change =>
+      change.type === 'remove' && change.id && flowBlockMembership.has(change.id) ? [change.id] : [],
+    ),
   )
 
   return {
     blockedDeleteIds,
-    allowedChanges: changes.filter(change => change.type !== 'remove' || !change.id || !blockedDeleteIds.has(change.id)),
+    allowedChanges: changes.filter(
+      change => change.type !== 'remove' || !change.id || !blockedDeleteIds.has(change.id),
+    ),
   }
 }
 
@@ -92,8 +106,12 @@ export function syncFlowNodePresentationMetadata(
     const isFirstNode = startNodeIds.has(node.id)
     const hasOutgoingConnection = nextEdges.some(edge => edge.source === node.id)
     const currentIsFirstNode = Boolean((node.data as { isFirstNode?: boolean }).isFirstNode)
-    const currentHasOutgoingConnection = Boolean((node.data as { hasOutgoingConnection?: boolean }).hasOutgoingConnection)
-    const currentIsConnectionInProgress = Boolean((node.data as { isConnectionInProgress?: boolean }).isConnectionInProgress)
+    const currentHasOutgoingConnection = Boolean(
+      (node.data as { hasOutgoingConnection?: boolean }).hasOutgoingConnection,
+    )
+    const currentIsConnectionInProgress = Boolean(
+      (node.data as { isConnectionInProgress?: boolean }).isConnectionInProgress,
+    )
     const currentIsSearchHighlighted = Boolean((node.data as { isSearchHighlighted?: boolean }).isSearchHighlighted)
     const isDeleteDisabled = flowBlockMembership.has(node.id)
     const currentIsDeleteDisabled = Boolean((node.data as { isDeleteDisabled?: boolean }).isDeleteDisabled)

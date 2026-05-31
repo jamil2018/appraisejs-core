@@ -30,8 +30,7 @@ export function getConfig(template: TemplateId = DEFAULT_TEMPLATE_ID): Config {
 
   const branch = process.env.CREATE_APPRAISE_BRANCH?.trim() ?? DEFAULT_BRANCH
 
-  const templateSubpath =
-    process.env.CREATE_APPRAISE_TEMPLATE_SUBPATH?.trim() ?? resolveRemoteTemplateSubpath(template)
+  const templateSubpath = process.env.CREATE_APPRAISE_TEMPLATE_SUBPATH?.trim() ?? resolveRemoteTemplateSubpath(template)
 
   const useBundledRaw = process.env.CREATE_APPRAISE_USE_BUNDLED
   const forceBundled =

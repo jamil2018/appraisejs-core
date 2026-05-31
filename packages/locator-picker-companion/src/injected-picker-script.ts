@@ -237,7 +237,9 @@ export function installLocatorPickerOverlay(): void {
     }
 
     if (parts.length === 1) {
-      const stableClasses = Array.from(element.classList || []).filter(isLikelyStableIdentifier).slice(0, 2)
+      const stableClasses = Array.from(element.classList || [])
+        .filter(isLikelyStableIdentifier)
+        .slice(0, 2)
       if (stableClasses.length > 0) {
         parts.push(...stableClasses.map(className => `.${escapeForCss(className)}`))
       }
@@ -650,10 +652,29 @@ export function installLocatorPickerOverlay(): void {
       state.hoveredElement = null
     }
 
-    const { helperText, statusText, selectorValue, metadataValue, errorValue, startButton, useButton, pickAgainButton, cancelButton } =
-      state.elements
+    const {
+      helperText,
+      statusText,
+      selectorValue,
+      metadataValue,
+      errorValue,
+      startButton,
+      useButton,
+      pickAgainButton,
+      cancelButton,
+    } = state.elements
 
-    if (!helperText || !statusText || !selectorValue || !metadataValue || !errorValue || !startButton || !useButton || !pickAgainButton || !cancelButton) {
+    if (
+      !helperText ||
+      !statusText ||
+      !selectorValue ||
+      !metadataValue ||
+      !errorValue ||
+      !startButton ||
+      !useButton ||
+      !pickAgainButton ||
+      !cancelButton
+    ) {
       return
     }
 

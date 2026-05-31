@@ -79,7 +79,8 @@ describe('LogViewer', () => {
 
   it('renders duplicate log entries without dropping repeated messages', async () => {
     const duplicateTimestamp = '2026-05-30T09:22:19.484Z'
-    const duplicateMessage = 'Scenario completed: [Demo Run With Template] Demo run using a template test case - unknown'
+    const duplicateMessage =
+      'Scenario completed: [Demo Run With Template] Demo run using a template test case - unknown'
     getTestRunLogsAction.mockResolvedValue({
       status: 200,
       data: [

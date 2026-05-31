@@ -106,154 +106,152 @@ const OptionsHeaderNode = memo(({ selected, data, onEdit, onAddConnectedNode }: 
 
   return (
     <LazyMotion features={domAnimation} strict>
-    <BaseNode
-      selected={selected}
-      data-testid="options-header-node"
-      data-missing-params={isMissingParams ? 'true' : undefined}
-      data-first-node={isFirstNode ? 'true' : undefined}
-      data-search-highlighted={isSearchHighlighted ? 'true' : undefined}
-      onMouseEnter={showToolbarNow}
-      onMouseLeave={hideToolbarWithDelay}
-      onFocus={showToolbarNow}
-      onBlur={event => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          hideToolbarWithDelay()
-        }
-      }}
-      className={cn(
-        'shadow-background/30 w-36 overflow-visible p-0 pt-4 shadow-lg transition-[border-radius,box-shadow] duration-300 ease-out',
-        isMissingParams
-          ? 'border-red-700 bg-red-600 text-white ring-1 ring-red-800/60'
-          : 'border-border/70 bg-card',
-        isFirstNode && 'rounded-l-3xl rounded-r-md',
-        isSearchHighlighted && 'shadow-[0_0_28px_rgba(16,185,129,0.34)] ring-2 ring-emerald-500/70',
-      )}
-    >
-      {!isFirstNode && (
-        <Handle type="target" position={Position.Left} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
-      )}
-      <AnimatePresence>
-        {showToolbar && (
-          <div className="absolute -top-12 left-1/2 z-10 -translate-x-1/2">
-            <motion.div
-              className="border-border/70 bg-muted/80 flex items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
-              onMouseEnter={showToolbarNow}
-              onMouseLeave={hideToolbarWithDelay}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10, transition: { duration: 0.4, ease: 'easeOut' } }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="nodrag size-7"
-                aria-label="Edit"
-                onClick={handleEdit}
-              >
-                <Pencil aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="nodrag size-7"
-                aria-label="Delete"
-                onClick={handleDelete}
-                disabled={isDeleteDisabled}
-              >
-                <Trash aria-hidden="true" />
-              </Button>
-            </motion.div>
-          </div>
+      <BaseNode
+        selected={selected}
+        data-testid="options-header-node"
+        data-missing-params={isMissingParams ? 'true' : undefined}
+        data-first-node={isFirstNode ? 'true' : undefined}
+        data-search-highlighted={isSearchHighlighted ? 'true' : undefined}
+        onMouseEnter={showToolbarNow}
+        onMouseLeave={hideToolbarWithDelay}
+        onFocus={showToolbarNow}
+        onBlur={event => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            hideToolbarWithDelay()
+          }
+        }}
+        className={cn(
+          'shadow-background/30 w-36 overflow-visible p-0 pt-4 shadow-lg transition-[border-radius,box-shadow] duration-300 ease-out',
+          isMissingParams ? 'border-red-700 bg-red-600 text-white ring-1 ring-red-800/60' : 'border-border/70 bg-card',
+          isFirstNode && 'rounded-l-3xl rounded-r-md',
+          isSearchHighlighted && 'shadow-[0_0_28px_rgba(16,185,129,0.34)] ring-2 ring-emerald-500/70',
         )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {!hasOutgoingConnection && !isConnectionInProgress && (
-          <div className="absolute left-full top-1/2 z-20 -translate-y-1/2">
-            <motion.div
-              className="flex items-center"
-              initial={{ opacity: 0, x: -6, scale: 0.96 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -6, scale: 0.96 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-            >
-              <motion.span
-                aria-hidden="true"
-                className="h-px w-12 bg-emerald-500/70 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                initial={{ scaleX: 0, transformOrigin: 'left' }}
-                animate={{ scaleX: 1 }}
-                exit={{ scaleX: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              />
-              <motion.button
-                type="button"
-                className="nodrag nopan border-border/70 bg-muted/95 -ml-px flex size-5 items-center justify-center rounded border text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
-                aria-label="Add connected node"
-                onClick={handleAddConnectedNode}
-                whileHover={{ scale: 1.12 }}
-                whileTap={{ scale: 0.92 }}
-                animate={{
-                  boxShadow: [
-                    '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
-                    '0 0 0 4px rgba(16,185,129,0.12), 0 0 14px rgba(16,185,129,0.26)',
-                    '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
-                  ],
-                }}
-                transition={{
-                  boxShadow: {
-                    duration: 2.4,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  },
-                }}
-              >
-                <Plus aria-hidden="true" className="size-3" />
-              </motion.button>
-            </motion.div>
-          </div>
+      >
+        {!isFirstNode && (
+          <Handle type="target" position={Position.Left} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
         )}
-      </AnimatePresence>
-      <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
-        <div
-          data-testid="node-step-icon"
-          className={cn(
-            'flex size-20 shrink-0 items-center justify-center rounded-2xl shadow-lg [&>svg]:size-10',
-            isMissingParams
-              ? 'bg-white/15 text-white shadow-black/20'
-              : 'bg-primary/15 text-primary shadow-primary/20',
-          )}
-        >
-          {KeyToIconTransformer(getTemplateStepIcon(icon))}
-        </div>
-      </div>
-      <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -translate-x-[47%]">
-        <h3
-          className={cn(
-            'relative -left-2 w-full text-center text-lg font-bold leading-tight',
-            isMissingParams ? 'text-white' : 'text-card-foreground',
-          )}
-        >
-          {label}
-        </h3>
         <AnimatePresence>
           {showToolbar && (
-            <motion.div
-              data-testid="node-gherkin-row"
-              className={cn('mt-2 text-sm leading-relaxed', isMissingParams ? 'text-white' : 'text-muted-foreground')}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            >
-              <OptionsHeaderGherkinStep gherkinStep={gherkinStep} parameters={parameters} />
-            </motion.div>
+            <div className="absolute -top-12 left-1/2 z-10 -translate-x-1/2">
+              <motion.div
+                className="border-border/70 bg-muted/80 flex items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
+                onMouseEnter={showToolbarNow}
+                onMouseLeave={hideToolbarWithDelay}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10, transition: { duration: 0.4, ease: 'easeOut' } }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="nodrag size-7"
+                  aria-label="Edit"
+                  onClick={handleEdit}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="nodrag size-7"
+                  aria-label="Delete"
+                  onClick={handleDelete}
+                  disabled={isDeleteDisabled}
+                >
+                  <Trash aria-hidden="true" />
+                </Button>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
-      </div>
-      <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
-    </BaseNode>
+        <AnimatePresence>
+          {!hasOutgoingConnection && !isConnectionInProgress && (
+            <div className="absolute left-full top-1/2 z-20 -translate-y-1/2">
+              <motion.div
+                className="flex items-center"
+                initial={{ opacity: 0, x: -6, scale: 0.96 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -6, scale: 0.96 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+              >
+                <motion.span
+                  aria-hidden="true"
+                  className="h-px w-12 bg-emerald-500/70 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                  initial={{ scaleX: 0, transformOrigin: 'left' }}
+                  animate={{ scaleX: 1 }}
+                  exit={{ scaleX: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+                <motion.button
+                  type="button"
+                  className="nodrag nopan border-border/70 bg-muted/95 -ml-px flex size-5 items-center justify-center rounded border text-muted-foreground shadow-md transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/20 hover:text-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                  aria-label="Add connected node"
+                  onClick={handleAddConnectedNode}
+                  whileHover={{ scale: 1.12 }}
+                  whileTap={{ scale: 0.92 }}
+                  animate={{
+                    boxShadow: [
+                      '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
+                      '0 0 0 4px rgba(16,185,129,0.12), 0 0 14px rgba(16,185,129,0.26)',
+                      '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
+                    ],
+                  }}
+                  transition={{
+                    boxShadow: {
+                      duration: 2.4,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    },
+                  }}
+                >
+                  <Plus aria-hidden="true" className="size-3" />
+                </motion.button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+        <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
+          <div
+            data-testid="node-step-icon"
+            className={cn(
+              'flex size-20 shrink-0 items-center justify-center rounded-2xl shadow-lg [&>svg]:size-10',
+              isMissingParams
+                ? 'bg-white/15 text-white shadow-black/20'
+                : 'bg-primary/15 shadow-primary/20 text-primary',
+            )}
+          >
+            {KeyToIconTransformer(getTemplateStepIcon(icon))}
+          </div>
+        </div>
+        <div className="absolute left-1/2 top-full z-[5] mt-2 min-w-72 -translate-x-[47%]">
+          <h3
+            className={cn(
+              'relative -left-2 w-full text-center text-lg font-bold leading-tight',
+              isMissingParams ? 'text-white' : 'text-card-foreground',
+            )}
+          >
+            {label}
+          </h3>
+          <AnimatePresence>
+            {showToolbar && (
+              <motion.div
+                data-testid="node-gherkin-row"
+                className={cn('mt-2 text-sm leading-relaxed', isMissingParams ? 'text-white' : 'text-muted-foreground')}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                <OptionsHeaderGherkinStep gherkinStep={gherkinStep} parameters={parameters} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <Handle type="source" position={Position.Right} className="!z-30 !h-2.5 !w-2.5 !border-0 !bg-zinc-400" />
+      </BaseNode>
     </LazyMotion>
   )
 })

@@ -8,8 +8,11 @@ process.env.DATABASE_URL = databaseUrl
 
 export default defineConfig({
   testDir: './e2e',
+  // Each spec resets and seeds the same SQLite database in beforeEach hooks.
+  // Parallel workers or files would race on that shared DB (local and CI).
   fullyParallel: false,
   workers: 1,
+  forbidOnly: !!process.env.CI,
   timeout: 60_000,
   grep: process.env.E2E_GREP ? new RegExp(process.env.E2E_GREP) : undefined,
   expect: {

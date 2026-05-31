@@ -9,11 +9,7 @@ import type { DynamicFormFieldsRef } from './dynamic-parameters'
 import { NodeFormFieldsContent } from './node-form-fields-content'
 import type { NodeFormFieldsProps } from './node-form-fields-props'
 import { handleNodeFormSubmit } from './node-form-submit'
-import {
-  getSelectedTemplateStep,
-  getSelectedTemplateStepParams,
-  type NodeFormProps,
-} from './node-form-helpers'
+import { getSelectedTemplateStep, getSelectedTemplateStepParams, type NodeFormProps } from './node-form-helpers'
 import { getTemplateStepSelectionUpdates } from './node-form-template-step-selection'
 
 function buildFormResetKey(
@@ -128,13 +124,7 @@ function NodeFormFields({
   )
 }
 
-function NodeForm({
-  showAddNodeDialog,
-  setShowAddNodeDialog,
-  initialValues,
-  mode,
-  ...fieldsProps
-}: NodeFormProps) {
+function NodeForm({ showAddNodeDialog, setShowAddNodeDialog, initialValues, mode, ...fieldsProps }: NodeFormProps) {
   const formResetKey = buildFormResetKey(initialValues, mode ?? 'add', showAddNodeDialog)
 
   return (

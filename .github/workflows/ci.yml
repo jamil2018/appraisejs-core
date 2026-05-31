@@ -50,4 +50,7 @@ jobs:
         run: npm run build
 
       - name: E2E validation
+        # Playwright uses one worker (see playwright.config.ts): specs share one SQLite DB.
         run: npm run validate:e2e
+        env:
+          CI: true

@@ -12,10 +12,7 @@ type Archive = ReturnType<typeof archiver>
 type ArtifactFile = { absolutePath: string; archivePath: string }
 type DownloadTestRun = NonNullable<Awaited<ReturnType<typeof getDownloadTestRun>>>
 
-async function collectRunArtifactFiles(
-  dir: string,
-  baseDir = dir,
-): Promise<ArtifactFile[]> {
+async function collectRunArtifactFiles(dir: string, baseDir = dir): Promise<ArtifactFile[]> {
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true })
     const files: ArtifactFile[] = []

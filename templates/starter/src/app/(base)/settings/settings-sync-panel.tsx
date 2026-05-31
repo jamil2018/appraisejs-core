@@ -1,8 +1,6 @@
 'use client'
 
-import {
-  RefreshCw,
-} from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { AppDrawerItemColor } from '@/app/(dashboard-components)/app-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,11 +12,7 @@ import {
   syncScriptDefinitions,
 } from '@/lib/sync/sync-registry'
 import type { SyncPendingCounts } from '@/lib/sync/sync-pending-counts'
-import {
-  getSyncTooltipCopy,
-  syncPanelInfo,
-  syncPresentation,
-} from './settings-sync-panel-helpers'
+import { getSyncTooltipCopy, syncPanelInfo, syncPresentation } from './settings-sync-panel-helpers'
 import { useSettingsSync } from './use-settings-sync'
 
 function SyncRow({
@@ -66,14 +60,19 @@ function SyncRow({
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
         <p>{definition.description}</p>
-        <p className="mt-1 text-primary-foreground/80">{getSyncTooltipCopy(definition.id)}</p>
+        <p className="text-primary-foreground/80 mt-1">{getSyncTooltipCopy(definition.id)}</p>
       </TooltipContent>
     </Tooltip>
   )
 }
 
 export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendingCounts }) {
-  const { activeRequestId, isRunning, pendingCounts: currentPendingCounts, runSync } = useSettingsSync({
+  const {
+    activeRequestId,
+    isRunning,
+    pendingCounts: currentPendingCounts,
+    runSync,
+  } = useSettingsSync({
     initialPendingCounts: pendingCounts,
   })
   const syncAllColor = AppDrawerItemColor.emerald
@@ -86,13 +85,9 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
             <CardTitle className="text-primary">Sync</CardTitle>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="cursor-help text-muted-foreground">
-                  {syncPanelInfo.helpIcon}
-                </span>
+                <span className="cursor-help text-muted-foreground">{syncPanelInfo.helpIcon}</span>
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                Runs all sync targets with prerequisites.
-              </TooltipContent>
+              <TooltipContent className="max-w-xs">Runs all sync targets with prerequisites.</TooltipContent>
             </Tooltip>
           </div>
         </CardHeader>
@@ -123,9 +118,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
                 </div>
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              {getSyncTooltipCopy(SYNC_ALL_REQUEST_ID)}
-            </TooltipContent>
+            <TooltipContent className="max-w-xs">{getSyncTooltipCopy(SYNC_ALL_REQUEST_ID)}</TooltipContent>
           </Tooltip>
           <div className="flex flex-wrap items-start gap-4">
             {syncScriptDefinitions.map(definition => (

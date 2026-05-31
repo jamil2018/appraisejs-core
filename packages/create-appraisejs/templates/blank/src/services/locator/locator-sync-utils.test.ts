@@ -3,10 +3,7 @@ import { mergeMissingLocators } from './locator-sync-utils'
 
 describe('mergeMissingLocators', () => {
   it('adds keys only from locatorsToEnsure that are missing in base', () => {
-    const { mergedLocators, addedCount } = mergeMissingLocators(
-      { a: '1', b: '2' },
-      { b: 'x', c: '3' },
-    )
+    const { mergedLocators, addedCount } = mergeMissingLocators({ a: '1', b: '2' }, { b: 'x', c: '3' })
     expect(mergedLocators).toEqual({ a: '1', b: '2', c: '3' })
     expect(addedCount).toBe(1)
   })

@@ -29,10 +29,7 @@ export function getTemplateStepSelectionUpdates(
   }
 }
 
-export function getParameterPreviewUpdates(
-  templateStep: TemplateStep | null,
-  values: NodeFormData['parameters'],
-) {
+export function getParameterPreviewUpdates(templateStep: TemplateStep | null, values: NodeFormData['parameters']) {
   return {
     parameters: [...values],
     gherkinStep: getGherkinPreview(templateStep, values),

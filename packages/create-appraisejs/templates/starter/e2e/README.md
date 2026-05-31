@@ -8,6 +8,16 @@ Playwright UI tests run against a local Next.js server with an isolated SQLite d
 - `npm run validate:e2e:smoke` — smoke gate only (`@smoke` tag)
 - `E2E_GREP=@crud npx playwright test` — run a tagged subset locally
 
+## CI and parallelism
+
+GitHub Actions runs `npm run validate:e2e` after `npm run build` with `DATABASE_URL=file:./e2e.db`
+and `CI=true`. The Playwright web server starts via `e2e/start-server.mjs`, which recreates the
+E2E database and applies migrations before serving the production build.
+
+Keep `workers: 1` and `fullyParallel: false` in `playwright.config.ts` until each worker gets an
+isolated database. Spec files reset and seed the same SQLite file in `beforeEach`, so parallel
+workers cause unique-constraint and foreign-key failures in CI and locally.
+
 ## Layout
 
 | File | Purpose |

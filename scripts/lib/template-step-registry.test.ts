@@ -73,7 +73,7 @@ When('click {string}', async function (this: CustomWorld, elementName: SelectorN
     expect(registry.fragments).toEqual([
       {
         path: 'fragments/click/click-element.ts',
-        content: expect.stringContaining("@name click element"),
+        content: expect.stringContaining('@name click element'),
       },
     ])
     expect(registry.fragments[0]?.content).toContain("When('click {string}'")

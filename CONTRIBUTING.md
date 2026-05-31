@@ -49,18 +49,22 @@ Before you begin, ensure you have the following installed:
 ### Initial Setup
 
 1. **Run the setup script:**
+
    ```bash
    npm run setup
    ```
+
    This will:
    - Install dependencies
    - Create `.env` file with SQLite configuration
    - Build the local production app
 
 2. **Start the local production server:**
+
    ```bash
    npm run start
    ```
+
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 3. **Optional: install Playwright browsers when you need test execution:**
@@ -81,7 +85,7 @@ This project uses **SQLite** with **Prisma ORM**. The database file (`prisma/dev
 - To view/edit data: Use Prisma Studio:
   ```bash
    npx prisma studio
-   ```
+  ```
 
 ## Project Structure
 
@@ -132,6 +136,7 @@ This project uses **Prettier** for code formatting. The configuration is in `.pr
 - Trailing commas
 
 **Format your code before committing:**
+
 ```bash
 npx prettier --write .
 ```
@@ -145,6 +150,7 @@ npm run lint
 ```
 
 **Fix linting issues automatically:**
+
 ```bash
 npm run lint -- --fix
 ```
@@ -167,6 +173,7 @@ npm run lint -- --fix
 ### Branch Strategy
 
 1. **Create a feature branch** from `main`:
+
    ```bash
    git checkout main
    git pull upstream main
@@ -176,6 +183,7 @@ npm run lint -- --fix
 2. **Make your changes** following the coding standards
 
 3. **Test your changes**:
+
    ```bash
    npm run lint
    npm run build
@@ -201,6 +209,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/) format:
 - `chore:` - Maintenance tasks
 
 Example:
+
 ```
 feat: add user authentication
 fix: resolve database connection issue
@@ -240,9 +249,11 @@ When modifying the Prisma schema (`prisma/schema.prisma`):
 1. **Edit the schema file**
 
 2. **Create a migration:**
+
    ```bash
    npm run migrate-db
    ```
+
    This will:
    - Generate migration SQL files
    - Apply the migration to your database
@@ -289,6 +300,7 @@ This project includes various sync scripts that synchronize data between the fil
 ### Before Submitting
 
 1. **Update your branch:**
+
    ```bash
    git checkout main
    git pull upstream main
@@ -309,6 +321,7 @@ This project includes various sync scripts that synchronize data between the fil
 ### Submitting a Pull Request
 
 1. **Push your branch:**
+
    ```bash
    git push origin your-branch
    ```
@@ -383,4 +396,3 @@ By contributing, you agree that your contributions will be licensed under the Ap
 ---
 
 Thank you for contributing to AppraiseJS Core! 🎉
-

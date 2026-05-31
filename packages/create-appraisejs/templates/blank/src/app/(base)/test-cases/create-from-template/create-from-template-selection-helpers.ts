@@ -47,10 +47,7 @@ function isTemplateTestCaseStepRow(value: unknown) {
 
 function isTemplateTestCaseWithSteps(value: unknown): value is TemplateTestCaseWithSteps {
   return (
-    isNamedRow(value) &&
-    'steps' in value &&
-    Array.isArray(value.steps) &&
-    value.steps.every(isTemplateTestCaseStepRow)
+    isNamedRow(value) && 'steps' in value && Array.isArray(value.steps) && value.steps.every(isTemplateTestCaseStepRow)
   )
 }
 

@@ -31,9 +31,9 @@ describe('shouldBackfillLegacyEnvironmentConfig', () => {
 
 describe('extractModulePathFromAutomationFile', () => {
   it('derives locator module paths from automation locators', () => {
-    expect(
-      extractModulePathFromAutomationFile('/repo/automation/locators/base/login.json', '/repo', 'locators'),
-    ).toBe('/base')
+    expect(extractModulePathFromAutomationFile('/repo/automation/locators/base/login.json', '/repo', 'locators')).toBe(
+      '/base',
+    )
   })
 
   it('derives nested feature module paths from automation features', () => {

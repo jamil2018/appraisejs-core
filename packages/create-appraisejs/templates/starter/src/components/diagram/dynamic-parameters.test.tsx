@@ -26,7 +26,10 @@ const { inlineSaveResult } = vi.hoisted(() => ({
 
 vi.mock('@/app/(base)/locators/create/create-locator-workspace', () => ({
   __esModule: true,
-  default: ({ onSaveSuccess, onClose }: {
+  default: ({
+    onSaveSuccess,
+    onClose,
+  }: {
     onSaveSuccess?: (result: InlineLocatorSaveResult) => void
     onClose?: () => void
   }) => (

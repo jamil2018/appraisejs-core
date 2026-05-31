@@ -20,7 +20,9 @@ export async function listTemplateStepGroups(): Promise<TemplateStepGroup[]> {
   return prisma.templateStepGroup.findMany()
 }
 
-export async function createTemplateStepGroup(value: z.infer<typeof templateStepGroupSchema>): Promise<TemplateStepGroup> {
+export async function createTemplateStepGroup(
+  value: z.infer<typeof templateStepGroupSchema>,
+): Promise<TemplateStepGroup> {
   const type: TemplateStepGroupType = (value.type as string) === 'VALIDATION' ? 'VALIDATION' : 'ACTION'
   const description = normalizeOptionalText(value.description)
   const createdGroup = await prisma.templateStepGroup.create({

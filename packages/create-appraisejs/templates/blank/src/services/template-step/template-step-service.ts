@@ -150,7 +150,9 @@ export async function updateTemplateStep(
   })
 
   const affectedGroupIds = new Set([currentStep.templateStepGroupId, updatedTemplateStep.templateStepGroupId])
-  await Promise.all(Array.from(affectedGroupIds).map(groupId => automationProjectionService.syncTemplateStepGroup(groupId)))
+  await Promise.all(
+    Array.from(affectedGroupIds).map(groupId => automationProjectionService.syncTemplateStepGroup(groupId)),
+  )
 
   return updatedTemplateStep
 }

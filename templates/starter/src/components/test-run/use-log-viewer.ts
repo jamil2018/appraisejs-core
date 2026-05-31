@@ -128,10 +128,7 @@ export function useLogViewer({ testRunId, status }: UseLogViewerParams) {
           console.log('[LogViewer] Received log event:', data)
         }
 
-        setLogs(currentLogs => [
-          ...currentLogs,
-          createLogMessage(data.type || 'stdout', data.message || ''),
-        ])
+        setLogs(currentLogs => [...currentLogs, createLogMessage(data.type || 'stdout', data.message || '')])
       } catch (error) {
         console.error('[LogViewer] Error parsing log event:', error, 'event.data:', event.data)
       }
@@ -147,10 +144,7 @@ export function useLogViewer({ testRunId, status }: UseLogViewerParams) {
         }
 
         const data = JSON.parse(event.data)
-        setLogs(currentLogs => [
-          ...currentLogs,
-          createLogMessage('status', `Process exited with code ${data.code}`),
-        ])
+        setLogs(currentLogs => [...currentLogs, createLogMessage('status', `Process exited with code ${data.code}`)])
       } catch (error) {
         console.error('[LogViewer] Error parsing exit event:', error, 'event.data:', event.data)
       } finally {

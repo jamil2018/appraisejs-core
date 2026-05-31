@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-30T08:48:24.478Z",
+  "generatedAt": "2026-05-31T10:32:52.366Z",
   "steps": [
     {
       "slug": "active-state-assertion/assert-element-active",
       "sourcePath": "fragments/active-state-assertion/assert-element-active.ts",
-      "sourceSha256": "e42c0423163692042d5ceaf150e40db68713f1059c0ee7d2797f3ece0924afd5",
+      "sourceSha256": "8387f2e5aa7e854d882995384dddf9748f49fb0ca2f1826bc4b228e0fbf5c9a0",
       "signature": "the element {string} should have active status {boolean} ",
       "name": "assert element active",
       "description": "Template step for validating whether an element is active or not",
@@ -20,7 +20,7 @@
     {
       "slug": "click/click",
       "sourcePath": "fragments/click/click.ts",
-      "sourceSha256": "27e9d44e8c962c760fc64c936df32963950ad4564daab57f6afb792d6f5cccef",
+      "sourceSha256": "86c52182b2f9e0ff2884c3c0d5ac796dbeecd2c87c91e3f46687ae0de2bf7d2c",
       "signature": "the user clicks on the {string} element",
       "name": "click",
       "description": "Template step for clicking on an element",
@@ -35,7 +35,7 @@
     {
       "slug": "click/double-click",
       "sourcePath": "fragments/click/double-click.ts",
-      "sourceSha256": "7f37a8b6ce9b0b7485a6b204f5c06f235e2f0a0b04894600b137fcb18baef25b",
+      "sourceSha256": "88e51d706e9060d68d4813c56594662a61dd66fe68f2b722208f5c09d5db5e66",
       "signature": "the user double clicks on the {string} element",
       "name": "double click",
       "description": "Template step for double clicking on an element",
@@ -50,7 +50,7 @@
     {
       "slug": "click/right-click",
       "sourcePath": "fragments/click/right-click.ts",
-      "sourceSha256": "66b6fbcb57261a12bf416331d6fbfc9981f36d5663bcef0745f50d0911ea7cc6",
+      "sourceSha256": "e369613a359a32d89d2d41c15910b630b6f8793594403b0fe03357a982fab52f",
       "signature": "the user right clicks on the {string} element",
       "name": "right click",
       "description": "Template step for right clicking on an element",
@@ -65,7 +65,7 @@
     {
       "slug": "hover/hover",
       "sourcePath": "fragments/hover/hover.ts",
-      "sourceSha256": "1d63ace4a89ffea3a8335363ce9ad13d1a6412cafd380481ab92da0d188a3547",
+      "sourceSha256": "733960a8ec273dab7e4e4874cca026f57b9721aba66051b61ae6be28e5b11830",
       "signature": "the user hovers the cursor over the {string} element",
       "name": "hover",
       "description": "Template step for hovering over an element",
@@ -80,7 +80,7 @@
     {
       "slug": "input/check",
       "sourcePath": "fragments/input/check.ts",
-      "sourceSha256": "61abc696de8987597f5a5a744e2de5c5bfcc9d0a46b8ba3e7d93ecc4c2f47ed8",
+      "sourceSha256": "39506791d6bb84136e6c49c40db41a7770cbf90a22d0cb031c99109cdf182d6a",
       "signature": "the user checks the {string} checkbox",
       "name": "check",
       "description": "Template step for checking a checkbox",
@@ -95,7 +95,7 @@
     {
       "slug": "input/clear",
       "sourcePath": "fragments/input/clear.ts",
-      "sourceSha256": "881cdc3a51016dbb9c17e806c4449b66ae48f835cabf6d569d82ad8701779b58",
+      "sourceSha256": "f06cff7eb79551f68cef072a438c78e14d76807b4b5bae39ac8caad590754917",
       "signature": "the user clears the {string} field",
       "name": "clear",
       "description": "Template step for clearing an input field",
@@ -110,7 +110,7 @@
     {
       "slug": "input/fill",
       "sourcePath": "fragments/input/fill.ts",
-      "sourceSha256": "7cf8b704131b649c0080575e01a1a13a98cd2ae6d7171057e31c8a514f4c9f19",
+      "sourceSha256": "cfdae0655479766e7e91a998c0c0b586390a02c7fda643fe861c85ff32934fc4",
       "signature": "the user fills in the {string} input field with value {string}",
       "name": "fill",
       "description": "Template step for filling up an input field with a provided value",
@@ -125,7 +125,7 @@
     {
       "slug": "input/fill-input-with-stored-value",
       "sourcePath": "fragments/input/fill-input-with-stored-value.ts",
-      "sourceSha256": "2da0f89de411ccf487173be243694abbc2d17d3f6ec59f889c0bd24c91cd2a35",
+      "sourceSha256": "5cb9d62367fd65e6bee1ac6898993aacaeaa6410d7823d22627bc0a1f5ac1d9e",
       "signature": "the user fills in the {string} input with data from the stored variable {string}",
       "name": "fill input with stored value",
       "description": "Template step for filling an input field with data from a stored variable",
@@ -140,7 +140,7 @@
     {
       "slug": "input/select-dropdown-option",
       "sourcePath": "fragments/input/select-dropdown-option.ts",
-      "sourceSha256": "9ab022ebb34d4b785c36ad5c1272de2afff89434064580b5ac034b5397e4485b",
+      "sourceSha256": "bdb9e575ebc3f8425e33b35b0a65f986b0f6bcea08fdd395d24ea0696cee8eb9",
       "signature": "the user selects the {string} option of the {string} dropdown",
       "name": "select dropdown option",
       "description": "Template step for selecting a particular option inside a dropdown element",
@@ -155,7 +155,7 @@
     {
       "slug": "input/uncheck",
       "sourcePath": "fragments/input/uncheck.ts",
-      "sourceSha256": "7d4c5fb78b29b2965a60a264f624a55b8886ead9fedce1c88dca990ce611a978",
+      "sourceSha256": "784280b93f9749c3484d121734382999eda1c39163d81b6c4c6b98db4432de92",
       "signature": "the user unchecks the {string} checkbox",
       "name": "uncheck",
       "description": "Template step for unchecking a checkbox",
@@ -170,7 +170,7 @@
     {
       "slug": "navigation-assertion/assert-url-route-equals",
       "sourcePath": "fragments/navigation-assertion/assert-url-route-equals.ts",
-      "sourceSha256": "77632e447d480089b97eace5be70156b0ab1e6ed0aee71653358109f35e069ba",
+      "sourceSha256": "bf645a6400b1fd1e777ebaae1389749658c80c84c30c0aa0d576e90f9161f118",
       "signature": "the url route should be equal to {string}",
       "name": "assert url route equals",
       "description": "Template step for validating whether a url route equals the provided value or not",
@@ -185,7 +185,7 @@
     {
       "slug": "navigation/go-back",
       "sourcePath": "fragments/navigation/go-back.ts",
-      "sourceSha256": "5dbe70ce399c26610c5c698d156f8997f687f24458ea7fe69045b3fd62e0cc95",
+      "sourceSha256": "add9be681210f83774ecb3ff694c66f508bad02dc6e0cb436c28fb3ec45e6634",
       "signature": "the user goes back to the previous page",
       "name": "go back",
       "description": "Template step for going back to the previous page",
@@ -200,7 +200,7 @@
     {
       "slug": "navigation/navigate-to-environment-base-url",
       "sourcePath": "fragments/navigation/navigate-to-environment-base-url.ts",
-      "sourceSha256": "735ce76cc1a5e9536097b0b0205262fdc1eda68bb2e0004eee0e9bbc1e78eb77",
+      "sourceSha256": "617e81d65ff67643ac0746f14287aeba12154f821a212810b4a0bcb1584f8def",
       "signature": "the user navigates to the base url of the selected environment",
       "name": "navigate to environment base url",
       "description": "Navigate to the base url of the selected environment",
@@ -215,7 +215,7 @@
     {
       "slug": "navigation/navigate-to-url",
       "sourcePath": "fragments/navigation/navigate-to-url.ts",
-      "sourceSha256": "fba4523e2d2d4aa57df27b0fa26bbf2ee16cc1d0c531a6bedf7edfa2d2dd6039",
+      "sourceSha256": "17f7b3b170a2bbb5d6941faddf0b3795b7eed35cf66343927cc9154e6a8730df",
       "signature": "the user navigates to the {string} url",
       "name": "navigate to url",
       "description": "Navigate to the specified URL",
@@ -230,7 +230,7 @@
     {
       "slug": "navigation/reload",
       "sourcePath": "fragments/navigation/reload.ts",
-      "sourceSha256": "30cb99cf06d9c1c1bcd5e862ce340fc1221f079d6864b52c01eda103f80f2af7",
+      "sourceSha256": "e38bf8d5d4f389d0d6b7574c2e842d75c764452f8d0548d8693501f51842980d",
       "signature": "the user reloads the page",
       "name": "reload",
       "description": "Template step for reloading the current page",
@@ -245,7 +245,7 @@
     {
       "slug": "random-data/generate-random-address-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-address-and-save-in-variable.ts",
-      "sourceSha256": "9c14a15bfa5248aebddf9c720a7dc2fcf583749c9a64a5e19938a1cd6427a678",
+      "sourceSha256": "aa6740cc3d0120d629966b2adeb4b2b5768d516628aaee73e2ae14c490933678",
       "signature": "the user generates a random address and stores it inside the variable {string}",
       "name": "generate random address and save in variable",
       "description": "Template step for generating a random address and saving it inside a variable",
@@ -260,7 +260,7 @@
     {
       "slug": "random-data/generate-random-email-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-email-and-save-in-variable.ts",
-      "sourceSha256": "42d1a78c12692cc796a81074c91cbd4af8653fd4c199715a8aed28415860e8a1",
+      "sourceSha256": "0baeb2c84a77b623a469a634cdc5b85f2f000fa1bb33ea3af7f3b6d1ba59e39a",
       "signature": "the user generates a random email and stores it inside the variable {string}",
       "name": "generate random email and save in variable",
       "description": "Template step for generating a random email and saving it inside a variable",
@@ -275,7 +275,7 @@
     {
       "slug": "random-data/generate-random-first-name-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-first-name-and-save-in-variable.ts",
-      "sourceSha256": "9762302acb94f394dce646dde3c76636e2ba8179d45a8e089a8f62fd4cdd3e34",
+      "sourceSha256": "d4e8e7a442518754b01aed21208d174207c7e32c906e7aea5fbe8c21e68249b2",
       "signature": "the user generates a random first name and stores it inside the variable {string}",
       "name": "generate random first name and save in variable",
       "description": "Template step for generating a random first name and saving it inside a variable",
@@ -290,7 +290,7 @@
     {
       "slug": "random-data/generate-random-full-name-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-full-name-and-save-in-variable.ts",
-      "sourceSha256": "448cd3b435f39afcb2ffd6f33bc7917cee7e10cf5e2a0d071ed6a104db4c8ae5",
+      "sourceSha256": "e9fc428cb1dd0b74bc8ac7bb5ef3b78bb5ee1bef174084dfb40b25496336179a",
       "signature": "the user generates a random full name and stores it inside the variable {string}",
       "name": "generate random full name and save in variable",
       "description": "Template step for generating a random full name and saving it inside a variable",
@@ -305,7 +305,7 @@
     {
       "slug": "random-data/generate-random-last-name-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-last-name-and-save-in-variable.ts",
-      "sourceSha256": "29d8ab78fa1a706c3b2017525f6feae3c4a641fc56aa93990d4d328a63e64beb",
+      "sourceSha256": "4f3db26383f440ae1a983abdb3deaf7a8fdcf1157e57e33f134c3e6466ca6ecd",
       "signature": "the user generates a random last name and stores it inside the variable {string}",
       "name": "generate random last name and save in variable",
       "description": "Template step for generating a random last name and saving it inside a variable",
@@ -320,7 +320,7 @@
     {
       "slug": "random-data/generate-random-password-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-password-and-save-in-variable.ts",
-      "sourceSha256": "1e55618bb86bfb7a171b63587c531777982c46edc57e9d093d247a1c7739354c",
+      "sourceSha256": "ca79d3ea471eed718002b8d0b199b9e10b04b8421df6179e467e1e543589dca6",
       "signature": "the user generates a random password and stores it inside the variable {string}",
       "name": "generate random password and save in variable",
       "description": "Template step for generating a random password and saving it inside a variable",
@@ -335,7 +335,7 @@
     {
       "slug": "random-data/generate-random-phone-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-phone-and-save-in-variable.ts",
-      "sourceSha256": "27e91569ef698cf5a9e54f109db6fa1efc5bd71173db39772f1d405decb939c8",
+      "sourceSha256": "f1e26a449df175aca8f8c05d0d3e95b9cf09ca0d9c8ddcd31f76ded9ef819f08",
       "signature": "the user generates a random phone and stores it inside the variable {string}",
       "name": "generate random phone and save in variable",
       "description": "Template step for generating a random phone and saving it inside a variable",
@@ -350,7 +350,7 @@
     {
       "slug": "random-data/generate-random-unique-text-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-unique-text-and-save-in-variable.ts",
-      "sourceSha256": "6cc81b061f0e758e76c8c20581b9ffed95c33d564e974e3cbad50336dda5b0ad",
+      "sourceSha256": "261d5f6b36c4e2ed1e3a126c940af0e89d8939d4d8a334e39ff1602e22868c73",
       "signature": "the user generates a random unique text and stores it inside the variable {string}",
       "name": "generate random unique text and save in variable",
       "description": "Template step for generating a random unique text and saving it inside a variable",
@@ -410,7 +410,7 @@
     {
       "slug": "text-assertion/assert-element-contains-stored-variable-text",
       "sourcePath": "fragments/text-assertion/assert-element-contains-stored-variable-text.ts",
-      "sourceSha256": "ac2bca7371d0f705404da10e8c92ecf655698b8a393c3f46a42dd5161c9701ee",
+      "sourceSha256": "7f81f57b688f514f28948aadbccbe7e7afb40ab22eb26f446b52d4ddb73b309c",
       "signature": "the element {string} should contain the text inside the stored variable {string}",
       "name": "assert element contains stored variable text",
       "description": "Template step to validate whether an element text contains the text inside a stored variable",
@@ -425,7 +425,7 @@
     {
       "slug": "text-assertion/assert-element-contains-text",
       "sourcePath": "fragments/text-assertion/assert-element-contains-text.ts",
-      "sourceSha256": "c6c16c02df7db954e03a74c46940bc967e1d8ba64bb174ca87b7f8bcd7a7d89a",
+      "sourceSha256": "0d99eac9b197613bf9fc172e97055d9d4e10d8476297a8f862b2e78a8370ada6",
       "signature": "the element {string} should {boolean} contain the text {string}",
       "name": "assert element contains text",
       "description": "Template step for validating whether an element contains a certain text or not",
@@ -440,7 +440,7 @@
     {
       "slug": "text-assertion/assert-element-equals-text",
       "sourcePath": "fragments/text-assertion/assert-element-equals-text.ts",
-      "sourceSha256": "b32f3c90861594bfef67455199f72b7dfcd083ad878e942cde92c70a7df00e5f",
+      "sourceSha256": "08550580ecc569cf84428b0fdad1d02c3b1d146bd05fe156ccdacebdb45738b1",
       "signature": "the element {string} should {boolean} equal the text {string}",
       "name": "assert element equals text",
       "description": "Template step for validating whether an element text equals a provided text or not",
@@ -455,7 +455,7 @@
     {
       "slug": "visibility-assertion/assert-element-visible",
       "sourcePath": "fragments/visibility-assertion/assert-element-visible.ts",
-      "sourceSha256": "cd682076a435f3d4f9e0cf6677db7a27549ff2d37e2609db127c54f2264a126b",
+      "sourceSha256": "a531dc29e319da85740725c876e67ccbf6cf237f4862960cedf4e7620fd851da",
       "signature": "the visibility status of the {string} element should be {boolean}",
       "name": "assert element visible",
       "description": "Template step for validating whether an element should be visible or not",
@@ -470,7 +470,7 @@
     {
       "slug": "wait/wait-for-element",
       "sourcePath": "fragments/wait/wait-for-element.ts",
-      "sourceSha256": "fe7dc08b0e7638b8fdbf670628dfee7c9fbd75755aefad3f4a2f92006f02445f",
+      "sourceSha256": "529194f0b2aefa0d3ed782ed0edf30bdd4a15c284bc2e2f029d86cefe361e07d",
       "signature": "the user waits for the element {string} to become visible",
       "name": "wait for element",
       "description": "Wait for an element to become visible",
@@ -485,7 +485,7 @@
     {
       "slug": "wait/wait-for-element-to-disappear",
       "sourcePath": "fragments/wait/wait-for-element-to-disappear.ts",
-      "sourceSha256": "4a912c3587423f8d21d0079488897e301068cc201290b096bc790a231b669d30",
+      "sourceSha256": "904ab942f711fc2ebcfb56481f6b48c3ecf46ee9b2193537a13bf1c6452f0a4f",
       "signature": "the user waits for the {string} element to disappear",
       "name": "wait for element to disappear",
       "description": "Wait for an element to become hidden or detached",

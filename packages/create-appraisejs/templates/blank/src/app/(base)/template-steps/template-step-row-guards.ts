@@ -41,11 +41,7 @@ function hasTemplateStepShape(value: unknown): value is UnknownRecord & { parame
     'parameters',
   ] as const
 
-  return (
-    isRecord(value) &&
-    requiredFields.every(field => field in value) &&
-    Array.isArray(value.parameters)
-  )
+  return isRecord(value) && requiredFields.every(field => field in value) && Array.isArray(value.parameters)
 }
 
 function isEditableTemplateStep(value: unknown): value is EditableTemplateStep {

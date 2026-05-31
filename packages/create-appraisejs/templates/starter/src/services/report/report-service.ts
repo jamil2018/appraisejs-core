@@ -443,6 +443,13 @@ export async function getAllTestSuiteMetricsForFilter(filter: string) {
           {
             metrics: {
               is: {
+                lastExecutedAt: null,
+              },
+            },
+          },
+          {
+            metrics: {
+              is: {
                 lastExecutedAt: {
                   lt: recentPeriodDate,
                 },
@@ -472,7 +479,7 @@ export async function getAllTestSuiteMetricsForFilter(filter: string) {
     })
   }
 
-  let testSuiteMetrics = await prisma.testSuiteMetrics.findMany({
+  const testSuiteMetrics = await prisma.testSuiteMetrics.findMany({
     include: {
       testSuite: {
         include: {

@@ -34,11 +34,7 @@ describe('TagForm', () => {
     })
 
     render(
-      <TagForm
-        successTitle="Tag created"
-        successMessage="Tag created successfully"
-        onSubmitAction={onSubmitAction}
-      />,
+      <TagForm successTitle="Tag created" successMessage="Tag created successfully" onSubmitAction={onSubmitAction} />,
     )
 
     await user.type(screen.getByLabelText('Name'), 'Smoke')
@@ -105,11 +101,7 @@ describe('TagForm', () => {
     const onSubmitAction = vi.fn()
 
     render(
-      <TagForm
-        successTitle="Tag created"
-        successMessage="Tag created successfully"
-        onSubmitAction={onSubmitAction}
-      />,
+      <TagForm successTitle="Tag created" successMessage="Tag created successfully" onSubmitAction={onSubmitAction} />,
     )
 
     await user.type(screen.getByLabelText('Name'), 'Smoke')

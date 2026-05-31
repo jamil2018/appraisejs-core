@@ -2,13 +2,7 @@
 
 /* eslint-disable react-hooks/refs -- The composite view model forwards refs without reading `.current` during render. */
 
-import {
-  Background,
-  ConnectionMode,
-  Controls,
-  ReactFlow,
-  type DefaultEdgeOptions,
-} from '@xyflow/react'
+import { Background, ConnectionMode, Controls, ReactFlow, type DefaultEdgeOptions } from '@xyflow/react'
 import { FlowDiagramBlockDialog } from './flow-diagram-block-dialog'
 import { FlowDiagramBlockOverlays } from './flow-diagram-block-overlays'
 import { FlowDiagramGroupingHints } from './flow-diagram-grouping-hints'

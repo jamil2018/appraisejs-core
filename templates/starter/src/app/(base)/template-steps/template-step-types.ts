@@ -1,8 +1,4 @@
-import type {
-  TemplateStep as PrismaTemplateStep,
-  TemplateStepGroup,
-  TemplateStepParameter,
-} from '@prisma/client'
+import type { TemplateStep as PrismaTemplateStep, TemplateStepGroup, TemplateStepParameter } from '@prisma/client'
 
 import type { TemplateStep as TemplateStepFormValues } from '@/constants/form-opts/template-test-step-form-opts'
 import type { ActionResponse } from '@/types/form/actionHandler'

@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
-import { getAllTemplateStepParamsAction, getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
+import {
+  getAllTemplateStepParamsAction,
+  getAllTemplateStepsAction,
+} from '@/actions/template-step/template-step-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 
 import { loadCreateTemplateTestCasePageData } from './create-template-test-case-page-data'

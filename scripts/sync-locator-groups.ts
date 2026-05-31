@@ -115,10 +115,7 @@ function buildLocatorMapRouteMap(locatorMap: LocatorMapEntry[]): Map<string, str
  * Builds locator groups from filesystem
  * Combines information from locator-map.json and directory structure
  */
-async function buildLocatorGroupsFromFS(
-  baseDir: string,
-  locatorMap: LocatorMapEntry[],
-): Promise<LocatorGroupFromFS[]> {
+async function buildLocatorGroupsFromFS(baseDir: string, locatorMap: LocatorMapEntry[]): Promise<LocatorGroupFromFS[]> {
   const locatorGroups: LocatorGroupFromFS[] = []
   const routeMap = buildLocatorMapRouteMap(locatorMap)
 
@@ -201,10 +198,7 @@ async function createOrUpdateLocatorGroup(
 /**
  * Syncs locator groups from filesystem to database
  */
-async function syncLocatorGroupsToDatabase(
-  locatorGroups: LocatorGroupFromFS[],
-  result: SyncResult,
-): Promise<void> {
+async function syncLocatorGroupsToDatabase(locatorGroups: LocatorGroupFromFS[], result: SyncResult): Promise<void> {
   console.log('\n✅ Syncing locator groups to database...')
 
   for (const locatorGroup of locatorGroups) {
@@ -230,10 +224,7 @@ async function syncLocatorGroupsToDatabase(
 /**
  * Deletes orphaned locator groups (groups in DB but not in FS)
  */
-async function deleteOrphanedLocatorGroups(
-  fsLocatorGroupNames: Set<string>,
-  result: SyncResult,
-): Promise<void> {
+async function deleteOrphanedLocatorGroups(fsLocatorGroupNames: Set<string>, result: SyncResult): Promise<void> {
   console.log('\n🔍 Checking for orphaned locator groups (not in filesystem)...')
 
   try {
@@ -287,72 +278,72 @@ async function deleteOrphanedLocatorGroups(
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult> {
-    console.log('🔄 Starting locator groups sync...')
-    console.log('This will scan filesystem directories and sync locator groups to database.')
-    console.log('Filesystem is the source of truth - locator groups in DB but not in FS will be deleted.\n')
+  console.log('🔄 Starting locator groups sync...')
+  console.log('This will scan filesystem directories and sync locator groups to database.')
+  console.log('Filesystem is the source of truth - locator groups in DB but not in FS will be deleted.\n')
 
-    const baseDir = process.cwd()
+  const baseDir = process.cwd()
 
-    // Initialize result
-    const result: SyncResult = {
-      locatorGroupsScanned: 0,
-      locatorGroupsExisting: 0,
-      locatorGroupsCreated: 0,
-      locatorGroupsUpdated: 0,
-      locatorGroupsDeleted: 0,
-      errors: [],
-      createdLocatorGroups: [],
-      updatedLocatorGroups: [],
-      deletedLocatorGroups: [],
-    }
+  // Initialize result
+  const result: SyncResult = {
+    locatorGroupsScanned: 0,
+    locatorGroupsExisting: 0,
+    locatorGroupsCreated: 0,
+    locatorGroupsUpdated: 0,
+    locatorGroupsDeleted: 0,
+    errors: [],
+    createdLocatorGroups: [],
+    updatedLocatorGroups: [],
+    deletedLocatorGroups: [],
+  }
 
-    // Read locator map
-    console.log('📄 Reading locator-map.json...')
-    const locatorMap = await readLocatorMap(baseDir)
-    console.log(`   Found ${locatorMap.length} entry(ies) in locator map`)
+  // Read locator map
+  console.log('📄 Reading locator-map.json...')
+  const locatorMap = await readLocatorMap(baseDir)
+  console.log(`   Found ${locatorMap.length} entry(ies) in locator map`)
 
-    // Build locator groups from filesystem
-    console.log('\n📁 Scanning automation/locators directory...')
-    const locatorGroups = await buildLocatorGroupsFromFS(baseDir, locatorMap)
-    result.locatorGroupsScanned = locatorGroups.length
-    console.log(`   Found ${locatorGroups.length} locator group(s) in filesystem`)
+  // Build locator groups from filesystem
+  console.log('\n📁 Scanning automation/locators directory...')
+  const locatorGroups = await buildLocatorGroupsFromFS(baseDir, locatorMap)
+  result.locatorGroupsScanned = locatorGroups.length
+  console.log(`   Found ${locatorGroups.length} locator group(s) in filesystem`)
 
-    if (locatorGroups.length > 0) {
-      console.log('\n   Locator groups found:')
-      locatorGroups.forEach((group, index) => {
-        console.log(`      ${index + 1}. ${group.name} (route: ${group.route}, module: ${group.modulePath})`)
-      })
-    }
+  if (locatorGroups.length > 0) {
+    console.log('\n   Locator groups found:')
+    locatorGroups.forEach((group, index) => {
+      console.log(`      ${index + 1}. ${group.name} (route: ${group.route}, module: ${group.modulePath})`)
+    })
+  }
 
-    // Sync to database
-    await syncLocatorGroupsToDatabase(locatorGroups, result)
+  // Sync to database
+  await syncLocatorGroupsToDatabase(locatorGroups, result)
 
-    // Delete orphaned locator groups
-    const fsLocatorGroupNames = new Set(locatorGroups.map(g => g.name))
-    await deleteOrphanedLocatorGroups(fsLocatorGroupNames, result)
+  // Delete orphaned locator groups
+  const fsLocatorGroupNames = new Set(locatorGroups.map(g => g.name))
+  await deleteOrphanedLocatorGroups(fsLocatorGroupNames, result)
 
-    printSyncSummary(
-      [
-        { label: '📁 Locator groups scanned', value: result.locatorGroupsScanned },
-        { label: '✅ Locator groups existing', value: result.locatorGroupsExisting },
-        { label: '➕ Locator groups created', value: result.locatorGroupsCreated },
-        { label: '🔄 Locator groups updated', value: result.locatorGroupsUpdated },
-        { label: '🗑️  Locator groups deleted', value: result.locatorGroupsDeleted },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        { title: 'Created locator groups', items: result.createdLocatorGroups },
-        { title: 'Updated locator groups', items: result.updatedLocatorGroups },
-        {
-          title: 'Deleted locator groups',
-          items: result.deletedLocatorGroups.map(
-            group => `${group.name} (${group.locatorCount} locator(s) cascade deleted)`,
-          ),
-        },
-        { title: 'Errors', items: result.errors },
-      ],
-    )
-    return result
+  printSyncSummary(
+    [
+      { label: '📁 Locator groups scanned', value: result.locatorGroupsScanned },
+      { label: '✅ Locator groups existing', value: result.locatorGroupsExisting },
+      { label: '➕ Locator groups created', value: result.locatorGroupsCreated },
+      { label: '🔄 Locator groups updated', value: result.locatorGroupsUpdated },
+      { label: '🗑️  Locator groups deleted', value: result.locatorGroupsDeleted },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      { title: 'Created locator groups', items: result.createdLocatorGroups },
+      { title: 'Updated locator groups', items: result.updatedLocatorGroups },
+      {
+        title: 'Deleted locator groups',
+        items: result.deletedLocatorGroups.map(
+          group => `${group.name} (${group.locatorCount} locator(s) cascade deleted)`,
+        ),
+      },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
+  return result
 }
 
 runSyncScript(main)

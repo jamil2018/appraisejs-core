@@ -12,26 +12,20 @@ import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvir
  */
 When(
   'the user stores the {string} element text inside the variable {string}',
-  async function (
-    this: CustomWorld,
-    elementName: SelectorName,
-    variableName: string
-  ) {
-    const selector = await resolveLocator(this.page, elementName);
+  async function (this: CustomWorld, elementName: SelectorName, variableName: string) {
+    const selector = await resolveLocator(this.page, elementName)
     if (!selector) {
-      throw new Error(`Selector ${elementName} not found`);
+      throw new Error(`Selector ${elementName} not found`)
     }
 
     try {
-      const value = await this.page.locator(selector).textContent();
-      this.setVar(variableName, value ?? '');
+      const value = await this.page.locator(selector).textContent()
+      this.setVar(variableName, value ?? '')
     } catch (error) {
-      throw new Error(
-        `Failed to store the ${elementName} element text inside the variable ${variableName}: ${error}`
-      );
+      throw new Error(`Failed to store the ${elementName} element text inside the variable ${variableName}: ${error}`)
     }
-  }
-);
+  },
+)
 
 /**
  * @name store text input text
@@ -40,26 +34,22 @@ When(
  */
 When(
   'the user stores the {string} text input value inside the variable {string}',
-  async function (
-    this: CustomWorld,
-    elementName: SelectorName,
-    variableName: string
-  ) {
-    const selector = await resolveLocator(this.page, elementName);
+  async function (this: CustomWorld, elementName: SelectorName, variableName: string) {
+    const selector = await resolveLocator(this.page, elementName)
     if (!selector) {
-      throw new Error(`Selector ${elementName} not found`);
+      throw new Error(`Selector ${elementName} not found`)
     }
 
     try {
-      const value = await this.page.locator(selector).inputValue();
-      this.setVar(variableName, value);
+      const value = await this.page.locator(selector).inputValue()
+      this.setVar(variableName, value)
     } catch (error) {
       throw new Error(
-        `Failed to store the ${elementName} text input value inside the variable ${variableName}: ${error}`
-      );
+        `Failed to store the ${elementName} text input value inside the variable ${variableName}: ${error}`,
+      )
     }
-  }
-);
+  },
+)
 
 /**
  * @name store textarea text
@@ -68,23 +58,19 @@ When(
  */
 When(
   'the user stores the {string} textarea input value inside the variable {string}',
-  async function (
-    this: CustomWorld,
-    elementName: SelectorName,
-    variableName: string
-  ) {
-    const selector = await resolveLocator(this.page, elementName);
+  async function (this: CustomWorld, elementName: SelectorName, variableName: string) {
+    const selector = await resolveLocator(this.page, elementName)
     if (!selector) {
-      throw new Error(`Selector ${elementName} not found`);
+      throw new Error(`Selector ${elementName} not found`)
     }
 
     try {
-      const value = await this.page.locator(selector).inputValue();
-      this.setVar(variableName, value);
+      const value = await this.page.locator(selector).inputValue()
+      this.setVar(variableName, value)
     } catch (error) {
       throw new Error(
-        `Failed to store the ${elementName} textarea input value inside the variable ${variableName}: ${error}`
-      );
+        `Failed to store the ${elementName} textarea input value inside the variable ${variableName}: ${error}`,
+      )
     }
-  }
-);
+  },
+)

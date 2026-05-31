@@ -147,7 +147,11 @@ function applySuggestedLocatorName(
   nextState.lastAutoLocatorName = suggestedName
 }
 
-function applySuggestedRoute(nextState: LocatorWorkspaceState, currentState: LocatorWorkspaceState, suggestedRoute: string) {
+function applySuggestedRoute(
+  nextState: LocatorWorkspaceState,
+  currentState: LocatorWorkspaceState,
+  suggestedRoute: string,
+) {
   if (!canReplaceRoute(currentState)) {
     return
   }

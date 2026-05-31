@@ -69,10 +69,7 @@ export function createInitialParametersForTemplateStep(templateStepParams: Templ
   }))
 }
 
-export function getGherkinPreview(
-  templateStep: TemplateStep | null,
-  parameters: NodeFormData['parameters'],
-) {
+export function getGherkinPreview(templateStep: TemplateStep | null, parameters: NodeFormData['parameters']) {
   if (!templateStep?.signature) {
     return ''
   }

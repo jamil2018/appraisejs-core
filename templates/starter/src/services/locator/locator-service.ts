@@ -352,7 +352,9 @@ export type SavePickedLocatorOutcome =
     }
   | { kind: 'error'; status: number; message: string }
 
-export async function savePickedLocatorFromRequest(request: SavePickedLocatorRequest): Promise<SavePickedLocatorOutcome> {
+export async function savePickedLocatorFromRequest(
+  request: SavePickedLocatorRequest,
+): Promise<SavePickedLocatorOutcome> {
   const value = savePickedLocatorSchema.parse(request)
   const session = value.sessionId ? await locatorPickerSessionManager.getSession(value.sessionId) : null
 

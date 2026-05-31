@@ -75,7 +75,11 @@ export function useLocatorWorkspace({
 
   useEffect(() => {
     const nextPayloadSignature = getPickerPayloadSignature(session)
-    if (!session?.pickedLocator || nextPayloadSignature === '' || nextPayloadSignature === payloadSignatureRef.current) {
+    if (
+      !session?.pickedLocator ||
+      nextPayloadSignature === '' ||
+      nextPayloadSignature === payloadSignatureRef.current
+    ) {
       return
     }
 
@@ -118,7 +122,8 @@ export function useLocatorWorkspace({
 
     toast({
       title: 'Chromium launched',
-      description: 'Use the in-browser Appraise picker panel to start picking, click one element, then confirm Use selector.',
+      description:
+        'Use the in-browser Appraise picker panel to start picking, click one element, then confirm Use selector.',
     })
   }
 

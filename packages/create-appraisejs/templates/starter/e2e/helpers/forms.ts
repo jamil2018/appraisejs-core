@@ -73,12 +73,7 @@ export async function createLocatorGroup(
   await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
 }
 
-export async function createLocator(
-  page: Page,
-  name: string,
-  selector: string,
-  groupName: string,
-): Promise<void> {
+export async function createLocator(page: Page, name: string, selector: string, groupName: string): Promise<void> {
   await page.goto('/locators/create')
   await expectPageHeading(page, 'Create Locator')
   await page.getByLabel('Locator Name').fill(name)
@@ -136,7 +131,10 @@ export async function createTestSuite(
   if (testCaseTitle) {
     await page.getByRole('button', { name: 'Select test case(s)' }).click()
     await page.getByPlaceholder('Search by title, description, or tag...').fill(testCaseTitle)
-    await page.getByRole('row', { name: new RegExp(testCaseTitle) }).getByRole('checkbox').click()
+    await page
+      .getByRole('row', { name: new RegExp(testCaseTitle) })
+      .getByRole('checkbox')
+      .click()
     await page.getByRole('button', { name: /^Save$/ }).click()
   }
   await page.getByRole('button', { name: /^Save$/ }).click()

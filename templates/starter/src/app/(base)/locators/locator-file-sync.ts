@@ -1,10 +1,6 @@
 import { syncLocatorsFromFilesAction } from '@/actions/locator/locator-actions'
 
-import {
-  showLocatorSyncFailureToast,
-  showLocatorSyncToast,
-  type LocatorSyncPayload,
-} from './locator-sync-toast'
+import { showLocatorSyncFailureToast, showLocatorSyncToast, type LocatorSyncPayload } from './locator-sync-toast'
 
 export async function runLocatorFileSync(refresh: () => void) {
   try {

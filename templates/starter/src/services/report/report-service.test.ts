@@ -252,6 +252,17 @@ describe('getAllTestSuiteMetricsForFilter', () => {
           updatedAt: old,
         },
       },
+      {
+        id: 'suite-c',
+        createdAt: neverExecutedCreatedAt,
+        updatedAt: neverExecutedCreatedAt,
+        metrics: {
+          id: 'metric-c',
+          lastExecutedAt: null,
+          createdAt: neverExecutedCreatedAt,
+          updatedAt: neverExecutedCreatedAt,
+        },
+      },
     ])
 
     const r = await getAllTestSuiteMetricsForFilter('notExecutedRecently')
@@ -261,6 +272,13 @@ describe('getAllTestSuiteMetricsForFilter', () => {
           {
             metrics: {
               is: null,
+            },
+          },
+          {
+            metrics: {
+              is: {
+                lastExecutedAt: null,
+              },
             },
           },
           {
@@ -280,7 +298,7 @@ describe('getAllTestSuiteMetricsForFilter', () => {
         metrics: true,
       },
     })
-    expect(r.map(x => x.id).sort()).toEqual(['metric-b', 'unexecuted-suite-a'])
+    expect(r.map(x => x.id).sort()).toEqual(['metric-b', 'metric-c', 'unexecuted-suite-a'])
     expect(r.find(x => x.id === 'unexecuted-suite-a')).toMatchObject({
       testSuiteId: 'suite-a',
       lastExecutedAt: null,

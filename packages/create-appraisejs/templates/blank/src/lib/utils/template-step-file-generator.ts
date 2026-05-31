@@ -10,8 +10,7 @@ import {
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 
 const RUNTIME_IMPORT = '../../../packages/cucumber-runtime/src/index.js'
-const REQUIRED_RUNTIME_IMPORT =
-  `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '${RUNTIME_IMPORT}';\n\n`
+const REQUIRED_RUNTIME_IMPORT = `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '${RUNTIME_IMPORT}';\n\n`
 
 function generateStepJSDoc(templateStep: Pick<TemplateStep, 'name' | 'description' | 'icon'>): string {
   const lines = ['/**']
@@ -47,7 +46,10 @@ function sanitizeFileName(groupName: string): string {
 
 export function generateFileContent(templateSteps: TemplateStep[]): string {
   if (!templateSteps || templateSteps.length === 0) {
-    return REQUIRED_RUNTIME_IMPORT + '// This file is generated automatically. Add template steps to this group to generate content.'
+    return (
+      REQUIRED_RUNTIME_IMPORT +
+      '// This file is generated automatically. Add template steps to this group to generate content.'
+    )
   }
 
   const functionDefinitions = templateSteps

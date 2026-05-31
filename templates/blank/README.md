@@ -32,18 +32,18 @@ npm run start
 
 ## Scripts
 
-| Script | Description |
-| --- | --- |
-| `npm run setup` | Install deps, create `.env`, and build the cucumber runtime plus the local production app |
-| `npm run build:local` | Build the cucumber runtime and the local production app |
-| `npm run start` | Start the local production server |
-| `npm run dev` | Start the Next.js development server |
-| `npm run install-playwright -- <browser...>` | Install selected Playwright browsers |
-| `npm run setup:db` | Recreate the local SQLite database from migrations and rerun `sync-all` |
-| `npm run setup:full` | Reinstall dependencies, rebuild the DB, rerun `sync-all`, and rebuild the production app |
-| `npm run sync-all` | Sync all starter entities from the bundled automation workspace into the database |
-| `npm run appraisejs:sync` | Alias for `sync-all` |
-| `npm run appraisejs:install-step -- --payload-file <path>` | Internal script used by `npx appraisejs@latest add step ...` |
+| Script                                                     | Description                                                                               |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `npm run setup`                                            | Install deps, create `.env`, and build the cucumber runtime plus the local production app |
+| `npm run build:local`                                      | Build the cucumber runtime and the local production app                                   |
+| `npm run start`                                            | Start the local production server                                                         |
+| `npm run dev`                                              | Start the Next.js development server                                                      |
+| `npm run install-playwright -- <browser...>`               | Install selected Playwright browsers                                                      |
+| `npm run setup:db`                                         | Recreate the local SQLite database from migrations and rerun `sync-all`                   |
+| `npm run setup:full`                                       | Reinstall dependencies, rebuild the DB, rerun `sync-all`, and rebuild the production app  |
+| `npm run sync-all`                                         | Sync all starter entities from the bundled automation workspace into the database         |
+| `npm run appraisejs:sync`                                  | Alias for `sync-all`                                                                      |
+| `npm run appraisejs:install-step -- --payload-file <path>` | Internal script used by `npx appraisejs@latest add step ...`                              |
 
 ## Configuration
 

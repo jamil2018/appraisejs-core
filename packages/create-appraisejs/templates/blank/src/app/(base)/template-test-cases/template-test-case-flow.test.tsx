@@ -107,5 +107,4 @@ describe('TemplateTestCaseFlow', () => {
     })
     expect(screen.getByTestId('default-value-input')).toHaveTextContent('true')
   })
-
 })

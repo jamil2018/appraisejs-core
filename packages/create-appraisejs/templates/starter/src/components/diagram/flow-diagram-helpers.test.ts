@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildFlowNodeData,
+  buildNodeFormData,
   createAddNodePromptNode,
   determineNodeOrders,
   determineStartNodeIds,
@@ -117,6 +118,32 @@ describe('flow-diagram helpers', () => {
     )
 
     expect(nodeData.isMissingParams).toBe(true)
+  })
+
+  it('clears missing parameter state when mandatory values are supplied', () => {
+    const nodeData = buildNodeFormData(
+      {
+        label: 'Step',
+        gherkinStep: 'Given step',
+        parameters: [{ name: 'locator', value: 'Submit', type: StepParameterType.STRING, order: 1 }],
+        templateStepId: 'step-1',
+      },
+      [],
+      [
+        {
+          id: 'param-1',
+          name: 'locator',
+          type: StepParameterType.STRING,
+          order: 1,
+          isMandatory: true,
+          templateStepId: 'step-1',
+        } as never,
+      ],
+      false,
+      false,
+    )
+
+    expect(nodeData.isMissingParams).toBeUndefined()
   })
 
   it('recomputes node orders and isolated nodes correctly', () => {

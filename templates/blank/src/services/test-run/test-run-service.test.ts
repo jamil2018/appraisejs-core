@@ -499,18 +499,15 @@ describe('test run log storage', () => {
       where: { testRunId: 'run-1' },
       create: {
         testRunId: 'run-1',
-        logs:
-          '[2025-01-01T00:00:00.000Z] [STDOUT] line one\\nline two\n[2025-01-01T00:00:01.000Z] [STDERR] boom',
+        logs: '[2025-01-01T00:00:00.000Z] [STDOUT] line one\\nline two\n[2025-01-01T00:00:01.000Z] [STDERR] boom',
       },
       update: {
-        logs:
-          '[2025-01-01T00:00:00.000Z] [STDOUT] line one\\nline two\n[2025-01-01T00:00:01.000Z] [STDERR] boom',
+        logs: '[2025-01-01T00:00:00.000Z] [STDOUT] line one\\nline two\n[2025-01-01T00:00:01.000Z] [STDERR] boom',
       },
     })
 
     mockTestRunLogFindUnique.mockResolvedValue({
-      logs:
-        '[2025-01-01T00:00:00.000Z] [STDOUT] line one\\nline two\n[2025-01-01T00:00:01.000Z] [STDERR] boom',
+      logs: '[2025-01-01T00:00:00.000Z] [STDOUT] line one\\nline two\n[2025-01-01T00:00:01.000Z] [STDERR] boom',
     })
 
     await expect(getTestRunLogsService('run-1')).resolves.toEqual(logs)

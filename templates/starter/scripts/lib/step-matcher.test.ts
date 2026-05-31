@@ -79,8 +79,8 @@ describe('sameResolvedParameters', () => {
   })
 
   it('returns false for different values', () => {
-    expect(
-      sameResolvedParameters(sample, [{ name: 'x', value: '2', order: 0, type: StepParameterType.NUMBER }]),
-    ).toBe(false)
+    expect(sameResolvedParameters(sample, [{ name: 'x', value: '2', order: 0, type: StepParameterType.NUMBER }])).toBe(
+      false,
+    )
   })
 })

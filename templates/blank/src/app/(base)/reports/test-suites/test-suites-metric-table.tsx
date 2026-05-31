@@ -15,7 +15,9 @@ const TestSuitesMetricTable = async ({ filter }: { filter: 'notExecutedRecently'
     <>
       <DataTable
         columns={testSuitesMetricTableCols}
-        data={testSuiteMetrics as (TestSuiteMetrics & { testSuite: TestSuite & { tags: Tag[]; testCases: TestCase[] } })[]}
+        data={
+          testSuiteMetrics as (TestSuiteMetrics & { testSuite: TestSuite & { tags: Tag[]; testCases: TestCase[] } })[]
+        }
         filterColumn="testSuite.name"
         filterPlaceholder="Filter by name..."
         deleteAction={deleteTestSuiteAction}

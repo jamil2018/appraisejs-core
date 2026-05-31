@@ -79,12 +79,12 @@ The generated project does not include:
 
 The package defaults to the bundled template. Remote fetching is only used when you provide one of the override environment variables below.
 
-| Variable | Description | Default |
-| --- | --- | --- |
-| `CREATE_APPRAISE_REPO_URL` | Repository URL used for remote template fetching. | `https://github.com/jamil2018/appraisejs-core.git` |
-| `CREATE_APPRAISE_BRANCH` | Branch or ref to fetch from the remote repository. | `main` |
-| `CREATE_APPRAISE_TEMPLATE_SUBPATH` | Path to the template directory inside that repository. | selected template subpath (`templates/starter` or `templates/blank`) |
-| `CREATE_APPRAISE_USE_BUNDLED` | Set to `1`, `true`, or `yes` to force the bundled template even when remote overrides are present. | bundled template |
+| Variable                           | Description                                                                                        | Default                                                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `CREATE_APPRAISE_REPO_URL`         | Repository URL used for remote template fetching.                                                  | `https://github.com/jamil2018/appraisejs-core.git`                   |
+| `CREATE_APPRAISE_BRANCH`           | Branch or ref to fetch from the remote repository.                                                 | `main`                                                               |
+| `CREATE_APPRAISE_TEMPLATE_SUBPATH` | Path to the template directory inside that repository.                                             | selected template subpath (`templates/starter` or `templates/blank`) |
+| `CREATE_APPRAISE_USE_BUNDLED`      | Set to `1`, `true`, or `yes` to force the bundled template even when remote overrides are present. | bundled template                                                     |
 
 When remote mode is active, the CLI tries the repository tarball first and falls back to `git clone` if needed.
 
@@ -96,17 +96,17 @@ CREATE_APPRAISE_BRANCH=main npx create-appraisejs@latest --template blank
 
 ## Common Scripts In The Generated App
 
-| Script | What it does |
-| --- | --- |
-| `npm run setup` | Install dependencies, create `.env`, rebuild the local DB, build the app, and protect seeded files |
-| `npm run setup:db` | Recreate the local SQLite database from migrations and rerun the sync pipeline |
-| `npm run setup:full` | Reinstall dependencies, rebuild the DB, rebuild the app, and protect seeded files |
-| `npm run install-playwright -- <browser...>` | Install selected Playwright browsers |
-| `npm run sync-all` | Run the full sync pipeline |
-| `npm run appraisejs:sync` | Alias for `sync-all` |
-| `npm run appraisejs:install-step -- --payload-file <path>` | Internal script used by the public `appraisejs add step` CLI |
-| `npm run start` | Start the local production server |
-| `npm run dev` | Start the Next.js development server |
+| Script                                                     | What it does                                                                                       |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm run setup`                                            | Install dependencies, create `.env`, rebuild the local DB, build the app, and protect seeded files |
+| `npm run setup:db`                                         | Recreate the local SQLite database from migrations and rerun the sync pipeline                     |
+| `npm run setup:full`                                       | Reinstall dependencies, rebuild the DB, rebuild the app, and protect seeded files                  |
+| `npm run install-playwright -- <browser...>`               | Install selected Playwright browsers                                                               |
+| `npm run sync-all`                                         | Run the full sync pipeline                                                                         |
+| `npm run appraisejs:sync`                                  | Alias for `sync-all`                                                                               |
+| `npm run appraisejs:install-step -- --payload-file <path>` | Internal script used by the public `appraisejs add step` CLI                                       |
+| `npm run start`                                            | Start the local production server                                                                  |
+| `npm run dev`                                              | Start the Next.js development server                                                               |
 
 ## Install Additional Template Steps
 

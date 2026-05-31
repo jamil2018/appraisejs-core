@@ -6,7 +6,9 @@
 When(
   'the user waits for the {string} element to disappear',
   async function (this: CustomWorld, elementName: SelectorName) {
-    const selector = await resolveLocator(this.page, elementName, { validate: { requireVisible: false } })
+    const selector = await resolveLocator(this.page, elementName, {
+      validate: { requireVisible: false },
+    })
     if (!selector) {
       throw new Error(`Selector ${elementName} not found`)
     }

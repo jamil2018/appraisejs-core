@@ -44,7 +44,16 @@ function isTestRunDetailsTestCase(value: unknown): value is TestRunDetailsTestCa
 
 function hasTestRunScalarFields(value: UnknownRecord) {
   return (
-    hasFields(value, ['id', 'runId', 'status', 'result', 'startedAt', 'completedAt', 'browserEngine', 'testWorkersCount']) &&
+    hasFields(value, [
+      'id',
+      'runId',
+      'status',
+      'result',
+      'startedAt',
+      'completedAt',
+      'browserEngine',
+      'testWorkersCount',
+    ]) &&
     value.startedAt instanceof Date &&
     (value.completedAt instanceof Date || value.completedAt === null)
   )

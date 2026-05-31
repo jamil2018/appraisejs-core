@@ -67,9 +67,7 @@ export function FlowDiagramToolbar({
                 {isGroupingSelectionMode ? <Boxes /> : <MousePointer2 />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {isGroupingSelectionMode ? 'Selection mode' : 'Create block'}
-            </TooltipContent>
+            <TooltipContent side="bottom">{isGroupingSelectionMode ? 'Selection mode' : 'Create block'}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       ) : null}

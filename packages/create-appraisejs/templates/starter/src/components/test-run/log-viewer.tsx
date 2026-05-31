@@ -110,9 +110,9 @@ export function LogViewer({ testRunId, status, className }: LogViewerProps) {
             {logs.length === 0 && connectionStatus !== 'connecting' && connectionStatus !== 'loading' ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">No logs available</div>
             ) : null}
-            {logs.map(log => (
+            {logs.map((log, index) => (
               <div
-                key={`${log.timestamp.toISOString()}-${log.type}-${log.message}`}
+                key={`${log.timestamp.toISOString()}-${log.type}-${log.message}-${index}`}
                 className={cn(
                   'mb-1 flex items-start gap-2 whitespace-pre-wrap break-words',
                   log.type === 'stderr' && 'text-red-400',

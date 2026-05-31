@@ -52,11 +52,7 @@ import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import type { ActionResponse } from '@/types/form/actionHandler'
-import {
-  createTestCaseFormState,
-  testCaseFormReducer,
-  type TestCaseFormErrors,
-} from './test-case-form-reducer'
+import { createTestCaseFormState, testCaseFormReducer, type TestCaseFormErrors } from './test-case-form-reducer'
 
 type TestCaseFormProps = {
   defaultNodesOrder: NodeOrderMap
@@ -296,53 +292,53 @@ function FlowPanel({
 }: FlowPanelProps) {
   return (
     <LazyMotion features={domAnimation} strict>
-    <motion.div
-      layout
-      layoutId="test-case-flow-panel"
-      className={cn(
-        'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-zinc-700 text-card-foreground shadow-sm will-change-transform',
-        className,
-      )}
-      transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
-    >
-      <CardHeader className="shrink-0">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
-            <CardDescription>Build your test scenario step by step visually</CardDescription>
+      <motion.div
+        layout
+        layoutId="test-case-flow-panel"
+        className={cn(
+          'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-zinc-700 text-card-foreground shadow-sm will-change-transform',
+          className,
+        )}
+        transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
+      >
+        <CardHeader className="shrink-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+              <CardDescription>Build your test scenario step by step visually</CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-9 shrink-0"
+              onClick={onToggleImmersive}
+              aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
+            >
+              {isFlowImmersive ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-9 shrink-0"
-            onClick={onToggleImmersive}
-            aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
-          >
-            {isFlowImmersive ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
-          <div className="min-h-0 flex-1">
-            <TestCaseFlow
-              initialNodesOrder={nodesOrder}
-              templateStepParams={templateStepParams}
-              templateSteps={templateSteps}
-              onNodeOrderChange={onNodeOrderChange}
-              locators={locators}
-              locatorGroups={locatorGroups}
-              environments={environments}
-              modules={moduleList}
-              flowBlocks={flowBlocks}
-              layoutRefreshKey={isFlowImmersive}
-              onFlowBlocksChange={onFlowBlocksChange}
-            />
+        </CardHeader>
+        <CardContent className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
+            <div className="min-h-0 flex-1">
+              <TestCaseFlow
+                initialNodesOrder={nodesOrder}
+                templateStepParams={templateStepParams}
+                templateSteps={templateSteps}
+                onNodeOrderChange={onNodeOrderChange}
+                locators={locators}
+                locatorGroups={locatorGroups}
+                environments={environments}
+                modules={moduleList}
+                flowBlocks={flowBlocks}
+                layoutRefreshKey={isFlowImmersive}
+                onFlowBlocksChange={onFlowBlocksChange}
+              />
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </motion.div>
+        </CardContent>
+      </motion.div>
     </LazyMotion>
   )
 }
@@ -774,16 +770,16 @@ function FlowStep({
   return (
     <div className="flex flex-col gap-4">
       <LazyMotion features={domAnimation} strict>
-      <LayoutGroup id="test-case-flow-panel-layout">
-        <div className="w-full min-w-0 overflow-x-hidden">
-          {isFlowImmersive ? (
-            <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{immersiveFlowPanel}</div>
-          ) : (
-            flowPanel
-          )}
-          <TestCaseFormFieldError message={errors.steps} />
-        </div>
-      </LayoutGroup>
+        <LayoutGroup id="test-case-flow-panel-layout">
+          <div className="w-full min-w-0 overflow-x-hidden">
+            {isFlowImmersive ? (
+              <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{immersiveFlowPanel}</div>
+            ) : (
+              flowPanel
+            )}
+            <TestCaseFormFieldError message={errors.steps} />
+          </div>
+        </LayoutGroup>
       </LazyMotion>
       {!isFlowImmersive && (
         <div className="flex flex-col gap-4">
@@ -857,14 +853,7 @@ type WizardStepContentProps = {
   errors: TestCaseFormErrors
 }
 
-function WizardStepContent({
-  actions,
-  details,
-  errors,
-  flow,
-  navigation,
-  template,
-}: WizardStepContentProps) {
+function WizardStepContent({ actions, details, errors, flow, navigation, template }: WizardStepContentProps) {
   const { currentStep, detailsStepIndex, hasTemplateSelectionStep } = navigation
 
   if (hasTemplateSelectionStep && currentStep === 0) {
@@ -1142,7 +1131,10 @@ function useBodyScrollLock(isLocked: boolean) {
   }, [isLocked])
 }
 
-function useWizardStepClick(currentStep: number, dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>) {
+function useWizardStepClick(
+  currentStep: number,
+  dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>,
+) {
   return useCallback(
     (stepIndex: number) => {
       if (stepIndex <= currentStep) {
@@ -1194,11 +1186,7 @@ const TestCaseForm = ({
       defaultTestSuiteIds,
       defaultTagIds,
       defaultTemplateTestCaseId,
-      initialWizardStep: getInitialWizardStep(
-        hasTemplateSelectionStep,
-        defaultTemplateTestCaseId,
-        detailsStepIndex,
-      ),
+      initialWizardStep: getInitialWizardStep(hasTemplateSelectionStep, defaultTemplateTestCaseId, detailsStepIndex),
     },
     createTestCaseFormState,
   )
@@ -1357,10 +1345,7 @@ const TestCaseForm = ({
     flow: {
       isFlowImmersive,
       flowPanel: (
-        <FlowPanel
-          {...flowPanelProps}
-          className="relative h-[max(22rem,calc(100dvh-12rem))] bg-zinc-500/10"
-        />
+        <FlowPanel {...flowPanelProps} className="relative h-[max(22rem,calc(100dvh-12rem))] bg-zinc-500/10" />
       ),
       immersiveFlowPanel: <FlowPanel {...flowPanelProps} className="h-full bg-background" />,
       scenarioPreview,

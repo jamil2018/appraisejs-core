@@ -2,13 +2,7 @@
 
 import TagForm from '@/app/(base)/tags/tag-form'
 import type { TagFormSubmitAction } from '@/app/(base)/tags/tag-form-helpers'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { Tag } from '@prisma/client'
 
 type InlineTagCreationDialogProps = {

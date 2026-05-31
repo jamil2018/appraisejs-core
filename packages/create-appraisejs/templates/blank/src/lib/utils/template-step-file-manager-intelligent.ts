@@ -103,7 +103,17 @@ interface RequiredImport {
 const REQUIRED_IMPORTS: RequiredImport[] = [
   {
     module: '../../../packages/cucumber-runtime/src/index',
-    namedExports: ['When', 'Then', 'CustomWorld', 'expect', 'SelectorName', 'resolveLocator', 'getEnvironment', 'generateRandomData', 'RandomDataType'],
+    namedExports: [
+      'When',
+      'Then',
+      'CustomWorld',
+      'expect',
+      'SelectorName',
+      'resolveLocator',
+      'getEnvironment',
+      'generateRandomData',
+      'RandomDataType',
+    ],
     from: '../../../packages/cucumber-runtime/src/index.js',
   },
 ]

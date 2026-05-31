@@ -51,9 +51,7 @@ function isEnvironmentRow(value: unknown): value is Environment {
 }
 
 function isLocatorGroupRow(value: unknown): value is LocatorGroup {
-  return (
-    isRecord(value) && hasStringProps(value, ['id', 'name', 'route', 'moduleId']) && hasDateProps(value)
-  )
+  return isRecord(value) && hasStringProps(value, ['id', 'name', 'route', 'moduleId']) && hasDateProps(value)
 }
 
 function isModuleRow(value: unknown): value is Module {
@@ -82,7 +80,15 @@ function isLocatorPickerSession(value: unknown): value is LocatorPickerSession {
   return (
     value.browserName === 'chromium' &&
     hasStringProp(value.launchSource, 'url') &&
-    hasStringProps(value, ['sessionId', 'status', 'currentUrl', 'currentPathname', 'pageTitle', 'startedAt', 'updatedAt']) &&
+    hasStringProps(value, [
+      'sessionId',
+      'status',
+      'currentUrl',
+      'currentPathname',
+      'pageTitle',
+      'startedAt',
+      'updatedAt',
+    ]) &&
     (typeof value.companionPid === 'number' || value.companionPid === null) &&
     'companionPid' in value
   )
@@ -109,7 +115,18 @@ export function getLocatorPickerSession(data: ActionResponseData | undefined) {
 }
 
 export function getInlineLocatorSaveResult(data: ActionResponseData | undefined): InlineLocatorSaveResult | null {
-  if (isRecord(data) && hasStringProps(data, ['locatorId', 'locatorName', 'locatorGroupId', 'locatorGroupName', 'selector', 'route', 'moduleId'])) {
+  if (
+    isRecord(data) &&
+    hasStringProps(data, [
+      'locatorId',
+      'locatorName',
+      'locatorGroupId',
+      'locatorGroupName',
+      'selector',
+      'route',
+      'moduleId',
+    ])
+  ) {
     return {
       locatorId: data.locatorId,
       locatorName: data.locatorName,

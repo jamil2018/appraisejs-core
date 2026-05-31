@@ -146,7 +146,9 @@ export async function verifyPreparedTemplateState(
   }
 
   if (bundledStepFiles.length > 0) {
-    throw new Error(`Prepared blank template should not include bundled step files, found ${bundledStepFiles.join(', ')}`)
+    throw new Error(
+      `Prepared blank template should not include bundled step files, found ${bundledStepFiles.join(', ')}`,
+    )
   }
   if (stepDataCounts.stepCount !== 0 || stepDataCounts.stepGroupCount !== 0) {
     throw new Error(`Prepared blank template database should not include bundled step data at ${seededDbPath}`)

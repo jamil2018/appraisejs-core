@@ -68,7 +68,9 @@ export function getInitialSelectedLocatorGroups(
   initialParameterValues: DynamicParameterInput[] | undefined,
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>,
 ) {
-  const initialValueMap = Object.fromEntries((initialParameterValues ?? []).map(parameter => [parameter.name, parameter]))
+  const initialValueMap = Object.fromEntries(
+    (initialParameterValues ?? []).map(parameter => [parameter.name, parameter]),
+  )
 
   return Object.fromEntries(
     templateStepParams.flatMap(parameter => {
@@ -141,8 +143,7 @@ export function formatDynamicParameterValues(
         formattedValue = value !== undefined && value !== null ? String(value) : ''
         break
       case StepParameterType.DATE:
-        formattedValue =
-          value instanceof Date && !Number.isNaN(value.getTime()) ? format(value, 'PPP') : ''
+        formattedValue = value instanceof Date && !Number.isNaN(value.getTime()) ? format(value, 'PPP') : ''
         break
       case StepParameterType.BOOLEAN:
         formattedValue = value !== undefined && value !== null ? String(value) : ''

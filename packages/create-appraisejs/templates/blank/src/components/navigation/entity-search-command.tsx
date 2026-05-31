@@ -15,15 +15,9 @@ export interface EntitySearchCommandProps<T extends { id: string }> {
   onSelect?: (entity: T) => void
 }
 
-type LoadState<T> =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; entities: T[] }
+type LoadState<T> = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; entities: T[] }
 
-type LoadAction<T> =
-  | { type: 'reset' }
-  | { type: 'ready'; entities: T[] }
-  | { type: 'error'; message: string }
+type LoadAction<T> = { type: 'reset' } | { type: 'ready'; entities: T[] } | { type: 'error'; message: string }
 
 function loadReducer<T>(state: LoadState<T>, action: LoadAction<T>): LoadState<T> {
   switch (action.type) {

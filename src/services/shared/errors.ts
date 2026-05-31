@@ -11,8 +11,7 @@ export class ServiceError extends Error {
     this.name = 'ServiceError'
     this.code = code
     this.statusCode =
-      statusCode ??
-      (code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' ? 400 : code === 'CONFLICT' ? 409 : 500)
+      statusCode ?? (code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' ? 400 : code === 'CONFLICT' ? 409 : 500)
   }
 }
 
@@ -31,8 +30,7 @@ export function serviceErrorToActionResponse(error: ServiceError): ActionRespons
  * Maps unknown errors to a 500 ActionResponse.
  */
 export function unknownErrorToActionResponse(error: unknown, logPrefix?: string): ActionResponse {
-  const message =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
   if (logPrefix) {
     console.error(`${logPrefix}`, error)
   }

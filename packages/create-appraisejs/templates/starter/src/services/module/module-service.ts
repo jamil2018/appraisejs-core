@@ -46,10 +46,7 @@ export async function getModuleByIdOrThrow(id: string): Promise<ModuleWithParent
   return moduleData
 }
 
-export async function updateModule(
-  id: string | undefined,
-  value: z.infer<typeof moduleSchema>,
-): Promise<Module> {
+export async function updateModule(id: string | undefined, value: z.infer<typeof moduleSchema>): Promise<Module> {
   if (!id) {
     throw new ServiceError('Module id is required', 'VALIDATION', 400)
   }

@@ -55,6 +55,5 @@ packages/cucumber-runtime/dist/*
 # temporary files
 .tmp
 .fallow
-
 !prisma/dev.db
 !automation/config/environments/environments.json

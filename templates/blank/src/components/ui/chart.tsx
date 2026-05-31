@@ -166,10 +166,7 @@ function ChartTooltipContentActive({
   ref,
 }: ChartTooltipContentProps) {
   const { config } = useChart()
-  const resolvedPayload = React.useMemo(
-    () => (payload?.length ? payload : EMPTY_CHART_TOOLTIP_PAYLOAD),
-    [payload],
-  )
+  const resolvedPayload = React.useMemo(() => (payload?.length ? payload : EMPTY_CHART_TOOLTIP_PAYLOAD), [payload])
 
   if (!resolvedPayload.length) {
     return null
@@ -239,10 +236,7 @@ function ChartTooltipContentActive({
                     )
                   )}
                   <div
-                    className={cn(
-                      'flex flex-1 justify-between leading-none',
-                      nestLabel ? 'items-end' : 'items-center',
-                    )}
+                    className={cn('flex flex-1 justify-between leading-none', nestLabel ? 'items-end' : 'items-center')}
                   >
                     <div className="grid gap-1.5">
                       {nestLabel ? (

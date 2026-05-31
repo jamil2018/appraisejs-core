@@ -80,7 +80,6 @@ function DynamicFormFields({
   onChange,
   initialParameterValues,
 }: DynamicFormFieldsProps & React.RefAttributes<DynamicFormFieldsRef>) {
-
   const resetKey = useMemo(() => {
     return JSON.stringify({
       params: templateStepParams.map(p => ({ name: p.name, type: p.type })),

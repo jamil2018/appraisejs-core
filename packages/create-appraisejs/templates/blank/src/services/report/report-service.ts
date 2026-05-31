@@ -442,9 +442,7 @@ export async function getAllTestSuiteMetricsForFilter(filter: string) {
     const recentPeriodDate = new Date()
     recentPeriodDate.setDate(recentPeriodDate.getDate() - RECENT_PERIOD_DAYS)
 
-    testSuiteMetrics = testSuiteMetrics.filter(
-      ts => ts.lastExecutedAt === null || ts.lastExecutedAt < recentPeriodDate,
-    )
+    testSuiteMetrics = testSuiteMetrics.filter(ts => ts.lastExecutedAt === null || ts.lastExecutedAt < recentPeriodDate)
   }
   return testSuiteMetrics
 }

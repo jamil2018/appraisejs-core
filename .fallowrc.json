@@ -1,31 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": [
-    "src/app/(base)/**/*.{ts,tsx}",
-    "scripts/**/*.{ts,tsx,js,mjs,cjs}"
-  ],
-  "ignorePatterns": [
-    ".next/**",
-    ".fallow/**",
-    "automation/**",
-    "docs/**",
-    "packages/**",
-    "public/**",
-    "templates/**"
-  ],
-  "ignoreDependencies": [
-    "@codemirror/lang-jinja",
-    "@faker-js/faker",
-    "chai",
-    "chai-as-promised",
-    "dotenv"
-  ],
+  "entry": ["src/app/(base)/**/*.{ts,tsx}", "scripts/**/*.{ts,tsx,js,mjs,cjs}"],
+  "ignorePatterns": [".next/**", ".fallow/**", "automation/**", "docs/**", "packages/**", "public/**", "templates/**"],
+  "ignoreDependencies": ["@codemirror/lang-jinja", "@faker-js/faker", "chai", "chai-as-promised", "dotenv"],
   "duplicates": {
-    "ignore": [
-      "automation/**",
-      "packages/**",
-      "templates/**"
-    ]
+    "ignore": ["automation/**", "packages/**", "templates/**"]
   },
   "overrides": [
     {

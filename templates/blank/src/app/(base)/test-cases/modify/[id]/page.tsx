@@ -77,11 +77,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     environmentsResponse.error
 
   if (loadError) {
-    return (
-      <div>
-        Error: {loadError}
-      </div>
-    )
+    return <div>Error: {loadError}</div>
   }
 
   const testCase = getEditableTestCase(testCaseResponse.data)

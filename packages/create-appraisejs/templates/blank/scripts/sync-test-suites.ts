@@ -49,14 +49,14 @@ type DbTestSuiteWithModule = Prisma.TestSuiteGetPayload<{ include: { module: tru
  */
 function extractFeatureLevelTags(parsedFeature: ParsedFeature): string[] {
   const tags: string[] = []
-  
+
   for (const tagLine of parsedFeature.tags) {
     if (tagLine.startsWith('@')) {
       const splitTags = splitTagLine(tagLine)
       tags.push(...splitTags)
     }
   }
-  
+
   return tags
 }
 
@@ -65,17 +65,17 @@ function extractFeatureLevelTags(parsedFeature: ParsedFeature): string[] {
  */
 async function scanTestSuitesFromFilesystem(featuresDir: string): Promise<TestSuiteFromFS[]> {
   const testSuites: TestSuiteFromFS[] = []
-  
+
   console.log('📁 Scanning feature files...')
   const parsedFeatures = await scanFeatureFiles(featuresDir)
   console.log(`   Found ${parsedFeatures.length} feature file(s)`)
-  
+
   for (const parsedFeature of parsedFeatures) {
     try {
       const testSuiteName = extractTestSuiteNameFromFilename(parsedFeature.filePath)
       const modulePath = extractModulePathFromFilePath(parsedFeature.filePath, featuresDir)
       const tags = extractFeatureLevelTags(parsedFeature)
-      
+
       testSuites.push({
         name: testSuiteName,
         description: parsedFeature.featureDescription || null,
@@ -87,7 +87,7 @@ async function scanTestSuitesFromFilesystem(featuresDir: string): Promise<TestSu
       console.error(`   ❌ Error processing feature file '${parsedFeature.filePath}': ${error}`)
     }
   }
-  
+
   return testSuites
 }
 
@@ -97,13 +97,13 @@ async function scanTestSuitesFromFilesystem(featuresDir: string): Promise<TestSu
  */
 async function findTagIdsByExpressions(tagExpressions: string[]): Promise<string[]> {
   const tagIds: string[] = []
-  
+
   for (const tagExpression of tagExpressions) {
     try {
       const tag = await prisma.tag.findFirst({
         where: { tagExpression },
       })
-      
+
       if (tag) {
         tagIds.push(tag.id)
       } else {
@@ -113,7 +113,7 @@ async function findTagIdsByExpressions(tagExpressions: string[]): Promise<string
       console.error(`   ❌ Error finding tag '${tagExpression}': ${error}`)
     }
   }
-  
+
   return tagIds
 }
 
@@ -128,7 +128,10 @@ async function resolveModuleId(modulePath: string) {
   return moduleId
 }
 
-async function findExistingTestSuite(testSuite: TestSuiteFromFS, moduleId: string): Promise<ExistingTestSuite | undefined> {
+async function findExistingTestSuite(
+  testSuite: TestSuiteFromFS,
+  moduleId: string,
+): Promise<ExistingTestSuite | undefined> {
   const existingTestSuites = await prisma.testSuite.findMany({
     where: {
       moduleId,
@@ -150,7 +153,12 @@ function getSortedTagIds(existingTestSuite: ExistingTestSuite, tagIds: string[])
   }
 }
 
-function testSuiteNeedsUpdate(existingTestSuite: ExistingTestSuite, testSuite: TestSuiteFromFS, moduleId: string, tagIds: string[]) {
+function testSuiteNeedsUpdate(
+  existingTestSuite: ExistingTestSuite,
+  testSuite: TestSuiteFromFS,
+  moduleId: string,
+  tagIds: string[],
+) {
   const { currentTagIds, newTagIds } = getSortedTagIds(existingTestSuite, tagIds)
 
   return (
@@ -346,15 +354,12 @@ async function deleteOrphanedTestSuites(fsTestSuiteKeys: Set<string>, result: Sy
 /**
  * Syncs test suites from filesystem to database
  */
-async function syncTestSuitesToDatabase(
-  testSuitesFromFS: TestSuiteFromFS[],
-  result: SyncResult,
-): Promise<void> {
+async function syncTestSuitesToDatabase(testSuitesFromFS: TestSuiteFromFS[], result: SyncResult): Promise<void> {
   console.log('\n✅ Syncing test suites to database...')
-  
+
   // Track test suites from filesystem (by name + modulePath)
   const fsTestSuiteKeys = new Set<string>()
-  
+
   for (const testSuite of testSuitesFromFS) {
     try {
       await syncFilesystemTestSuite(testSuite, fsTestSuiteKeys, result)
@@ -372,69 +377,69 @@ async function syncTestSuitesToDatabase(
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult | void> {
-    console.log('🔄 Starting test suites sync...')
-    console.log('This will scan feature files and sync test suites to database.')
-    console.log('Filesystem is the source of truth - test suites in DB but not in FS will be deleted.')
-    console.log('Note: Test cases are not synced by this script (they will be handled separately).\n')
+  console.log('🔄 Starting test suites sync...')
+  console.log('This will scan feature files and sync test suites to database.')
+  console.log('Filesystem is the source of truth - test suites in DB but not in FS will be deleted.')
+  console.log('Note: Test cases are not synced by this script (they will be handled separately).\n')
 
-    await ensureAutomationWorkspaceReady()
-    const featuresDir = getAutomationFeaturesDir()
-    
-    // Scan test suites from filesystem
-    const testSuitesFromFS = await scanTestSuitesFromFilesystem(featuresDir)
-    
-    if (testSuitesFromFS.length === 0) {
-      console.log('\n⚠️  No feature files found. Nothing to sync.')
-      return
-    }
-    
-    console.log(`\n📋 Found ${testSuitesFromFS.length} test suite(s) from feature files:`)
-    for (const ts of testSuitesFromFS) {
-      console.log(`   - ${ts.name} (${ts.modulePath})`)
-    }
-    
-    // Initialize result
-    const result: SyncResult = {
-      testSuitesScanned: testSuitesFromFS.length,
-      testSuitesExisting: 0,
-      testSuitesCreated: 0,
-      testSuitesUpdated: 0,
-      testSuitesDeleted: 0,
-      errors: [],
-      createdTestSuites: [],
-      updatedTestSuites: [],
-      deletedTestSuites: [],
-    }
-    
-    // Sync to database
-    await syncTestSuitesToDatabase(testSuitesFromFS, result)
-    
-    printSyncSummary(
-      [
-        { label: '📁 Test suites scanned', value: result.testSuitesScanned },
-        { label: '✅ Test suites existing', value: result.testSuitesExisting },
-        { label: '➕ Test suites created', value: result.testSuitesCreated },
-        { label: '🔄 Test suites updated', value: result.testSuitesUpdated },
-        { label: '🗑️  Test suites deleted', value: result.testSuitesDeleted },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        {
-          title: 'Created test suites',
-          items: result.createdTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
-        },
-        {
-          title: 'Updated test suites',
-          items: result.updatedTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
-        },
-        {
-          title: 'Deleted test suites',
-          items: result.deletedTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
-        },
-        { title: 'Errors', items: result.errors },
-      ],
-    )
-    return result
+  await ensureAutomationWorkspaceReady()
+  const featuresDir = getAutomationFeaturesDir()
+
+  // Scan test suites from filesystem
+  const testSuitesFromFS = await scanTestSuitesFromFilesystem(featuresDir)
+
+  if (testSuitesFromFS.length === 0) {
+    console.log('\n⚠️  No feature files found. Nothing to sync.')
+    return
+  }
+
+  console.log(`\n📋 Found ${testSuitesFromFS.length} test suite(s) from feature files:`)
+  for (const ts of testSuitesFromFS) {
+    console.log(`   - ${ts.name} (${ts.modulePath})`)
+  }
+
+  // Initialize result
+  const result: SyncResult = {
+    testSuitesScanned: testSuitesFromFS.length,
+    testSuitesExisting: 0,
+    testSuitesCreated: 0,
+    testSuitesUpdated: 0,
+    testSuitesDeleted: 0,
+    errors: [],
+    createdTestSuites: [],
+    updatedTestSuites: [],
+    deletedTestSuites: [],
+  }
+
+  // Sync to database
+  await syncTestSuitesToDatabase(testSuitesFromFS, result)
+
+  printSyncSummary(
+    [
+      { label: '📁 Test suites scanned', value: result.testSuitesScanned },
+      { label: '✅ Test suites existing', value: result.testSuitesExisting },
+      { label: '➕ Test suites created', value: result.testSuitesCreated },
+      { label: '🔄 Test suites updated', value: result.testSuitesUpdated },
+      { label: '🗑️  Test suites deleted', value: result.testSuitesDeleted },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      {
+        title: 'Created test suites',
+        items: result.createdTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
+      },
+      {
+        title: 'Updated test suites',
+        items: result.updatedTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
+      },
+      {
+        title: 'Deleted test suites',
+        items: result.deletedTestSuites.map(ts => `${ts.name} (${ts.modulePath})`),
+      },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
+  return result
 }
 
 runSyncScript(main)

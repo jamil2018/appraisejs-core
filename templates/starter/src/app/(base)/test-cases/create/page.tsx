@@ -67,11 +67,7 @@ const CreateTestCase = async () => {
     environmentsResponse.error
 
   if (loadError) {
-    return (
-      <div>
-        Error: {loadError}
-      </div>
-    )
+    return <div>Error: {loadError}</div>
   }
 
   const templateStepParams = getTemplateStepParamRows(templateStepParamsResponse.data)

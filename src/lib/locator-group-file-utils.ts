@@ -144,7 +144,11 @@ async function cleanupEmptyDirectories(filePath: string): Promise<void> {
   let currentDir = path.dirname(filePath)
   const locatorsRoot = getAutomationLocatorsDir()
 
-  while (currentDir.startsWith(locatorsRoot) && currentDir !== locatorsRoot && currentDir !== path.dirname(currentDir)) {
+  while (
+    currentDir.startsWith(locatorsRoot) &&
+    currentDir !== locatorsRoot &&
+    currentDir !== path.dirname(currentDir)
+  ) {
     try {
       const files = await fs.readdir(currentDir)
       if (files.length === 0) {

@@ -7,6 +7,7 @@
 Visual test management, orchestration, and execution for modern QA teams.
 
 ## Content
+
 - [About AppraiseJS](#about-appraisejs)
 - [Documentation](#documentation)
 - [How to Use AppraiseJS](#how-to-use-appraisejs)
@@ -34,10 +35,12 @@ Project documentation has moved to [appraisejs.dev](https://appraisejs.dev/).
 ## How to Use AppraiseJS
 
 ### Requirements
+
 - Node.js 18+
 - npm
 
 ### Getting Started
+
 Create a new AppraiseJS project with the official CLI:
 
 ```bash

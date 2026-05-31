@@ -64,10 +64,7 @@ function parseSyncFailureCause(result: ScriptExecutionOutput | { error: unknown 
     return result.error instanceof Error ? result.error.message : String(result.error)
   }
 
-  return selectMostRelevantLine([
-    ...normalizeOutputLines(result.stderr),
-    ...normalizeOutputLines(result.stdout),
-  ])
+  return selectMostRelevantLine([...normalizeOutputLines(result.stderr), ...normalizeOutputLines(result.stdout)])
 }
 
 async function executeSyncScript(scriptId: SyncScriptId): Promise<ScriptExecutionOutput> {

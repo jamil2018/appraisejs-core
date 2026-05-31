@@ -124,11 +124,7 @@ async function resolveTagExpressionAndTestCases(value: TestRunFormValue): Promis
   const isFilteringByTestSuites = value.testSuites.length > 0 && value.tags.length === 0
 
   if (!isFilteringByTags && !isFilteringByTestSuites) {
-    throw new ServiceError(
-      'Either tags or test suites must be provided to filter the test run.',
-      'VALIDATION',
-      400,
-    )
+    throw new ServiceError('Either tags or test suites must be provided to filter the test run.', 'VALIDATION', 400)
   }
 
   const { tagExpression, tags, testRunTestCases } = isFilteringByTags
@@ -439,7 +435,11 @@ async function persistLogsAndUpdateRunStatus(args: {
   }
 }
 
-async function storeReportAfterRunIfNeeded(testRunDbId: string, runId: string, reportPath: string | null | undefined): Promise<void> {
+async function storeReportAfterRunIfNeeded(
+  testRunDbId: string,
+  runId: string,
+  reportPath: string | null | undefined,
+): Promise<void> {
   const finalTestRunStatus = await prisma.testRun.findUnique({
     where: { id: testRunDbId },
     select: { status: true },

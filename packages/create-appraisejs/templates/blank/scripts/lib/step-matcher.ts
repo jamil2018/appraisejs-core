@@ -75,7 +75,11 @@ export function findMatchingTemplateStep(
   templateSteps: TemplateStepCandidate[],
 ): TemplateStepMatch | null {
   for (const templateStep of templateSteps) {
-    const parameters = extractParametersFromGherkinStep(gherkinStep.text, templateStep.signature, templateStep.parameters)
+    const parameters = extractParametersFromGherkinStep(
+      gherkinStep.text,
+      templateStep.signature,
+      templateStep.parameters,
+    )
     if (parameters) {
       return {
         templateStepId: templateStep.id,

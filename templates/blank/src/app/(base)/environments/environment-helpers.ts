@@ -1,4 +1,7 @@
-import { environmentSchema, type Environment as EnvironmentFormValues } from '@/constants/form-opts/environment-form-opts'
+import {
+  environmentSchema,
+  type Environment as EnvironmentFormValues,
+} from '@/constants/form-opts/environment-form-opts'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
 
 export type EnvironmentTableRow = {

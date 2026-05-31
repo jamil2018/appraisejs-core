@@ -5,7 +5,9 @@ import { runRequestedSync, type SyncExecutionResult } from '@/lib/sync/sync-exec
 import { getSyncPendingCounts, type SyncPendingCounts } from '@/lib/sync/sync-pending-counts'
 import { isSyncRequestId } from '@/lib/sync/sync-registry'
 
-export async function runSyncAction(requestedScriptId: string): Promise<SyncExecutionResult | InvalidSyncExecutionResult> {
+export async function runSyncAction(
+  requestedScriptId: string,
+): Promise<SyncExecutionResult | InvalidSyncExecutionResult> {
   if (!isSyncRequestId(requestedScriptId)) {
     return {
       requestedScriptId,

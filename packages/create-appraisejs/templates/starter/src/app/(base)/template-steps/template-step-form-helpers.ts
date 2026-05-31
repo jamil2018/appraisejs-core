@@ -46,11 +46,13 @@ export function buildFunctionDefinitionPreview(
   })
 
   const paramsString = params
-    .map(param => `${param.name}: ${param.type.toLowerCase() === 'locator' ? 'SelectorName' : param.type.toLowerCase()}`)
+    .map(
+      param => `${param.name}: ${param.type.toLowerCase() === 'locator' ? 'SelectorName' : param.type.toLowerCase()}`,
+    )
     .join(', ')
 
   return updatedSignature.replace(
-    /async function\s*\(\s*this:CustomWorld(?:,\s*.*?)?\s*\)/,
+    /async function\s*\(\s*this\s*:\s*CustomWorld(?:,\s*.*?)?\s*\)/,
     `async function(this:CustomWorld${params.length > 0 ? ', ' : ''}${paramsString})`,
   )
 }

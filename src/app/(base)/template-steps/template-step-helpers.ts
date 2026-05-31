@@ -6,11 +6,7 @@ export {
   getTemplateStepFormDefaults,
   templateStepFieldValidators,
 } from './template-step-form-helpers'
-export {
-  getEditableTemplateStep,
-  getTemplateStepGroupRows,
-  getTemplateStepRows,
-} from './template-step-row-guards'
+export { getEditableTemplateStep, getTemplateStepGroupRows, getTemplateStepRows } from './template-step-row-guards'
 export {
   getTemplateStepIconOptions,
   getTemplateStepParameterTypes,

@@ -76,20 +76,14 @@ export function getLocatorPickerCrashLogPath(sessionId: string, repoRoot = proce
   return path.join(getLocatorPickerLogsDir(repoRoot), `${sessionId}.log`)
 }
 
-export async function removeLocatorPickerProfileDir(
-  sessionId: string,
-  repoRoot = process.cwd(),
-): Promise<void> {
+export async function removeLocatorPickerProfileDir(sessionId: string, repoRoot = process.cwd()): Promise<void> {
   await rm(getLocatorPickerProfileDir(sessionId, repoRoot), {
     force: true,
     recursive: true,
   }).catch(() => undefined)
 }
 
-export async function removeLocatorPickerSessionFile(
-  sessionId: string,
-  repoRoot = process.cwd(),
-): Promise<void> {
+export async function removeLocatorPickerSessionFile(sessionId: string, repoRoot = process.cwd()): Promise<void> {
   await unlink(getLocatorPickerSessionFilePath(sessionId, repoRoot)).catch(() => undefined)
 }
 
@@ -137,9 +131,7 @@ export async function ensureLocatorPickerDirectories(repoRoot = process.cwd()): 
   await mkdir(localAppDataDir, { recursive: true })
 }
 
-export async function readLocatorPickerSessionFile(
-  sessionFilePath: string,
-): Promise<CompanionSessionFile | null> {
+export async function readLocatorPickerSessionFile(sessionFilePath: string): Promise<CompanionSessionFile | null> {
   try {
     const raw = await readFile(sessionFilePath, 'utf8')
     return JSON.parse(raw) as CompanionSessionFile
@@ -148,10 +140,7 @@ export async function readLocatorPickerSessionFile(
   }
 }
 
-async function enqueueSessionFileOperation<T>(
-  sessionFilePath: string,
-  operation: () => Promise<T>,
-): Promise<T> {
+async function enqueueSessionFileOperation<T>(sessionFilePath: string, operation: () => Promise<T>): Promise<T> {
   const previousOperation = sessionFileOperationQueue.get(sessionFilePath) ?? Promise.resolve()
   const nextOperation = previousOperation.catch(() => undefined).then(operation)
 

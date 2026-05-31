@@ -145,89 +145,89 @@ function main(): void {
   console.log('Copying src/...')
   copyDirWithFilter(join(repoRoot, 'src'), join(target, 'src'))
 
-console.log('Copying automation/...')
-copyDirWithFilter(join(repoRoot, 'automation'), join(target, 'automation'))
-syncLegacyEnvironmentConfig()
-resetAutomationReports(target)
-resetAutomationLocatorMap(target)
+  console.log('Copying automation/...')
+  copyDirWithFilter(join(repoRoot, 'automation'), join(target, 'automation'))
+  syncLegacyEnvironmentConfig()
+  resetAutomationReports(target)
+  resetAutomationLocatorMap(target)
 
-for (const internalPackage of INTERNAL_PACKAGES) {
-  console.log(`Copying internal package ${internalPackage.name}...`)
-  syncInternalPackage(internalPackage)
-}
-
-console.log('Copying prisma/...')
-copyDirWithFilter(join(repoRoot, 'prisma'), join(target, 'prisma'))
-console.log('Copying public/...')
-copyDirWithFilter(join(repoRoot, 'public'), join(target, 'public'))
-console.log('Copying scripts/...')
-copyDirWithFilter(join(repoRoot, 'scripts'), join(target, 'scripts'))
-
-const legacyTestsRoot = join(target, 'src', 'tests')
-if (existsSync(legacyTestsRoot)) {
-  rmSync(legacyTestsRoot, { recursive: true, force: true })
-}
-
-const configFiles = [
-  '.gitignore',
-  'eslint.config.mjs',
-  'tailwind.config.ts',
-  'tsconfig.json',
-  'postcss.config.mjs',
-  'components.json',
-  'next.config.ts',
-  'next-env.d.ts',
-  '.env.example',
-  'package-lock.json',
-  'yarn.lock',
-  'pnpm-lock.yaml',
-  'bun.lockb',
-]
-for (const name of configFiles) {
-  const src = join(repoRoot, name)
-  if (existsSync(src)) {
-    copyFile(src, join(target, name))
+  for (const internalPackage of INTERNAL_PACKAGES) {
+    console.log(`Copying internal package ${internalPackage.name}...`)
+    syncInternalPackage(internalPackage)
   }
-}
 
-const cucumberSource = join(repoRoot, 'cucumber.mjs')
-if (existsSync(cucumberSource)) {
-  copyFile(cucumberSource, join(target, 'cucumber.mjs'))
-  console.log('Synced cucumber.mjs to template')
-}
+  console.log('Copying prisma/...')
+  copyDirWithFilter(join(repoRoot, 'prisma'), join(target, 'prisma'))
+  console.log('Copying public/...')
+  copyDirWithFilter(join(repoRoot, 'public'), join(target, 'public'))
+  console.log('Copying scripts/...')
+  copyDirWithFilter(join(repoRoot, 'scripts'), join(target, 'scripts'))
 
-const vscodeSource = join(repoRoot, '.vscode')
-if (existsSync(vscodeSource)) {
-  cpSync(vscodeSource, join(target, '.vscode'), { recursive: true, force: true })
-  console.log('Synced .vscode to template')
-}
+  const legacyTestsRoot = join(target, 'src', 'tests')
+  if (existsSync(legacyTestsRoot)) {
+    rmSync(legacyTestsRoot, { recursive: true, force: true })
+  }
 
-const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as {
-  scripts: Record<string, string>
-  [key: string]: unknown
-}
-rootPkg.scripts = {
-  ...rootPkg.scripts,
-  build: 'npm run build:local',
-  'build:local':
-    'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
-  start: 'next start',
-  'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
-  'migrate-db': 'npx prisma migrate deploy',
-  'install-playwright': 'npx playwright install',
-  setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
-  'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all',
-  'setup:full':
-    'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
-  'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
-  'appraisejs:setup': 'npm run setup',
-  'appraisejs:sync': 'npm run sync-all',
-  'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
-}
-delete rootPkg.scripts['build:appraisejs']
-delete rootPkg.scripts['build-step-registry']
-writeFileSync(join(target, 'package.json'), JSON.stringify(rootPkg, null, 2) + '\n')
-console.log('Wrote template package.json with production-first scaffold scripts.')
+  const configFiles = [
+    '.gitignore',
+    'eslint.config.mjs',
+    'tailwind.config.ts',
+    'tsconfig.json',
+    'postcss.config.mjs',
+    'components.json',
+    'next.config.ts',
+    'next-env.d.ts',
+    '.env.example',
+    'package-lock.json',
+    'yarn.lock',
+    'pnpm-lock.yaml',
+    'bun.lockb',
+  ]
+  for (const name of configFiles) {
+    const src = join(repoRoot, name)
+    if (existsSync(src)) {
+      copyFile(src, join(target, name))
+    }
+  }
+
+  const cucumberSource = join(repoRoot, 'cucumber.mjs')
+  if (existsSync(cucumberSource)) {
+    copyFile(cucumberSource, join(target, 'cucumber.mjs'))
+    console.log('Synced cucumber.mjs to template')
+  }
+
+  const vscodeSource = join(repoRoot, '.vscode')
+  if (existsSync(vscodeSource)) {
+    cpSync(vscodeSource, join(target, '.vscode'), { recursive: true, force: true })
+    console.log('Synced .vscode to template')
+  }
+
+  const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as {
+    scripts: Record<string, string>
+    [key: string]: unknown
+  }
+  rootPkg.scripts = {
+    ...rootPkg.scripts,
+    build: 'npm run build:local',
+    'build:local':
+      'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
+    start: 'next start',
+    'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
+    'migrate-db': 'npx prisma migrate deploy',
+    'install-playwright': 'npx playwright install',
+    setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
+    'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all',
+    'setup:full':
+      'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
+    'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
+    'appraisejs:setup': 'npm run setup',
+    'appraisejs:sync': 'npm run sync-all',
+    'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
+  }
+  delete rootPkg.scripts['build:appraisejs']
+  delete rootPkg.scripts['build-step-registry']
+  writeFileSync(join(target, 'package.json'), JSON.stringify(rootPkg, null, 2) + '\n')
+  console.log('Wrote template package.json with production-first scaffold scripts.')
 
   if (savedReadme) {
     writeFileSync(readmePath, savedReadme)

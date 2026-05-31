@@ -16,7 +16,12 @@ export async function removeTempPayloadFile(filePath: string): Promise<void> {
   await fs.rm(path.dirname(filePath), { recursive: true, force: true })
 }
 
-function getRunArgs(packageManager: PackageManager, payloadFile: string, overwrite: boolean, dryRun: boolean): string[] {
+function getRunArgs(
+  packageManager: PackageManager,
+  payloadFile: string,
+  overwrite: boolean,
+  dryRun: boolean,
+): string[] {
   const payloadArgs = ['--payload-file', payloadFile]
   if (overwrite) {
     payloadArgs.push('--overwrite')

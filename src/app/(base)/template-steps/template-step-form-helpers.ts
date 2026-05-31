@@ -46,7 +46,9 @@ export function buildFunctionDefinitionPreview(
   })
 
   const paramsString = params
-    .map(param => `${param.name}: ${param.type.toLowerCase() === 'locator' ? 'SelectorName' : param.type.toLowerCase()}`)
+    .map(
+      param => `${param.name}: ${param.type.toLowerCase() === 'locator' ? 'SelectorName' : param.type.toLowerCase()}`,
+    )
     .join(', ')
 
   return updatedSignature.replace(

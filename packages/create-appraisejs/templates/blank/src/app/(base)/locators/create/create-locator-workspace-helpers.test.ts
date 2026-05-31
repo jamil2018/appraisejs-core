@@ -26,12 +26,9 @@ describe('create-locator-workspace helpers', () => {
 
   it('applies a picked locator suggestion to empty or auto-filled fields', () => {
     const nextState = applyPickedLocatorToWorkspaceState(
-      createInitialWorkspaceState(
-        [{ id: 'env-1' } as never],
-        {
-          route: '/',
-        },
-      ),
+      createInitialWorkspaceState([{ id: 'env-1' } as never], {
+        route: '/',
+      }),
       {
         sessionId: 'session-1',
         launchSource: { url: 'https://example.com' },

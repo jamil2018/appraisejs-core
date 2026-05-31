@@ -200,7 +200,7 @@ function displaySummary(summary: SyncSummary): void {
     const status = result.success ? '✅' : '❌'
     const duration = `${(result.duration / 1000).toFixed(2)}s`
     console.log(`   ${index + 1}. ${status} ${result.name} (${result.description}) - ${duration}`)
-    
+
     if (!result.success) {
       if (result.exitCode !== null) {
         console.log(`      Exit code: ${result.exitCode}`)
@@ -252,7 +252,7 @@ async function main(): Promise<number> {
   for (const scriptId of SYNC_SCRIPT_IDS) {
     const result = await executeSyncScript(scriptId)
     results.push(result)
-    
+
     // Continue execution even if script failed (as per user requirement)
     // The script will log the failure but continue with remaining scripts
   }
@@ -278,10 +278,11 @@ async function main(): Promise<number> {
 }
 
 // Run the main function
-main().catch(error => {
-  console.error('\n❌ Fatal error during sync orchestration:', error)
-  return 1
-})
+main()
+  .catch(error => {
+    console.error('\n❌ Fatal error during sync orchestration:', error)
+    return 1
+  })
   .then(exitCode => {
     process.exit(exitCode)
   })

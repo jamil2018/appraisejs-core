@@ -57,9 +57,7 @@ function getRecentPeriodDate(): Date {
 
 function summarizeRecentTestCaseRuns(recentTestRunTestCases: CompletedTestRunTestCase[]): TestCaseMetricSummary {
   const totalRecentRuns = recentTestRunTestCases.length
-  const failedRecentRuns = recentTestRunTestCases.filter(
-    trtc => trtc.result === TestRunTestCaseResult.FAILED,
-  ).length
+  const failedRecentRuns = recentTestRunTestCases.filter(trtc => trtc.result === TestRunTestCaseResult.FAILED).length
   const failureRate = totalRecentRuns > 0 ? failedRecentRuns / totalRecentRuns : 0
   const consecutiveFailures = countConsecutiveFailures(recentTestRunTestCases)
 
@@ -138,14 +136,8 @@ export async function updateTestCaseMetrics(
 
     const recentTestRunTestCases = await findRecentCompletedTestRunTestCases(testCaseId, recentPeriodDate)
 
-    const {
-      totalRecentRuns,
-      failedRecentRuns,
-      failureRate,
-      isFlaky,
-      consecutiveFailures,
-      isRepeatedlyFailing,
-    } = summarizeRecentTestCaseRuns(recentTestRunTestCases)
+    const { totalRecentRuns, failedRecentRuns, failureRate, isFlaky, consecutiveFailures, isRepeatedlyFailing } =
+      summarizeRecentTestCaseRuns(recentTestRunTestCases)
 
     // Determine which date fields to update
     const updateData: {
@@ -194,10 +186,7 @@ export async function updateTestCaseMetrics(
  * @param testSuiteId - The test suite ID
  * @param executedAt - When the test suite was executed
  */
-export async function updateTestSuiteMetrics(
-  testSuiteId: string,
-  executedAt: Date,
-): Promise<void> {
+export async function updateTestSuiteMetrics(testSuiteId: string, executedAt: Date): Promise<void> {
   try {
     await prisma.testSuiteMetrics.upsert({
       where: { testSuiteId },
@@ -220,10 +209,7 @@ export async function updateTestSuiteMetrics(
  * @param testRunId - The test run ID
  * @param executedAt - When the test run was executed
  */
-async function updateTestSuitesForTestRun(
-  testRunId: string,
-  executedAt: Date,
-): Promise<void> {
+async function updateTestSuitesForTestRun(testRunId: string, executedAt: Date): Promise<void> {
   try {
     // Get all test cases in the test run
     const testRunTestCases = await prisma.testRunTestCase.findMany({
@@ -324,6 +310,13 @@ export async function updateDashboardMetrics(): Promise<void> {
           {
             metrics: {
               is: {
+                lastExecutedAt: null,
+              },
+            },
+          },
+          {
+            metrics: {
+              is: {
                 lastExecutedAt: {
                   lt: recentPeriodDate,
                 },
@@ -378,11 +371,7 @@ export async function recalculateTestCaseMetrics(testCaseId: string): Promise<vo
     const recentTestRunTestCases = await findRecentCompletedTestRunTestCases(testCaseId, recentPeriodDate)
 
     const metricSummary = summarizeRecentTestCaseRuns(recentTestRunTestCases)
-    const recalculatedDates = await resolveRecalculatedMetricDates(
-      testCaseId,
-      recentPeriodDate,
-      recentTestRunTestCases,
-    )
+    const recalculatedDates = await resolveRecalculatedMetricDates(testCaseId, recentPeriodDate, recentTestRunTestCases)
     const updateData = buildRecalculatedMetricUpdateData(metricSummary, recalculatedDates)
 
     // Upsert the metrics
@@ -586,11 +575,7 @@ export async function updateMetricsForTestRun(testRunId: string): Promise<void> 
     // Update metrics for all test cases in the run
     for (const testRunTestCase of testRun.testCases) {
       if (testRunTestCase.status === TestRunTestCaseStatus.COMPLETED) {
-        await updateTestCaseMetrics(
-          testRunTestCase.testCaseId,
-          testRunTestCase.result,
-          executedAt,
-        )
+        await updateTestCaseMetrics(testRunTestCase.testCaseId, testRunTestCase.result, executedAt)
       }
     }
 

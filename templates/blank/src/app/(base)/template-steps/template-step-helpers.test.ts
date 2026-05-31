@@ -1,7 +1,11 @@
 import { StepParameterType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 
-import { buildFunctionDefinitionPreview, getTemplateStepFormDefaults, getTemplateStepRows } from './template-step-helpers'
+import {
+  buildFunctionDefinitionPreview,
+  getTemplateStepFormDefaults,
+  getTemplateStepRows,
+} from './template-step-helpers'
 
 describe('template-step helpers', () => {
   it('builds function previews from signature, type, and params', () => {

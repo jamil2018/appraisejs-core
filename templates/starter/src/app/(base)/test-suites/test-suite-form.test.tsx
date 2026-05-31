@@ -23,11 +23,7 @@ vi.mock('@/hooks/use-toast', () => ({
 
 vi.mock('@/components/test-case/test-case-picker', () => ({
   __esModule: true,
-  default: ({
-    onSave,
-  }: {
-    onSave: (value: string[]) => void
-  }) => (
+  default: ({ onSave }: { onSave: (value: string[]) => void }) => (
     <button type="button" onClick={() => onSave(['case-1'])}>
       Select Cases
     </button>
@@ -36,11 +32,7 @@ vi.mock('@/components/test-case/test-case-picker', () => ({
 
 vi.mock('@/components/ui/multi-select-with-preview', () => ({
   __esModule: true,
-  default: ({
-    onSelectChange,
-  }: {
-    onSelectChange: (value: string[]) => void
-  }) => (
+  default: ({ onSelectChange }: { onSelectChange: (value: string[]) => void }) => (
     <button type="button" onClick={() => onSelectChange(['tag-1'])}>
       Select Tags
     </button>

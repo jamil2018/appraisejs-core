@@ -39,8 +39,7 @@ export async function loadCreateTemplateTestCasePageData(): Promise<CreateTempla
     getAllModulesAction(),
   ])
 
-  const secondaryError =
-    templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError
+  const secondaryError = templateStepsError || locatorsError || locatorGroupsError || environmentsError || modulesError
 
   if (secondaryError) {
     return { status: 'error', message: secondaryError }

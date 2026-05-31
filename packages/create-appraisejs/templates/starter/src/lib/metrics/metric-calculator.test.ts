@@ -226,6 +226,13 @@ describe('updateDashboardMetrics', () => {
           {
             metrics: {
               is: {
+                lastExecutedAt: null,
+              },
+            },
+          },
+          {
+            metrics: {
+              is: {
                 lastExecutedAt: {
                   lt: new Date('2026-05-05T00:00:00.000Z'),
                 },

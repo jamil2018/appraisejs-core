@@ -2,13 +2,7 @@
 
 import { TestSuiteForm } from '@/app/(base)/test-suites/test-suite-form'
 import type { TestSuiteFormSubmitAction } from '@/app/(base)/test-suites/test-suite-helpers'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
 import type { Module, Tag, TestSuite } from '@prisma/client'
 

@@ -58,9 +58,18 @@ program
       .argParser(validateCucumberTagExpression)
       .makeOptionMandatory(),
   )
-  .option('-p, --parallel <parallel>', 'The number of parallel workers to run', parsePositiveInt, DEFAULT_PARALLEL_WORKERS)
-  .addOption(new Option('-b, --browser <browser>', 'The browser to run').choices(BROWSER_CHOICES).default(DEFAULT_BROWSER))
-  .addOption(new Option('--headless <headless>', 'Whether to run headless').choices(HEADLESS_CHOICES).default(DEFAULT_HEADLESS))
+  .option(
+    '-p, --parallel <parallel>',
+    'The number of parallel workers to run',
+    parsePositiveInt,
+    DEFAULT_PARALLEL_WORKERS,
+  )
+  .addOption(
+    new Option('-b, --browser <browser>', 'The browser to run').choices(BROWSER_CHOICES).default(DEFAULT_BROWSER),
+  )
+  .addOption(
+    new Option('--headless <headless>', 'Whether to run headless').choices(HEADLESS_CHOICES).default(DEFAULT_HEADLESS),
+  )
 
 export function startCli(): CliOptions {
   program.parse()

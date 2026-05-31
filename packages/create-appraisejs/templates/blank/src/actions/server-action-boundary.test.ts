@@ -22,13 +22,7 @@ import {
   listEnvironments,
   updateEnvironment,
 } from '@/services/environment/environment-service'
-import {
-  createTag,
-  deleteTags,
-  getTagByIdOrThrow,
-  listFilterTags,
-  updateTag,
-} from '@/services/tag/tag-service'
+import { createTag, deleteTags, getTagByIdOrThrow, listFilterTags, updateTag } from '@/services/tag/tag-service'
 import {
   checkLocatorGroupNameUnique,
   createLocatorGroup,

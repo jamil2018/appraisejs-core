@@ -54,11 +54,7 @@ export function buildScenarioSteps(nodeOrder: ScenarioNodeOrder) {
   }))
 }
 
-export function buildScenarioPreview(
-  title: string,
-  description: string | undefined,
-  nodeOrder: ScenarioNodeOrder,
-) {
+export function buildScenarioPreview(title: string, description: string | undefined, nodeOrder: ScenarioNodeOrder) {
   if (!title) {
     return ''
   }

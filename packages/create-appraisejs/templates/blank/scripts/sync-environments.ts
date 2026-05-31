@@ -101,9 +101,7 @@ function getEnvironmentIdentityKey(name: string): string {
  * Builds Environment objects from JSON content
  * Maps JSON structure to Prisma Environment model
  */
-function buildEnvironmentObjects(
-  jsonContent: Record<string, EnvironmentConfig>,
-): EnvironmentData[] {
+function buildEnvironmentObjects(jsonContent: Record<string, EnvironmentConfig>): EnvironmentData[] {
   const environments: EnvironmentData[] = []
 
   for (const [key, config] of Object.entries(jsonContent)) {
@@ -162,7 +160,14 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
   // Create a case-insensitive map: normalized name -> actual DB name
   const dbEnvironmentsByNormalizedName = new Map<
     string,
-    { id: string; name: string; baseUrl: string; apiBaseUrl: string | null; username: string | null; password: string | null }
+    {
+      id: string
+      name: string
+      baseUrl: string
+      apiBaseUrl: string | null
+      username: string | null
+      password: string | null
+    }
   >()
   for (const dbEnv of allDbEnvironments) {
     const normalizedName = getEnvironmentIdentityKey(dbEnv.name)
@@ -260,46 +265,44 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult> {
-    console.log('🔄 Starting environments sync...')
-    console.log('This will scan environments.json and sync environments to database.\n')
+  console.log('🔄 Starting environments sync...')
+  console.log('This will scan environments.json and sync environments to database.\n')
 
-    await ensureAutomationWorkspaceReady()
+  await ensureAutomationWorkspaceReady()
 
-    // Read environments from file
-    console.log('📁 Reading environments.json...')
-    const jsonContent = await readEnvironmentsFromFile()
-    const environmentKeys = Object.keys(jsonContent)
-    console.log(`   Found ${environmentKeys.length} environment(s): ${environmentKeys.join(', ') || 'none'}`)
+  // Read environments from file
+  console.log('📁 Reading environments.json...')
+  const jsonContent = await readEnvironmentsFromFile()
+  const environmentKeys = Object.keys(jsonContent)
+  console.log(`   Found ${environmentKeys.length} environment(s): ${environmentKeys.join(', ') || 'none'}`)
 
-    // Build environment objects
-    console.log('\n🔍 Building environment objects...')
-    const environments = buildEnvironmentObjects(jsonContent)
-    console.log(`   Built ${environments.length} environment object(s)`)
+  // Build environment objects
+  console.log('\n🔍 Building environment objects...')
+  const environments = buildEnvironmentObjects(jsonContent)
+  console.log(`   Built ${environments.length} environment object(s)`)
 
-    // Sync to database
-    console.log('\n✅ Syncing environments to database...')
-    const result = await syncEnvironmentsToDatabase(environments)
+  // Sync to database
+  console.log('\n✅ Syncing environments to database...')
+  const result = await syncEnvironmentsToDatabase(environments)
 
-    printSyncSummary(
-      [
-        { label: '📁 Environments scanned', value: result.environmentsScanned },
-        { label: '✅ Environments existing', value: result.environmentsExisting },
-        { label: '➕ Environments created', value: result.environmentsCreated },
-        { label: '🗑️  Environments deleted', value: result.environmentsDeleted },
-        { label: '⚠️  Environments skipped', value: result.environmentsSkipped },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        { title: 'Created environments', items: result.createdEnvironments },
-        { title: 'Existing environments', items: result.existingEnvironments },
-        { title: 'Deleted environments', items: result.deletedEnvironments },
-        { title: 'Skipped environments (have test runs)', items: result.skippedEnvironments },
-        { title: 'Errors', items: result.errors },
-      ],
-    )
-    return result
+  printSyncSummary(
+    [
+      { label: '📁 Environments scanned', value: result.environmentsScanned },
+      { label: '✅ Environments existing', value: result.environmentsExisting },
+      { label: '➕ Environments created', value: result.environmentsCreated },
+      { label: '🗑️  Environments deleted', value: result.environmentsDeleted },
+      { label: '⚠️  Environments skipped', value: result.environmentsSkipped },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      { title: 'Created environments', items: result.createdEnvironments },
+      { title: 'Existing environments', items: result.existingEnvironments },
+      { title: 'Deleted environments', items: result.deletedEnvironments },
+      { title: 'Skipped environments (have test runs)', items: result.skippedEnvironments },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
+  return result
 }
 
 runSyncScript(main)
-
-
