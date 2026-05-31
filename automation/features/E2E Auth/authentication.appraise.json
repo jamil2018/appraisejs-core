@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "testSuite": {
+    "name": "authentication",
+    "modulePath": "/E2E Auth"
+  },
+  "testCases": [
+    {
+      "identifierTag": "@tc_9dea359d462f1430",
+      "title": "Demo Run Without Template",
+      "description": "Test case prepared without template",
+      "nodes": [
+        {
+          "nodeId": "fb1b4b80-1503-4e7d-b957-19dc291c46da",
+          "order": 1,
+          "label": "the user navigates to the base url of the selected environment"
+        },
+        {
+          "nodeId": "be1a1856-b450-47a2-9b48-864a51a3ea8e",
+          "order": 2,
+          "label": "the user fills in the \"Email\" input field with value \"demo@example.com\""
+        },
+        {
+          "nodeId": "6419c5da-3b65-49ca-bcd2-f7fa22911762",
+          "order": 3,
+          "label": "the user fills in the \"Password\" input field with value \"test1234\""
+        },
+        {
+          "nodeId": "bf59e802-58d2-46d5-ae20-cd7a28c2f444",
+          "order": 4,
+          "label": "the user clicks on the \"Login\" element"
+        },
+        {
+          "nodeId": "ae80a4a8-8291-4bf4-ad8c-7d833e8865c7",
+          "order": 5,
+          "label": "the user waits for the route \"/home\" to be loaded"
+        },
+        {
+          "nodeId": "187864bb-9a6a-4f72-9858-5b4ae318574b",
+          "order": 6,
+          "label": "the url route should be equal to \"/home\""
+        },
+        {
+          "nodeId": "7b2b3b95-a9cb-407d-9cd2-ff957d6600a2",
+          "order": 7,
+          "label": "the element \"Title\" should true contain the text \"Welcome to Home Page\""
+        }
+      ],
+      "flowBlocks": []
+    },
+    {
+      "identifierTag": "@tc_dc6f8afe1c80b9dc",
+      "title": "Demo Run With Template",
+      "description": "Demo run using a template test case",
+      "nodes": [
+        {
+          "nodeId": "b11ce5d4-464e-4646-b909-fdaefb9cb467",
+          "order": 1,
+          "label": "the user navigates to the base url of the selected environment"
+        },
+        {
+          "nodeId": "42495fa4-0cc2-4e3e-af4b-e37d3be6b405",
+          "order": 2,
+          "label": "the user fills in the \"Email\" input field with value \"demo@example.com\""
+        },
+        {
+          "nodeId": "b9d87551-7d72-4eaa-9679-1c6216954736",
+          "order": 3,
+          "label": "the user fills in the \"Password\" input field with value \"test1234\""
+        },
+        {
+          "nodeId": "0c613e01-06d1-47c1-99b0-945622d4e50e",
+          "order": 4,
+          "label": "the user clicks on the \"Login\" element"
+        },
+        {
+          "nodeId": "bc85d338-05bc-4104-8161-563d8c7f382e",
+          "order": 5,
+          "label": "the user waits for the route \"/home\" to be loaded"
+        },
+        {
+          "nodeId": "fffb5caa-7909-4329-9bae-43e2fa10ec9a",
+          "order": 6,
+          "label": "the element \"Title\" should true contain the text \"Welcome to Home Page\""
+        }
+      ],
+      "flowBlocks": []
+    }
+  ]
+}
