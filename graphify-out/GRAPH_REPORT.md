@@ -1,16 +1,16 @@
-# Graph Report - appraisejs  (2026-05-23)
+# Graph Report - appraisejs  (2026-06-01)
 
 ## Corpus Check
-- 686 files · ~196,628 words
+- 3286 files · ~1,009,078 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 8089 nodes · 31835 edges · 501 communities (434 shown, 67 thin omitted)
+- 9045 nodes · 39420 edges · 534 communities (465 shown, 69 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 97 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `25039cda`
+- Built from commit: `bb69cf76`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -211,6 +211,7 @@
 - [[_COMMUNITY_Locators & Picker (193)|Locators & Picker (193)]]
 - [[_COMMUNITY_Locators & Picker (194)|Locators & Picker (194)]]
 - [[_COMMUNITY_Test Runs (195)|Test Runs (195)]]
+- [[_COMMUNITY_Test Execution (196)|Test Execution (196)]]
 - [[_COMMUNITY_App (225)|App (225)]]
 - [[_COMMUNITY_Test Execution (226)|Test Execution (226)]]
 - [[_COMMUNITY_Templates & Flow Builder (228)|Templates & Flow Builder (228)]]
@@ -440,246 +441,288 @@
 - [[_COMMUNITY_Community 498|Community 498]]
 - [[_COMMUNITY_Community 499|Community 499]]
 - [[_COMMUNITY_Community 500|Community 500]]
+- [[_COMMUNITY_Community 501|Community 501]]
+- [[_COMMUNITY_Community 502|Community 502]]
+- [[_COMMUNITY_Community 503|Community 503]]
+- [[_COMMUNITY_Community 504|Community 504]]
+- [[_COMMUNITY_Community 505|Community 505]]
+- [[_COMMUNITY_Community 506|Community 506]]
+- [[_COMMUNITY_Community 507|Community 507]]
+- [[_COMMUNITY_Community 508|Community 508]]
+- [[_COMMUNITY_Community 509|Community 509]]
+- [[_COMMUNITY_Community 510|Community 510]]
+- [[_COMMUNITY_Community 511|Community 511]]
+- [[_COMMUNITY_Community 512|Community 512]]
+- [[_COMMUNITY_Community 513|Community 513]]
+- [[_COMMUNITY_Community 514|Community 514]]
+- [[_COMMUNITY_Community 515|Community 515]]
+- [[_COMMUNITY_Community 516|Community 516]]
+- [[_COMMUNITY_Community 517|Community 517]]
+- [[_COMMUNITY_Community 518|Community 518]]
+- [[_COMMUNITY_Community 519|Community 519]]
+- [[_COMMUNITY_Community 520|Community 520]]
+- [[_COMMUNITY_Community 521|Community 521]]
+- [[_COMMUNITY_Community 522|Community 522]]
+- [[_COMMUNITY_Community 523|Community 523]]
+- [[_COMMUNITY_Community 524|Community 524]]
+- [[_COMMUNITY_Community 525|Community 525]]
+- [[_COMMUNITY_Community 526|Community 526]]
+- [[_COMMUNITY_Community 527|Community 527]]
+- [[_COMMUNITY_Community 528|Community 528]]
+- [[_COMMUNITY_Community 529|Community 529]]
+- [[_COMMUNITY_Community 530|Community 530]]
+- [[_COMMUNITY_Community 531|Community 531]]
+- [[_COMMUNITY_Community 532|Community 532]]
+- [[_COMMUNITY_Community 533|Community 533]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `cn()` - 387 edges
-2. `Button()` - 246 edges
-3. `ActionResponse` - 161 edges
+1. `cn()` - 395 edges
+2. `Button()` - 282 edges
+3. `ActionResponse` - 185 edges
 4. `unknownErrorToActionResponse()` - 142 edges
 5. `ServiceError` - 131 edges
-6. `Card()` - 121 edges
-7. `CardContent()` - 121 edges
-8. `Badge()` - 115 edges
-9. `CardHeader()` - 106 edges
-10. `CardTitle()` - 106 edges
+6. `ActionResponseData` - 130 edges
+7. `Input()` - 129 edges
+8. `Badge()` - 127 edges
+9. `Card()` - 121 edges
+10. `CardContent()` - 121 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `cn()` --calls--> `clsx`  [INFERRED]
-  src/lib/utils.ts → package.json
 - `createZipArchive()` --calls--> `archiver`  [INFERRED]
   src/app/api/test-runs/[runId]/download/route.ts → package.json
+- `cn()` --calls--> `clsx`  [INFERRED]
+  src/lib/utils.ts → package.json
 - `executeSyncScript()` --calls--> `execa`  [INFERRED]
-  scripts/sync-all.ts → package.json
+  templates/starter/scripts/sync-all.ts → package.json
 - `main()` --calls--> `execa`  [INFERRED]
-  scripts/install-playwright.ts → package.json
+  templates/starter/scripts/install-playwright.ts → package.json
 - `ensureLocatorPickerCompanionBuilt()` --calls--> `execa`  [INFERRED]
-  packages/locator-picker-companion/src/launcher.ts → package.json
+  templates/starter/packages/locator-picker-companion/src/launcher.ts → package.json
 
-## Communities (501 total, 67 thin omitted)
+## Communities (534 total, 69 thin omitted)
 
 ### Community 0 - "Test Runs"
-Cohesion: 0.07
-Nodes (22): getEnvironmentRows(), getLocatorGroupRows(), getModuleRows(), CreateEnvironment(), CreateLocatorGroup(), CreateLocatorPage(), CreateTag(), CreateTemplateStepGroup() (+14 more)
+Cohesion: 0.06
+Nodes (49): getEnvironmentRows(), getLocatorGroupRows(), getModuleRows(), CreateEnvironment(), CreateLocatorGroup(), CreateLocatorPage(), CreateModule(), CreateTag() (+41 more)
 
 ### Community 1 - "Locators & Picker"
-Cohesion: 0.16
-Nodes (22): DurationChart(), FeatureChart(), FeatureChartProps, calculatePassRate(), OverviewChart(), OverviewChartProps, ChartConfig, ChartContainer() (+14 more)
+Cohesion: 0.12
+Nodes (53): featureContent, createRoutes, detailRoutes, listRoutes, syncScriptLabels, addTemplateStepToFlow(), createLocator(), createLocatorGroup() (+45 more)
 
 ### Community 2 - "Test Runs (2)"
-Cohesion: 0.16
-Nodes (15): getDurationSeconds(), getProgressStats(), getTestRunResultText(), getTestRunStatusMeta(), progress, createTestRunDetails(), {
-  getTestRunByIdAction,
-  spawnTraceViewerAction,
-  checkTraceViewerStatusAction,
-  cancelTestRunAction,
-  toast,
-}, user (+7 more)
+Cohesion: 0.14
+Nodes (32): AppraiseMetadataReadResult, AppraiseTestCaseMetadata, AppraiseTestCaseMetadataEntry, AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode, findIdentifierTag(), getMetadataByIdentifier(), isRecord() (+24 more)
 
 ### Community 3 - "Test Runs (3)"
-Cohesion: 0.13
-Nodes (30): deleteTestCaseAction(), getAllTestCasesAction(), testCaseDataColumns, testCaseSelectionColumn, metadata, TestCases(), buildFlowBlocksFromTestCaseRows(), buildNodeOrderFromTestCaseSteps() (+22 more)
+Cohesion: 0.54
+Nodes (3): onSave, testCases, user
 
 ### Community 4 - "Locators & Picker (4)"
-Cohesion: 0.13
-Nodes (48): formatLogsForStorage(), LogEntry, parseLogsFromStorage(), cancelTestRunAction(), checkTraceViewerStatusAction(), spawnTraceViewerAction(), buildOrExpression(), buildTestRunsWhereClause() (+40 more)
+Cohesion: 0.2
+Nodes (22): formatLogsForStorage(), LogEntry, parseLogsFromStorage(), buildOrExpression(), buildTestRunsWhereClause(), isCancelledOrCancellingStatus(), normalizeSuiteSelection(), CancelTestRunOutcome (+14 more)
 
 ### Community 5 - "Locators & Picker (5)"
-Cohesion: 0.16
-Nodes (19): templateStepSchema, ModifyTemplateStepPage(), deleteTemplateStepAction(), getTemplateStepByIdAction(), updateTemplateStepAction(), createTemplateStep(), deleteTemplateSteps(), getTemplateStepByIdOrThrow() (+11 more)
+Cohesion: 0.2
+Nodes (21): CreateTemplateStep(), templateStepSchema, ModifyTemplateStepPage(), getAllTemplateStepGroupsAction(), createTemplateStepAction(), deleteTemplateStepAction(), getTemplateStepByIdAction(), updateTemplateStepAction() (+13 more)
 
 ### Community 6 - "Locators & Picker (6)"
-Cohesion: 0.08
-Nodes (52): collectPrecedingTags(), extractModulePathFromFilePath(), generateSafeTestCaseName(), generateSafeTestSuiteName(), getFeatureTags(), isSkippableLine(), normalizeGherkinLines(), ParsedFeature (+44 more)
+Cohesion: 0.32
+Nodes (27): createModulePathMap(), createTestSuite(), DbTestSuiteWithModule, deleteOrphanedTestSuite(), deleteOrphanedTestSuiteIfNeeded(), deleteOrphanedTestSuites(), ExistingTestSuite, extractFeatureLevelTags() (+19 more)
 
 ### Community 7 - "Templates & Flow Builder"
-Cohesion: 0.07
-Nodes (48): ActionResponse, ActionResponseData, ErrorMessage(), formOpts, TemplateTestCase, templateTestCaseSchema, formOpts, TestCase (+40 more)
+Cohesion: 0.18
+Nodes (19): formatFollowingStep(), formatOrderedGherkinSteps(), GHERKIN_KEYWORDS, isThenStatement(), OrderedGherkinStep, splitGherkinStep(), StepFormatState, THEN_LIKE_PREFIXES (+11 more)
 
 ### Community 8 - "Locators & Picker (8)"
-Cohesion: 0.04
-Nodes (53): scripts, appraisejs:install-step, build, build:appraisejs, build:cucumber-runtime, build:locator-picker-companion, build-step-registry, bump:alpha (+45 more)
+Cohesion: 0.03
+Nodes (58): scripts, appraisejs:install-step, build, build:appraisejs, build:cucumber-runtime, build:locator-picker-companion, build-step-registry, bump:alpha (+50 more)
 
 ### Community 9 - "Locators & Picker (9)"
-Cohesion: 0.17
-Nodes (19): templateStepGroupSchema, ModifyTemplateStepGroup(), deleteTemplateStepGroupAction(), getAllTemplateStepGroupsAction(), getTemplateStepGroupByIdAction(), updateTemplateStepGroupAction(), createTemplateStepGroup(), deleteTemplateStepGroups() (+11 more)
+Cohesion: 0.1
+Nodes (49): payload, formOpts, templateStepGroupFormOpts, templateStepGroupSchema, TemplateStepGroupType, TemplateStepGroupTypeEnum, ModifyTemplateStepGroup(), getAllTestCaseMetricsForFilter() (+41 more)
 
 ### Community 10 - "Locators & Picker (10)"
-Cohesion: 0.09
-Nodes (53): AppDrawerItemColor, aggregateDatabaseChanges(), DatabaseChanges, DB_CHANGE_PATTERNS, displaySummary(), DIVIDER, executeSyncScript(), hasDatabaseChanges() (+45 more)
+Cohesion: 0.06
+Nodes (123): AppDrawerItemColor, aggregateDatabaseChanges(), DatabaseChanges, DB_CHANGE_PATTERNS, displaySummary(), DIVIDER, executeSyncScript(), hasDatabaseChanges() (+115 more)
 
 ### Community 11 - "Locators & Picker (11)"
-Cohesion: 0.11
-Nodes (32): ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance, readProjectDatabaseUrl(), require, parseGroupJSDoc() (+24 more)
+Cohesion: 0.12
+Nodes (27): ParsedFeature, ParsedStep, runSyncScript(), printSyncSummary(), SummarySection, splitTagLine(), buildEnvironmentObjects(), EnvironmentConfig (+19 more)
 
 ### Community 12 - "Templates & Flow Builder (12)"
 Cohesion: 0.1
-Nodes (46): CreateModule(), formOpts, Module, moduleFormOpts, moduleSchema, ModifyModule(), createModule(), deleteModules() (+38 more)
+Nodes (38): ActionResponse, formOpts, Module, moduleFormOpts, moduleSchema, ModifyModule(), createModule(), deleteModules() (+30 more)
 
 ### Community 13 - "Dashboard & Metrics"
 Cohesion: 0.04
-Nodes (50): dependencies, archiver, @babel/parser, @babel/types, better-sqlite3, class-variance-authority, clsx, cmdk (+42 more)
+Nodes (52): dependencies, archiver, @babel/parser, @babel/types, better-sqlite3, chai, chai-as-promised, class-variance-authority (+44 more)
 
 ### Community 14 - "Test Runs (14)"
-Cohesion: 0.15
-Nodes (37): formOpts, TestSuite, testSuiteFormOpts, ModifyTestSuite(), InlineTestSuiteCreationDialog(), InlineTestSuiteCreationDialogProps, TestSuiteForm(), buildTestSuiteInfoCards() (+29 more)
+Cohesion: 0.2
+Nodes (22): getEditableTestSuite(), isEditableTestSuite(), getCreatedTestSuite(), getModuleRows(), getTagRows(), getTemplateStepGroupRows(), getTestCasePickerRows(), getTestSuiteTableRows() (+14 more)
 
 ### Community 15 - "Templates & Flow Builder (15)"
 Cohesion: 0.09
 Nodes (28): addStepBySlug(), AddStepDependencies, defaultDependencies, PAYLOAD, removeTempPayloadFile, runLocalInstaller, removeTempPayloadFile(), runLocalInstaller() (+20 more)
 
 ### Community 16 - "Test Runs (16)"
-Cohesion: 0.1
-Nodes (22): PieChartGraph(), AppDrawer(), AppDrawerItem, DataCard(), OngoingTestRunsCard(), OngoingTestRunsCardProps, QuickActionsDrawer(), InfoCard() (+14 more)
+Cohesion: 0.09
+Nodes (29): PieChartGraph(), CreateLocatorWorkspace(), AppDrawer(), AppDrawerItem, DataCard(), colorMap, ExecutionHealthPanelProps, OngoingTestRunsCard() (+21 more)
 
 ### Community 17 - "Locators & Picker (17)"
-Cohesion: 0.48
-Nodes (8): checkLocatorGroupNameUnique(), checkUniqueName(), createLocatorGroup(), deleteLocatorGroups(), getLocatorGroupByIdOrThrow(), locatorGroupInclude, LocatorGroupWithModule, updateLocatorGroup()
+Cohesion: 0.46
+Nodes (10): AutomationProjectionService, checkLocatorGroupNameUnique(), checkUniqueName(), createLocatorGroup(), deleteLocatorGroups(), getLocatorGroupByIdOrThrow(), listLocatorGroups(), locatorGroupInclude (+2 more)
 
 ### Community 18 - "Test Runs (18)"
-Cohesion: 0.23
-Nodes (27): getAutomationConfigDir(), getAutomationEnvironmentsDir(), getAutomationFeaturesDir(), getAutomationLocatorsDir(), getAutomationMappingDir(), getAutomationReportLogsDir(), getAutomationReportRunDir(), getAutomationReportScreenshotsDir() (+19 more)
+Cohesion: 0.28
+Nodes (28): getAutomationActionStepsDir(), getAutomationConfigDir(), getAutomationEnvironmentsDir(), getAutomationFeaturesDir(), getAutomationLocatorsDir(), getAutomationMappingDir(), getAutomationReportLogsDir(), getAutomationReportRunDir() (+20 more)
 
 ### Community 19 - "Test Runs (19)"
-Cohesion: 0.1
-Nodes (21): execa, getAutomationRunReportPath(), generateReportPath(), LocalExecutorAdapter, mapBrowserEngineToName(), ExecutorAdapter, TestRunExecutionRequest, TestRunExecutionResult (+13 more)
+Cohesion: 0.09
+Nodes (22): execa, buildJsonReportFormat(), getAutomationRunReportPath(), generateReportPath(), LocalExecutorAdapter, mapBrowserEngineToName(), ExecutorAdapter, TestRunExecutionRequest (+14 more)
 
 ### Community 20 - "Templates & Flow Builder (20)"
 Cohesion: 0.13
 Nodes (23): FlowBlock, NodeData, NodeOrderMap, TemplateTestCaseNodeOrderMap, DiagramNodeOrder, DiagramNodeParameter, toNodeOrderMap(), toTemplateTestCaseNodeOrderMap() (+15 more)
 
 ### Community 21 - "Locators & Picker (21)"
-Cohesion: 0.1
-Nodes (34): FlowDiagramBlockDialogProps, getFilterTags(), formatDuration(), formatKeyword(), ReportScenarioWithDetails, stepStatusToBadge(), TestCaseLogsModalProps, formSchema (+26 more)
+Cohesion: 0.09
+Nodes (45): FlowDiagramBlockDialog(), FlowDiagramBlockDialogProps, createButton, formatDuration(), formatKeyword(), ReportScenarioWithDetails, stepStatusToBadge(), TestCaseLogsModalProps (+37 more)
 
 ### Community 22 - "Dashboard & Metrics (22)"
 Cohesion: 0.5
 Nodes (8): EmptyState(), Empty(), EmptyContent(), EmptyDescription(), EmptyHeader(), EmptyMedia(), emptyMediaVariants, EmptyTitle()
 
 ### Community 23 - "Test Execution"
-Cohesion: 0.05
-Nodes (44): devDependencies, @babel/traverse, baseline-browser-mapping, chai, chai-as-promised, commander, @cucumber/cucumber, @cucumber/pretty-formatter (+36 more)
+Cohesion: 0.04
+Nodes (45): devDependencies, @babel/traverse, baseline-browser-mapping, chai, chai-as-promised, commander, @cucumber/cucumber, @cucumber/pretty-formatter (+37 more)
 
 ### Community 24 - "Locators & Picker (24)"
-Cohesion: 0.11
-Nodes (48): testCasePickerColumns, applyUpdater(), createInitialPickerState(), defaultPagination, createSelectionState(), getSavedTestCases(), getSelectedIdsFromRowSelection(), getSelectionSummaryLabel() (+40 more)
+Cohesion: 0.21
+Nodes (28): DataTableCreateButtonOption, DataTableProps, DataTableRowLike, getEntityId(), getResolvedRowId(), hasDataTableRowShape(), rowHasConflicts(), DataTableViewOptions() (+20 more)
 
 ### Community 25 - "Templates & Flow Builder (25)"
-Cohesion: 0.4
-Nodes (20): formatFileContent(), addTemplateStepToFile(), createTemplateStepGroupFile(), ensureGroupJSDoc(), ensureRequiredImports(), extractGroupJSDocBounds(), findStepFunctionBounds(), generateGroupJSDocComment() (+12 more)
+Cohesion: 0.38
+Nodes (22): ensureStepsDirectory(), formatFileContent(), addTemplateStepToFile(), createTemplateStepGroupFile(), ensureGroupJSDoc(), ensureRequiredImports(), extractGroupJSDocBounds(), findStepFunctionBounds() (+14 more)
 
 ### Community 26 - "Locators & Picker (26)"
 Cohesion: 0.12
-Nodes (44): CreateTestCaseFromTemplate(), metadata, CreateTemplateTestCase(), CreateTestCase(), getAllEnvironmentsAction(), ModifyTemplateTestCase(), ModifyTestCase(), getAllLocatorGroupsAction() (+36 more)
+Nodes (44): CreateTestCaseFromTemplate(), metadata, {
+  getAllTemplateTestCasesAction,
+  getAllTemplateStepParamsAction,
+  getAllTemplateStepsAction,
+  getAllTestSuitesAction,
+  getAllLocatorsAction,
+  getAllLocatorGroupsAction,
+  getAllTagsAction,
+  getAllTestCasesAction,
+  getAllModulesAction,
+  getAllEnvironmentsAction,
+  createTestCaseAction,
+  createTestSuiteAction,
+  createTagAction,
+  testCaseFormSpy,
+}, CreateTestCase(), ModifyTestCase(), createTagAction(), createTestCaseAction(), getAllTestCasesAction() (+36 more)
 
 ### Community 27 - "Shared UI Components"
-Cohesion: 0.13
-Nodes (25): formOpts, Tag, tagFormOpts, tagSchema, GenerateTestCaseFromTemplate(), metadata, ModifyTag(), checkUniqueTagExpression() (+17 more)
+Cohesion: 0.12
+Nodes (30): CreateTestRun(), formOpts, tagFormOpts, tagSchema, ModifyTag(), checkUniqueTagExpression(), checkUniqueTagName(), createTag() (+22 more)
 
 ### Community 28 - "Locators & Picker (28)"
-Cohesion: 0.14
-Nodes (65): buildFilesystemSnapshot(), buildModuleTreePaths(), buildTagObjects(), countEnvironmentMismatches(), countLocatorGroupMismatches(), countLocatorMismatches(), countModuleMismatches(), countTagMismatches() (+57 more)
+Cohesion: 0.18
+Nodes (18): EnvironmentFieldErrors(), EnvironmentFieldErrorsProps, EnvironmentForm(), EnvironmentFormProps, getErrorMessage(), environmentFieldValidators, EnvironmentFormSubmitAction, EnvironmentTableRow (+10 more)
 
 ### Community 29 - "Locators & Picker (29)"
-Cohesion: 0.06
-Nodes (50): getEnvironmentRows(), getInlineLocatorSaveResult(), getLocatorGroupRows(), getLocatorPickerSession(), getLocatorRow(), getModuleRows(), hasDateProp(), hasDateProps() (+42 more)
+Cohesion: 0.27
+Nodes (30): applyExistingGroupSuggestion(), applyNewGroupSuggestion(), applyPickedLocatorToWorkspaceState(), applyPickedSelector(), applySuggestedLocatorName(), applySuggestedRoute(), canLaunchPicker(), canReplaceAutoValue() (+22 more)
 
 ### Community 30 - "Templates & Flow Builder (30)"
-Cohesion: 0.23
-Nodes (23): browserEngineToBadge(), testRunResultToBadge(), testRunStatusToBadge(), ViewReport(), getReportByIdAction(), DurationChart, FeatureChart, OverviewChart (+15 more)
+Cohesion: 0.29
+Nodes (27): getEnvironmentRows(), getInlineLocatorSaveResult(), getLocatorGroupRows(), getLocatorPickerSession(), getLocatorRow(), getModuleRows(), hasDateProp(), hasDateProps() (+19 more)
 
 ### Community 31 - "Templates & Flow Builder (31)"
-Cohesion: 0.1
-Nodes (36): getTestRunByIdAction(), getTestCaseResultMeta(), getTestCaseStatusMeta(), getTestRunDetailsData(), getTraceViewerEligibleTestCases(), getTraceViewerStatusData(), isEnvironmentRow(), isReportRow() (+28 more)
+Cohesion: 0.06
+Nodes (75): getTestRunDetailsData(), getTraceViewerStatusData(), hasFields(), hasTestRunCollections(), hasTestRunScalarFields(), isEnvironmentRow(), isObjectRecord(), isReportRow() (+67 more)
 
 ### Community 32 - "Locators & Picker (32)"
-Cohesion: 0.12
-Nodes (19): ADD_NODE_PROMPT_NODE_TYPE, AddNodePromptNodeData, createAddNodePromptNode(), isAddNodePromptNode(), buildFlowNodeData(), buildNodeFormData(), createEditableNodeData(), DiagramNodeOrder (+11 more)
+Cohesion: 0.16
+Nodes (24): TemplateTestCaseNodeData, ADD_NODE_PROMPT_NODE_TYPE, AddNodePromptNodeData, createAddNodePromptNode(), isAddNodePromptNode(), buildFlowNodeData(), buildNodeFormData(), createEditableNodeData() (+16 more)
 
 ### Community 33 - "Locators & Picker (33)"
-Cohesion: 0.17
-Nodes (18): CommandBadge(), CommandBadgeProps, CommandChainInput(), CommandChainInputProps, CommandMode, commandModeLabels, commandModePlaceholders, getCommandBadge() (+10 more)
+Cohesion: 0.2
+Nodes (18): CommandChainInput(), CommandMode, commandModeLabels, commandModePlaceholders, getCommandBadge(), NavigationCommandGroup, navigationCommandGroups, NavigationCommandItem (+10 more)
 
 ### Community 34 - "Test Runs (34)"
 Cohesion: 0.08
 Nodes (26): compilerOptions, allowJs, declaration, declarationMap, esModuleInterop, forceConsistentCasingInFileNames, incremental, isolatedModules (+18 more)
 
 ### Community 35 - "Templates & Flow Builder (35)"
-Cohesion: 0.19
-Nodes (24): addDownloadArtifacts(), addLegacyLogFile(), addLegacyReportFile(), addLegacyTraceFiles(), addRunArtifactFiles(), addStoredArtifactFile(), Archive, ArtifactFile (+16 more)
+Cohesion: 0.24
+Nodes (19): resolveStoredPath(), addDownloadArtifacts(), addLegacyLogFile(), addLegacyReportFile(), addLegacyTraceFiles(), addRunArtifactFiles(), addStoredArtifactFile(), Archive (+11 more)
 
 ### Community 36 - "Sync & Gherkin"
-Cohesion: 0.18
-Nodes (33): ParsedStep, formatOrderedGherkinSteps(), determineStepTypeAndIcon(), extractParametersFromGherkinStep(), findMatchingTemplateStep(), ParameterMatch, sameResolvedParameters(), signatureToRegex() (+25 more)
+Cohesion: 0.23
+Nodes (26): ParsedStep, determineStepTypeAndIcon(), extractParametersFromGherkinStep(), findMatchingTemplateStep(), ParameterMatch, sameResolvedParameters(), signatureToRegex(), TemplateStepCandidate (+18 more)
 
 ### Community 37 - "Locators & Picker (37)"
-Cohesion: 0.56
-Nodes (5): AddNodePromptFlowNode, AddNodePromptNode, AddNodePromptNodeComponentProps, ADD_NODE_PROMPT_NODE_TYPE, AddNodePromptNodeData
+Cohesion: 0.17
+Nodes (26): AddNodePromptFlowNode, AddNodePromptNode, AddNodePromptNodeComponentProps, ButtonEdge(), DEFAULT_EDGE_STYLE, FlowEdgeMutationGuard, flowEdgeMutationGuardRef, AddNodePromptNodeWrapper() (+18 more)
 
 ### Community 38 - "Test Runs (38)"
-Cohesion: 0.21
-Nodes (20): formOpts, TemplateStepGroup, templateStepGroupFormOpts, TemplateStepGroupType, TemplateStepGroupTypeEnum, getErrorMessage(), TemplateStepGroupFieldErrors(), TemplateStepGroupFieldErrorsProps (+12 more)
+Cohesion: 0.24
+Nodes (13): TemplateStepGroup, metadata, TemplateStepGroups(), getActionErrorMessage(), getTemplateStepGroupRows(), isTemplateStepGroupRow(), templateStepGroupFieldValidators, TemplateStepGroupFormSubmitAction (+5 more)
 
 ### Community 39 - "Templates & Flow Builder (39)"
-Cohesion: 0.06
-Nodes (62): inter, interTight, metadata, RootLayout(), viewport, Logo(), EnvironmentFieldErrors(), EnvironmentFieldErrorsProps (+54 more)
+Cohesion: 0.09
+Nodes (41): inter, interTight, metadata, RootLayout(), viewport, Logo(), Action, ActionType (+33 more)
 
 ### Community 40 - "Locators & Picker (40)"
 Cohesion: 0.14
 Nodes (27): cleanupTempWorkspace(), computeTemplateInputHash(), copyFallbackSeedDatabase(), createBlankRootTemplateFromStarter(), __dirname, getPackageTemplateDir(), getPrismaCliPath(), getRootTemplateDir() (+19 more)
 
 ### Community 41 - "Test Hierarchy CRUD"
-Cohesion: 0.13
-Nodes (26): ensureAutomationWorkspaceReady(), AutomationProjectionService, getTemplateStepGroupType(), TemplateStepGroupType, deleteFeatureFile(), generateFeatureContent(), generateFeatureFile(), isDirectoryEmpty() (+18 more)
+Cohesion: 0.17
+Nodes (18): ensureAutomationWorkspaceReady(), getTemplateStepGroupType(), TemplateStepGroupType, cleanupEmptyDirectories(), createEmptyLocatorGroupFile(), createOrUpdateLocatorGroupFile(), deleteLocatorGroupFile(), ensureDirectoryExists() (+10 more)
 
 ### Community 42 - "Templates & Flow Builder (42)"
-Cohesion: 0.25
-Nodes (16): installLocatorPickerOverlay(), buildCssSelector(), buildPrimarySelector(), buildXPathSelector(), ElementSnapshot, escapeForCss(), escapeForSelectorText(), generatePickedLocatorPayload() (+8 more)
+Cohesion: 0.19
+Nodes (26): argv, BrowserLaunchCandidate, main(), normalizeRoute(), parseArgs(), sessionFileIndex, sessionIdIndex, installLocatorPickerOverlay() (+18 more)
 
 ### Community 43 - "Templates & Flow Builder (43)"
 Cohesion: 0.13
 Nodes (21): formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), getInstallCommand(), getPlaywrightInstallCommand(), patchPackageJsonScripts(), RUN_PLAYWRIGHT_INSTALL_ARGS, RUN_SETUP_ARGS (+13 more)
 
 ### Community 44 - "Locators & Picker (44)"
-Cohesion: 0.08
-Nodes (25): calculateCompletionPercentage(), formatDateTime(), formatDuration(), ReportWithRelations, testRunResultToBadge(), testRunStatusToBadge(), ReportTestCaseWithRelations, testRunTestCaseResultToBadge() (+17 more)
+Cohesion: 0.09
+Nodes (14): formatDateTime(), TableActions(), TemplateStepTableRow, testCaseDataColumns, testCasePickerColumns, testCaseSelectionColumn, BrowserEngineIcon, testSuitesMetricTableCols (+6 more)
 
 ### Community 45 - "Locators & Picker (45)"
-Cohesion: 0.07
-Nodes (54): CreateLocatorWorkspace(), getLocatorSourceType(), getLocatorWorkspaceResolutionMode(), useLocatorWorkspace(), DynamicParameterFieldLabel(), DynamicParameterFieldShell(), DynamicParameterFieldShellProps, DynamicParameterInputFieldProps (+46 more)
+Cohesion: 0.08
+Nodes (41): DynamicParameterFieldLabel(), DynamicParameterFieldShell(), DynamicParameterFieldShellProps, ErrorMessage(), formOpts, LocatorGroup, locatorGroupFormOpts, locatorGroupSchema (+33 more)
 
 ### Community 46 - "Locators & Picker (46)"
-Cohesion: 0.13
-Nodes (39): glob, extractLocatorGroupName(), extractModulePathFromLocatorFile(), extractTestSuiteNameFromFilename(), buildModuleHierarchy(), buildModulePath(), createOrFindModule(), findModuleByPath() (+31 more)
+Cohesion: 0.14
+Nodes (37): glob, extractLocatorGroupName(), extractModulePathFromLocatorFile(), extractTestSuiteNameFromFilename(), buildModuleHierarchy(), buildModulePath(), createOrFindModule(), findModuleByPath() (+29 more)
 
 ### Community 47 - "Templates & Flow Builder (47)"
-Cohesion: 0.17
-Nodes (24): buildExpectedFeatureFilePath(), buildModulePathFromTestSuite(), checkModuleExists(), checkTagExists(), checkTemplateStepExists(), checkTestCaseExists(), checkTestSuiteExists(), collectDatabaseDryRunChanges() (+16 more)
+Cohesion: 0.22
+Nodes (25): buildExpectedFeatureFilePath(), buildModulePathFromTestSuite(), checkModuleExists(), checkTagExists(), checkTemplateStepExists(), checkTestCaseExists(), checkTestSuiteExists(), collectDatabaseDryRunChanges() (+17 more)
 
 ### Community 48 - "Templates & Flow Builder (48)"
 Cohesion: 0.11
 Nodes (23): gitignorePath, pkgJsonPath, seededDbPath, staleNestedDbPath, templatePath, collectFiles(), copyTemplate(), EXCLUDED_DIRS (+15 more)
 
 ### Community 49 - "Database & Prisma"
-Cohesion: 0.17
-Nodes (20): checkUniqueName(), createEnvironment(), deleteEnvironments(), getEnvironmentByIdOrThrow(), listEnvironments(), normalizeEnvironmentPayload(), basePayload, created (+12 more)
+Cohesion: 0.28
+Nodes (15): checkUniqueName(), createEnvironment(), deleteEnvironments(), getEnvironmentByIdOrThrow(), listEnvironments(), normalizeEnvironmentPayload(), basePayload, created (+7 more)
 
 ### Community 50 - "Test Runs (50)"
-Cohesion: 0.29
-Nodes (15): buildModulePathMap(), humanizeSegment(), inferGroupSuggestion(), normalizeRoute(), normalizeText(), suggestGroupNameFromRoute(), SuggestionLocatorGroup, SuggestionModule (+7 more)
+Cohesion: 0.42
+Nodes (12): buildModulePathMap(), humanizeSegment(), inferGroupSuggestion(), normalizeRoute(), normalizeText(), suggestGroupNameFromRoute(), SuggestionLocatorGroup, SuggestionModule (+4 more)
 
 ### Community 51 - "Templates & Flow Builder (51)"
-Cohesion: 0.14
-Nodes (17): BaseNode(), ButtonEdge(), DEFAULT_EDGE_STYLE, FlowEdgeMutationGuard, flowEdgeMutationGuardRef, OptionsHeaderGherkinParameter, OptionsHeaderGherkinStep(), escapeRegExp() (+9 more)
+Cohesion: 0.06
+Nodes (41): BaseNode(), escapeRegExp(), OptionsHeaderGherkinParameter, OptionsHeaderGherkinStep(), escapeRegExp(), getTemplateStepIcon(), OptionsHeaderNode, OptionsHeaderNodeData (+33 more)
 
 ### Community 52 - "Sync & Gherkin (52)"
 Cohesion: 0.04
@@ -687,43 +730,43 @@ Nodes (48): Agent Rules, Analyze specific workspaces, Audit a project for all de
 
 ### Community 53 - "Templates & Flow Builder (53)"
 Cohesion: 0.04
-Nodes (48): dependencies, archiver, @babel/parser, @babel/types, better-sqlite3, class-variance-authority, clsx, cmdk (+40 more)
+Nodes (51): dependencies, archiver, @babel/parser, @babel/types, better-sqlite3, chai, chai-as-promised, class-variance-authority (+43 more)
 
 ### Community 54 - "Templates & Flow Builder (54)"
-Cohesion: 0.12
-Nodes (40): buildFormResetKey(), NodeFormFieldsContent(), NodeFormFieldsContentProps, NodeFormFieldsProps, formOpts, buildNodeFormSubmitValue(), createInitialParametersForTemplateStep(), getDefaultParameterValue() (+32 more)
+Cohesion: 0.15
+Nodes (37): DynamicFormFieldsRef, buildFormResetKey(), NodeFormFieldsContent(), NodeFormFieldsContentProps, NodeFormFieldsProps, formOpts, buildNodeFormSubmitValue(), createInitialParametersForTemplateStep() (+29 more)
 
 ### Community 55 - "Templates & Flow Builder (55)"
 Cohesion: 0.04
-Nodes (48): dependencies, archiver, @babel/parser, @babel/types, better-sqlite3, class-variance-authority, clsx, cmdk (+40 more)
+Nodes (51): dependencies, archiver, @babel/parser, @babel/types, better-sqlite3, chai, chai-as-promised, class-variance-authority (+43 more)
 
 ### Community 56 - "Templates & Flow Builder (56)"
-Cohesion: 0.11
-Nodes (25): getTestRunDetailsData(), getTraceViewerStatusData(), hasFields(), hasTestRunCollections(), hasTestRunScalarFields(), isEnvironmentRow(), isObjectRecord(), isReportRow() (+17 more)
+Cohesion: 0.19
+Nodes (29): createParsedReportGraph(), createReportFeature(), createReportScenario(), createReportScenarioExecutionRows(), createReportShell(), ExecutedTestCaseSets, getLegacySuiteIds(), getReportStorageTestRun() (+21 more)
 
 ### Community 57 - "Database & Prisma (57)"
 Cohesion: 0.04
 Nodes (44): 1.1 Avoid Boolean Prop Proliferation, 1.2 Use Compound Components, 1. Component Architecture, 2.1 Decouple State Management from UI, 2.2 Define Generic Context Interfaces for Dependency Injection, 2.3 Lift State into Provider Components, 2. State Management, 3.1 Create Explicit Component Variants (+36 more)
 
 ### Community 58 - "Templates & Flow Builder (58)"
-Cohesion: 0.16
-Nodes (31): addMissingScenariosToTestSuite(), addScenarioToTestSuite(), connectTagsToTestSuite(), createOrUpdateTestCaseStep(), createScenarioSteps(), createScenarioTestCase(), createTestSuiteWithScenarios(), deriveTagName() (+23 more)
+Cohesion: 0.17
+Nodes (34): addMissingScenariosToTestSuite(), addScenarioToTestSuite(), applyScenarioMetadataToSteps(), connectTagsToTestSuite(), createOrUpdateTestCaseStep(), createScenarioSteps(), createScenarioTestCase(), createTestSuiteWithScenarios() (+26 more)
 
 ### Community 59 - "Package Config"
 Cohesion: 0.08
 Nodes (24): author, bin, appraisejs, bugs, url, description, engines, node (+16 more)
 
 ### Community 60 - "Locators & Picker (60)"
-Cohesion: 0.19
-Nodes (31): EXCLUDED_DIRS, EXCLUDED_EXTENSIONS, EXCLUDED_FILENAMES, EXCLUDED_PATH_PREFIXES, shouldBackfillLegacyEnvironmentConfig(), shouldExcludeTemplatePath(), toPosixPath(), EXCLUDED_DIRS (+23 more)
+Cohesion: 0.23
+Nodes (24): EXCLUDED_DIRS, EXCLUDED_EXTENSIONS, EXCLUDED_FILENAMES, EXCLUDED_PATH_PREFIXES, extractModulePathFromAutomationFile(), getAutomationFeaturesDir(), getAutomationLocatorMapPath(), getAutomationLocatorsDir() (+16 more)
 
 ### Community 61 - "Templates & Flow Builder (61)"
 Cohesion: 0.14
 Nodes (16): Config, getConfig(), normalizeRepoBase(), config, copyBundledTemplate(), copyRemoteTemplate(), createProject(), CreateProjectDependencies (+8 more)
 
 ### Community 62 - "Test Runs (62)"
-Cohesion: 0.15
-Nodes (26): buildRecalculatedMetricUpdateData(), CompletedTestRunTestCase, countConsecutiveFailures(), findMostRecentOlderTestRunTestCases(), findOlderResultDate(), findRecentCompletedTestRunTestCases(), getCompletedAt(), getMostRecentResultDate() (+18 more)
+Cohesion: 0.24
+Nodes (29): buildRecalculatedMetricUpdateData(), CompletedTestRunTestCase, countConsecutiveFailures(), findMostRecentOlderTestRunTestCases(), findOlderResultDate(), findRecentCompletedTestRunTestCases(), getCompletedAt(), getMostRecentResultDate() (+21 more)
 
 ### Community 63 - "Test Runs (63)"
 Cohesion: 0.05
@@ -731,15 +774,15 @@ Nodes (44): 5.10 Subscribe to Derived State, 5.11 Use Functional setState Update
 
 ### Community 64 - "Templates & Flow Builder (64)"
 Cohesion: 0.13
-Nodes (19): getEditableTestSuite(), isEditableTestSuite(), getCreatedTestSuite(), getTestCasePickerRows(), getTestSuiteTableRows(), isCreatedTestSuite(), isGroupOption(), isModuleRow() (+11 more)
+Nodes (24): formOpts, TestCase, testCaseSchema, flowBlockSchema, testCaseStepSchema, testCaseStepsSchema, generateUniqueTestCaseIdentifier(), getTestCaseByIdAction() (+16 more)
 
 ### Community 65 - "Templates & Flow Builder (65)"
-Cohesion: 0.07
+Cohesion: 0.08
 Nodes (83): findNearestJSDocStart(), findTopLevelJSDocStart(), normalizeGroupTypeStrict(), parseGroupJSDocLenient(), parseGroupJSDocStrict(), parseStepJSDocLenient(), parseStepJSDocStrict(), readGroupMetadataLine() (+75 more)
 
 ### Community 66 - "Shared UI Components (66)"
-Cohesion: 0.11
-Nodes (40): capitalizeGroupName(), buildStepKeywords(), formatParameterLabel(), getStepSearchScore(), groupStepsByGroupName(), normalizeForSearch(), scoreMatch(), StepIcon() (+32 more)
+Cohesion: 0.21
+Nodes (25): buildStepKeywords(), formatParameterLabel(), getStepSearchScore(), groupStepsByGroupName(), normalizeForSearch(), scoreMatch(), StepIcon(), TemplateStepCombobox() (+17 more)
 
 ### Community 67 - "Locators & Picker (67)"
 Cohesion: 0.17
@@ -754,32 +797,32 @@ Cohesion: 0.1
 Nodes (19): aliases, components, hooks, lib, ui, utils, iconLibrary, registries (+11 more)
 
 ### Community 70 - "Templates & Flow Builder (70)"
-Cohesion: 0.05
-Nodes (41): devDependencies, @babel/traverse, baseline-browser-mapping, chai, chai-as-promised, commander, @cucumber/cucumber, @cucumber/pretty-formatter (+33 more)
+Cohesion: 0.04
+Nodes (47): devDependencies, @babel/traverse, baseline-browser-mapping, chai, chai-as-promised, commander, @cucumber/cucumber, @cucumber/pretty-formatter (+39 more)
 
 ### Community 71 - "Sync & Gherkin (71)"
-Cohesion: 0.22
-Nodes (13): CreateTemplateStep(), createTemplateStepAction(), TemplateStepForm(), onSubmitAction, { push, toast }, SelectContext, selects, user (+5 more)
+Cohesion: 0.54
+Nodes (3): getTemplateStepIconOptions(), getTemplateStepParameterTypes(), getTemplateStepTypeOptions()
 
 ### Community 72 - "Templates & Flow Builder (72)"
-Cohesion: 0.05
-Nodes (41): devDependencies, @babel/traverse, baseline-browser-mapping, chai, chai-as-promised, commander, @cucumber/cucumber, @cucumber/pretty-formatter (+33 more)
+Cohesion: 0.04
+Nodes (47): devDependencies, @babel/traverse, baseline-browser-mapping, chai, chai-as-promised, commander, @cucumber/cucumber, @cucumber/pretty-formatter (+39 more)
 
 ### Community 73 - "Test Runs (73)"
 Cohesion: 0.05
 Nodes (36): 3.10 Use after() for Non-Blocking Operations, 3.1 Authenticate Server Actions Like API Routes, 3.2 Avoid Duplicate Serialization in RSC Props, 3.3 Avoid Shared Module State for Request Data, 3.4 Cross-Request LRU Caching, 3.5 Hoist Static I/O to Module Level, 3.6 Minimize Serialization at RSC Boundaries, 3.7 Parallel Data Fetching with Component Composition (+28 more)
 
 ### Community 74 - "Sync & Gherkin (74)"
-Cohesion: 0.36
-Nodes (14): DynamicParameterInput, DynamicParameterValue, DynamicParameterValuesMap, formatDynamicParameterValues(), getDefaultParameterValue(), getDynamicParameterInitialValues(), getInitialSelectedLocatorGroups(), getLocatorsForGroup() (+6 more)
+Cohesion: 0.15
+Nodes (37): InlineLocatorSaveResult, LocatorWorkspaceEnvironment, DynamicParameterInputFieldProps, DynamicParameterValue, LocatorGroupOption, LocatorOption, LocatorSelectionMode, DynamicParameterLocatorCreatedSummary() (+29 more)
 
 ### Community 75 - "Sync & Gherkin (75)"
-Cohesion: 0.56
-Nodes (5): columns, deleteAction, TableRow, { toast }, user
+Cohesion: 0.1
+Nodes (19): moduleTableCols, ModuleTable(), tagTableCols, TagTable(), templateStepTableCols, TemplateStepTable(), deleteTestCaseAction(), testCasesMetricTableCols (+11 more)
 
 ### Community 76 - "Templates & Flow Builder (76)"
-Cohesion: 0.23
-Nodes (24): formOpts, TemplateStep, templateStepFormOpts, buildFunctionDefinitionPreview(), EditableTemplateStep, getActionErrorMessage(), getEditableTemplateStep(), getFieldErrorMessage() (+16 more)
+Cohesion: 0.25
+Nodes (22): formOpts, TemplateStep, templateStepFormOpts, buildFunctionDefinitionPreview(), EditableTemplateStep, getActionErrorMessage(), getFieldErrorMessage(), getInitialFunctionDefinition() (+14 more)
 
 ### Community 77 - "Database & Prisma (77)"
 Cohesion: 0.11
@@ -791,11 +834,11 @@ Nodes (17): compilerOptions, declaration, declarationMap, esModuleInterop, force
 
 ### Community 79 - "Locators & Picker (79)"
 Cohesion: 0.13
-Nodes (19): extractLocatorGroupName(), extractModulePathFromLocatorFile(), fileAtRoot, detectAndCreateConflicts(), savePickedLocatorFromRequest(), SavePickedLocatorOutcome, savePickedLocatorSchema, syncLocatorsFromFiles() (+11 more)
+Nodes (17): deleteLocatorAction(), getLocatorByIdAction(), extractLocatorGroupName(), extractModulePathFromLocatorFile(), fileAtRoot, deleteLocators(), detectAndCreateConflicts(), getLocatorByIdOrThrow() (+9 more)
 
 ### Community 80 - "Locators & Picker (80)"
-Cohesion: 0.17
-Nodes (7): isEnvironmentRow(), isLocatorGroupRow(), isLocatorRow(), isModuleRow(), isNamedRow(), isTagRow(), isTestSuiteRow()
+Cohesion: 0.21
+Nodes (27): TestSuite, buildTestSuiteInfoCards(), EditableTestSuite, getActionErrorMessage(), getCreatedTestSuite(), getEditableTestSuite(), getFieldErrorMessage(), getModuleOptions() (+19 more)
 
 ### Community 81 - "Sync & Gherkin (81)"
 Cohesion: 0.05
@@ -806,40 +849,40 @@ Cohesion: 0.18
 Nodes (12): BLANK_TEMPLATE_PREP_SYNC_SCRIPTS, collectFiles(), getTemplatePrepSyncScripts(), shouldAbortOnFallbackSeed(), TEMPLATE_PREP_SYNC_SCRIPTS, TemplateMetadata, TemplateStepDataCounts, createPreparedTemplateFixture() (+4 more)
 
 ### Community 83 - "Locators & Picker (83)"
-Cohesion: 0.15
-Nodes (20): getIdentifierTagByPrefix(), getIdentifierTagByPrefix(), createTestSuiteIdentifierTag(), ensureTestSuiteIdentifierTags(), getOrCreateTestSuiteIdentifierTagId(), generateUniqueTestSuiteIdentifier(), consumeCandidate(), extractTestCaseTitleFromScenarioName() (+12 more)
+Cohesion: 0.26
+Nodes (11): getIdentifierTagByPrefix(), getIdentifierTagByPrefix(), getTagTypeFromExpression(), getTagTypeFromName(), isIdentifierTagExpression(), isIdentifierTagName(), TagShape, createTestSuiteIdentifierTag() (+3 more)
 
 ### Community 84 - "Test Runs (84)"
-Cohesion: 0.46
-Nodes (8): createLocatorInspectorInjectionScript(), generateCSSPath(), generateXPath(), getLocatorInspectorOrigin(), isLocatorInspectorMessage(), isSelectedElementPayload(), LocatorInspectorMessage, SelectedElementPayload
+Cohesion: 0.36
+Nodes (11): createLocatorInspectorInjectionScript(), generateCSSPath(), generateXPath(), getLocatorInspectorOrigin(), isLocatorInspectorMessage(), isSelectedElementPayload(), LocatorInspectorMessage, SelectedElementPayload (+3 more)
 
 ### Community 85 - "Shared UI Components (85)"
 Cohesion: 0.06
 Nodes (4): value, environment, environmentConfig, data
 
 ### Community 86 - "Test Execution (86)"
-Cohesion: 0.06
-Nodes (36): scripts, appraisejs:install-step, appraisejs:setup, appraisejs:sync, build, build:cucumber-runtime, build:local, build:locator-picker-companion (+28 more)
+Cohesion: 0.04
+Nodes (48): scripts, appraisejs:install-step, appraisejs:setup, appraisejs:sync, build, build:cucumber-runtime, build:local, build:locator-picker-companion (+40 more)
 
 ### Community 87 - "Test Hierarchy CRUD (87)"
-Cohesion: 0.06
-Nodes (36): scripts, appraisejs:install-step, appraisejs:setup, appraisejs:sync, build, build:cucumber-runtime, build:local, build:locator-picker-companion (+28 more)
+Cohesion: 0.04
+Nodes (48): scripts, appraisejs:install-step, appraisejs:setup, appraisejs:sync, build, build:cucumber-runtime, build:local, build:locator-picker-companion (+40 more)
 
 ### Community 88 - "Sync & Gherkin (88)"
-Cohesion: 0.25
-Nodes (31): applyPickedLocatorToWorkspaceState(), canLaunchPicker(), canSaveLocator(), createInitialWorkspaceState(), CreateLocatorWorkspaceProps, createWorkspaceAutoFillSnapshot(), formatStatus(), getInlineLocatorSaveResult() (+23 more)
+Cohesion: 0.24
+Nodes (33): applyPickedLocatorToWorkspaceState(), canLaunchPicker(), canSaveLocator(), createInitialWorkspaceState(), CreateLocatorWorkspaceProps, createWorkspaceAutoFillSnapshot(), formatStatus(), getInlineLocatorSaveResult() (+25 more)
 
 ### Community 89 - "Locators & Picker (89)"
 Cohesion: 0.12
 Nodes (15): author, bin, create-appraisejs, description, engines, node, exports, files (+7 more)
 
 ### Community 90 - "Scaffold CLI"
-Cohesion: 0.2
-Nodes (19): Dashboard(), metadata, DataCardGrid(), colorMap, ExecutionHealthPanel(), ExecutionHealthPanelProps, EntityMetrics, getDashboardMetricsAction() (+11 more)
+Cohesion: 0.25
+Nodes (19): Dashboard(), metadata, DataCardGrid(), ExecutionHealthPanel(), EntityMetrics, getDashboardMetricsAction(), getEntityMetricsAction(), getRunningTestRunsCountAction() (+11 more)
 
 ### Community 91 - "Locators & Picker (91)"
-Cohesion: 0.14
-Nodes (39): updateTestSuiteMetrics(), createParsedReportGraph(), createReportFeature(), createReportScenario(), createReportScenarioExecutionRows(), createReportShell(), ExecutedTestCaseSets, getAllTestCaseMetricsForFilter() (+31 more)
+Cohesion: 0.08
+Nodes (55): browserEngineToBadge(), testRunResultToBadge(), testRunStatusToBadge(), ViewReport(), DurationChart(), FeatureChart(), FeatureChartProps, calculatePassRate() (+47 more)
 
 ### Community 92 - "Test Runs (92)"
 Cohesion: 0.06
@@ -854,19 +897,19 @@ Cohesion: 0.38
 Nodes (3): GET(), POST(), { mockAccess, mockFindUnique, mockGetProcess, mockSpawn }
 
 ### Community 95 - "Forms & UI"
-Cohesion: 0.2
-Nodes (44): cleanupLingeringCompanionSessions(), delay(), getSessionAgeMs(), isMissingProcessError(), isTerminalStatus(), markSessionLaunchFailure(), processExists(), safeUrlParts() (+36 more)
+Cohesion: 0.27
+Nodes (33): cleanupLingeringCompanionSessions(), delay(), getSessionAgeMs(), isMissingProcessError(), isTerminalStatus(), markSessionLaunchFailure(), processExists(), safeUrlParts() (+25 more)
 
 ### Community 96 - "Test Runs (96)"
 Cohesion: 0.06
 Nodes (33): Accordion, Base vs Radix, Button / trigger as non-button element (base only), code:tsx (<DialogTrigger>), code:tsx (<Select>), code:tsx (// base.), code:tsx (<Select items={items} multiple defaultValue={[]}>), code:tsx (<Select defaultValue={plans[0]} itemToStringValue={(plan) =>) (+25 more)
 
 ### Community 97 - "Test Execution (97)"
-Cohesion: 0.14
-Nodes (44): getConvertedTemplateTestCaseData(), getConvertedTemplateTestCaseData(), getFieldErrorMessage(), getLocatorGroupRows(), getLocatorRows(), getModuleRows(), getTagRows(), getTemplateSelectionOptions() (+36 more)
+Cohesion: 0.1
+Nodes (55): getConvertedTemplateTestCaseData(), getConvertedTemplateTestCaseData(), getFieldErrorMessage(), getLocatorGroupRows(), getLocatorRows(), getModuleRows(), getTagRows(), getTemplateSelectionOptions() (+47 more)
 
 ### Community 98 - "Templates & Flow Builder (98)"
-Cohesion: 0.23
+Cohesion: 0.33
 Nodes (13): containsFunctionStart(), countLineDelimiters(), DelimiterCounts, findJSDocStartLine(), findStepCallEndLine(), findStepFunctionBounds(), hasMatchingSignature(), isBalancedStepCall() (+5 more)
 
 ### Community 99 - "Templates & Flow Builder (99)"
@@ -874,16 +917,16 @@ Cohesion: 0.06
 Nodes (33): 1a. `scripts/lib/tag-parsing.ts` -- shared `splitTagLine`, 1b. `scripts/lib/jsdoc-parser.ts` -- shared `parseGroupJSDoc`, 1c. `scripts/lib/filename-utils.ts` -- shared filename helpers, 1d. `scripts/lib/sync-summary.ts` -- generic summary printer, 1e. `scripts/lib/sync-script-runner.ts` -- shared `main` boilerplate, 2a. Fix N+1 template step query (performance), 2b. Extract duplicated cascade-delete transaction, 2c. Break up `syncTestCasesToDatabase` (190 lines) (+25 more)
 
 ### Community 100 - "Shared UI Components (100)"
-Cohesion: 0.16
-Nodes (37): CreateTestRun(), formOpts, TestRun, testRunFormOpts, testRunSchema, createTestRunAction(), getAllTestSuiteTestCasesAction(), CreateTestRunPageData (+29 more)
+Cohesion: 0.06
+Nodes (82): formOpts, TestRun, testRunFormOpts, testRunSchema, getFilterTags(), TagShape, getFilterTags(), getActionErrorMessage() (+74 more)
 
 ### Community 101 - "Test Runs (101)"
 Cohesion: 0.22
 Nodes (11): CliOptions, getTemplateFlagValue(), parseCliArgs(), __dirname, formatTemplateList(), isTemplateId(), packageDir, parseTemplateId() (+3 more)
 
 ### Community 102 - "Templates & Flow Builder (102)"
-Cohesion: 0.3
-Nodes (21): getAutomationActionStepsDir(), getAutomationStepsDir(), getAutomationValidationStepsDir(), deleteTemplateStepFile(), ensureStepsDirectory(), generateFileContent(), generateStepDefinition(), generateStepJSDoc() (+13 more)
+Cohesion: 0.27
+Nodes (17): deleteTemplateStepFile(), generateFileContent(), generateStepDefinition(), generateStepJSDoc(), getFilePath(), getSubdirectoryName(), sanitizeFileName(), stripLeadingJSDoc() (+9 more)
 
 ### Community 103 - "Locators & Picker (103)"
 Cohesion: 0.07
@@ -894,16 +937,16 @@ Cohesion: 0.07
 Nodes (27): `add` — Add components, `apply` — Apply a preset to an existing project, `build` — Build a custom registry, code:bash (npx shadcn@latest init [components...] [options]), code:bash (npx shadcn@latest build [registry] [options]), code:bash (npx shadcn@latest apply [preset] [options]), code:bash (npx shadcn@latest add [components...] [options]), code:bash (# Preview all changes.) (+19 more)
 
 ### Community 105 - "Locators & Picker (105)"
-Cohesion: 0.18
-Nodes (10): Agent-Specific Instructions, Build, Test, and Development Commands, Coding Style & Naming Conventions, Commit & Pull Request Guidelines, Commits, quality gates, and handoff, graphify, Project Context, Project Structure & Module Organization (+2 more)
+Cohesion: 0.1
+Nodes (19): Agent-Specific Instructions, Build, Test, and Development Commands, Coding Style & Naming Conventions, Commit & Pull Request Guidelines, Commits, quality gates, and handoff, Completion Criteria, graphify, Instruction Priority (+11 more)
 
 ### Community 106 - "Locators & Picker (106)"
 Cohesion: 0.29
-Nodes (12): exports, ./launcher, ./session-file, ./types, main, name, private, scripts (+4 more)
+Nodes (13): exports, ./launcher, ./session-file, ./types, main, name, private, scripts (+5 more)
 
 ### Community 107 - "Locators & Picker (107)"
-Cohesion: 0.51
-Nodes (8): AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay, AlertDialogTitle
+Cohesion: 0.09
+Nodes (31): DynamicParameterBooleanField(), DynamicParameterDateField(), DynamicParameterInputField(), DynamicParameterNumberField(), DynamicParameterStringField(), FlowDiagramNodeSearch(), FlowDiagramNodeSearchProps, FlowNodeSearchResult (+23 more)
 
 ### Community 108 - "Forms & UI (108)"
 Cohesion: 0.07
@@ -914,12 +957,12 @@ Cohesion: 0.19
 Nodes (11): compilerOptions, declaration, emitDeclarationOnly, lib, module, moduleResolution, noEmit, outDir (+3 more)
 
 ### Community 110 - "Locators & Picker (110)"
-Cohesion: 0.42
-Nodes (13): EntitySearchCommand(), getTemplateStepRows(), getTemplateTestCaseRows(), getTestCaseRows(), getTestRunRows(), getTestSuiteRows(), isTemplateStepRow(), isTemplateTestCaseRow() (+5 more)
+Cohesion: 0.14
+Nodes (6): DataTableSkeleton(), ButtonSkeleton(), IconButtonSkeleton(), TextInputSkeleton(), Skeleton(), TableSkeleton()
 
 ### Community 111 - "Test Runs (111)"
-Cohesion: 0.2
-Nodes (4): fatalErrorPatterns, getConnectionStatusText(), ConnectionStatus, LogMessage
+Cohesion: 0.24
+Nodes (9): createLogMessage(), isLogMessage(), parseLogMessages(), fatalErrorPatterns, getConnectionStatusText(), isFatalLogStreamError(), isTerminalRunStatus(), ConnectionStatus (+1 more)
 
 ### Community 112 - "Test Runs (112)"
 Cohesion: 0.29
@@ -930,12 +973,12 @@ Cohesion: 0.08
 Nodes (23): Avatar always needs AvatarFallback, Button has no isPending or isLoading prop, Callouts use Alert, Card structure, Choosing between overlay components, code:tsx (<SelectContent>), code:tsx (<Avatar>), code:tsx (<SelectContent>) (+15 more)
 
 ### Community 114 - "Test Runs (114)"
-Cohesion: 0.36
-Nodes (9): addNodeButton, [edges, setEdges], [nodes, setNodes], onNodeOrderChange, renderFlowDiagram(), requiredProps, { rerender }, user (+1 more)
+Cohesion: 0.48
+Nodes (10): addNodeButton, [edges, setEdges], handlePaneKeyDown(), [nodes, setNodes], onNodeOrderChange, renderFlowDiagram(), requiredProps, { rerender } (+2 more)
 
 ### Community 115 - "Shared UI Components (115)"
-Cohesion: 0.33
-Nodes (14): ConnectionStatus, createLogMessage(), dispatchTestRunExit(), fatalErrorPatterns, getConnectionStatusText(), isFatalLogStreamError(), isLogMessage(), isTerminalRunStatus() (+6 more)
+Cohesion: 0.34
+Nodes (13): ConnectionStatus, createLogMessage(), dispatchTestRunExit(), fatalErrorPatterns, getConnectionStatusText(), isFatalLogStreamError(), isLogMessage(), isTerminalRunStatus() (+5 more)
 
 ### Community 116 - "Dashboard & Metrics (116)"
 Cohesion: 0.08
@@ -950,36 +993,36 @@ Cohesion: 0.09
 Nodes (21): compilerOptions, allowJs, esModuleInterop, forceConsistentCasingInFileNames, incremental, isolatedModules, jsx, lib (+13 more)
 
 ### Community 119 - "Test Runs (119)"
-Cohesion: 0.12
-Nodes (27): generateUniqueTestCaseIdentifier(), listLocatorGroups(), checkLocatorGroupNameUniqueAction(), createLocatorGroupAction(), deleteLocatorGroupAction(), getLocatorGroupByIdAction(), updateLocatorGroupAction(), locatorGroupTableCols (+19 more)
+Cohesion: 0.16
+Nodes (21): formOpts, TemplateTestCase, templateTestCaseSchema, createTemplateTestCaseAction(), deleteTemplateTestCaseAction(), getAllTemplateTestCasesAction(), getTemplateTestCaseByIdAction(), updateTemplateTestCaseAction() (+13 more)
 
 ### Community 120 - "Test Runs (120)"
-Cohesion: 0.25
-Nodes (4): GHERKIN_KEYWORDS, OrderedGherkinStep, StepFormatState, THEN_LIKE_PREFIXES
+Cohesion: 0.24
+Nodes (18): buildAppraiseMetadata(), getAppraiseMetadataPath(), featurePath, metadata, metadataPath, deleteFeatureFile(), generateFeatureContent(), generateFeatureFile() (+10 more)
 
 ### Community 121 - "Sync & Gherkin (121)"
 Cohesion: 0.09
 Nodes (21): compilerOptions, allowJs, esModuleInterop, forceConsistentCasingInFileNames, incremental, isolatedModules, jsx, lib (+13 more)
 
 ### Community 122 - "Templates & Flow Builder (122)"
-Cohesion: 0.06
-Nodes (35): LocatorInspector(), LocatorInspectorProps, SelectedElementDetails, FlowDiagramNodeSearch(), FlowDiagramNodeSearchProps, FlowNodeSearchResult, FlowDiagramToolbarProps, EmptyTube() (+27 more)
+Cohesion: 0.33
+Nodes (7): addEventListenerSpy, constructor(), emittedEvents, eventSources, exitEvent, { getTestRunLogsAction }, MockEventSource
 
 ### Community 123 - "Locators & Picker (123)"
-Cohesion: 0.15
-Nodes (5): ButtonSkeleton(), IconButtonSkeleton(), TextInputSkeleton(), Skeleton(), TableSkeleton()
+Cohesion: 0.33
+Nodes (6): ReportTestCaseWithRelations, reportViewTableCols, testRunTestCaseResultToBadge(), ReportDetailWithRelations, ReportViewTable(), ReportViewTableProps
 
 ### Community 124 - "Forms & UI (124)"
-Cohesion: 0.46
-Nodes (8): exports, main, name, private, scripts, build, type, types
+Cohesion: 0.45
+Nodes (9): exports, main, name, private, scripts, build, type, types (+1 more)
 
 ### Community 125 - "Test Execution (125)"
 Cohesion: 0.26
 Nodes (8): compilerOptions, declaration, emitDeclarationOnly, noEmit, outDir, rootDir, extends, include
 
 ### Community 126 - "Test Execution (126)"
-Cohesion: 0.16
-Nodes (50): TemplateTestCaseNodeData, AddNodePromptNodeWrapper(), defaultEdgeOptions, edgeTypes, FlowDiagram(), flowDiagramHandlersRef, flowDiagramProOptions, FlowDiagramProps (+42 more)
+Cohesion: 0.15
+Nodes (48): createOnConnectHandler(), filterBlockedEdgeChanges(), filterBlockedNodeChanges(), isValidFlowDiagramConnection(), syncFlowNodePresentationMetadata(), buildFlowNodeData(), buildNodeFormData(), createAddNodePromptNode() (+40 more)
 
 ### Community 127 - "Shared UI Components (127)"
 Cohesion: 0.09
@@ -995,7 +1038,7 @@ Nodes (6): isDirEmpty(), PromptOptions, runPrompts(), newPath, validateTargetDir
 
 ### Community 130 - "Templates & Flow Builder (130)"
 Cohesion: 0.07
-Nodes (50): LocatorCache, LocatorMapCache, toGlobPath(), BROWSER_CHOICES, CliOptions, environmentNames, HEADLESS_CHOICES, parsePositiveInt() (+42 more)
+Nodes (51): LocatorCache, LocatorMapCache, toGlobPath(), BROWSER_CHOICES, CliOptions, environmentNames, HEADLESS_CHOICES, parsePositiveInt() (+43 more)
 
 ### Community 131 - "Test Hierarchy CRUD (131)"
 Cohesion: 0.62
@@ -1022,8 +1065,8 @@ Cohesion: 0.1
 Nodes (21): 2.1 Avoid Barrel File Imports, 2.2 Conditional Module Loading, 2.3 Defer Non-Critical Third-Party Libraries, 2.4 Dynamic Imports for Heavy Components, 2.5 Prefer Statically Analyzable Paths, 2.6 Preload Based on User Intent, 2. Bundle Size Optimization, code:tsx (import { Check, X, Menu } from 'lucide-react') (+13 more)
 
 ### Community 137 - "Test Runs (137)"
-Cohesion: 0.16
-Nodes (17): deleteLocatorAction(), getLocatorByIdAction(), syncLocatorsFromFilesAction(), deleteLocators(), getLocatorByIdOrThrow(), listLocators(), ConflictResolutionSummary, getLocatorTableRows() (+9 more)
+Cohesion: 0.2
+Nodes (11): ConflictResolutionSummary, getLocatorTableRows(), isConflictRow(), isLocatorGroupRow(), isLocatorTableRow(), LocatorGroupSummary, LocatorTableRow, locatorTableCols (+3 more)
 
 ### Community 138 - "Test Runs (138)"
 Cohesion: 0.11
@@ -1037,13 +1080,17 @@ Nodes (17): About AppraiseJS, appraisejs, code:bash (npx appraisejs@latest add s
 Cohesion: 0.11
 Nodes (18): Batch 1: Foundation + Highest-Impact Extractions, Batch 2: CRUD-Heavy Domains, Batch 3: Simple CRUD + Cleanup, Batch Plan, code:mermaid (flowchart LR), Conventions Established by This Refactor, Cross-Cutting Smells, Current State Assessment (+10 more)
 
+### Community 141 - "Test Hierarchy CRUD (141)"
+Cohesion: 0.08
+Nodes (24): 1. Split specs by domain (keep smoke as gate), 2. Expand helpers (page workflows, not selectors in specs), 3. Fixture factories in `test-data.ts`, 4. Playwright projects / tags (optional, low cost), Authoring and flow builder, code:mermaid (flowchart LR), Coverage map (what to add), CRUD — configuration entities (+16 more)
+
 ### Community 142 - "Forms & UI (142)"
-Cohesion: 0.27
-Nodes (5): buildFlowBlocksFromTestCaseRows(), buildNodeOrderFromTestCaseSteps(), getEditableTestCase(), isEditableTestCase(), EditableTestCase
+Cohesion: 0.24
+Nodes (7): buildFlowBlocksFromTestCaseRows(), buildNodeOrderFromTestCaseSteps(), getEditableTestCase(), isEditableTestCase(), isTestCaseStepParameterRow(), isTestCaseStepRow(), EditableTestCase
 
 ### Community 143 - ".Agents Skills"
-Cohesion: 0.06
-Nodes (32): FlowBlockBounds, getFlowBlockBounds(), isEdgeWithinSameFlowBlock(), normalizeFlowBlocks(), FlowDiagramBlockDialog(), FlowDiagramBlockOverlays(), FlowDiagramBlockOverlaysProps, createOnConnectHandler() (+24 more)
+Cohesion: 0.17
+Nodes (17): FlowBlockBounds, getFlowBlockBounds(), getFlowBlockMembershipMap(), hasOrphanedFlowNode(), isEdgeWithinSameFlowBlock(), normalizeFlowBlocks(), FlowDiagramBlockOverlays(), FlowDiagramBlockOverlaysProps (+9 more)
 
 ### Community 144 - ".Agents Skills (144)"
 Cohesion: 0.33
@@ -1058,24 +1105,24 @@ Cohesion: 0.33
 Nodes (5): plugins, prisma, vercel, enabled, enabled
 
 ### Community 147 - "Scaffold CLI (147)"
-Cohesion: 0.22
-Nodes (5): demo, apiBaseUrl, baseUrl, email, password
+Cohesion: 0.11
+Nodes (15): demo, demo2, apiBaseUrl, baseUrl, email, password, apiBaseUrl, baseUrl (+7 more)
 
 ### Community 148 - "Build Scripts"
 Cohesion: 0.33
 Nodes (6): dependencies, cli-progress, cross-spawn, fs-extra, @inquirer/prompts, tar
 
 ### Community 149 - "Shared UI Components (149)"
-Cohesion: 0.33
-Nodes (5): env, fallowBin, repoRoot, result, scriptDir
+Cohesion: 0.47
+Nodes (7): env, fallowArgs, fallowBin, fallowCli, repoRoot, result, scriptDir
 
 ### Community 150 - "Sync & Gherkin (150)"
-Cohesion: 0.3
-Nodes (8): deleteTestRunAction(), getAllTestRunsAction(), metadata, TestRuns(), testRunTableCols, TestRunData, TestRunTable(), TestRunTableProps
+Cohesion: 0.18
+Nodes (15): ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance, readProjectDatabaseUrl(), require, parseGroupJSDoc() (+7 more)
 
 ### Community 151 - "React-Doctor.Config.Json"
-Cohesion: 0.56
-Nodes (5): cucumber.features, cucumber.glue, cucumber.parameterTypes, postman.settings.dotenv-detection-notification-visibility, prisma.pinToPrisma6
+Cohesion: 0.53
+Nodes (7): cucumber.features, cucumber.glue, cucumber.parameterTypes, files.eol, git.autocrlf, postman.settings.dotenv-detection-notification-visibility, prisma.pinToPrisma6
 
 ### Community 152 - "Build Scripts (152)"
 Cohesion: 0.4
@@ -1098,8 +1145,8 @@ Cohesion: 0.56
 Nodes (4): nameInput, onSubmitAction, { push, toast }, user
 
 ### Community 158 - "Templates & Flow Builder (158)"
-Cohesion: 0.56
-Nodes (4): onSubmitAction, onSuccess, { push, toast }, user
+Cohesion: 0.42
+Nodes (10): Tag, getErrorMessage(), getActionErrorMessage(), getCreatedTag(), tagFieldValidators, TagFormSubmitAction, TagFieldErrors(), TagFieldErrorsProps (+2 more)
 
 ### Community 159 - "Shared UI Components (159)"
 Cohesion: 0.12
@@ -1129,6 +1176,10 @@ Nodes (4): repository, directory, type, url
 Cohesion: 0.57
 Nodes (3): getTempDirectory(), isUsableDirectory(), main()
 
+### Community 168 - "Test Runs (168)"
+Cohesion: 0.54
+Nodes (3): getBrowserEngineOptions(), getFieldErrorMessage(), testRunQuickTips
+
 ### Community 169 - "Community 169"
 Cohesion: 0.13
 Nodes (13): 1. Component Architecture (architecture), 1. Eliminating Waterfalls (async), 2. Bundle Size Optimization (bundle), 2. State Management (state), 3. Implementation Patterns (patterns), 3. Server-Side Performance (server), 4. Client-Side Data Fetching (client), 4. React 19 APIs (react19) (+5 more)
@@ -1137,13 +1188,21 @@ Nodes (13): 1. Component Architecture (architecture), 1. Eliminating Waterfalls 
 Cohesion: 0.13
 Nodes (14): code:bash (npx create-appraisejs@latest), code:bash (npx create-appraisejs@latest --template blank), code:bash (# Install dependencies, create .env, prepare the database, a), code:bash (CREATE_APPRAISE_BRANCH=main npx create-appraisejs@latest --t), code:bash (npx appraisejs@latest add step <group-slug>/<step-slug>), Common Scripts In The Generated App, create-appraisejs, Default Local Workflow (+6 more)
 
+### Community 171 - "Templates & Flow Builder (171)"
+Cohesion: 0.54
+Nodes (3): MotionDiv(), motionReactMVitestMock, motionReactVitestMock
+
 ### Community 172 - "Locators & Picker (172)"
 Cohesion: 0.5
 Nodes (3): generatedAt, steps, version
 
 ### Community 173 - "Community 173"
-Cohesion: 0.21
-Nodes (16): payload, testSuiteSchema, deleteTestSuiteAction(), getAllTestSuitesAction(), getTestSuiteByIdAction(), updateTestSuiteAction(), createTestSuiteFromInput(), deleteTestSuitesByIds() (+8 more)
+Cohesion: 0.14
+Nodes (23): CreateTestSuite(), formOpts, testSuiteFormOpts, testSuiteSchema, ModifyTestSuite(), deleteTestSuiteAction(), getTestSuiteByIdAction(), updateTestSuiteAction() (+15 more)
+
+### Community 194 - "Locators & Picker (194)"
+Cohesion: 0.32
+Nodes (14): appendUniqueById(), appendUniqueId(), applyUpdater(), createTestCaseFormState(), CreateTestCaseFormStateInput, baseState, next, suite (+6 more)
 
 ### Community 225 - "App (225)"
 Cohesion: 0.14
@@ -1154,8 +1213,8 @@ Cohesion: 0.25
 Nodes (12): Email, Email 2, Email Demo 2, Emailcvvas, Login, Login 23, Login 343, Login Button (+4 more)
 
 ### Community 228 - "Templates & Flow Builder (228)"
-Cohesion: 0.11
-Nodes (23): getFilterTags(), TagShape, TestSelectionType, testSelectionTypes, applyChildCheckboxSelection(), applySuiteCheckboxSelection(), buildNormalizedSelectionsFromDraft(), createDraftSelections() (+15 more)
+Cohesion: 0.29
+Nodes (18): ActionResponseData, getEnvironmentRows(), getLocatorGroupRows(), getLocatorRows(), getModuleRows(), getTagRows(), getTestSuiteRows(), isEnvironmentRow() (+10 more)
 
 ### Community 230 - "Community 230"
 Cohesion: 0.14
@@ -1190,8 +1249,8 @@ Cohesion: 0.17
 Nodes (11): 1. Form and picker contract, 2. Create-test-run UI, 3. Execution model and tag-expression generation, 4. Run tracking, live updates, and report matching, 5. Suite identifier tags and data integrity, Assumptions, Key Changes, Public Interfaces / Types (+3 more)
 
 ### Community 238 - "Community 238"
-Cohesion: 0.15
-Nodes (15): metadata, Reports(), ReportWithRelations, getAllReportsAction(), getAllTestCaseMetricsAction(), getAllTestSuiteMetricsAction(), isValidReportList(), reportTableCols (+7 more)
+Cohesion: 0.32
+Nodes (20): cancelTestRunService(), checkTraceViewerStatusService(), getTestRunLogsService(), spawnTraceViewerService(), storeTestRunLogsService(), after, base, baseValue (+12 more)
 
 ### Community 239 - "Community 239"
 Cohesion: 0.53
@@ -1226,16 +1285,16 @@ Cohesion: 0.18
 Nodes (10): Available Sync Scripts, Code of Conduct, code:block7 (appraise/), Contributing to AppraiseJS Core, Getting Help, License, Project Structure, Sync Scripts (+2 more)
 
 ### Community 247 - "Community 247"
-Cohesion: 0.25
-Nodes (9): name, overrides, minimatch, react-is, @types/react, @types/react-dom, private, type (+1 more)
+Cohesion: 0.22
+Nodes (11): name, overrides, minimatch, react-is, @types/react, @types/react-dom, private, simple-git-hooks (+3 more)
 
 ### Community 248 - "Community 248"
 Cohesion: 0.18
 Nodes (10): 1. Public scaffolding interface, 2. Centralize template metadata and resolution, 3. Template generation strategy, 4. Scaffolding flow updates, 5. Validation and guardrails, Add `starter` and `blank` Templates to `create-appraisejs`, Assumptions, Key Changes (+2 more)
 
 ### Community 249 - "Community 249"
-Cohesion: 0.25
-Nodes (9): name, overrides, minimatch, react-is, @types/react, @types/react-dom, private, type (+1 more)
+Cohesion: 0.22
+Nodes (11): name, overrides, minimatch, react-is, @types/react, @types/react-dom, private, simple-git-hooks (+3 more)
 
 ### Community 250 - "Community 250"
 Cohesion: 0.18
@@ -1282,8 +1341,8 @@ Cohesion: 0.22
 Nodes (8): Assumptions, Implementation Changes, Key Changes, Replace `src/tests` With A Root `automation/` Workspace And Introduce A Local Executor Boundary, Server Actions To Modify, Single-Agent Task Plan, Summary, Test Plan
 
 ### Community 261 - "Community 261"
-Cohesion: 0.19
-Nodes (8): getTemplateSelectionOptions(), getTemplateTestCasesWithSteps(), getTemplateTestCaseWithSteps(), isNamedRow(), isTemplateTestCaseWithSteps(), TemplateSelectionOption, TemplateSelectionRow, TemplateTestCaseWithSteps
+Cohesion: 0.17
+Nodes (7): InfoCards, InfoGrid(), TubePlus(), TestSuites(), getTestSuiteTableRows(), testSuiteTableCols, TestSuiteTable()
 
 ### Community 262 - "Community 262"
 Cohesion: 0.22
@@ -1322,8 +1381,12 @@ Cohesion: 0.25
 Nodes (7): Assumptions And Defaults, Interfaces And Contracts, Key Changes, Local Playwright Picker Companion Plan, Package Structure, Summary, Test Plan
 
 ### Community 271 - "Community 271"
-Cohesion: 0.5
+Cohesion: 0.53
 Nodes (7): deleteButton, onAddConnectedNode, onEdit, renderOptionsHeaderNode(), updateNodes, user, xyflowMocks
+
+### Community 272 - "Community 272"
+Cohesion: 0.09
+Nodes (22): companionPid, crashLogPath, currentPathname, currentUrl, launchSource, environmentId, environmentName, url (+14 more)
 
 ### Community 273 - "Community 273"
 Cohesion: 0.54
@@ -1422,8 +1485,8 @@ Cohesion: 0.29
 Nodes (6): Actual Behavior, Environment, Expected Behavior, Logs and Screenshots, Steps to Reproduce, Summary
 
 ### Community 298 - "Community 298"
-Cohesion: 0.53
-Nodes (7): fillAndSubmitForm(), onSubmitAction, onSuccess, { push, toast }, SelectContext, user, { value, onValueChange }
+Cohesion: 0.09
+Nodes (22): companionPid, crashLogPath, currentPathname, currentUrl, launchSource, environmentId, environmentName, url (+14 more)
 
 ### Community 299 - "Community 299"
 Cohesion: 0.29
@@ -1490,8 +1553,8 @@ Cohesion: 0.33
 Nodes (5): Assumptions, Implementation Changes, Include Locator Companion in Synced Templates, Summary, Test Plan
 
 ### Community 316 - "Community 316"
-Cohesion: 0.53
-Nodes (4): extractModulePathFromAutomationFile(), getAutomationFeaturesDir(), getAutomationLocatorsDir(), toPosixPath()
+Cohesion: 0.64
+Nodes (5): extractModulePathFromAutomationFile(), getAutomationFeaturesDir(), getAutomationLocatorMapPath(), getAutomationLocatorsDir(), toPosixPath()
 
 ### Community 320 - "Community 320"
 Cohesion: 0.33
@@ -1626,8 +1689,8 @@ Cohesion: 0.4
 Nodes (5): code:bash (fallow migrate --dry-run    # preview), Detected Source Configs, Examples, Flags, `migrate`: Config Migration
 
 ### Community 353 - "Community 353"
-Cohesion: 0.4
-Nodes (5): code:bash (fallow dead-code --format json --quiet --changed-since main ), code:bash (fallow dead-code --format json --quiet --changed-since main), PR Dead Code Check, Step 1: Analyze changed files, Step 2: If issues found, show specifics
+Cohesion: 0.09
+Nodes (21): companionPid, crashLogPath, currentPathname, currentUrl, launchSource, environmentId, environmentName, url (+13 more)
 
 ### Community 354 - "Community 354"
 Cohesion: 0.4
@@ -1834,8 +1897,8 @@ Cohesion: 0.5
 Nodes (4): 7.10 Hoist RegExp Creation, code:tsx (function Highlighter({ text, query }: Props) {), code:tsx (const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/), code:typescript (const regex = /foo/g)
 
 ### Community 408 - "Community 408"
-Cohesion: 0.5
-Nodes (4): 7.11 Use flatMap to Map and Filter in One Pass, code:typescript (const userNames = users), code:typescript (const userNames = users.flatMap(user =>), code:typescript (// Extract valid emails from responses)
+Cohesion: 0.09
+Nodes (21): companionPid, crashLogPath, currentPathname, currentUrl, launchSource, environmentId, environmentName, url (+13 more)
 
 ### Community 420 - "Community 420"
 Cohesion: 0.67
@@ -1862,75 +1925,209 @@ Cohesion: 0.67
 Nodes (3): code:typescript (// RESOLVED: static pattern with prefix), code:typescript (// fallow-ignore-next-line unused-export), Syntactic Analysis: No TypeScript Compiler
 
 ### Community 490 - "Community 490"
-Cohesion: 0.18
-Nodes (14): getEditableTemplateStep(), hasTemplateStepShape(), isEditableTemplateStep(), isNamedRow(), isRecord(), isTemplateStepParameterRow(), isTemplateStepParameterSummary(), isTemplateStepTableRow() (+6 more)
+Cohesion: 0.25
+Nodes (11): savePickedLocatorFromRequest(), getLocatorPickerSessionAction(), savePickedLocatorAction(), startLocatorPickerSessionAction(), startLocatorPickerSessionSchema, LocatorPickerSessionManager, GroupResolutionMode, LocatorPickerStatus (+3 more)
 
 ### Community 491 - "Community 491"
-Cohesion: 0.05
-Nodes (37): DetailsStepProps, EMPTY_FLOW_BLOCKS, FlowPanel(), FlowPanelProps, FlowStepProps, getInitialWizardStep(), getWizardStepIndexes(), getWizardSteps() (+29 more)
+Cohesion: 0.13
+Nodes (54): EMPTY_FLOW_BLOCKS, TemplateTestCaseForm(), TemplateTestCaseFormFieldError(), TemplateTestCaseFormProps, getActionErrorMessage(), handleTestCaseSaveResponse(), TestScenarioPreview(), InlineTagCreationDialog() (+46 more)
 
 ### Community 492 - "Community 492"
-Cohesion: 0.48
-Nodes (10): InlineLocatorSaveResult, DynamicFormFieldsRef, formRef, Harness(), { inlineSaveResult }, locatorParam, onChange, onLocatorCreated (+2 more)
+Cohesion: 0.51
+Nodes (8): formRef, Harness(), { inlineSaveResult }, locatorParam, onChange, onLocatorCreated, renderLocatorFields(), user
 
 ### Community 493 - "Community 493"
 Cohesion: 0.51
 Nodes (8): baseInitialValues, MockDynamicFormFields(), onSubmitAction, { rerender }, templateStepParams, templateSteps, user, validateMock
 
 ### Community 494 - "Community 494"
-Cohesion: 0.54
-Nodes (3): {
-  push,
-  getAllTestSuitesAction,
-  getAllTestCasesAction,
-  getAllTemplateStepsAction,
-  getAllTestRunsAction,
-  getAllTemplateTestCasesAction,
-}, searchInput, user
+Cohesion: 0.11
+Nodes (18): 1. Baseline And Config Documentation, 2. React Doctor Mechanical Design Cleanup, 3. React Doctor React 19 Compatibility, 4. React Doctor Correctness, State, And Effects, 5. React Doctor Performance, Server, Bundle, And Accessibility, 6. Fallow Structural Cleanup, Current Tool Configuration, Done Criteria (+10 more)
 
 ### Community 495 - "Community 495"
-Cohesion: 0.16
-Nodes (7): onClose, onSaveSuccess, { push, refresh, toast, startLocatorPickerSessionAction, savePickedLocatorAction }, user, getTestSuitePickerRows(), isModuleRow(), isTestSuitePickerRow()
+Cohesion: 0.27
+Nodes (17): EntitySearchCommand(), EntitySearchCommandProps, LoadAction, loadReducer(), LoadState, getTemplateStepRows(), getTemplateTestCaseRows(), getTestCaseRows() (+9 more)
 
 ### Community 496 - "Community 496"
-Cohesion: 0.33
-Nodes (3): getInitialFunctionDefinition(), getTemplateStepFormDefaults(), templateStepFieldValidators
+Cohesion: 0.46
+Nodes (11): appliedMigrations, appliedRows, checksum, databasePath, db, insertMigration, migrationNames, migrationPath (+3 more)
 
 ### Community 497 - "Community 497"
-Cohesion: 0.54
-Nodes (3): onSubmitAction, { push, toast, checkTestRunNameUniqueAction }, user
+Cohesion: 0.34
+Nodes (16): getEditableTemplateStep(), getTemplateStepGroupRows(), getTemplateStepRows(), hasTemplateStepShape(), isEditableTemplateStep(), isNamedRow(), isRecord(), isTemplateStepParameterRow() (+8 more)
 
 ### Community 498 - "Community 498"
-Cohesion: 0.15
-Nodes (12): environments, getAllEnvironmentsActionMock, getAllLocatorGroupsActionMock, getAllLocatorsActionMock, getAllModulesActionMock, getAllTemplateStepParamsActionMock, getAllTemplateStepsActionMock, locatorGroups (+4 more)
+Cohesion: 0.56
+Nodes (10): ensureGitInclude(), getLocalConfig(), isGitRepository(), log(), main(), quiet, repoRoot, runGit() (+2 more)
 
 ### Community 499 - "Community 499"
-Cohesion: 0.56
-Nodes (4): reportViewTableCols, ReportDetailWithRelations, ReportViewTable(), ReportViewTableProps
+Cohesion: 0.49
+Nodes (9): archive, ArchiveFileCall, directoryEntry(), fileEntry(), listeners, mapping, { mockReaddir, mockAccess, mockFindUnique, archiveState }, normalizedDir (+1 more)
 
 ### Community 500 - "Community 500"
+Cohesion: 0.17
+Nodes (7): AppraiseJS E2E tests, CI and parallelism, Commands, Debugging, Layout, Scope boundaries, Seed model
+
+### Community 501 - "Community 501"
+Cohesion: 0.55
+Nodes (7): EXCLUDED_DIRS, EXCLUDED_EXTENSIONS, EXCLUDED_FILENAMES, EXCLUDED_PATH_PREFIXES, shouldBackfillLegacyEnvironmentConfig(), shouldExcludeTemplatePath(), toPosixPath()
+
+### Community 502 - "Community 502"
+Cohesion: 0.3
+Nodes (14): consumeCandidate(), extractTestCaseTitleFromScenarioName(), findMatchingTestRunTestCase(), MatchableRunTestCase, normalizeTagExpression(), ScenarioMatchInput, TagLike, completedCandidate (+6 more)
+
+### Community 503 - "Community 503"
+Cohesion: 0.26
+Nodes (8): ModuleWithParent, getModuleFormParentId(), getModuleParentOptions(), getModuleTableRows(), isModuleParent(), isModuleTableRow(), ModuleParentOption, ModuleTableRow
+
+### Community 504 - "Community 504"
+Cohesion: 0.56
+Nodes (4): run(), server, sqlitePath, sqlitePathFromDatabaseUrl()
+
+### Community 505 - "Community 505"
+Cohesion: 0.25
+Nodes (7): Agent Workflow, Automation Directories, Automation Sync Rules, Key Locations, Mental Model, Never Do, Sync Commands
+
+### Community 506 - "Community 506"
+Cohesion: 0.25
+Nodes (7): Key Locations, Mental Model, Never Do, Scaffold Template Sync, Sync Flow, Validation, When Direct Template Edits Are Acceptable
+
+### Community 507 - "Community 507"
+Cohesion: 0.25
+Nodes (7): Execution Flow, Key Locations, Mental Model, Never Do, Runtime Environment, Test Run Runtime, Validation
+
+### Community 508 - "Community 508"
+Cohesion: 0.29
+Nodes (6): AppraiseJS Quality Improvement Continuation Plan, Assumptions, Next Pass, Summary, Test Plan, What Has Been Done
+
+### Community 509 - "Community 509"
+Cohesion: 0.29
+Nodes (6): Assumptions And Defaults, Key Changes, React Doctor And Fallow Quality Improvement Plan, Summary, Test Plan, Tool Boundaries And Baselines
+
+### Community 510 - "Community 510"
+Cohesion: 0.29
+Nodes (6): Assumptions, Flow Builder Keyboard Shortcuts, Key Changes, Summary, Tests, Tooltip and UI Updates
+
+### Community 511 - "Community 511"
+Cohesion: 0.29
+Nodes (6): Assumptions, Key Changes, Missing Metadata Behavior, Source-Controlled Test Case UI Metadata, Summary, Test Plan
+
+### Community 512 - "Community 512"
+Cohesion: 0.32
+Nodes (10): capitalizeGroupName(), buildTemplateStep(), clickItem, combobox, options, renderCombobox(), searchInput, user (+2 more)
+
+### Community 513 - "Community 513"
+Cohesion: 0.49
+Nodes (9): baseRows, createIdentifierTag(), fixturePath, {
+  mockReportFindUnique,
+  mockReportFindFirst,
+  mockReportCreate,
+  mockReportFeatureCreate,
+  mockReportFeatureTagCreate,
+  mockReportScenarioCreate,
+  mockReportScenarioTagCreate,
+  mockReportStepCreate,
+  mockReportHookCreate,
+  mockReportTestCaseCreate,
+  mockTestRunFindUnique,
+  mockTestCaseFindMany,
+  mockTestCaseMetricsFindMany,
+  mockTestSuiteFindMany,
+  mockTestSuiteMetricsFindMany,
+  mockUpdateTestSuiteMetrics,
+}, {
+  mockReportFindUnique,
+  mockReportFindFirst,
+  mockReportCreate,
+  mockReportFeatureCreate,
+  mockReportFeatureTagCreate,
+  mockReportScenarioCreate,
+  mockReportScenarioTagCreate,
+  mockReportStepCreate,
+  mockReportHookCreate,
+  mockReportTestCaseCreate,
+  mockTestRunFindUnique,
+  mockTestCaseFindMany,
+  mockTestCaseMetricsFindMany,
+  mockTestSuiteMetricsFindMany,
+  mockUpdateTestSuiteMetrics,
+}, neverExecutedCreatedAt, old, recent (+1 more)
+
+### Community 514 - "Community 514"
+Cohesion: 0.33
+Nodes (5): After making React code changes:, code:bash (npx -y react-doctor@latest . --verbose --diff), Command, For general cleanup or code improvement:, React Doctor
+
+### Community 515 - "Community 515"
+Cohesion: 0.33
+Nodes (5): AppraiseJS Remaining Quality Cleanup Plan, Assumptions, Key Changes, Summary, Test Plan
+
+### Community 516 - "Community 516"
+Cohesion: 0.33
+Nodes (5): testCases, testSuite, modulePath, name, version
+
+### Community 517 - "Community 517"
+Cohesion: 0.6
+Nodes (3): Email, Login, Password
+
+### Community 518 - "Community 518"
+Cohesion: 0.53
+Nodes (7): fillAndSubmitForm(), onSubmitAction, onSuccess, { push, toast }, SelectContext, user, { value, onValueChange }
+
+### Community 521 - "Community 521"
+Cohesion: 0.5
+Nodes (3): databasePath, inputHash, preparedAt
+
+### Community 526 - "Community 526"
+Cohesion: 0.55
+Nodes (6): onSubmitAction, { push, toast }, SelectContext, selects, user, { value, onValueChange }
+
+### Community 527 - "Community 527"
+Cohesion: 0.56
+Nodes (5): getParameterPreviewUpdates(), preview, selection, templateStepParams, templateSteps
+
+### Community 528 - "Community 528"
+Cohesion: 0.56
+Nodes (4): onClose, onSaveSuccess, { push, refresh, toast, startLocatorPickerSessionAction, savePickedLocatorAction }, user
+
+### Community 529 - "Community 529"
+Cohesion: 0.56
+Nodes (4): onSubmitAction, passwordInput, { push, toast }, user
+
+### Community 530 - "Community 530"
+Cohesion: 0.56
+Nodes (4): onSubmitAction, onSuccess, { push, toast }, user
+
+### Community 531 - "Community 531"
 Cohesion: 0.54
-Nodes (3): checkTestRunNameUniqueAction(), NameValidationResult, useTestRunNameValidation()
+Nodes (3): deleteLocatorGroupAction(), locatorGroupTableCols, LocatorGroupTable()
+
+### Community 532 - "Community 532"
+Cohesion: 0.4
+Nodes (5): code:bash (fallow dead-code --format json --quiet --changed-since main ), code:bash (fallow dead-code --format json --quiet --changed-since main), PR Dead Code Check, Step 1: Analyze changed files, Step 2: If issues found, show specifics
+
+### Community 533 - "Community 533"
+Cohesion: 0.5
+Nodes (4): 7.11 Use flatMap to Map and Filter in One Pass, code:typescript (const userNames = users), code:typescript (const userNames = users.flatMap(user =>), code:typescript (// Extract valid emails from responses)
 
 ## Knowledge Gaps
-- **2036 isolated node(s):** `config`, `deadCode`, `failOn`, `files`, `$schema` (+2031 more)
+- **2097 isolated node(s):** `Summary`, `Key Changes`, `Tooltip and UI Updates`, `Tests`, `Assumptions` (+2092 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **67 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **69 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `main()` connect `Forms & UI` to `Locators & Picker (129)`, `Locators & Picker (163)`, `Test Runs (101)`, `Templates & Flow Builder (43)`, `Templates & Flow Builder (61)`?**
-  _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **Why does `cn()` connect `Templates & Flow Builder (122)` to `Test Runs`, `Locators & Picker`, `Test Runs (2)`, `Templates & Flow Builder`, `Dashboard & Metrics`, `Test Runs (16)`, `Locators & Picker (21)`, `Dashboard & Metrics (22)`, `Locators & Picker (24)`, `Templates & Flow Builder (30)`, `Locators & Picker (33)`, `Locators & Picker (37)`, `Templates & Flow Builder (39)`, `Locators & Picker (44)`, `Locators & Picker (45)`, `Templates & Flow Builder (51)`, `Templates & Flow Builder (54)`, `Shared UI Components (66)`, `Community 491`, `Locators & Picker (107)`, `Community 239`, `Test Runs (112)`, `Community 241`, `Locators & Picker (123)`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
-- **Why does `Button()` connect `Locators & Picker (45)` to `Test Runs`, `Test Runs (2)`, `Templates & Flow Builder`, `Locators & Picker (10)`, `Templates & Flow Builder (12)`, `Test Runs (14)`, `.Agents Skills`, `Test Runs (16)`, `Locators & Picker (21)`, `Dashboard & Metrics (22)`, `Locators & Picker (24)`, `Templates & Flow Builder (31)`, `Locators & Picker (33)`, `Locators & Picker (37)`, `Test Runs (38)`, `Templates & Flow Builder (39)`, `Locators & Picker (44)`, `Templates & Flow Builder (51)`, `Templates & Flow Builder (54)`, `Shared UI Components (66)`, `Templates & Flow Builder (76)`, `Shared UI Components (100)`, `Community 491`, `Test Runs (112)`, `Templates & Flow Builder (122)`, `Test Execution (126)`?**
-  _High betweenness centrality (0.043) - this node is a cross-community bridge._
-- **What connects `config`, `deadCode`, `failOn` to the rest of the system?**
-  _2036 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `cn()` connect `Templates & Flow Builder (51)` to `Test Runs`, `Community 261`, `Dashboard & Metrics`, `Test Runs (16)`, `Locators & Picker (21)`, `Dashboard & Metrics (22)`, `Locators & Picker (24)`, `Locators & Picker (33)`, `Locators & Picker (37)`, `Templates & Flow Builder (39)`, `Locators & Picker (44)`, `Locators & Picker (45)`, `Templates & Flow Builder (54)`, `Shared UI Components (66)`, `Sync & Gherkin (74)`, `Locators & Picker (91)`, `Shared UI Components (100)`, `Community 491`, `Locators & Picker (107)`, `Locators & Picker (110)`, `Community 239`, `Test Runs (112)`, `Community 241`?**
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
+- **Why does `Button()` connect `Locators & Picker (107)` to `Test Runs`, `Locators & Picker (10)`, `.Agents Skills`, `Test Runs (16)`, `Locators & Picker (21)`, `Dashboard & Metrics (22)`, `Locators & Picker (24)`, `Locators & Picker (28)`, `Templates & Flow Builder (158)`, `Templates & Flow Builder (31)`, `Locators & Picker (33)`, `Locators & Picker (37)`, `Templates & Flow Builder (39)`, `Locators & Picker (44)`, `Locators & Picker (45)`, `Templates & Flow Builder (51)`, `Templates & Flow Builder (54)`, `Sync & Gherkin (74)`, `Templates & Flow Builder (76)`, `Test Runs (84)`, `Shared UI Components (100)`, `Community 491`, `Test Runs (112)`?**
+  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+- **Why does `main()` connect `Templates & Flow Builder (42)` to `Locators & Picker (129)`, `Locators & Picker (163)`, `Test Runs (101)`, `Templates & Flow Builder (43)`, `Templates & Flow Builder (61)`, `Forms & UI`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **What connects `Summary`, `Key Changes`, `Tooltip and UI Updates` to the rest of the system?**
+  _2097 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Test Runs` be split into smaller, more focused modules?**
-  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
-- **Should `Test Runs (3)` be split into smaller, more focused modules?**
-  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
-- **Should `Locators & Picker (4)` be split into smaller, more focused modules?**
-  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
+- **Should `Locators & Picker` be split into smaller, more focused modules?**
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
+- **Should `Test Runs (2)` be split into smaller, more focused modules?**
+  _Cohesion score 0.14 - nodes in this community are weakly interconnected._

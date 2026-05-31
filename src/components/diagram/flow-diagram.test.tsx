@@ -149,6 +149,32 @@ function renderFlowDiagram(enableNodeSearch = true) {
   )
 }
 
+function renderInteractiveFlowDiagram() {
+  return render(
+    <FlowDiagram
+      {...requiredProps}
+      enableNodeSearch
+      enableNodeGrouping
+      nodeOrder={{
+        'node-1': {
+          order: 1,
+          label: 'Open Checkout',
+          gherkinStep: 'Given cart page',
+          parameters: [],
+          templateStepId: 'step-1',
+        },
+        'node-2': {
+          order: 2,
+          label: 'Submit Payment',
+          gherkinStep: 'When payment is submitted',
+          parameters: [],
+          templateStepId: 'step-2',
+        },
+      }}
+    />,
+  )
+}
+
 describe('FlowDiagram node search', () => {
   beforeEach(() => {
     xyflowMocks.setCenter.mockClear()
@@ -298,6 +324,205 @@ describe('FlowDiagram node search', () => {
     await waitFor(() => {
       expect(xyflowMocks.updateNodeInternals).toHaveBeenCalledWith(['node-1'])
     })
+  })
+})
+
+describe('FlowDiagram keyboard shortcuts', () => {
+  beforeEach(() => {
+    xyflowMocks.setCenter.mockClear()
+    xyflowMocks.updateNodeInternals.mockClear()
+  })
+
+  it('handles shortcuts while the flow builder page is mounted', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+
+    expect(await screen.findByRole('textbox', { name: /search nodes/i })).toBeInTheDocument()
+  })
+
+  it('opens and focuses search', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+
+    const searchInput = await screen.findByRole('textbox', { name: /search nodes/i })
+    await waitFor(() => {
+      expect(searchInput).toHaveFocus()
+    })
+  })
+
+  it('toggles search closed when the shortcut is pressed again', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+    expect(await screen.findByRole('textbox', { name: /search nodes/i })).toBeInTheDocument()
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: /search nodes/i })).not.toBeInTheDocument()
+    })
+  })
+
+  it('supports macOS-style meta search shortcuts', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Meta>}{Shift>}s{/Shift}{/Meta}')
+
+    expect(await screen.findByRole('textbox', { name: /search nodes/i })).toBeInTheDocument()
+  })
+
+  it('toggles block selection mode when grouping is enabled', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}b{/Shift}{/Control}')
+
+    expect(screen.getByRole('button', { name: /exit block selection mode/i })).toBeInTheDocument()
+
+    await user.keyboard('{Control>}{Shift>}b{/Shift}{/Control}')
+
+    expect(screen.getByRole('button', { name: /select nodes for block/i })).toBeInTheDocument()
+  })
+
+  it('toggles the add-node sheet', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('switches from the add-node sheet to block selection mode', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.click(screen.getByRole('button', { name: 'Add Node' }))
+    await user.keyboard('{Control>}{Shift>}b{/Shift}{/Control}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /exit block selection mode/i })).toBeInTheDocument()
+  })
+
+  it('switches from search to the add-node sheet', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+    expect(await screen.findByRole('textbox', { name: /search nodes/i })).toBeInTheDocument()
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: /search nodes/i })).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+  })
+
+  it('switches from the add-node sheet to search', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: /search nodes/i })).toBeInTheDocument()
+  })
+
+  it('switches from block selection mode to the add-node sheet', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}b{/Shift}{/Control}')
+    expect(screen.getByRole('button', { name: /exit block selection mode/i })).toBeInTheDocument()
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+
+    expect(screen.getByRole('button', { name: /select nodes for block/i })).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+  })
+
+  it('ignores shortcuts while the block dialog is open', async () => {
+    const user = userEvent.setup()
+    render(
+      <FlowDiagram
+        {...requiredProps}
+        enableNodeSearch
+        enableNodeGrouping
+        nodeOrder={{
+          'node-1': {
+            order: 1,
+            label: 'Open Checkout',
+            gherkinStep: 'Given cart page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+          'node-2': {
+            order: 2,
+            label: 'Submit Payment',
+            gherkinStep: 'When payment is submitted',
+            parameters: [],
+            templateStepId: 'step-2',
+          },
+        }}
+      />,
+    )
+
+    await user.keyboard('{Control>}{Shift>}b{/Shift}{/Control}')
+    await user.click(screen.getByRole('button', { name: /select all flow nodes/i }))
+    await user.click(screen.getByRole('button', { name: /^create block$/i }))
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /search nodes/i })).not.toBeInTheDocument()
+  })
+
+  it('switches from focused search input to the add-node sheet', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.click(screen.getByRole('button', { name: /search nodes/i }))
+    await user.click(screen.getByRole('textbox', { name: /search nodes/i }))
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: /search nodes/i })).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+  })
+
+  it('shows shortcut hints in toolbar tooltips', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.hover(screen.getByRole('button', { name: /search nodes/i }))
+    expect((await screen.findAllByText('Search nodes')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Ctrl').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Shift').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('S').length).toBeGreaterThan(0)
+
+    await user.unhover(screen.getByRole('button', { name: /search nodes/i }))
+    await user.hover(screen.getByRole('button', { name: /select nodes for block/i }))
+    expect((await screen.findAllByText('Create block')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('B').length).toBeGreaterThan(0)
+
+    await user.unhover(screen.getByRole('button', { name: /select nodes for block/i }))
+    await user.hover(screen.getByRole('button', { name: 'Add Node' }))
+    expect((await screen.findAllByText('Add Node')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('C').length).toBeGreaterThan(0)
   })
 })
 
