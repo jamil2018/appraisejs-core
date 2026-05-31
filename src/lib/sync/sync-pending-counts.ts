@@ -31,6 +31,7 @@ import {
   getTestSuiteSyncIdentity,
   normalizeProjectedDbTestCaseSteps,
 } from '@/lib/sync/projected-feature-utils'
+import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
 import {
   parseGroupJSDocLenient as parseGroupJSDoc,
   parseStepJSDocLenient as parseStepJSDoc,
@@ -117,6 +118,9 @@ type TestCaseFromFs = {
   modulePath: string
   filterTags: string[]
   steps: ParsedStep[]
+  hasAppraiseMetadata?: boolean
+  nodes: AppraiseTestCaseMetadataNode[]
+  flowBlocks: AppraiseTestCaseMetadataFlowBlock[]
 }
 
 type CollapsedTestCaseFromFs = TestCaseFromFs & {
@@ -687,15 +691,18 @@ async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnaps
         continue
       }
 
-      const { title, description } = parseScenarioTitle(scenario.name, scenario.description)
+      const parsedTitle = parseScenarioTitle(scenario.name, scenario.description)
       testCases.push({
         identifierTag: normalizeTagExpression(identifierTag),
-        title,
-        description,
+        title: scenario.appraiseMetadata?.title ?? parsedTitle.title,
+        description: scenario.appraiseMetadata?.description ?? parsedTitle.description,
         testSuiteName,
         modulePath,
         filterTags: flattenedTags.filter(tag => normalizeTagExpression(tag) !== normalizeTagExpression(identifierTag)),
         steps: scenario.steps,
+        hasAppraiseMetadata: scenario.appraiseMetadata != null,
+        nodes: scenario.appraiseMetadata?.nodes ?? [],
+        flowBlocks: scenario.appraiseMetadata?.flowBlocks ?? [],
       })
     }
   }
@@ -1018,9 +1025,11 @@ function normalizeProjectedFsTestCaseSteps(stepsFromFs: ParsedStep[]): Projected
 
 function hasProjectedTestCaseStepMismatch(
   stepsFromFs: ParsedStep[],
+  nodesFromFs: AppraiseTestCaseMetadataNode[] = [],
   dbSteps: Array<{
     order: number
     gherkinStep: string
+    flowNodeId: string | null
     label: string
     icon: TemplateStepIcon
     TemplateStep: { signature: string } | null
@@ -1035,10 +1044,12 @@ function hasProjectedTestCaseStepMismatch(
   const projectedFsSteps = normalizeProjectedFsTestCaseSteps(stepsFromFs)
   const dbStepsByOrder = new Map(projectedDbSteps.map(step => [step.order, step]))
   const fsStepsByOrder = new Map(stepsFromFs.map(step => [step.order, step]))
+  const nodesByOrder = new Map(nodesFromFs.map(node => [node.order, node]))
 
   for (const projectedFsStep of projectedFsSteps) {
     const existing = dbStepsByOrder.get(projectedFsStep.order)
     const sourceStep = fsStepsByOrder.get(projectedFsStep.order)
+    const metadataNode = nodesByOrder.get(projectedFsStep.order)
     const matchedTemplateStep = sourceStep ? matchGherkinStepToTemplateStep(sourceStep, dbTemplateSteps) : null
 
     if (!existing || !matchedTemplateStep) {
@@ -1047,7 +1058,8 @@ function hasProjectedTestCaseStepMismatch(
 
     if (
       existing.gherkinStep !== projectedFsStep.gherkinStep ||
-      existing.label !== projectedFsStep.label ||
+      existing.flowNodeId !== (metadataNode?.nodeId ?? existing.flowNodeId) ||
+      existing.label !== (metadataNode?.label ?? projectedFsStep.label) ||
       existing.icon !== projectedFsStep.icon ||
       existing.templateStepSignature !== matchedTemplateStep.signature ||
       !sameResolvedParameters(existing.parameters, matchedTemplateStep.parameters)
@@ -1060,6 +1072,39 @@ function hasProjectedTestCaseStepMismatch(
   return projectedDbSteps.some(step => !fsOrders.has(step.order))
 }
 
+function hasFlowBlockMismatch(
+  flowBlocksFromFs: AppraiseTestCaseMetadataFlowBlock[] = [],
+  hasAppraiseMetadata: boolean | undefined,
+  dbFlowBlocks: Array<{
+    id: string
+    name: string
+    order: number
+    nodes: Array<{ flowNodeId: string }>
+  }>,
+): boolean {
+  if (!hasAppraiseMetadata) {
+    return false
+  }
+
+  if (flowBlocksFromFs.length !== dbFlowBlocks.length) {
+    return true
+  }
+
+  const dbById = new Map(dbFlowBlocks.map(block => [block.id, block]))
+
+  return flowBlocksFromFs.some(block => {
+    const existing = dbById.get(block.id)
+    if (!existing || existing.name !== block.name || existing.order !== block.order) {
+      return true
+    }
+
+    return !sameStringSet(
+      existing.nodes.map(node => node.flowNodeId),
+      block.nodeIds,
+    )
+  })
+}
+
 export function countTestCaseMismatches(
   filesystemTestCases: TestCaseFromFs[],
   dbTestCases: Array<{
@@ -1070,10 +1115,17 @@ export function countTestCaseMismatches(
     steps: Array<{
       order: number
       gherkinStep: string
+      flowNodeId: string | null
       label: string
       icon: TemplateStepIcon
       TemplateStep: { signature: string } | null
       parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
+    }>
+    flowBlocks: Array<{
+      id: string
+      name: string
+      order: number
+      nodes: Array<{ flowNodeId: string }>
     }>
   }>,
   modulePathMap: Map<string, string>,
@@ -1139,7 +1191,8 @@ export function countTestCaseMismatches(
         existing.description === testCase.description &&
         isLinkedToExpectedSuites &&
         sameStringSet(existingFilterTags, normalizedFilterTags) &&
-        !hasProjectedTestCaseStepMismatch(testCase.steps, existing.steps, dbTemplateSteps)
+        !hasProjectedTestCaseStepMismatch(testCase.steps, testCase.nodes, existing.steps, dbTemplateSteps) &&
+        !hasFlowBlockMismatch(testCase.flowBlocks, testCase.hasAppraiseMetadata, existing.flowBlocks ?? [])
       )
     })
 
@@ -1245,6 +1298,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
             select: {
               order: true,
               gherkinStep: true,
+              flowNodeId: true,
               label: true,
               icon: true,
               TemplateStep: {
@@ -1253,6 +1307,18 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
               parameters: {
                 select: { name: true, value: true, order: true, type: true },
                 orderBy: { order: 'asc' },
+              },
+            },
+          },
+          flowBlocks: {
+            select: {
+              id: true,
+              name: true,
+              order: true,
+              nodes: {
+                select: {
+                  flowNodeId: true,
+                },
               },
             },
           },

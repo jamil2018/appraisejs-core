@@ -4,6 +4,7 @@ import prisma from '@/config/db-config'
 import { buildModulePath } from '@/lib/path-helpers/module-path'
 import { getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
+import { buildAppraiseMetadata, getAppraiseMetadataPath } from '@/lib/appraise-test-case-metadata'
 import { generateProjectedGherkinSteps, getTestSuiteFilesystemKey } from '@/lib/sync/projected-feature-utils'
 
 async function isDirectoryEmpty(dirPath: string): Promise<boolean> {
@@ -32,6 +33,18 @@ async function removeEmptyDirectoriesUp(dirPath: string, basePath: string): Prom
   }
 }
 
+async function unlinkIfExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.unlink(filePath)
+    return true
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return false
+    }
+    throw error
+  }
+}
+
 export async function generateFeatureFile(
   testSuiteId: string,
   testSuiteName: string,
@@ -48,6 +61,14 @@ export async function generateFeatureFile(
               steps: {
                 include: {
                   parameters: true,
+                },
+                orderBy: {
+                  order: 'asc',
+                },
+              },
+              flowBlocks: {
+                include: {
+                  nodes: true,
                 },
                 orderBy: {
                   order: 'asc',
@@ -73,6 +94,15 @@ export async function generateFeatureFile(
       testSuite.testCases,
       testSuite.tags,
     )
+    const metadataContent = JSON.stringify(
+      buildAppraiseMetadata({
+        testSuiteName,
+        modulePath,
+        testCases: testSuite.testCases,
+      }),
+      null,
+      2,
+    )
 
     const featuresBaseDir = getAutomationFeaturesDir()
     const moduleDir = join(featuresBaseDir, modulePath.substring(1))
@@ -82,6 +112,7 @@ export async function generateFeatureFile(
     const featureFilePath = join(moduleDir, `${safeFileName}.feature`)
 
     await fs.writeFile(featureFilePath, featureContent, 'utf8')
+    await fs.writeFile(getAppraiseMetadataPath(featureFilePath), `${metadataContent}\n`, 'utf8')
     return featureFilePath
   } catch (error) {
     console.error('Error generating feature file:', error)
@@ -178,17 +209,12 @@ export async function deleteFeatureFile(testSuiteId: string): Promise<boolean> {
     const featuresBaseDir = getAutomationFeaturesDir()
     const moduleDir = join(featuresBaseDir, modulePath.substring(1))
     const featureFilePath = join(moduleDir, `${safeFileName}.feature`)
+    const metadataFilePath = getAppraiseMetadataPath(featureFilePath)
 
-    try {
-      await fs.unlink(featureFilePath)
-      await removeEmptyDirectoriesUp(moduleDir, featuresBaseDir)
-      return true
-    } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-        return false
-      }
-      throw error
-    }
+    const deletedFeature = await unlinkIfExists(featureFilePath)
+    const deletedMetadata = await unlinkIfExists(metadataFilePath)
+    await removeEmptyDirectoriesUp(moduleDir, featuresBaseDir)
+    return deletedFeature || deletedMetadata
   } catch (error) {
     console.error('Error deleting feature file:', error)
     throw error
@@ -220,6 +246,14 @@ export async function regenerateAllFeatureFiles(): Promise<string[]> {
                 order: 'asc',
               },
             },
+            flowBlocks: {
+              include: {
+                nodes: true,
+              },
+              orderBy: {
+                order: 'asc',
+              },
+            },
             tags: true,
           },
         },
@@ -239,6 +273,15 @@ export async function regenerateAllFeatureFiles(): Promise<string[]> {
           testSuite.testCases,
           testSuite.tags,
         )
+        const metadataContent = JSON.stringify(
+          buildAppraiseMetadata({
+            testSuiteName: testSuite.name,
+            modulePath,
+            testCases: testSuite.testCases,
+          }),
+          null,
+          2,
+        )
 
         const moduleDir = join(featuresBaseDir, modulePath.substring(1))
         await fs.mkdir(moduleDir, { recursive: true })
@@ -247,6 +290,7 @@ export async function regenerateAllFeatureFiles(): Promise<string[]> {
         const featureFilePath = join(moduleDir, `${safeFileName}.feature`)
 
         await fs.writeFile(featureFilePath, featureContent, 'utf8')
+        await fs.writeFile(getAppraiseMetadataPath(featureFilePath), `${metadataContent}\n`, 'utf8')
         generatedFiles.push(featureFilePath)
       } catch (error) {
         console.error(`Error generating feature file for test suite ${testSuite.name}:`, error)

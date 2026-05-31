@@ -342,6 +342,53 @@ describe('sync pending counts', () => {
     expect(count).toBe(0)
   })
 
+  it('counts sidecar-backed node label and flow block mismatches', () => {
+    const baseFilesystemCase = {
+      identifierTag: '@tc_checkout',
+      title: 'Checkout',
+      description: 'Buys an item',
+      testSuiteName: 'checkout-suite',
+      modulePath: '/commerce',
+      filterTags: [],
+      steps: [{ order: 1, keyword: 'Given' as const, text: 'open checkout' }],
+      hasAppraiseMetadata: true,
+      nodes: [{ nodeId: 'node-open', order: 1, label: 'Open checkout' }],
+      flowBlocks: [{ id: 'block-flow', name: 'Checkout flow', order: 0, nodeIds: ['node-open'] }],
+    }
+
+    const dbCase = {
+      title: 'Checkout',
+      description: 'Buys an item',
+      tags: [{ tagExpression: '@tc_checkout', type: TagType.IDENTIFIER }],
+      TestSuite: [{ name: 'Checkout Suite', moduleId: 'module-commerce' }],
+      steps: [
+        {
+          order: 1,
+          gherkinStep: 'When open checkout',
+          flowNodeId: 'node-open',
+          label: 'Old label',
+          icon: TemplateStepIcon.MOUSE,
+          TemplateStep: { signature: 'open checkout' },
+          parameters: [],
+        },
+      ],
+      flowBlocks: [
+        {
+          id: 'block-flow',
+          name: 'Checkout flow',
+          order: 0,
+          nodes: [{ flowNodeId: 'node-other' }],
+        },
+      ],
+    }
+
+    const count = countTestCaseMismatches([baseFilesystemCase], [dbCase], new Map([['module-commerce', '/commerce']]), [
+      { signature: 'open checkout', parameters: [] },
+    ])
+
+    expect(count).toBe(1)
+  })
+
   it('ignores duplicate stale DB test cases when one matching identifier row exists', () => {
     const count = countTestCaseMismatches(
       [
