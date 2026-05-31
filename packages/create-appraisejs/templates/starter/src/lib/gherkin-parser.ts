@@ -1,5 +1,11 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
+import {
+  getAppraiseMetadataPath,
+  getMetadataByIdentifier,
+  readAppraiseMetadataFile,
+  type AppraiseTestCaseMetadataEntry,
+} from '@/lib/appraise-test-case-metadata'
 import { getFeatureModulePath } from '@/lib/path-helpers/feature-path'
 
 /**
@@ -11,6 +17,7 @@ export interface ParsedFeature {
   featureDescription?: string
   tags: string[]
   scenarios: ParsedScenario[]
+  metadataWarnings: string[]
 }
 
 /**
@@ -21,6 +28,7 @@ export interface ParsedScenario {
   description?: string
   tags: string[]
   steps: ParsedStep[]
+  appraiseMetadata?: AppraiseTestCaseMetadataEntry
 }
 
 /**
@@ -30,6 +38,7 @@ export interface ParsedStep {
   keyword: string
   text: string
   order: number
+  appraiseNode?: AppraiseTestCaseMetadataEntry['nodes'][number]
 }
 
 const STEP_KEYWORDS = ['Given', 'When', 'Then', 'And', 'But'] as const
@@ -103,6 +112,23 @@ function parseFeatureLine(line: string) {
   return line.replace('Feature:', '').trim()
 }
 
+function normalizeTagExpression(tagExpression: string): string {
+  return tagExpression.startsWith('@') ? tagExpression : `@${tagExpression}`
+}
+
+function getScenarioIdentifierTag(scenario: ParsedScenario): string | null {
+  for (const tagLine of scenario.tags) {
+    const tags = tagLine.split(/\s+/).filter(tag => tag.trim().startsWith('@'))
+    const identifierTag = tags.find(tag => normalizeTagExpression(tag).replace(/^@/, '').startsWith('tc_'))
+
+    if (identifierTag) {
+      return normalizeTagExpression(identifierTag)
+    }
+  }
+
+  return null
+}
+
 function startScenario(lines: string[], index: number): ParsedScenario {
   const { name, description } = parseScenarioHeader(lines[index])
 
@@ -170,10 +196,21 @@ function parseGherkinLines(lines: string[]) {
  */
 export async function parseFeatureFile(filePath: string): Promise<ParsedFeature | null> {
   try {
-    const content = await fs.readFile(filePath, 'utf-8')
+    const [content, metadataResult] = await Promise.all([
+      fs.readFile(filePath, 'utf-8'),
+      readAppraiseMetadataFile(getAppraiseMetadataPath(filePath)),
+    ])
     const lines = normalizeGherkinLines(content)
     const featureTags = getFeatureTags(lines)
     const { featureName, featureDescription, scenarios } = parseGherkinLines(lines)
+    const metadataByIdentifier = getMetadataByIdentifier(metadataResult.metadata)
+
+    for (const scenario of scenarios) {
+      const identifierTag = getScenarioIdentifierTag(scenario)
+      if (identifierTag) {
+        scenario.appraiseMetadata = metadataByIdentifier.get(identifierTag)
+      }
+    }
 
     if (!featureName) {
       console.warn(`No feature found in file: ${filePath}`)
@@ -186,6 +223,7 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
       featureDescription: featureDescription || undefined,
       tags: featureTags,
       scenarios,
+      metadataWarnings: metadataResult.warnings,
     }
   } catch (error) {
     console.error(`Error parsing feature file ${filePath}:`, error)

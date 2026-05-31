@@ -52,6 +52,14 @@ export const seededIds = {
 }
 
 const generatedFeaturePath = join(process.cwd(), 'automation', 'features', 'E2E Auth', 'e2e-auth-suite.feature')
+const generatedCrudSuiteFeaturePath = join(process.cwd(), 'automation', 'features', 'E2E Auth', 'e2e-ui-suite.feature')
+const generatedCrudSuiteMetadataPath = join(
+  process.cwd(),
+  'automation',
+  'features',
+  'E2E Auth',
+  'e2e-ui-suite.appraise.json',
+)
 
 export async function resetE2eData(): Promise<void> {
   await prisma.$transaction([
@@ -92,6 +100,8 @@ export async function resetE2eData(): Promise<void> {
   ])
 
   rmSync(generatedFeaturePath, { force: true })
+  rmSync(generatedCrudSuiteFeaturePath, { force: true })
+  rmSync(generatedCrudSuiteMetadataPath, { force: true })
 }
 
 export async function seedCoreData(): Promise<void> {

@@ -4,6 +4,40 @@ import { buildModuleHierarchy } from './module-hierarchy-builder'
 import { Prisma, TemplateStepType, TemplateStepIcon, TestCase, TagType } from '@prisma/client'
 import { getTagTypeFromExpression } from './tag-identifiers'
 import { getFeatureModulePath } from './path-helpers/feature-path'
+import { getTestSuiteFilesystemKey } from './sync/projected-feature-utils'
+
+function splitTagLine(tagLine: string): string[] {
+  return tagLine
+    .split(/\s+/)
+    .filter(tag => tag.trim().startsWith('@'))
+    .map(tag => tag.trim())
+}
+
+function flattenFeatureTags(tags: string[]): string[] {
+  return tags.flatMap(tag => (tag.startsWith('@') ? splitTagLine(tag) : [tag]))
+}
+
+function extractTestSuiteNameFromFilename(filePath: string): string {
+  const fileName = filePath.split(/[/\\]/).pop() || ''
+  return fileName.replace(/\.feature$/, '')
+}
+
+function parseScenarioTitle(
+  scenarioName: string,
+  scenarioDescription?: string,
+): { title: string; description: string } {
+  if (scenarioDescription) {
+    return {
+      title: scenarioDescription.trim(),
+      description: scenarioName.trim(),
+    }
+  }
+
+  return {
+    title: scenarioName.trim(),
+    description: '',
+  }
+}
 
 /**
  * Determines the tag type based on the tag expression pattern
@@ -268,6 +302,7 @@ function determineStepTypeAndIcon(keyword: string): { type: TemplateStepType; ic
  * Creates or updates a test case step
  */
 async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, templateStepId: string): Promise<void> {
+  const metadataNode = step.appraiseNode
   try {
     // Check if step already exists
     const existingStep = await prisma.testCaseStep.findFirst({
@@ -284,7 +319,8 @@ async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, 
         where: { id: existingStep.id },
         data: {
           gherkinStep: `${step.keyword} ${step.text}`,
-          label: step.text,
+          flowNodeId: metadataNode?.nodeId ?? existingStep.flowNodeId,
+          label: metadataNode?.label ?? step.text,
           templateStepId: templateStepId,
         },
       })
@@ -295,8 +331,9 @@ async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, 
           testCaseId: testCaseId,
           order: step.order,
           gherkinStep: `${step.keyword} ${step.text}`,
+          flowNodeId: metadataNode?.nodeId,
           icon: determineStepTypeAndIcon(step.keyword).icon,
-          label: step.text,
+          label: metadataNode?.label ?? step.text,
           templateStepId: templateStepId,
         },
       })
@@ -308,14 +345,25 @@ async function createOrUpdateTestCaseStep(testCaseId: string, step: ParsedStep, 
 }
 
 type ParsedScenario = ParsedFeature['scenarios'][number]
+
+const testSuiteInclude = {
+  testCases: {
+    include: {
+      tags: true,
+      steps: true,
+    },
+  },
+} as const
+
 type ExistingTestSuite = Prisma.TestSuiteGetPayload<{
-  include: {
-    testCases: true
-  }
+  include: typeof testSuiteInclude
 }>
 
 async function createScenarioTestCase(scenario: ParsedScenario, testSuiteId: string): Promise<string | null> {
-  return findOrCreateTestCase(scenario.name, scenario.description || '', testSuiteId, scenario.tags)
+  const parsedTitle = parseScenarioTitle(scenario.name, scenario.description)
+  const title = scenario.appraiseMetadata?.title ?? parsedTitle.title
+  const description = scenario.appraiseMetadata?.description ?? parsedTitle.description
+  return findOrCreateTestCase(title, description, testSuiteId, scenario.tags)
 }
 
 async function createScenarioSteps(testCaseId: string, steps: ParsedStep[]): Promise<number> {
@@ -333,15 +381,84 @@ async function createScenarioSteps(testCaseId: string, steps: ParsedStep[]): Pro
   return createdTemplateSteps
 }
 
+function applyScenarioMetadataToSteps(scenario: ParsedScenario): ParsedStep[] {
+  const nodesByOrder = new Map((scenario.appraiseMetadata?.nodes ?? []).map(node => [node.order, node]))
+  return scenario.steps.map(step => ({
+    ...step,
+    appraiseNode: nodesByOrder.get(step.order),
+  }))
+}
+
+async function replaceScenarioFlowBlocks(testCaseId: string, scenario: ParsedScenario): Promise<void> {
+  if (!scenario.appraiseMetadata) {
+    return
+  }
+
+  const validNodeIds = new Set(scenario.appraiseMetadata.nodes.map(node => node.nodeId))
+
+  await prisma.testCaseFlowBlock.deleteMany({
+    where: { testCaseId },
+  })
+
+  if (scenario.appraiseMetadata.flowBlocks.length === 0) {
+    return
+  }
+
+  await prisma.testCase.update({
+    where: { id: testCaseId },
+    data: {
+      flowBlocks: {
+        create: scenario.appraiseMetadata.flowBlocks.map(block => ({
+          id: block.id,
+          name: block.name,
+          order: block.order,
+          nodes: {
+            create: block.nodeIds.filter(nodeId => validNodeIds.has(nodeId)).map(nodeId => ({ flowNodeId: nodeId })),
+          },
+        })),
+      },
+    },
+  })
+}
+
 async function findExistingTestSuite(feature: ParsedFeature, moduleId: string): Promise<ExistingTestSuite | null> {
+  const suiteIdentifierTag = flattenFeatureTags(feature.tags).find(tag => tag.replace(/^@/, '').startsWith('ts_'))
+
+  if (suiteIdentifierTag) {
+    const suiteByTag = await prisma.testSuite.findFirst({
+      where: {
+        moduleId,
+        tags: {
+          some: {
+            tagExpression: suiteIdentifierTag,
+          },
+        },
+      },
+      include: testSuiteInclude,
+    })
+
+    if (suiteByTag) {
+      return suiteByTag
+    }
+  }
+
+  const filesystemKey = getTestSuiteFilesystemKey(extractTestSuiteNameFromFilename(feature.filePath))
+  const suitesInModule = await prisma.testSuite.findMany({
+    where: { moduleId },
+    include: testSuiteInclude,
+  })
+  const suiteByFilename = suitesInModule.find(suite => getTestSuiteFilesystemKey(suite.name) === filesystemKey)
+
+  if (suiteByFilename) {
+    return suiteByFilename
+  }
+
   return prisma.testSuite.findFirst({
     where: {
       name: feature.featureName,
-      moduleId: moduleId,
+      moduleId,
     },
-    include: {
-      testCases: true,
-    },
+    include: testSuiteInclude,
   })
 }
 
@@ -362,13 +479,29 @@ async function connectTagsToTestSuite(testSuiteId: string, tags?: string[]): Pro
   })
 }
 
+function findExistingScenarioTestCase(
+  scenario: ParsedScenario,
+  testCases: ExistingTestSuite['testCases'],
+): ExistingTestSuite['testCases'][number] | undefined {
+  const identifierTag = flattenFeatureTags(scenario.tags).find(tag => tag.replace(/^@/, '').startsWith('tc_'))
+
+  if (identifierTag) {
+    return testCases.find(testCase => testCase.tags.some(tag => tag.tagExpression === identifierTag))
+  }
+
+  const { title } = parseScenarioTitle(scenario.name, scenario.description)
+  return testCases.find(testCase => testCase.title === title)
+}
+
 async function addMissingScenariosToTestSuite(feature: ParsedFeature, testSuite: ExistingTestSuite): Promise<number> {
   let addedScenarios = 0
 
   for (const scenario of feature.scenarios) {
-    const existingTestCase = testSuite.testCases.find(tc => tc.title === scenario.name)
+    const existingTestCase = findExistingScenarioTestCase(scenario, testSuite.testCases)
 
-    if (!existingTestCase && (await addScenarioToTestSuite(scenario, testSuite.id))) {
+    if (existingTestCase) {
+      await updateExistingScenarioMetadata(existingTestCase.id, scenario)
+    } else if (await addScenarioToTestSuite(scenario, testSuite.id)) {
       addedScenarios++
     }
   }
@@ -383,8 +516,26 @@ async function addScenarioToTestSuite(scenario: ParsedScenario, testSuiteId: str
     return false
   }
 
-  await createScenarioSteps(testCaseId, scenario.steps)
+  await createScenarioSteps(testCaseId, applyScenarioMetadataToSteps(scenario))
+  await replaceScenarioFlowBlocks(testCaseId, scenario)
   return true
+}
+
+async function updateExistingScenarioMetadata(testCaseId: string, scenario: ParsedScenario): Promise<void> {
+  if (!scenario.appraiseMetadata) {
+    return
+  }
+
+  await prisma.testCase.update({
+    where: { id: testCaseId },
+    data: {
+      title: scenario.appraiseMetadata.title,
+      description: scenario.appraiseMetadata.description,
+    },
+  })
+
+  await createScenarioSteps(testCaseId, applyScenarioMetadataToSteps(scenario))
+  await replaceScenarioFlowBlocks(testCaseId, scenario)
 }
 
 async function createTestSuiteWithScenarios(
@@ -395,8 +546,8 @@ async function createTestSuiteWithScenarios(
   addedScenarios: number
 }> {
   const testSuiteId = await findOrCreateTestSuite(
-    feature.featureName,
-    feature.featureDescription,
+    extractTestSuiteNameFromFilename(feature.filePath),
+    feature.featureDescription || feature.featureName,
     moduleId,
     feature.tags,
   )

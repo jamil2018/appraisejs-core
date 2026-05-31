@@ -1,14 +1,8 @@
 {
-  "demo": {
-    "baseUrl": "https://demo-test-site-beta.vercel.app",
-    "apiBaseUrl": "",
-    "email": "",
-    "password": ""
-  },
-  "demo2": {
-    "baseUrl": "https://saucedemo.com",
-    "apiBaseUrl": "",
-    "email": "",
-    "password": ""
+  "e2e_local": {
+    "baseUrl": "http://127.0.0.1:3200",
+    "apiBaseUrl": "http://127.0.0.1:3200/api",
+    "email": "tester",
+    "password": "secret"
   }
 }

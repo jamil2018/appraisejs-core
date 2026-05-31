@@ -37,21 +37,38 @@ export function resolveProjectPath(targetPath: string): string {
 }
 
 export function toProjectRelativePath(targetPath: string): string {
-  const normalizedPath = path.isAbsolute(targetPath) ? path.relative(process.cwd(), targetPath) : targetPath
-  return normalizedPath.replace(/\\/g, '/')
+  const normalizedTargetPath = targetPath.replace(/\\/g, '/')
+  const normalizedProjectRoot = process.cwd().replace(/\\/g, '/')
+  const normalizedPath = path.isAbsolute(targetPath)
+    ? path.posix.relative(normalizedProjectRoot, normalizedTargetPath)
+    : normalizedTargetPath
+  return normalizedPath
 }
 
 export function getAutomationReportRunDirFromReportPath(reportPath: string): string {
   return path.dirname(resolveProjectPath(reportPath))
 }
 
+export function buildJsonReportFormat(reportPath: string): string {
+  return `json:${toProjectRelativePath(reportPath)}`
+}
+
 function extractReportPathFromFormat(reportFormat = process.env.REPORT_FORMAT): string | null {
-  if (!reportFormat?.startsWith('json:')) {
+  if (!reportFormat) {
     return null
   }
 
-  const reportPath = reportFormat.slice('json:'.length).trim()
-  return reportPath.length > 0 ? reportPath : null
+  const quotedMatch = /^"json"\s*:\s*"(.*)"\s*$/.exec(reportFormat)
+  if (quotedMatch) {
+    return quotedMatch[1].length > 0 ? quotedMatch[1] : null
+  }
+
+  if (reportFormat.startsWith('json:')) {
+    const reportPath = reportFormat.slice('json:'.length).trim()
+    return reportPath.length > 0 ? reportPath : null
+  }
+
+  return null
 }
 
 function getRuntimeReportRunDir(

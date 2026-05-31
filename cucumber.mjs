@@ -1,9 +1,11 @@
 import path from 'path'
 
 function buildJsonReportFormat(reportPath) {
+  const normalizedReportPath = reportPath.replace(/\\/g, '/')
+  const normalizedProjectRoot = process.cwd().replace(/\\/g, '/')
   const normalizedPath = path.isAbsolute(reportPath)
-    ? path.relative(process.cwd(), reportPath).replace(/\\/g, '/')
-    : reportPath.replace(/\\/g, '/')
+    ? path.posix.relative(normalizedProjectRoot, normalizedReportPath)
+    : normalizedReportPath
   return `json:${normalizedPath}`
 }
 
@@ -19,8 +21,7 @@ export default {
   loader: ['ts-node/esm'],
   format: [
     'pretty',
-    process.env.REPORT_FORMAT ??
-      buildJsonReportFormat(process.env.REPORT_PATH ?? 'automation/reports/cucumber.json'),
+    process.env.REPORT_FORMAT ?? buildJsonReportFormat(process.env.REPORT_PATH ?? 'automation/reports/cucumber.json'),
   ],
   publishQuiet: true,
 }

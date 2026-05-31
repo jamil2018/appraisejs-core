@@ -342,6 +342,53 @@ describe('sync pending counts', () => {
     expect(count).toBe(0)
   })
 
+  it('counts sidecar-backed node label and flow block mismatches', () => {
+    const baseFilesystemCase = {
+      identifierTag: '@tc_checkout',
+      title: 'Checkout',
+      description: 'Buys an item',
+      testSuiteName: 'checkout-suite',
+      modulePath: '/commerce',
+      filterTags: [],
+      steps: [{ order: 1, keyword: 'Given' as const, text: 'open checkout' }],
+      hasAppraiseMetadata: true,
+      nodes: [{ nodeId: 'node-open', order: 1, label: 'Open checkout' }],
+      flowBlocks: [{ id: 'block-flow', name: 'Checkout flow', order: 0, nodeIds: ['node-open'] }],
+    }
+
+    const dbCase = {
+      title: 'Checkout',
+      description: 'Buys an item',
+      tags: [{ tagExpression: '@tc_checkout', type: TagType.IDENTIFIER }],
+      TestSuite: [{ name: 'Checkout Suite', moduleId: 'module-commerce' }],
+      steps: [
+        {
+          order: 1,
+          gherkinStep: 'When open checkout',
+          flowNodeId: 'node-open',
+          label: 'Old label',
+          icon: TemplateStepIcon.MOUSE,
+          TemplateStep: { signature: 'open checkout' },
+          parameters: [],
+        },
+      ],
+      flowBlocks: [
+        {
+          id: 'block-flow',
+          name: 'Checkout flow',
+          order: 0,
+          nodes: [{ flowNodeId: 'node-other' }],
+        },
+      ],
+    }
+
+    const count = countTestCaseMismatches([baseFilesystemCase], [dbCase], new Map([['module-commerce', '/commerce']]), [
+      { signature: 'open checkout', parameters: [] },
+    ])
+
+    expect(count).toBe(1)
+  })
+
   it('ignores duplicate stale DB test cases when one matching identifier row exists', () => {
     const count = countTestCaseMismatches(
       [
@@ -397,6 +444,74 @@ describe('sync pending counts', () => {
       ],
       new Map([['module-account', '/account']]),
       [{ signature: 'open the profile page', parameters: [] }],
+    )
+
+    expect(count).toBe(0)
+  })
+
+  it('treats And steps after Then as in sync when DB stores the feature-file keyword', () => {
+    const count = countTestCaseMismatches(
+      [
+        {
+          identifierTag: '@tc_route',
+          title: 'Route Check',
+          description: 'Validates route after login',
+          testSuiteName: 'authentication',
+          modulePath: '/E2E Auth',
+          filterTags: [],
+          steps: [
+            { order: 1, keyword: 'Given', text: 'open the login page' },
+            { order: 2, keyword: 'Then', text: 'the url route should be equal to "/home"' },
+            { order: 3, keyword: 'And', text: 'the page title should be "Home"' },
+          ],
+        },
+      ],
+      [
+        {
+          title: 'Route Check',
+          description: 'Validates route after login',
+          tags: [{ tagExpression: '@tc_route', type: TagType.IDENTIFIER }],
+          TestSuite: [{ name: 'Authentication', moduleId: 'module-auth' }],
+          steps: [
+            {
+              order: 1,
+              gherkinStep: 'Given open the login page',
+              label: 'open the login page',
+              icon: TemplateStepIcon.NAVIGATION,
+              TemplateStep: { signature: 'open the login page' },
+              parameters: [],
+            },
+            {
+              order: 2,
+              gherkinStep: 'Then the url route should be equal to "/home"',
+              label: 'the url route should be equal to "/home"',
+              icon: TemplateStepIcon.VALIDATION,
+              TemplateStep: { signature: 'the url route should be equal to {string}' },
+              parameters: [{ name: 'route', value: '/home', order: 0, type: StepParameterType.STRING }],
+            },
+            {
+              order: 3,
+              gherkinStep: 'And the page title should be "Home"',
+              label: 'the page title should be "Home"',
+              icon: TemplateStepIcon.MOUSE,
+              TemplateStep: { signature: 'the page title should be {string}' },
+              parameters: [{ name: 'title', value: 'Home', order: 0, type: StepParameterType.STRING }],
+            },
+          ],
+        },
+      ],
+      new Map([['module-auth', '/E2E Auth']]),
+      [
+        { signature: 'open the login page', parameters: [] },
+        {
+          signature: 'the url route should be equal to {string}',
+          parameters: [{ name: 'route', order: 0, type: StepParameterType.STRING }],
+        },
+        {
+          signature: 'the page title should be {string}',
+          parameters: [{ name: 'title', order: 0, type: StepParameterType.STRING }],
+        },
+      ],
     )
 
     expect(count).toBe(0)

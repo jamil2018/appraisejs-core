@@ -39,6 +39,7 @@ const {
   mockProcessManagerOn,
   mockProcessManagerRemoveListener,
   mockFsAccess,
+  mockGenerateFeature,
 } = vi.hoisted(() => ({
   mockEnvironmentFindUnique: vi.fn(),
   mockTagFindMany: vi.fn(),
@@ -68,6 +69,7 @@ const {
   mockProcessManagerOn: vi.fn(),
   mockProcessManagerRemoveListener: vi.fn(),
   mockFsAccess: vi.fn(),
+  mockGenerateFeature: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({
@@ -116,6 +118,12 @@ vi.mock('@/lib/metrics/metric-calculator', () => ({
 
 vi.mock('@/lib/test-suite-identifier-service', () => ({
   ensureTestSuiteIdentifierTags: mockEnsureTestSuiteIdentifierTags,
+}))
+
+vi.mock('@/lib/automation/projection-service', () => ({
+  automationProjectionService: {
+    generateFeature: mockGenerateFeature,
+  },
 }))
 
 vi.mock('@/services/report/report-service', () => ({
@@ -266,6 +274,7 @@ describe('createTestRunFromValidatedValue', () => {
       error: vi.fn(),
     })
     mockGetLogFilePath.mockReturnValue('logs/run-1.log')
+    mockGenerateFeature.mockResolvedValue('automation/features/login.feature')
     mockTestRunUpdate.mockResolvedValue({})
     mockExecuteTestRun.mockResolvedValue({
       process: {
@@ -297,6 +306,7 @@ describe('createTestRunFromValidatedValue', () => {
     const result = await createTestRunFromValidatedValue(baseValue)
 
     expect(mockEnsureTestSuiteIdentifierTags).toHaveBeenCalledWith(['suite-1'])
+    expect(mockGenerateFeature).toHaveBeenCalledWith('suite-1')
     expect(mockTestRunCreate).toHaveBeenCalledWith({
       data: {
         name: 'Nightly Run',

@@ -1,6 +1,10 @@
 import { dirname } from 'path'
 import { spawnTask, taskSpawner, type SpawnedProcess, waitForTask, killTask } from '@/lib/process/task-spawner'
-import { buildJsonReportFormat, getAutomationRunReportPath, toProjectRelativePath } from '@/lib/automation/automation-path-roots'
+import {
+  buildJsonReportFormat,
+  getAutomationRunReportPath,
+  toProjectRelativePath,
+} from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 import type { ExecutorAdapter, TestRunExecutionRequest, TestRunExecutionResult } from './types'
 import { processManager } from '@/lib/test-run/process-manager'

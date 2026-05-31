@@ -477,9 +477,7 @@ async function ensureFeatureFilesForTestRun(testRunTestCases: TestRunTestCaseLin
     }
   }
 
-  const unresolvedTestCaseIds = testRunTestCases
-    .filter(link => !link.testSuiteId)
-    .map(link => link.testCaseId)
+  const unresolvedTestCaseIds = testRunTestCases.filter(link => !link.testSuiteId).map(link => link.testCaseId)
 
   if (unresolvedTestCaseIds.length > 0) {
     const testCases = await prisma.testCase.findMany({

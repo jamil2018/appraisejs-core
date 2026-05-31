@@ -1,6 +1,10 @@
 import { dirname } from 'path'
 import { spawnTask, taskSpawner, type SpawnedProcess, waitForTask, killTask } from '@/lib/process/task-spawner'
-import { getAutomationRunReportPath, toProjectRelativePath } from '@/lib/automation/automation-path-roots'
+import {
+  buildJsonReportFormat,
+  getAutomationRunReportPath,
+  toProjectRelativePath,
+} from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 import type { ExecutorAdapter, TestRunExecutionRequest, TestRunExecutionResult } from './types'
 import { processManager } from '@/lib/test-run/process-manager'
@@ -39,7 +43,7 @@ class LocalExecutorAdapter implements ExecutorAdapter {
       HEADLESS: headless.toString(),
       BROWSER: browserName,
       REPORT_PATH: reportPath,
-      REPORT_FORMAT: `json:${reportPath}`,
+      REPORT_FORMAT: buildJsonReportFormat(reportPath),
       TEST_RUN_ID: testRunId,
     }
 
