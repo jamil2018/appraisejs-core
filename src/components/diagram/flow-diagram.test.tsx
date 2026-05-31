@@ -403,14 +403,56 @@ describe('FlowDiagram keyboard shortcuts', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('ignores shortcuts while the node sheet is open', async () => {
+  it('switches from the add-node sheet to block selection mode', async () => {
     const user = userEvent.setup()
     renderInteractiveFlowDiagram()
 
     await user.click(screen.getByRole('button', { name: 'Add Node' }))
     await user.keyboard('{Control>}{Shift>}b{/Shift}{/Control}')
 
-    expect(screen.queryByRole('button', { name: /exit block selection mode/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /exit block selection mode/i })).toBeInTheDocument()
+  })
+
+  it('switches from search to the add-node sheet', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+    expect(await screen.findByRole('textbox', { name: /search nodes/i })).toBeInTheDocument()
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: /search nodes/i })).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+  })
+
+  it('switches from the add-node sheet to search', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
+
+    await user.keyboard('{Control>}{Shift>}s{/Shift}{/Control}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: /search nodes/i })).toBeInTheDocument()
+  })
+
+  it('switches from block selection mode to the add-node sheet', async () => {
+    const user = userEvent.setup()
+    renderInteractiveFlowDiagram()
+
+    await user.keyboard('{Control>}{Shift>}b{/Shift}{/Control}')
+    expect(screen.getByRole('button', { name: /exit block selection mode/i })).toBeInTheDocument()
+
+    await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
+
+    expect(screen.getByRole('button', { name: /select nodes for block/i })).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
   })
 
   it('ignores shortcuts while the block dialog is open', async () => {
@@ -448,7 +490,7 @@ describe('FlowDiagram keyboard shortcuts', () => {
     expect(screen.queryByRole('textbox', { name: /search nodes/i })).not.toBeInTheDocument()
   })
 
-  it('ignores shortcuts from editable targets', async () => {
+  it('switches from focused search input to the add-node sheet', async () => {
     const user = userEvent.setup()
     renderInteractiveFlowDiagram()
 
@@ -456,7 +498,10 @@ describe('FlowDiagram keyboard shortcuts', () => {
     await user.click(screen.getByRole('textbox', { name: /search nodes/i }))
     await user.keyboard('{Control>}{Shift>}c{/Shift}{/Control}')
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: /search nodes/i })).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('dialog')).toHaveTextContent('Node form add')
   })
 
   it('shows shortcut hints in toolbar tooltips', async () => {

@@ -164,7 +164,7 @@ export function useFlowDiagram({
 
   const { flowBlockMembership } = grouping
   const { searchHighlightedNodeId } = search
-  const isLocalFlowOverlayOpen = showAddNodeDialog || showEditNodeDialog || grouping.isBlockDialogOpen
+  const isBlockingFlowOverlayOpen = showEditNodeDialog || grouping.isBlockDialogOpen
 
   useEffect(() => {
     flowDiagramHandlersRef.current.onEditNode = handleEditNode
@@ -365,30 +365,62 @@ export function useFlowDiagram({
       }
 
       const key = event.key.toLowerCase()
+      const isFlowShortcut = key === 's' || key === 'b' || key === 'c'
+      if (!isFlowShortcut) {
+        return
+      }
+
+      const hasShortcutSurfaceOpen = search.isSearchOpen || showAddNodeDialog || grouping.isGroupingSelectionMode
+      if (isBlockingFlowOverlayOpen || (isEditableShortcutTarget(event.target) && !hasShortcutSurfaceOpen)) {
+        return
+      }
+
       if (key === 's' && enableNodeSearch) {
         event.preventDefault()
+        if (showAddNodeDialog) {
+          setShowAddNodeDialog(false)
+          setPendingAddSourceNodeId(null)
+        }
+        if (grouping.isGroupingSelectionMode) {
+          grouping.toggleGroupingSelectionMode()
+        }
         search.toggleSearch()
         return
       }
 
       if (key === 'c' && showAddNodeDialog) {
         event.preventDefault()
+        if (search.isSearchOpen) {
+          search.closeSearch()
+        }
+        if (grouping.isGroupingSelectionMode) {
+          grouping.toggleGroupingSelectionMode()
+        }
         toggleAddNodeDialog()
-        return
-      }
-
-      if (isLocalFlowOverlayOpen || isEditableShortcutTarget(event.target)) {
         return
       }
 
       if (key === 'b' && enableNodeGrouping) {
         event.preventDefault()
+        if (search.isSearchOpen) {
+          search.closeSearch()
+        }
+        if (showAddNodeDialog) {
+          setShowAddNodeDialog(false)
+          setPendingAddSourceNodeId(null)
+        }
         grouping.toggleGroupingSelectionMode()
         return
       }
 
       if (key === 'c') {
         event.preventDefault()
+        if (search.isSearchOpen) {
+          search.closeSearch()
+        }
+        if (grouping.isGroupingSelectionMode) {
+          grouping.toggleGroupingSelectionMode()
+        }
         toggleAddNodeDialog()
       }
     }
@@ -399,7 +431,7 @@ export function useFlowDiagram({
     enableNodeGrouping,
     enableNodeSearch,
     grouping,
-    isLocalFlowOverlayOpen,
+    isBlockingFlowOverlayOpen,
     search,
     showAddNodeDialog,
     toggleAddNodeDialog,
