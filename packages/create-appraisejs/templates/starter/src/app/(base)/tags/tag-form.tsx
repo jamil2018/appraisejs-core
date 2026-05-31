@@ -10,6 +10,7 @@ import { getActionErrorMessage, getCreatedTag, tagFieldValidators, type TagFormS
 
 import type { Tag as PrismaTag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
+import { Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { TanStackForm } from '@/lib/form/tanstack-form'
 
@@ -151,7 +152,8 @@ const TagForm = ({
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (
           <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? '...' : 'Save'}
+            <Save className="size-4" aria-hidden />
+            <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
           </Button>
         )}
       </form.Subscribe>

@@ -10,7 +10,7 @@ import { useForm } from '@tanstack/react-form'
 import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Save } from 'lucide-react'
 import {
   environmentFieldValidators,
   getActionErrorMessage,
@@ -210,7 +210,8 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (
           <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? '...' : 'Save'}
+            <Save className="size-4" aria-hidden />
+            <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
           </Button>
         )}
       </form.Subscribe>

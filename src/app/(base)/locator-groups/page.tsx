@@ -1,7 +1,7 @@
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
-import { Group, Plus } from 'lucide-react'
+import { Group } from 'lucide-react'
 import LocatorGroupTable from './locator-group-table'
 import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
@@ -9,8 +9,6 @@ import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-grou
 import EmptyState from '@/components/data-state/empty-state'
 import { LocatorGroup } from '@prisma/client'
 import { Metadata } from 'next'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Appraise | Locator Groups',
@@ -43,22 +41,14 @@ const LocatorGroups = async () => {
   return (
     <>
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <PageHeader>
-              <span className="flex items-center">
-                <Group className="mr-2 size-8" />
-                Locator Groups
-              </span>
-            </PageHeader>
-            <HeaderSubtitle>Organize locators for better maintainability and reusability</HeaderSubtitle>
-          </div>
-          <Button variant="outline" asChild>
-            <Link href="/locators/create">
-              <Plus className="mr-2 size-4" />
-              Create Locator
-            </Link>
-          </Button>
+        <div>
+          <PageHeader>
+            <span className="flex items-center">
+              <Group className="mr-2 size-8" />
+              Locator Groups
+            </span>
+          </PageHeader>
+          <HeaderSubtitle>Organize locators for better maintainability and reusability</HeaderSubtitle>
         </div>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>

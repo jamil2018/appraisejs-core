@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { moduleFormOpts, type Module, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
+import { Save } from 'lucide-react'
 import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import {
@@ -143,7 +144,8 @@ const ModuleForm = ({
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (
           <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? '...' : 'Save'}
+            <Save className="size-4" aria-hidden />
+            <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
           </Button>
         )}
       </form.Subscribe>

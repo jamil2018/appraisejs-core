@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { StepParameterType, TagType, TemplateStepGroupType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import {
-  StepParameterType,
-  TagType,
-  TemplateStepGroupType,
-  TemplateStepIcon,
-  TemplateStepType,
-} from '@prisma/client'
-import {
+  countEnvironmentMismatches,
+  countLocatorGroupMismatches,
   countModuleMismatches,
   countTagMismatches,
   countTemplateStepGroupMismatches,
@@ -23,6 +19,40 @@ describe('sync pending counts', () => {
     ])
 
     expect(count).toBe(0)
+  })
+
+  it('counts environment value changes but not deletions the sync script skips', () => {
+    const count = countEnvironmentMismatches(
+      [
+        {
+          name: 'Local',
+          baseUrl: 'http://localhost:3000',
+          apiBaseUrl: null,
+          username: 'demo@example.com',
+          password: null,
+        },
+      ],
+      [
+        {
+          name: 'Local',
+          baseUrl: 'http://localhost:3001',
+          apiBaseUrl: null,
+          username: 'demo@example.com',
+          password: null,
+          _count: { testRuns: 0 },
+        },
+        {
+          name: 'Historic',
+          baseUrl: 'https://old.example.com',
+          apiBaseUrl: null,
+          username: null,
+          password: null,
+          _count: { testRuns: 2 },
+        },
+      ],
+    )
+
+    expect(count).toBe(1)
   })
 
   it('ignores DB-only standalone filter tags when filesystem tags are already satisfied', () => {
@@ -99,6 +129,59 @@ describe('sync pending counts', () => {
     expect(count).toBe(0)
   })
 
+  it('collapses duplicate filesystem template-step signatures to the script final state', () => {
+    const count = countTemplateStepMismatches(
+      [
+        {
+          groupName: 'Actions',
+          groupType: TemplateStepGroupType.ACTION,
+          step: {
+            jsdoc: {
+              name: 'Old duplicate',
+              description: 'First parsed copy',
+              icon: TemplateStepIcon.MOUSE,
+            },
+            signature: 'click {string}',
+            functionDefinition: '',
+            normalizedFunctionDefinition: "When('click {string}', async function () {});",
+            parameters: [],
+            keyword: 'When',
+          },
+        },
+        {
+          groupName: 'Actions',
+          groupType: TemplateStepGroupType.ACTION,
+          step: {
+            jsdoc: {
+              name: 'Click button',
+              description: 'Final parsed copy',
+              icon: TemplateStepIcon.MOUSE,
+            },
+            signature: 'click {string}',
+            functionDefinition: '',
+            normalizedFunctionDefinition: "When('click {string}', async function () {});",
+            parameters: [],
+            keyword: 'When',
+          },
+        },
+      ],
+      [
+        {
+          signature: 'click {string}',
+          name: 'Click button',
+          description: 'Final parsed copy',
+          functionDefinition: "When('click {string}', async function () {});",
+          icon: TemplateStepIcon.MOUSE,
+          type: TemplateStepType.ACTION,
+          templateStepGroup: { name: 'Actions' },
+          parameters: [],
+        },
+      ],
+    )
+
+    expect(count).toBe(0)
+  })
+
   it('matches test suites by generated filesystem key instead of raw DB name', () => {
     const count = countTestSuiteMismatches(
       [
@@ -139,6 +222,63 @@ describe('sync pending counts', () => {
           description: null,
           moduleId: 'module-auth',
           tags: [],
+        },
+      ],
+      new Map([['module-auth', '/auth']]),
+    )
+
+    expect(count).toBe(0)
+  })
+
+  it('collapses duplicate filesystem locator-group names to the script final state', () => {
+    const count = countLocatorGroupMismatches(
+      [
+        {
+          name: 'Login Page',
+          route: '/first',
+          modulePath: '/auth',
+        },
+        {
+          name: 'Login Page',
+          route: '/login',
+          modulePath: '/auth',
+        },
+      ],
+      [
+        {
+          name: 'Login Page',
+          route: '/login',
+          moduleId: 'module-auth',
+        },
+      ],
+      new Map([['module-auth', '/auth']]),
+    )
+
+    expect(count).toBe(0)
+  })
+
+  it('collapses duplicate filesystem test-suite identities to the script final state', () => {
+    const count = countTestSuiteMismatches(
+      [
+        {
+          name: 'user-login-suite',
+          description: 'First parsed copy',
+          modulePath: '/auth',
+          tags: ['@smoke'],
+        },
+        {
+          name: 'user-login-suite',
+          description: 'Final parsed copy',
+          modulePath: '/auth',
+          tags: ['@smoke', '@regression'],
+        },
+      ],
+      [
+        {
+          name: 'User Login Suite',
+          description: 'Final parsed copy',
+          moduleId: 'module-auth',
+          tags: [{ tagExpression: '@smoke' }, { tagExpression: '@regression' }],
         },
       ],
       new Map([['module-auth', '/auth']]),
@@ -257,6 +397,60 @@ describe('sync pending counts', () => {
       ],
       new Map([['module-account', '/account']]),
       [{ signature: 'open the profile page', parameters: [] }],
+    )
+
+    expect(count).toBe(0)
+  })
+
+  it('collapses duplicate filesystem test-case identifiers to the script final state', () => {
+    const count = countTestCaseMismatches(
+      [
+        {
+          identifierTag: '@tc_login',
+          title: 'Login',
+          description: 'Runs the login flow',
+          testSuiteName: 'login-smoke',
+          modulePath: '/auth',
+          filterTags: ['@demo'],
+          steps: [{ order: 1, keyword: 'Given', text: 'open the login page' }],
+        },
+        {
+          identifierTag: '@tc_login',
+          title: 'Login',
+          description: 'Runs the login flow',
+          testSuiteName: 'login-regression',
+          modulePath: '/auth',
+          filterTags: ['@auth', '@demo'],
+          steps: [{ order: 1, keyword: 'Given', text: 'open the login page' }],
+        },
+      ],
+      [
+        {
+          title: 'Login',
+          description: 'Runs the login flow',
+          tags: [
+            { tagExpression: '@tc_login', type: TagType.IDENTIFIER },
+            { tagExpression: '@auth', type: TagType.FILTER },
+            { tagExpression: '@demo', type: TagType.FILTER },
+          ],
+          TestSuite: [
+            { name: 'Login Smoke', moduleId: 'module-auth' },
+            { name: 'Login Regression', moduleId: 'module-auth' },
+          ],
+          steps: [
+            {
+              order: 1,
+              gherkinStep: 'Given open the login page',
+              label: 'open the login page',
+              icon: TemplateStepIcon.NAVIGATION,
+              TemplateStep: { signature: 'open the login page' },
+              parameters: [],
+            },
+          ],
+        },
+      ],
+      new Map([['module-auth', '/auth']]),
+      [{ signature: 'open the login page', parameters: [] }],
     )
 
     expect(count).toBe(0)
