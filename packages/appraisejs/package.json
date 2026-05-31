@@ -1,6 +1,6 @@
 {
   "name": "appraisejs",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Install AppraiseJS template steps into an existing project",
   "license": "Apache-2.0",
   "author": "Hasnat Jamil",
