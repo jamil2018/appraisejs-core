@@ -105,6 +105,7 @@ export function useFlowDiagramSearch({
     nodeSearchResults,
     shouldShowSearchSuggestions,
     setSearchQuery,
+    openSearch,
     toggleSearch,
     handleFlowPointerDown,
     handleSearchResultClick,

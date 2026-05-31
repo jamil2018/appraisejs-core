@@ -31,6 +31,14 @@ import { flowDiagramHandlersRef, flowEdgeTypes, flowNodeTypes } from './flow-dia
 import { useFlowDiagramBlockGrouping } from './use-flow-diagram-block-grouping'
 import { useFlowDiagramSearch } from './use-flow-diagram-search'
 
+function isEditableShortcutTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return Boolean(target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]'))
+}
+
 function mergeRecordsById<T extends { id: string }>(base: T[], overrides: T[]): T[] {
   const byId = new Map<string, T>()
   for (const item of base) {
@@ -156,6 +164,7 @@ export function useFlowDiagram({
 
   const { flowBlockMembership } = grouping
   const { searchHighlightedNodeId } = search
+  const isLocalFlowOverlayOpen = showAddNodeDialog || showEditNodeDialog || grouping.isBlockDialogOpen
 
   useEffect(() => {
     flowDiagramHandlersRef.current.onEditNode = handleEditNode
@@ -343,6 +352,58 @@ export function useFlowDiagram({
     setPendingAddSourceNodeId(null)
     setShowAddNodeDialog(true)
   }, [])
+
+  const toggleAddNodeDialog = useCallback(() => {
+    setPendingAddSourceNodeId(null)
+    setShowAddNodeDialog(current => !current)
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || !event.shiftKey || (!event.ctrlKey && !event.metaKey)) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      if (key === 's' && enableNodeSearch) {
+        event.preventDefault()
+        search.toggleSearch()
+        return
+      }
+
+      if (key === 'c' && showAddNodeDialog) {
+        event.preventDefault()
+        toggleAddNodeDialog()
+        return
+      }
+
+      if (isLocalFlowOverlayOpen || isEditableShortcutTarget(event.target)) {
+        return
+      }
+
+      if (key === 'b' && enableNodeGrouping) {
+        event.preventDefault()
+        grouping.toggleGroupingSelectionMode()
+        return
+      }
+
+      if (key === 'c') {
+        event.preventDefault()
+        toggleAddNodeDialog()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true })
+  }, [
+    enableNodeGrouping,
+    enableNodeSearch,
+    grouping,
+    isLocalFlowOverlayOpen,
+    search,
+    showAddNodeDialog,
+    toggleAddNodeDialog,
+  ])
 
   return {
     enableNodeSearch,
