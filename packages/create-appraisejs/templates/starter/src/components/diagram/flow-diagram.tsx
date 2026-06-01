@@ -1,247 +1,93 @@
 'use client'
 
-import {
-  addEdge,
-  Background,
-  ConnectionMode,
-  Controls,
-  Edge,
-  Node,
-  NodeProps,
-  OnConnect,
-  ReactFlow,
-  useEdgesState,
-  useNodesState,
-  Connection,
-} from '@xyflow/react'
+import { useUpdateNodeInternals } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useState, useEffect, useMemo, memo, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import ButtonEdge from './button-edge'
-import { Plus } from 'lucide-react'
-import OptionsHeaderNode from './options-header-node'
-import NodeForm from './node-form'
-import { NodeData } from '@/constants/form-opts/diagram/node-form'
-import { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
-import { Locator, TemplateStep, TemplateStepParameter, LocatorGroup } from '@prisma/client'
-import {
-  buildNodeFormData,
-  createEditableNodeData,
-  determineNodeOrders,
-  generateInitialNodesAndEdges,
-  isValidDiagramConnection,
-  removeOrphanedEdges,
-} from './flow-diagram-helpers'
+import { memo, useCallback, useEffect, useRef, type RefObject } from 'react'
+import { FlowDiagramView } from './flow-diagram-view'
+import type { FlowDiagramProps } from './flow-diagram-types'
+import { EMPTY_FLOW_BLOCKS } from './flow-diagram-types'
+import { useFlowDiagram } from './use-flow-diagram'
 
-const edgeTypes = {
-  buttonEdge: ButtonEdge,
+const layoutRefreshDelays = [0, 80, 180, 360]
+
+type FlowLayoutRefreshProps = {
+  nodeIds: string[]
+  containerRef: RefObject<HTMLDivElement | null>
+  refreshKey?: string | number | boolean
 }
 
-type FlowDiagramProps = {
-  nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap
-  templateStepParams: TemplateStepParameter[]
-  templateSteps: TemplateStep[]
-  locators: Locator[]
-  locatorGroups: LocatorGroup[]
-  defaultValueInput?: boolean
-  onNodeOrderChange: (nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap) => void
-}
+function FlowLayoutRefresh({ nodeIds, containerRef, refreshKey }: FlowLayoutRefreshProps) {
+  const updateNodeInternals = useUpdateNodeInternals()
+  const frameRef = useRef<number | null>(null)
+  const timeoutRefs = useRef<number[]>([])
 
-const FlowDiagram = ({
-  nodeOrder,
-  templateStepParams,
-  templateSteps,
-  locators,
-  locatorGroups,
-  onNodeOrderChange,
-  defaultValueInput = false,
-}: FlowDiagramProps) => {
-  const handleEditNodeRef = useRef<(nodeId: string) => void>(() => {})
+  const clearScheduledRefreshes = useCallback(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+    }
+    timeoutRefs.current.forEach(timeoutId => window.clearTimeout(timeoutId))
+    timeoutRefs.current = []
+  }, [])
 
-  const { nodes: initialNodes, edges: initialEdges } = useMemo(
-    () => generateInitialNodesAndEdges(nodeOrder, templateStepParams, defaultValueInput),
-    [defaultValueInput, nodeOrder, templateStepParams],
-  )
+  const refreshNodeInternals = useCallback(() => {
+    if (nodeIds.length === 0) {
+      return
+    }
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-  const [showAddNodeDialog, setShowAddNodeDialog] = useState(false)
-  const [showEditNodeDialog, setShowEditNodeDialog] = useState(false)
-  const [editNodeId, setEditNodeId] = useState<string | null>(null)
-  const [editNodeData, setEditNodeData] = useState<NodeData | null>(null)
+    updateNodeInternals(nodeIds)
+  }, [nodeIds, updateNodeInternals])
 
-  const handleEditNode = useCallback(
-    (nodeId: string) => {
-      const node = nodes.find(node => node.id === nodeId)
-      const editableNodeData = createEditableNodeData(node)
-      if (!editableNodeData) {
+  const scheduleLayoutRefresh = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    clearScheduledRefreshes()
+    layoutRefreshDelays.forEach(delay => {
+      if (delay === 0) {
+        frameRef.current = window.requestAnimationFrame(refreshNodeInternals)
         return
       }
 
-      setEditNodeData(editableNodeData)
-      setEditNodeId(nodeId)
-      setShowEditNodeDialog(true)
-    },
-    [nodes],
-  )
-
-  // Update the ref whenever handleEditNode changes
-  useEffect(() => {
-    handleEditNodeRef.current = handleEditNode
-  }, [handleEditNode])
-
-  const addNode = useCallback(
-    (formData: NodeData) => {
-      const newNode: Node = {
-        id: crypto.randomUUID(),
-        data: buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, nodes.length === 0),
-        position: { x: 0, y: 0 },
-        type: 'optionsHeaderNode',
-      }
-      setNodes(nds => nds.concat(newNode))
-      setShowAddNodeDialog(false)
-    },
-    [setNodes, setShowAddNodeDialog, nodes, templateSteps, templateStepParams, defaultValueInput],
-  )
-
-  const handleEditNodeSubmit = useCallback(
-    (formData: NodeData) => {
-      if (!editNodeId) return
-      const nextNodeData = buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, false)
-
-      setNodes(nds =>
-        nds.map(node =>
-          node.id === editNodeId
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  ...nextNodeData,
-                },
-              }
-            : node,
-        ),
-      )
-      setShowEditNodeDialog(false)
-    },
-    [editNodeId, setNodes, setShowEditNodeDialog, templateSteps, templateStepParams, defaultValueInput],
-  )
+      timeoutRefs.current.push(window.setTimeout(refreshNodeInternals, delay))
+    })
+  }, [clearScheduledRefreshes, refreshNodeInternals])
 
   useEffect(() => {
-    const orders = determineNodeOrders(nodes, edges)
-    onNodeOrderChange(orders)
-  }, [nodes, edges, onNodeOrderChange])
+    scheduleLayoutRefresh()
 
-  // Clean up orphaned edges when nodes are deleted
+    return clearScheduledRefreshes
+  }, [clearScheduledRefreshes, refreshKey, scheduleLayoutRefresh])
+
   useEffect(() => {
-    const nextEdges = removeOrphanedEdges(nodes, edges)
-
-    if (nextEdges.length !== edges.length) {
-      setEdges(nextEdges)
+    if (typeof ResizeObserver === 'undefined') {
+      return
     }
-  }, [nodes, edges, setEdges])
 
-  const isValidConnection = useCallback(
-    (connection: Connection | Edge) => isValidDiagramConnection(edges, connection),
-    [edges],
-  )
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
 
-  const onConnect: OnConnect = useCallback(
-    params => {
-      if (isValidConnection(params)) {
-        setEdges(eds => addEdge(params, eds))
-      }
-    },
-    [setEdges, isValidConnection],
-  )
+    const resizeObserver = new ResizeObserver(scheduleLayoutRefresh)
+    resizeObserver.observe(container)
 
-  const memoizedTemplateSteps = useMemo(() => templateSteps, [templateSteps])
-  const memoizedTemplateStepParams = useMemo(() => templateStepParams, [templateStepParams])
-  const memoizedLocators = useMemo(() => locators, [locators])
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [containerRef, scheduleLayoutRefresh])
 
-  // Memoize nodeTypes to prevent recreation
-  const nodeTypes = useMemo(
-    () => ({
-      optionsHeaderNode: (props: NodeProps) => (
-        <OptionsHeaderNode {...props} onEdit={nodeId => handleEditNodeRef.current(nodeId)} />
-      ),
-    }),
-    [], // Empty dependency array - now stable since we use ref
-  )
+  return null
+}
 
-  return (
-    <>
-      <div className="h-[400px] w-full">
-        <div className="mb-8">
-          <Button onClick={() => setShowAddNodeDialog(true)}>
-            <span className="flex items-center">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Node
-            </span>
-          </Button>
-        </div>
-        <ReactFlow
-          nodes={nodes}
-          onNodesChange={onNodesChange}
-          edges={edges}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          fitView
-          colorMode="dark"
-          connectionMode={ConnectionMode.Loose}
-          edgeTypes={edgeTypes}
-          nodeTypes={nodeTypes}
-          defaultEdgeOptions={{
-            type: 'buttonEdge',
-          }}
-          connectOnClick={false}
-          isValidConnection={isValidConnection}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
-      </div>
+const FlowDiagram = (props: FlowDiagramProps) => {
+  const model = useFlowDiagram({
+    ...props,
+    flowBlocks: props.flowBlocks ?? EMPTY_FLOW_BLOCKS,
+  })
 
-      {showAddNodeDialog && (
-        <NodeForm
-          onSubmitAction={addNode}
-          initialValues={{
-            label: '',
-            gherkinStep: '',
-            templateStepId: '',
-            parameters: [],
-          }}
-          templateSteps={memoizedTemplateSteps}
-          templateStepParams={memoizedTemplateStepParams}
-          showAddNodeDialog={showAddNodeDialog}
-          setShowAddNodeDialog={setShowAddNodeDialog}
-          locators={memoizedLocators}
-          defaultValueInput={defaultValueInput}
-          locatorGroups={locatorGroups}
-        />
-      )}
-
-      {showEditNodeDialog && (
-        <NodeForm
-          onSubmitAction={handleEditNodeSubmit}
-          initialValues={{
-            label: editNodeData?.label ?? '',
-            gherkinStep: editNodeData?.gherkinStep ?? '',
-            templateStepId: editNodeData?.templateStepId ?? '',
-            parameters: editNodeData?.parameters ?? [],
-          }}
-          templateSteps={memoizedTemplateSteps}
-          templateStepParams={memoizedTemplateStepParams}
-          showAddNodeDialog={showEditNodeDialog}
-          setShowAddNodeDialog={setShowEditNodeDialog}
-          locators={memoizedLocators}
-          defaultValueInput={defaultValueInput}
-          locatorGroups={locatorGroups}
-        />
-      )}
-    </>
-  )
+  return <FlowDiagramView model={model} FlowLayoutRefresh={FlowLayoutRefresh} />
 }
 
 export default memo(FlowDiagram)

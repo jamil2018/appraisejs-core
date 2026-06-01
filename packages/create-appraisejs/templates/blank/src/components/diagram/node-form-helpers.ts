@@ -2,17 +2,20 @@ import { format } from 'date-fns'
 import {
   StepParameterType,
   TemplateStepIcon,
+  type Environment,
   type Locator,
   type LocatorGroup,
+  type Module,
   type TemplateStep,
   type TemplateStepParameter,
 } from '@prisma/client'
+import type { InlineLocatorSaveResult } from '@/app/(base)/locators/create/create-locator-workspace-helpers'
 import { z } from 'zod'
 
-import type { NodeData } from '@/constants/form-opts/diagram/node-form'
+import type { NodeFormData } from '@/constants/form-opts/diagram/node-form'
 import { generateGherkinStep } from '@/lib/transformers/gherkin-converter'
 
-export const nodeFormErrorSchema = z.object({
+const nodeFormErrorSchema = z.object({
   label: z.string().min(3, { message: 'Label must be at least 3 characters' }),
   templateStepId: z.string().min(1, { message: 'Template step is required' }),
 })
@@ -20,13 +23,17 @@ export const nodeFormErrorSchema = z.object({
 export type NodeFormErrors = z.inferFlattenedErrors<typeof nodeFormErrorSchema>['fieldErrors']
 
 export type NodeFormProps = {
-  onSubmitAction: (values: NodeData) => void
-  initialValues: NodeData
+  onSubmitAction: (values: NodeFormData) => void
+  initialValues: NodeFormData
+  mode?: 'add' | 'edit'
   templateSteps: TemplateStep[]
   templateStepParams: TemplateStepParameter[]
   showAddNodeDialog: boolean
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
-  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name'>>
+  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
+  environments: Array<Pick<Environment, 'id' | 'name'>>
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
+  onLocatorCreated?: (result: InlineLocatorSaveResult) => void
   setShowAddNodeDialog: (show: boolean) => void
   defaultValueInput?: boolean
 }
@@ -62,10 +69,7 @@ export function createInitialParametersForTemplateStep(templateStepParams: Templ
   }))
 }
 
-export function getGherkinPreview(
-  templateStep: TemplateStep | null,
-  parameters: NodeData['parameters'],
-) {
+export function getGherkinPreview(templateStep: TemplateStep | null, parameters: NodeFormData['parameters']) {
   if (!templateStep?.signature) {
     return ''
   }
@@ -82,7 +86,7 @@ export function validateNodeFormValues(label: FormDataEntryValue | undefined, te
 
 export function buildNodeFormSubmitValue(
   formValues: Record<string, FormDataEntryValue>,
-  parameters: NodeData['parameters'],
+  parameters: NodeFormData['parameters'],
   gherkinStep: string,
   templateStepId: string,
 ) {
@@ -92,7 +96,7 @@ export function buildNodeFormSubmitValue(
     label: String(formValues.label ?? ''),
     gherkinStep,
     templateStepId,
-  } satisfies NodeData
+  } satisfies NodeFormData
 }
 
 export function getSelectedTemplateIcon(templateStep: TemplateStep | null) {

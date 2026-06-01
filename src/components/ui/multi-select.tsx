@@ -56,7 +56,9 @@ export function MultiSelect({
     }
   }
 
-  const selectedOptions = selected.map(value => options.find(option => option.value === value) ?? { label: value, value })
+  const selectedOptions = selected.map(
+    value => options.find(option => option.value === value) ?? { label: value, value },
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -97,13 +99,13 @@ export function MultiSelect({
                     handleUnselect(option.value)
                   }}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="size-3" />
                   <span className="sr-only">Remove {option.label}</span>
                 </button>
               </Badge>
             ))}
           </div>
-          <ChevronDown className={cn('h-4 w-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />
+          <ChevronDown className={cn('size-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
@@ -126,7 +128,7 @@ export function MultiSelect({
                   >
                     <div
                       className={cn(
-                        'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                        'mr-2 flex size-4 items-center justify-center rounded-sm border border-primary',
                         isSelected ? 'bg-primary text-primary-foreground' : 'opacity-50 [&_svg]:invisible',
                       )}
                     >
@@ -140,7 +142,7 @@ export function MultiSelect({
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className={cn('h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')}
+                        className={cn('size-4', isSelected ? 'opacity-100' : 'opacity-0')}
                       >
                         <polyline points="20 6 9 17 4 12" />
                       </svg>

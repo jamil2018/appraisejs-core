@@ -27,7 +27,7 @@ const TemplateTestCasesPage = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<Blocks className="h-8 w-8" />}
+          icon={<Blocks className="size-8" />}
           title="No template test cases found"
           description="Get started by creating a template test case to quickly create test cases"
           createRoute="/template-test-cases/create"
@@ -42,7 +42,7 @@ const TemplateTestCasesPage = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Blocks className="mr-2 h-8 w-8" />
+            <Blocks className="mr-2 size-8" />
             Template Test Cases
           </span>
         </PageHeader>

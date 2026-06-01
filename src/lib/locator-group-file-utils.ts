@@ -29,7 +29,7 @@ export async function getLocatorGroupFilePath(locatorGroupId: string): Promise<s
   }
 }
 
-export async function generateLocatorGroupContent(locatorGroupId: string): Promise<Record<string, string>> {
+async function generateLocatorGroupContent(locatorGroupId: string): Promise<Record<string, string>> {
   try {
     const locatorGroup = await prisma.locatorGroup.findUnique({
       where: { id: locatorGroupId },
@@ -51,7 +51,7 @@ export async function generateLocatorGroupContent(locatorGroupId: string): Promi
   }
 }
 
-export async function ensureDirectoryExists(filePath: string): Promise<void> {
+async function ensureDirectoryExists(filePath: string): Promise<void> {
   await ensureAutomationWorkspaceReady()
   await fs.mkdir(path.dirname(filePath), { recursive: true })
 }
@@ -144,7 +144,11 @@ async function cleanupEmptyDirectories(filePath: string): Promise<void> {
   let currentDir = path.dirname(filePath)
   const locatorsRoot = getAutomationLocatorsDir()
 
-  while (currentDir.startsWith(locatorsRoot) && currentDir !== locatorsRoot && currentDir !== path.dirname(currentDir)) {
+  while (
+    currentDir.startsWith(locatorsRoot) &&
+    currentDir !== locatorsRoot &&
+    currentDir !== path.dirname(currentDir)
+  ) {
     try {
       const files = await fs.readdir(currentDir)
       if (files.length === 0) {
@@ -173,24 +177,6 @@ export async function createEmptyLocatorGroupFile(locatorGroupId: string): Promi
   } catch (error) {
     console.error('Error creating empty locator group file:', error)
     return false
-  }
-}
-
-export async function readLocatorGroupFile(
-  locatorGroupId: string,
-): Promise<{ filePath: string; content: Record<string, string> } | null> {
-  try {
-    await ensureAutomationWorkspaceReady()
-    const filePath = await getLocatorGroupFilePath(locatorGroupId)
-    if (!filePath) {
-      return null
-    }
-
-    const fileContent = await fs.readFile(filePath, 'utf-8')
-    return { filePath, content: JSON.parse(fileContent) }
-  } catch (error) {
-    console.error('Error reading locator group file:', error)
-    return null
   }
 }
 

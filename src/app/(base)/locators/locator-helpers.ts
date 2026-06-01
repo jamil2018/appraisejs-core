@@ -13,21 +13,11 @@ export type LocatorGroupSummary = {
 export type ConflictResolutionSummary = Pick<ConflictResolution, 'id'>
 
 function isLocatorGroupRow(value: unknown): value is LocatorGroupSummary {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'name' in value &&
-    typeof value.name === 'string'
-  )
+  return typeof value === 'object' && value !== null && 'name' in value && typeof value.name === 'string'
 }
 
 function isConflictRow(value: unknown): value is ConflictResolutionSummary {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    typeof value.id === 'string'
-  )
+  return typeof value === 'object' && value !== null && 'id' in value && typeof value.id === 'string'
 }
 
 function isLocatorTableRow(value: unknown): value is LocatorTableRow {

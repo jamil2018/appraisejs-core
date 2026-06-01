@@ -73,6 +73,8 @@ describe('TemplateTestCaseForm', () => {
         templateSteps={[]}
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         onSubmitAction={onSubmitAction}
       />,
     )
@@ -86,11 +88,13 @@ describe('TemplateTestCaseForm', () => {
         {
           title: 'Reusable login',
           description: 'Uses default credentials',
+          flowBlocks: [],
           steps: [
             {
               gherkinStep: 'fill email',
               label: 'Fill email',
               icon: 'INPUT',
+              nodeId: 'node-1',
               parameters: [
                 {
                   name: 'email',
@@ -127,6 +131,8 @@ describe('TemplateTestCaseForm', () => {
         templateSteps={[]}
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         onSubmitAction={onSubmitAction}
       />,
     )

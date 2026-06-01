@@ -77,6 +77,8 @@ describe('TemplateTestCaseFlow', () => {
         templateSteps={[]}
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         onNodeOrderChange={onNodeOrderChange}
         defaultValueInput
       />,
@@ -105,5 +107,4 @@ describe('TemplateTestCaseFlow', () => {
     })
     expect(screen.getByTestId('default-value-input')).toHaveTextContent('true')
   })
-
 })

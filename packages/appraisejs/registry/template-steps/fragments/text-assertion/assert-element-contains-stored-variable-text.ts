@@ -5,9 +5,5 @@
  */
 Then(
   'the element {string} should contain the text inside the stored variable {string}',
-  async function (
-    this: CustomWorld,
-    _elementName: SelectorName,
-    _variableName: string
-  ) {}
-);
+  async function (this: CustomWorld, _elementName: SelectorName, _variableName: string) {},
+)

@@ -5,8 +5,6 @@ import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvir
  * @type ACTION
  */
 
-// This file is generated automatically. Add template steps to this group to generate content.
-
 /**
  * @name click
  * @description Template step for clicking on an element

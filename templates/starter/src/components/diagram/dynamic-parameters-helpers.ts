@@ -68,7 +68,9 @@ export function getInitialSelectedLocatorGroups(
   initialParameterValues: DynamicParameterInput[] | undefined,
   locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>,
 ) {
-  const initialValueMap = Object.fromEntries((initialParameterValues ?? []).map(parameter => [parameter.name, parameter]))
+  const initialValueMap = Object.fromEntries(
+    (initialParameterValues ?? []).map(parameter => [parameter.name, parameter]),
+  )
 
   return Object.fromEntries(
     templateStepParams.flatMap(parameter => {
@@ -92,6 +94,7 @@ export function validateDynamicParameters(
   values: DynamicParameterValuesMap,
   selectedLocatorGroups: Record<string, string>,
   defaultValueInput: boolean,
+  locatorSelectionModes: Record<string, 'existing' | 'new'> = {},
 ) {
   if (defaultValueInput) {
     return {}
@@ -103,7 +106,11 @@ export function validateDynamicParameters(
     const value = values[parameter.name]
 
     if (parameter.type === StepParameterType.LOCATOR) {
-      if (!selectedLocatorGroups[parameter.name]) {
+      if (locatorSelectionModes[parameter.name] === 'new') {
+        if (!value) {
+          errors[parameter.name] = 'Locator is required'
+        }
+      } else if (!selectedLocatorGroups[parameter.name]) {
         errors[parameter.name] = 'Locator group is required'
       } else if (!value) {
         errors[parameter.name] = 'Locator is required'
@@ -136,8 +143,7 @@ export function formatDynamicParameterValues(
         formattedValue = value !== undefined && value !== null ? String(value) : ''
         break
       case StepParameterType.DATE:
-        formattedValue =
-          value instanceof Date && !Number.isNaN(value.getTime()) ? format(value, 'PPP') : ''
+        formattedValue = value instanceof Date && !Number.isNaN(value.getTime()) ? format(value, 'PPP') : ''
         break
       case StepParameterType.BOOLEAN:
         formattedValue = value !== undefined && value !== null ? String(value) : ''

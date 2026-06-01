@@ -10,11 +10,7 @@
  */
 
 import prisma from '../src/config/db-config'
-import {
-  scanFeatureFiles,
-  extractModulePathFromFilePath,
-  ParsedStep,
-} from '../src/lib/gherkin-parser'
+import { scanFeatureFiles, extractModulePathFromFilePath, ParsedStep } from '../src/lib/gherkin-parser'
 import { buildModuleHierarchy, findModuleByPath } from '../src/lib/module-hierarchy-builder'
 import { StepParameterType, TagType } from '@prisma/client'
 import { ensureAutomationWorkspaceReady, getAutomationFeaturesDir } from '../src/lib/automation/paths'
@@ -25,11 +21,7 @@ import {
 } from '../src/lib/sync/projected-feature-utils'
 import { extractTestSuiteNameFromFilename } from './lib/filename-utils'
 import { splitTagLine } from './lib/tag-parsing'
-import {
-  determineStepTypeAndIcon,
-  findMatchingTemplateStep,
-  sameResolvedParameters,
-} from './lib/step-matcher'
+import { determineStepTypeAndIcon, findMatchingTemplateStep, sameResolvedParameters } from './lib/step-matcher'
 import { printSyncSummary } from './lib/sync-summary'
 import { runSyncScript } from './lib/sync-script-runner'
 
@@ -41,6 +33,9 @@ interface TestCaseFromFS {
   modulePath: string // From folder structure
   filterTags: string[] // Scenario tags excluding @tc_...
   steps: ParsedStep[] // From scenario steps
+  hasAppraiseMetadata: boolean
+  nodes: Array<{ nodeId: string; order: number; label: string }>
+  flowBlocks: Array<{ id: string; name: string; order: number; nodeIds: string[] }>
   filePath: string // Feature file path
 }
 
@@ -109,7 +104,8 @@ async function scanTestCasesFromFilesystem(featuresDir: string): Promise<TestCas
 
       for (const scenario of parsedFeature.scenarios) {
         // Find identifier tag (@tc_...)
-        const identifierTag = scenario.tags.find(tag => {
+        const flattenedTags = scenario.tags.flatMap(splitTagLine)
+        const identifierTag = flattenedTags.find(tag => {
           const tagName = tag.startsWith('@') ? tag.substring(1) : tag
           return tagName.startsWith('tc_')
         })
@@ -122,20 +118,27 @@ async function scanTestCasesFromFilesystem(featuresDir: string): Promise<TestCas
         }
 
         // Extract filter tags (all tags except identifier tag)
-        const filterTags = scenario.tags.filter(tag => tag !== identifierTag).flatMap(tag => splitTagLine(tag))
+        const filterTags = flattenedTags.filter(tag => tag !== identifierTag)
 
         // Parse title and description from scenario name
         // Note: gherkin parser swaps them, so we pass both
-        const { title, description } = parseScenarioTitle(scenario.name, scenario.description)
+        const parsedTitle = parseScenarioTitle(scenario.name, scenario.description)
+        const nodesByOrder = new Map((scenario.appraiseMetadata?.nodes ?? []).map(node => [node.order, node]))
 
         testCases.push({
           identifierTag: identifierTag.startsWith('@') ? identifierTag : `@${identifierTag}`,
-          title,
-          description,
+          title: scenario.appraiseMetadata?.title ?? parsedTitle.title,
+          description: scenario.appraiseMetadata?.description ?? parsedTitle.description,
           testSuiteName,
           modulePath,
           filterTags,
-          steps: scenario.steps,
+          steps: scenario.steps.map(step => ({
+            ...step,
+            appraiseNode: nodesByOrder.get(step.order),
+          })),
+          hasAppraiseMetadata: scenario.appraiseMetadata != null,
+          nodes: scenario.appraiseMetadata?.nodes ?? [],
+          flowBlocks: scenario.appraiseMetadata?.flowBlocks ?? [],
           filePath: parsedFeature.filePath,
         })
       }
@@ -187,10 +190,7 @@ async function findOrCreateTag(tagExpression: string, type: TagType): Promise<st
   }
 }
 
-async function deleteTestCaseWithCascade(
-  testCaseId: string,
-  identifierTagId?: string,
-): Promise<void> {
+async function deleteTestCaseWithCascade(testCaseId: string, identifierTagId?: string): Promise<void> {
   // Keep deletes in dependency order to satisfy RESTRICT constraints and
   // mirror domain-level delete behavior in a single transactional boundary.
   await prisma.$transaction(async tx => {
@@ -263,7 +263,9 @@ async function syncTestCaseSteps(
 
     // Order is the stable identity within a scenario for synchronization.
     const existingStepsMap = new Map(existingSteps.map(step => [step.order, step]))
-    const projectedExistingStepsMap = new Map(normalizeProjectedDbTestCaseSteps(existingSteps).map(step => [step.order, step]))
+    const projectedExistingStepsMap = new Map(
+      normalizeProjectedDbTestCaseSteps(existingSteps).map(step => [step.order, step]),
+    )
 
     // Process each step from filesystem
     for (const step of steps) {
@@ -280,13 +282,15 @@ async function syncTestCaseSteps(
       const existingStep = existingStepsMap.get(step.order)
       const { icon } = determineStepTypeAndIcon(step.keyword)
       const gherkinStep = `${step.keyword} ${step.text}`
+      const label = step.appraiseNode?.label ?? step.text
 
       if (existingStep) {
+        const expectedFlowNodeId = step.appraiseNode?.nodeId ?? existingStep.flowNodeId
         const projectedExistingStep = projectedExistingStepsMap.get(step.order)
         const matchesProjectedState =
           projectedExistingStep != null &&
           projectedExistingStep.gherkinStep === gherkinStep &&
-          projectedExistingStep.label === step.text &&
+          projectedExistingStep.label === label &&
           projectedExistingStep.icon === determineProjectedStepIcon(step.keyword) &&
           projectedExistingStep.templateStepSignature === match.signature &&
           sameResolvedParameters(projectedExistingStep.parameters, match.parameters)
@@ -297,7 +301,8 @@ async function syncTestCaseSteps(
           !matchesProjectedState &&
           (existingStep.gherkinStep !== gherkinStep ||
             existingStep.templateStepId !== match.templateStepId ||
-            existingStep.label !== step.text ||
+            existingStep.flowNodeId !== expectedFlowNodeId ||
+            existingStep.label !== label ||
             existingStep.icon !== icon)
 
         if (needsUpdate) {
@@ -305,7 +310,8 @@ async function syncTestCaseSteps(
             where: { id: existingStep.id },
             data: {
               gherkinStep,
-              label: step.text,
+              flowNodeId: expectedFlowNodeId,
+              label,
               templateStepId: match.templateStepId,
               icon,
             },
@@ -335,7 +341,8 @@ async function syncTestCaseSteps(
             testCaseId,
             order: step.order,
             gherkinStep,
-            label: step.text,
+            flowNodeId: step.appraiseNode?.nodeId,
+            label,
             icon,
             templateStepId: match.templateStepId,
           },
@@ -370,6 +377,38 @@ async function syncTestCaseSteps(
     result.errors.push(errorMsg)
     console.error(`   ❌ ${errorMsg}`)
   }
+}
+
+async function syncTestCaseFlowBlocks(testCaseId: string, testCase: TestCaseFromFS): Promise<void> {
+  if (!testCase.hasAppraiseMetadata) {
+    return
+  }
+
+  const validNodeIds = new Set(testCase.nodes.map(node => node.nodeId))
+
+  await prisma.testCaseFlowBlock.deleteMany({
+    where: { testCaseId },
+  })
+
+  if (testCase.flowBlocks.length === 0) {
+    return
+  }
+
+  await prisma.testCase.update({
+    where: { id: testCaseId },
+    data: {
+      flowBlocks: {
+        create: testCase.flowBlocks.map(block => ({
+          id: block.id,
+          name: block.name,
+          order: block.order,
+          nodes: {
+            create: block.nodeIds.filter(nodeId => validNodeIds.has(nodeId)).map(nodeId => ({ flowNodeId: nodeId })),
+          },
+        })),
+      },
+    },
+  })
 }
 
 type TemplateStepForMatch = Array<{
@@ -509,6 +548,7 @@ async function upsertTestCase(
     }
 
     await syncTestCaseSteps(existingTestCase.id, testCase.steps, templateSteps, result)
+    await syncTestCaseFlowBlocks(existingTestCase.id, testCase)
     return
   }
 
@@ -554,6 +594,7 @@ async function upsertTestCase(
   console.log(`   ➕ Created test case '${testCase.title}' (${testCase.identifierTag})`)
 
   await syncTestCaseSteps(newTestCase.id, testCase.steps, templateSteps, result)
+  await syncTestCaseFlowBlocks(newTestCase.id, testCase)
 }
 
 async function deleteOrphanedTestCases(fsTestCaseTags: Set<string>, result: SyncResult): Promise<void> {
@@ -647,71 +688,71 @@ async function syncTestCasesToDatabase(testCasesFromFS: TestCaseFromFS[], result
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult | void> {
-    console.log('🔄 Starting test cases sync...')
-    console.log('This will scan feature files and sync test cases to database.')
-    console.log('Filesystem is the source of truth - test cases in DB but not in FS will be deleted.\n')
+  console.log('🔄 Starting test cases sync...')
+  console.log('This will scan feature files and sync test cases to database.')
+  console.log('Filesystem is the source of truth - test cases in DB but not in FS will be deleted.\n')
 
-    await ensureAutomationWorkspaceReady()
-    const featuresDir = getAutomationFeaturesDir()
+  await ensureAutomationWorkspaceReady()
+  const featuresDir = getAutomationFeaturesDir()
 
-    // Scan test cases from filesystem
-    const testCasesFromFS = await scanTestCasesFromFilesystem(featuresDir)
+  // Scan test cases from filesystem
+  const testCasesFromFS = await scanTestCasesFromFilesystem(featuresDir)
 
-    if (testCasesFromFS.length === 0) {
-      console.log('\n⚠️  No test cases found in feature files. Nothing to sync.')
-      return
-    }
+  if (testCasesFromFS.length === 0) {
+    console.log('\n⚠️  No test cases found in feature files. Nothing to sync.')
+    return
+  }
 
-    console.log(`\n📋 Found ${testCasesFromFS.length} test case(s) from feature files:`)
-    for (const tc of testCasesFromFS) {
-      console.log(`   - ${tc.title} (${tc.identifierTag}) in ${tc.testSuiteName}`)
-    }
+  console.log(`\n📋 Found ${testCasesFromFS.length} test case(s) from feature files:`)
+  for (const tc of testCasesFromFS) {
+    console.log(`   - ${tc.title} (${tc.identifierTag}) in ${tc.testSuiteName}`)
+  }
 
-    // Initialize result
-    const result: SyncResult = {
-      testCasesScanned: testCasesFromFS.length,
-      testCasesExisting: 0,
-      testCasesCreated: 0,
-      testCasesUpdated: 0,
-      testCasesDeleted: 0,
-      errors: [],
-      warnings: [],
-      createdTestCases: [],
-      updatedTestCases: [],
-      deletedTestCases: [],
-    }
+  // Initialize result
+  const result: SyncResult = {
+    testCasesScanned: testCasesFromFS.length,
+    testCasesExisting: 0,
+    testCasesCreated: 0,
+    testCasesUpdated: 0,
+    testCasesDeleted: 0,
+    errors: [],
+    warnings: [],
+    createdTestCases: [],
+    updatedTestCases: [],
+    deletedTestCases: [],
+  }
 
-    // Sync to database
-    await syncTestCasesToDatabase(testCasesFromFS, result)
+  // Sync to database
+  await syncTestCasesToDatabase(testCasesFromFS, result)
 
-    printSyncSummary(
-      [
-        { label: '📁 Test cases scanned', value: result.testCasesScanned },
-        { label: '✅ Test cases existing', value: result.testCasesExisting },
-        { label: '➕ Test cases created', value: result.testCasesCreated },
-        { label: '🔄 Test cases updated', value: result.testCasesUpdated },
-        { label: '🗑️  Test cases deleted', value: result.testCasesDeleted },
-        { label: '⚠️  Warnings', value: result.warnings.length },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        {
-          title: 'Created test cases',
-          items: result.createdTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
-        },
-        {
-          title: 'Updated test cases',
-          items: result.updatedTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
-        },
-        {
-          title: 'Deleted test cases',
-          items: result.deletedTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
-        },
-        { title: 'Warnings', items: result.warnings },
-        { title: 'Errors', items: result.errors },
-      ],
-    )
-    return result
+  printSyncSummary(
+    [
+      { label: '📁 Test cases scanned', value: result.testCasesScanned },
+      { label: '✅ Test cases existing', value: result.testCasesExisting },
+      { label: '➕ Test cases created', value: result.testCasesCreated },
+      { label: '🔄 Test cases updated', value: result.testCasesUpdated },
+      { label: '🗑️  Test cases deleted', value: result.testCasesDeleted },
+      { label: '⚠️  Warnings', value: result.warnings.length },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      {
+        title: 'Created test cases',
+        items: result.createdTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
+      },
+      {
+        title: 'Updated test cases',
+        items: result.updatedTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
+      },
+      {
+        title: 'Deleted test cases',
+        items: result.deletedTestCases.map(tc => `${tc.title} (${tc.identifierTag})`),
+      },
+      { title: 'Warnings', items: result.warnings },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
+  return result
 }
 
 runSyncScript(main)

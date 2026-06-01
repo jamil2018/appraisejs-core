@@ -2,30 +2,20 @@
 
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {
-  TestRunResult,
-  TestRunStatus,
-  TestRunTestCaseResult,
-  TestRunTestCaseStatus,
-} from '@prisma/client'
+import { TestRunResult, TestRunStatus, TestRunTestCaseResult, TestRunTestCaseStatus } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TestRunDetails } from './test-run-details'
 import type { TestRunDetailsData } from './test-run-details-helpers'
 
-const {
-  getTestRunByIdAction,
-  spawnTraceViewerAction,
-  checkTraceViewerStatusAction,
-  cancelTestRunAction,
-  toast,
-} = vi.hoisted(() => ({
-  getTestRunByIdAction: vi.fn(),
-  spawnTraceViewerAction: vi.fn(),
-  checkTraceViewerStatusAction: vi.fn(),
-  cancelTestRunAction: vi.fn(),
-  toast: vi.fn(),
-}))
+const { getTestRunByIdAction, spawnTraceViewerAction, checkTraceViewerStatusAction, cancelTestRunAction, toast } =
+  vi.hoisted(() => ({
+    getTestRunByIdAction: vi.fn(),
+    spawnTraceViewerAction: vi.fn(),
+    checkTraceViewerStatusAction: vi.fn(),
+    cancelTestRunAction: vi.fn(),
+    toast: vi.fn(),
+  }))
 
 vi.mock('@/actions/test-run/test-run-actions', () => ({
   getTestRunByIdAction,
@@ -38,12 +28,7 @@ vi.mock('@/hooks/use-toast', () => ({
   toast,
 }))
 
-vi.mock('motion/react', () => ({
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
-  },
-}))
+import '@/test/setup-motion-react-mocks'
 
 function createTestRunDetails(overrides?: Partial<TestRunDetailsData>): TestRunDetailsData {
   return {

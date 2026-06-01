@@ -116,7 +116,7 @@ When('click {string}', async function () {})`),
     expect(result.status).toBe('installed')
     const content = await fs.readFile(path.join(workspace, 'automation/steps/actions/click.step.ts'), 'utf8')
     expect(content).toContain("import { helper } from './helper'")
-    expect(content).toContain("// Existing note")
+    expect(content).toContain('// Existing note')
     expect(content).toContain("When('existing click'")
     expect(content).toContain("When('click {string}'")
     expect(content).toContain('Then')
@@ -185,7 +185,9 @@ When('click {string}', async function () {
   await Promise.resolve('new')
 })`)
 
-    await expect(installTemplateStepPayload(payload, { projectRoot: workspace })).rejects.toThrow('Re-run with --overwrite')
+    await expect(installTemplateStepPayload(payload, { projectRoot: workspace })).rejects.toThrow(
+      'Re-run with --overwrite',
+    )
 
     const overwriteResult = await installTemplateStepPayload(payload, {
       projectRoot: workspace,

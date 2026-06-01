@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { TagType } from '@prisma/client'
 import { automationProjectionService } from '@/lib/automation/projection-service'
-import {
-  createTestSuiteFromInput,
-  deleteTestSuitesByIds,
-  updateTestSuiteFromInput,
-} from './test-suite-service'
+import { createTestSuiteFromInput, deleteTestSuitesByIds, updateTestSuiteFromInput } from './test-suite-service'
 
 vi.mock('@/config/db-config', () => ({
   default: {

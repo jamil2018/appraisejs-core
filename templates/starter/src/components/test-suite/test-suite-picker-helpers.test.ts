@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import type { TestSuitePickerRow } from '@/types/test-suite-picker'
 
-import { createDraftSelections, normalizeSuiteSelection, suiteMatchesQuery } from './test-suite-picker-helpers'
+import {
+  applyChildCheckboxSelection,
+  applySuiteCheckboxSelection,
+  createDraftSelections,
+  normalizeSuiteSelection,
+  suiteMatchesQuery,
+} from './test-suite-picker-helpers'
 
 const suite: TestSuitePickerRow = {
   id: 'suite-1',
@@ -57,6 +63,26 @@ describe('test-suite-picker helpers', () => {
       runAll: true,
       testCaseIds: [],
     })
+  })
+
+  it('updates draft selections for suite and child checkboxes', () => {
+    const empty = createDraftSelections([])
+
+    expect(applySuiteCheckboxSelection(empty, suite, true)).toEqual({
+      'suite-1': { testSuiteId: 'suite-1', runAll: true, testCaseIds: [] },
+    })
+
+    const partial = applyChildCheckboxSelection(empty, suite, 'case-1', true)
+    expect(partial).toEqual({
+      'suite-1': { testSuiteId: 'suite-1', runAll: false, testCaseIds: ['case-1'] },
+    })
+
+    const full = applyChildCheckboxSelection(partial, suite, 'case-2', true)
+    expect(full).toEqual({
+      'suite-1': { testSuiteId: 'suite-1', runAll: true, testCaseIds: [] },
+    })
+
+    expect(applySuiteCheckboxSelection(full, suite, false)).toEqual({})
   })
 
   it('matches suites against module, suite, tag, and child test text', () => {

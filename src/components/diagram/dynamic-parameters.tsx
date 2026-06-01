@@ -1,32 +1,52 @@
 'use client'
 
-import { useState, useMemo, forwardRef, useImperativeHandle, useEffect } from 'react'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CalendarIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState, useMemo, useImperativeHandle, useEffect, useRef, startTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StepParameterType, TemplateStepParameter, type Locator, type LocatorGroup } from '@prisma/client'
-import { format } from 'date-fns'
-import ErrorMessage from '@/components/form/error-message'
+import { StepParameterType, TemplateStepParameter, type Module } from '@prisma/client'
+import type {
+  InlineLocatorSaveResult,
+  LocatorWorkspaceEnvironment,
+} from '@/app/(base)/locators/create/create-locator-workspace-helpers'
 import {
   formatDynamicParameterValues,
   getDynamicParameterInitialValues,
   getInitialSelectedLocatorGroups,
-  getLocatorsForGroup,
   validateDynamicParameters,
 } from './dynamic-parameters-helpers'
+import { DynamicParameterInputField } from './dynamic-parameter-fields'
+import type {
+  DynamicParameterValue,
+  LocatorOption,
+  LocatorGroupOption,
+  LocatorSelectionMode,
+} from './dynamic-parameter-field-types'
 
-type DynamicParameterValue = string | number | boolean | Date
+type DynamicFieldState = {
+  values: Record<string, DynamicParameterValue>
+  selectedLocatorGroups: Record<string, string>
+  createdLocatorSelections: Record<string, InlineLocatorSaveResult>
+  locatorSelectionModes: Record<string, LocatorSelectionMode>
+}
+
+function createFieldState(
+  values: Record<string, DynamicParameterValue>,
+  selectedLocatorGroups: Record<string, string>,
+): DynamicFieldState {
+  return {
+    values,
+    selectedLocatorGroups,
+    createdLocatorSelections: {},
+    locatorSelectionModes: {},
+  }
+}
 
 type DynamicFormFieldsProps = {
   templateStepParams: TemplateStepParameter[]
-  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
-  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name'>>
+  locators: LocatorOption[]
+  locatorGroups: LocatorGroupOption[]
+  environments: LocatorWorkspaceEnvironment[]
+  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
+  onLocatorCreated?: (result: InlineLocatorSaveResult) => void
   defaultValueInput?: boolean
   onChange?: (
     values: {
@@ -39,25 +59,27 @@ type DynamicFormFieldsProps = {
   initialParameterValues?: {
     name: string
     value: string
-      type: StepParameterType
-      order: number
-    }[]
+    type: StepParameterType
+    order: number
+  }[]
 }
 
 export interface DynamicFormFieldsRef {
   validate: () => boolean
 }
 
-const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProps>((props, ref) => {
-  const {
-    templateStepParams,
-    locators,
-    locatorGroups,
-    defaultValueInput = false,
-    onChange,
-    initialParameterValues,
-  } = props
-
+function DynamicFormFields({
+  ref,
+  templateStepParams,
+  locators,
+  locatorGroups,
+  environments,
+  modules,
+  onLocatorCreated,
+  defaultValueInput = false,
+  onChange,
+  initialParameterValues,
+}: DynamicFormFieldsProps & React.RefAttributes<DynamicFormFieldsRef>) {
   const resetKey = useMemo(() => {
     return JSON.stringify({
       params: templateStepParams.map(p => ({ name: p.name, type: p.type })),
@@ -77,30 +99,66 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     [templateStepParams, initialParameterValues, locators],
   )
 
-  // Initialize state with initial values
-  const [values, setValues] = useState<Record<string, DynamicParameterValue>>(initialValues)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  // State for locator group selection (initialized from initial data so edit restores group + locator)
-  const [selectedLocatorGroups, setSelectedLocatorGroups] = useState<Record<string, string>>(
-    initialSelectedLocatorGroups,
+  const [fieldState, setFieldState] = useState<DynamicFieldState>(() =>
+    createFieldState(initialValues, initialSelectedLocatorGroups),
   )
+  const { values, selectedLocatorGroups, createdLocatorSelections, locatorSelectionModes } = fieldState
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [inlineLocators, setInlineLocators] = useState<LocatorOption[]>([])
+  const [inlineLocatorGroups, setInlineLocatorGroups] = useState<LocatorGroupOption[]>([])
+  const [createLocatorParamName, setCreateLocatorParamName] = useState<string | null>(null)
+  const lastInitialSyncKeyRef = useRef<string | null>(null)
+  const fieldClassName = 'w-full border-border bg-background'
+
+  const availableLocatorGroups = useMemo(() => {
+    const groupsById = new Map<string, LocatorGroupOption>()
+    for (const group of locatorGroups) {
+      groupsById.set(group.id, group)
+    }
+    for (const group of inlineLocatorGroups) {
+      groupsById.set(group.id, group)
+    }
+    return Array.from(groupsById.values())
+  }, [inlineLocatorGroups, locatorGroups])
+
+  const availableLocatorOptions = useMemo(() => {
+    const locatorsById = new Map<string, LocatorOption>()
+    for (const locator of locators) {
+      locatorsById.set(locator.id, locator)
+    }
+    for (const locator of inlineLocators) {
+      locatorsById.set(locator.id, locator)
+    }
+    return Array.from(locatorsById.values())
+  }, [inlineLocators, locators])
 
   useEffect(() => {
-    queueMicrotask(() => setErrors({}))
+    startTransition(() => {
+      setErrors({})
+    })
   }, [templateStepParams])
 
   // Sync state when initial data changes (e.g. opening edit for a different node)
   useEffect(() => {
-    queueMicrotask(() => {
-      setValues(initialValues)
-      setSelectedLocatorGroups(initialSelectedLocatorGroups)
+    if (lastInitialSyncKeyRef.current === resetKey) {
+      return
+    }
+
+    lastInitialSyncKeyRef.current = resetKey
+    startTransition(() => {
+      setFieldState(createFieldState(initialValues, initialSelectedLocatorGroups))
     })
-  }, [initialValues, initialSelectedLocatorGroups])
+  }, [initialValues, initialSelectedLocatorGroups, resetKey])
 
   useImperativeHandle(ref, () => ({
     validate: () => {
-      const newErrors = validateDynamicParameters(templateStepParams, values, selectedLocatorGroups, defaultValueInput)
+      const newErrors = validateDynamicParameters(
+        templateStepParams,
+        values,
+        selectedLocatorGroups,
+        defaultValueInput,
+        locatorSelectionModes,
+      )
       setErrors(newErrors)
       return Object.keys(newErrors).length === 0
     },
@@ -113,7 +171,7 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
       [name]: value,
     }
 
-    setValues(newValues)
+    setFieldState(prev => ({ ...prev, values: newValues }))
 
     // Clear error for the field being edited
     if (errors[name]) {
@@ -130,15 +188,16 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
 
   // Handle locator group selection
   const handleLocatorGroupChange = (paramName: string, groupId: string) => {
-    setSelectedLocatorGroups(prev => ({
+    setFieldState(prev => ({
       ...prev,
-      [paramName]: groupId,
-    }))
-
-    // Clear the locator selection when group changes
-    setValues(prev => ({
-      ...prev,
-      [paramName]: '',
+      selectedLocatorGroups: {
+        ...prev.selectedLocatorGroups,
+        [paramName]: groupId,
+      },
+      values: {
+        ...prev.values,
+        [paramName]: '',
+      },
     }))
 
     // Clear errors for this field
@@ -149,181 +208,100 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
     }
   }
 
-  // Get locators for a specific group
-  // Render the appropriate input field based on the parameter type
-  const renderInputField = (param: TemplateStepParameter) => {
-    const { name, type } = param
-    const errorMessage = errors[name]
-
-    switch (type) {
-      case 'NUMBER':
-        return (
-          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
-            <Label htmlFor={`input-${name}`} className="text-primary">
-              {defaultValueInput ? `Default ${name}` : name}{' '}
-              {!defaultValueInput && <span className="text-red-500">*</span>}
-            </Label>
-            <Input
-              id={`input-${name}`}
-              type="number"
-              value={typeof values[name] === 'number' ? values[name] : 0}
-              onChange={e => handleInputChange(name, Number(e.target.value))}
-              className="w-full"
-            />
-            <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
-          </div>
-        )
-
-      case 'STRING':
-        return (
-          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
-            <Label htmlFor={`input-${name}`} className="text-primary">
-              {defaultValueInput ? `Default ${name}` : name}{' '}
-              {!defaultValueInput && <span className="text-red-500">*</span>}
-            </Label>
-            <Input
-              id={`input-${name}`}
-              type="text"
-              value={typeof values[name] === 'string' ? values[name] : ''}
-              onChange={e => handleInputChange(name, e.target.value)}
-              className="w-full"
-            />
-            <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
-          </div>
-        )
-
-      case 'DATE':
-        return (
-          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
-            <Label className="text-primary">
-              {defaultValueInput ? `Default ${name}` : name}{' '}
-              {!defaultValueInput && <span className="text-red-500">*</span>}
-            </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn('w-full justify-start text-left font-normal', !values[name] && 'text-muted-foreground')}
-                  aria-required={!defaultValueInput}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {values[name] instanceof Date ? (
-                    format(values[name] as Date, 'PPP')
-                  ) : (
-                    <span className={defaultValueInput ? 'text-muted-foreground' : 'text-red-500'}>
-                      {defaultValueInput ? 'Pick a date (optional)' : 'Pick a date *'}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={values[name] instanceof Date ? (values[name] as Date) : undefined}
-                  onSelect={(date: Date | undefined) => handleInputChange(name, date as Date)}
-                  initialFocus
-                  required={!defaultValueInput}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )
-
-      case 'BOOLEAN':
-        return (
-          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
-            <Label htmlFor={`select-${name}`} className="text-primary">
-              {defaultValueInput ? `Default ${name}` : name}{' '}
-              {!defaultValueInput && <span className="text-red-500">*</span>}
-            </Label>
-            <Select
-              value={typeof values[name] === 'boolean' ? String(values[name]) : 'false'}
-              onValueChange={value => handleInputChange(name, value === 'true')}
-              required={!defaultValueInput}
-            >
-              <SelectTrigger id={`select-${name}`} className="w-full">
-                <SelectValue placeholder={defaultValueInput ? 'Select a value (optional)' : 'Select a value *'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">True</SelectItem>
-                <SelectItem value="false">False</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )
-
-      case 'LOCATOR':
-        const selectedGroupId = selectedLocatorGroups[name] || ''
-        const availableLocators = selectedGroupId ? getLocatorsForGroup(locators, selectedGroupId) : []
-
-        return (
-          <div className="grid w-full items-center gap-1.5 rounded-md bg-gray-500/10 p-4">
-            <Label htmlFor={`select-${name}`} className="text-primary">
-              {defaultValueInput ? `Default ${name}` : name}{' '}
-              {!defaultValueInput && <span className="text-red-500">*</span>}
-            </Label>
-
-            {/* Locator Group Selection */}
-            <div className="mb-2">
-              <Label htmlFor={`group-${name}`} className="text-sm text-muted-foreground">
-                Locator Group
-              </Label>
-              <Select
-                value={selectedGroupId}
-                onValueChange={value => handleLocatorGroupChange(name, value)}
-                required={!defaultValueInput}
-              >
-                <SelectTrigger id={`group-${name}`} className="w-full">
-                  <SelectValue placeholder="Select a locator group" />
-                </SelectTrigger>
-                <SelectContent isEmpty={locatorGroups.length === 0}>
-                  {locatorGroups.map(group => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Locator Selection */}
-            <div>
-              <Label htmlFor={`select-${name}`} className="text-sm text-muted-foreground">
-                Locator
-              </Label>
-              <Select
-                value={typeof values[name] === 'string' ? values[name] : ''}
-                onValueChange={value => handleInputChange(name, value)}
-                required={!defaultValueInput}
-                disabled={!selectedGroupId}
-              >
-                <SelectTrigger id={`select-${name}`} className="w-full">
-                  <SelectValue
-                    placeholder={
-                      !selectedGroupId
-                        ? 'Select a locator group first'
-                        : defaultValueInput
-                          ? 'Select a locator (optional)'
-                          : 'Select a locator *'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent isEmpty={availableLocators.length === 0}>
-                  {availableLocators.map(locator => (
-                    <SelectItem key={locator.id} value={locator.name}>
-                      {locator.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />
-          </div>
-        )
-
-      default:
-        return null
+  const handleLocatorSelectionModeChange = (paramName: string, mode: LocatorSelectionMode) => {
+    if (mode === 'new') {
+      const createdLocatorSelection = createdLocatorSelections[paramName]
+      if (createdLocatorSelection) {
+        const newValues: Record<string, DynamicParameterValue> = {
+          ...values,
+          [paramName]: createdLocatorSelection.locatorName,
+        }
+        setFieldState(prev => ({
+          ...prev,
+          locatorSelectionModes: {
+            ...prev.locatorSelectionModes,
+            [paramName]: mode,
+          },
+          selectedLocatorGroups: {
+            ...prev.selectedLocatorGroups,
+            [paramName]: createdLocatorSelection.locatorGroupId,
+          },
+          values: newValues,
+        }))
+        onChange?.(formatDynamicParameterValues(templateStepParams, newValues))
+        if (errors[paramName]) {
+          const newErrors = { ...errors }
+          delete newErrors[paramName]
+          setErrors(newErrors)
+        }
+        return
+      }
     }
+
+    setFieldState(prev => ({
+      ...prev,
+      locatorSelectionModes: {
+        ...prev.locatorSelectionModes,
+        [paramName]: mode,
+      },
+    }))
+
+    if (errors[paramName]) {
+      const newErrors = { ...errors }
+      delete newErrors[paramName]
+      setErrors(newErrors)
+    }
+  }
+
+  const handleInlineLocatorSave = (paramName: string, result: InlineLocatorSaveResult) => {
+    const nextGroup = {
+      id: result.locatorGroupId,
+      name: result.locatorGroupName,
+      route: result.route,
+      moduleId: result.moduleId,
+    }
+    const nextLocator = {
+      id: result.locatorId,
+      name: result.locatorName,
+      locatorGroupId: result.locatorGroupId,
+    }
+
+    setInlineLocatorGroups(current =>
+      current.some(group => group.id === nextGroup.id)
+        ? current.map(group => (group.id === nextGroup.id ? nextGroup : group))
+        : [...current, nextGroup],
+    )
+    setInlineLocators(current =>
+      current.some(locator => locator.id === nextLocator.id)
+        ? current.map(locator => (locator.id === nextLocator.id ? nextLocator : locator))
+        : [...current, nextLocator],
+    )
+    const newValues: Record<string, DynamicParameterValue> = {
+      ...values,
+      [paramName]: result.locatorName,
+    }
+
+    setFieldState(prev => ({
+      ...prev,
+      createdLocatorSelections: {
+        ...prev.createdLocatorSelections,
+        [paramName]: result,
+      },
+      selectedLocatorGroups: {
+        ...prev.selectedLocatorGroups,
+        [paramName]: result.locatorGroupId,
+      },
+      values: newValues,
+    }))
+
+    if (errors[paramName]) {
+      const newErrors = { ...errors }
+      delete newErrors[paramName]
+      setErrors(newErrors)
+    }
+
+    onChange?.(formatDynamicParameterValues(templateStepParams, newValues))
+    onLocatorCreated?.(result)
   }
 
   // Guard: do not render if no parameters
@@ -332,19 +310,41 @@ const DynamicFormFields = forwardRef<DynamicFormFieldsRef, DynamicFormFieldsProp
   }
 
   return (
-    <Card className="border-gray-700 bg-transparent shadow-none" key={resetKey}>
+    <Card className="border-zinc-700 bg-transparent shadow-none" key={resetKey}>
       <CardHeader className="py-3">
         <CardTitle className="text-xs font-bold text-primary">Parameters</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           {templateStepParams.map(param => (
-            <div key={param.name}>{renderInputField(param)}</div>
+            <div key={param.name}>
+              <DynamicParameterInputField
+                param={param}
+                values={values}
+                errors={errors}
+                defaultValueInput={defaultValueInput}
+                fieldClassName={fieldClassName}
+                selectedLocatorGroups={selectedLocatorGroups}
+                locatorSelectionModes={locatorSelectionModes}
+                createdLocatorSelections={createdLocatorSelections}
+                availableLocatorGroups={availableLocatorGroups}
+                availableLocatorOptions={availableLocatorOptions}
+                createLocatorParamName={createLocatorParamName}
+                environments={environments}
+                modules={modules}
+                onInputChange={handleInputChange}
+                onLocatorGroupChange={handleLocatorGroupChange}
+                onLocatorSelectionModeChange={handleLocatorSelectionModeChange}
+                onInlineLocatorSave={handleInlineLocatorSave}
+                onOpenCreateLocator={setCreateLocatorParamName}
+              />
+            </div>
           ))}
         </div>
       </CardContent>
     </Card>
   )
-})
+}
+
 DynamicFormFields.displayName = 'DynamicFormFields'
 export default DynamicFormFields

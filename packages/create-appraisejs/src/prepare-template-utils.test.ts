@@ -120,7 +120,10 @@ describe('verifyPreparedTemplateState', () => {
 
   it('fails when the locator map starter file is not an empty array', async () => {
     const dir = await createTempTemplateDir()
-    await fs.writeFile(path.join(dir, 'automation', 'mapping', 'locator-map.json'), '[{"name":"login","path":"/login"}]')
+    await fs.writeFile(
+      path.join(dir, 'automation', 'mapping', 'locator-map.json'),
+      '[{"name":"login","path":"/login"}]',
+    )
 
     await expect(verifyPreparedTemplateState(dir, 'starter', undefined, getStarterCounts)).rejects.toThrow(
       /empty locator map/,

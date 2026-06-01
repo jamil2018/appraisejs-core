@@ -1,6 +1,6 @@
 import prisma from '@/config/db-config'
 import { generateUniqueTestSuiteIdentifier } from '@/lib/test-suite-utils'
-import { getIdentifierTagByPrefix } from '@/lib/tag-utils'
+import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { TagType } from '@prisma/client'
 
 async function createTestSuiteIdentifierTag() {

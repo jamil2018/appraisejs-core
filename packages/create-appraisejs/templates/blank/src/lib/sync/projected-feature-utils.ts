@@ -1,4 +1,5 @@
 import { StepParameterType, TemplateStepIcon } from '@prisma/client'
+import { formatOrderedGherkinSteps } from '@/lib/gherkin-step-format'
 
 type StoredProjectedStep = {
   order: number
@@ -6,6 +7,8 @@ type StoredProjectedStep = {
 }
 
 type StoredProjectedDbStep = StoredProjectedStep & {
+  flowNodeId: string | null
+  label: string
   TemplateStep: { signature: string } | null
   parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
 }
@@ -15,6 +18,7 @@ export type ProjectedDbTestCaseStep = {
   keyword: string
   text: string
   gherkinStep: string
+  flowNodeId: string | null
   label: string
   icon: TemplateStepIcon
   templateStepSignature: string | null
@@ -38,48 +42,7 @@ export function generateProjectedGherkinSteps(steps: StoredProjectedStep[]): str
     return []
   }
 
-  const sortedSteps = [...steps].sort((left, right) => left.order - right.order)
-  let hasThenInPrevious = false
-  let hasWhenInPrevious = false
-
-  return sortedSteps.map((step, index) => {
-    const gherkinStep = step.gherkinStep?.trim() || ''
-    const firstWord = gherkinStep.split(' ')[0].toLowerCase()
-    const hasGherkinKeyword = ['given', 'when', 'then', 'and', 'but'].includes(firstWord)
-    const stepWithoutKeyword = hasGherkinKeyword ? gherkinStep.split(' ').slice(1).join(' ') : gherkinStep
-
-    if (index === 0) {
-      return `Given ${stepWithoutKeyword}`
-    }
-
-    const isThenStatement =
-      firstWord === 'then' ||
-      stepWithoutKeyword.toLowerCase().startsWith('should') ||
-      stepWithoutKeyword.toLowerCase().startsWith('must') ||
-      stepWithoutKeyword.toLowerCase().startsWith('will')
-
-    if (!hasThenInPrevious) {
-      if (isThenStatement) {
-        hasThenInPrevious = true
-        return `Then ${stepWithoutKeyword}`
-      }
-
-      if (!hasWhenInPrevious) {
-        hasWhenInPrevious = true
-        return `When ${stepWithoutKeyword}`
-      }
-
-      return `And ${stepWithoutKeyword}`
-    }
-
-    if (isThenStatement) {
-      return `And ${stepWithoutKeyword}`
-    }
-
-    hasThenInPrevious = false
-    hasWhenInPrevious = true
-    return `When ${stepWithoutKeyword}`
-  })
+  return formatOrderedGherkinSteps(steps)
 }
 
 export function determineProjectedStepIcon(keyword: string): TemplateStepIcon {
@@ -104,7 +67,8 @@ export function normalizeProjectedDbTestCaseSteps(steps: StoredProjectedDbStep[]
       keyword,
       text,
       gherkinStep,
-      label: text,
+      flowNodeId: step.flowNodeId,
+      label: step.label,
       icon: determineProjectedStepIcon(keyword),
       templateStepSignature: step.TemplateStep?.signature ?? null,
       parameters: step.parameters,

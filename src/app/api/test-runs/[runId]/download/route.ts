@@ -8,13 +8,14 @@ import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/a
 // Ensure this route runs in Node.js runtime (not Edge) for file system access
 export const runtime = 'nodejs'
 
-async function collectRunArtifactFiles(
-  dir: string,
-  baseDir = dir,
-): Promise<Array<{ absolutePath: string; archivePath: string }>> {
+type Archive = ReturnType<typeof archiver>
+type ArtifactFile = { absolutePath: string; archivePath: string }
+type DownloadTestRun = NonNullable<Awaited<ReturnType<typeof getDownloadTestRun>>>
+
+async function collectRunArtifactFiles(dir: string, baseDir = dir): Promise<ArtifactFile[]> {
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true })
-    const files: Array<{ absolutePath: string; archivePath: string }> = []
+    const files: ArtifactFile[] = []
 
     for (const entry of entries) {
       const absolutePath = path.join(dir, entry.name)
@@ -36,7 +37,7 @@ async function collectRunArtifactFiles(
 }
 
 async function addStoredArtifactFile(
-  archive: ReturnType<typeof archiver>,
+  archive: Archive,
   storedPath: string,
   archivePath: string,
   warningLabel: string,
@@ -57,6 +58,154 @@ function isPathWithinDirectory(targetPath: string, directoryPath: string): boole
   return relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath)
 }
 
+async function getDownloadTestRun(runId: string) {
+  return prisma.testRun.findUnique({
+    where: { runId },
+    select: {
+      logPath: true,
+      reportPath: true,
+      testCases: {
+        select: {
+          tracePath: true,
+        },
+      },
+    },
+  })
+}
+
+function createZipArchive() {
+  return archiver('zip', {
+    zlib: { level: 9 }, // Maximum compression
+  })
+}
+
+function addRunArtifactFiles(archive: Archive, runArtifactFiles: ArtifactFile[]) {
+  for (const artifactFile of runArtifactFiles) {
+    archive.file(artifactFile.absolutePath, { name: artifactFile.archivePath })
+  }
+
+  return new Set<string>(runArtifactFiles.map(artifactFile => artifactFile.archivePath))
+}
+
+async function addLegacyReportFile(
+  archive: Archive,
+  testRun: DownloadTestRun,
+  runArtifactDir: string,
+  archivedPaths: Set<string>,
+) {
+  if (!testRun.reportPath) {
+    return false
+  }
+
+  const resolvedReportPath = resolveStoredPath(testRun.reportPath)
+  if (isPathWithinDirectory(resolvedReportPath, runArtifactDir) || archivedPaths.has('cucumber.json')) {
+    return false
+  }
+
+  const didAddReportFile = await addStoredArtifactFile(archive, testRun.reportPath, 'cucumber.json', 'Report file')
+  if (didAddReportFile) {
+    archivedPaths.add('cucumber.json')
+  }
+
+  return didAddReportFile
+}
+
+async function addLegacyLogFile(
+  archive: Archive,
+  testRun: DownloadTestRun,
+  runArtifactDir: string,
+  archivedPaths: Set<string>,
+) {
+  if (!testRun.logPath) {
+    return false
+  }
+
+  const resolvedLogPath = resolveStoredPath(testRun.logPath)
+  const archivePath = `logs/${path.basename(testRun.logPath)}`
+  if (isPathWithinDirectory(resolvedLogPath, runArtifactDir) || archivedPaths.has(archivePath)) {
+    return false
+  }
+
+  const didAddLogFile = await addStoredArtifactFile(archive, testRun.logPath, archivePath, 'Log file')
+  if (didAddLogFile) {
+    archivedPaths.add(archivePath)
+  }
+
+  return didAddLogFile
+}
+
+async function addLegacyTraceFiles(
+  archive: Archive,
+  testRun: DownloadTestRun,
+  runArtifactDir: string,
+  archivedPaths: Set<string>,
+) {
+  let didAddAnyTraceFile = false
+  const traceFiles = testRun.testCases.flatMap(({ tracePath }) => (tracePath ? [tracePath] : []))
+
+  for (const tracePath of traceFiles) {
+    const resolvedTracePath = resolveStoredPath(tracePath)
+    const archivePath = `traces/${path.basename(tracePath)}`
+
+    if (isPathWithinDirectory(resolvedTracePath, runArtifactDir) || archivedPaths.has(archivePath)) {
+      continue
+    }
+
+    const didAddTraceFile = await addStoredArtifactFile(archive, tracePath, archivePath, 'Trace file')
+    didAddAnyTraceFile = didAddTraceFile || didAddAnyTraceFile
+    if (didAddTraceFile) {
+      archivedPaths.add(archivePath)
+    }
+  }
+
+  return didAddAnyTraceFile
+}
+
+async function addDownloadArtifacts(archive: Archive, testRun: DownloadTestRun, runArtifactDir: string) {
+  const runArtifactFiles = await collectRunArtifactFiles(runArtifactDir)
+  const archivedPaths = addRunArtifactFiles(archive, runArtifactFiles)
+  const didAddReportFile = await addLegacyReportFile(archive, testRun, runArtifactDir, archivedPaths)
+  const didAddLogFile = await addLegacyLogFile(archive, testRun, runArtifactDir, archivedPaths)
+  const didAddTraceFile = await addLegacyTraceFiles(archive, testRun, runArtifactDir, archivedPaths)
+
+  return runArtifactFiles.length > 0 || didAddReportFile || didAddLogFile || didAddTraceFile
+}
+
+function finalizeArchive(archive: Archive) {
+  const chunks: Buffer[] = []
+
+  const archivePromise = new Promise<Buffer>((resolve, reject) => {
+    archive.on('data', (chunk: Buffer) => {
+      chunks.push(chunk)
+    })
+
+    archive.on('end', () => {
+      resolve(Buffer.concat(chunks))
+    })
+
+    archive.on('error', err => {
+      reject(err)
+    })
+  })
+
+  archive.finalize()
+  return archivePromise
+}
+
+function createZipDownloadResponse(zipBuffer: Buffer, runId: string) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+  const filename = `test-run-${runId}-${timestamp}.zip`
+
+  return new NextResponse(new Uint8Array(zipBuffer), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': zipBuffer.length.toString(),
+    },
+  })
+}
+
 /**
  * GET handler for downloading a test run's stored artifacts as a zip file
  *
@@ -72,117 +221,22 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const runArtifactDir = getAutomationReportRunDir(runId)
 
   try {
-    // Verify test run exists
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId },
-      select: {
-        logPath: true,
-        reportPath: true,
-        testCases: {
-          select: {
-            tracePath: true,
-          },
-        },
-      },
-    })
+    const testRun = await getDownloadTestRun(runId)
 
     if (!testRun) {
       return NextResponse.json({ error: 'Test run not found' }, { status: 404 })
     }
 
-    // Create a zip archive
-    const archive = archiver('zip', {
-      zlib: { level: 9 }, // Maximum compression
-    })
-
-    const runArtifactFiles = await collectRunArtifactFiles(runArtifactDir)
-    let hasFiles = runArtifactFiles.length > 0
-    const archivedPaths = new Set<string>(runArtifactFiles.map(artifactFile => artifactFile.archivePath))
-
-    for (const artifactFile of runArtifactFiles) {
-      archive.file(artifactFile.absolutePath, { name: artifactFile.archivePath })
-    }
-
-    if (testRun.reportPath) {
-      const resolvedReportPath = resolveStoredPath(testRun.reportPath)
-      if (!isPathWithinDirectory(resolvedReportPath, runArtifactDir) && !archivedPaths.has('cucumber.json')) {
-        const didAddReportFile = await addStoredArtifactFile(archive, testRun.reportPath, 'cucumber.json', 'Report file')
-        hasFiles = didAddReportFile || hasFiles
-        if (didAddReportFile) {
-          archivedPaths.add('cucumber.json')
-        }
-      }
-    }
-
-    if (testRun.logPath) {
-      const resolvedLogPath = resolveStoredPath(testRun.logPath)
-      const archivePath = `logs/${path.basename(testRun.logPath)}`
-      if (!isPathWithinDirectory(resolvedLogPath, runArtifactDir) && !archivedPaths.has(archivePath)) {
-        const didAddLogFile = await addStoredArtifactFile(archive, testRun.logPath, archivePath, 'Log file')
-        hasFiles = didAddLogFile || hasFiles
-        if (didAddLogFile) {
-          archivedPaths.add(archivePath)
-        }
-      }
-    }
-
-    const traceFiles = testRun.testCases.flatMap(({ tracePath }) => (tracePath ? [tracePath] : []))
-    for (const tracePath of traceFiles) {
-      const resolvedTracePath = resolveStoredPath(tracePath)
-      const archivePath = `traces/${path.basename(tracePath)}`
-
-      if (!isPathWithinDirectory(resolvedTracePath, runArtifactDir) && !archivedPaths.has(archivePath)) {
-        const didAddTraceFile = await addStoredArtifactFile(archive, tracePath, archivePath, 'Trace file')
-        hasFiles = didAddTraceFile || hasFiles
-        if (didAddTraceFile) {
-          archivedPaths.add(archivePath)
-        }
-      }
-    }
+    const archive = createZipArchive()
+    const hasFiles = await addDownloadArtifacts(archive, testRun, runArtifactDir)
 
     // If no files to add, return an error
     if (!hasFiles) {
       return NextResponse.json({ error: 'No run artifacts available for this test run' }, { status: 404 })
     }
 
-    // Create a readable stream to collect the archive data
-    const chunks: Buffer[] = []
-
-    // Set up event handlers before finalizing
-    const archivePromise = new Promise<Buffer>((resolve, reject) => {
-      archive.on('data', (chunk: Buffer) => {
-        chunks.push(chunk)
-      })
-
-      archive.on('end', () => {
-        const zipBuffer = Buffer.concat(chunks)
-        resolve(zipBuffer)
-      })
-
-      archive.on('error', err => {
-        reject(err)
-      })
-    })
-
-    // Finalize the archive
-    archive.finalize()
-
-    // Wait for the archive to complete
-    const zipBuffer = await archivePromise
-
-    // Generate filename with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
-    const filename = `test-run-${runId}-${timestamp}.zip`
-
-    // Return the zip file as a downloadable response (Uint8Array for BodyInit)
-    return new NextResponse(new Uint8Array(zipBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': zipBuffer.length.toString(),
-      },
-    })
+    const zipBuffer = await finalizeArchive(archive)
+    return createZipDownloadResponse(zipBuffer, runId)
   } catch (error) {
     console.error(`[Download] Error creating zip file for testRunId: ${runId}:`, error)
     return NextResponse.json(

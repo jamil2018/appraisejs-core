@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+packages/appraisejs/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -48,9 +49,11 @@ yarn-error.log*
 next-env.d.ts
 
 automation/reports/*
+packages/appraisejs/dist/
 packages/cucumber-runtime/dist/*
 
 # temporary files
 .tmp
+.fallow
 !prisma/dev.db
 !automation/config/environments/environments.json

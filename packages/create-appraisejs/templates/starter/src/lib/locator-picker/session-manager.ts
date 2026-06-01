@@ -143,8 +143,7 @@ async function cleanupLingeringCompanionSessions(currentSessionId?: string): Pro
     const isTerminal = isTerminalStatus(session.status)
     const shouldTerminate = Boolean(session.companionPid)
     const shouldCloseStaleSession = !session.companionPid && !isTerminal && ageMs > ACTIVE_SESSION_STALE_MS
-    const shouldPruneSessionFile =
-      (isTerminal && ageMs > TERMINAL_SESSION_RETENTION_MS) || shouldCloseStaleSession
+    const shouldPruneSessionFile = (isTerminal && ageMs > TERMINAL_SESSION_RETENTION_MS) || shouldCloseStaleSession
 
     if (shouldTerminate && session.companionPid) {
       await shutdownCompanionProcess(session.companionPid).catch(() => undefined)

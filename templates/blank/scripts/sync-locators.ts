@@ -78,10 +78,7 @@ async function readLocatorFile(filePath: string): Promise<Record<string, string>
 /**
  * Finds or creates a LocatorGroup
  */
-async function findOrCreateLocatorGroup(
-  groupName: string,
-  moduleId: string,
-): Promise<string> {
+async function findOrCreateLocatorGroup(groupName: string, moduleId: string): Promise<string> {
   // Try to find existing locator group
   const existingGroup = await prisma.locatorGroup.findFirst({
     where: {
@@ -129,7 +126,7 @@ async function syncLocatorsFromFile(
 
     // Find or create locator group
     const locatorGroupId = await findOrCreateLocatorGroup(groupName, moduleId)
-    
+
     // Track this group as processed (has a file)
     processedGroupIds.add(locatorGroupId)
 
@@ -208,7 +205,7 @@ async function deleteOrphanedLocatorGroups(
   result: SyncResult,
 ): Promise<void> {
   console.log('\n🔍 Checking for orphaned locator groups (no file in filesystem)...')
-  
+
   try {
     // Get all locator groups from database
     const allLocatorGroups = await prisma.locatorGroup.findMany({
@@ -292,57 +289,57 @@ async function syncLocatorsToDatabase(files: string[], baseDir: string): Promise
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult | void> {
-    console.log('🔄 Starting locators sync...')
-    console.log('This will scan locator JSON files and sync locators to database.')
-    console.log('Filesystem is the source of truth - locators in DB but not in FS will be deleted.\n')
+  console.log('🔄 Starting locators sync...')
+  console.log('This will scan locator JSON files and sync locators to database.')
+  console.log('Filesystem is the source of truth - locators in DB but not in FS will be deleted.\n')
 
-    const baseDir = process.cwd()
+  const baseDir = process.cwd()
 
-    // Scan locator files
-    console.log('📁 Scanning automation/locators...')
-    const files = await scanLocatorFiles(baseDir)
-    console.log(`   Found ${files.length} locator file(s)`)
+  // Scan locator files
+  console.log('📁 Scanning automation/locators...')
+  const files = await scanLocatorFiles(baseDir)
+  console.log(`   Found ${files.length} locator file(s)`)
 
-    if (files.length === 0) {
-      console.log('\n⚠️  No locator files found. Nothing to sync.')
-      return
-    }
+  if (files.length === 0) {
+    console.log('\n⚠️  No locator files found. Nothing to sync.')
+    return
+  }
 
-    // Sync to database
-    console.log('\n✅ Syncing locators to database...')
-    const result = await syncLocatorsToDatabase(files, baseDir)
+  // Sync to database
+  console.log('\n✅ Syncing locators to database...')
+  const result = await syncLocatorsToDatabase(files, baseDir)
 
-    printSyncSummary(
-      [
-        { label: '📁 Locators scanned', value: result.locatorsScanned },
-        { label: '✅ Locators existing', value: result.locatorsExisting },
-        { label: '➕ Locators created', value: result.locatorsCreated },
-        { label: '🔄 Locators updated', value: result.locatorsUpdated },
-        { label: '🗑️  Locators deleted', value: result.locatorsDeleted },
-        { label: '🗑️  Locator groups deleted', value: result.locatorGroupsDeleted },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        {
-          title: 'Created locators',
-          items: result.createdLocators.map(loc => `${loc.name} (group: ${loc.group})`),
-        },
-        {
-          title: 'Updated locators',
-          items: result.updatedLocators.map(loc => `${loc.name} (group: ${loc.group})`),
-        },
-        {
-          title: 'Deleted locators',
-          items: result.deletedLocators.map(loc => `${loc.name} (group: ${loc.group})`),
-        },
-        {
-          title: 'Deleted locator groups',
-          items: result.deletedLocatorGroups.map(group => `${group.name} (${group.locatorCount} locator(s) deleted)`),
-        },
-        { title: 'Errors', items: result.errors },
-      ],
-    )
-    return result
+  printSyncSummary(
+    [
+      { label: '📁 Locators scanned', value: result.locatorsScanned },
+      { label: '✅ Locators existing', value: result.locatorsExisting },
+      { label: '➕ Locators created', value: result.locatorsCreated },
+      { label: '🔄 Locators updated', value: result.locatorsUpdated },
+      { label: '🗑️  Locators deleted', value: result.locatorsDeleted },
+      { label: '🗑️  Locator groups deleted', value: result.locatorGroupsDeleted },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      {
+        title: 'Created locators',
+        items: result.createdLocators.map(loc => `${loc.name} (group: ${loc.group})`),
+      },
+      {
+        title: 'Updated locators',
+        items: result.updatedLocators.map(loc => `${loc.name} (group: ${loc.group})`),
+      },
+      {
+        title: 'Deleted locators',
+        items: result.deletedLocators.map(loc => `${loc.name} (group: ${loc.group})`),
+      },
+      {
+        title: 'Deleted locator groups',
+        items: result.deletedLocatorGroups.map(group => `${group.name} (${group.locatorCount} locator(s) deleted)`),
+      },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
+  return result
 }
 
 runSyncScript(main)

@@ -11,7 +11,7 @@ export interface LogEntry {
 /**
  * Formats log entries into a single text string for storage in the database
  * Format: [timestamp] [TYPE] message
- * 
+ *
  * @param logs - Array of log entries to format
  * @returns Formatted log string
  */
@@ -29,7 +29,7 @@ export function formatLogsForStorage(logs: LogEntry[]): string {
 
 /**
  * Parses formatted log text back into an array of LogEntry objects
- * 
+ *
  * @param formattedLogs - Formatted log string from database
  * @returns Array of log entries
  */
@@ -47,15 +47,15 @@ export function parseLogsFromStorage(formattedLogs: string): LogEntry[] {
     try {
       // Match format: [timestamp] [TYPE] message
       const match = line.match(/^\[([^\]]+)\] \[([^\]]+)\] (.+)$/)
-      
+
       if (match) {
         const [, timestampStr, typeStr, message] = match
         const timestamp = new Date(timestampStr)
         const type = typeStr.toLowerCase() as 'stdout' | 'stderr' | 'status'
-        
+
         // Unescape newlines in message
         const unescapedMessage = message.replace(/\\n/g, '\n')
-        
+
         // Validate type
         if (type === 'stdout' || type === 'stderr' || type === 'status') {
           parsedLogs.push({
@@ -80,4 +80,3 @@ export function parseLogsFromStorage(formattedLogs: string): LogEntry[] {
 
   return parsedLogs
 }
-

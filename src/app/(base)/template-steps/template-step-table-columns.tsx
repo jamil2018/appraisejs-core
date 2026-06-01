@@ -51,7 +51,7 @@ export const templateStepTableCols: ColumnDef<TemplateStepTableRow>[] = [
       const templateStep = row.original
       return (
         <Badge variant="outline" className="flex w-fit items-center gap-1">
-          {KeyToIconTransformer(templateStep.icon, 'h-4 w-4')}
+          {KeyToIconTransformer(templateStep.icon, 'size-4')}
           {templateStep.icon.charAt(0).toUpperCase() + templateStep.icon.slice(1).toLowerCase()}
         </Badge>
       )
@@ -64,9 +64,9 @@ export const templateStepTableCols: ColumnDef<TemplateStepTableRow>[] = [
       const templateStep = row.original
       const icon =
         templateStep.type === TemplateStepType.ACTION ? (
-          <MousePointer2 className="h-4 w-4" />
+          <MousePointer2 className="size-4" />
         ) : (
-          <CheckCheck className="h-4 w-4" />
+          <CheckCheck className="size-4" />
         )
       return (
         <Badge variant="outline" className="flex w-fit items-center gap-1">
@@ -82,7 +82,10 @@ export const templateStepTableCols: ColumnDef<TemplateStepTableRow>[] = [
       return (
         <KbdGroup className="flex flex-wrap gap-1">
           {row.original.parameters.map(parameter => (
-            <Kbd key={parameter.id} className="bg-gray-200 px-2 text-xs text-gray-600 dark:bg-gray-700/55 dark:text-gray-400">
+            <Kbd
+              key={parameter.id}
+              className="bg-zinc-200 px-2 text-xs text-zinc-600 dark:bg-zinc-700/55 dark:text-zinc-400"
+            >
               {parameter.name}
             </Kbd>
           ))}

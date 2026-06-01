@@ -11,12 +11,7 @@ describe('setSeededTemplateFilesTracked', () => {
   })
 
   it('makes the seeded files ignored again after setup', () => {
-    const input = [
-      '*.db',
-      '!prisma/dev.db',
-      '!automation/config/environments/environments.json',
-      '',
-    ].join('\n')
+    const input = ['*.db', '!prisma/dev.db', '!automation/config/environments/environments.json', ''].join('\n')
 
     expect(setSeededTemplateFilesTracked(input, false)).toBe(
       ['*.db', 'prisma/dev.db', 'automation/config/environments/environments.json', ''].join('\n'),

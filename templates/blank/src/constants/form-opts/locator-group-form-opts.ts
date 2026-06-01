@@ -4,18 +4,12 @@ export const locatorGroupSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
   moduleId: z.string().min(1, { message: 'Module is required' }),
   locators: z.array(z.string()).optional(),
-  route: z.string().optional(),
-})
-
-// Schema for checking unique name (used in server actions)
-export const locatorGroupUniqueNameSchema = z.object({
-  name: z.string().min(1, { message: 'Name is required' }),
-  id: z.string().optional(), // For updates, exclude current record
+  route: z.string().trim().min(1, { message: 'Route is required' }),
 })
 
 export type LocatorGroup = z.infer<typeof locatorGroupSchema>
 
-export const formOpts = {
+export const locatorGroupFormOpts = {
   defaultValues: {
     name: '',
     moduleId: '',

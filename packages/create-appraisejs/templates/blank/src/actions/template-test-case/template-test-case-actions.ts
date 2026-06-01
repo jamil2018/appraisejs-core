@@ -40,7 +40,9 @@ export async function deleteTemplateTestCaseAction(id: string[]): Promise<Action
   }
 }
 
-export async function createTemplateTestCaseAction(value: z.infer<typeof templateTestCaseSchema>): Promise<ActionResponse> {
+export async function createTemplateTestCaseAction(
+  value: z.infer<typeof templateTestCaseSchema>,
+): Promise<ActionResponse> {
   try {
     templateTestCaseSchema.parse(value)
     const newTemplateTestCase = await createTemplateTestCase(value)

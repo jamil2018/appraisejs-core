@@ -12,12 +12,12 @@ const validateMock = vi.fn(() => true)
 vi.mock('./dynamic-parameters', async () => {
   const React = await import('react')
 
-  const MockDynamicFormFields = React.forwardRef<
-    { validate: () => boolean },
-    {
-      onChange?: (values: Array<{ name: string; value: string; type: StepParameterType; order: number }>) => void
-    }
-  >(({ onChange }, ref) => {
+  function MockDynamicFormFields({
+    ref,
+    onChange,
+  }: {
+    onChange?: (values: Array<{ name: string; value: string; type: StepParameterType; order: number }>) => void
+  } & React.RefAttributes<{ validate: () => boolean }>) {
     React.useImperativeHandle(ref, () => ({
       validate: validateMock,
     }))
@@ -38,7 +38,7 @@ vi.mock('./dynamic-parameters', async () => {
         Apply Parameters
       </button>
     )
-  })
+  }
 
   MockDynamicFormFields.displayName = 'MockDynamicFormFields'
 
@@ -77,6 +77,26 @@ describe('NodeForm', () => {
     validateMock.mockReturnValue(true)
   })
 
+  const templateSteps = [
+    {
+      id: 'step-1',
+      name: 'Click',
+      icon: TemplateStepIcon.MOUSE,
+      signature: 'click {string}',
+      type: TemplateStepType.ACTION,
+    } as never,
+  ]
+
+  const templateStepParams = [
+    {
+      id: 'param-1',
+      name: 'target',
+      type: StepParameterType.STRING,
+      order: 1,
+      templateStepId: 'step-1',
+    } as never,
+  ]
+
   it('submits the shaped node payload', async () => {
     const user = userEvent.setup()
     const onSubmitAction = vi.fn()
@@ -90,27 +110,13 @@ describe('NodeForm', () => {
           templateStepId: '',
           parameters: [],
         }}
-        templateSteps={[
-          {
-            id: 'step-1',
-            name: 'Click',
-            icon: TemplateStepIcon.MOUSE,
-            signature: 'click {string}',
-            type: TemplateStepType.ACTION,
-          } as never,
-        ]}
-        templateStepParams={[
-          {
-            id: 'param-1',
-            name: 'target',
-            type: StepParameterType.STRING,
-            order: 1,
-            templateStepId: 'step-1',
-          } as never,
-        ]}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
         showAddNodeDialog
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         setShowAddNodeDialog={vi.fn()}
       />,
     )
@@ -139,6 +145,61 @@ describe('NodeForm', () => {
     })
   })
 
+  it('renders footer actions with icons', () => {
+    render(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={{
+          label: '',
+          gherkinStep: '',
+          templateStepId: '',
+          parameters: [],
+        }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Cancel' }).querySelector('svg')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' }).querySelector('svg')).toBeInTheDocument()
+  })
+
+  it('blocks submit when dynamic parameter validation fails', async () => {
+    const user = userEvent.setup()
+    const onSubmitAction = vi.fn()
+    validateMock.mockReturnValue(false)
+
+    render(
+      <NodeForm
+        onSubmitAction={onSubmitAction}
+        initialValues={{
+          label: 'Valid label',
+          gherkinStep: '',
+          templateStepId: 'step-1',
+          parameters: [],
+        }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(onSubmitAction).not.toHaveBeenCalled()
+  })
+
   it('shows validation feedback when required fields are missing', async () => {
     const user = userEvent.setup()
 
@@ -156,6 +217,8 @@ describe('NodeForm', () => {
         showAddNodeDialog
         locators={[]}
         locatorGroups={[]}
+        environments={[]}
+        modules={[]}
         setShowAddNodeDialog={vi.fn()}
       />,
     )
@@ -164,5 +227,114 @@ describe('NodeForm', () => {
 
     expect(screen.getByText('Label must be at least 3 characters')).toBeInTheDocument()
     expect(screen.getByText('Template step is required')).toBeInTheDocument()
+  })
+
+  it('preserves the selected template step when locator options update', async () => {
+    const user = userEvent.setup()
+    const baseInitialValues = {
+      label: '',
+      gherkinStep: '',
+      templateStepId: '',
+      parameters: [],
+    }
+
+    const { rerender } = render(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={baseInitialValues}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await user.selectOptions(screen.getByLabelText('Template Step'), 'step-1')
+    expect(screen.getByLabelText('Template Step')).toHaveValue('step-1')
+
+    rerender(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={{ ...baseInitialValues, parameters: [] }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[{ id: 'locator-1', name: 'Submit button', locatorGroupId: 'group-1' }]}
+        locatorGroups={[{ id: 'group-1', name: 'Checkout', route: '/checkout', moduleId: 'module-1' }]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Template Step')).toHaveValue('step-1')
+    })
+  })
+
+  it('resets the selected template step when reopening the add node sidebar', async () => {
+    const user = userEvent.setup()
+    const baseInitialValues = {
+      label: '',
+      gherkinStep: '',
+      templateStepId: '',
+      parameters: [],
+    }
+
+    const { rerender } = render(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={baseInitialValues}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await user.selectOptions(screen.getByLabelText('Template Step'), 'step-1')
+    expect(screen.getByLabelText('Template Step')).toHaveValue('step-1')
+
+    rerender(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={baseInitialValues}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog={false}
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    rerender(
+      <NodeForm
+        onSubmitAction={vi.fn()}
+        initialValues={{ ...baseInitialValues, parameters: [] }}
+        templateSteps={templateSteps}
+        templateStepParams={templateStepParams}
+        showAddNodeDialog
+        locators={[]}
+        locatorGroups={[]}
+        environments={[]}
+        modules={[]}
+        setShowAddNodeDialog={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Template Step')).toHaveValue('')
+    })
   })
 })

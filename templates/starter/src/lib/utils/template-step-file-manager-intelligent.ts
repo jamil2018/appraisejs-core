@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs'
-import { TemplateStep, TemplateStepGroupType } from '@prisma/client'
+import { TemplateStepGroupType } from '@prisma/client'
 import { ensureStepsDirectory, getFilePath, formatFileContent } from './template-step-file-generator'
 
 /**
@@ -92,176 +92,6 @@ export function ensureGroupJSDoc(
 }
 
 /**
- * Generates JSDoc comments for a template step
- */
-function generateJSDocComment(templateStep: TemplateStep): string {
-  const lines = ['/**']
-  lines.push(` * @name ${templateStep.name}`)
-  if (templateStep.description) {
-    lines.push(` * @description ${templateStep.description}`)
-  }
-  lines.push(` * @icon ${templateStep.icon}`)
-  lines.push(' */')
-  return lines.join('\n')
-}
-
-/**
- * Wraps a function definition with JSDoc comments
- * If the function already has JSDoc comments, replaces them
- */
-function wrapFunctionWithJSDoc(functionDefinition: string, templateStep: TemplateStep): string {
-  const jsdoc = generateJSDocComment(templateStep)
-
-  // Remove existing JSDoc comments if present
-  const cleanedDefinition = functionDefinition.replace(/\/\*\*[\s\S]*?\*\/\s*/g, '').trim()
-
-  // Prepend JSDoc and return
-  return `${jsdoc}\n${cleanedDefinition}`
-}
-
-/**
- * Checks if a template step update requires file changes
- * Signature, parameter, and metadata (name, description, icon) changes require file updates
- */
-function requiresFileUpdate(oldStep: TemplateStep, newStep: TemplateStep): boolean {
-  // Check if signature changed
-  if (oldStep.signature !== newStep.signature) {
-    return true
-  }
-
-  // Check if function definition changed (this includes parameter changes)
-  if (oldStep.functionDefinition !== newStep.functionDefinition) {
-    return true
-  }
-
-  // Check if metadata changed (name, description, icon) - these affect JSDoc comments
-  if (oldStep.name !== newStep.name) {
-    return true
-  }
-
-  if (oldStep.description !== newStep.description) {
-    return true
-  }
-
-  if (oldStep.icon !== newStep.icon) {
-    return true
-  }
-
-  // No file changes needed for other updates
-  return false
-}
-
-/**
- * Finds the start and end lines of a step definition function in the file
- * Uses flexible signature matching to handle prettier formatting variations
- * Handles JSDoc comments that may precede the function
- */
-function findStepFunctionBounds(content: string, signature: string): { startLine: number; endLine: number } | null {
-  const lines = content.split('\n')
-
-  // Search for the signature content across multiple lines (handles prettier formatting)
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmedLine = line.trim()
-
-    // Skip JSDoc comment lines (but not the function definition itself)
-    if (
-      trimmedLine.startsWith('/**') ||
-      trimmedLine === '*/' ||
-      (trimmedLine.startsWith('*') && !trimmedLine.startsWith('When(') && !trimmedLine.startsWith('Then('))
-    ) {
-      continue
-    }
-
-    // Check if this line starts a step definition
-    if (trimmedLine.startsWith('When(') || trimmedLine.startsWith('Then(')) {
-      // Look ahead to find the complete signature across multiple lines
-      let signatureFound = false
-      let currentSignature = ''
-
-      // Collect signature content from current and following lines until we hit the function start
-      for (let j = i; j < lines.length; j++) {
-        const currentLine = lines[j]
-        currentSignature += currentLine
-
-        // Check if we've found our signature
-        if (currentSignature.includes(signature)) {
-          signatureFound = true
-          break
-        }
-
-        // If we hit the function opening brace, stop looking for signature
-        if (currentLine.includes('async function') || currentLine.includes('function(')) {
-          break
-        }
-      }
-
-      if (signatureFound) {
-        // Found the start, now find the end using bracket and parenthesis counting
-        // Also check backwards for JSDoc comments to include them in the bounds
-        let functionStartLine = i
-        let braceCount = 0
-        let parenCount = 0
-        let startParenFound = false
-
-        // Check if there are JSDoc comments before this function
-        if (i > 0) {
-          let jsdocStart = i - 1
-          // Look backwards for JSDoc comment block
-          // First, check if the previous line is the end of a JSDoc block
-          if (lines[jsdocStart].trim() === '*/') {
-            // Found end of JSDoc, continue looking backwards for the start
-            jsdocStart--
-            while (jsdocStart >= 0) {
-              const prevLine = lines[jsdocStart].trim()
-              if (prevLine.startsWith('/**')) {
-                // Found start of JSDoc block
-                functionStartLine = jsdocStart
-                break
-              } else if (prevLine.startsWith('*') || prevLine === '') {
-                jsdocStart--
-              } else {
-                break
-              }
-            }
-          }
-        }
-
-        for (let j = i; j < lines.length; j++) {
-          const currentLine = lines[j]
-
-          // Count opening and closing parentheses and braces
-          for (const char of currentLine) {
-            if (char === '(') {
-              parenCount++
-              startParenFound = true
-            } else if (char === ')') {
-              parenCount--
-            } else if (char === '{') {
-              braceCount++
-            } else if (char === '}') {
-              braceCount--
-            }
-          }
-
-          // If we found the opening parenthesis and both parentheses and braces are balanced, we're done
-          // This ensures we capture the complete When(...) or Then(...) call including the closing )
-          if (startParenFound && parenCount === 0 && braceCount === 0) {
-            return { startLine: functionStartLine, endLine: j }
-          }
-        }
-
-        // If we reach here, something went wrong with bracket counting
-        console.warn(`Could not find end of function for signature: ${signature}`)
-        return null
-      }
-    }
-  }
-
-  return null
-}
-
-/**
  * Required import definitions
  */
 interface RequiredImport {
@@ -273,7 +103,17 @@ interface RequiredImport {
 const REQUIRED_IMPORTS: RequiredImport[] = [
   {
     module: '../../../packages/cucumber-runtime/src/index',
-    namedExports: ['When', 'Then', 'CustomWorld', 'expect', 'SelectorName', 'resolveLocator', 'getEnvironment', 'generateRandomData', 'RandomDataType'],
+    namedExports: [
+      'When',
+      'Then',
+      'CustomWorld',
+      'expect',
+      'SelectorName',
+      'resolveLocator',
+      'getEnvironment',
+      'generateRandomData',
+      'RandomDataType',
+    ],
     from: '../../../packages/cucumber-runtime/src/index.js',
   },
 ]
@@ -410,189 +250,6 @@ export function ensureRequiredImports(content: string): string {
 }
 
 /**
- * Intelligently adds a new template step to the file
- * Preserves existing content including imports, types, and other code
- */
-export async function addTemplateStepToFile(
-  groupName: string,
-  templateStep: TemplateStep,
-  type: TemplateStepGroupType | string,
-): Promise<void> {
-  try {
-    await ensureStepsDirectory()
-    const filePath = getFilePath(groupName, type)
-
-    let existingContent = ''
-    try {
-      existingContent = await fs.readFile(filePath, 'utf8')
-    } catch {
-      // File doesn't exist, start with empty content
-      existingContent = ''
-    }
-
-    // Ensure required imports are present
-    existingContent = ensureRequiredImports(existingContent)
-
-    // Check if step with this signature already exists
-    const bounds = findStepFunctionBounds(existingContent, templateStep.signature)
-
-    let newContent: string
-
-    if (bounds) {
-      // Replace existing step - replace the entire function with JSDoc comments
-      const lines = existingContent.split('\n')
-      const beforeStep = lines.slice(0, bounds.startLine).join('\n')
-      const afterStep = lines.slice(bounds.endLine + 1).join('\n')
-
-      // Wrap the function definition with JSDoc comments
-      const wrappedStepDefinition = wrapFunctionWithJSDoc(templateStep.functionDefinition || '', templateStep)
-      newContent =
-        beforeStep +
-        (beforeStep.trim() ? '\n\n' : '') +
-        wrappedStepDefinition +
-        (afterStep.trim() ? '\n' : '') +
-        afterStep
-    } else {
-      // Add new step at the end - wrap with JSDoc comments
-      const wrappedStepDefinition = wrapFunctionWithJSDoc(templateStep.functionDefinition || '', templateStep)
-      newContent = existingContent + (existingContent ? '\n\n' : '') + wrappedStepDefinition
-    }
-
-    // Format and write the file
-    const formattedContent = await formatFileContent(newContent)
-    await fs.writeFile(filePath, formattedContent, 'utf8')
-
-    console.log(`Template step added to file: ${filePath}`)
-  } catch (error) {
-    console.error(`Failed to add template step to file for group "${groupName}":`, error)
-    throw new Error(`File update failed: ${error}`)
-  }
-}
-
-/**
- * Intelligently removes a template step from the file
- * Only removes the specific step, preserves everything else including imports and types
- */
-export async function removeTemplateStepFromFile(
-  groupName: string,
-  templateStep: TemplateStep,
-  type: TemplateStepGroupType | string,
-): Promise<void> {
-  try {
-    await ensureStepsDirectory()
-    const filePath = getFilePath(groupName, type)
-
-    let existingContent = ''
-    try {
-      existingContent = await fs.readFile(filePath, 'utf8')
-    } catch {
-      // File doesn't exist, nothing to remove
-      return
-    }
-
-    // Ensure required imports are present
-    existingContent = ensureRequiredImports(existingContent)
-
-    // Find the step to remove
-    const bounds = findStepFunctionBounds(existingContent, templateStep.signature)
-
-    if (!bounds) {
-      // Step not found, nothing to remove
-      return
-    }
-
-    // Remove the entire function block
-    const lines = existingContent.split('\n')
-    const beforeStep = lines.slice(0, bounds.startLine).join('\n')
-    const afterStep = lines.slice(bounds.endLine + 1).join('\n')
-
-    // Combine content, handling empty sections
-    let newContent = ''
-    if (beforeStep.trim()) {
-      newContent += beforeStep.trim()
-    }
-    if (afterStep.trim()) {
-      if (newContent) newContent += '\n'
-      newContent += afterStep.trim()
-    }
-
-    // Format and write the file
-    const formattedContent = await formatFileContent(newContent)
-    await fs.writeFile(filePath, formattedContent, 'utf8')
-
-    console.log(`Template step removed from file: ${filePath}`)
-  } catch (error) {
-    console.error(`Failed to remove template step from file for group "${groupName}":`, error)
-    throw new Error(`File update failed: ${error}`)
-  }
-}
-
-/**
- * Intelligently updates a template step in the file
- * Only updates the specific step, preserves everything else including imports and types
- */
-export async function updateTemplateStepInFile(
-  groupName: string,
-  templateStep: TemplateStep,
-  type: TemplateStepGroupType | string,
-  oldStep?: TemplateStep,
-): Promise<void> {
-  try {
-    // If we have the old step data, check if file changes are needed
-    if (oldStep && !requiresFileUpdate(oldStep, templateStep)) {
-      console.log(`No file changes needed for template step update: ${templateStep.signature}`)
-      return
-    }
-
-    await ensureStepsDirectory()
-    const filePath = getFilePath(groupName, type)
-
-    let existingContent = ''
-    try {
-      existingContent = await fs.readFile(filePath, 'utf8')
-    } catch {
-      // File doesn't exist, create it with the updated step
-      await addTemplateStepToFile(groupName, templateStep, type)
-      return
-    }
-
-    // Ensure required imports are present
-    existingContent = ensureRequiredImports(existingContent)
-
-    // Find the step to update
-    const bounds = findStepFunctionBounds(existingContent, oldStep!.signature)
-
-    if (bounds) {
-      // Update existing step - replace the entire function with JSDoc comments
-      const lines = existingContent.split('\n')
-      const beforeStep = lines.slice(0, bounds.startLine).join('\n')
-      const afterStep = lines.slice(bounds.endLine + 1).join('\n')
-
-      // Wrap the function definition with JSDoc comments
-      const wrappedStepDefinition = wrapFunctionWithJSDoc(templateStep.functionDefinition || '', templateStep)
-      const newContent =
-        beforeStep +
-        (beforeStep.trim() ? '\n\n' : '') +
-        wrappedStepDefinition +
-        (afterStep.trim() ? '\n' : '') +
-        afterStep
-
-      // Format and write the file
-      const formattedContent = await formatFileContent(newContent)
-      await fs.writeFile(filePath, formattedContent, 'utf8')
-
-      console.log(`Template step updated in file: ${filePath}`)
-    } else {
-      // Step not found, add it
-      await addTemplateStepToFile(groupName, templateStep, type)
-    }
-  } catch (error) {
-    console.error(`Failed to update template step in file for group "${groupName}":`, error)
-    throw new Error(`File update failed: ${error}`)
-  }
-}
-
-/**
  * Creates a placeholder file for a new template step group
  */
 export async function createTemplateStepGroupFile(
@@ -697,4 +354,3 @@ export async function renameTemplateStepGroupFile(
     throw new Error(`File rename failed: ${error}`)
   }
 }
-

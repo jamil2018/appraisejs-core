@@ -1,4 +1,6 @@
 {
+  "files.eol": "\n",
+  "git.autocrlf": false,
   "cucumber.features": ["automation/features/**/*.feature"],
   "cucumber.glue": ["automation/steps/**/*.ts"],
   "prisma.pinToPrisma6": true,

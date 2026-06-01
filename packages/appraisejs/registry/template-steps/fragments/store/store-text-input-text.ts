@@ -1,26 +1,23 @@
 /**
  * @name store text input text
- * @description Template step for storing text input element values inside a variable
+ * @description Store a text input value inside a runtime variable
  * @icon STORE
  */
 When(
   'the user stores the {string} text input value inside the variable {string}',
-  async function (
-    this: CustomWorld,
-    fieldName: SelectorName,
-    variableName: string
-  ) {
-    const selector = await resolveLocator(this.page, fieldName);
+  async function (this: CustomWorld, elementName: SelectorName, variableName: string) {
+    const selector = await resolveLocator(this.page, elementName)
     if (!selector) {
-      throw new Error(`Selector ${fieldName} not found`);
+      throw new Error(`Selector ${elementName} not found`)
     }
+
     try {
-      const value = await this.page.locator(selector).inputValue();
-      this.setVar(variableName, value);
+      const value = await this.page.locator(selector).inputValue()
+      this.setVar(variableName, value)
     } catch (error) {
       throw new Error(
-        `Failed to store the ${fieldName} text input value: ${error}`
-      );
+        `Failed to store the ${elementName} text input value inside the variable ${variableName}: ${error}`,
+      )
     }
-  }
-);
+  },
+)

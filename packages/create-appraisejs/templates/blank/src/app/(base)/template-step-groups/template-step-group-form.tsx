@@ -5,9 +5,11 @@ import ErrorMessage from '@/components/form/error-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formOpts, type TemplateStepGroup } from '@/constants/form-opts/template-step-group-form-opts'
+import { templateStepGroupFormOpts, type TemplateStepGroup } from '@/constants/form-opts/template-step-group-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
+import { Save } from 'lucide-react'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import {
   getActionErrorMessage,
@@ -49,8 +51,8 @@ function TemplateStepGroupFieldErrors({ errors, isTouched }: TemplateStepGroupFi
 
   return (
     <div className="flex flex-col gap-1" aria-live="polite">
-      {errors.map((error, index) => (
-        <ErrorMessage key={`${String(error)}-${index}`} message={getErrorMessage(error)} visible={true} />
+      {errors.map(error => (
+        <ErrorMessage key={getErrorMessage(error)} message={getErrorMessage(error)} visible={true} />
       ))}
     </div>
   )
@@ -63,10 +65,10 @@ export const TemplateStepGroupForm = ({
   id,
   onSubmitAction,
 }: TemplateStepGroupFormProps) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts.defaultValues,
-    validators: formOpts.validators,
+    defaultValues: defaultValues ?? templateStepGroupFormOpts.defaultValues,
+    validators: templateStepGroupFormOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
@@ -74,7 +76,7 @@ export const TemplateStepGroupForm = ({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/template-step-groups')
+        push('/template-step-groups')
       }
       if (res.status === 400) {
         toast({
@@ -93,13 +95,7 @@ export const TemplateStepGroupForm = ({
     },
   })
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <form.Field
         name="name"
         validators={{
@@ -172,10 +168,11 @@ export const TemplateStepGroupForm = ({
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (
           <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? '...' : 'Save'}
+            <Save className="size-4" aria-hidden />
+            <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
           </Button>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }

@@ -6,10 +6,7 @@ import { addStepBySlug } from './add-step.js'
 
 const program = new Command()
 
-program
-  .name('appraisejs')
-  .description('AppraiseJS command line tools')
-  .showHelpAfterError()
+program.name('appraisejs').description('AppraiseJS command line tools').showHelpAfterError()
 
 program
   .command('add')
@@ -29,19 +26,19 @@ program
     ) => {
       const useBundledRegistry = !options.registryUrl && command.getOptionValueSource('branch') !== 'cli'
 
-    try {
-      await addStepBySlug(slug, {
-        cwd: path.resolve(options.cwd),
-        overwrite: options.overwrite,
-        dryRun: options.dryRun,
-        registryUrl: options.registryUrl,
-        branch: options.branch,
-        useBundledRegistry,
-      })
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      process.exit(1)
-    }
+      try {
+        await addStepBySlug(slug, {
+          cwd: path.resolve(options.cwd),
+          overwrite: options.overwrite,
+          dryRun: options.dryRun,
+          registryUrl: options.registryUrl,
+          branch: options.branch,
+          useBundledRegistry,
+        })
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        process.exit(1)
+      }
     },
   )
 

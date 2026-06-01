@@ -1,22 +1,13 @@
 import prisma from '@/config/db-config'
 
 /**
- * Represents a module path structure
- */
-export interface ModulePath {
-  path: string
-  name: string
-  parentPath?: string
-}
-
-/**
  * Creates or finds a module by its path
  * @param modulePath - The module path (e.g., "/module1/submodule")
  * @param moduleName - The name of the module
  * @param parentId - Optional parent module ID
  * @returns Promise<string> - The ID of the created or found module
  */
-export async function createOrFindModule(modulePath: string, moduleName: string, parentId?: string): Promise<string> {
+async function createOrFindModule(modulePath: string, moduleName: string, parentId?: string): Promise<string> {
   try {
     // First, try to find existing module by name and parent
     const existingModule = await prisma.module.findFirst({

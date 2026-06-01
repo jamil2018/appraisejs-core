@@ -1,4 +1,7 @@
-import { templateStepGroupSchema, type TemplateStepGroup as TemplateStepGroupFormValues } from '@/constants/form-opts/template-step-group-form-opts'
+import {
+  templateStepGroupSchema,
+  type TemplateStepGroup as TemplateStepGroupFormValues,
+} from '@/constants/form-opts/template-step-group-form-opts'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
 
 export const templateStepGroupTypes = ['ACTION', 'VALIDATION'] as const

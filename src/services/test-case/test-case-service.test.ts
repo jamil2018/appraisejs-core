@@ -10,6 +10,7 @@ vi.mock('@/config/db-config', () => ({
     testCase: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     testCaseStep: { findMany: vi.fn(), deleteMany: vi.fn() },
     testCaseStepParameter: { deleteMany: vi.fn() },
+    testCaseFlowBlock: { deleteMany: vi.fn() },
   },
 }))
 

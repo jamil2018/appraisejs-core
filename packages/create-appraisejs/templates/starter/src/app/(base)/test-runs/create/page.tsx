@@ -3,11 +3,9 @@ import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
 import TestRunForm from '../test-run-form'
-import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
-import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
-import { getAllTestSuiteTestCasesAction } from '@/actions/test-run/test-run-actions'
-import { getEnvironmentRows, getTagRows, getTestSuitePickerRows } from '../test-run-form-helpers'
+
+import { loadCreateTestRunPageData } from '../create-test-run-page-data'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Run',
@@ -15,17 +13,11 @@ export const metadata: Metadata = {
 }
 
 const CreateTestRun = async () => {
-  const { data: testSuites, error: testSuitesError } = await getAllTestSuiteTestCasesAction()
-  const { data: environments, error: environmentsError } = await getAllEnvironmentsAction()
-  const { data: tags, error: tagsError } = await getAllTagsAction()
+  const pageData = await loadCreateTestRunPageData()
 
-  if (testSuitesError || environmentsError || tagsError) {
-    return <div>Error: {testSuitesError || environmentsError || tagsError}</div>
+  if (pageData.status === 'error') {
+    return <div>Error: {pageData.message}</div>
   }
-
-  const testSuitesData = getTestSuitePickerRows(testSuites)
-  const environmentsData = getEnvironmentRows(environments)
-  const tagsData = getTagRows(tags)
 
   return (
     <>
@@ -34,9 +26,9 @@ const CreateTestRun = async () => {
         <HeaderSubtitle>Create a new test run to execute selected suites or tagged tests</HeaderSubtitle>
       </div>
       <TestRunForm
-        testSuites={testSuitesData}
-        environments={environmentsData}
-        tags={tagsData}
+        testSuites={pageData.testSuites}
+        environments={pageData.environments}
+        tags={pageData.tags}
         onSubmitAction={createTestRunAction}
         successTitle="Test Run Created"
         successMessage="The test run has been created successfully"

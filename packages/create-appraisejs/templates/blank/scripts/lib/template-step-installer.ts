@@ -33,7 +33,10 @@ type ExistingStepMatch = {
   source: string
 }
 
-const STEP_FILE_PATTERNS = ['automation/steps/actions/**/*.step.ts', 'automation/steps/validations/**/*.step.ts'] as const
+const STEP_FILE_PATTERNS = [
+  'automation/steps/actions/**/*.step.ts',
+  'automation/steps/validations/**/*.step.ts',
+] as const
 const RUNTIME_IMPORT_PATH = '../../../packages/cucumber-runtime/src/index.js'
 const REQUIRED_RUNTIME_IMPORTS = [
   'When',
@@ -46,7 +49,8 @@ const REQUIRED_RUNTIME_IMPORTS = [
   'generateRandomData',
   'RandomDataType',
 ] as const
-const PLACEHOLDER_COMMENT = '// This file is generated automatically. Add template steps to this group to generate content.'
+const PLACEHOLDER_COMMENT =
+  '// This file is generated automatically. Add template steps to this group to generate content.'
 
 function parseTypeScriptModule(content: string) {
   return parse(content, {
@@ -68,7 +72,13 @@ function getGroupDirectoryName(type: TemplateStepGroupType): 'actions' | 'valida
 }
 
 function getGroupFilePath(projectRoot: string, groupName: string, type: TemplateStepGroupType): string {
-  return path.join(projectRoot, 'automation', 'steps', getGroupDirectoryName(type), `${getGroupFileName(groupName)}.step.ts`)
+  return path.join(
+    projectRoot,
+    'automation',
+    'steps',
+    getGroupDirectoryName(type),
+    `${getGroupFileName(groupName)}.step.ts`,
+  )
 }
 
 function generateGroupJSDoc(name: string, description: string | null, type: TemplateStepGroupType): string {
@@ -289,7 +299,9 @@ async function buildUpdatedGroupFileContent(
     })
   }
 
-  const sections = [generateGroupJSDoc(payload.step.group.name, payload.step.group.description, payload.step.group.type)]
+  const sections = [
+    generateGroupJSDoc(payload.step.group.name, payload.step.group.description, payload.step.group.type),
+  ]
   const mergedImports = mergeImports(existingContent)
   if (mergedImports.trim()) {
     sections.push(mergedImports)

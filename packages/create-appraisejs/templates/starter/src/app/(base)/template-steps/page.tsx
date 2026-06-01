@@ -28,7 +28,7 @@ const TemplateSteps = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<LayoutTemplate className="h-8 w-8" />}
+          icon={<LayoutTemplate className="size-8" />}
           title="No template steps found"
           description="Get started by creating a template step to define reusable test steps"
           createRoute="/template-steps/create"
@@ -43,7 +43,7 @@ const TemplateSteps = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <LayoutTemplate className="mr-2 h-8 w-8" />
+            <LayoutTemplate className="mr-2 size-8" />
             Template Steps
           </span>
         </PageHeader>

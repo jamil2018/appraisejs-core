@@ -6,26 +6,38 @@ import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
 import type { NodePath } from '@babel/traverse'
-import {
-  StepParameterType,
-  TagType,
-  TemplateStepGroupType,
-  TemplateStepIcon,
-  TemplateStepType,
-} from '@prisma/client'
+import { StepParameterType, TagType, TemplateStepGroupType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { getAutomationEnvironmentsDir, getAutomationFeaturesDir } from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
-import { extractModulePathFromFilePath, scanFeatureFiles, type ParsedFeature, type ParsedStep } from '@/lib/gherkin-parser'
+import {
+  extractModulePathFromFilePath,
+  scanFeatureFiles,
+  type ParsedFeature,
+  type ParsedStep,
+} from '@/lib/gherkin-parser'
 import { getAllModulesWithPaths } from '@/lib/module-hierarchy-builder'
-import { SYNC_ALL_REQUEST_ID, syncScriptDefinitions, type SyncRequestId, type SyncScriptId } from '@/lib/sync/sync-registry'
-import { getTagTypeFromName } from '@/lib/tag-utils'
+import {
+  SYNC_ALL_REQUEST_ID,
+  syncScriptDefinitions,
+  type SyncRequestId,
+  type SyncScriptId,
+} from '@/lib/sync/sync-registry'
+import { getTagTypeFromName } from '@/lib/tag-identifiers'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
   determineProjectedStepIcon,
+  generateProjectedGherkinSteps,
   getTestSuiteSyncIdentity,
   normalizeProjectedDbTestCaseSteps,
 } from '@/lib/sync/projected-feature-utils'
+import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
+import {
+  parseGroupJSDocLenient as parseGroupJSDoc,
+  parseStepJSDocLenient as parseStepJSDoc,
+  type StepGroupJSDoc,
+  type StepJSDoc,
+} from '@/lib/jsdoc/template-step-jsdoc'
 
 const traverse = (_traverse as { default?: typeof _traverse }).default ?? _traverse
 
@@ -63,18 +75,6 @@ type LocatorFileData = {
   locators: Record<string, string>
 }
 
-type StepGroupJSDoc = {
-  name: string
-  description: string | null
-  type: TemplateStepGroupType
-}
-
-type StepJSDoc = {
-  name: string
-  description: string | null
-  icon: TemplateStepIcon
-}
-
 type StepParameter = {
   name: string
   type: StepParameterType
@@ -94,6 +94,8 @@ type ParsedStepFile = {
   group: StepGroupJSDoc
   steps: ParsedTemplateStep[]
 }
+
+type StepKeyword = ParsedTemplateStep['keyword']
 
 type TemplateStepFromFs = {
   step: ParsedTemplateStep
@@ -116,6 +118,13 @@ type TestCaseFromFs = {
   modulePath: string
   filterTags: string[]
   steps: ParsedStep[]
+  hasAppraiseMetadata?: boolean
+  nodes: AppraiseTestCaseMetadataNode[]
+  flowBlocks: AppraiseTestCaseMetadataFlowBlock[]
+}
+
+type CollapsedTestCaseFromFs = TestCaseFromFs & {
+  expectedSuiteIdentities: Set<string>
 }
 
 type ParameterMatch = {
@@ -296,174 +305,6 @@ async function readLocatorFile(filePath: string): Promise<Record<string, string>
   }
 }
 
-function parseGroupJSDoc(content: string): StepGroupJSDoc | null {
-  const lines = content.split('\n')
-  let startLine = 0
-
-  while (startLine < lines.length) {
-    const line = lines[startLine].trim()
-    if (line === '' || line.startsWith('import ')) {
-      startLine++
-      continue
-    }
-    break
-  }
-
-  if (startLine >= lines.length || !lines[startLine].trim().startsWith('/**')) {
-    return null
-  }
-
-  let hasType = false
-  let endLine = -1
-  let name: string | null = null
-  let description: string | null = null
-  let type: string | null = null
-
-  const maxLines = Math.min(lines.length, startLine + 50)
-  for (let i = startLine; i < maxLines; i++) {
-    const line = lines[i].trim()
-
-    if (line.includes('*/')) {
-      const beforeClose = line.split('*/')[0].trim()
-
-      if (beforeClose.startsWith('* @name') || beforeClose.startsWith('*@name')) {
-        const match = beforeClose.match(/@name\s+(.+)/)
-        if (match) name = match[1].trim()
-      } else if (beforeClose.startsWith('* @description') || beforeClose.startsWith('*@description')) {
-        const match = beforeClose.match(/@description\s+(.+)/)
-        if (match) description = match[1].trim() || null
-      } else if (beforeClose.startsWith('* @type') || beforeClose.startsWith('*@type')) {
-        const match = beforeClose.match(/@type\s+(.+)/)
-        if (match) {
-          hasType = true
-          type = match[1].trim()
-        }
-      }
-
-      endLine = i
-      break
-    }
-
-    if (line.startsWith('* @name') || line.startsWith('*@name')) {
-      const match = line.match(/@name\s+(.+)/)
-      if (match) name = match[1].trim()
-    } else if (line.startsWith('* @description') || line.startsWith('*@description')) {
-      const match = line.match(/@description\s+(.+)/)
-      if (match) description = match[1].trim() || null
-    } else if (line.startsWith('* @type') || line.startsWith('*@type')) {
-      const match = line.match(/@type\s+(.+)/)
-      if (match) {
-        hasType = true
-        type = match[1].trim()
-      }
-    }
-  }
-
-  if (!hasType || endLine < 0 || !name || !type) {
-    return null
-  }
-
-  const normalizedType = type.toUpperCase()
-  if (normalizedType !== 'ACTION' && normalizedType !== 'VALIDATION') {
-    return null
-  }
-
-  return {
-    name: name.trim(),
-    description: description ? description.trim() : null,
-    type: normalizedType as TemplateStepGroupType,
-  }
-}
-
-function parseStepJSDoc(content: string, startLine: number): StepJSDoc | null {
-  const lines = content.split('\n')
-  let jsdocStart = -1
-
-  for (let i = startLine - 1; i >= 0 && i >= startLine - 20; i--) {
-    const line = lines[i]?.trim()
-    if (line?.includes('*/')) {
-      jsdocStart = i
-      for (let j = i - 1; j >= 0 && j >= i - 10; j--) {
-        const previousLine = lines[j]?.trim()
-        if (previousLine?.startsWith('/**')) {
-          jsdocStart = j
-          break
-        }
-      }
-      break
-    }
-
-    if (line?.startsWith('/**')) {
-      jsdocStart = i
-      break
-    }
-  }
-
-  if (jsdocStart === -1) {
-    return null
-  }
-
-  let name: string | null = null
-  let description: string | null = null
-  let icon: string | null = null
-  let foundJSDoc = false
-
-  for (let i = jsdocStart; i < Math.min(lines.length, jsdocStart + 20); i++) {
-    const line = lines[i]?.trim()
-
-    if (line?.startsWith('/**')) {
-      foundJSDoc = true
-      continue
-    }
-
-    if (line?.includes('*/')) {
-      const beforeClose = line.split('*/')[0].trim()
-      if (beforeClose.startsWith('* @name') || beforeClose.startsWith('*@name')) {
-        const match = beforeClose.match(/@name\s+(.+)/)
-        if (match) name = match[1].trim()
-      } else if (beforeClose.startsWith('* @description') || beforeClose.startsWith('*@description')) {
-        const match = beforeClose.match(/@description\s+(.+)/)
-        if (match) description = match[1].trim() || null
-      } else if (beforeClose.startsWith('* @icon') || beforeClose.startsWith('*@icon')) {
-        const match = beforeClose.match(/@icon\s+(.+)/)
-        if (match) icon = match[1].trim()
-      }
-      break
-    }
-
-    if (!foundJSDoc) {
-      continue
-    }
-
-    if (line?.startsWith('* @name') || line?.startsWith('*@name')) {
-      const match = line.match(/@name\s+(.+)/)
-      if (match) name = match[1].trim()
-    } else if (line?.startsWith('* @description') || line?.startsWith('*@description')) {
-      const match = line.match(/@description\s+(.+)/)
-      if (match) description = match[1].trim() || null
-    } else if (line?.startsWith('* @icon') || line?.startsWith('*@icon')) {
-      const match = line.match(/@icon\s+(.+)/)
-      if (match) icon = match[1].trim()
-    }
-  }
-
-  if (!name || !icon) {
-    return null
-  }
-
-  const iconUpper = icon.toUpperCase()
-  const validIcons = Object.values(TemplateStepIcon)
-  if (!validIcons.includes(iconUpper as TemplateStepIcon)) {
-    return null
-  }
-
-  return {
-    name: name.trim(),
-    description: description ? description.trim() : null,
-    icon: iconUpper as TemplateStepIcon,
-  }
-}
-
 function mapTypeToParameterType(typeName: string): StepParameterType {
   const normalized = typeName.trim()
 
@@ -493,6 +334,93 @@ function extractFunctionDefinition(callExpression: t.CallExpression, sourceCode:
   return code
 }
 
+function getStepKeyword(node: t.CallExpression): StepKeyword | null {
+  const callee = node.callee
+  return t.isIdentifier(callee) && (callee.name === 'When' || callee.name === 'Then' || callee.name === 'Given')
+    ? callee.name
+    : null
+}
+
+function getStepSignature(node: t.CallExpression): string | null {
+  const patternArg = node.arguments[0]
+  return t.isStringLiteral(patternArg) ? patternArg.value : null
+}
+
+function getStepFunction(node: t.CallExpression): t.Function | null {
+  const functionArg = node.arguments[1]
+  return t.isFunction(functionArg) ? functionArg : null
+}
+
+function getIdentifierParameterType(parameter: t.Identifier): string | null {
+  if (!parameter.typeAnnotation || !t.isTSTypeAnnotation(parameter.typeAnnotation)) {
+    return null
+  }
+
+  const annotation = parameter.typeAnnotation.typeAnnotation
+  if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
+    return annotation.typeName.name
+  }
+
+  if (t.isTSStringKeyword(annotation)) return 'string'
+  if (t.isTSNumberKeyword(annotation)) return 'number'
+  if (t.isTSBooleanKeyword(annotation)) return 'boolean'
+  return null
+}
+
+function parseStepParameters(parameters: t.Function['params']): StepParameter[] | null {
+  const parsedParameters: StepParameter[] = []
+
+  for (const parameter of parameters) {
+    if ((t.isIdentifier(parameter) && parameter.name === 'this') || t.isObjectPattern(parameter)) {
+      continue
+    }
+
+    if (!t.isIdentifier(parameter)) {
+      continue
+    }
+
+    const typeName = getIdentifierParameterType(parameter)
+    if (!typeName) {
+      continue
+    }
+
+    try {
+      parsedParameters.push({
+        name: parameter.name,
+        type: mapTypeToParameterType(typeName),
+        order: parsedParameters.length,
+      })
+    } catch {
+      return null
+    }
+  }
+
+  return parsedParameters
+}
+
+function parseStepCall(node: t.CallExpression, content: string): ParsedTemplateStep | null {
+  const keyword = getStepKeyword(node)
+  if (!keyword || node.arguments.length < 2) return null
+
+  const signature = getStepSignature(node)
+  const functionArg = getStepFunction(node)
+  const lineNumber = node.loc?.start?.line
+  if (!signature || !functionArg || lineNumber == null) return null
+
+  const jsdoc = parseStepJSDoc(content, lineNumber - 1)
+  const parameters = parseStepParameters(functionArg.params)
+  if (!jsdoc || !parameters) return null
+
+  return {
+    jsdoc,
+    signature,
+    functionDefinition: extractFunctionDefinition(node, content),
+    normalizedFunctionDefinition: '',
+    parameters,
+    keyword,
+  }
+}
+
 function parseStepFile(content: string): ParsedStepFile | null {
   const group = parseGroupJSDoc(content)
   if (!group) {
@@ -508,87 +436,8 @@ function parseStepFile(content: string): ParsedStepFile | null {
 
   traverse(ast, {
     CallExpression(path: NodePath<t.CallExpression>) {
-      const node = path.node
-      const callee = node.callee
-      let keyword: 'When' | 'Then' | 'Given' | null = null
-
-      if (t.isIdentifier(callee) && (callee.name === 'When' || callee.name === 'Then' || callee.name === 'Given')) {
-        keyword = callee.name as 'When' | 'Then' | 'Given'
-      }
-
-      if (!keyword || node.arguments.length < 2) {
-        return
-      }
-
-      const patternArg = node.arguments[0]
-      const functionArg = node.arguments[1]
-
-      if (!t.isStringLiteral(patternArg) || !t.isFunction(functionArg)) {
-        return
-      }
-
-      const lineNumber = node.loc?.start?.line
-      if (lineNumber == null) {
-        return
-      }
-
-      const jsdoc = parseStepJSDoc(content, lineNumber - 1)
-      if (!jsdoc) {
-        return
-      }
-
-      const parameters: StepParameter[] = []
-      let order = 0
-
-      for (const parameter of functionArg.params) {
-        if (t.isIdentifier(parameter) && parameter.name === 'this') {
-          continue
-        }
-
-        if (t.isObjectPattern(parameter)) {
-          continue
-        }
-
-        if (!t.isIdentifier(parameter) || !parameter.typeAnnotation || !t.isTSTypeAnnotation(parameter.typeAnnotation)) {
-          continue
-        }
-
-        const annotation = parameter.typeAnnotation.typeAnnotation
-        let typeName: string | null = null
-
-        if (t.isTSTypeReference(annotation) && t.isIdentifier(annotation.typeName)) {
-          typeName = annotation.typeName.name
-        } else if (t.isTSStringKeyword(annotation)) {
-          typeName = 'string'
-        } else if (t.isTSNumberKeyword(annotation)) {
-          typeName = 'number'
-        } else if (t.isTSBooleanKeyword(annotation)) {
-          typeName = 'boolean'
-        }
-
-        if (!typeName) {
-          continue
-        }
-
-        try {
-          parameters.push({
-            name: parameter.name,
-            type: mapTypeToParameterType(typeName),
-            order: order++,
-          })
-        } catch {
-          return
-        }
-      }
-
-      steps.push({
-        jsdoc,
-        signature: patternArg.value,
-        functionDefinition: extractFunctionDefinition(node, content),
-        normalizedFunctionDefinition: '',
-        parameters,
-        keyword,
-      })
+      const step = parseStepCall(path.node, content)
+      if (step) steps.push(step)
     },
   })
 
@@ -610,7 +459,10 @@ function extractFeatureLevelTags(parsedFeature: ParsedFeature): string[] {
   return parsedFeature.tags.flatMap(splitTagLine)
 }
 
-function parseScenarioTitle(scenarioName: string, scenarioDescription?: string): { title: string; description: string } {
+function parseScenarioTitle(
+  scenarioName: string,
+  scenarioDescription?: string,
+): { title: string; description: string } {
   if (scenarioDescription) {
     return {
       title: scenarioDescription.trim(),
@@ -673,7 +525,11 @@ function matchGherkinStepToTemplateStep(
   }>,
 ): { signature: string; parameters: ParameterMatch[] } | null {
   for (const templateStep of templateSteps) {
-    const parameters = extractParametersFromGherkinStep(gherkinStep.text, templateStep.signature, templateStep.parameters)
+    const parameters = extractParametersFromGherkinStep(
+      gherkinStep.text,
+      templateStep.signature,
+      templateStep.parameters,
+    )
     if (parameters) {
       return {
         signature: templateStep.signature,
@@ -723,11 +579,7 @@ function sameStepParameters(
 
   return left.every((parameter, index) => {
     const other = right[index]
-    return (
-      parameter.name === other?.name &&
-      parameter.order === other?.order &&
-      parameter.type === other?.type
-    )
+    return parameter.name === other?.name && parameter.order === other?.order && parameter.type === other?.type
   })
 }
 
@@ -839,15 +691,18 @@ async function buildFilesystemSnapshot(baseDir: string): Promise<FilesystemSnaps
         continue
       }
 
-      const { title, description } = parseScenarioTitle(scenario.name, scenario.description)
+      const parsedTitle = parseScenarioTitle(scenario.name, scenario.description)
       testCases.push({
         identifierTag: normalizeTagExpression(identifierTag),
-        title,
-        description,
+        title: scenario.appraiseMetadata?.title ?? parsedTitle.title,
+        description: scenario.appraiseMetadata?.description ?? parsedTitle.description,
         testSuiteName,
         modulePath,
         filterTags: flattenedTags.filter(tag => normalizeTagExpression(tag) !== normalizeTagExpression(identifierTag)),
         steps: scenario.steps,
+        hasAppraiseMetadata: scenario.appraiseMetadata != null,
+        nodes: scenario.appraiseMetadata?.nodes ?? [],
+        flowBlocks: scenario.appraiseMetadata?.flowBlocks ?? [],
       })
     }
   }
@@ -896,14 +751,21 @@ export function countModuleMismatches(
   return count
 }
 
-function countEnvironmentMismatches(
+export function countEnvironmentMismatches(
   filesystemEnvironments: EnvironmentData[],
-  dbEnvironments: Array<{ name: string }>,
+  dbEnvironments: Array<{
+    name: string
+    baseUrl: string
+    apiBaseUrl: string | null
+    username: string | null
+    password: string | null
+    _count?: { testRuns: number }
+  }>,
 ): number {
   const fsByNormalizedName = new Map(
     filesystemEnvironments.map(environment => [getEnvironmentIdentityKey(environment.name), environment]),
   )
-  const dbByNormalizedName = new Map<string, { name: string }>()
+  const dbByNormalizedName = new Map<string, (typeof dbEnvironments)[number]>()
 
   for (const environment of dbEnvironments) {
     const normalizedName = getEnvironmentIdentityKey(environment.name)
@@ -917,11 +779,22 @@ function countEnvironmentMismatches(
     const existing = dbByNormalizedName.get(getEnvironmentIdentityKey(environment.name))
     if (!existing) {
       count++
+      continue
+    }
+
+    if (
+      existing.baseUrl !== environment.baseUrl ||
+      (existing.apiBaseUrl ?? null) !== environment.apiBaseUrl ||
+      (existing.username ?? null) !== environment.username ||
+      (existing.password ?? null) !== environment.password
+    ) {
+      count++
     }
   }
 
   for (const environment of dbEnvironments) {
-    if (!fsByNormalizedName.has(getEnvironmentIdentityKey(environment.name))) {
+    const canDelete = (environment._count?.testRuns ?? 0) === 0
+    if (canDelete && !fsByNormalizedName.has(getEnvironmentIdentityKey(environment.name))) {
       count++
     }
   }
@@ -979,10 +852,15 @@ export function countTemplateStepMismatches(
     parameters: Array<{ name: string; order: number; type: StepParameterType }>
   }>,
 ): number {
+  const filesystemStepsBySignature = new Map<string, TemplateStepFromFs>()
   const dbBySignature = groupRecordsByKey(dbSteps, step => step.signature)
   let count = 0
 
   for (const item of filesystemSteps) {
+    filesystemStepsBySignature.set(item.step.signature, item)
+  }
+
+  for (const item of filesystemStepsBySignature.values()) {
     const expectedType =
       item.groupType === TemplateStepGroupType.ACTION ? TemplateStepType.ACTION : TemplateStepType.ASSERTION
 
@@ -1006,16 +884,20 @@ export function countTemplateStepMismatches(
   return count
 }
 
-function countLocatorGroupMismatches(
+export function countLocatorGroupMismatches(
   filesystemGroups: LocatorGroupFromFs[],
   dbGroups: Array<{ name: string; route: string; moduleId: string }>,
   modulePathMap: Map<string, string>,
 ): number {
-  const fsByName = new Map(filesystemGroups.map(group => [group.name, group]))
+  const fsByName = new Map<string, LocatorGroupFromFs>()
   const dbByName = new Map(dbGroups.map(group => [group.name, group]))
   let count = 0
 
   for (const group of filesystemGroups) {
+    fsByName.set(group.name, group)
+  }
+
+  for (const group of fsByName.values()) {
     const existing = dbByName.get(group.name)
     if (!existing) {
       count++
@@ -1089,10 +971,15 @@ export function countTestSuiteMismatches(
   const dbByKey = groupRecordsByKey(dbSuites, suite =>
     getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/'),
   )
+  const filesystemSuitesByKey = new Map<string, TestSuiteFromFs>()
   let count = 0
 
   for (const suite of filesystemSuites) {
     const suiteKey = getTestSuiteSyncIdentity(suite.name, suite.modulePath)
+    filesystemSuitesByKey.set(suiteKey, suite)
+  }
+
+  for (const [suiteKey, suite] of filesystemSuitesByKey) {
     const fsTagExpressions = suite.tags.map(normalizeTagExpression)
     const hasMatch = (dbByKey.get(suiteKey) ?? []).some(existing => {
       const dbTagExpressions = existing.tags.map(tag => normalizeTagExpression(tag.tagExpression))
@@ -1108,11 +995,41 @@ export function countTestSuiteMismatches(
   return count
 }
 
+type ProjectedTestCaseStep = {
+  order: number
+  gherkinStep: string
+  label: string
+  icon: TemplateStepIcon
+}
+
+function normalizeProjectedFsTestCaseSteps(stepsFromFs: ParsedStep[]): ProjectedTestCaseStep[] {
+  const storedSteps = stepsFromFs.map(step => ({
+    order: step.order,
+    gherkinStep: `${step.keyword} ${step.text}`,
+  }))
+  const projectedGherkinSteps = generateProjectedGherkinSteps(storedSteps)
+
+  return stepsFromFs.map((step, index) => {
+    const gherkinStep = projectedGherkinSteps[index] ?? ''
+    const [keyword = '', ...textParts] = gherkinStep.split(' ')
+    const label = textParts.join(' ')
+
+    return {
+      order: step.order,
+      gherkinStep,
+      label,
+      icon: determineProjectedStepIcon(keyword),
+    }
+  })
+}
+
 function hasProjectedTestCaseStepMismatch(
   stepsFromFs: ParsedStep[],
+  nodesFromFs: AppraiseTestCaseMetadataNode[] = [],
   dbSteps: Array<{
     order: number
     gherkinStep: string
+    flowNodeId: string | null
     label: string
     icon: TemplateStepIcon
     TemplateStep: { signature: string } | null
@@ -1124,23 +1041,26 @@ function hasProjectedTestCaseStepMismatch(
   }>,
 ): boolean {
   const projectedDbSteps = normalizeProjectedDbTestCaseSteps(dbSteps)
+  const projectedFsSteps = normalizeProjectedFsTestCaseSteps(stepsFromFs)
   const dbStepsByOrder = new Map(projectedDbSteps.map(step => [step.order, step]))
+  const fsStepsByOrder = new Map(stepsFromFs.map(step => [step.order, step]))
+  const nodesByOrder = new Map(nodesFromFs.map(node => [node.order, node]))
 
-  for (const step of stepsFromFs) {
-    const existing = dbStepsByOrder.get(step.order)
-    const matchedTemplateStep = matchGherkinStepToTemplateStep(step, dbTemplateSteps)
+  for (const projectedFsStep of projectedFsSteps) {
+    const existing = dbStepsByOrder.get(projectedFsStep.order)
+    const sourceStep = fsStepsByOrder.get(projectedFsStep.order)
+    const metadataNode = nodesByOrder.get(projectedFsStep.order)
+    const matchedTemplateStep = sourceStep ? matchGherkinStepToTemplateStep(sourceStep, dbTemplateSteps) : null
 
     if (!existing || !matchedTemplateStep) {
       return true
     }
 
-    const expectedIcon = determineProjectedStepIcon(step.keyword)
-    const expectedGherkinStep = `${step.keyword} ${step.text}`
-
     if (
-      existing.gherkinStep !== expectedGherkinStep ||
-      existing.label !== step.text ||
-      existing.icon !== expectedIcon ||
+      existing.gherkinStep !== projectedFsStep.gherkinStep ||
+      existing.flowNodeId !== (metadataNode?.nodeId ?? existing.flowNodeId) ||
+      existing.label !== (metadataNode?.label ?? projectedFsStep.label) ||
+      existing.icon !== projectedFsStep.icon ||
       existing.templateStepSignature !== matchedTemplateStep.signature ||
       !sameResolvedParameters(existing.parameters, matchedTemplateStep.parameters)
     ) {
@@ -1150,6 +1070,39 @@ function hasProjectedTestCaseStepMismatch(
 
   const fsOrders = new Set(stepsFromFs.map(step => step.order))
   return projectedDbSteps.some(step => !fsOrders.has(step.order))
+}
+
+function hasFlowBlockMismatch(
+  flowBlocksFromFs: AppraiseTestCaseMetadataFlowBlock[] = [],
+  hasAppraiseMetadata: boolean | undefined,
+  dbFlowBlocks: Array<{
+    id: string
+    name: string
+    order: number
+    nodes: Array<{ flowNodeId: string }>
+  }>,
+): boolean {
+  if (!hasAppraiseMetadata) {
+    return false
+  }
+
+  if (flowBlocksFromFs.length !== dbFlowBlocks.length) {
+    return true
+  }
+
+  const dbById = new Map(dbFlowBlocks.map(block => [block.id, block]))
+
+  return flowBlocksFromFs.some(block => {
+    const existing = dbById.get(block.id)
+    if (!existing || existing.name !== block.name || existing.order !== block.order) {
+      return true
+    }
+
+    return !sameStringSet(
+      existing.nodes.map(node => node.flowNodeId),
+      block.nodeIds,
+    )
+  })
 }
 
 export function countTestCaseMismatches(
@@ -1162,10 +1115,17 @@ export function countTestCaseMismatches(
     steps: Array<{
       order: number
       gherkinStep: string
+      flowNodeId: string | null
       label: string
       icon: TemplateStepIcon
       TemplateStep: { signature: string } | null
       parameters: Array<{ name: string; value: string; order: number; type: StepParameterType }>
+    }>
+    flowBlocks: Array<{
+      id: string
+      name: string
+      order: number
+      nodes: Array<{ flowNodeId: string }>
     }>
   }>,
   modulePathMap: Map<string, string>,
@@ -1174,8 +1134,28 @@ export function countTestCaseMismatches(
     parameters: Array<{ name: string; order: number; type: StepParameterType }>
   }>,
 ): number {
+  const filesystemTestCasesByIdentifier = new Map<string, CollapsedTestCaseFromFs>()
   const dbByIdentifier = new Map<string, Array<(typeof dbTestCases)[number]>>()
   let count = 0
+
+  for (const testCase of filesystemTestCases) {
+    const expectedSuiteIdentity = getTestSuiteSyncIdentity(testCase.testSuiteName, testCase.modulePath)
+    const existing = filesystemTestCasesByIdentifier.get(testCase.identifierTag)
+
+    if (existing) {
+      existing.expectedSuiteIdentities.add(expectedSuiteIdentity)
+      filesystemTestCasesByIdentifier.set(testCase.identifierTag, {
+        ...testCase,
+        expectedSuiteIdentities: existing.expectedSuiteIdentities,
+      })
+      continue
+    }
+
+    filesystemTestCasesByIdentifier.set(testCase.identifierTag, {
+      ...testCase,
+      expectedSuiteIdentities: new Set([expectedSuiteIdentity]),
+    })
+  }
 
   for (const testCase of dbTestCases) {
     const identifierTag = testCase.tags.find(tag => tag.type === TagType.IDENTIFIER)
@@ -1193,23 +1173,26 @@ export function countTestCaseMismatches(
     dbByIdentifier.set(normalizedIdentifier, [testCase])
   }
 
-  for (const testCase of filesystemTestCases) {
-    const expectedSuiteIdentity = getTestSuiteSyncIdentity(testCase.testSuiteName, testCase.modulePath)
+  for (const testCase of filesystemTestCasesByIdentifier.values()) {
     const normalizedFilterTags = testCase.filterTags.map(normalizeTagExpression)
     const hasMatch = (dbByIdentifier.get(testCase.identifierTag) ?? []).some(existing => {
       const existingFilterTags = existing.tags
         .filter(tag => tag.type === TagType.FILTER)
         .map(tag => normalizeTagExpression(tag.tagExpression))
-      const isLinkedToExpectedSuite = existing.TestSuite.some(
-        suite => getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/') === expectedSuiteIdentity,
+      const existingSuiteIdentities = new Set(
+        existing.TestSuite.map(suite => getTestSuiteSyncIdentity(suite.name, modulePathMap.get(suite.moduleId) ?? '/')),
+      )
+      const isLinkedToExpectedSuites = Array.from(testCase.expectedSuiteIdentities).every(identity =>
+        existingSuiteIdentities.has(identity),
       )
 
       return (
         existing.title === testCase.title &&
         existing.description === testCase.description &&
-        isLinkedToExpectedSuite &&
+        isLinkedToExpectedSuites &&
         sameStringSet(existingFilterTags, normalizedFilterTags) &&
-        !hasProjectedTestCaseStepMismatch(testCase.steps, existing.steps, dbTemplateSteps)
+        !hasProjectedTestCaseStepMismatch(testCase.steps, testCase.nodes, existing.steps, dbTemplateSteps) &&
+        !hasFlowBlockMismatch(testCase.flowBlocks, testCase.hasAppraiseMetadata, existing.flowBlocks ?? [])
       )
     })
 
@@ -1222,7 +1205,10 @@ export function countTestCaseMismatches(
 }
 
 function emptyCounts(): SyncPendingCounts {
-  const counts = Object.fromEntries(syncScriptDefinitions.map(definition => [definition.id, 0])) as Record<SyncScriptId, number>
+  const counts = Object.fromEntries(syncScriptDefinitions.map(definition => [definition.id, 0])) as Record<
+    SyncScriptId,
+    number
+  >
   return {
     ...counts,
     [SYNC_ALL_REQUEST_ID]: 0,
@@ -1246,7 +1232,18 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       dbTestCases,
     ] = await Promise.all([
       getAllModulesWithPaths(),
-      prisma.environment.findMany({ select: { name: true } }),
+      prisma.environment.findMany({
+        select: {
+          name: true,
+          baseUrl: true,
+          apiBaseUrl: true,
+          username: true,
+          password: true,
+          _count: {
+            select: { testRuns: true },
+          },
+        },
+      }),
       prisma.tag.findMany({ select: { name: true, type: true } }),
       prisma.templateStepGroup.findMany({ select: { name: true, description: true, type: true } }),
       prisma.templateStep.findMany({
@@ -1301,6 +1298,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
             select: {
               order: true,
               gherkinStep: true,
+              flowNodeId: true,
               label: true,
               icon: true,
               TemplateStep: {
@@ -1309,6 +1307,18 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
               parameters: {
                 select: { name: true, value: true, order: true, type: true },
                 orderBy: { order: 'asc' },
+              },
+            },
+          },
+          flowBlocks: {
+            select: {
+              id: true,
+              name: true,
+              order: true,
+              nodes: {
+                select: {
+                  flowNodeId: true,
+                },
               },
             },
           },
@@ -1323,13 +1333,18 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       })),
     )
 
-    const modulePathMap = new Map(dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]))
+    const modulePathMap = new Map(
+      dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]),
+    )
 
     const counts: Record<SyncScriptId, number> = {
       'sync-modules': countModuleMismatches(filesystem.modulePaths, dbModules),
       'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
       'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),
-      'sync-template-step-groups': countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
+      'sync-template-step-groups': countTemplateStepGroupMismatches(
+        filesystem.templateStepGroups,
+        dbTemplateStepGroups,
+      ),
       'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
       'sync-locator-groups': countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
       'sync-locators': countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups),

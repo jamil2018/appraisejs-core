@@ -1,57 +1,10 @@
-import { BrowserEngine, Prisma, StepStatus } from '@prisma/client'
+import { BrowserEngine, StepStatus } from '@prisma/client'
 import { Compass, Flame } from 'lucide-react'
 import { createElement } from 'react'
 
 import type { ChartConfig } from '@/components/ui/chart'
-
-export type ReportDetailWithRelations = Prisma.ReportGetPayload<{
-  include: {
-    testRun: {
-      include: {
-        environment: true
-        tags: true
-      }
-    }
-    features: {
-      include: {
-        tags: true
-        scenarios: {
-          include: {
-            tags: true
-            steps: true
-            hooks: true
-          }
-        }
-      }
-    }
-    testCases: {
-      include: {
-        testRunTestCase: {
-          include: {
-            testCase: {
-              include: {
-                tags: true
-              }
-            }
-            testSuite: true
-          }
-        }
-        reportScenario: {
-          include: {
-            reportFeature: true
-            tags: true
-            steps: {
-              orderBy: {
-                order: 'asc'
-              }
-            }
-            hooks: true
-          }
-        }
-      }
-    }
-  }
-}>
+export type { ReportDetailWithRelations } from '@/types/report'
+import type { ReportDetailWithRelations, ReportWithRelations } from '@/types/report'
 
 export const reportColorMap = {
   passed: 'oklch(59.6% 0.145 163.225)',
@@ -62,9 +15,9 @@ export const reportColorMap = {
 } as const
 
 export const browserIcons = {
-  [BrowserEngine.CHROMIUM]: createElement(Flame, { className: 'h-4 w-4' }),
-  [BrowserEngine.FIREFOX]: createElement(Flame, { className: 'h-4 w-4' }),
-  [BrowserEngine.WEBKIT]: createElement(Compass, { className: 'h-4 w-4' }),
+  [BrowserEngine.CHROMIUM]: createElement(Flame, { className: 'size-4' }),
+  [BrowserEngine.FIREFOX]: createElement(Flame, { className: 'size-4' }),
+  [BrowserEngine.WEBKIT]: createElement(Compass, { className: 'size-4' }),
 } as const
 
 export const overViewPieChartConfig = {
@@ -138,6 +91,22 @@ export function isValidReportDetail(data: unknown): data is ReportDetailWithRela
   )
 }
 
+export function isValidReportList(data: unknown): data is ReportWithRelations[] {
+  if (!Array.isArray(data)) {
+    return false
+  }
+
+  return data.every(
+    item =>
+      item &&
+      typeof item === 'object' &&
+      'id' in item &&
+      'testRun' in item &&
+      'testCases' in item &&
+      Array.isArray(item.testCases),
+  )
+}
+
 export function formatDateTime(date: Date) {
   return date.toLocaleString('en-US', {
     year: 'numeric',
@@ -148,7 +117,11 @@ export function formatDateTime(date: Date) {
   })
 }
 
-export function formatDuration(startDate: Date, endDate: Date) {
+export function formatDuration(startDate: Date, endDate: Date | null) {
+  if (!endDate) {
+    return '-'
+  }
+
   const diffInMs = endDate.getTime() - startDate.getTime()
   const totalSeconds = Math.floor(diffInMs / 1000)
   const hours = Math.floor(totalSeconds / 3600)

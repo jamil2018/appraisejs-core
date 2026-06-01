@@ -8,21 +8,30 @@ import {
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
-import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
-import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
+import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
+import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
+import { createTestSuiteAction, getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
 
 import {
   buildNodeOrderFromTestCaseSteps,
+  buildFlowBlocksFromTestCaseRows,
   getEditableTestCase,
+} from '../../editable-test-case-helpers'
+import {
+  getEnvironmentRows,
   getLocatorGroupRows,
   getLocatorRows,
+  getModuleRows,
   getTagRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
   getTestSuiteRows,
-} from '../../test-case-route-helpers'
+} from '../../test-case-resource-rows'
+import { getTestCaseRows } from '../../test-case-row-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Test Case',
@@ -39,6 +48,9 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     testSuitesResponse,
     locatorGroupsResponse,
     tagsResponse,
+    testCasesResponse,
+    moduleListResponse,
+    environmentsResponse,
   ] = await Promise.all([
     getTestCaseByIdAction(id),
     getAllTemplateStepParamsAction(),
@@ -47,6 +59,9 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     getAllTestSuitesAction(),
     getAllLocatorGroupsAction(),
     getAllTagsAction(),
+    getAllTestCasesAction(),
+    getAllModulesAction(),
+    getAllEnvironmentsAction(),
   ])
 
   const loadError =
@@ -56,14 +71,13 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     locatorsResponse.error ||
     testSuitesResponse.error ||
     locatorGroupsResponse.error ||
-    tagsResponse.error
+    tagsResponse.error ||
+    testCasesResponse.error ||
+    moduleListResponse.error ||
+    environmentsResponse.error
 
   if (loadError) {
-    return (
-      <div>
-        Error: {loadError}
-      </div>
-    )
+    return <div>Error: {loadError}</div>
   }
 
   const testCase = getEditableTestCase(testCaseResponse.data)
@@ -77,6 +91,9 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
   const testSuites = getTestSuiteRows(testSuitesResponse.data)
   const locatorGroups = getLocatorGroupRows(locatorGroupsResponse.data)
   const tags = getTagRows(tagsResponse.data)
+  const testCases = getTestCaseRows(testCasesResponse.data)
+  const moduleList = getModuleRows(moduleListResponse.data)
+  const environments = getEnvironmentRows(environmentsResponse.data)
 
   return (
     <>
@@ -95,9 +112,15 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         templateSteps={templateSteps}
         locators={locators}
         locatorGroups={locatorGroups}
+        environments={environments}
         testSuites={testSuites}
+        testCases={testCases}
+        moduleList={moduleList}
         tags={tags}
         defaultNodesOrder={buildNodeOrderFromTestCaseSteps(testCase.steps)}
+        defaultFlowBlocks={buildFlowBlocksFromTestCaseRows(testCase.flowBlocks)}
+        onCreateTestSuiteAction={createTestSuiteAction}
+        onCreateTagAction={createTagAction}
       />
     </>
   )

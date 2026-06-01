@@ -4,10 +4,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function calculateCompletionPercentage(total: number, completed: number) {
-  return Math.round((completed / total) * 100)
-}
-
 /**
  * Formats a date to show only date and time (without seconds/milliseconds)
  * @param date - Date string or Date object

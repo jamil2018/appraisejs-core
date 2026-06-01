@@ -65,7 +65,11 @@ function getRunArgs(packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun', scriptName:
   return ['run', scriptName]
 }
 
-async function runScript(projectRoot: string, packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun', scriptName: string): Promise<void> {
+async function runScript(
+  projectRoot: string,
+  packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun',
+  scriptName: string,
+): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const child = spawn(packageManager, getRunArgs(packageManager, scriptName), {
       cwd: projectRoot,

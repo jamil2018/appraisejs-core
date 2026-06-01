@@ -37,9 +37,7 @@ describe('detectAndCreateConflicts', () => {
   it('returns 0 when no other locators in group', async () => {
     vi.mocked(prisma.locator.findMany).mockResolvedValue([])
 
-    await expect(
-      detectAndCreateConflicts('loc-1', 'btn', '//x', 'group-1'),
-    ).resolves.toBe(0)
+    await expect(detectAndCreateConflicts('loc-1', 'btn', '//x', 'group-1')).resolves.toBe(0)
     expect(prisma.conflictResolution.create).not.toHaveBeenCalled()
   })
 })

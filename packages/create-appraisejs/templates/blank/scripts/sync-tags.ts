@@ -13,7 +13,7 @@ import { join } from 'path'
 import prisma from '../src/config/db-config'
 import { scanFeatureFiles, ParsedFeature } from '../src/lib/gherkin-parser'
 import { TagType } from '@prisma/client'
-import { getTagTypeFromName } from '../src/lib/tag-utils'
+import { getTagTypeFromName } from '../src/lib/tag-identifiers'
 import { splitTagLine } from './lib/tag-parsing'
 import { printSyncSummary } from './lib/sync-summary'
 import { runSyncScript } from './lib/sync-script-runner'
@@ -191,65 +191,65 @@ async function syncTagsToDatabase(tagObjects: TagData[]): Promise<SyncResult> {
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult | void> {
-    console.log('🔄 Starting tags sync...')
-    console.log('This will scan feature files and sync tags to database.')
-    console.log('Filesystem is the source of truth - tags in DB but not in FS will be deleted.\n')
+  console.log('🔄 Starting tags sync...')
+  console.log('This will scan feature files and sync tags to database.')
+  console.log('Filesystem is the source of truth - tags in DB but not in FS will be deleted.\n')
 
-    const baseDir = process.cwd()
-    const featuresDir = join(baseDir, 'automation', 'features')
+  const baseDir = process.cwd()
+  const featuresDir = join(baseDir, 'automation', 'features')
 
-    // Scan feature files
-    console.log('📁 Scanning feature files in automation/features...')
-    const parsedFeatures = await scanFeatureFiles(featuresDir)
-    console.log(`   Found ${parsedFeatures.length} feature file(s)`)
+  // Scan feature files
+  console.log('📁 Scanning feature files in automation/features...')
+  const parsedFeatures = await scanFeatureFiles(featuresDir)
+  console.log(`   Found ${parsedFeatures.length} feature file(s)`)
 
-    if (parsedFeatures.length === 0) {
-      console.log('\n⚠️  No feature files found. Nothing to sync.')
-      return
-    }
+  if (parsedFeatures.length === 0) {
+    console.log('\n⚠️  No feature files found. Nothing to sync.')
+    return
+  }
 
-    // Extract unique tags
-    console.log('\n🔍 Extracting unique tags from feature files...')
-    const uniqueTagExpressions = extractUniqueTags(parsedFeatures)
-    console.log(`   Found ${uniqueTagExpressions.size} unique tag(s)`)
+  // Extract unique tags
+  console.log('\n🔍 Extracting unique tags from feature files...')
+  const uniqueTagExpressions = extractUniqueTags(parsedFeatures)
+  console.log(`   Found ${uniqueTagExpressions.size} unique tag(s)`)
 
-    if (uniqueTagExpressions.size === 0) {
-      console.log('\n⚠️  No tags found in feature files. Nothing to sync.')
-      return
-    }
+  if (uniqueTagExpressions.size === 0) {
+    console.log('\n⚠️  No tags found in feature files. Nothing to sync.')
+    return
+  }
 
-    // Build tag objects
-    console.log('\n🔨 Building tag objects...')
-    const tagObjects = buildTagObjects(uniqueTagExpressions)
-    console.log(`   Built ${tagObjects.length} tag object(s)`)
+  // Build tag objects
+  console.log('\n🔨 Building tag objects...')
+  const tagObjects = buildTagObjects(uniqueTagExpressions)
+  console.log(`   Built ${tagObjects.length} tag object(s)`)
 
-    // Log tag details
-    console.log('\n   Tag details:')
-    for (const tag of tagObjects) {
-      console.log(`      - ${tag.tagExpression} → name: '${tag.name}', type: ${tag.type}`)
-    }
+  // Log tag details
+  console.log('\n   Tag details:')
+  for (const tag of tagObjects) {
+    console.log(`      - ${tag.tagExpression} → name: '${tag.name}', type: ${tag.type}`)
+  }
 
-    // Sync to database
-    const result = await syncTagsToDatabase(tagObjects)
+  // Sync to database
+  const result = await syncTagsToDatabase(tagObjects)
 
-    printSyncSummary(
-      [
-        { label: '📁 Tags scanned', value: result.tagsScanned },
-        { label: '✅ Tags existing', value: result.tagsExisting },
-        { label: '➕ Tags created', value: result.tagsCreated },
-        { label: '🔄 Tags updated', value: result.tagsUpdated },
-        { label: '🗑️  Tags deleted', value: result.tagsDeleted },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        { title: 'Updated tags', items: result.updatedTags },
-        { title: 'Created tags', items: result.createdTags },
-        { title: 'Deleted tags', items: result.deletedTags },
-        { title: 'Errors', items: result.errors },
-      ],
-    )
+  printSyncSummary(
+    [
+      { label: '📁 Tags scanned', value: result.tagsScanned },
+      { label: '✅ Tags existing', value: result.tagsExisting },
+      { label: '➕ Tags created', value: result.tagsCreated },
+      { label: '🔄 Tags updated', value: result.tagsUpdated },
+      { label: '🗑️  Tags deleted', value: result.tagsDeleted },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      { title: 'Updated tags', items: result.updatedTags },
+      { title: 'Created tags', items: result.createdTags },
+      { title: 'Deleted tags', items: result.deletedTags },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
 
-    return result
+  return result
 }
 
 runSyncScript(main)

@@ -5,7 +5,14 @@ import type React from 'react'
 import { useState, useEffect } from 'react'
 import { PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -116,26 +123,21 @@ export default function ParamChip({
     e.preventDefault()
 
     if (validateForm()) {
-      // Create a new item with the form values
       const newItem = {
         id: crypto.randomUUID(),
         ...formValues,
       }
 
-      // Add the new item to the items array
-      setItems([...items, newItem])
+      const nextItems = [...items, newItem]
+      setItems(nextItems)
+      onSubmit(nextItems.map(stripItemId))
 
-      // Reset the form
       setFormValues({
         name: '',
         type: '',
         order: 1,
       })
 
-      // Call the onSubmit callback with the new item
-      onSubmit([...items, newItem].map(stripItemId))
-
-      // Close the modal
       setIsOpen(false)
     }
   }
@@ -150,7 +152,7 @@ export default function ParamChip({
   return (
     <div className="space-y-6">
       <Button type="button" onClick={() => setIsOpen(true)} variant="outline" size="icon">
-        <PlusCircle className="h-4 w-4" />
+        <PlusCircle className="size-4" />
       </Button>
 
       {/* Display the added items as chips */}
@@ -175,6 +177,7 @@ export default function ParamChip({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Item</DialogTitle>
+            <DialogDescription>Add a parameter name, type, and display order.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

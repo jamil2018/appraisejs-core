@@ -1,7 +1,12 @@
 import path from 'path'
 import { createHash } from 'crypto'
 import { describe, expect, it } from 'vitest'
-import { downloadStepPayload, fetchRegistryManifest, resolveBundledManifestUrl, resolveManifestUrl } from './registry.js'
+import {
+  downloadStepPayload,
+  fetchRegistryManifest,
+  resolveBundledManifestUrl,
+  resolveManifestUrl,
+} from './registry.js'
 
 describe('resolveManifestUrl', () => {
   it('uses the bundled package registry when no override is provided', () => {

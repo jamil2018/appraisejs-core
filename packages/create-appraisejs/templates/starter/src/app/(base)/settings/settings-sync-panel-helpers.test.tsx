@@ -2,11 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import {
-  formatExecutionSummary,
-  formatFailureSummary,
-  formatExecutionOrder,
-} from './settings-sync-panel-helpers'
+import { formatExecutionSummary, formatFailureSummary, formatExecutionOrder } from './settings-sync-panel-helpers'
 
 describe('settings-sync-panel helpers', () => {
   it('formats the sync-all execution summary', () => {
@@ -35,6 +31,8 @@ describe('settings-sync-panel helpers', () => {
   })
 
   it('formats the requested execution order labels', () => {
-    expect(formatExecutionOrder('sync-test-cases')).toBe('Modules -> Tags -> Test Suites -> Template Step Groups -> Template Steps -> Test Cases')
+    expect(formatExecutionOrder('sync-test-cases')).toBe(
+      'Modules -> Tags -> Test Suites -> Template Step Groups -> Template Steps -> Test Cases',
+    )
   })
 })

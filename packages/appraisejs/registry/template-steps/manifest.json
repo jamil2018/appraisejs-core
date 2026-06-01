@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-15T17:38:40.241Z",
+  "generatedAt": "2026-05-31T20:44:49.979Z",
   "steps": [
     {
       "slug": "active-state-assertion/assert-element-active",
@@ -65,7 +65,7 @@
     {
       "slug": "hover/hover",
       "sourcePath": "fragments/hover/hover.ts",
-      "sourceSha256": "d49c71f57c0d94ae44836ac6669a3c68c660cd9eaa83bede0959e1c3380c79fd",
+      "sourceSha256": "733960a8ec273dab7e4e4874cca026f57b9721aba66051b61ae6be28e5b11830",
       "signature": "the user hovers the cursor over the {string} element",
       "name": "hover",
       "description": "Template step for hovering over an element",
@@ -80,7 +80,7 @@
     {
       "slug": "input/check",
       "sourcePath": "fragments/input/check.ts",
-      "sourceSha256": "61abc696de8987597f5a5a744e2de5c5bfcc9d0a46b8ba3e7d93ecc4c2f47ed8",
+      "sourceSha256": "39506791d6bb84136e6c49c40db41a7770cbf90a22d0cb031c99109cdf182d6a",
       "signature": "the user checks the {string} checkbox",
       "name": "check",
       "description": "Template step for checking a checkbox",
@@ -95,7 +95,7 @@
     {
       "slug": "input/clear",
       "sourcePath": "fragments/input/clear.ts",
-      "sourceSha256": "881cdc3a51016dbb9c17e806c4449b66ae48f835cabf6d569d82ad8701779b58",
+      "sourceSha256": "f06cff7eb79551f68cef072a438c78e14d76807b4b5bae39ac8caad590754917",
       "signature": "the user clears the {string} field",
       "name": "clear",
       "description": "Template step for clearing an input field",
@@ -110,7 +110,7 @@
     {
       "slug": "input/fill",
       "sourcePath": "fragments/input/fill.ts",
-      "sourceSha256": "7cf8b704131b649c0080575e01a1a13a98cd2ae6d7171057e31c8a514f4c9f19",
+      "sourceSha256": "cfdae0655479766e7e91a998c0c0b586390a02c7fda643fe861c85ff32934fc4",
       "signature": "the user fills in the {string} input field with value {string}",
       "name": "fill",
       "description": "Template step for filling up an input field with a provided value",
@@ -125,7 +125,7 @@
     {
       "slug": "input/fill-input-with-stored-value",
       "sourcePath": "fragments/input/fill-input-with-stored-value.ts",
-      "sourceSha256": "2da0f89de411ccf487173be243694abbc2d17d3f6ec59f889c0bd24c91cd2a35",
+      "sourceSha256": "5cb9d62367fd65e6bee1ac6898993aacaeaa6410d7823d22627bc0a1f5ac1d9e",
       "signature": "the user fills in the {string} input with data from the stored variable {string}",
       "name": "fill input with stored value",
       "description": "Template step for filling an input field with data from a stored variable",
@@ -140,7 +140,7 @@
     {
       "slug": "input/select-dropdown-option",
       "sourcePath": "fragments/input/select-dropdown-option.ts",
-      "sourceSha256": "9ab022ebb34d4b785c36ad5c1272de2afff89434064580b5ac034b5397e4485b",
+      "sourceSha256": "bdb9e575ebc3f8425e33b35b0a65f986b0f6bcea08fdd395d24ea0696cee8eb9",
       "signature": "the user selects the {string} option of the {string} dropdown",
       "name": "select dropdown option",
       "description": "Template step for selecting a particular option inside a dropdown element",
@@ -155,7 +155,7 @@
     {
       "slug": "input/uncheck",
       "sourcePath": "fragments/input/uncheck.ts",
-      "sourceSha256": "7d4c5fb78b29b2965a60a264f624a55b8886ead9fedce1c88dca990ce611a978",
+      "sourceSha256": "784280b93f9749c3484d121734382999eda1c39163d81b6c4c6b98db4432de92",
       "signature": "the user unchecks the {string} checkbox",
       "name": "uncheck",
       "description": "Template step for unchecking a checkbox",
@@ -245,7 +245,7 @@
     {
       "slug": "random-data/generate-random-address-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-address-and-save-in-variable.ts",
-      "sourceSha256": "22b79f4c4a285b26c4885f3af0cf5deafca22439a2cc1bcf9dfa6ae4a72bd08f",
+      "sourceSha256": "aa6740cc3d0120d629966b2adeb4b2b5768d516628aaee73e2ae14c490933678",
       "signature": "the user generates a random address and stores it inside the variable {string}",
       "name": "generate random address and save in variable",
       "description": "Template step for generating a random address and saving it inside a variable",
@@ -260,7 +260,7 @@
     {
       "slug": "random-data/generate-random-email-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-email-and-save-in-variable.ts",
-      "sourceSha256": "98065626919488be99cbdfee157843dcd651bb854cdea8a3cafa3a4bf724b65c",
+      "sourceSha256": "0baeb2c84a77b623a469a634cdc5b85f2f000fa1bb33ea3af7f3b6d1ba59e39a",
       "signature": "the user generates a random email and stores it inside the variable {string}",
       "name": "generate random email and save in variable",
       "description": "Template step for generating a random email and saving it inside a variable",
@@ -275,7 +275,7 @@
     {
       "slug": "random-data/generate-random-first-name-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-first-name-and-save-in-variable.ts",
-      "sourceSha256": "96190a4dca573f7da46a0d7b7ff1b0e3ecec2d30431c6b13e9325570b7926d2d",
+      "sourceSha256": "d4e8e7a442518754b01aed21208d174207c7e32c906e7aea5fbe8c21e68249b2",
       "signature": "the user generates a random first name and stores it inside the variable {string}",
       "name": "generate random first name and save in variable",
       "description": "Template step for generating a random first name and saving it inside a variable",
@@ -290,7 +290,7 @@
     {
       "slug": "random-data/generate-random-full-name-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-full-name-and-save-in-variable.ts",
-      "sourceSha256": "bd589e100d6a6001cac68e08329e25ad512809f86d69511f930c3ca75ee987af",
+      "sourceSha256": "e9fc428cb1dd0b74bc8ac7bb5ef3b78bb5ee1bef174084dfb40b25496336179a",
       "signature": "the user generates a random full name and stores it inside the variable {string}",
       "name": "generate random full name and save in variable",
       "description": "Template step for generating a random full name and saving it inside a variable",
@@ -305,7 +305,7 @@
     {
       "slug": "random-data/generate-random-last-name-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-last-name-and-save-in-variable.ts",
-      "sourceSha256": "d29a6b82e828ad9c0663eeb933067ab9f6004b5275a1dd91200a10f853261476",
+      "sourceSha256": "4f3db26383f440ae1a983abdb3deaf7a8fdcf1157e57e33f134c3e6466ca6ecd",
       "signature": "the user generates a random last name and stores it inside the variable {string}",
       "name": "generate random last name and save in variable",
       "description": "Template step for generating a random last name and saving it inside a variable",
@@ -320,7 +320,7 @@
     {
       "slug": "random-data/generate-random-password-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-password-and-save-in-variable.ts",
-      "sourceSha256": "35f6e8a72b3639bd1a4b0d33d7a87c32704d5f6ab3842d0b40b51ac7a820b50b",
+      "sourceSha256": "ca79d3ea471eed718002b8d0b199b9e10b04b8421df6179e467e1e543589dca6",
       "signature": "the user generates a random password and stores it inside the variable {string}",
       "name": "generate random password and save in variable",
       "description": "Template step for generating a random password and saving it inside a variable",
@@ -335,7 +335,7 @@
     {
       "slug": "random-data/generate-random-phone-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-phone-and-save-in-variable.ts",
-      "sourceSha256": "4c53c456d11b147a00bc04f547738ef28408d4ad4f05c52321a443e18c779514",
+      "sourceSha256": "f1e26a449df175aca8f8c05d0d3e95b9cf09ca0d9c8ddcd31f76ded9ef819f08",
       "signature": "the user generates a random phone and stores it inside the variable {string}",
       "name": "generate random phone and save in variable",
       "description": "Template step for generating a random phone and saving it inside a variable",
@@ -350,7 +350,7 @@
     {
       "slug": "random-data/generate-random-unique-text-and-save-in-variable",
       "sourcePath": "fragments/random-data/generate-random-unique-text-and-save-in-variable.ts",
-      "sourceSha256": "205059b254763600cf320ad4a34f07168ba519f939495e7942fc4c4dff96b9e1",
+      "sourceSha256": "261d5f6b36c4e2ed1e3a126c940af0e89d8939d4d8a334e39ff1602e22868c73",
       "signature": "the user generates a random unique text and stores it inside the variable {string}",
       "name": "generate random unique text and save in variable",
       "description": "Template step for generating a random unique text and saving it inside a variable",
@@ -365,52 +365,52 @@
     {
       "slug": "store/store-element-text",
       "sourcePath": "fragments/store/store-element-text.ts",
-      "sourceSha256": "7a1e1efca9fbd45c27f5a6591cc48f800e46823ec678ca13c6440e8e80b8c5de",
+      "sourceSha256": "238dcdecde691d48eea61474e132568a59d80699dc8d8fbe0593a20d8e7ac20c",
       "signature": "the user stores the {string} element text inside the variable {string}",
       "name": "store element text",
-      "description": "Template step for storing element text inside a data variable to be referenced in later steps",
+      "description": "Store an element's text content inside a runtime variable",
       "icon": "STORE",
       "group": {
         "slug": "store",
         "name": "store",
-        "description": "Template steps that handle data storage",
+        "description": "Template step group for storing runtime values",
         "type": "ACTION"
       }
     },
     {
       "slug": "store/store-text-input-text",
       "sourcePath": "fragments/store/store-text-input-text.ts",
-      "sourceSha256": "03fc2456a679e9c516a604e0c769fc88bd069dd273840e4e0972adf61277ba43",
+      "sourceSha256": "7dce03c673a1ee16122a2824a1c594e0e91d39da26bb0396738d495003739e04",
       "signature": "the user stores the {string} text input value inside the variable {string}",
       "name": "store text input text",
-      "description": "Template step for storing text input element values inside a variable",
+      "description": "Store a text input value inside a runtime variable",
       "icon": "STORE",
       "group": {
         "slug": "store",
         "name": "store",
-        "description": "Template steps that handle data storage",
+        "description": "Template step group for storing runtime values",
         "type": "ACTION"
       }
     },
     {
       "slug": "store/store-textarea-text",
       "sourcePath": "fragments/store/store-textarea-text.ts",
-      "sourceSha256": "a2d026b97ca6bed77e94f02ae9f6362f1cc95ee3b829e531142259b8a446cc0d",
+      "sourceSha256": "46bdc9a16c5d49cf6456a70d4140a73019a2d2ede46eb12b9ff32c751128652a",
       "signature": "the user stores the {string} textarea input value inside the variable {string}",
       "name": "store textarea text",
-      "description": "Template step for storing textarea content inside a variable",
+      "description": "Store a textarea value inside a runtime variable",
       "icon": "STORE",
       "group": {
         "slug": "store",
         "name": "store",
-        "description": "Template steps that handle data storage",
+        "description": "Template step group for storing runtime values",
         "type": "ACTION"
       }
     },
     {
       "slug": "text-assertion/assert-element-contains-stored-variable-text",
       "sourcePath": "fragments/text-assertion/assert-element-contains-stored-variable-text.ts",
-      "sourceSha256": "401f2e33b20157b19cf138854e2228a543d414c5160fa9d4022e424240806169",
+      "sourceSha256": "7f81f57b688f514f28948aadbccbe7e7afb40ab22eb26f446b52d4ddb73b309c",
       "signature": "the element {string} should contain the text inside the stored variable {string}",
       "name": "assert element contains stored variable text",
       "description": "Template step to validate whether an element text contains the text inside a stored variable",
@@ -425,7 +425,7 @@
     {
       "slug": "text-assertion/assert-element-contains-text",
       "sourcePath": "fragments/text-assertion/assert-element-contains-text.ts",
-      "sourceSha256": "a636f393c45b4c9e3ec3eab4a34f3e2d6446f82d9f45dc2eec3291e77e5999f1",
+      "sourceSha256": "0d99eac9b197613bf9fc172e97055d9d4e10d8476297a8f862b2e78a8370ada6",
       "signature": "the element {string} should {boolean} contain the text {string}",
       "name": "assert element contains text",
       "description": "Template step for validating whether an element contains a certain text or not",
@@ -440,7 +440,7 @@
     {
       "slug": "text-assertion/assert-element-equals-text",
       "sourcePath": "fragments/text-assertion/assert-element-equals-text.ts",
-      "sourceSha256": "f0943e0d4c89a02474e335378a629cae0bc14051e62026af2e9dc38a1e760d4e",
+      "sourceSha256": "08550580ecc569cf84428b0fdad1d02c3b1d146bd05fe156ccdacebdb45738b1",
       "signature": "the element {string} should {boolean} equal the text {string}",
       "name": "assert element equals text",
       "description": "Template step for validating whether an element text equals a provided text or not",
@@ -470,75 +470,75 @@
     {
       "slug": "wait/wait-for-element",
       "sourcePath": "fragments/wait/wait-for-element.ts",
-      "sourceSha256": "c2fe8a1ad05421d3794eb61f4c59f466eb2e3c0efe4aaf122b2860a939a5aa70",
+      "sourceSha256": "529194f0b2aefa0d3ed782ed0edf30bdd4a15c284bc2e2f029d86cefe361e07d",
       "signature": "the user waits for the element {string} to become visible",
       "name": "wait for element",
-      "description": "Template step for waiting for element to become visible",
+      "description": "Wait for an element to become visible",
       "icon": "WAIT",
       "group": {
         "slug": "wait",
         "name": "wait",
-        "description": "Template steps that handles waiting",
+        "description": "Template step group for waiting on time or page state",
         "type": "ACTION"
       }
     },
     {
       "slug": "wait/wait-for-element-to-disappear",
       "sourcePath": "fragments/wait/wait-for-element-to-disappear.ts",
-      "sourceSha256": "ca53002568065432bc7f0387425ea08660e1f0d06a806d31d82ae27494eda31f",
+      "sourceSha256": "904ab942f711fc2ebcfb56481f6b48c3ecf46ee9b2193537a13bf1c6452f0a4f",
       "signature": "the user waits for the {string} element to disappear",
       "name": "wait for element to disappear",
-      "description": "Template step for waiting for an element to disappear from viewport",
+      "description": "Wait for an element to become hidden or detached",
       "icon": "WAIT",
       "group": {
         "slug": "wait",
         "name": "wait",
-        "description": "Template steps that handles waiting",
+        "description": "Template step group for waiting on time or page state",
         "type": "ACTION"
       }
     },
     {
       "slug": "wait/wait-for-page-load",
       "sourcePath": "fragments/wait/wait-for-page-load.ts",
-      "sourceSha256": "409445ac5692dde6169da0b9efeb74e031419808a776a142d2a687d9d28e725c",
+      "sourceSha256": "16b18639d7b548591a3b2952b1c6af60aa06fd545e094edfed69c13ba38a6cf9",
       "signature": "the user waits for the current page to be loaded",
       "name": "wait for page load",
-      "description": "Template step for waiting till page becomes interactive",
+      "description": "Wait for the current page to finish loading",
       "icon": "WAIT",
       "group": {
         "slug": "wait",
         "name": "wait",
-        "description": "Template steps that handles waiting",
+        "description": "Template step group for waiting on time or page state",
         "type": "ACTION"
       }
     },
     {
       "slug": "wait/wait-for-specific-amount-of-seconds",
       "sourcePath": "fragments/wait/wait-for-specific-amount-of-seconds.ts",
-      "sourceSha256": "5dc70266a6faafc17efea1c569adc05ffafa3a77574946128fbf504e767ad4c7",
+      "sourceSha256": "286984268ee7196c32154f506d874326a7ea64ed4a43d045ffd33dd6e6e94677",
       "signature": "the user waits for {int} seconds",
       "name": "wait for specific amount of seconds",
-      "description": "Template step for waiting for for an specific amount of seconds before proceeding with next action",
+      "description": "Wait for a specific number of seconds",
       "icon": "WAIT",
       "group": {
         "slug": "wait",
         "name": "wait",
-        "description": "Template steps that handles waiting",
+        "description": "Template step group for waiting on time or page state",
         "type": "ACTION"
       }
     },
     {
       "slug": "wait/wait-for-url-route",
       "sourcePath": "fragments/wait/wait-for-url-route.ts",
-      "sourceSha256": "622d4fff3879d7370f01f5430c686e9cab90db51215460ac6473f66299ba8a0c",
+      "sourceSha256": "545c7b80fc16f31d50cc4b58dbebf60723d057529b1b50dacacc63838e9d0961",
       "signature": "the user waits for the route {string} to be loaded",
       "name": "wait for url route",
-      "description": "Template step for waiting for a url route to be loaded",
+      "description": "Wait for the current URL path to match a route",
       "icon": "WAIT",
       "group": {
         "slug": "wait",
         "name": "wait",
-        "description": "Template steps that handles waiting",
+        "description": "Template step group for waiting on time or page state",
         "type": "ACTION"
       }
     }

@@ -27,7 +27,7 @@ const ModifyTag = async ({ params }: { params: Promise<{ id: string }> }) => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Tag className="mr-2 h-8 w-8" />
+            <Tag className="mr-2 size-8" />
             Modify Tag
           </span>
         </PageHeader>

@@ -7,20 +7,25 @@ import {
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
-import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
-import { createTestCaseAction } from '@/actions/test-case/test-case-actions'
+import { createTestCaseAction, getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
-import { getAllTagsAction } from '@/actions/tags/tag-actions'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
+import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
+import { createTestSuiteAction, getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
 
 import {
   getLocatorGroupRows,
+  getEnvironmentRows,
   getLocatorRows,
+  getModuleRows,
   getTagRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
   getTestSuiteRows,
-} from '../test-case-route-helpers'
+} from '../test-case-resource-rows'
+import { getTestCaseRows } from '../test-case-row-helpers'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Case',
@@ -35,6 +40,9 @@ const CreateTestCase = async () => {
     locatorsResponse,
     locatorGroupsResponse,
     tagsResponse,
+    testCasesResponse,
+    moduleListResponse,
+    environmentsResponse,
   ] = await Promise.all([
     getAllTemplateStepParamsAction(),
     getAllTemplateStepsAction(),
@@ -42,6 +50,9 @@ const CreateTestCase = async () => {
     getAllLocatorsAction(),
     getAllLocatorGroupsAction(),
     getAllTagsAction(),
+    getAllTestCasesAction(),
+    getAllModulesAction(),
+    getAllEnvironmentsAction(),
   ])
 
   const loadError =
@@ -50,14 +61,13 @@ const CreateTestCase = async () => {
     locatorsResponse.error ||
     testSuitesResponse.error ||
     locatorGroupsResponse.error ||
-    tagsResponse.error
+    tagsResponse.error ||
+    testCasesResponse.error ||
+    moduleListResponse.error ||
+    environmentsResponse.error
 
   if (loadError) {
-    return (
-      <div>
-        Error: {loadError}
-      </div>
-    )
+    return <div>Error: {loadError}</div>
   }
 
   const templateStepParams = getTemplateStepParamRows(templateStepParamsResponse.data)
@@ -66,6 +76,9 @@ const CreateTestCase = async () => {
   const locators = getLocatorRows(locatorsResponse.data)
   const locatorGroups = getLocatorGroupRows(locatorGroupsResponse.data)
   const tags = getTagRows(tagsResponse.data)
+  const testCases = getTestCaseRows(testCasesResponse.data)
+  const moduleList = getModuleRows(moduleListResponse.data)
+  const environments = getEnvironmentRows(environmentsResponse.data)
 
   return (
     <div>
@@ -79,9 +92,14 @@ const CreateTestCase = async () => {
         templateSteps={templateSteps}
         locators={locators}
         locatorGroups={locatorGroups}
+        environments={environments}
         testSuites={testSuites}
+        testCases={testCases}
+        moduleList={moduleList}
         tags={tags}
         onSubmitAction={createTestCaseAction}
+        onCreateTestSuiteAction={createTestSuiteAction}
+        onCreateTagAction={createTagAction}
       />
     </div>
   )

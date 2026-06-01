@@ -37,7 +37,10 @@ export type BuiltStepRegistry = {
   fragments: StepRegistryFragment[]
 }
 
-const STEP_FILE_PATTERNS = ['automation/steps/actions/**/*.step.ts', 'automation/steps/validations/**/*.step.ts'] as const
+const STEP_FILE_PATTERNS = [
+  'automation/steps/actions/**/*.step.ts',
+  'automation/steps/validations/**/*.step.ts',
+] as const
 
 export function slugifyRegistryName(value: string): string {
   return value

@@ -22,7 +22,7 @@ const TestCasesMetricsReport = async ({ searchParams }: { searchParams: Promise<
           <div>
             <PageHeader>
               <span className="flex items-center">
-                <Code className="mr-2 h-8 w-8" />
+                <Code className="mr-2 size-8" />
                 Failing Test Cases Report
               </span>
             </PageHeader>

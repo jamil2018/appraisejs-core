@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MultiSelect } from '@/components/ui/multi-select'
-import { formOpts, type TestRun } from '@/constants/form-opts/test-run-form-opts'
+import { testRunFormOpts, type TestRun } from '@/constants/form-opts/test-run-form-opts'
 import { toast } from '@/hooks/use-toast'
 import { BrowserEngine, Environment, Tag } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -57,8 +58,8 @@ function TestRunFieldErrors({ errors, isTouched }: TestRunFieldErrorsProps) {
 
   return (
     <div className="flex flex-col gap-1" aria-live="polite">
-      {errors.map((error, index) => (
-        <ErrorMessage key={`${String(error)}-${index}`} message={getFieldErrorMessage(error)} visible={true} />
+      {errors.map(error => (
+        <ErrorMessage key={getFieldErrorMessage(error)} message={getFieldErrorMessage(error)} visible={true} />
       ))}
     </div>
   )
@@ -74,7 +75,7 @@ const TestRunForm = ({
   id,
   onSubmitAction,
 }: TestRunFormProps) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const { debouncedNameValidation } = useTestRunNameValidation(id)
   const [testSelectionType, setTestSelectionType] = useState<TestSelectionType>(() =>
     getInitialTestSelectionType(defaultValues),
@@ -82,8 +83,8 @@ const TestRunForm = ({
   const testSelectionTypeRef = useRef<TestSelectionType>(testSelectionType)
 
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts.defaultValues,
-    validators: formOpts.validators,
+    defaultValues: defaultValues ?? testRunFormOpts.defaultValues,
+    validators: testRunFormOpts.validators,
     onSubmit: async ({ value }) => {
       const submitValue = buildTestRunSubmitValue(value, testSelectionType)
       const res = await onSubmitAction(undefined, submitValue, id)
@@ -92,7 +93,7 @@ const TestRunForm = ({
           title: successTitle,
           description: successMessage,
         })
-        router.push(getTestRunSuccessPath(res.data))
+        push(getTestRunSuccessPath(res.data))
       }
       if (res.status === 400) {
         toast({
@@ -126,13 +127,7 @@ const TestRunForm = ({
   }
 
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <TanStackForm onSubmit={() => form.handleSubmit()}>
       <div className="flex justify-between gap-5 overflow-x-hidden">
         <div className="lg:w-1/2">
           <Card className="mb-4 h-fit">
@@ -272,10 +267,7 @@ const TestRunForm = ({
                 }}
               </form.Field>
 
-              <form.Field
-                name="testWorkersCount"
-                validators={{ onChange: testRunFieldValidators.testWorkersCount }}
-              >
+              <form.Field name="testWorkersCount" validators={{ onChange: testRunFieldValidators.testWorkersCount }}>
                 {field => {
                   return (
                     <div className="mb-4 flex flex-col gap-2">
@@ -295,7 +287,10 @@ const TestRunForm = ({
                   return (
                     <div className="mb-4 flex flex-col gap-2">
                       <Label htmlFor={field.name}>Browser Engine</Label>
-                      <Select value={field.state.value} onValueChange={value => field.handleChange(value as BrowserEngine)}>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={value => field.handleChange(value as BrowserEngine)}
+                      >
                         <SelectTrigger id={field.name}>
                           <SelectValue placeholder="Select a browser engine" />
                         </SelectTrigger>
@@ -316,17 +311,17 @@ const TestRunForm = ({
           </Card>
         </div>
         <div className="lg:w-3/7">
-          <Card className="border-gray-700 bg-gray-500/10">
+          <Card className="border-zinc-700 bg-zinc-500/10">
             <CardHeader className="mb-2">
               <CardTitle className="flex items-center gap-2 text-xl text-primary">
-                <Info className="h-5 w-5" />
+                <Info className="size-5" />
                 <span className="font-bold">Quick Tips</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
               {testRunQuickTips.map((tip, index) => (
                 <div key={tip.title} className="flex items-start gap-4">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
                     {index + 1}
                   </span>
                   <div className="flex flex-col gap-1">
@@ -343,13 +338,13 @@ const TestRunForm = ({
         {([canSubmit, isSubmitting]) => (
           <>
             <Button type="submit" disabled={!canSubmit} className="hover:bg-emerald-500">
-              <Play className="h-4 w-4" />
+              <Play className="size-4" />
               <span className="font-bold">{isSubmitting ? '...' : 'Start'}</span>
             </Button>
           </>
         )}
       </form.Subscribe>
-    </form>
+    </TanStackForm>
   )
 }
 

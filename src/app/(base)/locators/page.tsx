@@ -27,7 +27,7 @@ const Locators = async () => {
     return (
       <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
         <EmptyState
-          icon={<Code className="h-8 w-8" />}
+          icon={<Code className="size-8" />}
           title="No locators found"
           description="Get started by creating a locator to identify elements on your pages"
           createRoute="/locators/create"
@@ -43,13 +43,11 @@ const Locators = async () => {
         <div>
           <PageHeader>
             <span className="flex items-center">
-              <Code className="mr-2 h-8 w-8" />
+              <Code className="mr-2 size-8" />
               Locators
             </span>
           </PageHeader>
-          <HeaderSubtitle>
-            Locators are the elements that are used to identify the elements on the page
-          </HeaderSubtitle>
+          <HeaderSubtitle>Locators are the elements that are used to identify the elements on the page</HeaderSubtitle>
         </div>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>

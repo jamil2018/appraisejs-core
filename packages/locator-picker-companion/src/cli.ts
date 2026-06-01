@@ -1,10 +1,4 @@
-import {
-  type Browser,
-  chromium,
-  type BrowserContext,
-  type ElementHandle,
-  type Page,
-} from 'playwright'
+import { type Browser, chromium, type BrowserContext, type ElementHandle, type Page } from 'playwright'
 import {
   appendLocatorPickerCrashLog,
   createLocatorPickerCrashLog,

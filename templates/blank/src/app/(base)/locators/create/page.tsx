@@ -34,20 +34,16 @@ const CreateLocatorPage = async () => {
       <div className="mb-8">
         <PageHeader>
           <span className="flex items-center">
-            <Crosshair className="mr-2 h-8 w-8" />
+            <Crosshair className="mr-2 size-8" />
             Create Locator
           </span>
         </PageHeader>
         <HeaderSubtitle>
-          Launch Chromium, use the built-in picker overlay to capture one live selector, then finalize the locator
-          name and group details here.
+          Launch Chromium, use the built-in picker overlay to capture one live selector, then finalize the locator name
+          and group details here.
         </HeaderSubtitle>
       </div>
-      <CreateLocatorWorkspace
-        environments={environmentRows}
-        locatorGroups={locatorGroupRows}
-        modules={moduleRows}
-      />
+      <CreateLocatorWorkspace environments={environmentRows} locatorGroups={locatorGroupRows} modules={moduleRows} />
     </>
   )
 }

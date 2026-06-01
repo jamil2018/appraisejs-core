@@ -47,7 +47,7 @@ export function ViewLogsButton({ reportScenario }: ViewLogsButtonProps) {
         onClick={() => setIsModalOpen(true)}
         disabled={!reportScenario}
       >
-        <Eye className="h-4 w-4" />
+        <Eye className="size-4" />
         View Logs
       </Button>
       {reportScenario && (

@@ -164,7 +164,9 @@ export function installLocatorPickerOverlay() {
             parts.push(`[aria-label="${escapeForSelectorText(ariaLabel)}"]`);
         }
         if (parts.length === 1) {
-            const stableClasses = Array.from(element.classList || []).filter(isLikelyStableIdentifier).slice(0, 2);
+            const stableClasses = Array.from(element.classList || [])
+                .filter(isLikelyStableIdentifier)
+                .slice(0, 2);
             if (stableClasses.length > 0) {
                 parts.push(...stableClasses.map(className => `.${escapeForCss(className)}`));
             }
@@ -526,8 +528,16 @@ export function installLocatorPickerOverlay() {
         if (state.hoveredElement && !state.hoveredElement.isConnected) {
             state.hoveredElement = null;
         }
-        const { helperText, statusText, selectorValue, metadataValue, errorValue, startButton, useButton, pickAgainButton, cancelButton } = state.elements;
-        if (!helperText || !statusText || !selectorValue || !metadataValue || !errorValue || !startButton || !useButton || !pickAgainButton || !cancelButton) {
+        const { helperText, statusText, selectorValue, metadataValue, errorValue, startButton, useButton, pickAgainButton, cancelButton, } = state.elements;
+        if (!helperText ||
+            !statusText ||
+            !selectorValue ||
+            !metadataValue ||
+            !errorValue ||
+            !startButton ||
+            !useButton ||
+            !pickAgainButton ||
+            !cancelButton) {
             return;
         }
         helperText.textContent = state.preview

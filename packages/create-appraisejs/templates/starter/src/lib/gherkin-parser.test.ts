@@ -1,8 +1,9 @@
-import test from 'node:test'
-import assert from 'node:assert/strict'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { expect, test } from 'vitest'
+
+import { getAppraiseMetadataPath } from '@/lib/appraise-test-case-metadata'
 import { parseFeatureFile } from '@/lib/gherkin-parser'
 
 async function withTempFeatureFile(content: string): Promise<string> {
@@ -23,9 +24,9 @@ Scenario: logs in
 
   const parsed = await parseFeatureFile(filePath)
 
-  assert.ok(parsed)
-  assert.equal(parsed?.featureName, 'Login workflow')
-  assert.equal(parsed?.featureDescription, 'Login workflow')
+  expect(parsed).not.toBeNull()
+  expect(parsed?.featureName).toBe('Login workflow')
+  expect(parsed?.featureDescription).toBe('Login workflow')
 })
 
 test('keeps Feature line as description even when free text follows', async () => {
@@ -39,6 +40,57 @@ Scenario: buys item
 
   const parsed = await parseFeatureFile(filePath)
 
-  assert.ok(parsed)
-  assert.equal(parsed?.featureDescription, 'Checkout flow')
+  expect(parsed).not.toBeNull()
+  expect(parsed?.featureDescription).toBe('Checkout flow')
+})
+
+test('attaches adjacent Appraise metadata to matching scenarios', async () => {
+  const filePath = await withTempFeatureFile(`
+Feature: Checkout flow
+
+@tc_checkout_buy @smoke
+Scenario: [Legacy description] Legacy title
+  Given user adds item to cart
+`)
+  await fs.writeFile(
+    getAppraiseMetadataPath(filePath),
+    JSON.stringify({
+      version: 1,
+      testSuite: { name: 'checkout-flow', modulePath: '/checkout' },
+      testCases: [
+        {
+          identifierTag: '@tc_checkout_buy',
+          title: 'Buys item',
+          description: 'Happy path',
+          nodes: [{ nodeId: 'node-cart', order: 1, label: 'Add item' }],
+          flowBlocks: [{ id: 'block-cart', name: 'Cart', order: 0, nodeIds: ['node-cart'] }],
+        },
+      ],
+    }),
+    'utf8',
+  )
+
+  const parsed = await parseFeatureFile(filePath)
+
+  expect(parsed?.scenarios[0]?.appraiseMetadata).toMatchObject({
+    title: 'Buys item',
+    description: 'Happy path',
+    nodes: [{ nodeId: 'node-cart', order: 1, label: 'Add item' }],
+  })
+})
+
+test('falls back to feature-only parsing when sidecar is malformed', async () => {
+  const filePath = await withTempFeatureFile(`
+Feature: Checkout flow
+
+@tc_checkout_buy
+Scenario: buys item
+  Given user adds item to cart
+`)
+  await fs.writeFile(getAppraiseMetadataPath(filePath), '{', 'utf8')
+
+  const parsed = await parseFeatureFile(filePath)
+
+  expect(parsed?.scenarios[0]?.appraiseMetadata).toBeUndefined()
+  expect(parsed?.metadataWarnings).toHaveLength(1)
 })

@@ -248,55 +248,55 @@ async function deleteOrphanedModules(fsModulePaths: Set<string>, result: SyncRes
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult> {
-    console.log('🔄 Starting modules sync...')
-    console.log('This will scan filesystem directories and sync module hierarchy to database.')
-    console.log('Filesystem is the source of truth - modules in DB but not in FS will be deleted.\n')
+  console.log('🔄 Starting modules sync...')
+  console.log('This will scan filesystem directories and sync module hierarchy to database.')
+  console.log('Filesystem is the source of truth - modules in DB but not in FS will be deleted.\n')
 
-    const baseDir = process.cwd()
+  const baseDir = process.cwd()
 
-    // Scan directories
-    console.log('📁 Scanning automation/locators...')
-    const locatorModulePaths = await scanLocatorDirectories(baseDir)
-    console.log(`   Found ${locatorModulePaths.length} module path(s): ${locatorModulePaths.join(', ') || 'none'}`)
+  // Scan directories
+  console.log('📁 Scanning automation/locators...')
+  const locatorModulePaths = await scanLocatorDirectories(baseDir)
+  console.log(`   Found ${locatorModulePaths.length} module path(s): ${locatorModulePaths.join(', ') || 'none'}`)
 
-    console.log('\n📁 Scanning automation/features...')
-    const featureModulePaths = await scanFeatureDirectories(baseDir)
-    console.log(`   Found ${featureModulePaths.length} module path(s): ${featureModulePaths.join(', ') || 'none'}`)
+  console.log('\n📁 Scanning automation/features...')
+  const featureModulePaths = await scanFeatureDirectories(baseDir)
+  console.log(`   Found ${featureModulePaths.length} module path(s): ${featureModulePaths.join(', ') || 'none'}`)
 
-    // Combine and deduplicate
-    const allModulePaths = Array.from(new Set([...locatorModulePaths, ...featureModulePaths]))
-    console.log(`\n🔍 Building module hierarchy from ${allModulePaths.length} unique module path(s)...`)
+  // Combine and deduplicate
+  const allModulePaths = Array.from(new Set([...locatorModulePaths, ...featureModulePaths]))
+  console.log(`\n🔍 Building module hierarchy from ${allModulePaths.length} unique module path(s)...`)
 
-    // Build module tree
-    const moduleTree = buildModuleTree(allModulePaths)
+  // Build module tree
+  const moduleTree = buildModuleTree(allModulePaths)
 
-    // Sync to database (create missing modules)
-    console.log('\n✅ Syncing modules to database...')
-    const result = await syncModulesToDatabase(moduleTree)
+  // Sync to database (create missing modules)
+  console.log('\n✅ Syncing modules to database...')
+  const result = await syncModulesToDatabase(moduleTree)
 
-    // Delete orphaned modules (modules in DB but not in FS)
-    const fsModulePathsSet = new Set(allModulePaths)
-    // Also add all parent paths from the tree
-    for (const path of moduleTree.keys()) {
-      fsModulePathsSet.add(path)
-    }
-    await deleteOrphanedModules(fsModulePathsSet, result)
+  // Delete orphaned modules (modules in DB but not in FS)
+  const fsModulePathsSet = new Set(allModulePaths)
+  // Also add all parent paths from the tree
+  for (const path of moduleTree.keys()) {
+    fsModulePathsSet.add(path)
+  }
+  await deleteOrphanedModules(fsModulePathsSet, result)
 
-    printSyncSummary(
-      [
-        { label: '📁 Modules scanned', value: result.modulesScanned },
-        { label: '✅ Modules existing', value: result.modulesExisting },
-        { label: '➕ Modules created', value: result.modulesCreated },
-        { label: '🗑️  Modules deleted', value: result.modulesDeleted },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        { title: 'Created modules', items: result.createdModules },
-        { title: 'Deleted modules', items: result.deletedModules },
-        { title: 'Errors', items: result.errors },
-      ],
-    )
-    return result
+  printSyncSummary(
+    [
+      { label: '📁 Modules scanned', value: result.modulesScanned },
+      { label: '✅ Modules existing', value: result.modulesExisting },
+      { label: '➕ Modules created', value: result.modulesCreated },
+      { label: '🗑️  Modules deleted', value: result.modulesDeleted },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      { title: 'Created modules', items: result.createdModules },
+      { title: 'Deleted modules', items: result.deletedModules },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
+  return result
 }
 
 runSyncScript(main)

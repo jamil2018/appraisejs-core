@@ -49,7 +49,7 @@ const stepStatusToBadge = (status: StepStatus) => {
           variant="outline"
           className="flex items-center gap-1 rounded-xl border-green-700 bg-green-700/10 py-0.5 text-xs text-green-500"
         >
-          <CheckCircle className="h-3 w-3" />
+          <CheckCircle className="size-3" />
           PASSED
         </Badge>
       )
@@ -59,7 +59,7 @@ const stepStatusToBadge = (status: StepStatus) => {
           variant="outline"
           className="flex items-center gap-1 rounded-xl border-red-700 bg-red-700/10 py-0.5 text-xs text-red-500"
         >
-          <XCircle className="h-3 w-3" />
+          <XCircle className="size-3" />
           FAILED
         </Badge>
       )
@@ -67,9 +67,9 @@ const stepStatusToBadge = (status: StepStatus) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-1 rounded-xl border-gray-700 bg-gray-700/10 py-0.5 text-xs text-gray-500"
+          className="flex items-center gap-1 rounded-xl border-zinc-700 bg-zinc-700/10 py-0.5 text-xs text-zinc-500"
         >
-          <Clock className="h-3 w-3" />
+          <Clock className="size-3" />
           SKIPPED
         </Badge>
       )
@@ -77,7 +77,7 @@ const stepStatusToBadge = (status: StepStatus) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-1 rounded-xl border-gray-700 bg-gray-700/10 py-0.5 text-xs text-gray-500"
+          className="flex items-center gap-1 rounded-xl border-zinc-700 bg-zinc-700/10 py-0.5 text-xs text-zinc-500"
         >
           {status}
         </Badge>
@@ -109,7 +109,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
   }
 
   // Sort steps by order
-  const sortedSteps = [...reportScenario.steps].sort((a, b) => a.order - b.order)
+  const sortedSteps = reportScenario.steps.toSorted((a, b) => a.order - b.order)
 
   return (
     <>
@@ -170,7 +170,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                               {step.errorMessage && (
                                 <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <AlertCircle className="size-4 text-red-500" />
                                     <span className="text-sm font-medium text-red-400">Error Message</span>
                                   </div>
                                   <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
@@ -181,7 +181,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                               {step.errorTrace && (
                                 <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <AlertCircle className="size-4 text-red-500" />
                                     <span className="text-sm font-medium text-red-400">Error Trace</span>
                                   </div>
                                   <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">
@@ -255,7 +255,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                               {hook.errorMessage && (
                                 <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <AlertCircle className="size-4 text-red-500" />
                                     <span className="text-sm font-medium text-red-400">Error Message</span>
                                   </div>
                                   <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
@@ -266,7 +266,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                               {hook.errorTrace && (
                                 <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <AlertCircle className="size-4 text-red-500" />
                                     <span className="text-sm font-medium text-red-400">Error Trace</span>
                                   </div>
                                   <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">

@@ -18,7 +18,7 @@ export const testRunSchema = z.object({
 
 export type TestRun = z.infer<typeof testRunSchema>
 
-export const formOpts = {
+export const testRunFormOpts = {
   defaultValues: {
     name: '',
     environmentId: '',

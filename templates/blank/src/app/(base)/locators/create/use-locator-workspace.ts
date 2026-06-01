@@ -17,6 +17,7 @@ import {
   canSaveLocator,
   createInitialWorkspaceState,
   createWorkspaceAutoFillSnapshot,
+  getInlineLocatorSaveResult,
   getLocatorPickerSession,
   getPickerPayloadSignature,
   type CreateLocatorWorkspaceProps,
@@ -29,12 +30,16 @@ export function useLocatorWorkspace({
   locatorGroups,
   modules,
   mode = 'create',
+  displayMode = 'page',
   locatorId,
   initialValues,
+  onSaveSuccess,
+  onClose,
 }: CreateLocatorWorkspaceProps) {
   const router = useRouter()
   const payloadSignatureRef = useRef('')
   const isModifyMode = mode === 'modify'
+  const isInlineMode = displayMode === 'inline'
 
   const [state, setState] = useState(() => createInitialWorkspaceState(environments, initialValues))
   const [session, setSession] = useState<LocatorPickerSession | null>(null)
@@ -70,7 +75,11 @@ export function useLocatorWorkspace({
 
   useEffect(() => {
     const nextPayloadSignature = getPickerPayloadSignature(session)
-    if (!session?.pickedLocator || nextPayloadSignature === '' || nextPayloadSignature === payloadSignatureRef.current) {
+    if (
+      !session?.pickedLocator ||
+      nextPayloadSignature === '' ||
+      nextPayloadSignature === payloadSignatureRef.current
+    ) {
       return
     }
 
@@ -113,7 +122,8 @@ export function useLocatorWorkspace({
 
     toast({
       title: 'Chromium launched',
-      description: 'Use the in-browser Appraise picker panel to start picking, click one element, then confirm Use selector.',
+      description:
+        'Use the in-browser Appraise picker panel to start picking, click one element, then confirm Use selector.',
     })
   }
 
@@ -139,8 +149,15 @@ export function useLocatorWorkspace({
         title: isModifyMode ? 'Locator updated' : 'Locator saved',
         description: response.message,
       })
-      router.push('/locators')
-      router.refresh()
+      const saveResult = getInlineLocatorSaveResult(response.data)
+
+      if (isInlineMode && saveResult) {
+        await onSaveSuccess?.(saveResult)
+        onClose?.()
+      } else {
+        router.push('/locators')
+        router.refresh()
+      }
       return
     }
 
@@ -161,6 +178,7 @@ export function useLocatorWorkspace({
 
   return {
     isModifyMode,
+    isInlineMode,
     session,
     state,
     isStarting,

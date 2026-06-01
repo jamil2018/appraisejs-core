@@ -11,7 +11,9 @@ export function resolveBundledManifestUrl(): URL {
 
 export function resolveManifestUrl(branch: string, registryUrl?: string, useBundledRegistry = true): URL {
   if (registryUrl) {
-    return registryUrl.endsWith('.json') ? new URL(registryUrl) : new URL(`${trimTrailingSlash(registryUrl)}/manifest.json`)
+    return registryUrl.endsWith('.json')
+      ? new URL(registryUrl)
+      : new URL(`${trimTrailingSlash(registryUrl)}/manifest.json`)
   }
 
   if (useBundledRegistry) {

@@ -20,12 +20,12 @@
       "@locator-picker-companion/*": ["./packages/locator-picker-companion/src/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules", "packages/create-appraisejs", "packages/appraisejs", "templates/starter"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "packages/create-appraisejs",
+    "packages/appraisejs",
+    "templates/starter",
+    "templates/blank"
+  ]
 }

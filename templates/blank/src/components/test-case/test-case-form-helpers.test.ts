@@ -1,11 +1,7 @@
 import { StepParameterType, TemplateStepIcon } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 
-import {
-  buildScenarioPreview,
-  buildScenarioSteps,
-  getNodesWithMissingMandatoryParams,
-} from './test-case-form-helpers'
+import { buildScenarioPreview, buildScenarioSteps, getNodesWithMissingMandatoryParams } from './test-case-form-helpers'
 
 describe('test-case form helpers', () => {
   it('builds gherkin preview text from ordered scenario steps', () => {
@@ -50,6 +46,7 @@ describe('test-case form helpers', () => {
       }),
     ).toEqual([
       {
+        nodeId: 'node-1',
         gherkinStep: 'fill email',
         label: 'Fill email',
         icon: TemplateStepIcon.INPUT,

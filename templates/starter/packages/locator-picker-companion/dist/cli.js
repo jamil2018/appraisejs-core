@@ -1,4 +1,4 @@
-import { chromium, } from 'playwright';
+import { chromium } from 'playwright';
 import { appendLocatorPickerCrashLog, createLocatorPickerCrashLog, ensureLocatorPickerDirectories, getLocatorPickerCrashLogPath, patchLocatorPickerSessionFile, readLocatorPickerSessionFile, writeLocatorPickerSessionFile, } from './session-file.js';
 import { generatePickedLocatorPayload } from './selector-generator.js';
 import { installLocatorPickerOverlay } from './injected-picker-script.js';

@@ -1,6 +1,5 @@
 import React from 'react'
 import { Card, CardContent } from '../ui/card'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 
 const InfoCard = ({
   showHighlightGroup,
@@ -27,33 +26,20 @@ const InfoCard = ({
 
   return (
     <>
-      <Card className="flex w-[10vw] max-w-[20rem] items-center bg-inherit">
-        <CardContent className="p-2">
-          <div className="flex items-center gap-4 text-primary">
+      <Card className="flex min-w-40 max-w-80 items-center bg-inherit">
+        <CardContent className="min-w-0 p-2">
+          <div className="flex min-w-0 items-center gap-4 text-primary">
             {showHighlightGroup ? (
               <>
-                {icon}
-                <div className="flex h-full flex-col">
+                <div className="shrink-0">{icon}</div>
+                <div className="flex h-full min-w-0 flex-col">
                   <div className="flex h-full items-center text-xs text-muted-foreground">{legend}</div>
                   <div
-                    className={`mr-2 h-full items-center font-mono text-primary ${getHighlightTextSize(highlight)} ${
-                      highlight.length > 15 ? 'w-[6rem] overflow-hidden text-ellipsis whitespace-nowrap' : ''
-                    }`}
+                    className={`h-full min-w-0 items-center break-words font-mono text-primary ${getHighlightTextSize(
+                      highlight,
+                    )}`}
                   >
-                    {highlight.length > 15 ? (
-                      <>
-                        <TooltipProvider>
-                          <Tooltip delayDuration={200}>
-                            <TooltipTrigger asChild>
-                              <span>{highlight}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>{highlight}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </>
-                    ) : (
-                      highlight
-                    )}
+                    {highlight}
                   </div>
                 </div>
               </>

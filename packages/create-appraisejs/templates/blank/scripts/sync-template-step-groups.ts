@@ -206,42 +206,44 @@ async function syncStepGroupsToDatabase(stepGroups: StepGroupData[]): Promise<Sy
  * Generates and displays sync summary
  */
 async function main(): Promise<SyncResult> {
-    console.log('🔄 Starting template step group sync...')
-    console.log('This will scan step definition files and sync step groups to database.\n')
+  console.log('🔄 Starting template step group sync...')
+  console.log('This will scan step definition files and sync step groups to database.\n')
 
-    const baseDir = process.cwd()
+  const baseDir = process.cwd()
 
-    // Read step groups from files
-    console.log('📁 Scanning step definition files...')
-    const stepGroups = await readStepGroupsFromFiles(baseDir)
-    console.log(`   Found ${stepGroups.length} step group(s) with valid JSDoc`)
+  // Read step groups from files
+  console.log('📁 Scanning step definition files...')
+  const stepGroups = await readStepGroupsFromFiles(baseDir)
+  console.log(`   Found ${stepGroups.length} step group(s) with valid JSDoc`)
 
-    if (stepGroups.length === 0) {
-      console.log('\n⚠️  No step groups found. Continuing so the database can be reconciled with an empty filesystem state.')
-    }
-
-    // Sync to database
-    console.log('\n✅ Syncing step groups to database...')
-    const result = await syncStepGroupsToDatabase(stepGroups)
-
-    printSyncSummary(
-      [
-        { label: '📁 Step groups scanned', value: result.groupsScanned },
-        { label: '✅ Step groups existing', value: result.groupsExisting },
-        { label: '➕ Step groups created', value: result.groupsCreated },
-        { label: '🗑️  Step groups deleted', value: result.groupsDeleted },
-        { label: '⚠️  Step groups skipped', value: result.groupsSkipped },
-        { label: '❌ Errors', value: result.errors.length },
-      ],
-      [
-        { title: 'Created step groups', items: result.createdGroups },
-        { title: 'Existing step groups', items: result.existingGroups },
-        { title: 'Deleted step groups', items: result.deletedGroups },
-        { title: 'Skipped step groups (have template steps)', items: result.skippedGroups },
-        { title: 'Errors', items: result.errors },
-      ],
+  if (stepGroups.length === 0) {
+    console.log(
+      '\n⚠️  No step groups found. Continuing so the database can be reconciled with an empty filesystem state.',
     )
-    return result
+  }
+
+  // Sync to database
+  console.log('\n✅ Syncing step groups to database...')
+  const result = await syncStepGroupsToDatabase(stepGroups)
+
+  printSyncSummary(
+    [
+      { label: '📁 Step groups scanned', value: result.groupsScanned },
+      { label: '✅ Step groups existing', value: result.groupsExisting },
+      { label: '➕ Step groups created', value: result.groupsCreated },
+      { label: '🗑️  Step groups deleted', value: result.groupsDeleted },
+      { label: '⚠️  Step groups skipped', value: result.groupsSkipped },
+      { label: '❌ Errors', value: result.errors.length },
+    ],
+    [
+      { title: 'Created step groups', items: result.createdGroups },
+      { title: 'Existing step groups', items: result.existingGroups },
+      { title: 'Deleted step groups', items: result.deletedGroups },
+      { title: 'Skipped step groups (have template steps)', items: result.skippedGroups },
+      { title: 'Errors', items: result.errors },
+    ],
+  )
+  return result
 }
 
 runSyncScript(main)

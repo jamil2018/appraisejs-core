@@ -1,9 +1,5 @@
 /** Payload types for action `data` fields. */
-export type ActionResponseData =
-  | Record<string, unknown>
-  | Record<string, unknown>[]
-  | unknown[]
-  | unknown
+export type ActionResponseData = Record<string, unknown> | Record<string, unknown>[] | unknown[] | unknown
 
 /**
  * Server Action JSON return shape.

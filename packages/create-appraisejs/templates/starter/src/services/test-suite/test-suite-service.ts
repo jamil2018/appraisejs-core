@@ -65,6 +65,7 @@ export async function getTestSuiteByIdOrThrow(id: string) {
   const testSuite = await prisma.testSuite.findUnique({
     where: { id },
     include: {
+      module: true,
       testCases: true,
       tags: {
         where: {
@@ -133,10 +134,7 @@ export async function deleteTestSuitesByIds(ids: string[]): Promise<void> {
   }
 }
 
-export async function updateTestSuiteFromInput(
-  value: z.infer<typeof testSuiteSchema>,
-  id: string,
-): Promise<void> {
+export async function updateTestSuiteFromInput(value: z.infer<typeof testSuiteSchema>, id: string): Promise<void> {
   const currentTestSuite = await prisma.testSuite.findUnique({
     where: { id },
     include: {

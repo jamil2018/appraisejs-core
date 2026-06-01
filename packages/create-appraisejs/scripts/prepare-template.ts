@@ -114,7 +114,10 @@ async function hashFile(filePath: string): Promise<Buffer> {
 async function computeTemplateInputHash(): Promise<string> {
   const inputFiles = new Set<string>()
 
-  for (const file of await collectFiles(path.join(repoRoot, 'automation'), relativePath => !relativePath.startsWith('reports/'))) {
+  for (const file of await collectFiles(
+    path.join(repoRoot, 'automation'),
+    relativePath => !relativePath.startsWith('reports/'),
+  )) {
     inputFiles.add(file)
   }
 

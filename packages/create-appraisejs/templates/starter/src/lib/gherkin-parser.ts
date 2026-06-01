@@ -1,5 +1,12 @@
 import { promises as fs } from 'fs'
-import { join, relative } from 'path'
+import { join } from 'path'
+import {
+  getAppraiseMetadataPath,
+  getMetadataByIdentifier,
+  readAppraiseMetadataFile,
+  type AppraiseTestCaseMetadataEntry,
+} from '@/lib/appraise-test-case-metadata'
+import { getFeatureModulePath } from '@/lib/path-helpers/feature-path'
 
 /**
  * Represents a parsed feature file with its scenarios and steps
@@ -10,6 +17,7 @@ export interface ParsedFeature {
   featureDescription?: string
   tags: string[]
   scenarios: ParsedScenario[]
+  metadataWarnings: string[]
 }
 
 /**
@@ -20,6 +28,7 @@ export interface ParsedScenario {
   description?: string
   tags: string[]
   steps: ParsedStep[]
+  appraiseMetadata?: AppraiseTestCaseMetadataEntry
 }
 
 /**
@@ -29,6 +38,155 @@ export interface ParsedStep {
   keyword: string
   text: string
   order: number
+  appraiseNode?: AppraiseTestCaseMetadataEntry['nodes'][number]
+}
+
+const STEP_KEYWORDS = ['Given', 'When', 'Then', 'And', 'But'] as const
+
+type ParsedScenarioHeader = Pick<ParsedScenario, 'name' | 'description'>
+
+function normalizeGherkinLines(content: string) {
+  return content.split('\n').map(line => line.trim())
+}
+
+function isSkippableLine(line: string) {
+  return line === '' || line.startsWith('#')
+}
+
+function collectPrecedingTags(lines: string[], startIndex: number) {
+  const tags: string[] = []
+
+  for (let i = startIndex - 1; i >= 0; i--) {
+    const line = lines[i]
+    if (isSkippableLine(line)) {
+      continue
+    }
+
+    if (line.startsWith('@')) {
+      tags.unshift(line)
+      continue
+    }
+
+    break
+  }
+
+  return tags
+}
+
+function getFeatureTags(lines: string[]) {
+  const featureIndex = lines.findIndex(line => line.startsWith('Feature:'))
+  return featureIndex === -1 ? [] : collectPrecedingTags(lines, featureIndex)
+}
+
+function parseScenarioHeader(line: string): ParsedScenarioHeader {
+  const scenarioText = line.replace('Scenario:', '').trim()
+  const [descriptionPart, ...nameParts] = scenarioText.split(']')
+
+  if (nameParts.length === 0) {
+    return { name: scenarioText }
+  }
+
+  const name = nameParts.join(']').trim()
+  const description = descriptionPart.replace('[', '').trim()
+
+  return {
+    name,
+    description: description || undefined,
+  }
+}
+
+function parseStep(line: string, order: number): ParsedStep | null {
+  const keyword = STEP_KEYWORDS.find(keyword => line.startsWith(`${keyword} `))
+  if (!keyword) {
+    return null
+  }
+
+  return {
+    keyword,
+    text: line.substring(keyword.length).trim(),
+    order,
+  }
+}
+
+function parseFeatureLine(line: string) {
+  return line.replace('Feature:', '').trim()
+}
+
+function normalizeTagExpression(tagExpression: string): string {
+  return tagExpression.startsWith('@') ? tagExpression : `@${tagExpression}`
+}
+
+function getScenarioIdentifierTag(scenario: ParsedScenario): string | null {
+  for (const tagLine of scenario.tags) {
+    const tags = tagLine.split(/\s+/).filter(tag => tag.trim().startsWith('@'))
+    const identifierTag = tags.find(tag => normalizeTagExpression(tag).replace(/^@/, '').startsWith('tc_'))
+
+    if (identifierTag) {
+      return normalizeTagExpression(identifierTag)
+    }
+  }
+
+  return null
+}
+
+function startScenario(lines: string[], index: number): ParsedScenario {
+  const { name, description } = parseScenarioHeader(lines[index])
+
+  return {
+    name,
+    description,
+    tags: collectPrecedingTags(lines, index),
+    steps: [],
+  }
+}
+
+function parseGherkinLines(lines: string[]) {
+  const scenarios: ParsedScenario[] = []
+  let featureName = ''
+  let featureDescription = ''
+  let currentScenario: ParsedScenario | null = null
+  let stepOrder = 1
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    if (isSkippableLine(line)) {
+      continue
+    }
+
+    if (line.startsWith('Feature:')) {
+      const featureLineText = parseFeatureLine(line)
+      featureName = featureLineText
+      featureDescription = featureLineText
+      continue
+    }
+
+    if (line.startsWith('Scenario:')) {
+      if (currentScenario) {
+        scenarios.push(currentScenario)
+      }
+
+      currentScenario = startScenario(lines, i)
+      stepOrder = 1
+      continue
+    }
+
+    if (!currentScenario) {
+      continue
+    }
+
+    const step = parseStep(line, stepOrder)
+    if (step) {
+      currentScenario.steps.push(step)
+      stepOrder++
+    }
+  }
+
+  if (currentScenario) {
+    scenarios.push(currentScenario)
+  }
+
+  return { featureName, featureDescription, scenarios }
 }
 
 /**
@@ -38,113 +196,20 @@ export interface ParsedStep {
  */
 export async function parseFeatureFile(filePath: string): Promise<ParsedFeature | null> {
   try {
-    const content = await fs.readFile(filePath, 'utf-8')
+    const [content, metadataResult] = await Promise.all([
+      fs.readFile(filePath, 'utf-8'),
+      readAppraiseMetadataFile(getAppraiseMetadataPath(filePath)),
+    ])
+    const lines = normalizeGherkinLines(content)
+    const featureTags = getFeatureTags(lines)
+    const { featureName, featureDescription, scenarios } = parseGherkinLines(lines)
+    const metadataByIdentifier = getMetadataByIdentifier(metadataResult.metadata)
 
-    // Simple Gherkin parser implementation
-    const lines = content.split('\n').map(line => line.trim())
-    const scenarios: ParsedScenario[] = []
-
-    let featureName = ''
-    let featureDescription = ''
-    const featureTags: string[] = []
-    let currentScenario: ParsedScenario | null = null
-    let stepOrder = 1
-
-    // Find feature line and extract tags before it
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith('Feature:')) {
-        // Look backwards for tags (skip comments and empty lines)
-        for (let j = i - 1; j >= 0; j--) {
-          const prevLine = lines[j]
-          if (prevLine === '' || prevLine.startsWith('#')) {
-            continue
-          }
-          if (prevLine.startsWith('@')) {
-            featureTags.unshift(prevLine) // Add to beginning to maintain order
-          } else {
-            break // Stop when we hit a non-tag line
-          }
-        }
-        break
+    for (const scenario of scenarios) {
+      const identifierTag = getScenarioIdentifierTag(scenario)
+      if (identifierTag) {
+        scenario.appraiseMetadata = metadataByIdentifier.get(identifierTag)
       }
-    }
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-
-      // Skip comments and empty lines
-      if (line.startsWith('#') || line === '') {
-        continue
-      }
-
-      // Parse Feature line
-      if (line.startsWith('Feature:')) {
-        const featureLineText = line.replace('Feature:', '').trim()
-        featureName = featureLineText
-        featureDescription = featureLineText
-        continue
-      }
-
-      // Parse Scenario line
-      if (line.startsWith('Scenario:')) {
-        // Save previous scenario if exists
-        if (currentScenario) {
-          scenarios.push(currentScenario)
-        }
-
-        // Extract tags before this scenario
-        const scenarioTags: string[] = []
-        for (let j = i - 1; j >= 0; j--) {
-          const prevLine = lines[j]
-          if (prevLine === '' || prevLine.startsWith('#')) {
-            continue
-          }
-          if (prevLine.startsWith('@')) {
-            scenarioTags.unshift(prevLine) // Add to beginning to maintain order
-          } else {
-            break // Stop when we hit a non-tag line
-          }
-        }
-
-        const scenarioText = line.replace('Scenario:', '').trim()
-        const [name, description] =
-          scenarioText.split(']').length > 1
-            ? [scenarioText.split(']')[1].trim(), scenarioText.split(']')[0].replace('[', '').trim()]
-            : [scenarioText, '']
-
-        currentScenario = {
-          name: name,
-          description: description || undefined,
-          tags: scenarioTags,
-          steps: [],
-        }
-        stepOrder = 1
-        continue
-      }
-
-      // Parse steps (Given, When, Then, And, But)
-      if (
-        currentScenario &&
-        (line.startsWith('Given ') ||
-          line.startsWith('When ') ||
-          line.startsWith('Then ') ||
-          line.startsWith('And ') ||
-          line.startsWith('But '))
-      ) {
-        const keyword = line.split(' ')[0]
-        const text = line.substring(keyword.length).trim()
-
-        currentScenario.steps.push({
-          keyword: keyword,
-          text: text,
-          order: stepOrder++,
-        })
-      }
-    }
-
-    // Add the last scenario
-    if (currentScenario) {
-      scenarios.push(currentScenario)
     }
 
     if (!featureName) {
@@ -158,6 +223,7 @@ export async function parseFeatureFile(filePath: string): Promise<ParsedFeature 
       featureDescription: featureDescription || undefined,
       tags: featureTags,
       scenarios,
+      metadataWarnings: metadataResult.warnings,
     }
   } catch (error) {
     console.error(`Error parsing feature file ${filePath}:`, error)
@@ -206,46 +272,5 @@ export async function scanFeatureFiles(directoryPath: string): Promise<ParsedFea
  * @returns string - Module path (e.g., "/module1/submodule")
  */
 export function extractModulePathFromFilePath(featureFilePath: string, featuresBaseDir: string): string {
-  // Use path.relative for cross-platform path handling
-  const relativePath = relative(featuresBaseDir, featureFilePath)
-
-  // Normalize to forward slashes for module path format (database uses /)
-  const normalizedPath = relativePath.replace(/\\/g, '/')
-  const pathParts = normalizedPath.split('/').filter(part => part && part !== '')
-
-  // Remove the filename and join the remaining parts
-  const moduleParts = pathParts.slice(0, -1)
-  return moduleParts.length > 0 ? '/' + moduleParts.join('/') : '/'
-}
-
-/**
- * Generates a safe test suite name from feature name
- * @param featureName - Name of the feature
- * @returns string - Safe test suite name
- */
-export function generateSafeTestSuiteName(featureName: string): string {
-  return featureName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-/**
- * Generates a safe test case name from scenario name
- * @param scenarioName - Name of the scenario
- * @returns string - Safe test case name
- */
-export function generateSafeTestCaseName(scenarioName: string): string {
-  // Remove scenario prefix if present and clean up the name
-  const cleanName = scenarioName
-    .replace(/^Scenario:\s*/i, '')
-    .replace(/^\[.*?\]\s*/, '') // Remove [brackets] prefix
-    .trim()
-
-  return cleanName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return getFeatureModulePath(featureFilePath, featuresBaseDir)
 }

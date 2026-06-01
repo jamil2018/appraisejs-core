@@ -11,9 +11,15 @@ const templateTestCaseInclude = {
       parameters: true,
     },
   },
+  flowBlocks: {
+    include: {
+      nodes: true,
+    },
+  },
 } as const
 
 export type TemplateTestCaseDetail = Prisma.TemplateTestCaseGetPayload<{ include: typeof templateTestCaseInclude }>
+type TemplateTestCaseInput = z.input<typeof templateTestCaseSchema>
 
 export async function listTemplateTestCases() {
   return prisma.templateTestCase.findMany({
@@ -33,11 +39,14 @@ export async function deleteTemplateTestCases(ids: string[]): Promise<void> {
     await tx.templateTestCaseStep.deleteMany({
       where: { templateTestCaseId: { in: ids } },
     })
+    await tx.templateTestCaseFlowBlock.deleteMany({
+      where: { templateTestCaseId: { in: ids } },
+    })
     await tx.templateTestCase.deleteMany({ where: { id: { in: ids } } })
   })
 }
 
-export async function createTemplateTestCase(value: z.infer<typeof templateTestCaseSchema>): Promise<TemplateTestCase> {
+export async function createTemplateTestCase(value: TemplateTestCaseInput): Promise<TemplateTestCase> {
   return prisma.templateTestCase.create({
     data: {
       name: value.title,
@@ -45,6 +54,7 @@ export async function createTemplateTestCase(value: z.infer<typeof templateTestC
       steps: {
         create: value.steps.map(step => ({
           gherkinStep: step.gherkinStep,
+          flowNodeId: step.nodeId,
           label: step.label,
           icon: step.icon,
           parameters: {
@@ -57,6 +67,16 @@ export async function createTemplateTestCase(value: z.infer<typeof templateTestC
           },
           TemplateStep: { connect: { id: step.templateStepId } },
           order: step.order,
+        })),
+      },
+      flowBlocks: {
+        create: (value.flowBlocks ?? []).map((block, index) => ({
+          id: block.id,
+          name: block.name,
+          order: index,
+          nodes: {
+            create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
+          },
         })),
       },
     },
@@ -76,7 +96,7 @@ export async function getTemplateTestCaseByIdOrThrow(id: string): Promise<Templa
 
 export async function updateTemplateTestCase(
   id: string | undefined,
-  value: z.infer<typeof templateTestCaseSchema>,
+  value: TemplateTestCaseInput,
 ): Promise<TemplateTestCase> {
   if (!id) {
     throw new ServiceError(
@@ -99,6 +119,7 @@ export async function updateTemplateTestCase(
   }
 
   await prisma.templateTestCaseStep.deleteMany({ where: { templateTestCaseId: id } })
+  await prisma.templateTestCaseFlowBlock.deleteMany({ where: { templateTestCaseId: id } })
 
   return prisma.templateTestCase.update({
     where: { id },
@@ -108,6 +129,7 @@ export async function updateTemplateTestCase(
       steps: {
         create: value.steps.map(step => ({
           gherkinStep: step.gherkinStep,
+          flowNodeId: step.nodeId,
           label: step.label ?? '',
           icon: step.icon ?? '',
           parameters: {
@@ -120,6 +142,16 @@ export async function updateTemplateTestCase(
           },
           templateStepId: step.templateStepId,
           order: step.order,
+        })),
+      },
+      flowBlocks: {
+        create: (value.flowBlocks ?? []).map((block, index) => ({
+          id: block.id,
+          name: block.name,
+          order: index,
+          nodes: {
+            create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
+          },
         })),
       },
     },

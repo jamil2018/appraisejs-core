@@ -1,4 +1,5 @@
 import prisma from '@/config/db-config'
+import { updateDashboardMetrics } from '@/lib/metrics/metric-calculator'
 import { TestRunStatus, TestRunTestCaseResult } from '@prisma/client'
 
 /** Stacked bar segments are raw counts; `total` matches passed+failed+cancelled+unknown. */
@@ -19,6 +20,7 @@ export type EntityMetrics = {
 }
 
 export async function getDashboardMetrics() {
+  await updateDashboardMetrics()
   return prisma.dashboardMetrics.findFirst()
 }
 

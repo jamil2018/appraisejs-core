@@ -18,9 +18,7 @@ async function getLatestModifiedTime(targetPath: string): Promise<number> {
   }
 
   const entries = await readdir(targetPath, { withFileTypes: true })
-  const times = await Promise.all(
-    entries.map(entry => getLatestModifiedTime(path.join(targetPath, entry.name))),
-  )
+  const times = await Promise.all(entries.map(entry => getLatestModifiedTime(path.join(targetPath, entry.name))))
 
   return Math.max(stats.mtimeMs, ...times)
 }

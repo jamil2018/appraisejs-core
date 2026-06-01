@@ -10,16 +10,14 @@ export function createSelectionState(selectedIds: string[]): RowSelectionState {
 }
 
 export function testCaseMatchesQuery(testCase: TestCasePickerRow, filterValue: unknown): boolean {
-  const query = String(filterValue ?? '').trim().toLowerCase()
+  const query = String(filterValue ?? '')
+    .trim()
+    .toLowerCase()
   if (!query) {
     return true
   }
 
-  const searchableText = [
-    testCase.title,
-    testCase.description ?? '',
-    ...testCase.tags.map(tag => tag.name),
-  ]
+  const searchableText = [testCase.title, testCase.description ?? '', ...testCase.tags.map(tag => tag.name)]
     .join(' ')
     .toLowerCase()
 
@@ -32,7 +30,10 @@ export function getSavedTestCases(testCases: TestCasePickerRow[], selectedIds: s
     .filter((testCase): testCase is TestCasePickerRow => Boolean(testCase))
 }
 
-export function getSelectedIdsFromRowSelection(testCases: TestCasePickerRow[], rowSelection: RowSelectionState): string[] {
+export function getSelectedIdsFromRowSelection(
+  testCases: TestCasePickerRow[],
+  rowSelection: RowSelectionState,
+): string[] {
   return testCases.filter(testCase => rowSelection[testCase.id]).map(testCase => testCase.id)
 }
 

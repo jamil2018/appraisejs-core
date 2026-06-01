@@ -1,0 +1,29 @@
+# Repo-local Codex configuration for AppraiseJS.
+# Keep project workflow instructions in AGENTS.md; keep runtime defaults here.
+
+model = "gpt-5.5"
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[projects."/Users/mdhasnat/Projects/appraisejs"]
+trust_level = "trusted"
+
+[features]
+memories = true
+multi_agent = true
+
+[memories]
+generate_memories = true
+use_memories = true
+
+[plugins."browser-use@openai-bundled"]
+enabled = true
+
+[plugins."build-web-apps@openai-curated"]
+enabled = true
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true

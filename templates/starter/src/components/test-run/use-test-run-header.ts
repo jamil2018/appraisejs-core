@@ -4,10 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { getTestRunByIdAction } from '@/actions/test-run/test-run-actions'
 
-import {
-  getTestRunDetailsData,
-  type TestRunDetailsData,
-} from './test-run-details-helpers'
+import { getTestRunDetailsData, type TestRunDetailsData } from './test-run-details-helpers'
 import {
   getTestRunHeaderPollMode,
   matchesTestRunExitEvent,

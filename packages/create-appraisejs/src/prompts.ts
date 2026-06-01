@@ -1,11 +1,7 @@
 import { checkbox, confirm, input, select } from '@inquirer/prompts'
 import path from 'path'
 import fs from 'fs'
-import {
-  DEFAULT_TEMPLATE_ID,
-  getTemplateChoices,
-  type TemplateId,
-} from './template-catalog.js'
+import { DEFAULT_TEMPLATE_ID, getTemplateChoices, type TemplateId } from './template-catalog.js'
 
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun'
 export type PlaywrightBrowser = 'chromium' | 'firefox' | 'webkit'
@@ -37,9 +33,7 @@ function validateTargetDirectory(resolved: string): void {
     throw new Error(`Path exists and is not a directory: ${resolved}`)
   }
   if (!isDirEmpty(resolved)) {
-    throw new Error(
-      `Directory must be empty: ${resolved}\nPlease choose an empty directory or a new path.`,
-    )
+    throw new Error(`Directory must be empty: ${resolved}\nPlease choose an empty directory or a new path.`)
   }
 }
 
@@ -47,7 +41,7 @@ export async function runPrompts(cwd: string, options: PromptOptions = {}): Prom
   const rawDir = await input({
     message: 'Where should we create your app?',
     default: DEFAULT_DIR,
-    validate: (value) => {
+    validate: value => {
       if (!value?.trim()) return 'Please enter a directory path.'
       return true
     },

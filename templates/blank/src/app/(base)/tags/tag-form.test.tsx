@@ -2,7 +2,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TagForm from './tag-form'
 
@@ -22,6 +22,11 @@ vi.mock('@/hooks/use-toast', () => ({
 }))
 
 describe('TagForm', () => {
+  beforeEach(() => {
+    push.mockReset()
+    toast.mockReset()
+  })
+
   it('submits valid values, shows a toast, and navigates back to the tags list', async () => {
     const user = userEvent.setup()
     const onSubmitAction = vi.fn().mockResolvedValue({
@@ -29,11 +34,7 @@ describe('TagForm', () => {
     })
 
     render(
-      <TagForm
-        successTitle="Tag created"
-        successMessage="Tag created successfully"
-        onSubmitAction={onSubmitAction}
-      />,
+      <TagForm successTitle="Tag created" successMessage="Tag created successfully" onSubmitAction={onSubmitAction} />,
     )
 
     await user.type(screen.getByLabelText('Name'), 'Smoke')
@@ -58,16 +59,49 @@ describe('TagForm', () => {
     expect(push).toHaveBeenCalledWith('/tags')
   })
 
-  it('shows validation feedback for an invalid tag expression and does not submit', async () => {
+  it('does not redirect and calls onSuccess with created tag data in dialog mode', async () => {
     const user = userEvent.setup()
-    const onSubmitAction = vi.fn()
+    const onSuccess = vi.fn()
+    const onSubmitAction = vi.fn().mockResolvedValue({
+      status: 200,
+      data: {
+        id: 'tag-2',
+        name: 'Inline Tag',
+        tagExpression: '@inline',
+      },
+    })
 
     render(
       <TagForm
         successTitle="Tag created"
         successMessage="Tag created successfully"
         onSubmitAction={onSubmitAction}
+        onSuccess={onSuccess}
+        redirectPath={null}
       />,
+    )
+
+    await user.type(screen.getByLabelText('Name'), 'Inline Tag')
+    await user.type(screen.getByLabelText('Tag Expression'), '@inline')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith({
+        id: 'tag-2',
+        name: 'Inline Tag',
+        tagExpression: '@inline',
+      })
+    })
+
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('shows validation feedback for an invalid tag expression and does not submit', async () => {
+    const user = userEvent.setup()
+    const onSubmitAction = vi.fn()
+
+    render(
+      <TagForm successTitle="Tag created" successMessage="Tag created successfully" onSubmitAction={onSubmitAction} />,
     )
 
     await user.type(screen.getByLabelText('Name'), 'Smoke')

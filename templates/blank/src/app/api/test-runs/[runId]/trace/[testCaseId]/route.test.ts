@@ -86,9 +86,12 @@ describe('trace route', () => {
       testCases: [{ id: 'trtc-1', tracePath: null }],
     })
 
-    const response = await POST(new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }), {
-      params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
-    })
+    const response = await POST(
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }),
+      {
+        params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
+      },
+    )
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({ error: 'No trace path available for this test case' })
@@ -100,9 +103,12 @@ describe('trace route', () => {
     })
     mockAccess.mockRejectedValue(new Error('missing'))
 
-    const response = await POST(new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }), {
-      params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
-    })
+    const response = await POST(
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }),
+      {
+        params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
+      },
+    )
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'Trace file not found at path: trace.zip' })
@@ -115,9 +121,12 @@ describe('trace route', () => {
     mockAccess.mockResolvedValue(undefined)
     mockSpawn.mockResolvedValue({ name: 'trace-viewer-trtc-1' })
 
-    const response = await POST(new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }), {
-      params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
-    })
+    const response = await POST(
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }),
+      {
+        params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
+      },
+    )
 
     expect(mockSpawn).toHaveBeenCalledWith('npx', ['playwright', 'show-trace', '/resolved/trace.zip'], {
       streamLogs: true,

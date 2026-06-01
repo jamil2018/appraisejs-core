@@ -1,11 +1,15 @@
 import {
   Locator,
   LocatorGroup,
+  Environment,
+  Module,
   TemplateStep,
   TemplateStepParameter,
   TemplateTestCase,
   TemplateTestCaseStep,
   TemplateTestCaseStepParameter,
+  TemplateTestCaseFlowBlock,
+  TemplateTestCaseFlowBlockNode,
 } from '@prisma/client'
 import React from 'react'
 import TemplateTestCaseForm from '../../template-test-case-form'
@@ -16,6 +20,8 @@ import {
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
+import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
+import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 import {
   getTemplateTestCaseByIdAction,
@@ -31,22 +37,63 @@ export const metadata: Metadata = {
 
 const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const { data, error } = await getTemplateTestCaseByIdAction(id)
+  if (!id?.trim()) {
+    return <div>Error: Invalid template test case id.</div>
+  }
+
+  const [
+    templateCaseResponse,
+    { data: templateStepParams, error: templateStepParamsError },
+    { data: templateSteps, error: templateStepsError },
+    { data: locators, error: locatorsError },
+    { data: locatorGroups, error: locatorGroupsError },
+    { data: environments, error: environmentsError },
+    { data: modules, error: modulesError },
+  ] = await Promise.all([
+    getTemplateTestCaseByIdAction(id),
+    getAllTemplateStepParamsAction(),
+    getAllTemplateStepsAction(),
+    getAllLocatorsAction(),
+    getAllLocatorGroupsAction(),
+    getAllEnvironmentsAction(),
+    getAllModulesAction(),
+  ])
+
+  const { data, error } = templateCaseResponse
 
   if (error) {
     return <div>Error: {error}</div>
   }
+
+  if (!data) {
+    return <div>Error: Template test case not found.</div>
+  }
+
   const templateTestCase = data as TemplateTestCase & {
     steps: (TemplateTestCaseStep & {
       parameters: TemplateTestCaseStepParameter[]
     })[]
+    flowBlocks: (TemplateTestCaseFlowBlock & { nodes: TemplateTestCaseFlowBlockNode[] })[]
   }
-  const { data: templateStepParams, error: templateStepParamsError } = await getAllTemplateStepParamsAction()
-  const { data: templateSteps, error: templateStepsError } = await getAllTemplateStepsAction()
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
-  const { data: locatorGroups, error: locatorGroupsError } = await getAllLocatorGroupsAction()
-  if (templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError) {
-    return <div>Error: {templateStepParamsError || templateStepsError || locatorsError || locatorGroupsError}</div>
+  if (
+    templateStepParamsError ||
+    templateStepsError ||
+    locatorsError ||
+    locatorGroupsError ||
+    environmentsError ||
+    modulesError
+  ) {
+    return (
+      <div>
+        Error:{' '}
+        {templateStepParamsError ||
+          templateStepsError ||
+          locatorsError ||
+          locatorGroupsError ||
+          environmentsError ||
+          modulesError}
+      </div>
+    )
   }
   return (
     <>
@@ -63,8 +110,12 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
         templateSteps={templateSteps as TemplateStep[]}
         locators={locators as Locator[]}
         locatorGroups={locatorGroups as LocatorGroup[]}
+        environments={environments as Environment[]}
+        modules={modules as Module[]}
         defaultNodesOrder={templateTestCase.steps.reduce((acc, step) => {
-          acc[step.id] = {
+          const nodeId = step.flowNodeId ?? step.id
+          acc[nodeId] = {
+            nodeId,
             order: step.order,
             label: step.label,
             gherkinStep: step.gherkinStep,
@@ -81,6 +132,15 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
           }
           return acc
         }, {} as TemplateTestCaseNodeOrderMap)}
+        defaultFlowBlocks={templateTestCase.flowBlocks
+          .slice()
+          .sort((left, right) => left.order - right.order)
+          .map(block => ({
+            id: block.id,
+            name: block.name,
+            nodeIds: block.nodes.map(node => node.flowNodeId),
+          }))}
+        defaultValueInput={true}
       />
     </>
   )

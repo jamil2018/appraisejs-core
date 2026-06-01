@@ -12,7 +12,7 @@ export const templateStepGroupSchema = z.object({
 
 export type TemplateStepGroup = z.infer<typeof templateStepGroupSchema>
 
-export const formOpts = {
+export const templateStepGroupFormOpts = {
   defaultValues: {
     name: '',
     description: '',

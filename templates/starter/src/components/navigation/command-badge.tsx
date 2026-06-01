@@ -27,7 +27,7 @@ export function CommandBadge({ label, onClose, className }: CommandBadgeProps) {
         className="hover:bg-secondary-foreground/20 ml-0.5 rounded-sm focus:outline-none focus:ring-1 focus:ring-ring"
         aria-label={`Clear ${label}`}
       >
-        <X className="h-3 w-3" />
+        <X className="size-3" />
       </button>
     </Badge>
   )

@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label'
 import MultiSelectWithPreview from '@/components/ui/multi-select-with-preview'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { formOpts, type TestSuite } from '@/constants/form-opts/test-suite-form-opts'
+import { testSuiteFormOpts, type TestSuite } from '@/constants/form-opts/test-suite-form-opts'
 import { toast } from '@/hooks/use-toast'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
-import type { Module, Tag } from '@prisma/client'
+import type { Module, Tag, TestSuite as PrismaTestSuite } from '@prisma/client'
 import { useForm } from '@tanstack/react-form'
+import { TanStackForm } from '@/lib/form/tanstack-form'
 import { Info, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -19,6 +20,7 @@ import TestCasePicker from '@/components/test-case/test-case-picker'
 
 import {
   getActionErrorMessage,
+  getCreatedTestSuite,
   getFieldErrorMessage,
   getModuleOptions,
   getTagOptions,
@@ -36,6 +38,8 @@ export const TestSuiteForm = ({
   testCases,
   moduleList,
   tags,
+  onSuccess,
+  redirectPath = '/test-suites',
 }: {
   defaultValues?: TestSuite
   successTitle: string
@@ -45,19 +49,38 @@ export const TestSuiteForm = ({
   testCases: TestCasePickerRow[]
   moduleList: Module[]
   tags: Tag[]
+  onSuccess?: (suite: PrismaTestSuite) => void | Promise<void>
+  redirectPath?: string | null
 }) => {
-  const router = useRouter()
+  const { push } = useRouter()
   const form = useForm({
-    defaultValues: defaultValues ?? formOpts?.defaultValues,
-    validators: formOpts?.validators,
+    defaultValues: defaultValues ?? testSuiteFormOpts.defaultValues,
+    validators: testSuiteFormOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
       if (res.status === 200) {
+        if (onSuccess) {
+          const createdTestSuite = getCreatedTestSuite(res.data)
+          if (!createdTestSuite) {
+            toast({
+              title: 'Error',
+              description: 'Created test suite data was not returned.',
+              variant: 'destructive',
+            })
+            return
+          }
+
+          await onSuccess(createdTestSuite)
+        }
+
         toast({
           title: successTitle,
           description: successMessage,
         })
-        router.push('/test-suites')
+
+        if (redirectPath) {
+          push(redirectPath)
+        }
       }
       if (res.status === 400) {
         toast({
@@ -77,26 +100,20 @@ export const TestSuiteForm = ({
   })
   const moduleOptions = getModuleOptions(moduleList)
   const tagOptions = getTagOptions(tags)
-  const renderError = (error: unknown, index: number) => (
-    <p key={index} className="text-xs text-pink-500">
+  const renderError = (error: unknown) => (
+    <p key={getFieldErrorMessage(error)} className="text-xs text-pink-500">
       {getFieldErrorMessage(error)}
     </p>
   )
   return (
     <div className="flex justify-between gap-20 overflow-x-hidden">
-      <Card className="w-2/3 border-gray-700 bg-gray-500/10">
+      <Card className="w-2/3 border-zinc-700 bg-zinc-500/10">
         <CardHeader>
           <CardTitle className="text-xl font-bold text-primary">Test Suite Details</CardTitle>
           <CardDescription>Enter the details for your test suite</CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={e => {
-              e.preventDefault()
-              e.stopPropagation()
-              form.handleSubmit()
-            }}
-          >
+          <TanStackForm onSubmit={() => form.handleSubmit()}>
             <form.Field
               name="name"
               validators={{
@@ -213,26 +230,26 @@ export const TestSuiteForm = ({
             <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
               {([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit} className="hover:bg-emerald-500">
-                  <Save className="h-4 w-4" />
+                  <Save className="size-4" />
                   <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
                 </Button>
               )}
             </form.Subscribe>
-          </form>
+          </TanStackForm>
         </CardContent>
       </Card>
       <div className="lg:w-1/3">
-        <Card className="border-gray-700 bg-gray-500/10">
+        <Card className="border-zinc-700 bg-zinc-500/10">
           <CardHeader className="mb-2">
             <CardTitle className="flex items-center gap-2 text-xl text-primary">
-              <Info className="h-5 w-5" />
+              <Info className="size-5" />
               <span className="font-bold">Quick Tips</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
             {testSuiteQuickTips.map((tip, index) => (
               <div key={tip.title} className="flex items-start gap-4">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
                   {index + 1}
                 </span>
                 <div className="flex flex-col gap-1">

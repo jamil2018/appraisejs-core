@@ -1,0 +1,7 @@
+{
+  "deadCode": false,
+  "failOn": "error",
+  "ignore": {
+    "files": ["templates/**", "packages/**", "automation/**"]
+  }
+}

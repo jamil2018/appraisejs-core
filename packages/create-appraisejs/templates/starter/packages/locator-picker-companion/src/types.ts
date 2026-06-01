@@ -1,13 +1,6 @@
 export type CompanionSessionStatus = 'starting' | 'ready' | 'picked' | 'saving' | 'closed' | 'error'
 
-export type CompanionPickedLocatorStrategy =
-  | 'test-id'
-  | 'role'
-  | 'label'
-  | 'placeholder'
-  | 'id'
-  | 'css'
-  | 'xpath'
+export type CompanionPickedLocatorStrategy = 'test-id' | 'role' | 'label' | 'placeholder' | 'id' | 'css' | 'xpath'
 
 export interface CompanionLaunchSource {
   environmentId?: string

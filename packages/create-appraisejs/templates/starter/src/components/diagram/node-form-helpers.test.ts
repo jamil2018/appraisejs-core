@@ -54,7 +54,9 @@ describe('node-form helpers', () => {
   })
 
   it('creates initial parameters and gherkin previews', () => {
-    const parameters = createInitialParametersForTemplateStep(getSelectedTemplateStepParams(templateStepParams, 'step-1'))
+    const parameters = createInitialParametersForTemplateStep(
+      getSelectedTemplateStepParams(templateStepParams, 'step-1'),
+    )
 
     expect(parameters).toEqual([
       {
