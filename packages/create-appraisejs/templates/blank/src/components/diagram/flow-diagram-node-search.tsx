@@ -1,6 +1,6 @@
 'use client'
 
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { Search, X } from 'lucide-react'
 import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react'
 import * as motion from 'motion/react-m'
@@ -23,6 +23,7 @@ type FlowDiagramNodeSearchProps = {
   onSearchQueryChange: (value: string) => void
   onToggleSearch: () => void
   onSelectResult: (nodeId: string) => void
+  shortcutHint: ReactNode
 }
 
 export function FlowDiagramNodeSearch({
@@ -34,6 +35,7 @@ export function FlowDiagramNodeSearch({
   onSearchQueryChange,
   onToggleSearch,
   onSelectResult,
+  shortcutHint,
 }: FlowDiagramNodeSearchProps) {
   return (
     <LazyMotion features={domAnimation} strict>
@@ -99,7 +101,12 @@ export function FlowDiagramNodeSearch({
                 {isSearchOpen ? <X /> : <Search />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">{isSearchOpen ? 'Close search' : 'Search nodes'}</TooltipContent>
+            <TooltipContent side="bottom">
+              <div className="flex items-center gap-2">
+                <span>{isSearchOpen ? 'Close search' : 'Search nodes'}</span>
+                {shortcutHint}
+              </div>
+            </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
