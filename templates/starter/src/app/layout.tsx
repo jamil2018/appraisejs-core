@@ -91,7 +91,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${interTight.variable} min-h-screen antialiased`}>
         <ThemeProvider>
           <div className="mx-auto lg:max-w-screen-xl 2xl:max-w-screen-2xl">
-            <nav className="mb-6 py-2">
+            <nav className="mb-6 py-2" data-persistent-navigation>
               <div className="flex items-center gap-1">
                 <div className="-ml-2">
                   <Link href="/">

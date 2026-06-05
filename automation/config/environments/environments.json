@@ -4,5 +4,11 @@
     "apiBaseUrl": "",
     "email": "",
     "password": ""
+  },
+  "demo2": {
+    "baseUrl": "https://saucedemo.com",
+    "apiBaseUrl": "",
+    "email": "",
+    "password": ""
   }
 }
