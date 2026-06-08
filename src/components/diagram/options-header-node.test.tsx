@@ -62,7 +62,7 @@ function renderOptionsHeaderNode(
           ],
           ...data,
         },
-      } as never)}
+      } as unknown as React.ComponentProps<typeof OptionsHeaderNode>)}
       onEdit={onEdit}
       onAddConnectedNode={onAddConnectedNode}
     />,
