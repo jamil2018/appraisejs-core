@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.mocked(prisma.tag.findUnique).mockReset()
   vi.mocked(prisma.tag.create).mockReset()
   vi.mocked(prisma.tag.update).mockReset()
-  vi.mocked(automationProjectionService.regenerateAllFeatures).mockResolvedValue(undefined)
+  vi.mocked(automationProjectionService.regenerateAllFeatures).mockResolvedValue([])
 })
 
 describe('getTagByIdOrThrow', () => {

@@ -27,7 +27,7 @@ describe('runLocatorFileSync', () => {
     const refresh = vi.fn()
     const payload = { locatorsCreated: 1, locatorsMergedToFile: 2, conflicts: 0, errors: [] }
 
-    syncLocatorsFromFilesActionMock.mockResolvedValue({ status: 200, data: payload, error: null })
+    syncLocatorsFromFilesActionMock.mockResolvedValue({ status: 200, data: payload })
 
     await runLocatorFileSync(refresh)
 
