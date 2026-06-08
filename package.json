@@ -29,6 +29,7 @@
     "sync-tags": "npx tsx scripts/sync-tags.ts",
     "sync-test-suites": "npx tsx scripts/sync-test-suites.ts",
     "sync-test-cases": "npx tsx scripts/sync-test-cases.ts",
+    "sync-plans": "npx tsx scripts/sync-plans.ts",
     "sync-template-step-groups": "npx tsx scripts/sync-template-step-groups.ts",
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",

@@ -4,6 +4,7 @@ import {
   Code,
   Component,
   Group,
+  ListTree,
   LayoutTemplate,
   Puzzle,
   Server,
@@ -34,6 +35,10 @@ export type SyncRunResult = {
 }
 
 export const syncPresentation: Record<SyncScriptId, { icon: ReactNode; colorKey: SyncTileColor }> = {
+  'sync-plans': {
+    icon: <ListTree />,
+    colorKey: 'emerald',
+  },
   'sync-modules': {
     icon: <Puzzle />,
     colorKey: 'violet',
