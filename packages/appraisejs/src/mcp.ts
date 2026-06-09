@@ -168,6 +168,61 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'validation_publish',
+    {
+      description: 'Publish generated validation nodes and changed-file evidence for user review.',
+      inputSchema: { planId: z.string(), validation: z.record(z.string(), z.unknown()) },
+    },
+    async ({ planId, validation }) =>
+      text(
+        await api.request(`plans/${planId}/validations/publish`, {
+          method: 'POST',
+          body: JSON.stringify({ validation }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_decide',
+    {
+      description: 'Record a hash-bound decision for one validation node.',
+      inputSchema: {
+        planId: z.string(),
+        validationId: z.string(),
+        decision: z.enum(['approved', 'rejected', 'deferred']),
+        decidedBy: z.string(),
+      },
+    },
+    async ({ planId, validationId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/validations/nodes/${validationId}`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_file_approve',
+    {
+      description: 'Approve one flagged changed file for its exact current content hash.',
+      inputSchema: { planId: z.string(), path: z.string(), contentHash: z.string(), approvedBy: z.string() },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/validations/files`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_review_submit',
+    {
+      description: 'Submit the revision-level validation review after all required decisions are current.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => text(await api.request(`plans/${planId}/validations/submit`, { method: 'POST', body: '{}' })),
+  )
+  server.registerTool(
     'plan_events_read',
     {
       description: 'Read unacknowledged plan events without acknowledging them.',
