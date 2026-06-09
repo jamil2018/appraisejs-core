@@ -32,6 +32,7 @@ import {
   normalizeProjectedDbTestCaseSteps,
 } from '@/lib/sync/projected-feature-utils'
 import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
+import { countPendingPlanSync } from '@/lib/plans/plan-sync-service'
 import {
   parseGroupJSDocLenient as parseGroupJSDoc,
   parseStepJSDocLenient as parseStepJSDoc,
@@ -1218,6 +1219,7 @@ function emptyCounts(): SyncPendingCounts {
 export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
   try {
     await ensureAutomationWorkspaceReady()
+    const pendingPlans = await countPendingPlanSync()
 
     const baseDir = process.cwd()
     const filesystem = await buildFilesystemSnapshot(baseDir)
@@ -1338,6 +1340,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
     )
 
     const counts: Record<SyncScriptId, number> = {
+      'sync-plans': pendingPlans,
       'sync-modules': countModuleMismatches(filesystem.modulePaths, dbModules),
       'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
       'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),

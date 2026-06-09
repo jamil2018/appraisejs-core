@@ -25,7 +25,15 @@ describe('testCaseFormReducer', () => {
       payload: {
         title: 'From template',
         description: 'Template description',
-        nodesOrder: { n1: 1 },
+        nodesOrder: {
+          n1: {
+            nodeId: 'n1',
+            order: 1,
+            label: 'Open page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+        },
         flowBlocks: [{ id: 'b1', name: 'Block', nodeIds: ['n1'] }],
         appliedTemplateId: 'template-1',
       },
@@ -33,7 +41,7 @@ describe('testCaseFormReducer', () => {
 
     expect(next.title).toBe('From template')
     expect(next.appliedTemplateId).toBe('template-1')
-    expect(next.nodesOrder).toEqual({ n1: 1 })
+    expect(next.nodesOrder.n1).toMatchObject({ nodeId: 'n1', order: 1 })
     expect(next.flowBlocks).toHaveLength(1)
   })
 

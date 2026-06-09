@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   ListChecks,
+  Network,
   Puzzle,
   Server,
   Settings2,
@@ -100,6 +101,9 @@ export default function RootLayout({
                 </div>
                 <NavLink href="/" icon={<LayoutDashboard className="size-5 text-primary" />}>
                   Dashboard
+                </NavLink>
+                <NavLink href="/plans" icon={<Network className="size-5 text-primary" />}>
+                  Plans
                 </NavLink>
                 <NavMenuCardDeck
                   containerButtonText="Automate"

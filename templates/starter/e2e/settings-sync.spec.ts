@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 import { disconnectPrisma, resetE2eData, seedCoreData } from './helpers/test-data'
 
 const syncScriptLabels = [
+  'Sync Plans',
   'Sync Modules',
   'Sync Environments',
   'Sync Tags',

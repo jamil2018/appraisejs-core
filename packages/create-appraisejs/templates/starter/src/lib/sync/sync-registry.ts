@@ -11,6 +11,14 @@ export const SYNC_ALL_REQUEST_ID = 'sync-all' as const
 
 export const syncScriptDefinitions = [
   {
+    id: 'sync-plans',
+    label: 'Sync Plans',
+    description: 'Projects canonical plan artifacts into DB.',
+    orderLabel: 'Plans',
+    scriptFile: 'sync-plans.ts',
+    dependencies: [],
+  },
+  {
     id: 'sync-modules',
     label: 'Sync Modules',
     description: 'Syncs modules to DB.',
