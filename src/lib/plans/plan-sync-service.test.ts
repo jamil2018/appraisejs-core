@@ -45,11 +45,25 @@ beforeEach(async () => {
   databasePath = path.join(workspace, 'sync.db')
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  execFileSync('sqlite3', [databasePath], {
-    input: await fs.readFile(
-      path.join(process.cwd(), 'prisma', 'migrations', '20260609002500_add_plan_projection_and_sync', 'migration.sql'),
-    ),
-  })
+  const projectionTable = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='PlanProjection';",
+  ])
+    .toString()
+    .trim()
+  if (!projectionTable) {
+    execFileSync('sqlite3', [databasePath], {
+      input: await fs.readFile(
+        path.join(
+          process.cwd(),
+          'prisma',
+          'migrations',
+          '20260609002500_add_plan_projection_and_sync',
+          'migration.sql',
+        ),
+      ),
+    })
+  }
   client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
 })
 

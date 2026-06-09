@@ -289,6 +289,8 @@ model PlanProjection {
   tasks                PlanTaskProjection[]
   issues               PlanSyncIssue[]
   revisions            PlanRevision[]
+  events               PlanEvent[]
+  personalLayouts      PlanPersonalLayout[]
   testRuns             TestRun[]
 
   @@index([stale])
@@ -336,6 +338,29 @@ model PlanRevision {
   plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
 
   @@unique([planProjectionId, sourceHash])
+}
+
+model PlanEvent {
+  id               String         @id @default(uuid())
+  planProjectionId String
+  type             String
+  payloadJson      String?
+  createdAt        DateTime       @default(now())
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@index([planProjectionId, createdAt])
+}
+
+model PlanPersonalLayout {
+  id               String         @id @default(uuid())
+  planProjectionId String
+  owner            String
+  positionsJson    String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@unique([planProjectionId, owner])
 }
 
 model TestRunLog {
