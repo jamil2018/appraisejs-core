@@ -73,6 +73,12 @@ export function generateInitialNodesAndEdges(
 export function determineNodeOrders(nodes: Node[], edges: Edge[]): NodeOrderMap {
   const realNodes = nodes.filter(node => !isAddNodePromptNode(node))
 
+  if (realNodes.length === 1) {
+    return {
+      [realNodes[0].id]: toDiagramNodeOrderEntry(realNodes[0], 1),
+    }
+  }
+
   const graph: Record<string, string[]> = {}
   const inDegree: Record<string, number> = {}
   const hasConnections: Record<string, boolean> = {}

@@ -2,7 +2,7 @@
 
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { TemplateStepIcon, TemplateStepType } from '@prisma/client'
+import { TemplateStepGroupType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import React from 'react'
 import { describe, expect, it } from 'vitest'
 
@@ -10,6 +10,7 @@ import TemplateStepCombobox from './template-step-combobox'
 import type { TemplateStepWithGroup } from '@/types/diagram/template-step'
 
 function buildTemplateStep(step: Partial<TemplateStepWithGroup> = {}): TemplateStepWithGroup {
+  const groupId = step.templateStepGroupId ?? 'group-actions'
   return {
     id: step.id ?? 'step-1',
     name: step.name ?? 'Click button',
@@ -18,10 +19,17 @@ function buildTemplateStep(step: Partial<TemplateStepWithGroup> = {}): TemplateS
     functionDefinition: step.functionDefinition ?? '',
     type: step.type ?? TemplateStepType.ACTION,
     icon: step.icon ?? TemplateStepIcon.MOUSE,
-    templateStepGroupId: step.templateStepGroupId ?? 'group-actions',
+    templateStepGroupId: groupId,
     createdAt: step.createdAt ?? new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: step.updatedAt ?? new Date('2026-01-01T00:00:00.000Z'),
-    templateStepGroup: step.templateStepGroup ?? { id: 'group-actions', name: 'actions' },
+    templateStepGroup: step.templateStepGroup ?? {
+      id: groupId,
+      name: 'actions',
+      description: null,
+      type: TemplateStepGroupType.ACTION,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    },
     parameters: step.parameters ?? [
       { id: 'param-target', name: 'target' },
       { id: 'param-timeout', name: 'timeoutMs' },
@@ -52,7 +60,14 @@ describe('TemplateStepCombobox', () => {
         icon: TemplateStepIcon.VALIDATION,
         type: TemplateStepType.ASSERTION,
         templateStepGroupId: 'group-assertions',
-        templateStepGroup: { id: 'group-assertions', name: 'assertions' },
+        templateStepGroup: {
+          id: 'group-assertions',
+          name: 'assertions',
+          description: null,
+          type: TemplateStepGroupType.VALIDATION,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
         parameters: [{ id: 'param-status', name: 'expectedStatus' }],
       }),
     ])
@@ -90,7 +105,14 @@ describe('TemplateStepCombobox', () => {
         icon: TemplateStepIcon.VALIDATION,
         type: TemplateStepType.ASSERTION,
         templateStepGroupId: 'group-assertions',
-        templateStepGroup: { id: 'group-assertions', name: 'assertions' },
+        templateStepGroup: {
+          id: 'group-assertions',
+          name: 'assertions',
+          description: null,
+          type: TemplateStepGroupType.VALIDATION,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
         parameters: [{ id: 'param-status', name: 'expectedStatus' }],
       }),
     ])
@@ -120,8 +142,7 @@ describe('TemplateStepCombobox', () => {
         id: 'step-fill',
         name: 'Fill',
         description: 'Fill an input field',
-        icon: TemplateStepIcon.TYPE,
-        templateStepGroup: { id: 'group-actions', name: 'actions' },
+        icon: TemplateStepIcon.INPUT,
       }),
       buildTemplateStep({
         id: 'step-assertion',
@@ -130,7 +151,14 @@ describe('TemplateStepCombobox', () => {
         icon: TemplateStepIcon.VALIDATION,
         type: TemplateStepType.ASSERTION,
         templateStepGroupId: 'group-assertions',
-        templateStepGroup: { id: 'group-assertions', name: 'assertions' },
+        templateStepGroup: {
+          id: 'group-assertions',
+          name: 'assertions',
+          description: null,
+          type: TemplateStepGroupType.VALIDATION,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
       }),
     ])
 
