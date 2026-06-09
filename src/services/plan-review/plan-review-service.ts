@@ -15,6 +15,7 @@ import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifac
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
+import { appendPlanEvent } from '@/services/coordinator/coordinator-service'
 
 import {
   canApprovePlan,
@@ -172,13 +173,10 @@ export async function getPlanReviewDetail(
   const graph = derivePlanGraph(plan)
   const readiness = evaluateGraphReadiness(projection.events)
   if (!readiness.ready) {
-    await client.planEvent.create({
-      data: {
-        planProjectionId: projection.id,
-        type: 'plan_review_ready',
-        payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
-      },
-    })
+    await appendPlanEvent(
+      { planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
+      client,
+    )
   }
 
   return {
@@ -193,8 +191,14 @@ export async function getPlanReviewDetail(
       : [
           ...projection.events,
           {
+            id: 'pending-plan-review-ready',
+            planProjectionId: projection.id,
+            sequence: Math.max(0, ...projection.events.map(event => event.sequence)) + 1,
             type: 'plan_review_ready',
             payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
+            acknowledgedAt: null,
+            acknowledgedBy: null,
+            supersededAt: null,
             createdAt: new Date(),
           },
         ],

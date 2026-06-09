@@ -59,6 +59,8 @@ function initialPosition(index: number) {
   return { x: (index % 3) * 320, y: Math.floor(index / 3) * 190 }
 }
 
+// The graph, list, inspector, and approval controls intentionally share one interaction model.
+// fallow-ignore-next-line complexity
 export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
   const initialNodes = useMemo<Node[]>(
     () =>

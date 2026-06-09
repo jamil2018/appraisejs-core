@@ -15,6 +15,7 @@ import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifac
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
+import { appendPlanEvent } from '@/services/coordinator/coordinator-service'
 
 import {
   canApprovePlan,
@@ -73,6 +74,12 @@ function emptyReview(planId: string): ReviewArtifact {
     planApprovals: [],
     fileApprovals: [],
   }
+}
+
+function findRemarkThread(review: ReviewArtifact, threadId: string): ReviewArtifact['threads'][number] {
+  const thread = review.threads.find(candidate => candidate.id === threadId)
+  if (!thread) throw new ServiceError('Remark thread not found.', 'NOT_FOUND')
+  return thread
 }
 
 function parsePositions(value: string | null | undefined): LayoutArtifact['positions'] {
@@ -166,13 +173,10 @@ export async function getPlanReviewDetail(
   const graph = derivePlanGraph(plan)
   const readiness = evaluateGraphReadiness(projection.events)
   if (!readiness.ready) {
-    await client.planEvent.create({
-      data: {
-        planProjectionId: projection.id,
-        type: 'plan_review_ready',
-        payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
-      },
-    })
+    await appendPlanEvent(
+      { planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
+      client,
+    )
   }
 
   return {
@@ -187,8 +191,14 @@ export async function getPlanReviewDetail(
       : [
           ...projection.events,
           {
+            id: 'pending-plan-review-ready',
+            planProjectionId: projection.id,
+            sequence: Math.max(0, ...projection.events.map(event => event.sequence)) + 1,
             type: 'plan_review_ready',
             payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
+            acknowledgedAt: null,
+            acknowledgedBy: null,
+            supersededAt: null,
             createdAt: new Date(),
           },
         ],
@@ -243,8 +253,7 @@ export async function transitionPlanRemark(
 ): Promise<void> {
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const { review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
-  const thread = review.threads.find(candidate => candidate.id === input.threadId)
-  if (!thread) throw new ServiceError('Remark thread not found.', 'NOT_FOUND')
+  const thread = findRemarkThread(review, input.threadId)
   if (['resolved', 'dismissed'].includes(getThreadStatus(thread))) {
     throw new ServiceError('This remark thread is already closed.', 'CONFLICT')
   }
@@ -265,8 +274,7 @@ export async function retargetPlanRemark(
 ): Promise<void> {
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const { plan, review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
-  const thread = review.threads.find(candidate => candidate.id === input.threadId)
-  if (!thread) throw new ServiceError('Remark thread not found.', 'NOT_FOUND')
+  const thread = findRemarkThread(review, input.threadId)
   if (!plan.tasks.some(task => task.id === input.taskId)) throw new ServiceError('Target task not found.', 'VALIDATION')
   thread.target = { type: 'task', taskId: input.taskId }
   thread.events.push({
@@ -297,8 +305,7 @@ export async function approvePlanRevision(
   })
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   if (input.resolveThreadId) {
-    const thread = review.threads.find(candidate => candidate.id === input.resolveThreadId)
-    if (!thread) throw new ServiceError('Remark thread not found.', 'NOT_FOUND')
+    const thread = findRemarkThread(review, input.resolveThreadId)
     thread.events.push({
       id: id('event'),
       action: 'resolved',
