@@ -112,11 +112,28 @@ export const reviewArtifactSchema = artifactHeaderSchema
 export const validationArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
+    baseRevision: z.object({
+      gitCommit: z.string().min(1).nullable(),
+      snapshotHash: hashSchema,
+      reducedAssurance: z.boolean(),
+    }),
+    classificationOverrides: z
+      .array(
+        z.object({
+          pattern: z.string().min(1),
+          classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
+        }),
+      )
+      .default([]),
     validations: z
       .array(
         z.object({
           id: idSchema,
           taskIds: z.array(idSchema).min(1),
+          required: z.boolean(),
+          testCaseIds: z.array(idSchema).min(1),
+          gherkinPaths: z.array(z.string().min(1)).min(1),
+          stepPaths: z.array(z.string().min(1)).min(1),
           executable: z.object({
             path: z.string().min(1),
             selector: z.string().min(1).optional(),
@@ -141,6 +158,29 @@ export const validationArtifactSchema = artifactHeaderSchema
       )
       .transform(items => uniqueIds(items, 'validations')),
     approvals: z.array(approvalSchema),
+    validationDecisions: z.array(
+      z.object({
+        validationId: idSchema,
+        decision: z.enum(['approved', 'rejected', 'deferred']),
+        contentHash: hashSchema,
+        decidedBy: z.string().min(1),
+        decidedAt: timestampSchema,
+      }),
+    ),
+    files: z.array(
+      z.object({
+        path: z.string().min(1),
+        classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
+        rationale: z.string().min(1),
+        status: z.enum(['added', 'modified', 'deleted']),
+        beforeHash: hashSchema.nullable(),
+        contentHash: hashSchema.nullable(),
+        patch: z.string(),
+        declared: z.boolean(),
+      }),
+    ),
+    manifestPaths: z.array(z.string().min(1)),
+    reviewSubmittedAt: timestampSchema.optional(),
     baselineDecision: z.enum(['pending', 'accepted', 'changes-requested']),
   })
   .strict()

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
-import { parseYamlArtifact, planArtifactSchema } from '@/lib/plan-contract'
+import { parseYamlArtifact, planArtifactSchema, validationArtifactSchema } from '@/lib/plan-contract'
 import {
   acknowledgePlanEvent,
   heartbeatCoordinator,
@@ -16,6 +16,12 @@ import {
   startCoordinatorPlan,
   updateCoordinatorTask,
 } from '@/services/coordinator/coordinator-plan-service'
+import {
+  approveValidationFile,
+  decideValidationNode,
+  publishPreparedValidations,
+  submitValidationReview,
+} from '@/services/coordinator/coordinator-validation-service'
 import { ServiceError } from '@/services/shared/errors'
 
 export const runtime = 'nodejs'
@@ -127,6 +133,30 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
   return Response.json(await acknowledgePlanEvent({ planId: idSchema.parse(operation[1]), ...value }))
 }
 
+// Request parsing branches stay in this thin HTTP adapter.
+// fallow-ignore-next-line complexity
+async function postValidationOperation(operation: string[], body: unknown) {
+  const planId = idSchema.parse(operation[1])
+  if (operation[3] === 'publish') {
+    const value = z.object({ validation: validationArtifactSchema }).parse(body)
+    return Response.json(await publishPreparedValidations(planId, value.validation))
+  }
+  if (operation[3] === 'submit') return Response.json(await submitValidationReview(planId))
+  if (operation[3] === 'nodes') {
+    const value = z
+      .object({ decision: z.enum(['approved', 'rejected', 'deferred']), decidedBy: z.string().min(1) })
+      .parse(body)
+    return Response.json(await decideValidationNode({ planId, validationId: idSchema.parse(operation[4]), ...value }))
+  }
+  if (operation[3] === 'files') {
+    const value = z
+      .object({ path: z.string().min(1), contentHash: z.string().startsWith('sha256:'), approvedBy: z.string().min(1) })
+      .parse(body)
+    return Response.json(await approveValidationFile({ planId, ...value }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
 function assertPlanOperation(operation: string[]): void {
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
@@ -147,6 +177,10 @@ async function dispatchPost(operation: string[], body: unknown) {
     events: () => {
       assertPlanOperation(operation)
       return postEventAcknowledgement(operation, body)
+    },
+    validations: () => {
+      assertPlanOperation(operation)
+      return postValidationOperation(operation, body)
     },
   }
   const handler = handlers[operation[2] ?? operation[0]]
