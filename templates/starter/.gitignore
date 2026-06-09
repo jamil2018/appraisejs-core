@@ -55,3 +55,4 @@ packages/cucumber-runtime/dist/*
 # temporary files
 .tmp
 .fallow
+.appraisejs/

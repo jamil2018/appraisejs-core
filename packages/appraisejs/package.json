@@ -36,6 +36,7 @@
     "prepare": "npm run build",
     "build": "tsc",
     "test": "vitest run",
+    "test:mcp:e2e": "tsx src/mcp.e2e.ts",
     "publish:alpha": "npm publish --tag alpha",
     "publish:beta": "npm publish --tag beta",
     "bump:alpha": "npm version prerelease --preid alpha",
@@ -46,7 +47,9 @@
     "bump:patch": "npm version patch"
   },
   "dependencies": {
-    "commander": "^14.0.2"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^14.0.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",

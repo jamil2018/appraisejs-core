@@ -1,6 +1,6 @@
 import type { ActionResponse } from '@/types/form/actionHandler'
 
-export type ServiceErrorCode = 'NOT_FOUND' | 'VALIDATION' | 'CONFLICT' | 'INTERNAL'
+export type ServiceErrorCode = 'NOT_FOUND' | 'VALIDATION' | 'UNAUTHORIZED' | 'CONFLICT' | 'INTERNAL'
 
 export class ServiceError extends Error {
   readonly code: ServiceErrorCode
@@ -11,7 +11,16 @@ export class ServiceError extends Error {
     this.name = 'ServiceError'
     this.code = code
     this.statusCode =
-      statusCode ?? (code === 'NOT_FOUND' ? 404 : code === 'VALIDATION' ? 400 : code === 'CONFLICT' ? 409 : 500)
+      statusCode ??
+      (code === 'NOT_FOUND'
+        ? 404
+        : code === 'VALIDATION'
+          ? 400
+          : code === 'UNAUTHORIZED'
+            ? 401
+            : code === 'CONFLICT'
+              ? 409
+              : 500)
   }
 }
 

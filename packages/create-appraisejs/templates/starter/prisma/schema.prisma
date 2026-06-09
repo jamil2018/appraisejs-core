@@ -269,8 +269,8 @@ model TestRun {
 }
 
 model PlanProjection {
-  id                   String               @id @default(uuid())
-  planId               String               @unique
+  id                   String                @id @default(uuid())
+  planId               String                @unique
   revision             Int
   lifecycle            String
   goal                 String
@@ -279,17 +279,18 @@ model PlanProjection {
   reviewJson           String?
   validationJson       String?
   layoutJson           String?
-  stale                Boolean              @default(false)
-  conflicted           Boolean              @default(false)
+  stale                Boolean               @default(false)
+  conflicted           Boolean               @default(false)
   deletedAt            DateTime?
   lastValidProjectedAt DateTime
-  lastSyncAt           DateTime             @default(now())
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  lastSyncAt           DateTime              @default(now())
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
   tasks                PlanTaskProjection[]
   issues               PlanSyncIssue[]
   revisions            PlanRevision[]
   events               PlanEvent[]
+  coordinatorLease     PlanCoordinatorLease?
   personalLayouts      PlanPersonalLayout[]
   testRuns             TestRun[]
 
@@ -343,12 +344,39 @@ model PlanRevision {
 model PlanEvent {
   id               String         @id @default(uuid())
   planProjectionId String
+  sequence         Int
   type             String
   payloadJson      String?
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  supersededAt     DateTime?
   createdAt        DateTime       @default(now())
   plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
 
-  @@index([planProjectionId, createdAt])
+  @@unique([planProjectionId, sequence])
+  @@index([planProjectionId, acknowledgedAt, sequence])
+}
+
+model AppraiseProjectIdentity {
+  id                 String    @id @default(uuid())
+  projectFingerprint String    @unique
+  tokenHash          String
+  createdAt          DateTime  @default(now())
+  rotatedAt          DateTime?
+}
+
+model PlanCoordinatorLease {
+  id               String         @id @default(uuid())
+  planProjectionId String         @unique
+  coordinatorId    String
+  connectionId     String         @unique
+  leaseExpiresAt   DateTime
+  takeoverApproved Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@index([leaseExpiresAt])
 }
 
 model PlanPersonalLayout {

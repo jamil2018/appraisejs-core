@@ -11,6 +11,36 @@ export const metadata: Metadata = {
   description: 'Review agent-authored implementation plans',
 }
 
+type PlanListItem = Awaited<ReturnType<typeof listPlans>>[number]
+
+// fallow-ignore-next-line complexity
+function PlanCard({ plan }: { plan: PlanListItem }) {
+  return (
+    <Link href={`/plans/${plan.planId}`} className="group">
+      <Card className="group-hover:border-primary/50 h-full transition-colors">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">{plan.goal}</CardTitle>
+              <CardDescription className="mt-2 font-mono text-xs">{plan.planId}</CardDescription>
+            </div>
+            <Badge variant={plan.conflicted || plan.stale ? 'destructive' : 'secondary'}>
+              {plan.conflicted ? 'Conflict' : plan.stale ? 'Stale' : plan.lifecycle.replaceAll('_', ' ')}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>{plan.tasks.length} tasks</span>
+          <span className="flex items-center gap-1.5">
+            <GitBranch className="size-4" />
+            Revision {plan.revision}
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
 export default async function PlansPage() {
   const plans = await listPlans()
 
@@ -40,28 +70,7 @@ export default async function PlansPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {plans.map(plan => (
-            <Link key={plan.planId} href={`/plans/${plan.planId}`} className="group">
-              <Card className="group-hover:border-primary/50 h-full transition-colors">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-lg">{plan.goal}</CardTitle>
-                      <CardDescription className="mt-2 font-mono text-xs">{plan.planId}</CardDescription>
-                    </div>
-                    <Badge variant={plan.conflicted || plan.stale ? 'destructive' : 'secondary'}>
-                      {plan.conflicted ? 'Conflict' : plan.stale ? 'Stale' : plan.lifecycle.replaceAll('_', ' ')}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{plan.tasks.length} tasks</span>
-                  <span className="flex items-center gap-1.5">
-                    <GitBranch className="size-4" />
-                    Revision {plan.revision}
-                  </span>
-                </CardContent>
-              </Card>
-            </Link>
+            <PlanCard key={plan.planId} plan={plan} />
           ))}
         </div>
       )}
