@@ -121,10 +121,15 @@ try {
 
   const tools = await client.listTools()
   const toolNames = tools.tools.map(tool => tool.name).sort()
-  assert(toolNames.length === 10, `Expected 10 MCP tools, received ${toolNames.join(', ')}.`)
-  for (const expected of [
+  const expectedTools = [
     'coordinator_heartbeat',
     'coordinator_register',
+    'implementation_checkpoint',
+    'implementation_complete',
+    'implementation_completion_review',
+    'implementation_control',
+    'implementation_feedback',
+    'implementation_task_update',
     'plan_create',
     'plan_event_acknowledge',
     'plan_events_read',
@@ -133,7 +138,16 @@ try {
     'plan_start',
     'plan_task_update',
     'plan_wait_for_review',
-  ]) {
+    'validation_decide',
+    'validation_file_approve',
+    'validation_publish',
+    'validation_review_submit',
+  ]
+  assert(
+    toolNames.length === expectedTools.length,
+    `Expected ${expectedTools.length} MCP tools, received ${toolNames.join(', ')}.`,
+  )
+  for (const expected of expectedTools) {
     assert(toolNames.includes(expected), `Missing MCP tool ${expected}.`)
   }
 
