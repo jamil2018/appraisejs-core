@@ -38,6 +38,13 @@ The current event vocabulary includes:
 - `validation_preparation_started`
 - `task_updated`
 - `plan_cancelled`
+- `implementation_checkpoint`
+- `implementation_feedback_applied`
+- `implementation_paused`
+- `implementation_resumed`
+- `validation_failed`
+- `validation_passed`
+- `plan_completed`
 
 Future lifecycle sessions may add event types without changing delivery semantics. Approval events must be acknowledged
 only after the transition they permit succeeds. New blocking feedback must invalidate an approval that has not started
@@ -47,17 +54,24 @@ its permitted transition.
 
 All routes are under `/api/internal/coordinator`.
 
-| Method | Path                           | Purpose                                              |
-| ------ | ------------------------------ | ---------------------------------------------------- |
-| `POST` | `/register`                    | Acquire, reconnect, or take over a coordinator lease |
-| `POST` | `/heartbeat`                   | Renew a coordinator lease                            |
-| `POST` | `/plans`                       | Create a structured plan                             |
-| `GET`  | `/plans/:planId`               | Read the plan and exact content hash                 |
-| `PUT`  | `/plans/:planId`               | Submit a higher revision with an expected hash       |
-| `POST` | `/plans/:planId/start`         | Start validation preparation after plan approval     |
-| `POST` | `/plans/:planId/tasks/:taskId` | Publish a task progress event                        |
-| `GET`  | `/plans/:planId/events`        | Read events; `after` and `wait=true` are supported   |
-| `POST` | `/plans/:planId/events/ack`    | Acknowledge one sequence                             |
+| Method | Path                                          | Purpose                                              |
+| ------ | --------------------------------------------- | ---------------------------------------------------- |
+| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease |
+| `POST` | `/heartbeat`                                  | Renew a coordinator lease                            |
+| `POST` | `/plans`                                      | Create a structured plan                             |
+| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                 |
+| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash       |
+| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval     |
+| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                        |
+| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported   |
+| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                             |
+| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint               |
+| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                              |
+| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback         |
+| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation              |
+| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                     |
+| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                     |
+| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                   |
 
 The create response includes the stable review URL only after `plan_review_ready` is durably appended.
 
@@ -82,6 +96,12 @@ Tools:
 - `plan_task_update`
 - `plan_events_read`
 - `plan_event_acknowledge`
+- `implementation_checkpoint`
+- `implementation_task_update`
+- `implementation_feedback`
+- `implementation_control`
+- `implementation_completion_review`
+- `implementation_complete`
 
 ## Local Smoke Test
 

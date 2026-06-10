@@ -42,6 +42,20 @@ export const approvalSchema = z.object({
   approvedAt: timestampSchema,
 })
 
+export const implementationValidationRunSchema = z.object({
+  id: idSchema,
+  validationId: idSchema,
+  taskIds: z.array(idSchema).min(1),
+  required: z.boolean(),
+  status: z.enum(['passed', 'failed', 'cancelled', 'infrastructure_failure']),
+  fresh: z.boolean(),
+  commitHash: z.string().min(1),
+  evidenceUrls: z.array(z.string().min(1)),
+  failureSignatureHash: hashSchema.optional(),
+  acknowledgedAt: timestampSchema.optional(),
+  completedAt: timestampSchema,
+})
+
 export const planArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
@@ -243,21 +257,7 @@ export const validationArtifactSchema = artifactHeaderSchema
             reachedAt: timestampSchema,
           })
           .optional(),
-        validationRuns: z.array(
-          z.object({
-            id: idSchema,
-            validationId: idSchema,
-            taskIds: z.array(idSchema).min(1),
-            required: z.boolean(),
-            status: z.enum(['passed', 'failed', 'cancelled', 'infrastructure_failure']),
-            fresh: z.boolean(),
-            commitHash: z.string().min(1),
-            evidenceUrls: z.array(z.string().min(1)),
-            failureSignatureHash: hashSchema.optional(),
-            acknowledgedAt: timestampSchema.optional(),
-            completedAt: timestampSchema,
-          }),
-        ),
+        validationRuns: z.array(implementationValidationRunSchema),
         commits: z.array(
           z.object({
             hash: z.string().min(1),

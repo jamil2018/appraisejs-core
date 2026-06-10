@@ -1,7 +1,12 @@
 import { z } from 'zod'
 
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
-import { parseYamlArtifact, planArtifactSchema, validationArtifactSchema } from '@/lib/plan-contract'
+import {
+  implementationValidationRunSchema,
+  parseYamlArtifact,
+  planArtifactSchema,
+  validationArtifactSchema,
+} from '@/lib/plan-contract'
 import {
   acknowledgePlanEvent,
   heartbeatCoordinator,
@@ -22,6 +27,15 @@ import {
   publishPreparedValidations,
   submitValidationReview,
 } from '@/services/coordinator/coordinator-validation-service'
+import {
+  applyBlockingFeedback,
+  approveImplementationCompletion,
+  controlImplementation,
+  reachImplementationCheckpoint,
+  recordImplementationValidation,
+  reviewImplementationCompletion,
+  updateImplementationTask,
+} from '@/services/coordinator/coordinator-implementation-service'
 import { ServiceError } from '@/services/shared/errors'
 
 export const runtime = 'nodejs'
@@ -70,10 +84,76 @@ async function dispatchGet(request: Request, operation: string[]) {
   const handlers: Record<string, () => Promise<Response>> = {
     plan: () => getPlan(operation),
     events: () => getEvents(request, operation),
+    completion: async () => Response.json(await reviewImplementationCompletion(idSchema.parse(operation[1]))),
   }
   const handler = handlers[operation[2] ?? 'plan']
   if (!handler) throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   return handler()
+}
+
+// Request parsing branches stay in this thin HTTP adapter.
+// fallow-ignore-next-line complexity
+async function postImplementationOperation(operation: string[], body: unknown) {
+  const planId = idSchema.parse(operation[1])
+  const action = operation[3]
+  if (action === 'checkpoint') {
+    const value = z
+      .object({
+        type: z.enum([
+          'before_task',
+          'after_task',
+          'before_group',
+          'after_group',
+          'before_validation',
+          'before_completion',
+        ]),
+        taskIds: z.array(idSchema).optional(),
+        queuedFeedbackCount: z.number().int().nonnegative().optional(),
+      })
+      .parse(body)
+    return Response.json(await reachImplementationCheckpoint({ planId, ...value }))
+  }
+  if (action === 'tasks') {
+    const value = z
+      .object({
+        status: z.enum(['pending', 'in_progress', 'implemented', 'verified']),
+        commitHash: z.string().min(1).optional(),
+      })
+      .parse(body)
+    return Response.json(await updateImplementationTask({ planId, taskId: idSchema.parse(operation[4]), ...value }))
+  }
+  if (action === 'feedback') {
+    const value = z
+      .object({
+        affectedTaskIds: z.array(idSchema).min(1),
+        confirmed: z.boolean(),
+        pausePlanWide: z.boolean().optional(),
+      })
+      .parse(body)
+    return Response.json(await applyBlockingFeedback({ planId, ...value }))
+  }
+  if (action === 'control') {
+    const value = z
+      .object({
+        action: z.enum(['pause', 'resume', 'cancel']),
+        stopActiveRuns: z.boolean().optional(),
+      })
+      .parse(body)
+    return Response.json(await controlImplementation({ planId, ...value }))
+  }
+  if (action === 'validations') {
+    const value = z
+      .object({
+        run: implementationValidationRunSchema,
+      })
+      .parse(body)
+    return Response.json(await recordImplementationValidation({ planId, ...value }))
+  }
+  if (action === 'complete') {
+    const value = z.object({ approvedBy: z.string().min(1), contentHash: z.string().startsWith('sha256:') }).parse(body)
+    return Response.json(await approveImplementationCompletion({ planId, ...value }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -181,6 +261,10 @@ async function dispatchPost(operation: string[], body: unknown) {
     validations: () => {
       assertPlanOperation(operation)
       return postValidationOperation(operation, body)
+    },
+    implementation: () => {
+      assertPlanOperation(operation)
+      return postImplementationOperation(operation, body)
     },
   }
   const handler = handlers[operation[2] ?? operation[0]]
