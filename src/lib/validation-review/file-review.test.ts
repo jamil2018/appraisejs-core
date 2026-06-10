@@ -90,6 +90,8 @@ describe('validation review approval', () => {
       },
     ],
     manifestPaths: ['src/product.ts'],
+    baselineAttempts: [],
+    baselineAcknowledgements: [],
     baselineDecision: 'pending',
   }
   const review: ReviewArtifact = {

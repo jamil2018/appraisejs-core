@@ -152,6 +152,7 @@ export const validationArtifactSchema = artifactHeaderSchema
               environment: z.string().min(1),
               signature: z.string().min(1),
               order: z.number().int().nonnegative(),
+              lastPassingStepId: idSchema,
             }),
           ),
         }),
@@ -181,6 +182,46 @@ export const validationArtifactSchema = artifactHeaderSchema
     ),
     manifestPaths: z.array(z.string().min(1)),
     reviewSubmittedAt: timestampSchema.optional(),
+    baselineAttempts: z
+      .array(
+        z.object({
+          id: idSchema,
+          validationId: idSchema,
+          browser: z.string().min(1),
+          environment: z.string().min(1),
+          testRunId: z.string().min(1),
+          status: z.enum(['scheduled', 'running', 'completed', 'cancelled', 'interrupted']),
+          classification: z
+            .enum([
+              'expected_behavioral_failure',
+              'accepted_regression_pass',
+              'pre_existing_unrelated_failure',
+              'invalid_baseline_failure',
+            ])
+            .optional(),
+          signatureHash: hashSchema.optional(),
+          regressionJustification: z.string().min(1).optional(),
+          evidence: z.object({
+            logsUrl: z.string().min(1),
+            reportUrl: z.string().min(1),
+            traceUrls: z.array(z.string().min(1)).default([]),
+            screenshotUrls: z.array(z.string().min(1)).default([]),
+          }),
+          createdAt: timestampSchema,
+          completedAt: timestampSchema.optional(),
+        }),
+      )
+      .default([]),
+    baselineAcknowledgements: z
+      .array(
+        z.object({
+          attemptId: idSchema,
+          signatureHash: hashSchema,
+          acknowledgedBy: z.string().min(1),
+          acknowledgedAt: timestampSchema,
+        }),
+      )
+      .default([]),
     baselineDecision: z.enum(['pending', 'accepted', 'changes-requested']),
   })
   .strict()
