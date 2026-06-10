@@ -10,6 +10,7 @@ import {
   type LayoutArtifact,
   type PlanArtifact,
   type ReviewArtifact,
+  type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
@@ -36,6 +37,7 @@ type ReviewMutationOptions = {
 export type PlanReviewDetail = {
   plan: PlanArtifact
   review?: ReviewArtifact
+  validation?: ValidationArtifact
   graph: ReturnType<typeof derivePlanGraph>
   projection: {
     sourceHash: string
@@ -89,6 +91,10 @@ function parsePositions(value: string | null | undefined): LayoutArtifact['posit
   } catch {
     return {}
   }
+}
+
+function parseValidation(value: string | null | undefined): ValidationArtifact | undefined {
+  return value ? (JSON.parse(value) as ValidationArtifact) : undefined
 }
 
 async function readPlanAndReview(projectDirectory: string, planId: string) {
@@ -169,19 +175,18 @@ export async function getPlanReviewDetail(
     }),
   ])
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
+  const validation = parseValidation(projection.validationJson)
 
   const graph = derivePlanGraph(plan)
   const readiness = evaluateGraphReadiness(projection.events)
   if (!readiness.ready) {
-    await appendPlanEvent(
-      { planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
-      client,
-    )
+    await appendPlanEvent({ planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } }, client)
   }
 
   return {
     plan,
     review,
+    validation,
     graph,
     projection,
     issues: projection.issues,
