@@ -42,6 +42,20 @@ export const approvalSchema = z.object({
   approvedAt: timestampSchema,
 })
 
+export const implementationValidationRunSchema = z.object({
+  id: idSchema,
+  validationId: idSchema,
+  taskIds: z.array(idSchema).min(1),
+  required: z.boolean(),
+  status: z.enum(['passed', 'failed', 'cancelled', 'infrastructure_failure']),
+  fresh: z.boolean(),
+  commitHash: z.string().min(1),
+  evidenceUrls: z.array(z.string().min(1)),
+  failureSignatureHash: hashSchema.optional(),
+  acknowledgedAt: timestampSchema.optional(),
+  completedAt: timestampSchema,
+})
+
 export const planArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
@@ -112,11 +126,28 @@ export const reviewArtifactSchema = artifactHeaderSchema
 export const validationArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
+    baseRevision: z.object({
+      gitCommit: z.string().min(1).nullable(),
+      snapshotHash: hashSchema,
+      reducedAssurance: z.boolean(),
+    }),
+    classificationOverrides: z
+      .array(
+        z.object({
+          pattern: z.string().min(1),
+          classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
+        }),
+      )
+      .default([]),
     validations: z
       .array(
         z.object({
           id: idSchema,
           taskIds: z.array(idSchema).min(1),
+          required: z.boolean(),
+          testCaseIds: z.array(idSchema).min(1),
+          gherkinPaths: z.array(z.string().min(1)).min(1),
+          stepPaths: z.array(z.string().min(1)).min(1),
           executable: z.object({
             path: z.string().min(1),
             selector: z.string().min(1).optional(),
@@ -135,13 +166,108 @@ export const validationArtifactSchema = artifactHeaderSchema
               environment: z.string().min(1),
               signature: z.string().min(1),
               order: z.number().int().nonnegative(),
+              lastPassingStepId: idSchema,
             }),
           ),
         }),
       )
       .transform(items => uniqueIds(items, 'validations')),
     approvals: z.array(approvalSchema),
+    validationDecisions: z.array(
+      z.object({
+        validationId: idSchema,
+        decision: z.enum(['approved', 'rejected', 'deferred']),
+        contentHash: hashSchema,
+        decidedBy: z.string().min(1),
+        decidedAt: timestampSchema,
+      }),
+    ),
+    files: z.array(
+      z.object({
+        path: z.string().min(1),
+        classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
+        rationale: z.string().min(1),
+        status: z.enum(['added', 'modified', 'deleted']),
+        beforeHash: hashSchema.nullable(),
+        contentHash: hashSchema.nullable(),
+        patch: z.string(),
+        declared: z.boolean(),
+      }),
+    ),
+    manifestPaths: z.array(z.string().min(1)),
+    reviewSubmittedAt: timestampSchema.optional(),
+    baselineAttempts: z
+      .array(
+        z.object({
+          id: idSchema,
+          validationId: idSchema,
+          browser: z.string().min(1),
+          environment: z.string().min(1),
+          testRunId: z.string().min(1),
+          status: z.enum(['scheduled', 'running', 'completed', 'cancelled', 'interrupted']),
+          classification: z
+            .enum([
+              'expected_behavioral_failure',
+              'accepted_regression_pass',
+              'pre_existing_unrelated_failure',
+              'invalid_baseline_failure',
+            ])
+            .optional(),
+          signatureHash: hashSchema.optional(),
+          regressionJustification: z.string().min(1).optional(),
+          evidence: z.object({
+            logsUrl: z.string().min(1),
+            reportUrl: z.string().min(1),
+            traceUrls: z.array(z.string().min(1)).default([]),
+            screenshotUrls: z.array(z.string().min(1)).default([]),
+          }),
+          createdAt: timestampSchema,
+          completedAt: timestampSchema.optional(),
+        }),
+      )
+      .default([]),
+    baselineAcknowledgements: z
+      .array(
+        z.object({
+          attemptId: idSchema,
+          signatureHash: hashSchema,
+          acknowledgedBy: z.string().min(1),
+          acknowledgedAt: timestampSchema,
+        }),
+      )
+      .default([]),
     baselineDecision: z.enum(['pending', 'accepted', 'changes-requested']),
+    implementation: z
+      .object({
+        taskStates: z.record(idSchema, z.enum(['pending', 'in_progress', 'implemented', 'verified'])),
+        approvedGroupIds: z.array(idSchema),
+        pausedTaskIds: z.array(idSchema),
+        checkpoint: z
+          .object({
+            type: z.enum([
+              'before_task',
+              'after_task',
+              'before_group',
+              'after_group',
+              'before_validation',
+              'before_completion',
+            ]),
+            taskIds: z.array(idSchema),
+            queuedFeedbackCount: z.number().int().nonnegative(),
+            reachedAt: timestampSchema,
+          })
+          .optional(),
+        validationRuns: z.array(implementationValidationRunSchema),
+        commits: z.array(
+          z.object({
+            hash: z.string().min(1),
+            taskIds: z.array(idSchema).min(1),
+            createdAt: timestampSchema,
+          }),
+        ),
+        evidenceProtected: z.boolean(),
+      })
+      .optional(),
   })
   .strict()
 

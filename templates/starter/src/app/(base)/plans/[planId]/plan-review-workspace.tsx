@@ -28,10 +28,17 @@ import {
 
 import {
   addPlanRemarkAction,
+  acceptBaselineAction,
+  acknowledgeBaselineFailureAction,
   approvePlanRevisionAction,
+  cancelBaselineExecutionAction,
+  justifyBaselineRegressionPassAction,
   publishSharedPlanLayoutAction,
+  reconcileBaselineExecutionAction,
   retargetPlanRemarkAction,
   savePersonalPlanLayoutAction,
+  startBaselineExecutionAction,
+  startImplementationAction,
   transitionPlanRemarkAction,
 } from '@/actions/plan-review/plan-review-actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -96,6 +103,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
   const [blocking, setBlocking] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
   const [confirmReplacement, setConfirmReplacement] = useState(false)
+  const [regressionJustification, setRegressionJustification] = useState('')
   const [isPending, startTransition] = useTransition()
 
   const selectedTask = detail.plan.tasks.find(task => task.id === selectedTaskId)
@@ -296,6 +304,166 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
         </Card>
 
         <aside className="space-y-5">
+          {detail.validation ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Baseline execution</CardTitle>
+                <CardDescription>
+                  Required browser and environment combinations must have accepted evidence before implementation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {detail.validation.baselineAttempts.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No baseline attempts have been submitted.</p>
+                  ) : (
+                    detail.validation.baselineAttempts.map(attempt => (
+                      <div key={attempt.id} className="rounded-lg border p-3 text-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-medium">
+                            {attempt.validationId}: {attempt.browser} / {attempt.environment}
+                          </span>
+                          <Badge
+                            variant={attempt.classification === 'invalid_baseline_failure' ? 'destructive' : 'outline'}
+                          >
+                            {attempt.classification?.replaceAll('_', ' ') ?? attempt.status}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                          <a className="text-primary underline" href={attempt.evidence.logsUrl}>
+                            Logs
+                          </a>
+                          <a className="text-primary underline" href={attempt.evidence.reportUrl}>
+                            Report
+                          </a>
+                          {attempt.evidence.traceUrls.map(url => (
+                            <a key={url} className="text-primary underline" href={url}>
+                              Trace
+                            </a>
+                          ))}
+                          {attempt.evidence.screenshotUrls.map(url => (
+                            <a key={url} className="text-primary underline" href={url}>
+                              Screenshot
+                            </a>
+                          ))}
+                        </div>
+                        {attempt.classification === 'pre_existing_unrelated_failure' ? (
+                          <Button
+                            className="mt-3"
+                            size="sm"
+                            variant="outline"
+                            disabled={isPending}
+                            onClick={() =>
+                              run(
+                                () =>
+                                  acknowledgeBaselineFailureAction({
+                                    planId: detail.plan.planId,
+                                    attemptId: attempt.id,
+                                  }),
+                                'Unrelated failure acknowledged.',
+                              )
+                            }
+                          >
+                            Acknowledge unchanged failure
+                          </Button>
+                        ) : null}
+                        {attempt.classification === 'accepted_regression_pass' && !attempt.regressionJustification ? (
+                          <div className="mt-3 space-y-2">
+                            <Textarea
+                              value={regressionJustification}
+                              onChange={event => setRegressionJustification(event.target.value)}
+                              placeholder="Why this passing test still provides required regression coverage"
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isPending || !regressionJustification.trim()}
+                              onClick={() =>
+                                run(
+                                  () =>
+                                    justifyBaselineRegressionPassAction({
+                                      planId: detail.plan.planId,
+                                      attemptId: attempt.id,
+                                      justification: regressionJustification,
+                                    }),
+                                  'Regression coverage justified.',
+                                )
+                              }
+                            >
+                              Save justification
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  {['validations_approved', 'baseline_changes_requested'].includes(detail.plan.lifecycle) ? (
+                    <Button
+                      disabled={isPending}
+                      onClick={() =>
+                        run(
+                          () => startBaselineExecutionAction({ planId: detail.plan.planId }),
+                          'Baseline runs submitted.',
+                        )
+                      }
+                    >
+                      Start required baselines
+                    </Button>
+                  ) : null}
+                  {detail.plan.lifecycle === 'baseline_running' ? (
+                    <>
+                      <Button
+                        disabled={isPending}
+                        onClick={() =>
+                          run(
+                            () => reconcileBaselineExecutionAction({ planId: detail.plan.planId }),
+                            'Baseline evidence reconciled.',
+                          )
+                        }
+                      >
+                        Reconcile run evidence
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={isPending}
+                        onClick={() =>
+                          run(
+                            () => cancelBaselineExecutionAction({ planId: detail.plan.planId }),
+                            'Baseline execution cancelled.',
+                          )
+                        }
+                      >
+                        Cancel baseline runs
+                      </Button>
+                    </>
+                  ) : null}
+                  {detail.plan.lifecycle === 'baseline_review' ? (
+                    <Button
+                      disabled={isPending}
+                      onClick={() =>
+                        run(() => acceptBaselineAction({ planId: detail.plan.planId }), 'Baselines accepted.')
+                      }
+                    >
+                      Accept complete baseline
+                    </Button>
+                  ) : null}
+                  {detail.plan.lifecycle === 'baseline_accepted' ? (
+                    <Button
+                      disabled={isPending}
+                      onClick={() =>
+                        run(() => startImplementationAction({ planId: detail.plan.planId }), 'Implementation unlocked.')
+                      }
+                    >
+                      Unlock implementation
+                    </Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle>{selectedTask ? selectedTask.title : 'Plan-wide review'}</CardTitle>

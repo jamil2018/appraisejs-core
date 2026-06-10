@@ -245,6 +245,114 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'implementation_checkpoint',
+    {
+      description: 'Reach an implementation checkpoint and receive currently runnable tasks.',
+      inputSchema: {
+        planId: z.string(),
+        type: z.enum([
+          'before_task',
+          'after_task',
+          'before_group',
+          'after_group',
+          'before_validation',
+          'before_completion',
+        ]),
+        taskIds: z.array(z.string()).optional(),
+        queuedFeedbackCount: z.number().int().nonnegative().optional(),
+      },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/implementation/checkpoint`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_task_update',
+    {
+      description: 'Move an implementation task through pending, in progress, implemented, and verified.',
+      inputSchema: {
+        planId: z.string(),
+        taskId: z.string(),
+        status: z.enum(['pending', 'in_progress', 'implemented', 'verified']),
+        commitHash: z.string().optional(),
+      },
+    },
+    async ({ planId, taskId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/implementation/tasks/${taskId}`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_feedback',
+    {
+      description: 'Analyze and, after user confirmation, apply blocking feedback impact.',
+      inputSchema: {
+        planId: z.string(),
+        affectedTaskIds: z.array(z.string()).min(1),
+        confirmed: z.boolean(),
+        pausePlanWide: z.boolean().optional(),
+      },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/implementation/feedback`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_control',
+    {
+      description: 'Pause, resume, or cancel implementation; cancellation separately controls active runs.',
+      inputSchema: {
+        planId: z.string(),
+        action: z.enum(['pause', 'resume', 'cancel']),
+        stopActiveRuns: z.boolean().optional(),
+      },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/implementation/control`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_completion_review',
+    {
+      description: 'Read final task, commit, validation, evidence, failure, and remark review data.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => text(await api.request(`plans/${planId}/completion`)),
+  )
+  server.registerTool(
+    'implementation_complete',
+    {
+      description: 'Complete a validation-passed plan only after explicit final user approval.',
+      inputSchema: {
+        planId: z.string(),
+        approvedBy: z.string(),
+        contentHash: z.string(),
+      },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/implementation/complete`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
     'coordinator_register',
     {
       description: 'Acquire or reconnect the single coordinator lease for a plan.',

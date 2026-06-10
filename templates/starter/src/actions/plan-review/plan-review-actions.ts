@@ -13,6 +13,15 @@ import {
 } from '@/services/plan-review/plan-review-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
+import {
+  acceptBaseline,
+  acknowledgeBaselineFailure,
+  cancelBaselineExecution,
+  justifyBaselineRegressionPass,
+  reconcileBaselineExecution,
+  startBaselineExecution,
+  startImplementation,
+} from '@/services/coordinator/coordinator-baseline-service'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const targetSchema = z.discriminatedUnion('type', [
@@ -78,4 +87,43 @@ export async function savePersonalPlanLayoutAction(input: unknown): Promise<Acti
 export async function publishSharedPlanLayoutAction(input: unknown): Promise<ActionResponse> {
   const value = z.object({ planId: idSchema, positions: positionsSchema }).parse(input)
   return runAction(value.planId, () => publishSharedPlanLayout(value))
+}
+
+export async function startBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
+  const value = z.object({ planId: idSchema }).parse(input)
+  return runAction(value.planId, () => startBaselineExecution(value.planId).then(() => undefined))
+}
+
+export async function reconcileBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
+  const value = z.object({ planId: idSchema }).parse(input)
+  return runAction(value.planId, () => reconcileBaselineExecution(value.planId).then(() => undefined))
+}
+
+export async function cancelBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
+  const value = z.object({ planId: idSchema }).parse(input)
+  return runAction(value.planId, () => cancelBaselineExecution(value.planId).then(() => undefined))
+}
+
+export async function acknowledgeBaselineFailureAction(input: unknown): Promise<ActionResponse> {
+  const value = z.object({ planId: idSchema, attemptId: idSchema }).parse(input)
+  return runAction(value.planId, () =>
+    acknowledgeBaselineFailure({ ...value, acknowledgedBy: 'local-user' }).then(() => undefined),
+  )
+}
+
+export async function justifyBaselineRegressionPassAction(input: unknown): Promise<ActionResponse> {
+  const value = z
+    .object({ planId: idSchema, attemptId: idSchema, justification: z.string().trim().min(1) })
+    .parse(input)
+  return runAction(value.planId, () => justifyBaselineRegressionPass(value))
+}
+
+export async function acceptBaselineAction(input: unknown): Promise<ActionResponse> {
+  const value = z.object({ planId: idSchema }).parse(input)
+  return runAction(value.planId, () => acceptBaseline(value.planId).then(() => undefined))
+}
+
+export async function startImplementationAction(input: unknown): Promise<ActionResponse> {
+  const value = z.object({ planId: idSchema }).parse(input)
+  return runAction(value.planId, () => startImplementation(value.planId).then(() => undefined))
 }
