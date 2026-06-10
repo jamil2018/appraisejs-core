@@ -223,6 +223,51 @@ export const validationArtifactSchema = artifactHeaderSchema
       )
       .default([]),
     baselineDecision: z.enum(['pending', 'accepted', 'changes-requested']),
+    implementation: z
+      .object({
+        taskStates: z.record(idSchema, z.enum(['pending', 'in_progress', 'implemented', 'verified'])),
+        approvedGroupIds: z.array(idSchema),
+        pausedTaskIds: z.array(idSchema),
+        checkpoint: z
+          .object({
+            type: z.enum([
+              'before_task',
+              'after_task',
+              'before_group',
+              'after_group',
+              'before_validation',
+              'before_completion',
+            ]),
+            taskIds: z.array(idSchema),
+            queuedFeedbackCount: z.number().int().nonnegative(),
+            reachedAt: timestampSchema,
+          })
+          .optional(),
+        validationRuns: z.array(
+          z.object({
+            id: idSchema,
+            validationId: idSchema,
+            taskIds: z.array(idSchema).min(1),
+            required: z.boolean(),
+            status: z.enum(['passed', 'failed', 'cancelled', 'infrastructure_failure']),
+            fresh: z.boolean(),
+            commitHash: z.string().min(1),
+            evidenceUrls: z.array(z.string().min(1)),
+            failureSignatureHash: hashSchema.optional(),
+            acknowledgedAt: timestampSchema.optional(),
+            completedAt: timestampSchema,
+          }),
+        ),
+        commits: z.array(
+          z.object({
+            hash: z.string().min(1),
+            taskIds: z.array(idSchema).min(1),
+            createdAt: timestampSchema,
+          }),
+        ),
+        evidenceProtected: z.boolean(),
+      })
+      .optional(),
   })
   .strict()
 
