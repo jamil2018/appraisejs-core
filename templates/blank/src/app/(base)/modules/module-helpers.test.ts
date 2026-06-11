@@ -41,8 +41,8 @@ describe('module helpers', () => {
   it('falls back to the root module parent id and formats action errors', () => {
     expect(getModuleFormParentId(null)).toBe('00000000-0000-0000-0000-000000000000')
     expect(getModuleFormParentId('module-1')).toBe('module-1')
-    expect(getActionErrorMessage({ error: 'Nope' })).toBe('Nope')
-    expect(getActionErrorMessage({ message: 'Try again' })).toBe('Try again')
-    expect(getActionErrorMessage({})).toBe('Unable to save module.')
+    expect(getActionErrorMessage({ status: 400, error: 'Nope' })).toBe('Nope')
+    expect(getActionErrorMessage({ status: 400, message: 'Try again' })).toBe('Try again')
+    expect(getActionErrorMessage({ status: 500 })).toBe('Unable to save module.')
   })
 })

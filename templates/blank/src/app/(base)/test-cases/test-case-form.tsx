@@ -1,5 +1,5 @@
 'use client'
-import React, { useCallback, useEffect, useMemo, useReducer } from 'react'
+import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 
 import {
   getConvertedTemplateTestCaseData,
@@ -26,7 +26,7 @@ import {
   type Tag,
 } from '@prisma/client'
 import { ArrowLeft, ArrowRight, Info, Maximize2, Minimize2, Plus, Save } from 'lucide-react'
-import { LayoutGroup, LazyMotion, domAnimation } from 'motion/react'
+import { LayoutGroup, LazyMotion, domAnimation, useReducedMotion } from 'motion/react'
 import * as motion from 'motion/react-m'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
@@ -1207,6 +1207,13 @@ const TestCaseForm = ({
     isFlowImmersive,
     errors,
   } = formState
+  const shouldReduceMotion = useReducedMotion()
+  const [previousStep, setPreviousStep] = useState(currentStep)
+  const stepDirection = currentStep >= previousStep ? 1 : -1
+
+  useEffect(() => {
+    setPreviousStep(currentStep)
+  }, [currentStep])
   const selectedTemplateTestCase = useMemo(
     () => templateTestCases?.find(templateTestCase => templateTestCase.id === selectedTemplateId) ?? null,
     [selectedTemplateId, templateTestCases],
@@ -1383,7 +1390,18 @@ const TestCaseForm = ({
     <div className="flex flex-col gap-4">
       <WizardProgress steps={wizardSteps} currentStep={currentStep} onStepClick={onWizardStepClick} />
 
-      <WizardStepContent {...wizardStepContentProps} />
+      <LazyMotion features={domAnimation} strict>
+        <motion.div
+          key={currentStep}
+          data-wizard-step-transition
+          initial={shouldReduceMotion ? false : { x: stepDirection * 32 }}
+          animate={{ x: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          style={shouldReduceMotion ? undefined : { willChange: 'transform' }}
+        >
+          <WizardStepContent {...wizardStepContentProps} />
+        </motion.div>
+      </LazyMotion>
 
       <InlineTestSuiteCreationDialog
         open={isCreateSuiteDialogOpen}

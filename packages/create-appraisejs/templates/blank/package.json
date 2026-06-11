@@ -17,6 +17,7 @@
     "setup-env": "npx tsx scripts/setup-env.ts",
     "setup:git": "node scripts/configure-git-line-endings.mjs",
     "migrate-db": "npx prisma migrate deploy",
+    "validate:migrations": "node scripts/validate-prisma-migrations.mjs",
     "generate-db-client": "npx prisma generate --schema prisma/schema.prisma",
     "setup": "npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files",
     "sync-features": "npx tsx scripts/regenerate-features.ts",
@@ -28,6 +29,8 @@
     "sync-tags": "npx tsx scripts/sync-tags.ts",
     "sync-test-suites": "npx tsx scripts/sync-test-suites.ts",
     "sync-test-cases": "npx tsx scripts/sync-test-cases.ts",
+    "sync-plans": "npx tsx scripts/sync-plans.ts",
+    "smoke:coordinator": "npx tsx scripts/smoke-coordinator.ts",
     "sync-template-step-groups": "npx tsx scripts/sync-template-step-groups.ts",
     "sync-template-steps": "npx tsx scripts/sync-template-steps.ts",
     "sync-all": "npx tsx scripts/sync-all.ts",
@@ -97,6 +100,7 @@
     "recharts": "^2.15.4",
     "tailwind-merge": "^2.6.0",
     "winston": "^3.19.0",
+    "yaml": "^2.9.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

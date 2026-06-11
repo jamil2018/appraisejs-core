@@ -175,6 +175,28 @@ describe('flow-diagram helpers', () => {
     expect(orders['node-3']?.order).toBe(-1)
   })
 
+  it('keeps a single real node in the ordered scenario', () => {
+    const orders = determineNodeOrders(
+      [
+        {
+          id: 'node-1',
+          data: {
+            label: 'Open page',
+            gherkinStep: 'Given I open the page',
+            parameters: [],
+            templateStepId: 'step-1',
+          },
+        },
+      ] as never,
+      [],
+    )
+
+    expect(orders['node-1']).toMatchObject({
+      order: 1,
+      gherkinStep: 'Given I open the page',
+    })
+  })
+
   it('detects connected start nodes and excludes isolated nodes', () => {
     const startNodeIds = determineStartNodeIds(
       [

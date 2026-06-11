@@ -11,6 +11,7 @@ export interface TemplateMetadata {
 export interface TemplateStepDataCounts {
   stepCount: number
   stepGroupCount: number
+  localRuntimeRowCount: number
 }
 
 export const TEMPLATE_PREP_SYNC_SCRIPTS = ['sync-template-step-groups', 'sync-template-steps'] as const
@@ -64,11 +65,31 @@ export async function readTemplateStepDataCounts(databasePath: string): Promise<
   })
 
   try {
-    const [stepCount, stepGroupCount] = await prisma.$transaction([
+    const [
+      stepCount,
+      stepGroupCount,
+      projectIdentityCount,
+      coordinatorLeaseCount,
+      personalLayoutCount,
+      eventCount,
+      testRunCount,
+      reportCount,
+    ] = await prisma.$transaction([
       prisma.templateStep.count(),
       prisma.templateStepGroup.count(),
+      prisma.appraiseProjectIdentity.count(),
+      prisma.planCoordinatorLease.count(),
+      prisma.planPersonalLayout.count(),
+      prisma.planEvent.count(),
+      prisma.testRun.count(),
+      prisma.report.count(),
     ])
-    return { stepCount, stepGroupCount }
+    return {
+      stepCount,
+      stepGroupCount,
+      localRuntimeRowCount:
+        projectIdentityCount + coordinatorLeaseCount + personalLayoutCount + eventCount + testRunCount + reportCount,
+    }
   } finally {
     await prisma.$disconnect()
   }
@@ -134,6 +155,9 @@ export async function verifyPreparedTemplateState(
   }
 
   const stepDataCounts = await readTemplateStepDataCountsFn(seededDbPath)
+  if (stepDataCounts.localRuntimeRowCount > 0) {
+    throw new Error(`Prepared template database contains local runtime state at ${seededDbPath}`)
+  }
 
   if (template === 'starter') {
     if (bundledStepFiles.length === 0) {

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 import { disconnectPrisma, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
-import { buildModifyPath, gotoAndExpectHeading, visitRoutes, type RouteExpectation } from './helpers/navigation'
+import { buildModifyPath, visitRoutes, type RouteExpectation } from './helpers/navigation'
 import { expectPageHeading } from './helpers/ui'
 
 test.describe('Navigation @navigation', () => {
@@ -97,5 +97,48 @@ test.describe('Navigation @navigation', () => {
     await page.getByRole('button', { name: 'Unexecuted Suites' }).click()
     await expect(page).toHaveURL(/\/reports\/test-suites\?filter=notExecutedRecently/)
     await expectPageHeading(page, 'Test Suites Report')
+  })
+
+  test('client navigation remounts route content while preserving navigation', async ({ page }) => {
+    await page.goto('/')
+    await expectPageHeading(page, 'Dashboard')
+    await expect(page.locator('[data-page-transition]')).toHaveAttribute('data-page-transition-variant', 'fade')
+
+    const initialTransition = await page.locator('[data-page-transition]').evaluate(element => {
+      element.setAttribute('data-transition-instance', 'initial')
+      return element.getAttribute('data-transition-instance')
+    })
+    const navigation = page.locator('[data-persistent-navigation]')
+    await navigation.evaluate(element => element.setAttribute('data-navigation-instance', 'persistent'))
+
+    expect(initialTransition).toBe('initial')
+    await page.getByRole('link', { name: 'Settings' }).click()
+
+    await expectPageHeading(page, 'Settings')
+    await expect(page.locator('[data-page-transition]')).not.toHaveAttribute('data-transition-instance', 'initial')
+    await expect(page.locator('[data-page-transition]')).toHaveAttribute('data-page-transition-variant', 'fade')
+    await expect(navigation).toHaveAttribute('data-navigation-instance', 'persistent')
+  })
+
+  test('creation and modification routes use slide transitions', async ({ page }) => {
+    await page.goto('/modules/create')
+    await expectPageHeading(page, 'Create Module')
+    await expect(page.locator('[data-page-transition]')).toHaveAttribute('data-page-transition-variant', 'slide')
+
+    await page.goto(buildModifyPath('/modules', seededIds.module))
+    await expectPageHeading(page, 'Name')
+    await expect(page.locator('[data-page-transition]')).toHaveAttribute('data-page-transition-variant', 'slide')
+  })
+
+  test('reduced motion navigation completes without an active entrance animation', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+
+    await page.getByRole('link', { name: 'Settings' }).click()
+    await expectPageHeading(page, 'Settings')
+
+    const transition = page.locator('[data-page-transition]')
+    await expect(transition).toHaveCSS('opacity', '1')
+    await expect(transition).toHaveCSS('transform', 'none')
   })
 })

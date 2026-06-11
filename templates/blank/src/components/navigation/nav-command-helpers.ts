@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   ListChecks,
+  Network,
   Puzzle,
   Server,
   Settings2,
@@ -65,6 +66,7 @@ export const navigationCommandGroups: NavigationCommandGroup[] = [
     heading: 'Overview',
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/plans', label: 'Plans', icon: Network },
       { href: '/settings', label: 'Settings', icon: Settings2 },
     ],
   },
