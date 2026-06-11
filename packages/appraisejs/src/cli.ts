@@ -3,13 +3,39 @@
 import path from 'path'
 import { Command } from 'commander'
 import { addStepBySlug } from './add-step.js'
+import { createCoordinatorClient } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { runAppraiseMcp } from './mcp.js'
-import { createOfflineDraft, validatePlanFile } from './plan-file.js'
+import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-file.js'
 
 const program = new Command()
 
 program.name('appraisejs').description('AppraiseJS command line tools').showHelpAfterError()
+
+type OnlineOptions = {
+  cwd: string
+  baseUrl: string
+  coordinatorId: string
+}
+
+function addOnlineOptions(command: Command): Command {
+  return command
+    .option('--cwd <path>', 'Appraise project directory', process.cwd())
+    .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
+    .option(
+      '--coordinator-id <id>',
+      'stable coordinator identity',
+      process.env.APPRAISE_COORDINATOR_ID ?? 'coordinator',
+    )
+}
+
+async function onlineClient(options: OnlineOptions) {
+  return createCoordinatorClient({ ...options, cwd: path.resolve(options.cwd) })
+}
+
+function printJson(value: unknown): void {
+  console.log(JSON.stringify(value, null, 2))
+}
 
 program
   .command('mcp')
@@ -63,12 +89,87 @@ plan
   .command('create')
   .requiredOption('--file <path>', 'plan YAML or JSON file')
   .option('--cwd <path>', 'Appraise project directory', process.cwd())
+  .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
+  .option('--coordinator-id <id>', 'stable coordinator identity', process.env.APPRAISE_COORDINATOR_ID ?? 'coordinator')
   .option('--offline', 'create a local draft without lifecycle registration', false)
-  .action(async (options: { file: string; cwd: string; offline: boolean }) => {
-    if (!options.offline)
-      throw new Error('Online plan creation requires --base-url and is available through the coordinator commands.')
-    console.log(JSON.stringify(await createOfflineDraft(options.file, options.cwd), null, 2))
+  .action(async (options: OnlineOptions & { file: string; offline: boolean }) => {
+    if (options.offline) return printJson(await createOfflineDraft(options.file, options.cwd))
+    const client = await onlineClient(options)
+    printJson(await client.createPlan(await readValidatedPlan(options.file)))
   })
+
+addOnlineOptions(plan.command('status').argument('<plan-id>').description('Read current online plan status')).action(
+  async (planId: string, options: OnlineOptions) => printJson(await (await onlineClient(options)).readPlan(planId)),
+)
+
+addOnlineOptions(
+  plan
+    .command('revise')
+    .argument('<plan-id>')
+    .requiredOption('--file <path>', 'revised plan file')
+    .requiredOption('--expected-hash <hash>', 'exact current plan content hash'),
+).action(async (planId: string, options: OnlineOptions & { file: string; expectedHash: string }) => {
+  const client = await onlineClient(options)
+  printJson(
+    await client.revisePlan(planId, {
+      expectedHash: options.expectedHash,
+      plan: await readValidatedPlan(options.file),
+    }),
+  )
+})
+
+addOnlineOptions(
+  plan.command('events').argument('<plan-id>').option('--after <sequence>', 'read events after sequence', '0'),
+).action(async (planId: string, options: OnlineOptions & { after: string }) => {
+  printJson(await (await onlineClient(options)).readEvents(planId, Number(options.after)))
+})
+
+addOnlineOptions(
+  plan
+    .command('ack-event')
+    .argument('<plan-id>')
+    .requiredOption('--sequence <number>', 'event sequence to acknowledge'),
+).action(async (planId: string, options: OnlineOptions & { sequence: string }) => {
+  printJson(await (await onlineClient(options)).acknowledgeEvent(planId, Number(options.sequence)))
+})
+
+addOnlineOptions(
+  plan
+    .command('reconnect')
+    .argument('<plan-id>')
+    .requiredOption('--connection-id <id>', 'previous coordinator connection ID')
+    .option('--after <sequence>', 'read pending events after sequence', '0'),
+).action(async (planId: string, options: OnlineOptions & { connectionId: string; after: string }) => {
+  printJson(await (await onlineClient(options)).reconnect(planId, options.connectionId, Number(options.after)))
+})
+
+addOnlineOptions(
+  plan.command('register').argument('<plan-id>').option('--takeover-approved', 'confirm user-approved takeover', false),
+).action(async (planId: string, options: OnlineOptions & { takeoverApproved: boolean }) => {
+  printJson(await (await onlineClient(options)).register(planId, options.takeoverApproved))
+})
+
+const validation = program.command('validation').description('Publish and submit validation review data')
+
+addOnlineOptions(
+  validation.command('publish').argument('<plan-id>').requiredOption('--file <path>', 'validation artifact JSON file'),
+).action(async (planId: string, options: OnlineOptions & { file: string }) => {
+  const value = JSON.parse(
+    await (await import('node:fs/promises')).readFile(path.resolve(options.file), 'utf8'),
+  ) as unknown
+  printJson(await (await onlineClient(options)).publishValidation(planId, value))
+})
+
+addOnlineOptions(validation.command('submit').argument('<plan-id>')).action(
+  async (planId: string, options: OnlineOptions) =>
+    printJson(await (await onlineClient(options)).submitValidation(planId)),
+)
+
+addOnlineOptions(
+  program.command('completion').argument('<plan-id>').description('Read final completion review'),
+).action(async (planId: string, options: OnlineOptions) =>
+  printJson(await (await onlineClient(options)).completionReview(planId)),
+)
 
 program
   .command('add')
