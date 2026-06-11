@@ -1,67 +1,15 @@
-import { promises as fs } from 'node:fs'
-import { createHash, randomBytes } from 'node:crypto'
-import path from 'node:path'
-
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 
-type McpOptions = {
-  cwd: string
-  baseUrl: string
-  coordinatorId: string
-}
-
-type ProjectIdentity = {
-  projectFingerprint: string
-  token: string
-}
+import { createCoordinatorClient, type CoordinatorOptions as McpOptions } from './coordinator-client.js'
 
 function text(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
 }
 
-async function readIdentity(cwd: string): Promise<ProjectIdentity> {
-  const identityPath = path.join(cwd, '.appraisejs', 'coordinator.json')
-  try {
-    return JSON.parse(await fs.readFile(identityPath, 'utf8')) as ProjectIdentity
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-  }
-  const packageJson = JSON.parse(await fs.readFile(path.join(cwd, 'package.json'), 'utf8')) as { name?: string }
-  const canonical = `${await fs.realpath(cwd)}\0${packageJson.name ?? 'appraisejs'}`
-  const identity = {
-    projectFingerprint: `sha256:${createHash('sha256').update(canonical).digest('hex')}`,
-    token: randomBytes(32).toString('base64url'),
-  }
-  await fs.mkdir(path.dirname(identityPath), { recursive: true, mode: 0o700 })
-  await fs.writeFile(identityPath, `${JSON.stringify(identity, null, 2)}\n`, { flag: 'wx', mode: 0o600 })
-  return identity
-}
-
 export async function createCoordinatorApiClient(options: McpOptions) {
-  const identity = await readIdentity(options.cwd)
-  const request = async (operation: string, init?: RequestInit) => {
-    const response = await fetch(`${options.baseUrl.replace(/\/$/, '')}/api/internal/coordinator/${operation}`, {
-      ...init,
-      headers: {
-        authorization: `Bearer ${identity.token}`,
-        'content-type': 'application/json',
-        'x-appraise-project': identity.projectFingerprint,
-        ...init?.headers,
-      },
-    })
-    const body = (await response.json()) as unknown
-    if (!response.ok) {
-      const message =
-        typeof body === 'object' && body && 'error' in body
-          ? String((body as { error: unknown }).error)
-          : response.statusText
-      throw new Error(message)
-    }
-    return body
-  }
-  return { identity, request }
+  return createCoordinatorClient(options)
 }
 
 export async function createAppraiseMcpServer(options: McpOptions): Promise<McpServer> {
