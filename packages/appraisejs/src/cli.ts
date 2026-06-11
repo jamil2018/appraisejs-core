@@ -3,7 +3,9 @@
 import path from 'path'
 import { Command } from 'commander'
 import { addStepBySlug } from './add-step.js'
+import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { runAppraiseMcp } from './mcp.js'
+import { createOfflineDraft, validatePlanFile } from './plan-file.js'
 
 const program = new Command()
 
@@ -23,9 +25,49 @@ program
         coordinatorId: options.coordinatorId,
       })
     } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
+      console.error(formatMcpBootstrapError(error))
       process.exitCode = 1
     }
+  })
+
+program
+  .command('doctor')
+  .description('Diagnose local AppraiseJS CLI and MCP prerequisites')
+  .option('--cwd <path>', 'Appraise project directory', process.cwd())
+  .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
+  .option('--json', 'print machine-readable JSON', false)
+  .action(async (options: { cwd: string; baseUrl: string; json: boolean }) => {
+    const result = await diagnoseProject({ cwd: options.cwd, baseUrl: options.baseUrl })
+    console.log(
+      options.json
+        ? JSON.stringify(result, null, 2)
+        : result.checks.map(check => `${check.status}: ${check.message}`).join('\n'),
+    )
+    if (!result.ok) process.exitCode = 1
+  })
+
+const plan = program.command('plan').description('Validate and coordinate AppraiseJS plans')
+
+plan
+  .command('validate-file')
+  .argument('<file>', 'plan YAML or JSON file')
+  .option('--json', 'print machine-readable JSON', false)
+  .action(async (file: string, options: { json: boolean }) => {
+    const result = await validatePlanFile(file)
+    console.log(
+      options.json ? JSON.stringify(result, null, 2) : `Valid plan ${result.planId} revision ${result.revision}.`,
+    )
+  })
+
+plan
+  .command('create')
+  .requiredOption('--file <path>', 'plan YAML or JSON file')
+  .option('--cwd <path>', 'Appraise project directory', process.cwd())
+  .option('--offline', 'create a local draft without lifecycle registration', false)
+  .action(async (options: { file: string; cwd: string; offline: boolean }) => {
+    if (!options.offline)
+      throw new Error('Online plan creation requires --base-url and is available through the coordinator commands.')
+    console.log(JSON.stringify(await createOfflineDraft(options.file, options.cwd), null, 2))
   })
 
 program
