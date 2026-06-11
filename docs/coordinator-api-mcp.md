@@ -96,6 +96,10 @@ Tools:
 - `plan_task_update`
 - `plan_events_read`
 - `plan_event_acknowledge`
+- `validation_publish`
+- `validation_decide`
+- `validation_file_approve`
+- `validation_review_submit`
 - `implementation_checkpoint`
 - `implementation_task_update`
 - `implementation_feedback`

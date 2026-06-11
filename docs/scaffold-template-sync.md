@@ -28,6 +28,10 @@ through sync.
 `scripts/sync-appraise-base-template.ts` intentionally resets some starter artifacts, including report output and the
 locator map starter shape. Preserve those reset rules unless the task explicitly changes scaffold seeding behavior.
 
+Prepared scaffold databases may contain authored starter assets, but they must not contain machine-local coordinator
+credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
+invariant before publishing the bundled starter and blank templates.
+
 ## When Direct Template Edits Are Acceptable
 
 Direct edits can be appropriate for template-only metadata, README content, scaffold packaging behavior, or files that
@@ -40,6 +44,7 @@ template-only.
 - For scaffold package changes, run `npm --prefix packages/create-appraisejs run sync-templates`.
 - For CLI/package behavior changes, consider `npm --prefix packages/create-appraisejs run test`.
 - For broad template changes, consider `npm --prefix packages/create-appraisejs run build`.
+- Review prepared database verification whenever a new machine-local or runtime-only Prisma model is added.
 
 ## Never Do
 

@@ -29,11 +29,11 @@ async function createPreparedTemplateFixture(rootDir: string): Promise<void> {
 }
 
 async function getStarterCounts(): Promise<TemplateStepDataCounts> {
-  return { stepCount: 3, stepGroupCount: 2 }
+  return { stepCount: 3, stepGroupCount: 2, localRuntimeRowCount: 0 }
 }
 
 async function getBlankCounts(): Promise<TemplateStepDataCounts> {
-  return { stepCount: 0, stepGroupCount: 0 }
+  return { stepCount: 0, stepGroupCount: 0, localRuntimeRowCount: 0 }
 }
 
 describe('TEMPLATE_PREP_SYNC_SCRIPTS', () => {
@@ -173,6 +173,18 @@ describe('verifyPreparedTemplateState', () => {
     await expect(verifyPreparedTemplateState(dir, 'blank', undefined, getStarterCounts)).rejects.toThrow(
       /should not include bundled step data/,
     )
+  })
+
+  it('fails when the seeded database contains local runtime state', async () => {
+    const dir = await createTempTemplateDir()
+
+    await expect(
+      verifyPreparedTemplateState(dir, 'starter', undefined, async () => ({
+        stepCount: 3,
+        stepGroupCount: 2,
+        localRuntimeRowCount: 1,
+      })),
+    ).rejects.toThrow(/local runtime state/)
   })
 
   it('fails when OS artifacts are present', async () => {
