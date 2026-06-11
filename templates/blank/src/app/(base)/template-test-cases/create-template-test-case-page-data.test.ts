@@ -45,7 +45,7 @@ describe('loadCreateTemplateTestCasePageData', () => {
   })
 
   it('returns error when template step params fail to load', async () => {
-    getAllTemplateStepParamsActionMock.mockResolvedValue({ data: null, error: 'params failed' })
+    getAllTemplateStepParamsActionMock.mockResolvedValue({ status: 500, error: 'params failed' })
 
     await expect(loadCreateTemplateTestCasePageData()).resolves.toEqual({
       status: 'error',
@@ -61,12 +61,12 @@ describe('loadCreateTemplateTestCasePageData', () => {
     const environments = [{ id: 'env-1', name: 'Staging' }]
     const modules = [{ id: 'module-1', name: 'Shop', parentId: null }]
 
-    getAllTemplateStepParamsActionMock.mockResolvedValue({ data: templateStepParams, error: null })
-    getAllTemplateStepsActionMock.mockResolvedValue({ data: templateSteps, error: null })
-    getAllLocatorsActionMock.mockResolvedValue({ data: locators, error: null })
-    getAllLocatorGroupsActionMock.mockResolvedValue({ data: locatorGroups, error: null })
-    getAllEnvironmentsActionMock.mockResolvedValue({ data: environments, error: null })
-    getAllModulesActionMock.mockResolvedValue({ data: modules, error: null })
+    getAllTemplateStepParamsActionMock.mockResolvedValue({ status: 200, data: templateStepParams })
+    getAllTemplateStepsActionMock.mockResolvedValue({ status: 200, data: templateSteps })
+    getAllLocatorsActionMock.mockResolvedValue({ status: 200, data: locators })
+    getAllLocatorGroupsActionMock.mockResolvedValue({ status: 200, data: locatorGroups })
+    getAllEnvironmentsActionMock.mockResolvedValue({ status: 200, data: environments })
+    getAllModulesActionMock.mockResolvedValue({ status: 200, data: modules })
 
     await expect(loadCreateTemplateTestCasePageData()).resolves.toEqual({
       status: 'success',

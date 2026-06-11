@@ -82,15 +82,15 @@ model TemplateStepGroup {
 }
 
 model TestCase {
-  id                String             @id @default(uuid())
+  id                String              @id @default(uuid())
   title             String
   description       String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
   linkedJiraTickets LinkedJiraTicket[]
   reviews           Review[]
   steps             TestCaseStep[]
-  TestSuite         TestSuite[]        @relation("TestSuiteTestCases")
+  TestSuite         TestSuite[]         @relation("TestSuiteTestCases")
   TestRunTestCase   TestRunTestCase[]
   tags              Tag[]
   metrics           TestCaseMetrics?
@@ -128,11 +128,11 @@ model TestCaseFlowBlockNode {
 }
 
 model TemplateTestCase {
-  id          String                 @id @default(uuid())
+  id          String                      @id @default(uuid())
   name        String
   description String?
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
   steps       TemplateTestCaseStep[]
   flowBlocks  TemplateTestCaseFlowBlock[]
 }
@@ -261,9 +261,134 @@ model TestRun {
   logPath          String?
   reportPath       String?
   reports          Report[]
+  planId           String?
+  plan             PlanProjection?   @relation(fields: [planId], references: [planId], onDelete: SetNull)
 
   @@index([completedAt])
   @@index([result])
+}
+
+model PlanProjection {
+  id                   String                @id @default(uuid())
+  planId               String                @unique
+  revision             Int
+  lifecycle            String
+  goal                 String
+  sourceHash           String
+  planPath             String
+  reviewJson           String?
+  validationJson       String?
+  layoutJson           String?
+  stale                Boolean               @default(false)
+  conflicted           Boolean               @default(false)
+  deletedAt            DateTime?
+  lastValidProjectedAt DateTime
+  lastSyncAt           DateTime              @default(now())
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  tasks                PlanTaskProjection[]
+  issues               PlanSyncIssue[]
+  revisions            PlanRevision[]
+  events               PlanEvent[]
+  coordinatorLease     PlanCoordinatorLease?
+  personalLayouts      PlanPersonalLayout[]
+  testRuns             TestRun[]
+
+  @@index([stale])
+  @@index([conflicted])
+}
+
+model PlanTaskProjection {
+  id               String         @id @default(uuid())
+  planProjectionId String
+  taskId           String
+  title            String
+  description      String
+  acceptanceJson   String
+  validationIntent String
+  position         Int
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@unique([planProjectionId, taskId])
+  @@index([planProjectionId, position])
+}
+
+model PlanSyncIssue {
+  id               String         @id @default(uuid())
+  planProjectionId String
+  code             String
+  artifactPath     String?
+  message          String
+  blocking         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  resolvedAt       DateTime?
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@index([planProjectionId, resolvedAt])
+}
+
+model PlanRevision {
+  id               String         @id @default(uuid())
+  planProjectionId String
+  sourceHash       String
+  gitCommit        String?
+  dirtyHashesJson  String?
+  snapshotJson     String?
+  reducedAssurance Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@unique([planProjectionId, sourceHash])
+}
+
+model PlanEvent {
+  id               String         @id @default(uuid())
+  planProjectionId String
+  sequence         Int
+  type             String
+  payloadJson      String?
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  supersededAt     DateTime?
+  createdAt        DateTime       @default(now())
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@unique([planProjectionId, sequence])
+  @@index([planProjectionId, acknowledgedAt, sequence])
+}
+
+model AppraiseProjectIdentity {
+  id                 String    @id @default(uuid())
+  projectFingerprint String    @unique
+  tokenHash          String
+  createdAt          DateTime  @default(now())
+  rotatedAt          DateTime?
+}
+
+model PlanCoordinatorLease {
+  id               String         @id @default(uuid())
+  planProjectionId String         @unique
+  coordinatorId    String
+  connectionId     String         @unique
+  leaseExpiresAt   DateTime
+  takeoverApproved Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@index([leaseExpiresAt])
+}
+
+model PlanPersonalLayout {
+  id               String         @id @default(uuid())
+  planProjectionId String
+  owner            String
+  positionsJson    String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@unique([planProjectionId, owner])
 }
 
 model TestRunLog {

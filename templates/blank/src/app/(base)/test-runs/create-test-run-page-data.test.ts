@@ -28,8 +28,8 @@ describe('loadCreateTestRunPageData', () => {
   })
 
   it('returns error when environment loading fails', async () => {
-    getAllEnvironmentsActionMock.mockResolvedValue({ data: null, error: 'env failed' })
-    getAllTagsActionMock.mockResolvedValue({ data: [], error: null })
+    getAllEnvironmentsActionMock.mockResolvedValue({ status: 500, error: 'env failed' })
+    getAllTagsActionMock.mockResolvedValue({ status: 200, data: [] })
 
     await expect(loadCreateTestRunPageData()).resolves.toEqual({
       status: 'error',
@@ -40,13 +40,13 @@ describe('loadCreateTestRunPageData', () => {
   it('returns success when all loaders succeed', async () => {
     getAllEnvironmentsActionMock.mockResolvedValue({
       data: [{ id: 'env-1', name: 'Staging', createdAt: new Date(), updatedAt: new Date() }],
-      error: null,
+      status: 200,
     })
     getAllTagsActionMock.mockResolvedValue({
       data: [{ id: 'tag-1', name: 'smoke', createdAt: new Date(), updatedAt: new Date() }],
-      error: null,
+      status: 200,
     })
-    getAllTestSuiteTestCasesActionMock.mockResolvedValue({ data: [], error: null })
+    getAllTestSuiteTestCasesActionMock.mockResolvedValue({ status: 200, data: [] })
 
     const result = await loadCreateTestRunPageData()
 
