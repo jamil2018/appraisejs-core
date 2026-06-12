@@ -21,12 +21,18 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
   await repository.create('plan', plan.planId, serializeYamlArtifact('plan', plan))
   await syncPlans({ projectDirectory: projectRoot, client })
   await appendPlanEvent({ planId: plan.planId, type: 'plan_graph_processing_started' }, client)
-  await appendPlanEvent(
+  const reviewReadyEvent = await appendPlanEvent(
     { planId: plan.planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
     client,
   )
+  const artifact = await repository.read('plan', plan.planId)
   return {
     plan,
+    planId: plan.planId,
+    revision: plan.revision,
+    lifecycle: plan.lifecycle,
+    contentHash: artifact.hash,
+    eventSequence: reviewReadyEvent.sequence,
     reviewUrl: `/plans/${plan.planId}`,
   }
 }
@@ -37,6 +43,7 @@ export async function readCoordinatorPlan(planId: string, options: PlanServiceOp
   return {
     plan: parseYamlArtifact('plan', artifact.content) as PlanArtifact,
     contentHash: artifact.hash,
+    reviewUrl: `/plans/${planId}`,
   }
 }
 

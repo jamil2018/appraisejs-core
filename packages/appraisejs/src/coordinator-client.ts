@@ -18,6 +18,9 @@ export class CoordinatorRequestError extends Error {
     message: string,
     readonly status: number,
     readonly body: unknown,
+    readonly code?: string,
+    readonly path?: string,
+    readonly recovery?: string,
   ) {
     super(message)
   }
@@ -50,6 +53,7 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         authorization: `Bearer ${identity.token}`,
         'content-type': 'application/json',
         'x-appraise-project': identity.projectFingerprint,
+        'x-appraise-base-url': options.baseUrl.replace(/\/$/, ''),
         ...init?.headers,
       },
     })
@@ -59,7 +63,16 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         typeof body === 'object' && body && 'error' in body
           ? String((body as { error: unknown }).error)
           : response.statusText
-      throw new CoordinatorRequestError(message, response.status, body)
+      const envelope =
+        typeof body === 'object' && body ? (body as { code?: unknown; path?: unknown; recovery?: unknown }) : undefined
+      throw new CoordinatorRequestError(
+        message,
+        response.status,
+        body,
+        typeof envelope?.code === 'string' ? envelope.code : undefined,
+        typeof envelope?.path === 'string' ? envelope.path : undefined,
+        typeof envelope?.recovery === 'string' ? envelope.recovery : undefined,
+      )
     }
     return body
   }
@@ -68,7 +81,9 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
 
   return {
     identity,
+    options: { ...options, cwd: path.resolve(options.cwd) },
     request,
+    diagnose: () => request('diagnostic'),
     readPlan: (planId: string) => request(`plans/${planId}`),
     revisePlan: (planId: string, body: { expectedHash: string; plan: unknown }) =>
       request(`plans/${planId}`, { method: 'PUT', body: JSON.stringify(body) }),

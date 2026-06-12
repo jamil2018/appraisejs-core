@@ -5,12 +5,23 @@ import { parseDocument } from 'yaml'
 import { z } from 'zod'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-const planSchema = z
+export const planArtifactSchema = z
   .object({
     version: z.literal('1'),
     planId: idSchema,
     revision: z.number().int().positive(),
-    lifecycle: z.string().min(1),
+    lifecycle: z.enum([
+      'draft',
+      'awaiting_plan_review',
+      'preparing_validations',
+      'awaiting_validation_review',
+      'running_baseline',
+      'awaiting_baseline_acceptance',
+      'implementing',
+      'validation_passed',
+      'completed',
+      'cancelled',
+    ]),
     goal: z.string().min(1),
     tasks: z
       .array(
@@ -33,8 +44,32 @@ const planSchema = z
     implementationGroups: z.array(z.object({ id: idSchema, taskIds: z.array(idSchema).min(1) })),
   })
   .strict()
+  .superRefine((plan, context) => {
+    const taskIds = new Set(plan.tasks.map(task => task.id))
+    if (taskIds.size !== plan.tasks.length) {
+      context.addIssue({ code: 'custom', path: ['tasks'], message: 'Plan task IDs must be unique.' })
+    }
+    for (const [index, edge] of plan.edges.entries()) {
+      if (!taskIds.has(edge.from) || !taskIds.has(edge.to)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['edges', index],
+          message: 'Plan edges must reference existing tasks.',
+        })
+      }
+    }
+    for (const [index, group] of plan.implementationGroups.entries()) {
+      if (group.taskIds.some(taskId => !taskIds.has(taskId))) {
+        context.addIssue({
+          code: 'custom',
+          path: ['implementationGroups', index, 'taskIds'],
+          message: 'Implementation groups must reference existing tasks.',
+        })
+      }
+    }
+  })
 
-export type PlanFile = z.infer<typeof planSchema>
+export type PlanFile = z.infer<typeof planArtifactSchema>
 
 async function readPlanFile(file: string): Promise<PlanFile> {
   const source = await fs.readFile(file, 'utf8')
@@ -42,21 +77,11 @@ async function readPlanFile(file: string): Promise<PlanFile> {
   const document = parseDocument(source, { prettyErrors: false, strict: true, uniqueKeys: true })
   if (document.errors.length) throw new Error(`Invalid plan file: ${document.errors[0]?.message ?? 'YAML parse error'}`)
   if (source.includes('*') || source.includes('&')) throw new Error('YAML aliases are not allowed.')
-  return planSchema.parse(document.toJS({ maxAliasCount: 0 }))
+  return planArtifactSchema.parse(document.toJS({ maxAliasCount: 0 }))
 }
 
 export async function validatePlanFile(file: string) {
   const plan = await readPlanFile(path.resolve(file))
-  const taskIds = new Set(plan.tasks.map(task => task.id))
-  if (taskIds.size !== plan.tasks.length) throw new Error('Plan task IDs must be unique.')
-  for (const edge of plan.edges) {
-    if (!taskIds.has(edge.from) || !taskIds.has(edge.to)) throw new Error('Plan edges must reference existing tasks.')
-  }
-  for (const group of plan.implementationGroups) {
-    if (group.taskIds.some(taskId => !taskIds.has(taskId))) {
-      throw new Error('Implementation groups must reference existing tasks.')
-    }
-  }
   return {
     ok: true as const,
     schema: 'appraise.plan/v1',

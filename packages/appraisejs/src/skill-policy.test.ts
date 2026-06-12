@@ -34,4 +34,17 @@ describe('Appraise workflow skills', () => {
     expect(sources.join('\n')).toContain('optional failures')
     expect(sources.join('\n')).toContain('non-blocking remarks')
   })
+
+  it('requires diagnostic-first planning and review-ready evidence handling', async () => {
+    const planning = await fs.readFile(
+      path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-planning', 'SKILL.md'),
+      'utf8',
+    )
+    expect(planning).toContain('project_diagnostic')
+    expect(planning.indexOf('project_diagnostic')).toBeLessThan(planning.indexOf('plan_create'))
+    expect(planning).toContain('plan_wait_for_review')
+    expect(planning).toContain('Acknowledge each handled event')
+    expect(planning).toContain('only after')
+    expect(planning).toContain('Stop at the review gate')
+  })
 })

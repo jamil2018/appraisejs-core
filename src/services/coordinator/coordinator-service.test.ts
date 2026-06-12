@@ -50,7 +50,13 @@ beforeEach(async () => {
     .toString()
     .trim()
   if (!eventTable) await applyMigration('20260609090000_add_plan_review_runtime')
-  await applyMigration('20260609160000_add_coordinator_events_api_mcp')
+  const identityTable = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='AppraiseProjectIdentity';",
+  ])
+    .toString()
+    .trim()
+  if (!identityTable) await applyMigration('20260609160000_add_coordinator_events_api_mcp')
 
   client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
   await client.planProjection.create({
@@ -67,7 +73,7 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
-  await client.$disconnect()
+  await client?.$disconnect()
   await fs.rm(workspace, { recursive: true, force: true })
 })
 

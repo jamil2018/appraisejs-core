@@ -33,6 +33,39 @@ describe('CLI diagnostics', () => {
     )
   })
 
+  it('combines authenticated API checks with local reproducibility warnings', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-doctor-'))
+    workspaces.push(cwd)
+    await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"doctor-test"}')
+    await fs.mkdir(path.join(cwd, '.appraisejs'))
+    await fs.writeFile(
+      path.join(cwd, '.appraisejs', 'coordinator.json'),
+      JSON.stringify({ projectFingerprint: 'sha256:test', token: 'secret' }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          ok: true,
+          project: { fingerprint: 'sha256:test' },
+          contractVersion: '1',
+          checks: [
+            { id: 'application', status: 'ok', message: 'reachable' },
+            { id: 'authentication', status: 'ok', message: 'authenticated' },
+            { id: 'project', status: 'ok', message: 'matched' },
+          ],
+          links: { application: 'http://localhost:3000' },
+        }),
+      ),
+    )
+
+    await expect(diagnoseProject({ cwd, baseUrl: 'http://localhost:3000' })).resolves.toMatchObject({
+      ok: true,
+      contractVersion: '1',
+      project: { fingerprint: 'sha256:test' },
+    })
+  })
+
   it('gives explicit recovery without claiming silent CLI fallback', () => {
     expect(formatMcpBootstrapError(new Error('boom'))).toContain('No CLI fallback was attempted')
     expect(formatMcpBootstrapError(new Error('boom'))).toContain('appraisejs doctor')

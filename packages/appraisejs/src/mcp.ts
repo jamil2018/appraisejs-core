@@ -2,10 +2,36 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 
-import { createCoordinatorClient, type CoordinatorOptions as McpOptions } from './coordinator-client.js'
+import {
+  CoordinatorRequestError,
+  createCoordinatorClient,
+  type CoordinatorOptions as McpOptions,
+} from './coordinator-client.js'
+import { diagnoseProject } from './diagnostics.js'
+import { planArtifactSchema } from './plan-file.js'
 
 function text(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
+}
+
+function toolError(error: unknown) {
+  if (error instanceof CoordinatorRequestError) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify({
+            code: error.code ?? 'coordinator-request-failed',
+            message: error.message,
+            ...(error.path ? { path: error.path } : {}),
+            ...(error.recovery ? { recovery: error.recovery } : {}),
+          }),
+        },
+      ],
+    }
+  }
+  throw error
 }
 
 export async function createCoordinatorApiClient(options: McpOptions) {
@@ -46,12 +72,27 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   )
 
   server.registerTool(
+    'project_diagnostic',
+    {
+      description:
+        'Verify application/API reachability, authentication, project identity, Git reproducibility, and contract compatibility.',
+      inputSchema: {},
+    },
+    async () => text(await diagnoseProject(options)),
+  )
+  server.registerTool(
     'plan_create',
     {
       description: 'Create a structured AppraiseJS plan and wait until its review surface is ready.',
-      inputSchema: { plan: z.record(z.string(), z.unknown()) },
+      inputSchema: { plan: planArtifactSchema },
     },
-    async ({ plan }) => text(await api.request('plans', { method: 'POST', body: JSON.stringify({ plan }) })),
+    async ({ plan }) => {
+      try {
+        return text(await api.request('plans', { method: 'POST', body: JSON.stringify({ plan }) }))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
   )
   server.registerTool(
     'plan_read',
@@ -67,8 +108,27 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       description: 'Wait for the durable plan_review_ready event before presenting the review URL.',
       inputSchema: { planId: z.string(), afterSequence: z.number().int().nonnegative().default(0) },
     },
-    async ({ planId, afterSequence }) =>
-      text(await api.request(`plans/${planId}/events?after=${afterSequence}&wait=true`)),
+    async ({ planId, afterSequence }) => {
+      const result = (await api.request(`plans/${planId}/events?after=${afterSequence}&wait=true`)) as {
+        events?: Array<{ sequence: number; type: string }>
+      }
+      const reviewReady = result.events?.find(event => event.type === 'plan_review_ready')
+      if (!reviewReady) return text(result)
+      const current = (await api.request(`plans/${planId}`)) as {
+        plan: { revision: number; lifecycle: string }
+        contentHash: string
+        links: unknown
+      }
+      return text({
+        planId,
+        revision: current.plan.revision,
+        lifecycle: current.plan.lifecycle,
+        contentHash: current.contentHash,
+        links: current.links,
+        eventSequence: reviewReady.sequence,
+        events: result.events,
+      })
+    },
   )
   server.registerTool(
     'plan_revise',
@@ -77,16 +137,21 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: {
         planId: z.string(),
         expectedHash: z.string(),
-        plan: z.record(z.string(), z.unknown()),
+        plan: planArtifactSchema,
       },
     },
-    async ({ planId, expectedHash, plan }) =>
-      text(
-        await api.request(`plans/${planId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ expectedHash, plan }),
-        }),
-      ),
+    async ({ planId, expectedHash, plan }) => {
+      try {
+        return text(
+          await api.request(`plans/${planId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ expectedHash, plan }),
+          }),
+        )
+      } catch (error) {
+        return toolError(error)
+      }
+    },
   )
   server.registerTool(
     'plan_start',
