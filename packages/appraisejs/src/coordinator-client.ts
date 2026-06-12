@@ -53,6 +53,7 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         authorization: `Bearer ${identity.token}`,
         'content-type': 'application/json',
         'x-appraise-project': identity.projectFingerprint,
+        'x-appraise-base-url': options.baseUrl.replace(/\/$/, ''),
         ...init?.headers,
       },
     })

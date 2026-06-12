@@ -73,7 +73,8 @@ function responseError(error: unknown): Response {
 }
 
 function withLinks<T extends object>(value: T, planId: string, request: Request) {
-  return { ...value, links: planLinks(planId, new URL(request.url).origin) }
+  const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
+  return { ...value, links: planLinks(planId, baseUrl) }
 }
 
 async function getPlan(request: Request, operation: string[]) {
@@ -97,7 +98,28 @@ async function getEvents(request: Request, operation: string[]) {
   return Response.json({ events })
 }
 
+function getDiagnostic(request: Request) {
+  return Response.json({
+    ok: true,
+    project: { fingerprint: request.headers.get('x-appraise-project') },
+    contractVersion: coordinatorContractVersion,
+    checks: [
+      { id: 'application', status: 'ok', message: 'AppraiseJS application and coordinator API are reachable.' },
+      { id: 'authentication', status: 'ok', message: 'Coordinator authentication succeeded.' },
+      { id: 'project', status: 'ok', message: 'Coordinator project identity matches this application.' },
+    ],
+    warnings: [],
+    recoveryActions: [],
+    links: {
+      application: request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin,
+    },
+  })
+}
+
+// Request routing branches stay in this thin HTTP adapter.
+// fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]) {
+  if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   const handlers: Record<string, () => Promise<Response>> = {
     plan: () => getPlan(request, operation),
@@ -177,23 +199,7 @@ async function postImplementationOperation(operation: string[], body: unknown) {
 export async function GET(request: Request, context: RouteContext) {
   try {
     await guardCoordinatorRequest(request)
-    const operation = (await context.params).operation
-    if (operation.length === 1 && operation[0] === 'diagnostic') {
-      return Response.json({
-        ok: true,
-        project: { fingerprint: request.headers.get('x-appraise-project') },
-        contractVersion: coordinatorContractVersion,
-        checks: [
-          { id: 'application', status: 'ok', message: 'AppraiseJS application and coordinator API are reachable.' },
-          { id: 'authentication', status: 'ok', message: 'Coordinator authentication succeeded.' },
-          { id: 'project', status: 'ok', message: 'Coordinator project identity matches this application.' },
-        ],
-        warnings: [],
-        recoveryActions: [],
-        links: { application: new URL(request.url).origin },
-      })
-    }
-    return await dispatchGet(request, operation)
+    return await dispatchGet(request, (await context.params).operation)
   } catch (error) {
     return responseError(error)
   }

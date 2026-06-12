@@ -46,6 +46,9 @@ describe('online coordinator client', () => {
     await expect(client.readPlan('cli-plan')).resolves.toMatchObject({
       links: { plan: 'appraise://plans/cli-plan' },
     })
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]?.headers).toMatchObject({
+      'x-appraise-base-url': 'http://localhost:3000',
+    })
   })
 
   it('preserves structured validation paths and recovery guidance', async () => {
