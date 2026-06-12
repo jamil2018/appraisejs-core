@@ -1,5 +1,11 @@
 import { z } from 'zod'
 
+import {
+  coordinatorContractVersion,
+  coordinatorError,
+  planLinks,
+  zodCoordinatorError,
+} from '@/lib/coordinator-api/contracts'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import {
   implementationValidationRunSchema,
@@ -44,12 +50,19 @@ const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 type RouteContext = { params: Promise<{ operation: string[] }> }
 
 function serviceErrorResponse(error: unknown): Response | undefined {
-  if (error instanceof ServiceError) return Response.json({ error: error.message }, { status: error.statusCode })
+  if (error instanceof ServiceError) {
+    const envelope = coordinatorError(error)!
+    return Response.json({ error: envelope.message, ...envelope }, { status: error.statusCode })
+  }
 }
 
 function validationErrorResponse(error: unknown): Response | undefined {
-  if (error instanceof z.ZodError)
-    return Response.json({ error: error.issues[0]?.message ?? 'Invalid request.' }, { status: 400 })
+  if (error instanceof z.ZodError) {
+    const envelope = zodCoordinatorError(error)
+    return Response.json({ error: envelope.message, ...envelope }, { status: 400 })
+  }
+  const envelope = coordinatorError(error)
+  if (envelope) return Response.json({ error: envelope.message, ...envelope }, { status: 400 })
 }
 
 function responseError(error: unknown): Response {
@@ -59,8 +72,13 @@ function responseError(error: unknown): Response {
   return Response.json({ error: 'Coordinator API failed.' }, { status: 500 })
 }
 
-async function getPlan(operation: string[]) {
-  return Response.json(await readCoordinatorPlan(idSchema.parse(operation[1])))
+function withLinks<T extends object>(value: T, planId: string, request: Request) {
+  return { ...value, links: planLinks(planId, new URL(request.url).origin) }
+}
+
+async function getPlan(request: Request, operation: string[]) {
+  const planId = idSchema.parse(operation[1])
+  return Response.json(withLinks(await readCoordinatorPlan(planId), planId, request))
 }
 
 async function getEvents(request: Request, operation: string[]) {
@@ -82,7 +100,7 @@ async function getEvents(request: Request, operation: string[]) {
 async function dispatchGet(request: Request, operation: string[]) {
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   const handlers: Record<string, () => Promise<Response>> = {
-    plan: () => getPlan(operation),
+    plan: () => getPlan(request, operation),
     events: () => getEvents(request, operation),
     completion: async () => Response.json(await reviewImplementationCompletion(idSchema.parse(operation[1]))),
   }
@@ -159,7 +177,23 @@ async function postImplementationOperation(operation: string[], body: unknown) {
 export async function GET(request: Request, context: RouteContext) {
   try {
     await guardCoordinatorRequest(request)
-    return await dispatchGet(request, (await context.params).operation)
+    const operation = (await context.params).operation
+    if (operation.length === 1 && operation[0] === 'diagnostic') {
+      return Response.json({
+        ok: true,
+        project: { fingerprint: request.headers.get('x-appraise-project') },
+        contractVersion: coordinatorContractVersion,
+        checks: [
+          { id: 'application', status: 'ok', message: 'AppraiseJS application and coordinator API are reachable.' },
+          { id: 'authentication', status: 'ok', message: 'Coordinator authentication succeeded.' },
+          { id: 'project', status: 'ok', message: 'Coordinator project identity matches this application.' },
+        ],
+        warnings: [],
+        recoveryActions: [],
+        links: { application: new URL(request.url).origin },
+      })
+    }
+    return await dispatchGet(request, operation)
   } catch (error) {
     return responseError(error)
   }
@@ -184,13 +218,13 @@ async function postHeartbeat(body: unknown) {
   return Response.json(await heartbeatCoordinator(input))
 }
 
-async function postCreatePlan(body: unknown) {
+async function postCreatePlan(request: Request, body: unknown) {
   const value = z.object({ plan: z.union([planArtifactSchema, z.string()]) }).parse(body)
   const plan =
     typeof value.plan === 'string'
       ? (parseYamlArtifact('plan', value.plan) as z.infer<typeof planArtifactSchema>)
       : value.plan
-  return Response.json(await createCoordinatorPlan(plan), { status: 201 })
+  return Response.json(withLinks(await createCoordinatorPlan(plan), plan.planId, request), { status: 201 })
 }
 
 async function postStartPlan(operation: string[]) {
@@ -241,11 +275,11 @@ function assertPlanOperation(operation: string[]): void {
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
-async function dispatchPost(operation: string[], body: unknown) {
+async function dispatchPost(request: Request, operation: string[], body: unknown) {
   const handlers: Record<string, () => Promise<Response>> = {
     register: () => postRegister(body),
     heartbeat: () => postHeartbeat(body),
-    plans: () => postCreatePlan(body),
+    plans: () => postCreatePlan(request, body),
     start: () => {
       assertPlanOperation(operation)
       return postStartPlan(operation)
@@ -275,7 +309,7 @@ async function dispatchPost(operation: string[], body: unknown) {
 export async function POST(request: Request, context: RouteContext) {
   try {
     await guardCoordinatorRequest(request)
-    return await dispatchPost((await context.params).operation, await readCoordinatorJson(request))
+    return await dispatchPost(request, (await context.params).operation, await readCoordinatorJson(request))
   } catch (error) {
     return responseError(error)
   }
@@ -291,7 +325,8 @@ export async function PUT(request: Request, context: RouteContext) {
     const body = z
       .object({ plan: planArtifactSchema, expectedHash: z.string().startsWith('sha256:') })
       .parse(await readCoordinatorJson(request))
-    return Response.json(await reviseCoordinatorPlan(idSchema.parse(operation[1]), body.plan, body.expectedHash))
+    const planId = idSchema.parse(operation[1])
+    return Response.json(withLinks(await reviseCoordinatorPlan(planId, body.plan, body.expectedHash), planId, request))
   } catch (error) {
     return responseError(error)
   }

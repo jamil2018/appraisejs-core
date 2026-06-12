@@ -48,6 +48,32 @@ describe('online coordinator client', () => {
     })
   })
 
+  it('preserves structured validation paths and recovery guidance', async () => {
+    const cwd = await workspace()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: 'Expected a non-empty string',
+            code: 'invalid-request',
+            path: 'plan.tasks.0.validationIntent',
+            recovery: 'Correct the identified field and retry.',
+          }),
+          { status: 400 },
+        ),
+      ),
+    )
+    const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
+
+    await expect(client.createPlan({})).rejects.toMatchObject({
+      status: 400,
+      code: 'invalid-request',
+      path: 'plan.tasks.0.validationIntent',
+      recovery: 'Correct the identified field and retry.',
+    })
+  })
+
   it('reads pending events before reconnect and never silently approves takeover', async () => {
     const cwd = await workspace()
     const fetchMock = vi

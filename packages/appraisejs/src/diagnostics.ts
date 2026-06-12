@@ -2,6 +2,8 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 
+import { CoordinatorRequestError, createCoordinatorClient } from './coordinator-client.js'
+
 type Check = {
   id: string
   status: 'ok' | 'warning' | 'error'
@@ -21,7 +23,7 @@ async function gitStatus(cwd: string): Promise<{ available: boolean; dirty: bool
   })
 }
 
-export async function diagnoseProject(options: { cwd: string; baseUrl: string }) {
+export async function diagnoseProject(options: { cwd: string; baseUrl: string; coordinatorId?: string }) {
   const cwd = path.resolve(options.cwd)
   const checks: Check[] = []
   const git = await gitStatus(cwd)
@@ -54,23 +56,52 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string })
     })
   }
 
+  let remote:
+    | {
+        project?: { fingerprint?: string }
+        contractVersion?: string
+        checks?: Check[]
+        warnings?: string[]
+        recoveryActions?: string[]
+        links?: Record<string, string>
+      }
+    | undefined
   try {
-    const response = await fetch(options.baseUrl, { signal: AbortSignal.timeout(2_000) })
-    checks.push({
-      id: 'application',
-      status: response.ok || response.status < 500 ? 'ok' : 'error',
-      message: `AppraiseJS responded with HTTP ${response.status}.`,
+    const client = await createCoordinatorClient({
+      ...options,
+      coordinatorId: options.coordinatorId ?? 'diagnostic',
     })
-  } catch {
+    remote = (await client.diagnose()) as typeof remote
+    checks.push(...(remote?.checks ?? []))
+  } catch (error) {
+    const requestError = error instanceof CoordinatorRequestError ? error : undefined
     checks.push({
-      id: 'application',
+      id: requestError?.status === 401 ? 'authentication' : 'application',
       status: 'error',
-      message: `AppraiseJS is not reachable at ${options.baseUrl}.`,
-      recovery: 'Start the local application and verify --base-url.',
+      message: requestError?.message ?? `AppraiseJS is not reachable at ${options.baseUrl}.`,
+      recovery:
+        requestError?.recovery ??
+        'Start the local application, verify the configured base URL, and confirm the project identity.',
     })
   }
 
-  return { ok: checks.every(check => check.status !== 'error'), cwd, baseUrl: options.baseUrl, checks }
+  const warnings = checks.filter(check => check.status === 'warning').map(check => check.message)
+  return {
+    ok: checks.every(check => check.status !== 'error'),
+    project: {
+      cwd,
+      fingerprint: remote?.project?.fingerprint,
+    },
+    contractVersion: remote?.contractVersion,
+    baseUrl: options.baseUrl,
+    checks,
+    warnings,
+    recoveryActions: [
+      ...checks.flatMap(check => (check.recovery ? [check.recovery] : [])),
+      ...(remote?.recoveryActions ?? []),
+    ],
+    links: remote?.links ?? { application: options.baseUrl },
+  }
 }
 
 export function formatMcpBootstrapError(error: unknown): string {

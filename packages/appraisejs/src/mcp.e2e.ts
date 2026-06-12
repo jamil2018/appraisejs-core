@@ -138,6 +138,7 @@ try {
     'plan_start',
     'plan_task_update',
     'plan_wait_for_review',
+    'project_diagnostic',
     'validation_decide',
     'validation_file_approve',
     'validation_publish',
@@ -163,6 +164,9 @@ try {
   )
   const projectResource = await client.readResource({ uri: 'appraise://project' })
   assert(projectResource.contents[0]?.text?.includes('projectFingerprint'), 'Project resource is unreadable.')
+  const diagnostic = await callTool('project_diagnostic', {})
+  assert(diagnostic.ok === true, `Project diagnostic failed: ${JSON.stringify(diagnostic)}`)
+  assert(diagnostic.contractVersion === '1', 'Project diagnostic did not return the contract version.')
 
   const initialPlan = {
     version: '1',
@@ -184,12 +188,21 @@ try {
   }
   const created = await callTool('plan_create', { plan: initialPlan })
   assert(created.reviewUrl === `/plans/${planId}`, 'Plan create did not return the stable review URL.')
+  const createdLinks = created.links as { appraise: string; browser: string; route: string }
+  assert(createdLinks.appraise === `appraise://plans/${planId}`, 'Plan create did not return the Appraise link.')
+  assert(createdLinks.browser === `${baseUrl}/plans/${planId}`, 'Plan create did not return the browser link.')
 
   const ready = await callTool('plan_wait_for_review', { planId, afterSequence: 0 })
   const readyEvents = ready.events as Array<{ type: string; sequence: number }>
   assert(
     readyEvents.some(event => event.type === 'plan_review_ready'),
     'Review-ready event was not delivered.',
+  )
+  assert(ready.contentHash === created.contentHash, 'Review-ready evidence did not preserve the created hash.')
+  assert(ready.eventSequence === created.eventSequence, 'Review-ready evidence did not preserve the event sequence.')
+  assert(
+    (ready.links as { appraise: string }).appraise === createdLinks.appraise,
+    'Review-ready evidence returned different canonical links.',
   )
 
   const firstRead = await callTool('plan_read', { planId })

@@ -7,11 +7,13 @@ description: Create and revise an AppraiseJS plan through MCP while preserving h
 
 AppraiseJS owns lifecycle and business rules. This skill only orchestrates MCP calls and user communication.
 
-1. Run the MCP project diagnostic and stop on failure. Never silently fall back to CLI.
-2. Create the structured plan, then wait for `plan_review_ready`.
-3. Read pending events at every mandatory checkpoint.
-4. Present the returned `appraise://` plan link and content hash as evidence.
-5. Revise only against the current returned hash.
-6. Do not implement while approval is pending.
+1. Call MCP `project_diagnostic` first and stop on blocking checks. Never silently fall back to CLI.
+2. Create the structured plan with `plan_create`, then call `plan_wait_for_review`.
+3. Read pending events at every mandatory checkpoint and capture the returned event sequence.
+4. Acknowledge each handled event, then reread pending events before continuing.
+5. Present the returned `appraise://` plan link, browser link, revision, lifecycle, and content hash only after
+   `plan_review_ready`.
+6. Revise only against the current returned hash.
+7. Stop at the review gate. Do not implement while approval is pending.
 
 Never write plan artifacts or SQLite directly. Do not claim approval from chat text.
