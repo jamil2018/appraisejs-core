@@ -87,7 +87,7 @@ describe('plan file commands', () => {
 
     const progressed = JSON.parse(await fs.readFile(input, 'utf8')) as Record<string, unknown>
     progressed.planId = 'progressed-plan'
-    progressed.lifecycle = 'plan_approved'
+    progressed.lifecycle = 'awaiting_plan_review'
     await fs.writeFile(input, JSON.stringify(progressed))
     await expect(createOfflineDraft(input, cwd)).rejects.toThrow('draft lifecycle')
   })
