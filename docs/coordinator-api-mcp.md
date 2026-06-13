@@ -7,12 +7,34 @@ and do not register directly.
 
 - The local credential file is `.appraisejs/coordinator.json`. The directory is Git-ignored, created with mode `0700`,
   and the file with mode `0600`.
-- The project fingerprint is SHA-256 over the canonical project path and package name.
+- The project fingerprint is SHA-256 over the canonical `realpath` project directory and optional package name.
+- `package.json` is optional. Generic directories are valid coordinator projects. When the file exists it must be
+  valid JSON, and `name`, when present, must be a string.
 - API requests send `Authorization: Bearer <token>` and `X-Appraise-Project: <fingerprint>`.
 - Only `localhost`, `127.0.0.1`, and `::1` request URLs, Host headers, and Origins are accepted.
 - Request bodies are limited to 1 MiB.
 - MCP uses stdio. Stdout is reserved for MCP protocol traffic; diagnostics go to stderr.
 - MCP failures are returned to the MCP client and never invoke a CLI fallback.
+- A coordinator is bound to one canonical project. A different project fingerprint returns `project-mismatch`
+  with the requested and server fingerprints; an invalid token for the matching project remains `UNAUTHORIZED`.
+- Local diagnostic and ownership responses may include the canonical project path. Tokens are never returned.
+
+## Diagnostics and Recovery
+
+`appraisejs doctor --json` initializes local identity before evaluating it and classifies failures as identity
+bootstrap, transport, HTTP response, authentication, or project mismatch errors. Transport failures include the
+configured endpoint and sanitized original cause. A hostname alternative is not presented as the cause unless an
+actual probe produced transport evidence.
+
+After correcting identity, endpoint, or project binding, restart or reconnect the MCP client so tool discovery uses
+fresh credentials. Bootstrap failures print the diagnostic category and the `appraisejs doctor --json` recovery
+command to stderr.
+
+Online CLI plan creation accepts files inside `--cwd` after resolving both paths through `realpath`. External,
+traversal, and symlink-resolved external files are blocked before an API request. Use
+`--allow-external-plan-file` only for intentional cross-project submission; the create response then includes an
+`external-plan-source` warning. Create responses include the coordinator fingerprint, canonical project path, and
+canonical source path when supplied by the CLI.
 
 ## Lease Defaults and Recovery
 
@@ -73,7 +95,8 @@ All routes are under `/api/internal/coordinator`.
 | `GET`  | `/plans/:planId/completion`                   | Read the final completion review                     |
 | `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                   |
 
-The create response includes the stable review URL only after `plan_review_ready` is durably appended.
+The create response includes coordinator ownership metadata and the stable review URL only after
+`plan_review_ready` is durably appended.
 
 ## MCP Surface
 

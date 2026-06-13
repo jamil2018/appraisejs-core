@@ -7,6 +7,7 @@ import { createCoordinatorClient } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { runAppraiseMcp } from './mcp.js'
 import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-file.js'
+import { resolvePlanSource } from './plan-source.js'
 
 const program = new Command()
 
@@ -92,10 +93,12 @@ plan
   .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
   .option('--coordinator-id <id>', 'stable coordinator identity', process.env.APPRAISE_COORDINATOR_ID ?? 'coordinator')
   .option('--offline', 'create a local draft without lifecycle registration', false)
-  .action(async (options: OnlineOptions & { file: string; offline: boolean }) => {
+  .option('--allow-external-plan-file', 'allow a plan file outside --cwd', false)
+  .action(async (options: OnlineOptions & { file: string; offline: boolean; allowExternalPlanFile: boolean }) => {
     if (options.offline) return printJson(await createOfflineDraft(options.file, options.cwd))
+    const source = await resolvePlanSource(options.cwd, options.file, options.allowExternalPlanFile)
     const client = await onlineClient(options)
-    printJson(await client.createPlan(await readValidatedPlan(options.file)))
+    printJson(await client.createPlan(await readValidatedPlan(source.path), source))
   })
 
 addOnlineOptions(plan.command('status').argument('<plan-id>').description('Read current online plan status')).action(

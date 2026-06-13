@@ -5,6 +5,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createCoordinatorClient } from './coordinator-client.js'
+import { deriveProjectIdentity } from './project-identity.js'
 
 const workspaces: string[] = []
 
@@ -12,10 +13,11 @@ async function workspace() {
   const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-client-'))
   workspaces.push(cwd)
   await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"client-test"}')
+  const project = await deriveProjectIdentity(cwd)
   await fs.mkdir(path.join(cwd, '.appraisejs'))
   await fs.writeFile(
     path.join(cwd, '.appraisejs', 'coordinator.json'),
-    JSON.stringify({ projectFingerprint: 'sha256:test', token: 'secret' }),
+    JSON.stringify({ projectFingerprint: project.projectFingerprint, token: 'secret' }),
   )
   return cwd
 }
@@ -118,5 +120,52 @@ describe('online coordinator client', () => {
       status: 409,
       message: 'active coordinator',
     })
+  })
+
+  it('preserves transport causes and configured endpoints', async () => {
+    const cwd = await workspace()
+    const cause = new Error('connect ECONNREFUSED 127.0.0.1:9')
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(cause))
+    const client = await createCoordinatorClient({ cwd, baseUrl: 'http://127.0.0.1:9', coordinatorId: 'agent' })
+
+    await expect(client.diagnose()).rejects.toMatchObject({
+      status: 0,
+      code: 'transport-failed',
+      cause,
+      details: {
+        endpoint: 'http://127.0.0.1:9/api/internal/coordinator/diagnostic',
+        cause: 'connect ECONNREFUSED 127.0.0.1:9',
+      },
+    })
+  })
+
+  it('preserves project mismatch details separately from wrong-token unauthorized responses', async () => {
+    const cwd = await workspace()
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          Response.json(
+            {
+              error: 'Coordinator is bound to a different project.',
+              code: 'project-mismatch',
+              details: { requestedFingerprint: 'sha256:client', serverFingerprint: 'sha256:server' },
+            },
+            { status: 409 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          Response.json({ error: 'Invalid project credentials.', code: 'UNAUTHORIZED' }, { status: 401 }),
+        ),
+    )
+    const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
+
+    await expect(client.diagnose()).rejects.toMatchObject({
+      status: 409,
+      code: 'project-mismatch',
+      details: { serverFingerprint: 'sha256:server' },
+    })
+    await expect(client.diagnose()).rejects.toMatchObject({ status: 401, code: 'UNAUTHORIZED' })
   })
 })

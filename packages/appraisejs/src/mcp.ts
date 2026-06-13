@@ -26,6 +26,7 @@ function toolError(error: unknown) {
             message: error.message,
             ...(error.path ? { path: error.path } : {}),
             ...(error.recovery ? { recovery: error.recovery } : {}),
+            ...(error.details ? { details: error.details } : {}),
           }),
         },
       ],
@@ -51,7 +52,10 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         {
           uri: uri.href,
           mimeType: 'application/json',
-          text: JSON.stringify({ projectFingerprint: api.identity.projectFingerprint }),
+          text: JSON.stringify({
+            projectFingerprint: api.identity.projectFingerprint,
+            canonicalProjectPath: api.project.canonicalProjectPath,
+          }),
         },
       ],
     }),
@@ -89,7 +93,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     },
     async ({ plan }) => {
       try {
-        return text(await api.request('plans', { method: 'POST', body: JSON.stringify({ plan }) }))
+        return text(await api.createPlan(plan))
       } catch (error) {
         return toolError(error)
       }

@@ -3,6 +3,8 @@ import path from 'path'
 import { promises as fs } from 'fs'
 import { afterEach, describe, expect, it } from 'vitest'
 import { detectPackageManager, validateAppraiseProject } from './project.js'
+import { deriveProjectIdentity, ensureLocalProjectIdentity } from './project-identity.js'
+import { deriveCoordinatorProjectIdentity } from '../../../src/lib/coordinator-api/project-identity.js'
 
 const tempDirs: string[] = []
 
@@ -67,5 +69,50 @@ describe('validateAppraiseProject', () => {
     await fs.mkdir(path.join(workspace, 'node_modules'), { recursive: true })
 
     await expect(validateAppraiseProject(workspace)).rejects.toThrow('appraisejs:install-step')
+  })
+})
+
+describe('coordinator project identity', () => {
+  it('supports a generic directory without package.json and creates stable credentials', async () => {
+    const workspace = await createTempWorkspace()
+
+    const first = await ensureLocalProjectIdentity(workspace)
+    const second = await ensureLocalProjectIdentity(workspace)
+
+    expect(first.created).toBe(true)
+    expect(second.created).toBe(false)
+    expect(second.identity).toEqual(first.identity)
+    expect(first.details.packageName).toBeUndefined()
+  })
+
+  it('includes an optional package name and canonical real path in a stable fingerprint', async () => {
+    const workspace = await createTempWorkspace()
+    await writeJson(path.join(workspace, 'package.json'), { name: 'identity-test' })
+    const link = `${workspace}-link`
+    tempDirs.push(link)
+    await fs.symlink(workspace, link)
+
+    const direct = await deriveProjectIdentity(workspace)
+    const linked = await deriveProjectIdentity(link)
+
+    expect(linked).toEqual(direct)
+    expect(direct.packageName).toBe('identity-test')
+  })
+
+  it('reports malformed package metadata precisely', async () => {
+    const workspace = await createTempWorkspace()
+    await fs.writeFile(path.join(workspace, 'package.json'), '{')
+
+    await expect(deriveProjectIdentity(workspace)).rejects.toMatchObject({
+      code: 'package-json-invalid',
+      path: path.join(await fs.realpath(workspace), 'package.json'),
+    })
+  })
+
+  it.each([undefined, 'shared-identity'])('matches the application fingerprint for package name %s', async name => {
+    const workspace = await createTempWorkspace()
+    if (name) await writeJson(path.join(workspace, 'package.json'), { name })
+
+    await expect(deriveProjectIdentity(workspace)).resolves.toEqual(await deriveCoordinatorProjectIdentity(workspace))
   })
 })

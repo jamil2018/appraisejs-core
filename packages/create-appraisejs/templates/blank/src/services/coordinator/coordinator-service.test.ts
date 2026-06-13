@@ -42,6 +42,13 @@ beforeEach(async () => {
     .toString()
     .trim()
   if (!projectionTable) await applyMigration('20260609002500_add_plan_projection_and_sync')
+  const descriptionColumn = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM pragma_table_info('PlanProjection') WHERE name='description';",
+  ])
+    .toString()
+    .trim()
+  if (!descriptionColumn) await applyMigration('20260613015000_add_plan_description')
 
   const eventTable = execFileSync('sqlite3', [
     databasePath,
@@ -50,7 +57,13 @@ beforeEach(async () => {
     .toString()
     .trim()
   if (!eventTable) await applyMigration('20260609090000_add_plan_review_runtime')
-  await applyMigration('20260609160000_add_coordinator_events_api_mcp')
+  const identityTable = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='AppraiseProjectIdentity';",
+  ])
+    .toString()
+    .trim()
+  if (!identityTable) await applyMigration('20260609160000_add_coordinator_events_api_mcp')
 
   client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
   await client.planProjection.create({
@@ -59,6 +72,7 @@ beforeEach(async () => {
       revision: 1,
       lifecycle: 'draft',
       goal: 'Test coordination',
+      description: 'Test durable coordinator events for a projected plan.',
       sourceHash: `sha256:${'a'.repeat(64)}`,
       planPath: 'appraise/plans/coordinator-plan.yaml',
       lastValidProjectedAt: new Date(),
@@ -67,7 +81,7 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
-  await client.$disconnect()
+  await client?.$disconnect()
   await fs.rm(workspace, { recursive: true, force: true })
 })
 
@@ -80,6 +94,21 @@ describe('project coordinator identity', () => {
     await expect(authenticateProject(first.projectFingerprint, first.token, client)).resolves.toBeUndefined()
     await expect(authenticateProject(first.projectFingerprint, 'wrong-token', client)).rejects.toMatchObject({
       code: 'UNAUTHORIZED',
+    })
+  })
+
+  it('supports generic directories and reports malformed package metadata', async () => {
+    await fs.rm(path.join(workspace, 'package.json'))
+    const generic = await ensureProjectIdentity(workspace, client)
+    expect(generic).toMatchObject({
+      projectFingerprint: expect.stringMatching(/^sha256:/),
+      canonicalProjectPath: await fs.realpath(workspace),
+    })
+
+    await fs.rm(path.join(workspace, '.appraisejs'), { recursive: true, force: true })
+    await fs.writeFile(path.join(workspace, 'package.json'), '{')
+    await expect(ensureProjectIdentity(workspace, client)).rejects.toMatchObject({
+      code: 'package-json-invalid',
     })
   })
 })

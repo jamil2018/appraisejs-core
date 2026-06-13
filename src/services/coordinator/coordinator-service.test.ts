@@ -96,6 +96,21 @@ describe('project coordinator identity', () => {
       code: 'UNAUTHORIZED',
     })
   })
+
+  it('supports generic directories and reports malformed package metadata', async () => {
+    await fs.rm(path.join(workspace, 'package.json'))
+    const generic = await ensureProjectIdentity(workspace, client)
+    expect(generic).toMatchObject({
+      projectFingerprint: expect.stringMatching(/^sha256:/),
+      canonicalProjectPath: await fs.realpath(workspace),
+    })
+
+    await fs.rm(path.join(workspace, '.appraisejs'), { recursive: true, force: true })
+    await fs.writeFile(path.join(workspace, 'package.json'), '{')
+    await expect(ensureProjectIdentity(workspace, client)).rejects.toMatchObject({
+      code: 'package-json-invalid',
+    })
+  })
 })
 
 describe('coordinator leases', () => {

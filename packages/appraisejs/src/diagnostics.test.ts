@@ -5,6 +5,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
+import { deriveProjectIdentity } from './project-identity.js'
 
 const workspaces: string[] = []
 
@@ -28,26 +29,49 @@ describe('CLI diagnostics', () => {
     expect(result.checks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'git', status: 'warning' }),
-        expect.objectContaining({ id: 'application', status: 'error' }),
+        expect.objectContaining({ id: 'transport', status: 'error', code: 'transport-failed' }),
       ]),
     )
+  })
+
+  it('initializes identity before reporting same-run diagnostic state in a generic directory', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-doctor-'))
+    workspaces.push(cwd)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          ok: true,
+          project: { fingerprint: 'server' },
+          checks: [],
+        }),
+      ),
+    )
+
+    const result = await diagnoseProject({ cwd, baseUrl: 'http://localhost:3000' })
+
+    expect(result.checks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'identity', status: 'ok', code: 'identity-ready' })]),
+    )
+    await expect(fs.access(path.join(cwd, '.appraisejs', 'coordinator.json'))).resolves.toBeUndefined()
   })
 
   it('combines authenticated API checks with local reproducibility warnings', async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-doctor-'))
     workspaces.push(cwd)
     await fs.writeFile(path.join(cwd, 'package.json'), '{"name":"doctor-test"}')
+    const project = await deriveProjectIdentity(cwd)
     await fs.mkdir(path.join(cwd, '.appraisejs'))
     await fs.writeFile(
       path.join(cwd, '.appraisejs', 'coordinator.json'),
-      JSON.stringify({ projectFingerprint: 'sha256:test', token: 'secret' }),
+      JSON.stringify({ projectFingerprint: project.projectFingerprint, token: 'secret' }),
     )
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
         Response.json({
           ok: true,
-          project: { fingerprint: 'sha256:test' },
+          project: { fingerprint: project.projectFingerprint },
           contractVersion: '1',
           checks: [
             { id: 'application', status: 'ok', message: 'reachable' },
@@ -62,7 +86,7 @@ describe('CLI diagnostics', () => {
     await expect(diagnoseProject({ cwd, baseUrl: 'http://localhost:3000' })).resolves.toMatchObject({
       ok: true,
       contractVersion: '1',
-      project: { fingerprint: 'sha256:test' },
+      project: { fingerprint: project.projectFingerprint },
     })
   })
 
