@@ -7,6 +7,17 @@ import { ServiceError } from '@/services/shared/errors'
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
 
+export class CoordinatorProjectMismatchError extends Error {
+  constructor(
+    readonly requestedFingerprint: string,
+    readonly serverFingerprint: string,
+    readonly serverProjectPath: string,
+  ) {
+    super('Coordinator is bound to a different project.')
+    this.name = 'CoordinatorProjectMismatchError'
+  }
+}
+
 function assertLoopbackUrl(value: string, label: string): void {
   let url: URL
   try {
@@ -37,7 +48,14 @@ export async function guardCoordinatorRequest(request: Request): Promise<void> {
   if (!projectFingerprint || !authorization?.startsWith('Bearer ')) {
     throw new ServiceError('Project credentials are required.', 'UNAUTHORIZED')
   }
-  await ensureProjectIdentity()
+  const serverIdentity = await ensureProjectIdentity()
+  if (serverIdentity.projectFingerprint !== projectFingerprint) {
+    throw new CoordinatorProjectMismatchError(
+      projectFingerprint,
+      serverIdentity.projectFingerprint,
+      serverIdentity.canonicalProjectPath,
+    )
+  }
   await authenticateProject(projectFingerprint, authorization.slice('Bearer '.length))
 }
 

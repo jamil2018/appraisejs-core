@@ -2,12 +2,14 @@ import type { ZodError } from 'zod'
 
 import { PLAN_CONTRACT_VERSION, PlanContractError } from '@/lib/plan-contract'
 import { ServiceError } from '@/services/shared/errors'
+import { CoordinatorProjectMismatchError } from './request-guard'
 
 export type CoordinatorErrorEnvelope = {
   code: string
   message: string
   path?: string
   recovery?: string
+  details?: Record<string, unknown>
 }
 
 export function planLinks(planId: string, baseUrl: string) {
@@ -20,6 +22,19 @@ export function planLinks(planId: string, baseUrl: string) {
 }
 
 export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | undefined {
+  if (error instanceof CoordinatorProjectMismatchError) {
+    return {
+      code: 'project-mismatch',
+      message: error.message,
+      recovery:
+        'Point the coordinator at the matching project and restart it, or start the application from the requested project.',
+      details: {
+        requestedFingerprint: error.requestedFingerprint,
+        serverFingerprint: error.serverFingerprint,
+        serverProjectPath: error.serverProjectPath,
+      },
+    }
+  }
   if (error instanceof PlanContractError) {
     return {
       code: error.code,

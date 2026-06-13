@@ -5,6 +5,7 @@ import path from 'node:path'
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import { deriveCoordinatorProjectIdentity } from '@/lib/coordinator-api/project-identity'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { ServiceError } from '@/services/shared/errors'
 
@@ -59,14 +60,6 @@ function secureEqual(left: string, right: string): boolean {
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
 }
 
-async function fingerprintProject(projectRoot: string): Promise<string> {
-  const packageJson = JSON.parse(await fs.readFile(path.join(projectRoot, 'package.json'), 'utf8')) as {
-    name?: string
-  }
-  const canonical = `${await fs.realpath(projectRoot)}\0${packageJson.name ?? 'appraisejs'}`
-  return `sha256:${hash(canonical)}`
-}
-
 function parsePayload(payloadJson: string | null): unknown {
   if (!payloadJson) return null
   try {
@@ -83,10 +76,11 @@ async function getProjection(client: PrismaClient, planId: string) {
 }
 
 export async function ensureProjectIdentity(projectDirectory?: string, client: PrismaClient = prisma) {
-  const projectRoot = await findProjectRoot(projectDirectory)
+  const projectRoot = projectDirectory ? path.resolve(projectDirectory) : await findProjectRoot()
   const runtimeDirectory = path.join(projectRoot, RUNTIME_DIRECTORY)
   const identityPath = path.join(runtimeDirectory, IDENTITY_FILE)
-  const projectFingerprint = await fingerprintProject(projectRoot)
+  const project = await deriveCoordinatorProjectIdentity(projectRoot)
+  const projectFingerprint = project.projectFingerprint
 
   try {
     const identity = JSON.parse(await fs.readFile(identityPath, 'utf8')) as ProjectIdentity
@@ -98,7 +92,7 @@ export async function ensureProjectIdentity(projectDirectory?: string, client: P
       create: { projectFingerprint, tokenHash: tokenHash(identity.token) },
       update: { tokenHash: tokenHash(identity.token) },
     })
-    return identity
+    return { ...identity, canonicalProjectPath: project.canonicalProjectPath }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }
@@ -111,7 +105,7 @@ export async function ensureProjectIdentity(projectDirectory?: string, client: P
     create: { projectFingerprint, tokenHash: tokenHash(identity.token) },
     update: { tokenHash: tokenHash(identity.token), rotatedAt: new Date() },
   })
-  return identity
+  return { ...identity, canonicalProjectPath: project.canonicalProjectPath }
 }
 
 export async function authenticateProject(

@@ -1,16 +1,11 @@
-import { createHash, randomBytes } from 'node:crypto'
-import { promises as fs } from 'node:fs'
 import path from 'node:path'
+
+import { ensureLocalProjectIdentity } from './project-identity.js'
 
 export type CoordinatorOptions = {
   cwd: string
   baseUrl: string
   coordinatorId: string
-}
-
-type ProjectIdentity = {
-  projectFingerprint: string
-  token: string
 }
 
 export class CoordinatorRequestError extends Error {
@@ -21,50 +16,63 @@ export class CoordinatorRequestError extends Error {
     readonly code?: string,
     readonly path?: string,
     readonly recovery?: string,
+    readonly details?: Record<string, unknown>,
+    options?: ErrorOptions,
   ) {
-    super(message)
+    super(message, options)
+    this.name = 'CoordinatorRequestError'
   }
 }
 
-async function readIdentity(cwd: string): Promise<ProjectIdentity> {
-  const identityPath = path.join(cwd, '.appraisejs', 'coordinator.json')
+async function readResponseBody(response: Response): Promise<unknown> {
+  const source = await response.text()
+  if (!source) return undefined
   try {
-    return JSON.parse(await fs.readFile(identityPath, 'utf8')) as ProjectIdentity
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    return JSON.parse(source) as unknown
+  } catch {
+    return { error: source, code: 'invalid-http-response' }
   }
-  const packageJson = JSON.parse(await fs.readFile(path.join(cwd, 'package.json'), 'utf8')) as { name?: string }
-  const canonical = `${await fs.realpath(cwd)}\0${packageJson.name ?? 'appraisejs'}`
-  const identity = {
-    projectFingerprint: `sha256:${createHash('sha256').update(canonical).digest('hex')}`,
-    token: randomBytes(32).toString('base64url'),
-  }
-  await fs.mkdir(path.dirname(identityPath), { recursive: true, mode: 0o700 })
-  await fs.writeFile(identityPath, `${JSON.stringify(identity, null, 2)}\n`, { flag: 'wx', mode: 0o600 })
-  return identity
 }
 
 export async function createCoordinatorClient(options: CoordinatorOptions) {
-  const identity = await readIdentity(path.resolve(options.cwd))
+  const local = await ensureLocalProjectIdentity(path.resolve(options.cwd))
+  const identity = local.identity
   const request = async (operation: string, init?: RequestInit) => {
-    const response = await fetch(`${options.baseUrl.replace(/\/$/, '')}/api/internal/coordinator/${operation}`, {
-      ...init,
-      headers: {
-        authorization: `Bearer ${identity.token}`,
-        'content-type': 'application/json',
-        'x-appraise-project': identity.projectFingerprint,
-        'x-appraise-base-url': options.baseUrl.replace(/\/$/, ''),
-        ...init?.headers,
-      },
-    })
-    const body = (await response.json()) as unknown
+    const endpoint = `${options.baseUrl.replace(/\/$/, '')}/api/internal/coordinator/${operation}`
+    let response: Response
+    try {
+      response = await fetch(endpoint, {
+        ...init,
+        headers: {
+          authorization: `Bearer ${identity.token}`,
+          'content-type': 'application/json',
+          'x-appraise-project': identity.projectFingerprint,
+          'x-appraise-base-url': options.baseUrl.replace(/\/$/, ''),
+          ...init?.headers,
+        },
+      })
+    } catch (error) {
+      throw new CoordinatorRequestError(
+        `Coordinator transport failed for ${endpoint}.`,
+        0,
+        undefined,
+        'transport-failed',
+        undefined,
+        'Start the local application, verify the configured endpoint, then reconnect the MCP client.',
+        { endpoint, cause: error instanceof Error ? error.message : String(error) },
+        { cause: error },
+      )
+    }
+    const body = await readResponseBody(response)
     if (!response.ok) {
       const message =
         typeof body === 'object' && body && 'error' in body
           ? String((body as { error: unknown }).error)
           : response.statusText
       const envelope =
-        typeof body === 'object' && body ? (body as { code?: unknown; path?: unknown; recovery?: unknown }) : undefined
+        typeof body === 'object' && body
+          ? (body as { code?: unknown; path?: unknown; recovery?: unknown; details?: unknown })
+          : undefined
       throw new CoordinatorRequestError(
         message,
         response.status,
@@ -72,6 +80,9 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         typeof envelope?.code === 'string' ? envelope.code : undefined,
         typeof envelope?.path === 'string' ? envelope.path : undefined,
         typeof envelope?.recovery === 'string' ? envelope.recovery : undefined,
+        envelope?.details && typeof envelope.details === 'object'
+          ? (envelope.details as Record<string, unknown>)
+          : { endpoint },
       )
     }
     return body
@@ -81,7 +92,8 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
 
   return {
     identity,
-    options: { ...options, cwd: path.resolve(options.cwd) },
+    project: local.details,
+    options: { ...options, cwd: local.details.canonicalProjectPath },
     request,
     diagnose: () => request('diagnostic'),
     readPlan: (planId: string) => request(`plans/${planId}`),
@@ -113,7 +125,8 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         warning: pendingEvents.length ? 'Pending events must be handled before work resumes.' : undefined,
       }
     },
-    createPlan: (plan: unknown) => post('plans', { plan }),
+    createPlan: (plan: unknown, source?: { path: string; external: boolean; warning?: string }) =>
+      post('plans', { plan, source }),
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
     publishValidation: (planId: string, validation: unknown) =>
       post(`plans/${planId}/validations/publish`, { validation }),

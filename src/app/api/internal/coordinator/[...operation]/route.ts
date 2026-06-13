@@ -7,6 +7,7 @@ import {
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
+import { CoordinatorProjectMismatchError } from '@/lib/coordinator-api/request-guard'
 import {
   implementationValidationRunSchema,
   parseYamlArtifact,
@@ -15,6 +16,7 @@ import {
 } from '@/lib/plan-contract'
 import {
   acknowledgePlanEvent,
+  ensureProjectIdentity,
   heartbeatCoordinator,
   readPlanEvents,
   registerCoordinator,
@@ -50,6 +52,10 @@ const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 type RouteContext = { params: Promise<{ operation: string[] }> }
 
 function serviceErrorResponse(error: unknown): Response | undefined {
+  if (error instanceof CoordinatorProjectMismatchError) {
+    const envelope = coordinatorError(error)!
+    return Response.json({ error: envelope.message, ...envelope }, { status: 409 })
+  }
   if (error instanceof ServiceError) {
     const envelope = coordinatorError(error)!
     return Response.json({ error: envelope.message, ...envelope }, { status: error.statusCode })
@@ -98,10 +104,14 @@ async function getEvents(request: Request, operation: string[]) {
   return Response.json({ events })
 }
 
-function getDiagnostic(request: Request) {
+async function getDiagnostic(request: Request) {
+  const identity = await ensureProjectIdentity()
   return Response.json({
     ok: true,
-    project: { fingerprint: request.headers.get('x-appraise-project') },
+    project: {
+      fingerprint: identity.projectFingerprint,
+      canonicalPath: identity.canonicalProjectPath,
+    },
     contractVersion: coordinatorContractVersion,
     checks: [
       { id: 'application', status: 'ok', message: 'AppraiseJS application and coordinator API are reachable.' },
@@ -225,12 +235,41 @@ async function postHeartbeat(body: unknown) {
 }
 
 async function postCreatePlan(request: Request, body: unknown) {
-  const value = z.object({ plan: z.union([planArtifactSchema, z.string()]) }).parse(body)
+  const value = z
+    .object({
+      plan: z.union([planArtifactSchema, z.string()]),
+      source: z
+        .object({
+          path: z.string().min(1),
+          external: z.boolean(),
+          warning: z.string().optional(),
+        })
+        .optional(),
+    })
+    .parse(body)
   const plan =
     typeof value.plan === 'string'
       ? (parseYamlArtifact('plan', value.plan) as z.infer<typeof planArtifactSchema>)
       : value.plan
-  return Response.json(withLinks(await createCoordinatorPlan(plan), plan.planId, request), { status: 201 })
+  const identity = await ensureProjectIdentity()
+  return Response.json(
+    {
+      ...withLinks(await createCoordinatorPlan(plan), plan.planId, request),
+      coordinatorProject: {
+        fingerprint: identity.projectFingerprint,
+        canonicalPath: identity.canonicalProjectPath,
+      },
+      ...(value.source
+        ? {
+            source: value.source,
+            ...(value.source.external
+              ? { warnings: ['Plan source is outside the coordinator project and was explicitly allowed.'] }
+              : {}),
+          }
+        : {}),
+    },
+    { status: 201 },
+  )
 }
 
 async function postStartPlan(operation: string[]) {

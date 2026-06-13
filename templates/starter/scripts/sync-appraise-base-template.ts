@@ -15,6 +15,7 @@ import { shouldBackfillLegacyEnvironmentConfig, shouldExcludeTemplatePath } from
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..')
 const target = join(repoRoot, 'templates', 'starter')
+const blankTarget = join(repoRoot, 'templates', 'blank')
 
 /**
  * Delegates template path exclusion decisions to shared sync rules.
@@ -56,6 +57,17 @@ function copyDirWithFilter(
 function copyFile(src: string, dest: string): void {
   mkdirSync(dirname(dest), { recursive: true })
   cpSync(src, dest, { force: true })
+}
+
+function syncSharedCoordinatorSources(): void {
+  const sharedPaths = ['src/app/api/internal/coordinator', 'src/lib/coordinator-api', 'src/services/coordinator']
+  for (const relativePath of sharedPaths) {
+    const source = join(repoRoot, relativePath)
+    const destination = join(blankTarget, relativePath)
+    rmSync(destination, { recursive: true, force: true })
+    copyDirWithFilter(source, destination, { base: repoRoot })
+  }
+  console.log('Synced shared coordinator sources to templates/blank.')
 }
 
 /**
@@ -245,6 +257,7 @@ function main(): void {
     console.log('Restored appraisejs.config.json')
   }
 
+  syncSharedCoordinatorSources()
   console.log('Synced base app to templates/starter with starter automation assets.')
 }
 

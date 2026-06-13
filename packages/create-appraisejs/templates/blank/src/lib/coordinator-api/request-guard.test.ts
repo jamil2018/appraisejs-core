@@ -25,13 +25,34 @@ function request(url = 'http://127.0.0.1:3000/api/internal/coordinator/plans') {
 
 beforeEach(() => {
   authenticateProject.mockReset().mockResolvedValue(undefined)
-  ensureProjectIdentity.mockReset().mockResolvedValue(undefined)
+  ensureProjectIdentity.mockReset().mockResolvedValue({
+    projectFingerprint: 'sha256:project',
+    canonicalProjectPath: '/tmp/project',
+  })
 })
 
 describe('coordinator request guard', () => {
   it('accepts authenticated loopback requests', async () => {
+    ensureProjectIdentity.mockResolvedValue({
+      projectFingerprint: 'sha256:project',
+      canonicalProjectPath: '/tmp/project',
+    })
     await expect(guardCoordinatorRequest(request())).resolves.toBeUndefined()
     expect(authenticateProject).toHaveBeenCalledWith('sha256:project', 'token')
+  })
+
+  it('distinguishes a project mismatch before token authentication', async () => {
+    ensureProjectIdentity.mockResolvedValue({
+      projectFingerprint: 'sha256:server',
+      canonicalProjectPath: '/tmp/server-project',
+    })
+
+    await expect(guardCoordinatorRequest(request())).rejects.toMatchObject({
+      name: 'CoordinatorProjectMismatchError',
+      requestedFingerprint: 'sha256:project',
+      serverFingerprint: 'sha256:server',
+    })
+    expect(authenticateProject).not.toHaveBeenCalled()
   })
 
   it('rejects DNS-rebinding hosts and non-loopback origins', async () => {

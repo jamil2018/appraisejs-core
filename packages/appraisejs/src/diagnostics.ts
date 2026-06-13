@@ -1,4 +1,3 @@
-import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 
@@ -9,6 +8,8 @@ type Check = {
   status: 'ok' | 'warning' | 'error'
   message: string
   recovery?: string
+  code?: string
+  details?: Record<string, unknown>
 }
 
 async function gitStatus(cwd: string): Promise<{ available: boolean; dirty: boolean }> {
@@ -43,19 +44,6 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
         },
   )
 
-  const identityPath = path.join(cwd, '.appraisejs', 'coordinator.json')
-  try {
-    await fs.access(identityPath)
-    checks.push({ id: 'identity', status: 'ok', message: 'Coordinator identity exists.' })
-  } catch {
-    checks.push({
-      id: 'identity',
-      status: 'warning',
-      message: 'Coordinator identity is not initialized.',
-      recovery: 'Start AppraiseJS once, then rerun appraisejs doctor.',
-    })
-  }
-
   let remote:
     | {
         project?: { fingerprint?: string }
@@ -71,17 +59,35 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
       ...options,
       coordinatorId: options.coordinatorId ?? 'diagnostic',
     })
+    checks.push({
+      id: 'identity',
+      status: 'ok',
+      message: 'Coordinator identity is initialized.',
+      code: 'identity-ready',
+      details: { fingerprint: client.identity.projectFingerprint },
+    })
     remote = (await client.diagnose()) as typeof remote
     checks.push(...(remote?.checks ?? []))
   } catch (error) {
     const requestError = error instanceof CoordinatorRequestError ? error : undefined
     checks.push({
-      id: requestError?.status === 401 ? 'authentication' : 'application',
+      id:
+        requestError?.code === 'transport-failed'
+          ? 'transport'
+          : requestError?.code === 'project-mismatch'
+            ? 'project'
+            : requestError?.status === 401
+              ? 'authentication'
+              : requestError
+                ? 'http'
+                : 'identity',
       status: 'error',
-      message: requestError?.message ?? `AppraiseJS is not reachable at ${options.baseUrl}.`,
+      message: requestError?.message ?? (error instanceof Error ? error.message : String(error)),
+      code: requestError?.code ?? 'identity-bootstrap-failed',
       recovery:
         requestError?.recovery ??
-        'Start the local application, verify the configured base URL, and confirm the project identity.',
+        'Verify the project directory and package.json, then rerun `appraisejs doctor --json`.',
+      details: requestError?.details,
     })
   }
 
@@ -106,9 +112,11 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
 
 export function formatMcpBootstrapError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error)
+  const code =
+    error instanceof CoordinatorRequestError ? (error.code ?? 'coordinator-request-failed') : 'bootstrap-failed'
   return [
-    `AppraiseJS MCP bootstrap failed: ${message}`,
+    `AppraiseJS MCP bootstrap failed [${code}]: ${message}`,
     'No CLI fallback was attempted.',
-    'Run `appraisejs doctor --json` and fix the reported identity or application issue before reconnecting.',
+    'Run `appraisejs doctor --json`, fix the reported category, then restart or reconnect the MCP client.',
   ].join('\n')
 }
