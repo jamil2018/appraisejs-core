@@ -144,6 +144,17 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
             {approved ? <Badge>Approved</Badge> : null}
           </div>
           <h1 className="font-heading text-3xl font-semibold tracking-tight">{detail.plan.goal}</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{detail.plan.description}</p>
+          {detail.plan.implementationGroups.length > 0 ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Implementation groups">
+              <span className="text-xs text-muted-foreground">Implementation groups:</span>
+              {detail.plan.implementationGroups.map(group => (
+                <Badge key={group.id} variant="outline">
+                  {group.id} ({group.taskIds.length})
+                </Badge>
+              ))}
+            </div>
+          ) : null}
           <p className="mt-2 font-mono text-xs text-muted-foreground">{detail.plan.planId}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -472,6 +483,16 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {selectedTask ? (
+                <div>
+                  <p className="text-sm font-medium">Acceptance criteria</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    {selectedTask.acceptanceCriteria.map(criterion => (
+                      <li key={criterion}>{criterion}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <Button
                 variant="ghost"
                 size="sm"

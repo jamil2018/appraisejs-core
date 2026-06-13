@@ -274,6 +274,7 @@ model PlanProjection {
   revision             Int
   lifecycle            String
   goal                 String
+  description          String
   sourceHash           String
   planPath             String
   reviewJson           String?

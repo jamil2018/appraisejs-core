@@ -1,0 +1,19 @@
+description: Exercise the new MCP plan format and verify its AppraiseJS review rendering.
+edges: []
+goal: Plan format smoke test
+implementationGroups:
+  - id: display-check
+    taskIds:
+      - render-plan
+lifecycle: draft
+planId: plan-format-smoke-20260613
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The plan header is readable.
+      - The task details are visible without raw JSON.
+    description: Display the title, description, acceptance criteria, and validation intent as readable plan content.
+    id: render-plan
+    title: Render structured plan content
+    validationIntent: Inspect the generated plan in the AppraiseJS UI.
+version: "1"

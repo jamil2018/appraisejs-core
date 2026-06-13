@@ -83,7 +83,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'plan_create',
     {
-      description: 'Create a structured AppraiseJS plan and wait until its review surface is ready.',
+      description:
+        'Create a structured AppraiseJS plan with a short title in goal and a separate description, then wait until its review surface is ready.',
       inputSchema: { plan: planArtifactSchema },
     },
     async ({ plan }) => {
@@ -133,7 +134,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'plan_revise',
     {
-      description: 'Submit a higher plan revision using an exact expected content hash.',
+      description:
+        'Submit a higher plan revision with a short title in goal and a separate description using an exact expected content hash.',
       inputSchema: {
         planId: z.string(),
         expectedHash: z.string(),

@@ -1,0 +1,101 @@
+edges:
+  - from: theme-control
+    to: theme-foundation
+    type: depends-on
+  - from: shared-ui-audit
+    to: theme-foundation
+    type: depends-on
+  - from: specialized-ui-audit
+    to: theme-foundation
+    type: depends-on
+  - from: theme-regression-coverage
+    to: theme-control
+    type: depends-on
+  - from: theme-regression-coverage
+    to: shared-ui-audit
+    type: depends-on
+  - from: theme-regression-coverage
+    to: specialized-ui-audit
+    type: depends-on
+  - from: sync-and-validate
+    to: theme-regression-coverage
+    type: depends-on
+goal: Add light mode theme support
+description: Let users select and persist a complete light or dark AppraiseJS theme, retaining dark as the default, with readable and accessible behavior across core and specialized app surfaces and synchronized scaffold output.
+implementationGroups:
+  - id: theme-core
+    taskIds:
+      - theme-foundation
+      - theme-control
+  - id: theme-surfaces
+    taskIds:
+      - shared-ui-audit
+      - specialized-ui-audit
+  - id: theme-verification
+    taskIds:
+      - theme-regression-coverage
+      - sync-and-validate
+lifecycle: awaiting_plan_review
+planId: light-mode-theme-support
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - next-themes can apply both light and dark classes without a forced theme.
+      - A fresh profile defaults to dark and a stored preference is restored after reload.
+      - Background, foreground, card, popover, border, input, muted, accent, destructive, chart, and sidebar tokens are readable in both themes.
+      - Root markup hydrates without theme-related warnings or a visible incorrect-theme flash.
+      - Browser controls and theme metadata are not permanently declared dark.
+    description: Remove forced-dark behavior from the existing next-themes provider and root document. Define explicit light semantic tokens in :root and retain the current palette under .dark. Make color-scheme and browser theme metadata compatible with both themes while avoiding hydration mismatch and wrong-theme flash.
+    id: theme-foundation
+    title: Enable selectable theme state and semantic palettes
+    validationIntent: Add focused provider/root tests and browser assertions for root class application, fresh-profile dark fallback, stored preference restoration, hydration errors, and initial theme rendering.
+  - acceptanceCriteria:
+      - Users can switch between Light and Dark from Settings.
+      - The selected option is visually and semantically clear.
+      - The control has an accessible name and works with keyboard navigation.
+      - The preference persists across navigation and page reload.
+      - Theme switching requires no Prisma migration or server action.
+    description: Add a client-side theme setting to the existing Settings experience using project component conventions. Expose Light and Dark choices, indicate the current choice after mount, support keyboard and screen-reader use, and persist through next-themes without server or database state.
+    id: theme-control
+    title: Add an accessible light and dark preference control
+    validationIntent: Add component tests for mounted state, selection, accessibility, keyboard behavior, and calls into next-themes, plus a browser persistence test.
+  - acceptanceCriteria:
+      - Navigation, dashboard, settings, representative CRUD tables and forms, dialogs, dropdowns, command palette, and toasts are readable in both themes.
+      - Hover, focus, selected, disabled, and destructive states remain distinguishable.
+      - Retained status colors have sufficient foreground and background contrast.
+      - Changes stay scoped to theme behavior without unrelated refactors or formatting churn.
+    description: Audit navigation, dashboard cards, shared UI components, tables, forms, dialogs, dropdowns, command palette, badges, toasts, and settings surfaces for hard-coded dark appearance classes. Replace appearance-only literals with semantic tokens or paired light/dark variants while retaining intentional status and product accent colors.
+    id: shared-ui-audit
+    title: Make shared chrome and core UI theme-safe
+    validationIntent: Use repository-wide color-class searches, focused component tests where behavior changes, and browser inspection of representative shared surfaces in both themes.
+  - acceptanceCriteria:
+      - Reports and charts retain legible axes, grids, labels, tooltips, and series in both themes.
+      - Diagram nodes, handles, edges, labels, canvases, selection, and search highlights remain visible in both themes.
+      - Plan review and execution or log surfaces preserve status meaning and readable hierarchy.
+      - CodeMirror uses an appropriate light theme in light mode and the existing dark theme in dark mode without hydration issues.
+    description: 'Review feature surfaces that use direct colors or dark-only integrations: reports and charts, React Flow diagrams, plan review edges and labels, test-run details and logs, scenario previews, and template-step CodeMirror editors. Add resolved-theme-aware integration configuration where semantic CSS variables are insufficient.'
+    id: specialized-ui-audit
+    title: Adapt reports diagrams plan review execution views and editors
+    validationIntent: Add focused tests for theme-aware editor and visualization configuration, then inspect representative report, diagram or plan review, execution log, and editor routes in both themes.
+  - acceptanceCriteria:
+      - Browser tests prove Light and Dark selection, persistence after reload, and correct root class application.
+      - Fresh-profile dark fallback is covered.
+      - Representative routes render without console or hydration errors in both themes.
+      - Key controls remain present, visible, and operable in both themes.
+      - The theme control accessibility state and keyboard path are covered.
+    description: Create browser-level coverage for theme switching, persistence, and representative high-risk routes. Exercise dashboard, a table and form workflow, reports, a diagram or plan review surface, execution logs, and an editor-bearing form in both themes, including console and accessibility checks where practical.
+    id: theme-regression-coverage
+    title: Add end-to-end theme regression coverage
+    validationIntent: Run focused Playwright scenarios in both themes and capture failures with route and theme context so visual or hydration regressions are diagnosable.
+  - acceptanceCriteria:
+      - Focused ESLint and Prettier checks pass for changed files.
+      - Relevant Vitest and Playwright tests pass.
+      - npm run build passes.
+      - Fallow and React Doctor commit checks pass or unrelated pre-existing findings are documented.
+      - npm run sync-template completes before npm --prefix packages/create-appraisejs run sync-templates.
+      - No generated automation output is manually edited and the final diff has no unrelated churn.
+    description: After canonical source changes and focused checks pass, run the breadth-appropriate build and quality gates. Synchronize root changes into scaffold templates using the documented sequential workflow, then validate the synchronized package output and final diff.
+    id: sync-and-validate
+    title: Synchronize scaffold output and run broad validation
+    validationIntent: Run focused lint, format, unit and browser checks first, followed by build, commit-quality gates, sequential template synchronization, package validation, and final diff review.
+version: '1'

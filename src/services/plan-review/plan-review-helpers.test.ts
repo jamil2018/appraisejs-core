@@ -18,6 +18,7 @@ const plan = (tasks: PlanArtifact['tasks'], revision = 1): PlanArtifact => ({
   revision,
   lifecycle: 'awaiting_plan_review',
   goal: 'Review a plan',
+  description: 'Review the plan structure, remarks, and approval state.',
   tasks,
   edges: [],
   implementationGroups: [],

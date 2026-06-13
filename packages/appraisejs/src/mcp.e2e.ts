@@ -174,6 +174,7 @@ try {
     revision: 1,
     lifecycle: 'awaiting_plan_review',
     goal: 'Validate the MCP bridge end to end',
+    description: 'Exercise the live MCP bridge across plan creation, review, revision, and implementation tools.',
     tasks: [
       {
         id: 'validate-mcp',
