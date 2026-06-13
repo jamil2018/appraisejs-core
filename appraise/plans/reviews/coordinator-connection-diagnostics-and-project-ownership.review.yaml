@@ -1,0 +1,22 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-06-13T14:05:07.410Z
+    approvedBy: local-user
+    contentHash: sha256:147f2dd8fed0a22418e8bbff3002e3b340dc5b5e65a3e02827443fd42790f23b
+    id: approval-65bf789b-b11f-436f-8323-6f16be1df9cc
+    relevantHashes:
+      plan: sha256:147f2dd8fed0a22418e8bbff3002e3b340dc5b5e65a3e02827443fd42790f23b
+    revision: 1
+planId: coordinator-connection-diagnostics-and-project-ownership
+threads:
+  - blocking: false
+    events:
+      - action: created
+        actor: local-user
+        body: approved
+        createdAt: 2026-06-13T14:07:12.257Z
+        id: event-1c3451a2-c925-4552-994a-d363e7359c09
+    id: remark-91495786-5ab5-40eb-9e2e-cfb0991985a0
+    target:
+      type: plan
+version: '1'
