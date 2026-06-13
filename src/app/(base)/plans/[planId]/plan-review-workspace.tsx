@@ -2,26 +2,27 @@
 
 import '@xyflow/react/dist/style.css'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useCallback, useMemo, useRef, useState, useTransition } from 'react'
 import {
   Background,
   Controls,
   MarkerType,
   ReactFlow,
+  type Edge,
+  type ReactFlowInstance,
   useEdgesState,
   useNodesState,
-  type Node,
   type NodeMouseHandler,
 } from '@xyflow/react'
 import {
   AlertTriangle,
   Check,
-  CircleDot,
   GitCompare,
   List,
   Loader2,
   MessageSquare,
   Network,
+  RefreshCcw,
   Save,
   Share2,
 } from 'lucide-react'
@@ -52,52 +53,66 @@ import { Textarea } from '@/components/ui/textarea'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 import { getThreadStatus, isThreadOpen } from '@/services/plan-review/plan-review-helpers'
 
+import { projectPlanFlow } from './plan-flow-projection'
+import { PlanFlowTaskNode, type PlanFlowTaskNode as PlanFlowTaskNodeType } from './plan-flow-task-node'
+
 type PlanReviewWorkspaceProps = {
   detail: PlanReviewDetail
 }
 
 const edgeColors = {
-  'depends-on': '#94a3b8',
+  'depends-on': '#64748b',
   blocks: '#ef4444',
   'relates-to': '#22c55e',
 } as const
 
-function initialPosition(index: number) {
-  return { x: (index % 3) * 320, y: Math.floor(index / 3) * 190 }
-}
+const edgeDash = {
+  'depends-on': undefined,
+  blocks: '8 5',
+  'relates-to': '2 5',
+} as const
+
+const nodeTypes = { planTask: PlanFlowTaskNode }
 
 // The graph, list, inspector, and approval controls intentionally share one interaction model.
 // fallow-ignore-next-line complexity
 export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
-  const initialNodes = useMemo<Node[]>(
-    () =>
-      detail.graph.nodes.map((task, index) => ({
-        id: task.id,
-        position: detail.personalPositions[task.id] ?? detail.sharedPositions[task.id] ?? initialPosition(index),
-        data: { label: task.title },
-        className:
-          task.status === 'blocked'
-            ? '!border-destructive !bg-destructive/10 !text-foreground'
-            : '!border-border !bg-card !text-foreground',
-        style: { width: 240, minHeight: 72 },
-      })),
-    [detail.graph.nodes, detail.personalPositions, detail.sharedPositions],
+  const semanticFlow = useMemo(() => projectPlanFlow(detail.graph), [detail.graph])
+  const semanticPositions = useMemo(
+    () => Object.fromEntries(semanticFlow.tasks.map(task => [task.id, task.position])),
+    [semanticFlow.tasks],
   )
-  const initialEdges = useMemo(
+  const initialNodes = useMemo<PlanFlowTaskNodeType[]>(
     () =>
-      detail.graph.edges.map(edge => ({
+      semanticFlow.tasks.map(task => ({
+        id: task.id,
+        type: 'planTask',
+        position: detail.personalPositions[task.id] ?? detail.sharedPositions[task.id] ?? task.position,
+        data: { step: task.step, title: task.title, status: task.status },
+      })),
+    [detail.personalPositions, detail.sharedPositions, semanticFlow.tasks],
+  )
+  const initialEdges = useMemo<Edge[]>(
+    () =>
+      semanticFlow.edges.map(edge => ({
         id: edge.id,
-        source: edge.from,
-        target: edge.to,
+        source: edge.source,
+        target: edge.target,
         label: edge.type,
         markerEnd: { type: MarkerType.ArrowClosed, color: edgeColors[edge.type] },
-        style: { stroke: edgeColors[edge.type], strokeWidth: 1.5 },
-        labelStyle: { fill: '#cbd5e1', fontSize: 11 },
+        style: {
+          stroke: edgeColors[edge.type],
+          strokeWidth: edge.type === 'depends-on' ? 2 : 1.5,
+          strokeDasharray: edgeDash[edge.type],
+        },
+        labelStyle: { fill: 'var(--foreground)', fontSize: 11, fontWeight: 600 },
+        labelBgStyle: { fill: 'var(--background)', fillOpacity: 0.9 },
       })),
-    [detail.graph.edges],
+    [semanticFlow.edges],
   )
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+  const flowInstanceRef = useRef<ReactFlowInstance<PlanFlowTaskNodeType, Edge> | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(detail.plan.tasks[0]?.id ?? null)
   const [remarkBody, setRemarkBody] = useState('')
   const [blocking, setBlocking] = useState(true)
@@ -130,7 +145,16 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
   const positions = () =>
     Object.fromEntries(nodes.map(node => [node.id, { x: Math.round(node.position.x), y: Math.round(node.position.y) }]))
 
-  const onNodeClick: NodeMouseHandler = (_, node) => setSelectedTaskId(node.id)
+  const onNodeClick: NodeMouseHandler<PlanFlowTaskNodeType> = (_, node) => setSelectedTaskId(node.id)
+  const resetToFlow = useCallback(() => {
+    setNodes(currentNodes =>
+      currentNodes.map(node => ({
+        ...node,
+        position: semanticPositions[node.id] ?? node.position,
+      })),
+    )
+    requestAnimationFrame(() => void flowInstanceRef.current?.fitView({ padding: 0.18, duration: 300 }))
+  }, [semanticPositions, setNodes])
 
   return (
     <main className="space-y-5 pb-10">
@@ -221,15 +245,24 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <CardTitle>Review surface</CardTitle>
-                <CardDescription>Graph and list are equivalent views of canonical plan data.</CardDescription>
+                <CardDescription>
+                  Steps progress left to right. Tasks in the same stage may proceed in parallel.
+                </CardDescription>
               </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-end gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <CircleDot className="size-3 text-destructive" /> blocks
+                  <span className="w-5 border-t-2 border-muted-foreground" /> depends-on
                 </span>
                 <span className="flex items-center gap-1">
-                  <CircleDot className="size-3 text-primary" /> relates
+                  <span className="w-5 border-t-2 border-dashed border-destructive" /> blocks
                 </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-5 border-t-2 border-dotted border-green-500" /> relates-to
+                </span>
+                <Button size="sm" variant="outline" onClick={resetToFlow}>
+                  <RefreshCcw className="mr-2 size-3.5" />
+                  Reset to flow
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -258,9 +291,14 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                   onNodesChange={onNodesChange}
                   onEdgesChange={onEdgesChange}
                   onNodeClick={onNodeClick}
+                  onInit={instance => {
+                    flowInstanceRef.current = instance
+                  }}
+                  nodeTypes={nodeTypes}
                   nodesConnectable={false}
                   elementsSelectable
                   fitView
+                  minZoom={0.2}
                   colorMode="dark"
                   proOptions={{ hideAttribution: true }}
                   aria-label="Plan dependency graph"
@@ -270,7 +308,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                 </ReactFlow>
               </TabsContent>
               <TabsContent value="list" className="m-0 divide-y">
-                {detail.graph.nodes.map((task, index) => (
+                {semanticFlow.tasks.map(task => (
                   <button
                     key={task.id}
                     type="button"
@@ -279,7 +317,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                     aria-pressed={selectedTaskId === task.id}
                   >
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-md border font-mono text-xs">
-                      {index + 1}
+                      {task.step}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
