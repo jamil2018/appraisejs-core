@@ -8,6 +8,7 @@ const validPlan = {
   revision: 1,
   lifecycle: 'awaiting_plan_review',
   goal: 'Keep CLI, API, and MCP plan inputs aligned',
+  description: 'Verify every plan entry point accepts and rejects the same artifact shape.',
   tasks: [
     {
       id: 'publish-plan',
@@ -27,6 +28,8 @@ describe('plan input contract parity', () => {
   })
 
   it.each([
+    [{ ...validPlan, description: '' }, 'description'],
+    [{ ...validPlan, goal: 'a'.repeat(81) }, 'goal'],
     [{ ...validPlan, tasks: [{ ...validPlan.tasks[0], validationIntent: '' }] }, 'tasks.0.validationIntent'],
     [
       { ...validPlan, implementationGroups: [{ id: 'publication', taskIds: ['missing-task'] }] },

@@ -16,6 +16,7 @@ const plan = {
   revision: 1,
   lifecycle: 'in_progress',
   goal: 'Implement safely',
+  description: 'Coordinate implementation tasks through explicit checkpoints.',
   tasks: ['foundation', 'api', 'docs'].map(id => ({
     id,
     title: id,

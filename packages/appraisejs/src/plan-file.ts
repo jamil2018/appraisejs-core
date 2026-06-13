@@ -22,7 +22,12 @@ export const planArtifactSchema = z
       'completed',
       'cancelled',
     ]),
-    goal: z.string().min(1),
+    goal: z
+      .string()
+      .min(1)
+      .max(80)
+      .describe('Short plan title, limited to 80 characters. Put supporting detail in description.'),
+    description: z.string().min(1).describe('Concise summary of the plan scope, intent, and expected outcome.'),
     tasks: z
       .array(
         z.object({

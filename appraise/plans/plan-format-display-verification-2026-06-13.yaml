@@ -1,0 +1,33 @@
+description: Create a representative AppraiseJS plan through MCP and confirm that the review surface clearly renders the short title, supporting description, ordered tasks, acceptance criteria, validation intent, dependency relationships, and implementation groups.
+edges:
+  - from: inspect-contract
+    to: verify-relationships
+    type: blocks
+goal: Verify the new plan generation display
+implementationGroups:
+  - id: format-display-check
+    taskIds:
+      - inspect-contract
+      - verify-relationships
+lifecycle: awaiting_plan_review
+planId: plan-format-display-verification-2026-06-13
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The title and description appear as distinct readable elements.
+      - Each task shows its title and supporting description.
+      - No required plan field is displayed as undefined, empty, or raw JSON.
+    description: Confirm the review surface distinguishes the concise plan title from the longer description and presents all structured plan sections without raw serialization artifacts.
+    id: inspect-contract
+    title: Inspect the generated plan structure
+    validationIntent: Visually inspect the plan header and task presentation in the AppraiseJS review UI.
+  - acceptanceCriteria:
+      - Acceptance criteria are grouped under their corresponding tasks.
+      - Validation intent is visible for both tasks.
+      - The dependency from structure inspection to relationship verification is understandable.
+      - The implementation group contains both tasks in the intended order.
+    description: Check that acceptance criteria, validation intent, the dependency edge, and the implementation group are represented accurately and legibly.
+    id: verify-relationships
+    title: Verify relationships and validation details
+    validationIntent: Compare the rendered review surface against the exact MCP payload.
+version: "1"

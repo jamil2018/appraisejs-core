@@ -19,6 +19,7 @@ const createResponse = await fetch(`${baseUrl}/api/internal/coordinator/plans`, 
       revision: 1,
       lifecycle: 'awaiting_plan_review',
       goal: 'Verify coordinator API and MCP prerequisites',
+      description: 'Smoke test coordinator API and MCP prerequisites against a live local application.',
       tasks: [
         {
           id: 'verify-event',

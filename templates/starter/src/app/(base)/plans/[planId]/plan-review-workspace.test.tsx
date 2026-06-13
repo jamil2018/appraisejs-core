@@ -39,6 +39,7 @@ const detail: PlanReviewDetail = {
     revision: 2,
     lifecycle: 'awaiting_plan_review',
     goal: 'Accessible plan review',
+    description: 'Review an accessible plan with graph and list representations.',
     tasks: [
       {
         id: 'task-one',
@@ -49,7 +50,7 @@ const detail: PlanReviewDetail = {
       },
     ],
     edges: [],
-    implementationGroups: [],
+    implementationGroups: [{ id: 'delivery', taskIds: ['task-one'] }],
   },
   review: {
     version: '1',
@@ -91,6 +92,15 @@ const detail: PlanReviewDetail = {
 }
 
 describe('PlanReviewWorkspace', () => {
+  it('renders the plan title and description as separate header content', () => {
+    render(<PlanReviewWorkspace detail={detail} />)
+
+    expect(screen.getByRole('heading', { name: 'Accessible plan review' })).toBeInTheDocument()
+    expect(screen.getByText('Review an accessible plan with graph and list representations.')).toBeInTheDocument()
+    expect(screen.getByText('delivery (1)')).toBeInTheDocument()
+    expect(screen.getByText('It works')).toBeInTheDocument()
+  })
+
   it('provides an equivalent keyboard-operable list with non-color status text', async () => {
     const user = userEvent.setup()
     render(<PlanReviewWorkspace detail={detail} />)

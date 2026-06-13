@@ -31,6 +31,7 @@ describe('plan file commands', () => {
         'revision: 1',
         'lifecycle: draft',
         'goal: Exercise CLI recovery',
+        'description: Verify plan file validation and CLI recovery behavior.',
         'tasks:',
         '  - id: add-tests',
         '    title: Add tests',
@@ -64,6 +65,7 @@ describe('plan file commands', () => {
         revision: 1,
         lifecycle: 'draft',
         goal: 'Create offline',
+        description: 'Create a validated offline plan draft.',
         tasks: [
           {
             id: 'draft',

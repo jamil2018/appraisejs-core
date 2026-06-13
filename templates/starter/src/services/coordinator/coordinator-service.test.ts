@@ -42,6 +42,13 @@ beforeEach(async () => {
     .toString()
     .trim()
   if (!projectionTable) await applyMigration('20260609002500_add_plan_projection_and_sync')
+  const descriptionColumn = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM pragma_table_info('PlanProjection') WHERE name='description';",
+  ])
+    .toString()
+    .trim()
+  if (!descriptionColumn) await applyMigration('20260613015000_add_plan_description')
 
   const eventTable = execFileSync('sqlite3', [
     databasePath,
@@ -65,6 +72,7 @@ beforeEach(async () => {
       revision: 1,
       lifecycle: 'draft',
       goal: 'Test coordination',
+      description: 'Test durable coordinator events for a projected plan.',
       sourceHash: `sha256:${'a'.repeat(64)}`,
       planPath: 'appraise/plans/coordinator-plan.yaml',
       lastValidProjectedAt: new Date(),

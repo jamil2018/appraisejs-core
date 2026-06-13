@@ -20,6 +20,7 @@ function plan(planId: string, revision = 1): PlanArtifact {
     revision,
     lifecycle: 'draft',
     goal: `Deliver ${planId}`,
+    description: `Describe the implementation scope for ${planId}.`,
     tasks: [
       {
         id: 'first-task',
@@ -61,6 +62,19 @@ beforeEach(async () => {
           '20260609002500_add_plan_projection_and_sync',
           'migration.sql',
         ),
+      ),
+    })
+  }
+  const descriptionColumn = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM pragma_table_info('PlanProjection') WHERE name='description';",
+  ])
+    .toString()
+    .trim()
+  if (!descriptionColumn) {
+    execFileSync('sqlite3', [databasePath], {
+      input: await fs.readFile(
+        path.join(process.cwd(), 'prisma', 'migrations', '20260613015000_add_plan_description', 'migration.sql'),
       ),
     })
   }
