@@ -34,6 +34,10 @@ type ReviewMutationOptions = {
   projectDirectory?: string
 }
 
+type WriteReviewOptions = ReviewMutationOptions & {
+  sync?: boolean
+}
+
 export type PlanReviewDetail = {
   plan: PlanArtifact
   review?: ReviewArtifact
@@ -122,7 +126,7 @@ async function writeReview(
   planId: string,
   review: ReviewArtifact,
   currentHash: string | undefined,
-  options?: ReviewMutationOptions,
+  options?: WriteReviewOptions,
 ): Promise<void> {
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
@@ -139,7 +143,7 @@ async function writeReview(
     }
     throw error
   }
-  await syncPlans({ projectDirectory: projectRoot, client: options?.client })
+  if (options?.sync !== false) await syncPlans({ projectDirectory: projectRoot, client: options?.client })
 }
 
 export async function listPlans(options?: ReviewMutationOptions) {
@@ -303,7 +307,7 @@ export async function approvePlanRevision(
   options?: ReviewMutationOptions,
 ): Promise<void> {
   const projectRoot = await findProjectRoot(options?.projectDirectory)
-  const { plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
+  const { repository, plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
   const projection = await (options?.client ?? prisma).planProjection.findUnique({
     where: { planId: input.planId },
     include: { issues: { where: { resolvedAt: null } } },
@@ -341,7 +345,16 @@ export async function approvePlanRevision(
     approvedBy: input.actor ?? DEFAULT_REVIEWER,
     approvedAt: new Date().toISOString(),
   })
-  await writeReview(input.planId, review, reviewArtifact?.hash, options)
+  await writeReview(input.planId, review, reviewArtifact?.hash, { ...options, sync: false })
+  if (plan.lifecycle === 'awaiting_plan_review') {
+    await repository.compareAndWrite(
+      'plan',
+      input.planId,
+      planArtifact.hash,
+      serializeYamlArtifact('plan', { ...plan, lifecycle: 'plan_approved' }),
+    )
+  }
+  await syncPlans({ projectDirectory: projectRoot, client: options?.client })
 }
 
 export async function savePersonalPlanLayout(
