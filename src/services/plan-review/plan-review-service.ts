@@ -337,15 +337,7 @@ export async function approvePlanRevision(
     suspiciousReplacementConfirmed: Boolean(input.confirmSuspiciousReplacement),
   })
   if (!decision.allowed) throw new ServiceError(decision.reason ?? 'Plan cannot be approved.', 'CONFLICT')
-  review.planApprovals.push({
-    id: id('approval'),
-    revision: plan.revision,
-    contentHash: planArtifact.hash,
-    relevantHashes: { plan: planArtifact.hash },
-    approvedBy: input.actor ?? DEFAULT_REVIEWER,
-    approvedAt: new Date().toISOString(),
-  })
-  await writeReview(input.planId, review, reviewArtifact?.hash, { ...options, sync: false })
+  let approvedPlanHash = planArtifact.hash
   if (plan.lifecycle === 'awaiting_plan_review') {
     await repository.compareAndWrite(
       'plan',
@@ -353,8 +345,22 @@ export async function approvePlanRevision(
       planArtifact.hash,
       serializeYamlArtifact('plan', { ...plan, lifecycle: 'plan_approved' }),
     )
+    approvedPlanHash = (await repository.read('plan', input.planId)).hash
   }
+  review.planApprovals.push({
+    id: id('approval'),
+    revision: plan.revision,
+    contentHash: approvedPlanHash,
+    relevantHashes: { plan: approvedPlanHash },
+    approvedBy: input.actor ?? DEFAULT_REVIEWER,
+    approvedAt: new Date().toISOString(),
+  })
+  await writeReview(input.planId, review, reviewArtifact?.hash, { ...options, sync: false })
   await syncPlans({ projectDirectory: projectRoot, client: options?.client })
+  await appendPlanEvent(
+    { planId: input.planId, type: 'plan_approved', payload: { revision: plan.revision } },
+    options?.client,
+  )
 }
 
 export async function savePersonalPlanLayout(

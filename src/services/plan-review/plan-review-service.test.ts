@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { parseYamlArtifact, serializeYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
+import { startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
+import { readPlanEvents } from '@/services/coordinator/coordinator-service'
 
 import { approvePlanRevision } from './plan-review-service'
 
@@ -100,5 +102,38 @@ describe('approvePlanRevision', () => {
     ).resolves.toMatchObject({
       lifecycle: 'plan_approved',
     })
+  })
+
+  it('emits approval notification and permits validation preparation start', async () => {
+    await writePlan('startable-flow', serializeYamlArtifact('plan', plan('startable-flow')))
+    await syncPlans({ projectDirectory: workspace, client })
+
+    await approvePlanRevision(
+      { planId: 'startable-flow', displayedRevision: 1 },
+      { projectDirectory: workspace, client },
+    )
+
+    await expect(readPlanEvents({ planId: 'startable-flow' }, client)).resolves.toEqual([
+      expect.objectContaining({
+        sequence: 1,
+        type: 'plan_approved',
+        payload: { revision: 1 },
+      }),
+    ])
+
+    await expect(
+      startCoordinatorPlan('startable-flow', { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'preparing_validations' },
+    })
+
+    await expect(readPlanEvents({ planId: 'startable-flow' }, client)).resolves.toEqual([
+      expect.objectContaining({ sequence: 1, type: 'plan_approved' }),
+      expect.objectContaining({
+        sequence: 2,
+        type: 'validation_preparation_started',
+        payload: { revision: 1 },
+      }),
+    ])
   })
 })

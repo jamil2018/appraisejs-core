@@ -1,0 +1,19 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-06-22T19:11:19.236Z
+    approvedBy: local-user
+    contentHash: sha256:6d75298870b91615592111af5cddb2bbe55583740e648dda7edd09eeb3f5fa30
+    id: approval-b9a69005-10a5-4c46-a2ae-322d2b4b57e6
+    relevantHashes:
+      plan: sha256:6d75298870b91615592111af5cddb2bbe55583740e648dda7edd09eeb3f5fa30
+    revision: 1
+  - approvedAt: 2026-06-22T19:14:35.473Z
+    approvedBy: local-user
+    contentHash: sha256:1fc9e89f071739609d2c321e7d22ab38766ec52e6d3293a79b454ecf499c55fc
+    id: approval-3541865b-7f8c-4442-9412-eabeba186086
+    relevantHashes:
+      plan: sha256:1fc9e89f071739609d2c321e7d22ab38766ec52e6d3293a79b454ecf499c55fc
+    revision: 1
+planId: validate-plan-creation-flow
+threads: []
+version: "1"
