@@ -24,6 +24,19 @@ export class CoordinatorRequestError extends Error {
   }
 }
 
+export function coordinatorRequestErrorEnvelope(error: CoordinatorRequestError) {
+  return {
+    code: error.code ?? 'coordinator-request-failed',
+    message: error.message,
+    status: error.status,
+    ...(error.path ? { path: error.path } : {}),
+    recovery:
+      error.recovery ??
+      'Run appraisejs doctor --json, then check plan status, plan events, sync-plans output, and the direct review URL.',
+    ...(error.details ? { details: error.details } : {}),
+  }
+}
+
 async function readResponseBody(response: Response): Promise<unknown> {
   const source = await response.text()
   if (!source) return undefined
@@ -79,7 +92,9 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
         body,
         typeof envelope?.code === 'string' ? envelope.code : undefined,
         typeof envelope?.path === 'string' ? envelope.path : undefined,
-        typeof envelope?.recovery === 'string' ? envelope.recovery : undefined,
+        typeof envelope?.recovery === 'string'
+          ? envelope.recovery
+          : 'Run appraisejs doctor --json, then inspect plan status, plan events, sync-plans output, and the direct review URL.',
         envelope?.details && typeof envelope.details === 'object'
           ? (envelope.details as Record<string, unknown>)
           : { endpoint },

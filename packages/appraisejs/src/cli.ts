@@ -3,7 +3,11 @@
 import path from 'path'
 import { Command } from 'commander'
 import { addStepBySlug } from './add-step.js'
-import { createCoordinatorClient } from './coordinator-client.js'
+import {
+  CoordinatorRequestError,
+  coordinatorRequestErrorEnvelope,
+  createCoordinatorClient,
+} from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { runAppraiseMcp } from './mcp.js'
 import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-file.js'
@@ -36,6 +40,28 @@ async function onlineClient(options: OnlineOptions) {
 
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2))
+}
+
+function printErrorJson(error: unknown): void {
+  if (error instanceof CoordinatorRequestError) {
+    printJson({ ok: false, ...coordinatorRequestErrorEnvelope(error) })
+    return
+  }
+  printJson({
+    ok: false,
+    code: 'command-failed',
+    message: error instanceof Error ? error.message : String(error),
+  })
+}
+
+async function runCommand(action: () => Promise<void>, json: boolean): Promise<void> {
+  try {
+    await action()
+  } catch (error) {
+    if (!json) throw error
+    printErrorJson(error)
+    process.exitCode = 1
+  }
 }
 
 program
@@ -80,10 +106,12 @@ plan
   .argument('<file>', 'plan YAML or JSON file')
   .option('--json', 'print machine-readable JSON', false)
   .action(async (file: string, options: { json: boolean }) => {
-    const result = await validatePlanFile(file)
-    console.log(
-      options.json ? JSON.stringify(result, null, 2) : `Valid plan ${result.planId} revision ${result.revision}.`,
-    )
+    await runCommand(async () => {
+      const result = await validatePlanFile(file)
+      console.log(
+        options.json ? JSON.stringify(result, null, 2) : `Valid plan ${result.planId} revision ${result.revision}.`,
+      )
+    }, options.json)
   })
 
 plan
@@ -94,46 +122,73 @@ plan
   .option('--coordinator-id <id>', 'stable coordinator identity', process.env.APPRAISE_COORDINATOR_ID ?? 'coordinator')
   .option('--offline', 'create a local draft without lifecycle registration', false)
   .option('--allow-external-plan-file', 'allow a plan file outside --cwd', false)
-  .action(async (options: OnlineOptions & { file: string; offline: boolean; allowExternalPlanFile: boolean }) => {
-    if (options.offline) return printJson(await createOfflineDraft(options.file, options.cwd))
-    const source = await resolvePlanSource(options.cwd, options.file, options.allowExternalPlanFile)
-    const client = await onlineClient(options)
-    printJson(await client.createPlan(await readValidatedPlan(source.path), source))
-  })
+  .option('--json', 'print machine-readable JSON', false)
+  .action(
+    async (
+      options: OnlineOptions & { file: string; offline: boolean; allowExternalPlanFile: boolean; json: boolean },
+    ) => {
+      await runCommand(async () => {
+        if (options.offline) return printJson(await createOfflineDraft(options.file, options.cwd))
+        const source = await resolvePlanSource(options.cwd, options.file, options.allowExternalPlanFile)
+        const client = await onlineClient(options)
+        printJson(await client.createPlan(await readValidatedPlan(source.path), source))
+      }, options.json)
+    },
+  )
 
-addOnlineOptions(plan.command('status').argument('<plan-id>').description('Read current online plan status')).action(
-  async (planId: string, options: OnlineOptions) => printJson(await (await onlineClient(options)).readPlan(planId)),
-)
+addOnlineOptions(
+  plan
+    .command('status')
+    .argument('<plan-id>')
+    .description('Read current online plan status')
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (planId: string, options: OnlineOptions & { json: boolean }) => {
+  await runCommand(async () => printJson(await (await onlineClient(options)).readPlan(planId)), options.json)
+})
 
 addOnlineOptions(
   plan
     .command('revise')
     .argument('<plan-id>')
     .requiredOption('--file <path>', 'revised plan file')
-    .requiredOption('--expected-hash <hash>', 'exact current plan content hash'),
-).action(async (planId: string, options: OnlineOptions & { file: string; expectedHash: string }) => {
-  const client = await onlineClient(options)
-  printJson(
-    await client.revisePlan(planId, {
-      expectedHash: options.expectedHash,
-      plan: await readValidatedPlan(options.file),
-    }),
-  )
+    .requiredOption('--expected-hash <hash>', 'exact current plan content hash')
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (planId: string, options: OnlineOptions & { file: string; expectedHash: string; json: boolean }) => {
+  await runCommand(async () => {
+    const client = await onlineClient(options)
+    printJson(
+      await client.revisePlan(planId, {
+        expectedHash: options.expectedHash,
+        plan: await readValidatedPlan(options.file),
+      }),
+    )
+  }, options.json)
 })
 
 addOnlineOptions(
-  plan.command('events').argument('<plan-id>').option('--after <sequence>', 'read events after sequence', '0'),
-).action(async (planId: string, options: OnlineOptions & { after: string }) => {
-  printJson(await (await onlineClient(options)).readEvents(planId, Number(options.after)))
+  plan
+    .command('events')
+    .argument('<plan-id>')
+    .option('--after <sequence>', 'read events after sequence', '0')
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (planId: string, options: OnlineOptions & { after: string; json: boolean }) => {
+  await runCommand(
+    async () => printJson(await (await onlineClient(options)).readEvents(planId, Number(options.after))),
+    options.json,
+  )
 })
 
 addOnlineOptions(
   plan
     .command('ack-event')
     .argument('<plan-id>')
-    .requiredOption('--sequence <number>', 'event sequence to acknowledge'),
-).action(async (planId: string, options: OnlineOptions & { sequence: string }) => {
-  printJson(await (await onlineClient(options)).acknowledgeEvent(planId, Number(options.sequence)))
+    .requiredOption('--sequence <number>', 'event sequence to acknowledge')
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (planId: string, options: OnlineOptions & { sequence: string; json: boolean }) => {
+  await runCommand(
+    async () => printJson(await (await onlineClient(options)).acknowledgeEvent(planId, Number(options.sequence))),
+    options.json,
+  )
 })
 
 addOnlineOptions(
@@ -141,15 +196,27 @@ addOnlineOptions(
     .command('reconnect')
     .argument('<plan-id>')
     .requiredOption('--connection-id <id>', 'previous coordinator connection ID')
-    .option('--after <sequence>', 'read pending events after sequence', '0'),
-).action(async (planId: string, options: OnlineOptions & { connectionId: string; after: string }) => {
-  printJson(await (await onlineClient(options)).reconnect(planId, options.connectionId, Number(options.after)))
+    .option('--after <sequence>', 'read pending events after sequence', '0')
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (planId: string, options: OnlineOptions & { connectionId: string; after: string; json: boolean }) => {
+  await runCommand(
+    async () =>
+      printJson(await (await onlineClient(options)).reconnect(planId, options.connectionId, Number(options.after))),
+    options.json,
+  )
 })
 
 addOnlineOptions(
-  plan.command('register').argument('<plan-id>').option('--takeover-approved', 'confirm user-approved takeover', false),
-).action(async (planId: string, options: OnlineOptions & { takeoverApproved: boolean }) => {
-  printJson(await (await onlineClient(options)).register(planId, options.takeoverApproved))
+  plan
+    .command('register')
+    .argument('<plan-id>')
+    .option('--takeover-approved', 'confirm user-approved takeover', false)
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (planId: string, options: OnlineOptions & { takeoverApproved: boolean; json: boolean }) => {
+  await runCommand(
+    async () => printJson(await (await onlineClient(options)).register(planId, options.takeoverApproved)),
+    options.json,
+  )
 })
 
 const validation = program.command('validation').description('Publish and submit validation review data')

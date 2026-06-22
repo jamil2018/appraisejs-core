@@ -17,6 +17,7 @@ import {
 import {
   acknowledgePlanEvent,
   ensureProjectIdentity,
+  ensurePlanReviewReadyEvent,
   heartbeatCoordinator,
   readPlanEvents,
   registerCoordinator,
@@ -97,10 +98,13 @@ async function getEvents(request: Request, operation: string[]) {
     .nonnegative()
     .parse(url.searchParams.get('after') ?? '0')
   const input = { planId, afterSequence }
-  const events =
-    url.searchParams.get('wait') === 'true'
-      ? await waitForPlanEvents({ ...input, signal: request.signal })
-      : await readPlanEvents(input)
+  const wait = url.searchParams.get('wait') === 'true'
+  const events = wait ? await waitForPlanEvents({ ...input, signal: request.signal }) : await readPlanEvents(input)
+  if (wait && events.length === 0) {
+    await ensurePlanReviewReadyEvent(planId)
+    const repairedEvents = await readPlanEvents(input)
+    if (repairedEvents.length > 0) return Response.json({ events: repairedEvents })
+  }
   return Response.json({ events })
 }
 

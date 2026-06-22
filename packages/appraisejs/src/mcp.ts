@@ -5,6 +5,7 @@ import { z } from 'zod'
 import {
   CoordinatorRequestError,
   createCoordinatorClient,
+  coordinatorRequestErrorEnvelope,
   type CoordinatorOptions as McpOptions,
 } from './coordinator-client.js'
 import { diagnoseProject } from './diagnostics.js'
@@ -21,13 +22,7 @@ function toolError(error: unknown) {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify({
-            code: error.code ?? 'coordinator-request-failed',
-            message: error.message,
-            ...(error.path ? { path: error.path } : {}),
-            ...(error.recovery ? { recovery: error.recovery } : {}),
-            ...(error.details ? { details: error.details } : {}),
-          }),
+          text: JSON.stringify(coordinatorRequestErrorEnvelope(error)),
         },
       ],
     }
@@ -118,7 +113,29 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         events?: Array<{ sequence: number; type: string }>
       }
       const reviewReady = result.events?.find(event => event.type === 'plan_review_ready')
-      if (!reviewReady) return text(result)
+      if (!reviewReady) {
+        try {
+          const current = (await api.request(`plans/${planId}`)) as {
+            plan: { revision: number; lifecycle: string }
+            contentHash: string
+            links: unknown
+          }
+          return text({
+            status: 'pending',
+            planId,
+            revision: current.plan.revision,
+            lifecycle: current.plan.lifecycle,
+            contentHash: current.contentHash,
+            links: current.links,
+            events: result.events ?? [],
+            recovery:
+              'Open the review URL or rerun plan_wait_for_review after sync-plans; no durable plan_review_ready event was delivered yet.',
+          })
+        } catch (error) {
+          if (error instanceof CoordinatorRequestError) return toolError(error)
+          throw error
+        }
+      }
       const current = (await api.request(`plans/${planId}`)) as {
         plan: { revision: number; lifecycle: string }
         contentHash: string

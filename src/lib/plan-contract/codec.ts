@@ -1,4 +1,4 @@
-import { parseDocument, stringify } from 'yaml'
+import { isAlias, parseDocument, stringify, visit } from 'yaml'
 import type { ZodError } from 'zod'
 
 import { PlanContractError } from './errors'
@@ -38,6 +38,29 @@ function validateArtifact(kind: ArtifactKind, value: unknown): unknown {
   }
 }
 
+function assertNoYamlReferences(document: ReturnType<typeof parseDocument>): void {
+  let blockedReference: 'anchor' | 'alias' | undefined
+  visit(document, {
+    Alias() {
+      blockedReference = 'alias'
+      return visit.BREAK
+    },
+    Node(_, node) {
+      if (node && 'anchor' in node && node.anchor) {
+        blockedReference = 'anchor'
+        return visit.BREAK
+      }
+      if (isAlias(node)) {
+        blockedReference = 'alias'
+        return visit.BREAK
+      }
+    },
+  })
+  if (blockedReference) {
+    throw new PlanContractError('unsafe-alias', `YAML ${blockedReference}s are not allowed`)
+  }
+}
+
 export function parseJsonArtifact(kind: ArtifactKind, source: string): unknown {
   assertSize(source)
   try {
@@ -69,9 +92,7 @@ export function parseYamlArtifact(kind: Exclude<ArtifactKind, 'layout'>, source:
     throw new PlanContractError('invalid-artifact', 'Invalid YAML artifact')
   }
 
-  if (source.includes('*') || source.includes('&')) {
-    throw new PlanContractError('unsafe-alias', 'YAML aliases are not allowed')
-  }
+  assertNoYamlReferences(document)
 
   return validateArtifact(kind, document.toJS({ maxAliasCount: 0 }))
 }

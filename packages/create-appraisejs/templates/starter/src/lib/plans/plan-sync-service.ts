@@ -35,6 +35,15 @@ export type PlanSyncResult = {
   stale: number
   conflicted: number
   reducedAssurance: boolean
+  issues: PlanSyncIssueSummary[]
+}
+
+export type PlanSyncIssueSummary = {
+  planId: string
+  artifactPath?: string
+  code: string
+  message: string
+  projected: boolean
 }
 
 function sourceHash(artifacts: StoredPlanArtifact[]): string {
@@ -98,6 +107,23 @@ async function markProjectionStale(
     }),
   ])
   return 'stale'
+}
+
+function syncIssueSummary(
+  planId: string,
+  artifacts: StoredPlanArtifact[],
+  error: unknown,
+  projected: boolean,
+): PlanSyncIssueSummary {
+  const conflictedArtifact = artifacts.find(artifact => CONFLICT_MARKER.test(artifact.content))
+  return {
+    planId,
+    artifactPath:
+      conflictedArtifact?.relativePath ?? artifacts.find(artifact => artifact.kind === 'plan')?.relativePath,
+    code: conflictedArtifact ? 'merge-conflict' : 'invalid-artifact',
+    message: error instanceof Error ? error.message : String(error),
+    projected,
+  }
 }
 
 async function projectValidPlan(
@@ -229,6 +255,7 @@ export async function syncPlans(options?: {
     stale: 0,
     conflicted: 0,
     reducedAssurance: false,
+    issues: [],
   }
 
   for (const [planId, planArtifacts] of grouped) {
@@ -239,6 +266,7 @@ export async function syncPlans(options?: {
     } catch (error) {
       result.errors += 1
       const staleOutcome = await markProjectionStale(client, planId, planArtifacts, error)
+      result.issues.push(syncIssueSummary(planId, planArtifacts, error, staleOutcome === 'stale'))
       if (staleOutcome === 'stale') result.stale += 1
       if (planArtifacts.some(artifact => CONFLICT_MARKER.test(artifact.content))) result.conflicted += 1
     }

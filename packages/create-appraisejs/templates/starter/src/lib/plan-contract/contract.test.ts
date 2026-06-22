@@ -82,6 +82,28 @@ describe('artifact schemas and codecs', () => {
     expect(operation).toThrowError(expect.objectContaining({ code }))
   })
 
+  it('allows asterisks in prose without allowing YAML anchors', () => {
+    expect(() =>
+      parseYamlArtifact(
+        'plan',
+        serializeYamlArtifact('plan', {
+          ...plan,
+          planId: 'glob-text',
+          description: 'Review markdown files such as *.md without creating YAML aliases.',
+          tasks: [
+            {
+              ...plan.tasks[0],
+              validationIntent: 'Inspect files matching *.md as plain text.',
+            },
+          ],
+        }),
+      ),
+    ).not.toThrow()
+    expect(() => parseYamlArtifact('plan', 'version: &version "1"\nplanId: anchor-plan\n')).toThrowError(
+      expect.objectContaining({ code: 'unsafe-alias' }),
+    )
+  })
+
   it('requires a description and limits the plan title to 80 characters', () => {
     expect(planArtifactSchema.safeParse({ ...plan, description: '' }).success).toBe(false)
     expect(planArtifactSchema.safeParse({ ...plan, goal: 'a'.repeat(81) }).success).toBe(false)

@@ -1,0 +1,12 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-06-13T17:48:53.492Z
+    approvedBy: local-user
+    contentHash: sha256:2b29fe766275f8a07ab50a8507e5ab51bf19651fd3290f5c3c3dbb337adf764e
+    id: approval-26440839-295b-43dd-b880-0204483f3e8b
+    relevantHashes:
+      plan: sha256:2b29fe766275f8a07ab50a8507e5ab51bf19651fd3290f5c3c3dbb337adf764e
+    revision: 1
+planId: semantic-plan-flow-graph
+threads: []
+version: "1"

@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-import { parseDocument } from 'yaml'
+import { isAlias, parseDocument, visit } from 'yaml'
 import { z } from 'zod'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
@@ -76,12 +76,33 @@ export const planArtifactSchema = z
 
 export type PlanFile = z.infer<typeof planArtifactSchema>
 
+function assertNoYamlReferences(document: ReturnType<typeof parseDocument>): void {
+  let blockedReference: 'anchor' | 'alias' | undefined
+  visit(document, {
+    Alias() {
+      blockedReference = 'alias'
+      return visit.BREAK
+    },
+    Node(_, node) {
+      if (node && 'anchor' in node && node.anchor) {
+        blockedReference = 'anchor'
+        return visit.BREAK
+      }
+      if (isAlias(node)) {
+        blockedReference = 'alias'
+        return visit.BREAK
+      }
+    },
+  })
+  if (blockedReference) throw new Error(`YAML ${blockedReference}s are not allowed.`)
+}
+
 async function readPlanFile(file: string): Promise<PlanFile> {
   const source = await fs.readFile(file, 'utf8')
   if (Buffer.byteLength(source, 'utf8') > 1_048_576) throw new Error('Plan file exceeds the 1 MB limit.')
   const document = parseDocument(source, { prettyErrors: false, strict: true, uniqueKeys: true })
   if (document.errors.length) throw new Error(`Invalid plan file: ${document.errors[0]?.message ?? 'YAML parse error'}`)
-  if (source.includes('*') || source.includes('&')) throw new Error('YAML aliases are not allowed.')
+  assertNoYamlReferences(document)
   return planArtifactSchema.parse(document.toJS({ maxAliasCount: 0 }))
 }
 

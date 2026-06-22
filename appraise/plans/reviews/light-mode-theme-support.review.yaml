@@ -1,0 +1,12 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-06-13T18:01:28.795Z
+    approvedBy: local-user
+    contentHash: sha256:daf693f5888a876a1d2adf4484b71d410c7e8d93fd8d5c9b64a8ffed25faac96
+    id: approval-07950648-a499-4eb9-b373-f7cf37531874
+    relevantHashes:
+      plan: sha256:daf693f5888a876a1d2adf4484b71d410c7e8d93fd8d5c9b64a8ffed25faac96
+    revision: 1
+planId: light-mode-theme-support
+threads: []
+version: "1"

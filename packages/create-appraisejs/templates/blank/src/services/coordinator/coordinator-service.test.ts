@@ -12,6 +12,7 @@ import {
   authenticateProject,
   ensureProjectIdentity,
   heartbeatCoordinator,
+  ensurePlanReviewReadyEvent,
   readPlanEvents,
   registerCoordinator,
   waitForPlanEvents,
@@ -163,6 +164,26 @@ describe('coordinator leases', () => {
         { client, now: new Date(now.getTime() + 101) },
       ),
     ).resolves.toMatchObject({ coordinatorId: 'agent-two' })
+  })
+})
+
+describe('review-ready event repair', () => {
+  it('appends a review-ready event for sync-created awaiting-review plans', async () => {
+    await client.planProjection.update({
+      where: { planId: 'coordinator-plan' },
+      data: { lifecycle: 'awaiting_plan_review' },
+    })
+
+    const event = await ensurePlanReviewReadyEvent('coordinator-plan', client)
+
+    expect(event).toMatchObject({ sequence: 1, type: 'plan_review_ready' })
+    await expect(readPlanEvents({ planId: 'coordinator-plan' }, client)).resolves.toEqual([
+      expect.objectContaining({ sequence: 1, type: 'plan_review_ready' }),
+    ])
+    await expect(ensurePlanReviewReadyEvent('coordinator-plan', client)).resolves.toMatchObject({
+      sequence: 1,
+      type: 'plan_review_ready',
+    })
   })
 })
 

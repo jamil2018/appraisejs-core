@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   ...(disableDevtools && {
     devIndicators: false,
   }),
+  allowedDevOrigins: ['127.0.0.1'],
   // Suppress Turbopack NFT false positive when tracing cwd-based path helpers (import trace lists next.config).
   turbopack: {
     ignoreIssue: [

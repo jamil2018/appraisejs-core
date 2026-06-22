@@ -14,18 +14,78 @@ type PlanServiceOptions = {
   projectDirectory?: string
 }
 
+export class CoordinatorPlanCreatePartialError extends Error {
+  readonly code = 'plan-create-partial'
+  readonly statusCode = 500
+
+  constructor(
+    message: string,
+    readonly details: {
+      planId: string
+      artifactPath?: string
+      stage: 'write-artifact' | 'sync-projection' | 'append-graph-event' | 'append-review-ready' | 'read-artifact'
+      safeToRetry: boolean
+      contentHash?: string
+      recovery: string
+    },
+    options?: ErrorOptions,
+  ) {
+    super(message, options)
+    this.name = 'CoordinatorPlanCreatePartialError'
+  }
+}
+
 export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanServiceOptions = {}) {
   const client = options.client ?? prisma
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
-  await repository.create('plan', plan.planId, serializeYamlArtifact('plan', plan))
-  await syncPlans({ projectDirectory: projectRoot, client })
-  await appendPlanEvent({ planId: plan.planId, type: 'plan_graph_processing_started' }, client)
-  const reviewReadyEvent = await appendPlanEvent(
-    { planId: plan.planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
-    client,
-  )
-  const artifact = await repository.read('plan', plan.planId)
+  let artifactPath: string | undefined
+  let contentHash: string | undefined
+  const partial = (stage: CoordinatorPlanCreatePartialError['details']['stage'], error: unknown, safeToRetry = true) =>
+    new CoordinatorPlanCreatePartialError(
+      `Plan ${plan.planId} was partially created but failed during ${stage}.`,
+      {
+        planId: plan.planId,
+        artifactPath,
+        stage,
+        safeToRetry,
+        contentHash,
+        recovery: `Run npm run sync-plans, then check appraise://plans/${plan.planId} or retry plan status for ${plan.planId}.`,
+      },
+      { cause: error },
+    )
+  try {
+    await repository.create('plan', plan.planId, serializeYamlArtifact('plan', plan))
+    artifactPath = `appraise/plans/${plan.planId}.yaml`
+  } catch (error) {
+    throw partial('write-artifact', error, false)
+  }
+  try {
+    await syncPlans({ projectDirectory: projectRoot, client })
+  } catch (error) {
+    throw partial('sync-projection', error)
+  }
+  try {
+    await appendPlanEvent({ planId: plan.planId, type: 'plan_graph_processing_started' }, client)
+  } catch (error) {
+    throw partial('append-graph-event', error)
+  }
+  let reviewReadyEvent: Awaited<ReturnType<typeof appendPlanEvent>>
+  try {
+    reviewReadyEvent = await appendPlanEvent(
+      { planId: plan.planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
+      client,
+    )
+  } catch (error) {
+    throw partial('append-review-ready', error)
+  }
+  let artifact
+  try {
+    artifact = await repository.read('plan', plan.planId)
+    contentHash = artifact.hash
+  } catch (error) {
+    throw partial('read-artifact', error)
+  }
   return {
     plan,
     planId: plan.planId,
