@@ -16,7 +16,7 @@ import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifac
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
-import { appendPlanEvent } from '@/services/coordinator/coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from '@/services/coordinator/coordinator-service'
 
 import {
   canApprovePlan,
@@ -309,9 +309,11 @@ export async function approvePlanRevision(
   },
   options?: ReviewMutationOptions,
 ): Promise<void> {
+  const client = options?.client ?? prisma
+  await assertPlanNotCancelled(input.planId, client)
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const { repository, plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
-  const projection = await (options?.client ?? prisma).planProjection.findUnique({
+  const projection = await client.planProjection.findUnique({
     where: { planId: input.planId },
     include: { issues: { where: { resolvedAt: null } } },
   })

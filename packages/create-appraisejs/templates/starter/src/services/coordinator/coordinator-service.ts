@@ -202,6 +202,10 @@ export async function appendPlanEvent(
         },
         data: { supersededAt: new Date() },
       })
+      await transaction.planProjection.update({
+        where: { id: projection.id },
+        data: { lifecycle: 'cancelled' },
+      })
     }
     return transaction.planEvent.create({
       data: {
@@ -258,6 +262,25 @@ export async function readPlanEvents(
     supersededAt: event.supersededAt,
     createdAt: event.createdAt,
   }))
+}
+
+export async function assertPlanNotCancelled(planId: string, client: PrismaClient = prisma): Promise<void> {
+  const projection = await client.planProjection.findUnique({
+    where: { planId },
+    select: {
+      id: true,
+      lifecycle: true,
+      events: {
+        where: { type: 'plan_cancelled', supersededAt: null },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  })
+  if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
+  if (projection.lifecycle === 'cancelled' || projection.events.length > 0) {
+    throw new ServiceError('The plan has been cancelled and cannot progress.', 'CONFLICT')
+  }
 }
 
 export async function waitForPlanEvents(

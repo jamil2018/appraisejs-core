@@ -221,6 +221,11 @@ describe('durable plan event outbox', () => {
     await expect(readPlanEvents({ planId: 'coordinator-plan' }, client)).resolves.toMatchObject([
       { sequence: 2, type: 'plan_cancelled' },
     ])
+    await expect(
+      client.planProjection.findUniqueOrThrow({ where: { planId: 'coordinator-plan' } }),
+    ).resolves.toMatchObject({
+      lifecycle: 'cancelled',
+    })
   })
 
   it('stops long polling when the caller cancels', async () => {

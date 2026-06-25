@@ -22,7 +22,7 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent } from './coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date }
 
@@ -92,6 +92,7 @@ function assertImplementationLifecycle(plan: PlanArtifact) {
 
 async function implementationContext(planId: string, options: Options) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   assertImplementationLifecycle(artifacts.plan)
   return { client, artifacts, implementation: implementationState(artifacts.validation) }
@@ -216,6 +217,7 @@ export async function controlImplementation(
   options: Options = {},
 ) {
   const client = options.client ?? prisma
+  if (input.action !== 'cancel') await assertPlanNotCancelled(input.planId, client)
   const artifacts = await readArtifacts(input.planId, options.projectDirectory)
   assertImplementationLifecycle(artifacts.plan)
   const lifecycle = input.action === 'pause' ? 'paused' : input.action === 'resume' ? 'in_progress' : 'cancelled'

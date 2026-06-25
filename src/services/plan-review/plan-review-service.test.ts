@@ -15,7 +15,7 @@ import {
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
-import { readPlanEvents } from '@/services/coordinator/coordinator-service'
+import { acknowledgePlanEvent, appendPlanEvent, readPlanEvents } from '@/services/coordinator/coordinator-service'
 
 import { addPlanRemark, approvePlanRevision, listPlans, transitionPlanRemark } from './plan-review-service'
 
@@ -161,6 +161,52 @@ describe('approvePlanRevision', () => {
         payload: { revision: 1 },
       }),
     ])
+  })
+
+  it('blocks plan approval after cancellation is pending', async () => {
+    await writePlan('cancelled-approval-flow', serializeYamlArtifact('plan', plan('cancelled-approval-flow')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const expectedPlanHash = await readPlanHash('cancelled-approval-flow')
+    await appendPlanEvent({ planId: 'cancelled-approval-flow', type: 'plan_cancelled' }, client)
+
+    await expect(
+      approvePlanRevision(
+        { planId: 'cancelled-approval-flow', displayedRevision: 1, expectedPlanHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'The plan has been cancelled and cannot progress.',
+    })
+  })
+
+  it('blocks validation preparation after acknowledged cancellation supersedes approval', async () => {
+    await writePlan('cancelled-start-flow', serializeYamlArtifact('plan', plan('cancelled-start-flow')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const expectedPlanHash = await readPlanHash('cancelled-start-flow')
+
+    await approvePlanRevision(
+      { planId: 'cancelled-start-flow', displayedRevision: 1, expectedPlanHash },
+      { projectDirectory: workspace, client },
+    )
+    await appendPlanEvent({ planId: 'cancelled-start-flow', type: 'plan_cancelled' }, client)
+
+    await expect(readPlanEvents({ planId: 'cancelled-start-flow' }, client)).resolves.toEqual([
+      expect.objectContaining({ sequence: 2, type: 'plan_cancelled' }),
+    ])
+    await acknowledgePlanEvent({ planId: 'cancelled-start-flow', sequence: 2, coordinatorId: 'agent-one' }, client)
+
+    await expect(
+      startCoordinatorPlan('cancelled-start-flow', { projectDirectory: workspace, client }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'The plan has been cancelled and cannot progress.',
+    })
+    await expect(
+      client.planProjection.findUniqueOrThrow({ where: { planId: 'cancelled-start-flow' } }),
+    ).resolves.toMatchObject({
+      lifecycle: 'cancelled',
+    })
   })
 
   it('rejects stale displayed revisions and stale expected plan hashes', async () => {

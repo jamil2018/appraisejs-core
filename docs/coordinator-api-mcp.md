@@ -50,7 +50,8 @@ Events have a monotonically increasing sequence per plan. Reads and long-poll de
 The coordinator acknowledges a sequence explicitly, and repeated acknowledgement is idempotent.
 
 Delivery is at least once: an unacknowledged event is returned again. `plan_cancelled` supersedes earlier,
-unacknowledged progression events. Event ordering is authoritative by sequence, not timestamp.
+unacknowledged progression events, marks the projected lifecycle as `cancelled`, and remains terminal after
+acknowledgement. Event ordering is authoritative by sequence, not timestamp.
 
 The current event vocabulary includes:
 

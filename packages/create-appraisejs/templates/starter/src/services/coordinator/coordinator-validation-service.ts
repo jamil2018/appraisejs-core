@@ -16,7 +16,7 @@ import { assessValidationReadiness, fileReviewHash, validationNodeHash } from '@
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent } from './coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
 
@@ -50,6 +50,7 @@ export async function publishPreparedValidations(
   options: Options = {},
 ) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   if (artifacts.plan.lifecycle !== 'preparing_validations') {
     throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
@@ -147,6 +148,7 @@ export async function approveValidationFile(
 // fallow-ignore-next-line complexity
 export async function submitValidationReview(planId: string, options: Options = {}) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   if (
     artifacts.plan.lifecycle !== 'awaiting_validation_review' ||

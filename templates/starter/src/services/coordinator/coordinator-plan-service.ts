@@ -7,7 +7,7 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent } from './coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type PlanServiceOptions = {
   client?: PrismaClient
@@ -130,6 +130,7 @@ export async function reviseCoordinatorPlan(
 
 export async function startCoordinatorPlan(planId: string, options: PlanServiceOptions = {}) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
   const current = await repository.read('plan', planId)
@@ -157,6 +158,7 @@ export async function updateCoordinatorTask(
   input: { planId: string; taskId: string; status: string; detail?: string },
   client: PrismaClient = prisma,
 ) {
+  await assertPlanNotCancelled(input.planId, client)
   const task = await client.planTaskProjection.findFirst({
     where: { taskId: input.taskId, plan: { planId: input.planId } },
     select: { id: true },
