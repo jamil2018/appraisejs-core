@@ -74,6 +74,16 @@ const edgeDash = {
 
 const nodeTypes = { planTask: PlanFlowTaskNode }
 
+function taskRelationshipSummary(taskId: string, semanticFlow: ReturnType<typeof projectPlanFlow>): string {
+  const incoming = semanticFlow.edges
+    .filter(edge => edge.target === taskId)
+    .map(edge => `${edge.type} from ${edge.source}`)
+  const outgoing = semanticFlow.edges
+    .filter(edge => edge.source === taskId)
+    .map(edge => `${edge.type} to ${edge.target}`)
+  return [...incoming, ...outgoing].join('; ') || 'No displayed relationships'
+}
+
 // The graph, list, inspector, and approval controls intentionally share one interaction model.
 // fallow-ignore-next-line complexity
 export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
@@ -132,6 +142,11 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
     approval => approval.revision === detail.plan.revision && approval.relevantHashes.plan,
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
+  const approvalDisabledReason = approved
+    ? 'This exact revision has already been approved.'
+    : !detail.reviewReady
+      ? 'Approval is disabled until the graph and list review representation is ready.'
+      : null
 
   const run = (operation: () => Promise<{ success?: boolean; error?: string }>, successMessage: string) => {
     setMessage(null)
@@ -259,7 +274,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                 <span className="flex items-center gap-1">
                   <span className="w-5 border-t-2 border-dotted border-green-500" /> relates-to
                 </span>
-                <Button size="sm" variant="outline" onClick={resetToFlow}>
+                <Button size="sm" variant="outline" type="button" onClick={resetToFlow}>
                   <RefreshCcw className="mr-2 size-3.5" />
                   Reset to flow
                 </Button>
@@ -269,7 +284,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
           <CardContent className="p-0">
             <Tabs defaultValue={detail.listFallback ? 'list' : 'graph'}>
               <div className="border-b px-4 py-3">
-                <TabsList>
+                <TabsList aria-label="Plan review representations">
                   <TabsTrigger value="graph" disabled={detail.listFallback}>
                     <Network className="mr-2 size-4" />
                     Graph
@@ -285,52 +300,71 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                 </TabsList>
               </div>
               <TabsContent value="graph" className="m-0 h-[620px]">
-                <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  onNodeClick={onNodeClick}
-                  onInit={instance => {
-                    flowInstanceRef.current = instance
-                  }}
-                  nodeTypes={nodeTypes}
-                  nodesConnectable={false}
-                  elementsSelectable
-                  fitView
-                  minZoom={0.2}
-                  colorMode="dark"
-                  proOptions={{ hideAttribution: true }}
-                  aria-label="Plan dependency graph"
-                >
-                  <Background />
-                  <Controls />
-                </ReactFlow>
-              </TabsContent>
-              <TabsContent value="list" className="m-0 divide-y">
-                {semanticFlow.tasks.map(task => (
-                  <button
-                    key={task.id}
-                    type="button"
-                    className="hover:bg-muted/40 flex w-full items-start gap-4 p-5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                    onClick={() => setSelectedTaskId(task.id)}
-                    aria-pressed={selectedTaskId === task.id}
+                {detail.listFallback ? (
+                  <div className="flex h-full items-center justify-center p-6 text-center">
+                    <div>
+                      <p className="font-medium">Graph rendering is unavailable.</p>
+                      <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                        Switch to the accessible list to review the same steps, stages, relationships, remarks, and
+                        approval controls.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onNodeClick={onNodeClick}
+                    onInit={instance => {
+                      flowInstanceRef.current = instance
+                    }}
+                    nodeTypes={nodeTypes}
+                    nodesConnectable={false}
+                    elementsSelectable
+                    fitView
+                    minZoom={0.2}
+                    colorMode="dark"
+                    proOptions={{ hideAttribution: true }}
+                    aria-label="Plan dependency graph"
                   >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md border font-mono text-xs">
-                      {task.step}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <strong>{task.title}</strong>
-                        <Badge variant={task.status === 'blocked' ? 'destructive' : 'outline'}>{task.status}</Badge>
-                      </span>
-                      <span className="mt-1 block text-sm text-muted-foreground">{task.description}</span>
-                      <span className="mt-3 block text-xs text-muted-foreground">
-                        Validated by: {task.validationIntent}
-                      </span>
-                    </span>
-                  </button>
-                ))}
+                    <Background />
+                    <Controls />
+                  </ReactFlow>
+                )}
+              </TabsContent>
+              <TabsContent value="list" className="m-0">
+                <ol aria-label="Semantic plan review list" className="divide-y">
+                  {semanticFlow.tasks.map(task => (
+                    <li key={task.id}>
+                      <button
+                        type="button"
+                        className="hover:bg-muted/40 flex w-full items-start gap-4 p-5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                        onClick={() => setSelectedTaskId(task.id)}
+                        aria-pressed={selectedTaskId === task.id}
+                      >
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md border font-mono text-xs">
+                          {task.step}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <strong>{task.title}</strong>
+                            <Badge variant={task.status === 'blocked' ? 'destructive' : 'outline'}>{task.status}</Badge>
+                            <Badge variant="secondary">Stage {task.stage + 1}</Badge>
+                          </span>
+                          <span className="mt-1 block text-sm text-muted-foreground">{task.description}</span>
+                          <span className="mt-3 block text-xs text-muted-foreground">
+                            Relationships: {taskRelationshipSummary(task.id, semanticFlow)}
+                          </span>
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            Validated by: {task.validationIntent}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
               </TabsContent>
               <TabsContent value="history" className="m-0 p-5">
                 <div className="space-y-3">
@@ -688,6 +722,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
               ) : null}
               <Button
                 className="w-full"
+                aria-describedby={approvalDisabledReason ? 'approval-disabled-reason' : undefined}
                 disabled={isPending || approved || !detail.reviewReady}
                 onClick={() =>
                   run(
@@ -704,6 +739,11 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                 <Check className="mr-2 size-4" />
                 {approved ? 'Revision approved' : 'Approve exact revision'}
               </Button>
+              {approvalDisabledReason ? (
+                <p id="approval-disabled-reason" className="text-sm text-muted-foreground">
+                  {approvalDisabledReason}
+                </p>
+              ) : null}
               {message ? (
                 <p role="status" className="text-sm text-muted-foreground">
                   {message}
