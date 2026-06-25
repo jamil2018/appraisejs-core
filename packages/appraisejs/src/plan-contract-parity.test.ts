@@ -27,6 +27,13 @@ describe('plan input contract parity', () => {
     expect(planArtifactSchema.safeParse(validPlan).success).toBe(true)
   })
 
+  it.each(['plan_approved', 'validations_approved', 'baseline_accepted', 'in_progress'])(
+    'accepts current app lifecycle state %s',
+    lifecycle => {
+      expect(planArtifactSchema.safeParse({ ...validPlan, lifecycle }).success).toBe(true)
+    },
+  )
+
   it.each([
     [{ ...validPlan, description: '' }, 'description'],
     [{ ...validPlan, goal: 'a'.repeat(81) }, 'goal'],

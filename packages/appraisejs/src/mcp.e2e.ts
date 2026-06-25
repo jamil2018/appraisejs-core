@@ -62,7 +62,7 @@ async function callTool(name: string, args: Record<string, unknown>) {
   return toolJson(await client!.callTool({ name, arguments: args }))
 }
 
-async function approveCurrentPlan(contentHash: string) {
+async function approveCurrentPlan(revision: number, contentHash: string) {
   await fs.mkdir(path.dirname(reviewPath), { recursive: true })
   await fs.writeFile(
     reviewPath,
@@ -73,7 +73,7 @@ async function approveCurrentPlan(contentHash: string) {
       planApprovals: [
         {
           id: 'mcp-e2e-approval',
-          revision: 2,
+          revision,
           contentHash,
           relevantHashes: { plan: contentHash },
           approvedBy: 'mcp-e2e-user',
@@ -246,7 +246,17 @@ try {
   const revised = await callTool('plan_revise', { planId, expectedHash: firstHash, plan: revisedPlan })
   const revisedHash = revised.contentHash as string
   assert(revisedHash !== firstHash, 'Plan revision did not change the content hash.')
-  await approveCurrentPlan(revisedHash)
+
+  const approvedPlan = { ...revisedPlan, revision: 3, lifecycle: 'plan_approved' }
+  const approved = await callTool('plan_revise', { planId, expectedHash: revisedHash, plan: approvedPlan })
+  const approvedHash = approved.contentHash as string
+  await approveCurrentPlan(3, approvedHash)
+
+  const approval = await callTool('plan_wait_for_approval', { planId, afterSequence: 0 })
+  assert(approval.status === 'approved', `Approval wait did not observe plan approval: ${JSON.stringify(approval)}`)
+  assert(approval.lifecycle === 'plan_approved', 'Approval wait did not preserve the approved lifecycle.')
+  assert(approval.contentHash === approvedHash, 'Approval wait did not return the current approved hash.')
+
   const started = await callTool('plan_start', { planId })
   const startedPlan = started.plan as { lifecycle: string }
   assert(startedPlan.lifecycle === 'preparing_validations', 'Approved plan did not start validation preparation.')

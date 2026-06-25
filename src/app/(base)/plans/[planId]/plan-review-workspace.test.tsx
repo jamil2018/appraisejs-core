@@ -8,7 +8,8 @@ import type { PlanReviewDetail } from '@/services/plan-review/plan-review-servic
 
 import { PlanReviewWorkspace } from './plan-review-workspace'
 
-const { fitView, savePersonalPlanLayoutAction, setNodes } = vi.hoisted(() => ({
+const { approvePlanRevisionAction, fitView, savePersonalPlanLayoutAction, setNodes } = vi.hoisted(() => ({
+  approvePlanRevisionAction: vi.fn(),
   fitView: vi.fn(),
   savePersonalPlanLayoutAction: vi.fn(),
   setNodes: vi.fn(),
@@ -53,7 +54,7 @@ vi.mock('@xyflow/react', () => ({
 
 vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   addPlanRemarkAction: vi.fn(),
-  approvePlanRevisionAction: vi.fn(),
+  approvePlanRevisionAction,
   publishSharedPlanLayoutAction: vi.fn(),
   retargetPlanRemarkAction: vi.fn(),
   savePersonalPlanLayoutAction,
@@ -242,6 +243,20 @@ describe('PlanReviewWorkspace', () => {
         'task-one': { x: 900, y: 901 },
         'task-two': { x: 500, y: 501 },
       },
+    })
+  })
+
+  it('submits approval for the exact displayed revision', async () => {
+    const user = userEvent.setup()
+    approvePlanRevisionAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    render(<PlanReviewWorkspace detail={detail} />)
+
+    await user.click(screen.getByRole('button', { name: /approve exact revision/i }))
+
+    expect(approvePlanRevisionAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      displayedRevision: 2,
+      confirmSuspiciousReplacement: false,
     })
   })
 })
