@@ -141,6 +141,7 @@ try {
     'plan_wait_for_review',
     'project_diagnostic',
     'validation_decide',
+    'validation_feedback_submit',
     'validation_file_approve',
     'validation_publish',
     'validation_review_submit',

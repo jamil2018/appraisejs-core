@@ -34,6 +34,7 @@ import {
   approveValidationFile,
   decideValidationNode,
   publishPreparedValidations,
+  submitValidationFeedback,
   submitValidationReview,
 } from '@/services/coordinator/coordinator-validation-service'
 import {
@@ -50,6 +51,13 @@ import { ServiceError } from '@/services/shared/errors'
 export const runtime = 'nodejs'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+const reviewTargetSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('plan') }),
+  z.object({ type: z.literal('task'), taskId: idSchema }),
+  z.object({ type: z.literal('validation'), validationId: idSchema }),
+  z.object({ type: z.literal('result'), resultId: idSchema }),
+  z.object({ type: z.literal('file'), path: z.string().min(1) }),
+])
 type RouteContext = { params: Promise<{ operation: string[] }> }
 
 function serviceErrorResponse(error: unknown): Response | undefined {
@@ -303,6 +311,19 @@ async function postValidationOperation(operation: string[], body: unknown) {
   if (operation[3] === 'publish') {
     const value = z.object({ validation: validationArtifactSchema }).parse(body)
     return Response.json(await publishPreparedValidations(planId, value.validation))
+  }
+  if (operation[3] === 'feedback') {
+    const value = z
+      .object({
+        scope: z.enum(['test_artifact', 'product_scope']),
+        target: reviewTargetSchema,
+        body: z.string().trim().min(1),
+        actor: z.string().min(1).optional(),
+        affectedValidationIds: z.array(idSchema).optional(),
+        affectedFilePaths: z.array(z.string().min(1)).optional(),
+      })
+      .parse(body)
+    return Response.json(await submitValidationFeedback({ planId, ...value }))
   }
   if (operation[3] === 'submit') return Response.json(await submitValidationReview(planId))
   if (operation[3] === 'nodes') {

@@ -320,6 +320,35 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'validation_feedback_submit',
+    {
+      description:
+        'Route validation review feedback as test-artifact changes or product-scope changes with lifecycle invalidation.',
+      inputSchema: {
+        planId: z.string(),
+        scope: z.enum(['test_artifact', 'product_scope']),
+        target: z.discriminatedUnion('type', [
+          z.object({ type: z.literal('plan') }),
+          z.object({ type: z.literal('task'), taskId: z.string() }),
+          z.object({ type: z.literal('validation'), validationId: z.string() }),
+          z.object({ type: z.literal('result'), resultId: z.string() }),
+          z.object({ type: z.literal('file'), path: z.string() }),
+        ]),
+        body: z.string().min(1),
+        actor: z.string().optional(),
+        affectedValidationIds: z.array(z.string()).optional(),
+        affectedFilePaths: z.array(z.string()).optional(),
+      },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/validations/feedback`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
     'validation_review_submit',
     {
       description: 'Submit the revision-level validation review after all required decisions are current.',

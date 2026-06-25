@@ -47,6 +47,7 @@ describe('coordinator adapter boundaries', () => {
         'plan_wait_for_approval',
         'plan_revise',
         'validation_publish',
+        'validation_feedback_submit',
         'validation_review_submit',
         'implementation_checkpoint',
         'implementation_complete',

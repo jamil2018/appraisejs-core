@@ -145,6 +145,8 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
     publishValidation: (planId: string, validation: unknown) =>
       post(`plans/${planId}/validations/publish`, { validation }),
+    submitValidationFeedback: (planId: string, feedback: unknown) =>
+      post(`plans/${planId}/validations/feedback`, feedback),
     submitValidation: (planId: string) => post(`plans/${planId}/validations/submit`, {}),
     completionReview: (planId: string) => request(`plans/${planId}/completion`),
   }
