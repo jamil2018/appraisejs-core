@@ -13,7 +13,7 @@ and do not register directly.
 - API requests send `Authorization: Bearer <token>` and `X-Appraise-Project: <fingerprint>`.
 - Only `localhost`, `127.0.0.1`, and `::1` request URLs, Host headers, and Origins are accepted.
 - Request bodies are limited to 1 MiB.
-- MCP uses stdio. Stdout is reserved for MCP protocol traffic; diagnostics go to stderr.
+- MCP supports stdio and Streamable HTTP. Stdout is reserved for stdio MCP protocol traffic; diagnostics go to stderr.
 - MCP failures are returned to the MCP client and never invoke a CLI fallback.
 - A coordinator is bound to one canonical project. A different project fingerprint returns `project-mismatch`
   with the requested and server fingerprints; an invalid token for the matching project remains `UNAUTHORIZED`.
@@ -56,6 +56,7 @@ The current event vocabulary includes:
 
 - `plan_graph_processing_started`
 - `plan_review_ready`
+- `plan_approved`
 - `plan_revision_submitted`
 - `validation_preparation_started`
 - `task_updated`
@@ -71,6 +72,9 @@ The current event vocabulary includes:
 Future lifecycle sessions may add event types without changing delivery semantics. Approval events must be acknowledged
 only after the transition they permit succeeds. New blocking feedback must invalidate an approval that has not started
 its permitted transition.
+
+`plan_wait_for_approval` also recognizes a future `plan_changes_requested` event if plan-review change requests become
+event-backed.
 
 ## Internal API
 
@@ -100,7 +104,27 @@ The create response includes coordinator ownership metadata and the stable revie
 
 ## MCP Surface
 
-Run `appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000`.
+For local development, `npm run dev` starts both the Next.js app and the Streamable HTTP MCP endpoint. The default
+MCP URL is:
+
+```bash
+http://127.0.0.1:3010/mcp
+```
+
+Use `npm run setup:mcp` to print the current endpoint and stdio registration snippets. Override the MCP endpoint with
+`APPRAISE_MCP_HOST`, `APPRAISE_MCP_PORT`, `APPRAISE_MCP_PATH`, and `APPRAISE_MCP_BASE_URL`.
+
+Run only the HTTP MCP endpoint with:
+
+```bash
+npm run dev:mcp
+```
+
+For stdio-only MCP clients, register:
+
+```bash
+appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
+```
 
 Resources:
 
@@ -114,6 +138,7 @@ Tools:
 - `plan_create`
 - `plan_read`
 - `plan_wait_for_review`
+- `plan_wait_for_approval`
 - `plan_revise`
 - `plan_start`
 - `plan_task_update`

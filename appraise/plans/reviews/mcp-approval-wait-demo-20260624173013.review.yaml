@@ -1,0 +1,12 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-06-24T17:30:31.591Z
+    approvedBy: local-user
+    contentHash: sha256:c5272f395384a2419e514f0182bf810776160244b6c6553eae48314a8dda1b50
+    id: approval-44184fd1-e9b9-4b93-bdae-2caf6e8ab488
+    relevantHashes:
+      plan: sha256:c5272f395384a2419e514f0182bf810776160244b6c6553eae48314a8dda1b50
+    revision: 1
+planId: mcp-approval-wait-demo-20260624173013
+threads: []
+version: "1"

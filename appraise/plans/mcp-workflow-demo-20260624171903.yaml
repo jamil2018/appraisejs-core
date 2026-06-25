@@ -1,0 +1,57 @@
+description: "Exercise the AppraiseJS MCP coordinator flow end to end: create a plan, view it in AppraiseJS, approve it there, then use approval to begin validation preparation."
+edges:
+  - from: create-plan
+    to: review-plan
+    type: blocks
+  - from: review-plan
+    to: prepare-validations
+    type: blocks
+  - from: prepare-validations
+    to: continue-gates
+    type: blocks
+goal: Validate MCP workflow demo
+implementationGroups:
+  - id: mcp-demo-flow
+    taskIds:
+      - create-plan
+      - review-plan
+      - prepare-validations
+      - continue-gates
+lifecycle: plan_approved
+planId: mcp-workflow-demo-20260624171903
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - project_diagnostic reports the local project is ready
+      - plan_create returns AppraiseJS plan links and a content hash
+      - plan_wait_for_review returns a plan_review_ready event sequence
+    description: Use the MCP project diagnostic, plan_create, and review-ready wait tools to create a durable plan.
+    id: create-plan
+    title: Create the plan through MCP
+    validationIntent: Confirm the plan exists in AppraiseJS with review-ready evidence.
+  - acceptanceCriteria:
+      - The plan is visible in AppraiseJS
+      - Approval is recorded by AppraiseJS against the exact revision and hash
+      - Approval moves the lifecycle to validation preparation readiness
+    description: Open the AppraiseJS review URL, inspect the generated plan, and approve the current revision in the app.
+    id: review-plan
+    title: Review and approve in AppraiseJS
+    validationIntent: Confirm approval is app-owned and hash-bound rather than inferred from chat.
+  - acceptanceCriteria:
+      - Validation preparation starts only after plan approval
+      - Generated validation nodes are published for review
+      - Changed-file evidence and hashes are visible in AppraiseJS
+    description: After AppraiseJS approval, start validation preparation and publish validation review evidence.
+    id: prepare-validations
+    title: Prepare validation artifacts after approval
+    validationIntent: Confirm the approval gate unlocks validation-preparation work only after AppraiseJS records approval.
+  - acceptanceCriteria:
+      - Validation review can approve or request changes
+      - Approved validations unlock baseline execution
+      - Accepted baseline unlocks implementation
+      - Fresh validation evidence and final sign-off are required before completion
+    description: Use the approved validations to exercise baseline, implementation, validation, and completion gates.
+    id: continue-gates
+    title: Continue the remaining coordinator gates
+    validationIntent: Confirm the rest of the AppraiseJS workflow remains reviewable and gate-bound.
+version: "1"

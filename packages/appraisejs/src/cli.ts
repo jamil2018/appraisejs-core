@@ -9,7 +9,7 @@ import {
   createCoordinatorClient,
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
-import { runAppraiseMcp } from './mcp.js'
+import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
 import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-file.js'
 import { resolvePlanSource } from './plan-source.js'
 
@@ -64,6 +64,14 @@ async function runCommand(action: () => Promise<void>, json: boolean): Promise<v
   }
 }
 
+function parsePort(value: string): number {
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error(`Expected --port to be an integer between 1 and 65535, received "${value}".`)
+  }
+  return port
+}
+
 program
   .command('mcp')
   .description('Run the AppraiseJS MCP server over stdio')
@@ -82,6 +90,40 @@ program
       process.exitCode = 1
     }
   })
+
+program
+  .command('mcp-http')
+  .description('Run the AppraiseJS MCP server over Streamable HTTP')
+  .option('--cwd <path>', 'Appraise project directory', process.cwd())
+  .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
+  .option('--coordinator-id <id>', 'stable coordinator identity', process.env.APPRAISE_COORDINATOR_ID ?? 'coordinator')
+  .option('--host <host>', 'HTTP bind host', process.env.APPRAISE_MCP_HOST ?? '127.0.0.1')
+  .option('--port <port>', 'HTTP bind port', process.env.APPRAISE_MCP_PORT ?? '3010')
+  .option('--path <path>', 'HTTP MCP endpoint path', process.env.APPRAISE_MCP_PATH ?? '/mcp')
+  .action(
+    async (options: {
+      cwd: string
+      baseUrl: string
+      coordinatorId: string
+      host: string
+      port: string
+      path: string
+    }) => {
+      try {
+        await runAppraiseHttpMcp({
+          cwd: path.resolve(options.cwd),
+          baseUrl: options.baseUrl,
+          coordinatorId: options.coordinatorId,
+          host: options.host,
+          port: parsePort(options.port),
+          path: options.path.startsWith('/') ? options.path : `/${options.path}`,
+        })
+      } catch (error) {
+        console.error(formatMcpBootstrapError(error))
+        process.exitCode = 1
+      }
+    },
+  )
 
 program
   .command('doctor')

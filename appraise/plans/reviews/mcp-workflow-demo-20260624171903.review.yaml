@@ -1,0 +1,12 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-06-24T17:19:46.635Z
+    approvedBy: local-user
+    contentHash: sha256:c4877c8fa50e4951afc8be9346eaee8f0f6f317d5e62f3b2c2aa2aef7ce95dba
+    id: approval-ec3102d3-a4f6-4692-bf65-d91764d66c8c
+    relevantHashes:
+      plan: sha256:c4877c8fa50e4951afc8be9346eaee8f0f6f317d5e62f3b2c2aa2aef7ce95dba
+    revision: 1
+planId: mcp-workflow-demo-20260624171903
+threads: []
+version: "1"

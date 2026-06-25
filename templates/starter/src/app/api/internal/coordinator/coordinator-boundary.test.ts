@@ -44,6 +44,7 @@ describe('coordinator adapter boundaries', () => {
       cli: ['createPlan', 'revisePlan', 'publishValidation', 'submitValidation', 'completionReview', 'reconnect'],
       mcp: [
         'plan_create',
+        'plan_wait_for_approval',
         'plan_revise',
         'validation_publish',
         'validation_review_submit',

@@ -1,0 +1,44 @@
+description: Exercise the improved AppraiseJS MCP flow where Codex creates a plan, waits for AppraiseJS approval without ending the turn, then starts validation preparation after approval.
+edges:
+  - from: create-review-plan
+    to: wait-for-approval
+    type: blocks
+  - from: wait-for-approval
+    to: start-validation-prep
+    type: blocks
+goal: Validate approval wait flow
+implementationGroups:
+  - id: approval-wait-demo
+    taskIds:
+      - create-review-plan
+      - wait-for-approval
+      - start-validation-prep
+lifecycle: preparing_validations
+planId: mcp-approval-wait-demo-20260624173013
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - project_diagnostic succeeds before plan creation
+      - plan_create returns AppraiseJS app and browser links
+      - plan_wait_for_review returns plan_review_ready evidence
+    description: Create a durable plan through MCP and wait until AppraiseJS emits plan_review_ready.
+    id: create-review-plan
+    title: Create and present review-ready plan
+    validationIntent: Confirm plan creation and review readiness are observable through MCP.
+  - acceptanceCriteria:
+      - plan_wait_for_approval returns approved only after AppraiseJS records approval
+      - Approval event sequence is available when delivered
+      - The wait tool does not acknowledge events or mutate lifecycle
+    description: Keep the coordinator connected on the approval gate until AppraiseJS records approval, cancellation, or requested changes.
+    id: wait-for-approval
+    title: Wait for AppraiseJS approval
+    validationIntent: Confirm Codex can continue without a separate chat nudge after approval.
+  - acceptanceCriteria:
+      - Approval is acknowledged only after it is handled
+      - plan_start transitions the plan to preparing_validations
+      - Validation-preparation-started evidence is emitted for review
+    description: After approval is observed, acknowledge handled events and start validation preparation with plan_start.
+    id: start-validation-prep
+    title: Start validation preparation
+    validationIntent: Confirm the approval gate unlocks validation preparation through AppraiseJS-owned lifecycle rules.
+version: "1"

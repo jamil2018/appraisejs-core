@@ -90,7 +90,7 @@ try {
   run('npx', ['prisma', 'migrate', 'deploy'], { DATABASE_URL: `file:${databasePath}` })
   run('npm', ['--prefix', 'packages/appraisejs', 'run', 'build'])
 
-  appServer = spawn('npm', ['run', 'dev', '--', '-H', '127.0.0.1', '-p', String(port)], {
+  appServer = spawn('npm', ['run', 'dev:web', '--', '-H', '127.0.0.1', '-p', String(port)], {
     cwd: repoRoot,
     env: { ...process.env, DATABASE_URL: `file:${databasePath}` },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -137,6 +137,7 @@ try {
     'plan_revise',
     'plan_start',
     'plan_task_update',
+    'plan_wait_for_approval',
     'plan_wait_for_review',
     'project_diagnostic',
     'validation_decide',
