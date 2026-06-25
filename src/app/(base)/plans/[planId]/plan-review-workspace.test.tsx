@@ -101,6 +101,7 @@ const detail: PlanReviewDetail = {
     ],
     implementationGroups: [{ id: 'delivery', taskIds: ['task-one', 'task-two'] }],
   },
+  contentHash: `sha256:${'a'.repeat(64)}`,
   review: {
     version: '1',
     planId: 'accessible-plan',
@@ -310,6 +311,7 @@ describe('PlanReviewWorkspace', () => {
     expect(approvePlanRevisionAction).toHaveBeenCalledWith({
       planId: 'accessible-plan',
       displayedRevision: 2,
+      expectedPlanHash: `sha256:${'a'.repeat(64)}`,
       confirmSuspiciousReplacement: false,
     })
   })

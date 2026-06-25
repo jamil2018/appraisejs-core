@@ -72,6 +72,7 @@ export async function approvePlanRevisionAction(input: unknown): Promise<ActionR
     .object({
       planId: idSchema,
       displayedRevision: z.number().int().positive(),
+      expectedPlanHash: z.string().startsWith('sha256:'),
       resolveThreadId: idSchema.optional(),
       confirmSuspiciousReplacement: z.boolean().optional(),
     })

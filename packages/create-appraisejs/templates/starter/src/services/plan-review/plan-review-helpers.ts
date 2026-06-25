@@ -97,6 +97,9 @@ export function hasSuspiciousReplacement(diff: RevisionTaskDiff): boolean {
 export function canApprovePlan(input: {
   displayedRevision: number
   currentRevision: number
+  expectedPlanHash: string
+  currentPlanHash: string
+  stale: boolean
   conflicted: boolean
   representationReady: boolean
   blockingThreads: number
@@ -106,6 +109,9 @@ export function canApprovePlan(input: {
 }): { allowed: boolean; reason?: string } {
   if (input.displayedRevision !== input.currentRevision)
     return { allowed: false, reason: 'The displayed revision is stale.' }
+  if (input.expectedPlanHash !== input.currentPlanHash)
+    return { allowed: false, reason: 'The displayed plan hash is stale.' }
+  if (input.stale) return { allowed: false, reason: 'Refresh the stale plan projection before approval.' }
   if (input.conflicted) return { allowed: false, reason: 'Resolve artifact conflicts before approval.' }
   if (!input.representationReady) return { allowed: false, reason: 'The plan review representation is not ready.' }
   if (input.blockingThreads > 0) return { allowed: false, reason: 'Resolve all blocking remarks before approval.' }

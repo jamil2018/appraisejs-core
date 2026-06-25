@@ -730,6 +730,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                       approvePlanRevisionAction({
                         planId: detail.plan.planId,
                         displayedRevision: detail.plan.revision,
+                        expectedPlanHash: detail.contentHash,
                         confirmSuspiciousReplacement: confirmReplacement,
                       }),
                     'Exact plan revision approved.',

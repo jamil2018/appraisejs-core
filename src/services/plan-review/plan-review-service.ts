@@ -40,6 +40,7 @@ type WriteReviewOptions = ReviewMutationOptions & {
 
 export type PlanReviewDetail = {
   plan: PlanArtifact
+  contentHash: string
   review?: ReviewArtifact
   validation?: ValidationArtifact
   graph: ReturnType<typeof derivePlanGraph>
@@ -166,7 +167,7 @@ export async function getPlanReviewDetail(
 ): Promise<PlanReviewDetail> {
   const client = options?.client ?? prisma
   const projectRoot = await findProjectRoot(options?.projectDirectory)
-  const [{ plan, review }, projection] = await Promise.all([
+  const [{ plan, planArtifact, review }, projection] = await Promise.all([
     readPlanAndReview(projectRoot, planId),
     client.planProjection.findUnique({
       where: { planId },
@@ -189,6 +190,7 @@ export async function getPlanReviewDetail(
 
   return {
     plan,
+    contentHash: planArtifact.hash,
     review,
     validation,
     graph,
@@ -300,6 +302,7 @@ export async function approvePlanRevision(
   input: {
     planId: string
     displayedRevision: number
+    expectedPlanHash: string
     resolveThreadId?: string
     confirmSuspiciousReplacement?: boolean
     actor?: string
@@ -329,6 +332,9 @@ export async function approvePlanRevision(
   const decision = canApprovePlan({
     displayedRevision: input.displayedRevision,
     currentRevision: plan.revision,
+    expectedPlanHash: input.expectedPlanHash,
+    currentPlanHash: planArtifact.hash,
+    stale: projection.stale,
     conflicted: projection.conflicted,
     representationReady: true,
     blockingThreads: blockingThreads.length,
