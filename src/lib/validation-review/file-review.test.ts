@@ -107,6 +107,15 @@ describe('validation review approval', () => {
     expect(canModifyDuringValidationPreparation('src/product.ts', 'production', hash('new'), review)).toBe(false)
   })
 
+  it('blocks validation approval when the manifest has no matching file evidence', () => {
+    const mismatched = { ...validation, files: [], manifestPaths: ['src/product.ts'] }
+
+    expect(assessValidationReadiness(mismatched, review)).toMatchObject({
+      ready: false,
+      blockers: expect.arrayContaining(['Manifest path has no changed-file evidence: src/product.ts']),
+    })
+  })
+
   it('accepts current approvals and invalidates a validation decision after generated content changes', () => {
     const current = validation.validations[0]
     const approvedValidation = {

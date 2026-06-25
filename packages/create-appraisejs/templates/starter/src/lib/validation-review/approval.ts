@@ -38,6 +38,10 @@ export function assessValidationReadiness(validation: ValidationArtifact, review
     return []
   })
   const manifest = new Set(validation.manifestPaths)
+  const files = new Set(validation.files.map(file => file.path))
+  const manifestBlockers = validation.manifestPaths
+    .filter(filePath => !files.has(filePath))
+    .map(filePath => `Manifest path has no changed-file evidence: ${filePath}`)
   const fileBlockers = validation.files.flatMap(file => {
     const blockers = []
     if (!file.declared) blockers.push(`Undeclared changed file: ${file.path}`)
@@ -48,7 +52,7 @@ export function assessValidationReadiness(validation: ValidationArtifact, review
     if (!manifest.has(file.path)) blockers.push(`Manifest mismatch: ${file.path}`)
     return blockers
   })
-  const blockers = [...validationBlockers, ...fileBlockers]
+  const blockers = [...validationBlockers, ...manifestBlockers, ...fileBlockers]
 
   return { ready: blockers.length === 0, blockers }
 }
