@@ -207,6 +207,19 @@ try {
     'Review-ready evidence returned different canonical links.',
   )
 
+  const directReviewResponse = await fetch(`${baseUrl}${created.reviewUrl}`)
+  assert(directReviewResponse.ok, `Direct review route returned ${directReviewResponse.status}.`)
+  const directReviewHtml = await directReviewResponse.text()
+  assert(directReviewHtml.includes(planId), 'Direct review route did not include the created plan ID.')
+  assert(directReviewHtml.includes(initialPlan.goal), 'Direct review route did not include the created plan goal.')
+
+  const planListResponse = await fetch(`${baseUrl}/plans?query=${encodeURIComponent(planId)}`)
+  assert(planListResponse.ok, `Filtered plan list route returned ${planListResponse.status}.`)
+  const planListHtml = await planListResponse.text()
+  assert(planListHtml.includes(planId), 'Plan list did not discover the created review-ready plan.')
+  assert(planListHtml.includes(initialPlan.goal), 'Plan list did not include the created plan goal.')
+  assert(planListHtml.includes('awaiting plan review'), 'Plan list did not show the created plan lifecycle status.')
+
   const firstRead = await callTool('plan_read', { planId })
   const firstHash = firstRead.contentHash as string
   assert(firstHash.startsWith('sha256:'), 'Plan read did not return a content hash.')
