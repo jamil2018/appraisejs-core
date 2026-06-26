@@ -1,0 +1,75 @@
+description: Build a React + Vite todo application using Tailwind CSS and shadcn/ui. Users can create, edit, delete, and complete todos, with all todo state persisted in localStorage.
+edges:
+  - from: scaffold-vite-react
+    to: configure-tailwind-shadcn
+    type: blocks
+  - from: configure-tailwind-shadcn
+    to: implement-todo-state
+    type: blocks
+  - from: implement-todo-state
+    to: build-todo-interface
+    type: blocks
+  - from: build-todo-interface
+    to: verify-quality
+    type: blocks
+goal: Build Simple Todo App
+implementationGroups:
+  - id: project-foundation
+    taskIds:
+      - scaffold-vite-react
+      - configure-tailwind-shadcn
+  - id: todo-feature
+    taskIds:
+      - implement-todo-state
+      - build-todo-interface
+  - id: quality-gate
+    taskIds:
+      - verify-quality
+lifecycle: draft
+planId: simple-todo-app
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - A Vite React app exists in the project workspace.
+      - The app can be started with the documented development command.
+      - The project has a clean component-oriented source layout suitable for the todo feature.
+    description: Initialize the application with Vite React, TypeScript-ready project structure, and baseline npm scripts for development, build, and preview.
+    id: scaffold-vite-react
+    title: Scaffold React Vite project
+    validationIntent: Verify the project installs and the Vite development/build commands run without configuration errors.
+  - acceptanceCriteria:
+      - Tailwind styles are active in the React app.
+      - shadcn/ui configuration is present and compatible with the project structure.
+      - Required UI primitives for the todo experience are available or generated.
+    description: Install and configure Tailwind CSS and shadcn/ui foundations, including global styles, path aliases, and reusable UI primitives needed by the todo interface.
+    id: configure-tailwind-shadcn
+    title: Configure Tailwind and shadcn/ui
+    validationIntent: Verify Tailwind classes render correctly and shadcn/ui components can be imported from the configured paths.
+  - acceptanceCriteria:
+      - Users can create todos with non-empty text.
+      - Users can edit existing todo text.
+      - Users can delete todos.
+      - Users can toggle a todo between active and complete.
+      - Todos survive page reloads through localStorage persistence.
+    description: Create the todo data model and state management needed to add, modify, delete, complete, and restore todos from localStorage.
+    id: implement-todo-state
+    title: Implement todo state and localStorage persistence
+    validationIntent: Exercise todo CRUD and completion flows, then reload the page and confirm persisted state is restored correctly.
+  - acceptanceCriteria:
+      - The first screen is the usable todo app, not a marketing landing page.
+      - Todo rows expose clear controls for complete, edit, save/cancel, and delete actions.
+      - Completed todos are visually distinct while remaining readable.
+      - The layout works on mobile and desktop without overlapping text or controls.
+    description: Use shadcn/ui and Tailwind to build the primary todo screen with an input form, list rows, edit controls, completion controls, empty state, and clear visual hierarchy.
+    id: build-todo-interface
+    title: Build polished todo interface
+    validationIntent: Manually inspect the UI at mobile and desktop widths and verify each expected control is reachable and stable.
+  - acceptanceCriteria:
+      - The production build completes successfully.
+      - Create, edit, delete, complete, and persistence flows are validated.
+      - No obvious console errors appear during normal todo usage.
+    description: Run build and focused manual validation for the todo workflows, capturing any follow-up fixes before completion.
+    id: verify-quality
+    title: Verify app quality and behavior
+    validationIntent: Run the available build/check commands and perform browser validation of the core user workflows.
+version: "1"
