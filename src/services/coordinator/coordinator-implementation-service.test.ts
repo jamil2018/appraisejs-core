@@ -20,6 +20,7 @@ import { readPlanEvents } from '@/services/coordinator/coordinator-service'
 
 import {
   applyBlockingFeedback,
+  approveImplementationCompletion,
   controlImplementation,
   reachImplementationCheckpoint,
   recordImplementationValidation,
@@ -175,6 +176,7 @@ async function writeArtifacts(
   planId: string,
   planOverrides: Partial<PlanArtifact> = {},
   validationOverrides: Partial<ValidationArtifact> = {},
+  reviewOverrides: Partial<ReviewArtifact> = {},
 ) {
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'validations'), { recursive: true })
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'reviews'), { recursive: true })
@@ -188,7 +190,7 @@ async function writeArtifacts(
   )
   await fs.writeFile(
     path.join(workspace, 'appraise', 'plans', 'reviews', `${planId}.review.yaml`),
-    serializeYamlArtifact('review', review(planId)),
+    serializeYamlArtifact('review', { ...review(planId), ...reviewOverrides }),
   )
   await syncPlans({ projectDirectory: workspace, client })
 }
@@ -353,6 +355,130 @@ describe('implementation coordinator checkpoints', () => {
       expect.objectContaining({ sequence: 1, type: 'implementation_paused' }),
       expect.objectContaining({ sequence: 2, type: 'implementation_resumed' }),
       expect.objectContaining({ sequence: 3, type: 'plan_cancelled', payload: { stopActiveRuns: true } }),
+    ])
+  })
+
+  it('requires fresh validation and current explicit sign-off evidence before completion', async () => {
+    const planId = 'completion-flow'
+    const completedAt = '2026-06-11T00:05:00.000Z'
+    const implementation = {
+      taskStates: { foundation: 'verified', api: 'verified', docs: 'verified' },
+      approvedGroupIds: ['core', 'documentation'],
+      pausedTaskIds: [],
+      validationRuns: [
+        {
+          id: 'run-core-final',
+          validationId: 'core-validation',
+          taskIds: ['foundation', 'api'],
+          required: true,
+          status: 'passed',
+          fresh: true,
+          commitHash: 'commit-final',
+          evidenceUrls: ['/reports/run-core-final', '/traces/run-core-final.zip', '/screenshots/run-core-final.png'],
+          completedAt,
+        },
+        {
+          id: 'run-docs-final',
+          validationId: 'docs-validation',
+          taskIds: ['docs'],
+          required: true,
+          status: 'passed',
+          fresh: true,
+          commitHash: 'commit-final',
+          evidenceUrls: ['/reports/run-docs-final'],
+          completedAt,
+        },
+        {
+          id: 'run-optional-final',
+          validationId: 'optional-validation',
+          taskIds: ['docs'],
+          required: false,
+          status: 'failed',
+          fresh: true,
+          commitHash: 'commit-final',
+          evidenceUrls: ['/reports/run-optional-final'],
+          failureSignatureHash: hashFileContent('known optional failure'),
+          acknowledgedAt: completedAt,
+          completedAt,
+        },
+      ],
+      commits: [{ hash: 'commit-final', taskIds: ['foundation', 'api', 'docs'], createdAt: completedAt }],
+      evidenceProtected: true,
+    } satisfies NonNullable<ValidationArtifact['implementation']>
+    const nonBlockingRemark = {
+      id: 'remark-follow-up',
+      target: { type: 'task' as const, taskId: 'docs' },
+      blocking: false,
+      events: [
+        {
+          id: 'remark-event',
+          action: 'created' as const,
+          actor: 'reviewer',
+          createdAt: completedAt,
+          body: 'Follow up after completion.',
+        },
+      ],
+    }
+
+    await writeArtifacts(planId, { lifecycle: 'in_progress' }, { implementation }, { threads: [nonBlockingRemark] })
+    const beforeValidationReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace })
+    expect(beforeValidationReview).toMatchObject({
+      readiness: { ready: true },
+      optionalFailures: [expect.objectContaining({ id: 'run-optional-final' })],
+      acknowledgedFailures: [expect.objectContaining({ id: 'run-optional-final' })],
+      nonBlockingRemarks: [expect.objectContaining({ id: 'remark-follow-up' })],
+    })
+    expect(beforeValidationReview.evidenceHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+    await expect(
+      approveImplementationCompletion(
+        { planId, approvedBy: 'user', contentHash: beforeValidationReview.evidenceHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'Passing validations are required before completion.',
+    })
+
+    await writeArtifacts(
+      planId,
+      { lifecycle: 'validation_passed' },
+      { implementation },
+      { threads: [nonBlockingRemark] },
+    )
+    const completionReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace })
+    expect(completionReview.evidenceHash).not.toBe(beforeValidationReview.evidenceHash)
+    await expect(
+      approveImplementationCompletion(
+        { planId, approvedBy: 'user', contentHash: beforeValidationReview.evidenceHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'Completion approval must reference the current completion evidence hash.',
+    })
+
+    await expect(
+      approveImplementationCompletion(
+        { planId, approvedBy: 'user', contentHash: completionReview.evidenceHash },
+        { projectDirectory: workspace, client, now: new Date('2026-06-11T00:06:00.000Z') },
+      ),
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'completed' },
+      review: {
+        finalSignOff: {
+          contentHash: completionReview.evidenceHash,
+          approvedBy: 'user',
+          relevantHashes: {
+            plan: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+            validation: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+            review: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+          },
+        },
+      },
+      validation: { implementation: { evidenceProtected: false } },
+    })
+    await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
+      expect.objectContaining({ sequence: 1, type: 'plan_completed', payload: { approvedBy: 'user' } }),
     ])
   })
 })

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
@@ -25,6 +27,10 @@ import { ServiceError } from '@/services/shared/errors'
 import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date }
+
+function completionEvidenceHash(value: unknown) {
+  return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+}
 
 async function readArtifacts(planId: string, projectDirectory?: string) {
   const projectRoot = await findProjectRoot(projectDirectory)
@@ -284,18 +290,39 @@ export async function recordImplementationValidation(
 
 export async function reviewImplementationCompletion(planId: string, options: Options = {}) {
   const artifacts = await readArtifacts(planId, options.projectDirectory)
+  const implementation = implementationState(artifacts.validation)
   const readiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
-  return {
+  const tasks = artifacts.plan.tasks.map(task => ({
+    taskId: task.id,
+    status: implementation.taskStates[task.id] ?? 'pending',
+  }))
+  const optionalFailures = implementation.validationRuns.filter(run => !run.required && run.status !== 'passed')
+  const acknowledgedFailures = implementation.validationRuns.filter(
+    run => run.failureSignatureHash && run.acknowledgedAt,
+  )
+  const evidence = {
+    plan: {
+      planId: artifacts.plan.planId,
+      revision: artifacts.plan.revision,
+      lifecycle: artifacts.plan.lifecycle,
+      hash: artifacts.planStored.hash,
+    },
+    validation: {
+      revision: artifacts.validation.revision,
+      hash: artifacts.validationStored.hash,
+      requiredValidationIds: artifacts.validation.validations.filter(item => item.required).map(item => item.id),
+    },
     readiness,
-    tasks: artifacts.plan.tasks.map(task => ({
-      taskId: task.id,
-      status: implementationState(artifacts.validation).taskStates[task.id] ?? 'pending',
-    })),
-    commits: implementationState(artifacts.validation).commits,
-    validationRuns: implementationState(artifacts.validation).validationRuns,
+    tasks,
+    commits: implementation.commits,
+    validationRuns: implementation.validationRuns,
+    optionalFailures,
+    acknowledgedFailures,
     blockingRemarks: artifacts.review.threads.filter(thread => thread.blocking),
     nonBlockingRemarks: artifacts.review.threads.filter(thread => !thread.blocking),
+    finalSignOff: artifacts.review.finalSignOff,
   }
+  return { ...evidence, evidenceHash: completionEvidenceHash(evidence) }
 }
 
 // Completion deliberately keeps all final gates adjacent to the sign-off write.
@@ -313,13 +340,21 @@ export async function approveImplementationCompletion(
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
   const blocking = artifacts.review.threads.filter(thread => thread.blocking)
   if (blocking.length) throw new ServiceError('Blocking feedback must be resolved before completion.', 'CONFLICT')
+  const currentReview = await reviewImplementationCompletion(input.planId, options)
+  if (input.contentHash !== currentReview.evidenceHash) {
+    throw new ServiceError('Completion approval must reference the current completion evidence hash.', 'CONFLICT')
+  }
   const review = {
     ...artifacts.review,
     finalSignOff: {
       id: `completion-${input.planId}`,
       revision: artifacts.plan.revision,
       contentHash: input.contentHash,
-      relevantHashes: {},
+      relevantHashes: {
+        plan: artifacts.planStored.hash,
+        validation: artifacts.validationStored.hash,
+        review: artifacts.reviewStored.hash,
+      },
       approvedBy: input.approvedBy,
       approvedAt: (options.now ?? new Date()).toISOString(),
     },
