@@ -221,16 +221,21 @@ describe('PlanReviewWorkspace', () => {
     render(<PlanReviewWorkspace detail={detail} />)
 
     await user.tab()
-    expect(screen.getByRole('button', { name: /save layout/i })).toHaveFocus()
+    expect(screen.getByRole('button', { name: /hide inspector/i })).toHaveFocus()
     await user.tab()
+    expect(screen.getByRole('tab', { name: /graph/i })).toHaveFocus()
+    screen.getByRole('button', { name: /save layout/i }).focus()
+    expect(screen.getByRole('button', { name: /save layout/i })).toHaveFocus()
+    screen.getByRole('button', { name: /publish shared/i }).focus()
     expect(screen.getByRole('button', { name: /publish shared/i })).toHaveFocus()
     await user.click(screen.getByRole('tab', { name: /accessible list/i }))
     await user.tab()
     expect(screen.getByRole('tabpanel', { name: /accessible list/i })).toHaveFocus()
     await user.tab()
     expect(screen.getByRole('button', { name: /prerequisite task/i })).toHaveFocus()
-    screen.getByRole('button', { name: /reset to flow/i }).focus()
-    expect(screen.getByRole('button', { name: /reset to flow/i })).toHaveFocus()
+    await user.click(screen.getByRole('tab', { name: /graph/i }))
+    screen.getByRole('button', { name: /reset view/i }).focus()
+    expect(screen.getByRole('button', { name: /reset view/i })).toHaveFocus()
     screen.getByRole('tab', { name: /accessible list/i }).focus()
     expect(screen.getByRole('tab', { name: /accessible list/i })).toHaveFocus()
     screen.getByRole('textbox', { name: /add remark/i }).focus()
@@ -252,7 +257,7 @@ describe('PlanReviewWorkspace', () => {
     const user = userEvent.setup()
     render(<PlanReviewWorkspace detail={detail} />)
 
-    await user.click(screen.getByRole('button', { name: /reset to flow/i }))
+    await user.click(screen.getByRole('button', { name: /reset view/i }))
 
     const updateNodes = setNodes.mock.calls.at(-1)?.[0] as (
       nodes: Array<{ id: string; position: { x: number; y: number } }>,
