@@ -16,6 +16,7 @@ const plan = {
   revision: 1,
   lifecycle: 'in_progress',
   goal: 'Implement safely',
+  description: 'Coordinate implementation tasks through explicit checkpoints.',
   tasks: ['foundation', 'api', 'docs'].map(id => ({
     id,
     title: id,
@@ -85,11 +86,12 @@ describe('implementation checkpoint protocol', () => {
   })
 
   it('pauses affected tasks and transitive dependents without stopping independent work', () => {
-    expect(analyzeBlockingFeedback(plan, ['foundation'], ['core', 'documentation'])).toEqual({
+    expect(analyzeBlockingFeedback(plan, validation, ['foundation'], ['core', 'documentation'])).toEqual({
       affectedTaskIds: ['foundation'],
       transitiveDependentIds: ['api'],
       approvalsRequiringConfirmation: ['core'],
       independentTaskIds: ['docs'],
+      impactedValidationIds: ['core-validation'],
     })
   })
 

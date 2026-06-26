@@ -14,6 +14,7 @@ export type FeedbackImpact = {
   transitiveDependentIds: string[]
   approvalsRequiringConfirmation: string[]
   independentTaskIds: string[]
+  impactedValidationIds: string[]
 }
 
 export type ImplementationState = NonNullable<ValidationArtifact['implementation']>
@@ -73,6 +74,7 @@ export function runnableTasks(
 
 export function analyzeBlockingFeedback(
   plan: PlanArtifact,
+  validation: ValidationArtifact,
   affectedTaskIds: string[],
   approvedGroupIds: string[],
 ): FeedbackImpact {
@@ -86,6 +88,9 @@ export function analyzeBlockingFeedback(
     transitiveDependentIds,
     approvalsRequiringConfirmation,
     independentTaskIds: plan.tasks.map(task => task.id).filter(taskId => !blocked.has(taskId)),
+    impactedValidationIds: validation.validations
+      .filter(item => item.taskIds.some(taskId => blocked.has(taskId)))
+      .map(item => item.id),
   }
 }
 

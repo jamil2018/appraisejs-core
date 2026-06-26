@@ -10,6 +10,7 @@ import {
   parseYamlArtifact,
   serializeYamlArtifact,
   type PlanArtifact,
+  type ReviewArtifact,
   type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
@@ -24,6 +25,7 @@ import {
   approveValidationFile,
   decideValidationNode,
   publishPreparedValidations,
+  submitValidationFeedback,
   submitValidationReview,
 } from './coordinator-validation-service'
 
@@ -296,6 +298,283 @@ describe('validation preparation review gate', () => {
     expect(reparsed.validationDecisions[0]).toMatchObject({
       validationId: 'required-check',
       contentHash: validationNodeHash(changed.validations[0]!),
+    })
+  })
+
+  it('routes test-only validation feedback back to validation review while preserving unaffected approvals', async () => {
+    const planId = 'validation-test-feedback'
+    const repository = await preparePlanForValidation(planId)
+    const artifact = validation(planId, {
+      validations: [
+        validation(planId).validations[0]!,
+        {
+          id: 'unaffected-check',
+          taskIds: ['first-task'],
+          required: true,
+          testCaseIds: ['case-two'],
+          gherkinPaths: ['automation/features/case-two.feature'],
+          stepPaths: ['automation/steps/actions/case-two.step.ts'],
+          executable: { path: 'automation/features/case-two.feature' },
+          matrix: [{ browser: 'chromium', environment: 'local' }],
+          expectedFailures: [],
+        },
+      ],
+      files: [
+        validation(planId).files[0]!,
+        validation(planId).files[1]!,
+        {
+          path: 'automation/features/case-two.feature',
+          classification: 'test_only',
+          rationale: 'Default test file policy',
+          status: 'added',
+          beforeHash: null,
+          contentHash: hashFileContent('Feature: case two'),
+          patch:
+            '--- a/automation/features/case-two.feature\n+++ b/automation/features/case-two.feature\n+Feature: case two',
+          declared: true,
+        },
+        {
+          path: 'src/secondary-product.ts',
+          classification: 'production',
+          rationale: 'Default production policy',
+          status: 'modified',
+          beforeHash: hashFileContent('old secondary'),
+          contentHash: hashFileContent('new secondary'),
+          patch: '--- a/src/secondary-product.ts\n+++ b/src/secondary-product.ts\n-old secondary\n+new secondary',
+          declared: true,
+        },
+      ],
+      manifestPaths: [
+        'src/product.ts',
+        'automation/features/case-one.feature',
+        'automation/features/case-two.feature',
+        'src/secondary-product.ts',
+      ],
+      baselineAttempts: [
+        {
+          id: 'attempt-one',
+          validationId: 'required-check',
+          browser: 'chromium',
+          environment: 'local',
+          testRunId: 'run-one',
+          status: 'completed',
+          classification: 'expected_behavioral_failure',
+          signatureHash: hashFileContent('known failure'),
+          evidence: { logsUrl: 'logs', reportUrl: 'report', traceUrls: [], screenshotUrls: [] },
+          createdAt: '2026-06-10T00:00:00Z',
+          completedAt: '2026-06-10T00:01:00Z',
+        },
+        {
+          id: 'attempt-two',
+          validationId: 'unaffected-check',
+          browser: 'chromium',
+          environment: 'local',
+          testRunId: 'run-two',
+          status: 'completed',
+          classification: 'expected_behavioral_failure',
+          signatureHash: hashFileContent('known unaffected failure'),
+          evidence: { logsUrl: 'logs-two', reportUrl: 'report-two', traceUrls: [], screenshotUrls: [] },
+          createdAt: '2026-06-10T00:00:00Z',
+          completedAt: '2026-06-10T00:01:00Z',
+        },
+      ],
+      baselineAcknowledgements: [
+        {
+          attemptId: 'attempt-one',
+          signatureHash: hashFileContent('known failure'),
+          acknowledgedBy: 'reviewer',
+          acknowledgedAt: '2026-06-10T00:02:00Z',
+        },
+        {
+          attemptId: 'attempt-two',
+          signatureHash: hashFileContent('known unaffected failure'),
+          acknowledgedBy: 'reviewer',
+          acknowledgedAt: '2026-06-10T00:02:00Z',
+        },
+      ],
+      baselineDecision: 'accepted',
+    })
+    await publishPreparedValidations(planId, artifact, { projectDirectory: workspace, client })
+
+    await decideValidationNode(
+      { planId, validationId: 'required-check', decision: 'approved', decidedBy: 'reviewer' },
+      { projectDirectory: workspace },
+    )
+    await decideValidationNode(
+      { planId, validationId: 'unaffected-check', decision: 'approved', decidedBy: 'reviewer' },
+      { projectDirectory: workspace },
+    )
+    await approveValidationFile(
+      {
+        planId,
+        path: 'src/product.ts',
+        contentHash: artifact.files[0]!.contentHash!,
+        approvedBy: 'reviewer',
+      },
+      { projectDirectory: workspace },
+    )
+    await approveValidationFile(
+      {
+        planId,
+        path: 'src/secondary-product.ts',
+        contentHash: artifact.files[3]!.contentHash!,
+        approvedBy: 'reviewer',
+      },
+      { projectDirectory: workspace },
+    )
+
+    await submitValidationFeedback(
+      {
+        planId,
+        scope: 'test_artifact',
+        target: { type: 'validation', validationId: 'required-check' },
+        body: 'Regenerate only the case-one Gherkin text.',
+        actor: 'reviewer',
+        affectedFilePaths: ['src/product.ts'],
+      },
+      { projectDirectory: workspace, client },
+    )
+
+    const planAfterFeedback = parseYamlArtifact('plan', (await repository.read('plan', planId)).content) as PlanArtifact
+    const reviewAfterFeedback = parseYamlArtifact(
+      'review',
+      (await repository.read('review', planId)).content,
+    ) as ReviewArtifact
+    const validationAfterFeedback = parseYamlArtifact(
+      'validation',
+      (await repository.read('validation', planId)).content,
+    ) as ValidationArtifact
+
+    expect(planAfterFeedback.lifecycle).toBe('validation_changes_requested')
+    expect(reviewAfterFeedback.threads).toEqual([
+      expect.objectContaining({
+        target: { type: 'validation', validationId: 'required-check' },
+        blocking: true,
+      }),
+    ])
+    expect(validationAfterFeedback.validationDecisions).toEqual([
+      expect.objectContaining({ validationId: 'unaffected-check' }),
+    ])
+    expect(reviewAfterFeedback.fileApprovals).toEqual([expect.objectContaining({ path: 'src/secondary-product.ts' })])
+    expect(validationAfterFeedback.baselineAttempts.map(attempt => attempt.id)).toEqual(['attempt-two'])
+    expect(validationAfterFeedback.baselineAcknowledgements.map(acknowledgement => acknowledgement.attemptId)).toEqual([
+      'attempt-two',
+    ])
+    await expect(readPlanEvents({ planId, afterSequence: 3 }, client)).resolves.toEqual([
+      expect.objectContaining({
+        sequence: 4,
+        type: 'validation_changes_requested',
+        payload: expect.objectContaining({ scope: 'test_artifact' }),
+      }),
+    ])
+
+    const revised = {
+      ...validationAfterFeedback,
+      validations: [
+        {
+          ...validationAfterFeedback.validations[0]!,
+          gherkinPaths: ['automation/features/case-one-revised.feature'],
+        },
+        validationAfterFeedback.validations[1]!,
+      ],
+      files: validationAfterFeedback.files,
+      manifestPaths: validationAfterFeedback.manifestPaths,
+    }
+    await expect(publishPreparedValidations(planId, revised, { projectDirectory: workspace, client })).resolves.toEqual(
+      {
+        validation: revised,
+        reviewUrl: `/plans/${planId}?review=validation`,
+      },
+    )
+  })
+
+  it('routes product-scope validation feedback back to plan review and invalidates plan approval evidence', async () => {
+    const planId = 'validation-product-feedback'
+    const repository = await preparePlanForValidation(planId)
+    const artifact = validation(planId, {
+      baselineAttempts: [
+        {
+          id: 'attempt-one',
+          validationId: 'required-check',
+          browser: 'chromium',
+          environment: 'local',
+          testRunId: 'run-one',
+          status: 'completed',
+          classification: 'expected_behavioral_failure',
+          signatureHash: hashFileContent('known failure'),
+          evidence: { logsUrl: 'logs', reportUrl: 'report', traceUrls: [], screenshotUrls: [] },
+          createdAt: '2026-06-10T00:00:00Z',
+          completedAt: '2026-06-10T00:01:00Z',
+        },
+      ],
+      baselineAcknowledgements: [
+        {
+          attemptId: 'attempt-one',
+          signatureHash: hashFileContent('known failure'),
+          acknowledgedBy: 'reviewer',
+          acknowledgedAt: '2026-06-10T00:02:00Z',
+        },
+      ],
+      baselineDecision: 'accepted',
+    })
+    await publishPreparedValidations(planId, artifact, { projectDirectory: workspace, client })
+    await decideValidationNode(
+      { planId, validationId: 'required-check', decision: 'approved', decidedBy: 'reviewer' },
+      { projectDirectory: workspace },
+    )
+    await approveValidationFile(
+      {
+        planId,
+        path: 'src/product.ts',
+        contentHash: artifact.files[0]!.contentHash!,
+        approvedBy: 'reviewer',
+      },
+      { projectDirectory: workspace },
+    )
+
+    await submitValidationFeedback(
+      {
+        planId,
+        scope: 'product_scope',
+        target: { type: 'validation', validationId: 'required-check' },
+        body: 'The requested assertion changes approved checkout behavior.',
+        actor: 'reviewer',
+      },
+      { projectDirectory: workspace, client },
+    )
+
+    const planAfterFeedback = parseYamlArtifact('plan', (await repository.read('plan', planId)).content) as PlanArtifact
+    const reviewAfterFeedback = parseYamlArtifact(
+      'review',
+      (await repository.read('review', planId)).content,
+    ) as ReviewArtifact
+    const validationAfterFeedback = parseYamlArtifact(
+      'validation',
+      (await repository.read('validation', planId)).content,
+    ) as ValidationArtifact
+
+    expect(planAfterFeedback.lifecycle).toBe('changes_requested')
+    expect(reviewAfterFeedback.planApprovals).toEqual([])
+    expect(reviewAfterFeedback.fileApprovals).toEqual([])
+    expect(reviewAfterFeedback.threads[0]).toMatchObject({
+      target: { type: 'plan' },
+      blocking: true,
+    })
+    expect(reviewAfterFeedback.threads[0]!.events[0]!.body).toContain('requires plan review')
+    expect(validationAfterFeedback.validationDecisions).toEqual([])
+    expect(validationAfterFeedback.baselineAttempts).toEqual([])
+    expect(validationAfterFeedback.baselineAcknowledgements).toEqual([])
+    expect(validationAfterFeedback.baselineDecision).toBe('pending')
+    await expect(readPlanEvents({ planId, afterSequence: 3 }, client)).resolves.toEqual([
+      expect.objectContaining({
+        sequence: 4,
+        type: 'plan_changes_requested',
+        payload: expect.objectContaining({ scope: 'product_scope' }),
+      }),
+    ])
+    await expect(startCoordinatorPlan(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'The current plan revision has not been approved.',
     })
   })
 })

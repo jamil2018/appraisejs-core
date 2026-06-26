@@ -19,6 +19,7 @@ const plan = {
   revision: 1,
   lifecycle: 'draft',
   goal: 'Improve checkout reliability',
+  description: 'Strengthen checkout validation and cover the updated behavior with focused tests.',
   tasks: [
     {
       id: 'add-validation',
@@ -79,6 +80,33 @@ describe('artifact schemas and codecs', () => {
     ['unsafe-alias', () => parseYamlArtifact('plan', 'version: &version "1"\ncopy: *version\n')],
   ])('rejects invalid input with stable code %s', (code, operation) => {
     expect(operation).toThrowError(expect.objectContaining({ code }))
+  })
+
+  it('allows asterisks in prose without allowing YAML anchors', () => {
+    expect(() =>
+      parseYamlArtifact(
+        'plan',
+        serializeYamlArtifact('plan', {
+          ...plan,
+          planId: 'glob-text',
+          description: 'Review markdown files such as *.md without creating YAML aliases.',
+          tasks: [
+            {
+              ...plan.tasks[0],
+              validationIntent: 'Inspect files matching *.md as plain text.',
+            },
+          ],
+        }),
+      ),
+    ).not.toThrow()
+    expect(() => parseYamlArtifact('plan', 'version: &version "1"\nplanId: anchor-plan\n')).toThrowError(
+      expect.objectContaining({ code: 'unsafe-alias' }),
+    )
+  })
+
+  it('requires a description and limits the plan title to 80 characters', () => {
+    expect(planArtifactSchema.safeParse({ ...plan, description: '' }).success).toBe(false)
+    expect(planArtifactSchema.safeParse({ ...plan, goal: 'a'.repeat(81) }).success).toBe(false)
   })
 })
 

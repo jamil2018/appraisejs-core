@@ -60,7 +60,13 @@ function copyFile(src: string, dest: string): void {
 }
 
 function syncSharedCoordinatorSources(): void {
-  const sharedPaths = ['src/app/api/internal/coordinator', 'src/lib/coordinator-api', 'src/services/coordinator']
+  const sharedPaths = [
+    'src/app/api/internal/coordinator',
+    'src/lib/coordinator-api',
+    'src/lib/implementation-checkpoints',
+    'src/lib/plan-contract',
+    'src/services/coordinator',
+  ]
   for (const relativePath of sharedPaths) {
     const source = join(repoRoot, relativePath)
     const destination = join(blankTarget, relativePath)

@@ -90,11 +90,17 @@ function assertImplementationLifecycle(plan: PlanArtifact) {
   }
 }
 
+function assertBaselineAccepted(validation: ValidationArtifact) {
+  if (validation.baselineDecision === 'accepted') return
+  throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
+}
+
 async function implementationContext(planId: string, options: Options) {
   const client = options.client ?? prisma
   await assertPlanNotCancelled(planId, client)
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   assertImplementationLifecycle(artifacts.plan)
+  assertBaselineAccepted(artifacts.validation)
   return { client, artifacts, implementation: implementationState(artifacts.validation) }
 }
 
@@ -190,11 +196,17 @@ export async function applyBlockingFeedback(
   options: Options = {},
 ) {
   const { client, artifacts, implementation } = await implementationContext(input.planId, options)
-  const impact = analyzeBlockingFeedback(artifacts.plan, input.affectedTaskIds, implementation.approvedGroupIds)
+  const impact = analyzeBlockingFeedback(
+    artifacts.plan,
+    artifacts.validation,
+    input.affectedTaskIds,
+    implementation.approvedGroupIds,
+  )
   if (!input.confirmed) return { confirmationRequired: true, impact }
   const pausedTaskIds = input.pausePlanWide
     ? artifacts.plan.tasks.map(task => task.id)
     : [...new Set([...implementation.pausedTaskIds, ...impact.affectedTaskIds, ...impact.transitiveDependentIds])]
+  const impactedValidationIds = new Set(impact.impactedValidationIds)
   const validation = {
     ...artifacts.validation,
     implementation: {
@@ -202,6 +214,15 @@ export async function applyBlockingFeedback(
       pausedTaskIds,
       approvedGroupIds: implementation.approvedGroupIds.filter(
         id => !impact.approvalsRequiringConfirmation.includes(id),
+      ),
+      taskStates: Object.fromEntries(
+        Object.entries(implementation.taskStates).map(([taskId, state]) => [
+          taskId,
+          pausedTaskIds.includes(taskId) && state !== 'pending' ? 'pending' : state,
+        ]),
+      ),
+      validationRuns: implementation.validationRuns.map(run =>
+        impactedValidationIds.has(run.validationId) ? { ...run, fresh: false } : run,
       ),
     },
   }
