@@ -20,6 +20,7 @@ function plan(planId: string, revision = 1): PlanArtifact {
     revision,
     lifecycle: 'draft',
     goal: `Deliver ${planId}`,
+    description: `Describe the implementation scope for ${planId}.`,
     tasks: [
       {
         id: 'first-task',
@@ -61,6 +62,19 @@ beforeEach(async () => {
           '20260609002500_add_plan_projection_and_sync',
           'migration.sql',
         ),
+      ),
+    })
+  }
+  const descriptionColumn = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM pragma_table_info('PlanProjection') WHERE name='description';",
+  ])
+    .toString()
+    .trim()
+  if (!descriptionColumn) {
+    execFileSync('sqlite3', [databasePath], {
+      input: await fs.readFile(
+        path.join(process.cwd(), 'prisma', 'migrations', '20260613015000_add_plan_description', 'migration.sql'),
       ),
     })
   }
@@ -128,6 +142,24 @@ describe('syncPlans', () => {
     await expect(syncPlans({ projectDirectory: workspace, client })).resolves.toMatchObject({ deleted: 1 })
     await expect(client.testRun.findUniqueOrThrow({ where: { id: testRun.id } })).resolves.toMatchObject({
       planId: null,
+    })
+  })
+
+  it('reports invalid new plan artifacts that have no projection yet', async () => {
+    await writePlan('invalid-new-flow', 'version: "1"\nversion: "1"\n')
+
+    await expect(syncPlans({ projectDirectory: workspace, client })).resolves.toMatchObject({
+      errors: 1,
+      stale: 0,
+      issues: [
+        expect.objectContaining({
+          planId: 'invalid-new-flow',
+          artifactPath: 'appraise/plans/invalid-new-flow.yaml',
+          code: 'invalid-artifact',
+          projected: false,
+          message: expect.stringContaining('YAML map keys must be unique'),
+        }),
+      ],
     })
   })
 })

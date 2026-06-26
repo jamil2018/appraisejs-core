@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { shouldExcludeBundledTemplatePath } from './sync-templates-utils.js'
 
 describe('shouldExcludeBundledTemplatePath', () => {
-  it('excludes automation features, locators, and reports paths', () => {
+  it('excludes plan artifacts, automation features, locators, and reports paths', () => {
+    expect(shouldExcludeBundledTemplatePath('appraise/plans')).toBe(true)
+    expect(shouldExcludeBundledTemplatePath('appraise/plans/todo-app.yaml')).toBe(true)
+    expect(shouldExcludeBundledTemplatePath('appraise/plans/reviews/todo-app.review.yaml')).toBe(true)
     expect(shouldExcludeBundledTemplatePath('automation/features/base/login.feature')).toBe(true)
     expect(shouldExcludeBundledTemplatePath('automation/locators/base/login.json')).toBe(true)
     expect(shouldExcludeBundledTemplatePath('automation/reports/logs/run.log')).toBe(true)

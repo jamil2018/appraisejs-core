@@ -62,7 +62,7 @@ async function callTool(name: string, args: Record<string, unknown>) {
   return toolJson(await client!.callTool({ name, arguments: args }))
 }
 
-async function approveCurrentPlan(contentHash: string) {
+async function approveCurrentPlan(revision: number, contentHash: string) {
   await fs.mkdir(path.dirname(reviewPath), { recursive: true })
   await fs.writeFile(
     reviewPath,
@@ -73,7 +73,7 @@ async function approveCurrentPlan(contentHash: string) {
       planApprovals: [
         {
           id: 'mcp-e2e-approval',
-          revision: 2,
+          revision,
           contentHash,
           relevantHashes: { plan: contentHash },
           approvedBy: 'mcp-e2e-user',
@@ -90,7 +90,7 @@ try {
   run('npx', ['prisma', 'migrate', 'deploy'], { DATABASE_URL: `file:${databasePath}` })
   run('npm', ['--prefix', 'packages/appraisejs', 'run', 'build'])
 
-  appServer = spawn('npm', ['run', 'dev', '--', '-H', '127.0.0.1', '-p', String(port)], {
+  appServer = spawn('npm', ['run', 'dev:web', '--', '-H', '127.0.0.1', '-p', String(port)], {
     cwd: repoRoot,
     env: { ...process.env, DATABASE_URL: `file:${databasePath}` },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -134,12 +134,15 @@ try {
     'plan_event_acknowledge',
     'plan_events_read',
     'plan_read',
+    'plan_review_read',
     'plan_revise',
     'plan_start',
     'plan_task_update',
+    'plan_wait_for_approval',
     'plan_wait_for_review',
     'project_diagnostic',
     'validation_decide',
+    'validation_feedback_submit',
     'validation_file_approve',
     'validation_publish',
     'validation_review_submit',
@@ -206,9 +209,29 @@ try {
     'Review-ready evidence returned different canonical links.',
   )
 
+  const directReviewResponse = await fetch(`${baseUrl}${created.reviewUrl}`)
+  assert(directReviewResponse.ok, `Direct review route returned ${directReviewResponse.status}.`)
+  const directReviewHtml = await directReviewResponse.text()
+  assert(directReviewHtml.includes(planId), 'Direct review route did not include the created plan ID.')
+  assert(directReviewHtml.includes(initialPlan.goal), 'Direct review route did not include the created plan goal.')
+
+  const planListResponse = await fetch(`${baseUrl}/plans?query=${encodeURIComponent(planId)}`)
+  assert(planListResponse.ok, `Filtered plan list route returned ${planListResponse.status}.`)
+  const planListHtml = await planListResponse.text()
+  assert(planListHtml.includes(planId), 'Plan list did not discover the created review-ready plan.')
+  assert(planListHtml.includes(initialPlan.goal), 'Plan list did not include the created plan goal.')
+  assert(planListHtml.includes('awaiting plan review'), 'Plan list did not show the created plan lifecycle status.')
+
   const firstRead = await callTool('plan_read', { planId })
   const firstHash = firstRead.contentHash as string
   assert(firstHash.startsWith('sha256:'), 'Plan read did not return a content hash.')
+  const firstReview = await callTool('plan_review_read', { planId })
+  assert(firstReview.reviewHash && typeof firstReview.reviewHash === 'string', 'Plan review read missed review hash.')
+  assert((firstReview.blockingThreads as unknown[]).length === 0, 'New plan unexpectedly has blocking review threads.')
+  assert(
+    (firstReview.recovery as { revise?: string }).revise?.includes('plan_revise'),
+    'Plan review read did not return revision recovery guidance.',
+  )
   const planResource = await client.readResource({ uri: `appraise://plans/${planId}` })
   assert(planResource.contents[0]?.text?.includes(planId), 'Plan resource did not return the created plan.')
 
@@ -245,7 +268,17 @@ try {
   const revised = await callTool('plan_revise', { planId, expectedHash: firstHash, plan: revisedPlan })
   const revisedHash = revised.contentHash as string
   assert(revisedHash !== firstHash, 'Plan revision did not change the content hash.')
-  await approveCurrentPlan(revisedHash)
+
+  const approvedPlan = { ...revisedPlan, revision: 3, lifecycle: 'plan_approved' }
+  const approved = await callTool('plan_revise', { planId, expectedHash: revisedHash, plan: approvedPlan })
+  const approvedHash = approved.contentHash as string
+  await approveCurrentPlan(3, approvedHash)
+
+  const approval = await callTool('plan_wait_for_approval', { planId, afterSequence: 0 })
+  assert(approval.status === 'approved', `Approval wait did not observe plan approval: ${JSON.stringify(approval)}`)
+  assert(approval.lifecycle === 'plan_approved', 'Approval wait did not preserve the approved lifecycle.')
+  assert(approval.contentHash === approvedHash, 'Approval wait did not return the current approved hash.')
+
   const started = await callTool('plan_start', { planId })
   const startedPlan = started.plan as { lifecycle: string }
   assert(startedPlan.lifecycle === 'preparing_validations', 'Approved plan did not start validation preparation.')

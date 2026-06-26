@@ -202,6 +202,10 @@ export async function appendPlanEvent(
         },
         data: { supersededAt: new Date() },
       })
+      await transaction.planProjection.update({
+        where: { id: projection.id },
+        data: { lifecycle: 'cancelled' },
+      })
     }
     return transaction.planEvent.create({
       data: {
@@ -212,6 +216,25 @@ export async function appendPlanEvent(
       },
     })
   })
+}
+
+export async function ensurePlanReviewReadyEvent(planId: string, client: PrismaClient = prisma) {
+  const projection = await client.planProjection.findUnique({
+    where: { planId },
+    select: { id: true, lifecycle: true },
+  })
+  if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
+  if (projection.lifecycle !== 'awaiting_plan_review') return undefined
+  const existing = await client.planEvent.findFirst({
+    where: {
+      planProjectionId: projection.id,
+      type: 'plan_review_ready',
+      supersededAt: null,
+    },
+    orderBy: { sequence: 'desc' },
+  })
+  if (existing) return existing
+  return appendPlanEvent({ planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } }, client)
 }
 
 export async function readPlanEvents(
@@ -239,6 +262,25 @@ export async function readPlanEvents(
     supersededAt: event.supersededAt,
     createdAt: event.createdAt,
   }))
+}
+
+export async function assertPlanNotCancelled(planId: string, client: PrismaClient = prisma): Promise<void> {
+  const projection = await client.planProjection.findUnique({
+    where: { planId },
+    select: {
+      id: true,
+      lifecycle: true,
+      events: {
+        where: { type: 'plan_cancelled', supersededAt: null },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  })
+  if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
+  if (projection.lifecycle === 'cancelled' || projection.events.length > 0) {
+    throw new ServiceError('The plan has been cancelled and cannot progress.', 'CONFLICT')
+  }
 }
 
 export async function waitForPlanEvents(

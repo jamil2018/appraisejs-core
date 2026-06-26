@@ -12,6 +12,7 @@ import {
   authenticateProject,
   ensureProjectIdentity,
   heartbeatCoordinator,
+  ensurePlanReviewReadyEvent,
   readPlanEvents,
   registerCoordinator,
   waitForPlanEvents,
@@ -166,6 +167,26 @@ describe('coordinator leases', () => {
   })
 })
 
+describe('review-ready event repair', () => {
+  it('appends a review-ready event for sync-created awaiting-review plans', async () => {
+    await client.planProjection.update({
+      where: { planId: 'coordinator-plan' },
+      data: { lifecycle: 'awaiting_plan_review' },
+    })
+
+    const event = await ensurePlanReviewReadyEvent('coordinator-plan', client)
+
+    expect(event).toMatchObject({ sequence: 1, type: 'plan_review_ready' })
+    await expect(readPlanEvents({ planId: 'coordinator-plan' }, client)).resolves.toEqual([
+      expect.objectContaining({ sequence: 1, type: 'plan_review_ready' }),
+    ])
+    await expect(ensurePlanReviewReadyEvent('coordinator-plan', client)).resolves.toMatchObject({
+      sequence: 1,
+      type: 'plan_review_ready',
+    })
+  })
+})
+
 describe('durable plan event outbox', () => {
   it('orders and redelivers events until acknowledgement, which is idempotent', async () => {
     await appendPlanEvent({ planId: 'coordinator-plan', type: 'first' }, client)
@@ -200,6 +221,11 @@ describe('durable plan event outbox', () => {
     await expect(readPlanEvents({ planId: 'coordinator-plan' }, client)).resolves.toMatchObject([
       { sequence: 2, type: 'plan_cancelled' },
     ])
+    await expect(
+      client.planProjection.findUniqueOrThrow({ where: { planId: 'coordinator-plan' } }),
+    ).resolves.toMatchObject({
+      lifecycle: 'cancelled',
+    })
   })
 
   it('stops long polling when the caller cancels', async () => {

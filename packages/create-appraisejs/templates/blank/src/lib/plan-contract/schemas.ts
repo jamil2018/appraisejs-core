@@ -60,7 +60,8 @@ export const planArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
     lifecycle: lifecycleSchema,
-    goal: z.string().min(1),
+    goal: z.string().min(1).max(80),
+    description: z.string().min(1),
     tasks: z
       .array(
         z.object({

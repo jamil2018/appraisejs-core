@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
@@ -22,9 +24,13 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent } from './coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date }
+
+function completionEvidenceHash(value: unknown) {
+  return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+}
 
 async function readArtifacts(planId: string, projectDirectory?: string) {
   const projectRoot = await findProjectRoot(projectDirectory)
@@ -90,10 +96,17 @@ function assertImplementationLifecycle(plan: PlanArtifact) {
   }
 }
 
+function assertBaselineAccepted(validation: ValidationArtifact) {
+  if (validation.baselineDecision === 'accepted') return
+  throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
+}
+
 async function implementationContext(planId: string, options: Options) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   assertImplementationLifecycle(artifacts.plan)
+  assertBaselineAccepted(artifacts.validation)
   return { client, artifacts, implementation: implementationState(artifacts.validation) }
 }
 
@@ -189,11 +202,17 @@ export async function applyBlockingFeedback(
   options: Options = {},
 ) {
   const { client, artifacts, implementation } = await implementationContext(input.planId, options)
-  const impact = analyzeBlockingFeedback(artifacts.plan, input.affectedTaskIds, implementation.approvedGroupIds)
+  const impact = analyzeBlockingFeedback(
+    artifacts.plan,
+    artifacts.validation,
+    input.affectedTaskIds,
+    implementation.approvedGroupIds,
+  )
   if (!input.confirmed) return { confirmationRequired: true, impact }
   const pausedTaskIds = input.pausePlanWide
     ? artifacts.plan.tasks.map(task => task.id)
     : [...new Set([...implementation.pausedTaskIds, ...impact.affectedTaskIds, ...impact.transitiveDependentIds])]
+  const impactedValidationIds = new Set(impact.impactedValidationIds)
   const validation = {
     ...artifacts.validation,
     implementation: {
@@ -201,6 +220,15 @@ export async function applyBlockingFeedback(
       pausedTaskIds,
       approvedGroupIds: implementation.approvedGroupIds.filter(
         id => !impact.approvalsRequiringConfirmation.includes(id),
+      ),
+      taskStates: Object.fromEntries(
+        Object.entries(implementation.taskStates).map(([taskId, state]) => [
+          taskId,
+          pausedTaskIds.includes(taskId) && state !== 'pending' ? 'pending' : state,
+        ]),
+      ),
+      validationRuns: implementation.validationRuns.map(run =>
+        impactedValidationIds.has(run.validationId) ? { ...run, fresh: false } : run,
       ),
     },
   }
@@ -216,6 +244,7 @@ export async function controlImplementation(
   options: Options = {},
 ) {
   const client = options.client ?? prisma
+  if (input.action !== 'cancel') await assertPlanNotCancelled(input.planId, client)
   const artifacts = await readArtifacts(input.planId, options.projectDirectory)
   assertImplementationLifecycle(artifacts.plan)
   const lifecycle = input.action === 'pause' ? 'paused' : input.action === 'resume' ? 'in_progress' : 'cancelled'
@@ -261,18 +290,39 @@ export async function recordImplementationValidation(
 
 export async function reviewImplementationCompletion(planId: string, options: Options = {}) {
   const artifacts = await readArtifacts(planId, options.projectDirectory)
+  const implementation = implementationState(artifacts.validation)
   const readiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
-  return {
+  const tasks = artifacts.plan.tasks.map(task => ({
+    taskId: task.id,
+    status: implementation.taskStates[task.id] ?? 'pending',
+  }))
+  const optionalFailures = implementation.validationRuns.filter(run => !run.required && run.status !== 'passed')
+  const acknowledgedFailures = implementation.validationRuns.filter(
+    run => run.failureSignatureHash && run.acknowledgedAt,
+  )
+  const evidence = {
+    plan: {
+      planId: artifacts.plan.planId,
+      revision: artifacts.plan.revision,
+      lifecycle: artifacts.plan.lifecycle,
+      hash: artifacts.planStored.hash,
+    },
+    validation: {
+      revision: artifacts.validation.revision,
+      hash: artifacts.validationStored.hash,
+      requiredValidationIds: artifacts.validation.validations.filter(item => item.required).map(item => item.id),
+    },
     readiness,
-    tasks: artifacts.plan.tasks.map(task => ({
-      taskId: task.id,
-      status: implementationState(artifacts.validation).taskStates[task.id] ?? 'pending',
-    })),
-    commits: implementationState(artifacts.validation).commits,
-    validationRuns: implementationState(artifacts.validation).validationRuns,
+    tasks,
+    commits: implementation.commits,
+    validationRuns: implementation.validationRuns,
+    optionalFailures,
+    acknowledgedFailures,
     blockingRemarks: artifacts.review.threads.filter(thread => thread.blocking),
     nonBlockingRemarks: artifacts.review.threads.filter(thread => !thread.blocking),
+    finalSignOff: artifacts.review.finalSignOff,
   }
+  return { ...evidence, evidenceHash: completionEvidenceHash(evidence) }
 }
 
 // Completion deliberately keeps all final gates adjacent to the sign-off write.
@@ -290,13 +340,21 @@ export async function approveImplementationCompletion(
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
   const blocking = artifacts.review.threads.filter(thread => thread.blocking)
   if (blocking.length) throw new ServiceError('Blocking feedback must be resolved before completion.', 'CONFLICT')
+  const currentReview = await reviewImplementationCompletion(input.planId, options)
+  if (input.contentHash !== currentReview.evidenceHash) {
+    throw new ServiceError('Completion approval must reference the current completion evidence hash.', 'CONFLICT')
+  }
   const review = {
     ...artifacts.review,
     finalSignOff: {
       id: `completion-${input.planId}`,
       revision: artifacts.plan.revision,
       contentHash: input.contentHash,
-      relevantHashes: {},
+      relevantHashes: {
+        plan: artifacts.planStored.hash,
+        validation: artifacts.validationStored.hash,
+        review: artifacts.reviewStored.hash,
+      },
       approvedBy: input.approvedBy,
       approvedAt: (options.now ?? new Date()).toISOString(),
     },

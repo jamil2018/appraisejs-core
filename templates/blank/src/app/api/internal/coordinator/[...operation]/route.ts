@@ -17,6 +17,7 @@ import {
 import {
   acknowledgePlanEvent,
   ensureProjectIdentity,
+  ensurePlanReviewReadyEvent,
   heartbeatCoordinator,
   readPlanEvents,
   registerCoordinator,
@@ -33,6 +34,7 @@ import {
   approveValidationFile,
   decideValidationNode,
   publishPreparedValidations,
+  submitValidationFeedback,
   submitValidationReview,
 } from '@/services/coordinator/coordinator-validation-service'
 import {
@@ -44,11 +46,19 @@ import {
   reviewImplementationCompletion,
   updateImplementationTask,
 } from '@/services/coordinator/coordinator-implementation-service'
+import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { ServiceError } from '@/services/shared/errors'
 
 export const runtime = 'nodejs'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+const reviewTargetSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('plan') }),
+  z.object({ type: z.literal('task'), taskId: idSchema }),
+  z.object({ type: z.literal('validation'), validationId: idSchema }),
+  z.object({ type: z.literal('result'), resultId: idSchema }),
+  z.object({ type: z.literal('file'), path: z.string().min(1) }),
+])
 type RouteContext = { params: Promise<{ operation: string[] }> }
 
 function serviceErrorResponse(error: unknown): Response | undefined {
@@ -88,6 +98,11 @@ async function getPlan(request: Request, operation: string[]) {
   return Response.json(withLinks(await readCoordinatorPlan(planId), planId, request))
 }
 
+async function getReview(request: Request, operation: string[]) {
+  const planId = idSchema.parse(operation[1])
+  return Response.json(withLinks(await readPlanReviewSummary(planId), planId, request))
+}
+
 async function getEvents(request: Request, operation: string[]) {
   const url = new URL(request.url)
   const planId = idSchema.parse(operation[1])
@@ -97,10 +112,13 @@ async function getEvents(request: Request, operation: string[]) {
     .nonnegative()
     .parse(url.searchParams.get('after') ?? '0')
   const input = { planId, afterSequence }
-  const events =
-    url.searchParams.get('wait') === 'true'
-      ? await waitForPlanEvents({ ...input, signal: request.signal })
-      : await readPlanEvents(input)
+  const wait = url.searchParams.get('wait') === 'true'
+  const events = wait ? await waitForPlanEvents({ ...input, signal: request.signal }) : await readPlanEvents(input)
+  if (wait && events.length === 0) {
+    await ensurePlanReviewReadyEvent(planId)
+    const repairedEvents = await readPlanEvents(input)
+    if (repairedEvents.length > 0) return Response.json({ events: repairedEvents })
+  }
   return Response.json({ events })
 }
 
@@ -134,6 +152,7 @@ async function dispatchGet(request: Request, operation: string[]) {
   const handlers: Record<string, () => Promise<Response>> = {
     plan: () => getPlan(request, operation),
     events: () => getEvents(request, operation),
+    review: () => getReview(request, operation),
     completion: async () => Response.json(await reviewImplementationCompletion(idSchema.parse(operation[1]))),
   }
   const handler = handlers[operation[2] ?? 'plan']
@@ -299,6 +318,19 @@ async function postValidationOperation(operation: string[], body: unknown) {
   if (operation[3] === 'publish') {
     const value = z.object({ validation: validationArtifactSchema }).parse(body)
     return Response.json(await publishPreparedValidations(planId, value.validation))
+  }
+  if (operation[3] === 'feedback') {
+    const value = z
+      .object({
+        scope: z.enum(['test_artifact', 'product_scope']),
+        target: reviewTargetSchema,
+        body: z.string().trim().min(1),
+        actor: z.string().min(1).optional(),
+        affectedValidationIds: z.array(idSchema).optional(),
+        affectedFilePaths: z.array(z.string().min(1)).optional(),
+      })
+      .parse(body)
+    return Response.json(await submitValidationFeedback({ planId, ...value }))
   }
   if (operation[3] === 'submit') return Response.json(await submitValidationReview(planId))
   if (operation[3] === 'nodes') {

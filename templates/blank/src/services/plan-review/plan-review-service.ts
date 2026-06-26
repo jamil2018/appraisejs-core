@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import type { PrismaClient } from '@prisma/client'
 
@@ -16,10 +16,11 @@ import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifac
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
-import { appendPlanEvent } from '@/services/coordinator/coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from '@/services/coordinator/coordinator-service'
 
 import {
   canApprovePlan,
+  canRequestPlanChanges,
   derivePlanGraph,
   evaluateGraphReadiness,
   getBlockingThreads,
@@ -34,8 +35,13 @@ type ReviewMutationOptions = {
   projectDirectory?: string
 }
 
+type WriteReviewOptions = ReviewMutationOptions & {
+  sync?: boolean
+}
+
 export type PlanReviewDetail = {
   plan: PlanArtifact
+  contentHash: string
   review?: ReviewArtifact
   validation?: ValidationArtifact
   graph: ReturnType<typeof derivePlanGraph>
@@ -64,8 +70,45 @@ export type PlanReviewDetail = {
   listFallback: boolean
 }
 
+type ReviewThreadSummary = {
+  id: string
+  target: ReviewArtifact['threads'][number]['target']
+  blocking: boolean
+  status: string
+  latestBody?: string
+  latestActor?: string
+  latestCreatedAt?: string
+  events: ReviewArtifact['threads'][number]['events']
+  orphaned: boolean
+}
+
+export type PlanReviewSummary = {
+  planId: string
+  plan: {
+    revision: number
+    lifecycle: PlanArtifact['lifecycle']
+    contentHash: string
+  }
+  reviewHash: string
+  blockingThreads: ReviewThreadSummary[]
+  nonBlockingThreads: ReviewThreadSummary[]
+  orphanedThreadIds: string[]
+  links: {
+    appraise: string
+    route: string
+  }
+  recovery: {
+    changesRequested: string
+    revise: string
+  }
+}
+
 function id(prefix: string): string {
   return `${prefix}-${randomUUID()}`
+}
+
+function hashContent(content: string): string {
+  return `sha256:${createHash('sha256').update(content).digest('hex')}`
 }
 
 function emptyReview(planId: string): ReviewArtifact {
@@ -97,6 +140,28 @@ function parseValidation(value: string | null | undefined): ValidationArtifact |
   return value ? (JSON.parse(value) as ValidationArtifact) : undefined
 }
 
+function reviewHash(review: ReviewArtifact, storedHash?: string): string {
+  return storedHash ?? hashContent(serializeYamlArtifact('review', review))
+}
+
+function summarizeThread(
+  thread: ReviewArtifact['threads'][number],
+  orphanedThreadIds: Set<string>,
+): ReviewThreadSummary {
+  const latest = thread.events.at(-1)
+  return {
+    id: thread.id,
+    target: thread.target,
+    blocking: thread.blocking,
+    status: getThreadStatus(thread),
+    latestBody: latest?.body,
+    latestActor: latest?.actor,
+    latestCreatedAt: latest?.createdAt,
+    events: thread.events,
+    orphaned: orphanedThreadIds.has(thread.id),
+  }
+}
+
 async function readPlanAndReview(projectDirectory: string, planId: string) {
   const repository = new PlanArtifactRepository(projectDirectory)
   const planArtifact = await repository.read('plan', planId)
@@ -122,7 +187,7 @@ async function writeReview(
   planId: string,
   review: ReviewArtifact,
   currentHash: string | undefined,
-  options?: ReviewMutationOptions,
+  options?: WriteReviewOptions,
 ): Promise<void> {
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
@@ -139,7 +204,7 @@ async function writeReview(
     }
     throw error
   }
-  await syncPlans({ projectDirectory: projectRoot, client: options?.client })
+  if (options?.sync !== false) await syncPlans({ projectDirectory: projectRoot, client: options?.client })
 }
 
 export async function listPlans(options?: ReviewMutationOptions) {
@@ -162,7 +227,7 @@ export async function getPlanReviewDetail(
 ): Promise<PlanReviewDetail> {
   const client = options?.client ?? prisma
   const projectRoot = await findProjectRoot(options?.projectDirectory)
-  const [{ plan, review }, projection] = await Promise.all([
+  const [{ plan, planArtifact, review }, projection] = await Promise.all([
     readPlanAndReview(projectRoot, planId),
     client.planProjection.findUnique({
       where: { planId },
@@ -185,6 +250,7 @@ export async function getPlanReviewDetail(
 
   return {
     plan,
+    contentHash: planArtifact.hash,
     review,
     validation,
     graph,
@@ -213,6 +279,43 @@ export async function getPlanReviewDetail(
     orphanedThreadIds: getOrphanedThreads(plan, review).map(thread => thread.id),
     reviewReady: readiness.ready || !readiness.staleWorker,
     listFallback: readiness.listFallback,
+  }
+}
+
+export async function readPlanReviewSummary(
+  planId: string,
+  options?: ReviewMutationOptions,
+): Promise<PlanReviewSummary> {
+  const projectRoot = await findProjectRoot(options?.projectDirectory)
+  const { plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, planId)
+  const orphanedThreads = getOrphanedThreads(plan, review)
+  const orphanedThreadIds = new Set(orphanedThreads.map(thread => thread.id))
+  const openThreads = review.threads.filter(thread => !['resolved', 'dismissed'].includes(getThreadStatus(thread)))
+  return {
+    planId,
+    plan: {
+      revision: plan.revision,
+      lifecycle: plan.lifecycle,
+      contentHash: planArtifact.hash,
+    },
+    reviewHash: reviewHash(review, reviewArtifact?.hash),
+    blockingThreads: openThreads
+      .filter(thread => thread.blocking)
+      .map(thread => summarizeThread(thread, orphanedThreadIds)),
+    nonBlockingThreads: openThreads
+      .filter(thread => !thread.blocking)
+      .map(thread => summarizeThread(thread, orphanedThreadIds)),
+    orphanedThreadIds: [...orphanedThreadIds],
+    links: {
+      appraise: `appraise://plans/${planId}`,
+      route: `/plans/${planId}`,
+    },
+    recovery: {
+      changesRequested:
+        'Review blockingThreads, preserve unresolved remark history, then submit a higher plan revision with plan_revise.',
+      revise:
+        'Call plan_revise with the current plan content hash and a higher revision; changed-request plans return to awaiting_plan_review after revision.',
+    },
   }
 }
 
@@ -296,15 +399,18 @@ export async function approvePlanRevision(
   input: {
     planId: string
     displayedRevision: number
+    expectedPlanHash: string
     resolveThreadId?: string
     confirmSuspiciousReplacement?: boolean
     actor?: string
   },
   options?: ReviewMutationOptions,
 ): Promise<void> {
+  const client = options?.client ?? prisma
+  await assertPlanNotCancelled(input.planId, client)
   const projectRoot = await findProjectRoot(options?.projectDirectory)
-  const { plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
-  const projection = await (options?.client ?? prisma).planProjection.findUnique({
+  const { repository, plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
+  const projection = await client.planProjection.findUnique({
     where: { planId: input.planId },
     include: { issues: { where: { resolvedAt: null } } },
   })
@@ -325,6 +431,9 @@ export async function approvePlanRevision(
   const decision = canApprovePlan({
     displayedRevision: input.displayedRevision,
     currentRevision: plan.revision,
+    expectedPlanHash: input.expectedPlanHash,
+    currentPlanHash: planArtifact.hash,
+    stale: projection.stale,
     conflicted: projection.conflicted,
     representationReady: true,
     blockingThreads: blockingThreads.length,
@@ -333,15 +442,93 @@ export async function approvePlanRevision(
     suspiciousReplacementConfirmed: Boolean(input.confirmSuspiciousReplacement),
   })
   if (!decision.allowed) throw new ServiceError(decision.reason ?? 'Plan cannot be approved.', 'CONFLICT')
+  let approvedPlanHash = planArtifact.hash
+  if (plan.lifecycle === 'awaiting_plan_review') {
+    await repository.compareAndWrite(
+      'plan',
+      input.planId,
+      planArtifact.hash,
+      serializeYamlArtifact('plan', { ...plan, lifecycle: 'plan_approved' }),
+    )
+    approvedPlanHash = (await repository.read('plan', input.planId)).hash
+  }
   review.planApprovals.push({
     id: id('approval'),
     revision: plan.revision,
-    contentHash: planArtifact.hash,
-    relevantHashes: { plan: planArtifact.hash },
+    contentHash: approvedPlanHash,
+    relevantHashes: { plan: approvedPlanHash },
     approvedBy: input.actor ?? DEFAULT_REVIEWER,
     approvedAt: new Date().toISOString(),
   })
-  await writeReview(input.planId, review, reviewArtifact?.hash, options)
+  await writeReview(input.planId, review, reviewArtifact?.hash, { ...options, sync: false })
+  await syncPlans({ projectDirectory: projectRoot, client: options?.client })
+  await appendPlanEvent(
+    { planId: input.planId, type: 'plan_approved', payload: { revision: plan.revision } },
+    options?.client,
+  )
+}
+
+export async function requestPlanChanges(
+  input: {
+    planId: string
+    displayedRevision: number
+    expectedPlanHash: string
+    actor?: string
+  },
+  options?: ReviewMutationOptions,
+): Promise<PlanReviewSummary> {
+  const client = options?.client ?? prisma
+  await assertPlanNotCancelled(input.planId, client)
+  const projectRoot = await findProjectRoot(options?.projectDirectory)
+  const { repository, plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, input.planId)
+  const projection = await client.planProjection.findUnique({
+    where: { planId: input.planId },
+    include: { events: { orderBy: { createdAt: 'asc' } } },
+  })
+  if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
+  const readiness = evaluateGraphReadiness(projection.events)
+  const blockingThreads = getBlockingThreads(review)
+  const decision = canRequestPlanChanges({
+    displayedRevision: input.displayedRevision,
+    currentRevision: plan.revision,
+    expectedPlanHash: input.expectedPlanHash,
+    currentPlanHash: planArtifact.hash,
+    stale: projection.stale,
+    conflicted: projection.conflicted,
+    representationReady: readiness.ready || !readiness.staleWorker,
+    blockingThreads: blockingThreads.length,
+    lifecycle: plan.lifecycle,
+  })
+  if (!decision.allowed) throw new ServiceError(decision.reason ?? 'Plan changes cannot be requested.', 'CONFLICT')
+
+  const nextPlan = { ...plan, lifecycle: 'changes_requested' as const }
+  const nextReview = {
+    ...review,
+    planApprovals: review.planApprovals.filter(approval => approval.revision !== plan.revision),
+  }
+  const writtenReview = reviewArtifact
+    ? await repository.compareAndWrite(
+        'review',
+        input.planId,
+        reviewArtifact.hash,
+        serializeYamlArtifact('review', nextReview),
+      )
+    : await repository.create('review', input.planId, serializeYamlArtifact('review', nextReview))
+  await repository.compareAndWrite('plan', input.planId, planArtifact.hash, serializeYamlArtifact('plan', nextPlan))
+  await syncPlans({ projectDirectory: projectRoot, client })
+  await appendPlanEvent(
+    {
+      planId: input.planId,
+      type: 'plan_changes_requested',
+      payload: {
+        revision: plan.revision,
+        reviewHash: writtenReview.hash,
+        blockingThreadIds: blockingThreads.map(thread => thread.id),
+      },
+    },
+    client,
+  )
+  return readPlanReviewSummary(input.planId, { ...options, projectDirectory: projectRoot, client })
 }
 
 export async function savePersonalPlanLayout(

@@ -1,0 +1,74 @@
+description: Replace the plan review graph's index-based grid and backward-reading dependency arrows with a deterministic semantic workflow layout. Show numbered task nodes in dependency order, make prerequisite-to-dependent progression visually explicit, preserve non-sequencing relationships and saved layout behavior, and keep the accessible list equivalent to the graph.
+edges:
+  - from: render-numbered-workflow
+    to: derive-semantic-flow
+    type: depends-on
+  - from: reconcile-layout-persistence
+    to: derive-semantic-flow
+    type: depends-on
+  - from: reconcile-layout-persistence
+    to: render-numbered-workflow
+    type: depends-on
+  - from: validate-semantic-graph
+    to: render-numbered-workflow
+    type: depends-on
+  - from: validate-semantic-graph
+    to: reconcile-layout-persistence
+    type: depends-on
+goal: Make plan dependency flow easy to follow
+implementationGroups:
+  - id: flow-model
+    taskIds:
+      - derive-semantic-flow
+  - id: review-interface
+    taskIds:
+      - render-numbered-workflow
+      - reconcile-layout-persistence
+  - id: verification
+    taskIds:
+      - validate-semantic-graph
+lifecycle: awaiting_plan_review
+planId: semantic-plan-flow-graph
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - A task's prerequisites always receive earlier step numbers than the task.
+      - Tasks that can proceed in parallel share a dependency layer and have stable ordering based on canonical task order.
+      - The visual direction for depends-on edges is prerequisite to dependent even though stored edges remain task to prerequisite.
+      - Disconnected tasks receive deterministic steps and positions, and cyclic or unresolved input does not crash the review surface.
+      - No plan schema, persisted edge, or public MCP contract changes are introduced.
+    description: Add a route-local pure graph projection that interprets canonical depends-on edges without changing the stored plan contract. Build prerequisite-to-dependent adjacency, assign dependency depth, produce a stable topological task order using canonical task order as the tie-breaker, and return numbered nodes plus left-to-right layered positions. Keep blocks and relates-to edges out of step ordering while retaining them for display, and handle disconnected tasks or malformed cyclic input with deterministic fallback placement.
+    id: derive-semantic-flow
+    title: Derive deterministic task steps and dependency layers
+    validationIntent: Add focused unit tests for chains, branching and merging dependencies, parallel tasks, disconnected tasks, mixed edge types, stable tie-breaking, and cyclic fallback behavior.
+  - acceptanceCriteria:
+      - Every graph node visibly presents its deterministic step number and task title.
+      - The default graph reads left to right from prerequisites to later work without circular or backward dependency paths.
+      - Parallel tasks are aligned in the same stage and merging tasks appear in a later stage.
+      - Depends-on, blocks, and relates-to remain distinguishable without relying on color alone.
+      - Selecting a custom node continues to update the task inspector and React Flow controls remain usable.
+    description: Use the semantic projection in the plan review workspace to render custom task nodes with a prominent step number, task title, and status. Arrange dependency layers from left to right with consistent spacing, attach edges to directional handles, emphasize the primary depends-on progression, and visually subordinate blocks and relates-to links. Update graph guidance and legend text so users can understand that steps increase from left to right and parallel nodes may share a stage.
+    id: render-numbered-workflow
+    title: Render a numbered left-to-right workflow graph
+    validationIntent: Extend the workspace component tests to assert numbered node data, projected edge direction, stage guidance, relationship labels, and node selection behavior.
+  - acceptanceCriteria:
+      - Plans without saved coordinates open in the semantic layered layout.
+      - Personal positions still override shared positions, and shared positions still override computed defaults.
+      - Saved layouts cannot alter step numbering or reverse dependency progression.
+      - A reset-to-flow control restores all nodes to computed semantic positions and fits the graph in view.
+      - Existing save and publish actions persist the currently displayed coordinates without changing canonical plan data.
+    description: Make semantic positions the default for plans without user-authored layout coordinates while preserving explicit personal-over-shared position precedence. Ensure saved positions only replace coordinates, not computed step numbers, edge direction, node content, or relationship semantics. Provide a clear reset-to-flow action that restores the computed semantic layout in the current view so users can recover from old circular or confusing saved layouts before saving or publishing the improved arrangement.
+    id: reconcile-layout-persistence
+    title: Keep semantic defaults compatible with saved layouts
+    validationIntent: Add component tests for layout precedence, reset behavior, fit-view invocation, and save payloads after semantic reset.
+  - acceptanceCriteria:
+      - Focused ESLint, Prettier, and Vitest checks pass for changed files.
+      - The light-mode-theme-support plan displays an unambiguous numbered progression with prerequisites before dependent work.
+      - The accessible list uses the same semantic step order and numbers as the graph.
+      - Reset, drag, save, publish, zoom, fit-view, and task selection flows remain functional.
+      - Browser verification finds no console, hydration, clipping, or overlap regressions at desktop and narrow review widths.
+    description: Run focused formatting, linting, and unit tests, then verify the plan review page in the browser with representative chain, branch, merge, parallel, and saved-layout cases. Confirm the numbered workflow is readable at common viewport sizes, selection and inspector behavior still work, the accessible list presents the same step order, and no console or hydration errors are introduced.
+    id: validate-semantic-graph
+    title: Validate workflow comprehension and regression safety
+    validationIntent: Run focused automated checks followed by in-app browser verification on the existing plan review route and at least one compact fixture covering branch and merge behavior.
+version: "1"

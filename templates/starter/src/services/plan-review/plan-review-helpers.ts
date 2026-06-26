@@ -97,6 +97,9 @@ export function hasSuspiciousReplacement(diff: RevisionTaskDiff): boolean {
 export function canApprovePlan(input: {
   displayedRevision: number
   currentRevision: number
+  expectedPlanHash: string
+  currentPlanHash: string
+  stale: boolean
   conflicted: boolean
   representationReady: boolean
   blockingThreads: number
@@ -106,12 +109,45 @@ export function canApprovePlan(input: {
 }): { allowed: boolean; reason?: string } {
   if (input.displayedRevision !== input.currentRevision)
     return { allowed: false, reason: 'The displayed revision is stale.' }
+  if (input.expectedPlanHash !== input.currentPlanHash)
+    return { allowed: false, reason: 'The displayed plan hash is stale.' }
+  if (input.stale) return { allowed: false, reason: 'Refresh the stale plan projection before approval.' }
   if (input.conflicted) return { allowed: false, reason: 'Resolve artifact conflicts before approval.' }
   if (!input.representationReady) return { allowed: false, reason: 'The plan review representation is not ready.' }
   if (input.blockingThreads > 0) return { allowed: false, reason: 'Resolve all blocking remarks before approval.' }
   if (input.orphanedThreads > 0) return { allowed: false, reason: 'Retarget or resolve removed-node remarks.' }
   if (input.suspiciousReplacement && !input.suspiciousReplacementConfirmed) {
     return { allowed: false, reason: 'Confirm the suspicious node replacement before approval.' }
+  }
+  return { allowed: true }
+}
+
+export function canRequestPlanChanges(input: {
+  displayedRevision: number
+  currentRevision: number
+  expectedPlanHash: string
+  currentPlanHash: string
+  stale: boolean
+  conflicted: boolean
+  representationReady: boolean
+  blockingThreads: number
+  lifecycle: string
+}): { allowed: boolean; reason?: string } {
+  if (input.displayedRevision !== input.currentRevision)
+    return { allowed: false, reason: 'The displayed revision is stale.' }
+  if (input.expectedPlanHash !== input.currentPlanHash)
+    return { allowed: false, reason: 'The displayed plan hash is stale.' }
+  if (input.stale) return { allowed: false, reason: 'Refresh the stale plan projection before requesting changes.' }
+  if (input.conflicted) return { allowed: false, reason: 'Resolve artifact conflicts before requesting changes.' }
+  if (!input.representationReady) return { allowed: false, reason: 'The plan review representation is not ready.' }
+  if (input.lifecycle === 'plan_approved') return { allowed: false, reason: 'The plan has already been approved.' }
+  if (input.lifecycle === 'cancelled') return { allowed: false, reason: 'The plan has been cancelled.' }
+  if (input.lifecycle === 'completed') return { allowed: false, reason: 'The plan is already completed.' }
+  if (input.lifecycle !== 'awaiting_plan_review') {
+    return { allowed: false, reason: 'The plan is not awaiting plan review.' }
+  }
+  if (input.blockingThreads === 0) {
+    return { allowed: false, reason: 'Add at least one open blocking remark before requesting changes.' }
   }
   return { allowed: true }
 }

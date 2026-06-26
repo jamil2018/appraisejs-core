@@ -7,25 +7,85 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent } from './coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type PlanServiceOptions = {
   client?: PrismaClient
   projectDirectory?: string
 }
 
+export class CoordinatorPlanCreatePartialError extends Error {
+  readonly code = 'plan-create-partial'
+  readonly statusCode = 500
+
+  constructor(
+    message: string,
+    readonly details: {
+      planId: string
+      artifactPath?: string
+      stage: 'write-artifact' | 'sync-projection' | 'append-graph-event' | 'append-review-ready' | 'read-artifact'
+      safeToRetry: boolean
+      contentHash?: string
+      recovery: string
+    },
+    options?: ErrorOptions,
+  ) {
+    super(message, options)
+    this.name = 'CoordinatorPlanCreatePartialError'
+  }
+}
+
 export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanServiceOptions = {}) {
   const client = options.client ?? prisma
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
-  await repository.create('plan', plan.planId, serializeYamlArtifact('plan', plan))
-  await syncPlans({ projectDirectory: projectRoot, client })
-  await appendPlanEvent({ planId: plan.planId, type: 'plan_graph_processing_started' }, client)
-  const reviewReadyEvent = await appendPlanEvent(
-    { planId: plan.planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
-    client,
-  )
-  const artifact = await repository.read('plan', plan.planId)
+  let artifactPath: string | undefined
+  let contentHash: string | undefined
+  const partial = (stage: CoordinatorPlanCreatePartialError['details']['stage'], error: unknown, safeToRetry = true) =>
+    new CoordinatorPlanCreatePartialError(
+      `Plan ${plan.planId} was partially created but failed during ${stage}.`,
+      {
+        planId: plan.planId,
+        artifactPath,
+        stage,
+        safeToRetry,
+        contentHash,
+        recovery: `Run npm run sync-plans, then check appraise://plans/${plan.planId} or retry plan status for ${plan.planId}.`,
+      },
+      { cause: error },
+    )
+  try {
+    await repository.create('plan', plan.planId, serializeYamlArtifact('plan', plan))
+    artifactPath = `appraise/plans/${plan.planId}.yaml`
+  } catch (error) {
+    throw partial('write-artifact', error, false)
+  }
+  try {
+    await syncPlans({ projectDirectory: projectRoot, client })
+  } catch (error) {
+    throw partial('sync-projection', error)
+  }
+  try {
+    await appendPlanEvent({ planId: plan.planId, type: 'plan_graph_processing_started' }, client)
+  } catch (error) {
+    throw partial('append-graph-event', error)
+  }
+  let reviewReadyEvent: Awaited<ReturnType<typeof appendPlanEvent>>
+  try {
+    reviewReadyEvent = await appendPlanEvent(
+      { planId: plan.planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
+      client,
+    )
+  } catch (error) {
+    throw partial('append-review-ready', error)
+  }
+  let artifact
+  try {
+    artifact = await repository.read('plan', plan.planId)
+    contentHash = artifact.hash
+  } catch (error) {
+    throw partial('read-artifact', error)
+  }
   return {
     plan,
     planId: plan.planId,
@@ -62,14 +122,19 @@ export async function reviseCoordinatorPlan(
   if (plan.revision <= currentPlan.revision) {
     throw new ServiceError('A revision must increase the current revision number.', 'CONFLICT')
   }
-  await repository.compareAndWrite('plan', planId, expectedHash, serializeYamlArtifact('plan', plan))
+  const nextPlan =
+    currentPlan.lifecycle === 'changes_requested' && plan.lifecycle !== 'awaiting_plan_review'
+      ? ({ ...plan, lifecycle: 'awaiting_plan_review' as const } satisfies PlanArtifact)
+      : plan
+  await repository.compareAndWrite('plan', planId, expectedHash, serializeYamlArtifact('plan', nextPlan))
   await syncPlans({ projectDirectory: projectRoot, client })
-  await appendPlanEvent({ planId, type: 'plan_revision_submitted', payload: { revision: plan.revision } }, client)
+  await appendPlanEvent({ planId, type: 'plan_revision_submitted', payload: { revision: nextPlan.revision } }, client)
   return readCoordinatorPlan(planId, options)
 }
 
 export async function startCoordinatorPlan(planId: string, options: PlanServiceOptions = {}) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
   const current = await repository.read('plan', planId)
@@ -97,6 +162,7 @@ export async function updateCoordinatorTask(
   input: { planId: string; taskId: string; status: string; detail?: string },
   client: PrismaClient = prisma,
 ) {
+  await assertPlanNotCancelled(input.planId, client)
   const task = await client.planTaskProjection.findFirst({
     where: { taskId: input.taskId, plan: { planId: input.planId } },
     select: { id: true },

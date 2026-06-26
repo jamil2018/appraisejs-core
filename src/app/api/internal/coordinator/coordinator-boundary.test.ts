@@ -36,6 +36,7 @@ describe('coordinator adapter boundaries', () => {
       api: [
         'createCoordinatorPlan',
         'reviseCoordinatorPlan',
+        'readPlanReviewSummary',
         'publishPreparedValidations',
         'submitValidationReview',
         'reachImplementationCheckpoint',
@@ -44,14 +45,18 @@ describe('coordinator adapter boundaries', () => {
       cli: ['createPlan', 'revisePlan', 'publishValidation', 'submitValidation', 'completionReview', 'reconnect'],
       mcp: [
         'plan_create',
+        'plan_wait_for_approval',
+        'plan_review_read',
         'plan_revise',
         'validation_publish',
+        'validation_feedback_submit',
         'validation_review_submit',
         'implementation_checkpoint',
         'implementation_complete',
       ],
       ui: [
         'approvePlanRevisionAction',
+        'requestPlanChangesAction',
         'startBaselineExecutionAction',
         'acknowledgeBaselineFailureAction',
         'startImplementationAction',

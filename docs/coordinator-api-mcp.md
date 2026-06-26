@@ -13,7 +13,7 @@ and do not register directly.
 - API requests send `Authorization: Bearer <token>` and `X-Appraise-Project: <fingerprint>`.
 - Only `localhost`, `127.0.0.1`, and `::1` request URLs, Host headers, and Origins are accepted.
 - Request bodies are limited to 1 MiB.
-- MCP uses stdio. Stdout is reserved for MCP protocol traffic; diagnostics go to stderr.
+- MCP supports stdio and Streamable HTTP. Stdout is reserved for stdio MCP protocol traffic; diagnostics go to stderr.
 - MCP failures are returned to the MCP client and never invoke a CLI fallback.
 - A coordinator is bound to one canonical project. A different project fingerprint returns `project-mismatch`
   with the requested and server fingerprints; an invalid token for the matching project remains `UNAUTHORIZED`.
@@ -50,14 +50,18 @@ Events have a monotonically increasing sequence per plan. Reads and long-poll de
 The coordinator acknowledges a sequence explicitly, and repeated acknowledgement is idempotent.
 
 Delivery is at least once: an unacknowledged event is returned again. `plan_cancelled` supersedes earlier,
-unacknowledged progression events. Event ordering is authoritative by sequence, not timestamp.
+unacknowledged progression events, marks the projected lifecycle as `cancelled`, and remains terminal after
+acknowledgement. Event ordering is authoritative by sequence, not timestamp.
 
 The current event vocabulary includes:
 
 - `plan_graph_processing_started`
 - `plan_review_ready`
+- `plan_approved`
+- `plan_changes_requested`
 - `plan_revision_submitted`
 - `validation_preparation_started`
+- `validation_changes_requested`
 - `task_updated`
 - `plan_cancelled`
 - `implementation_checkpoint`
@@ -72,35 +76,61 @@ Future lifecycle sessions may add event types without changing delivery semantic
 only after the transition they permit succeeds. New blocking feedback must invalidate an approval that has not started
 its permitted transition.
 
+`plan_changes_requested` is emitted after a human explicitly submits open blocking plan-review remarks as a change
+request. `plan_wait_for_approval` returns `status: "changes_requested"` for that event and directs the coordinator to
+read `plan_review_read` before revising.
+
 ## Internal API
 
 All routes are under `/api/internal/coordinator`.
 
-| Method | Path                                          | Purpose                                              |
-| ------ | --------------------------------------------- | ---------------------------------------------------- |
-| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease |
-| `POST` | `/heartbeat`                                  | Renew a coordinator lease                            |
-| `POST` | `/plans`                                      | Create a structured plan                             |
-| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                 |
-| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash       |
-| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval     |
-| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                        |
-| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported   |
-| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                             |
-| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint               |
-| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                              |
-| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback         |
-| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation              |
-| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                     |
-| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                     |
-| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                   |
+| Method | Path                                          | Purpose                                                 |
+| ------ | --------------------------------------------- | ------------------------------------------------------- |
+| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease    |
+| `POST` | `/heartbeat`                                  | Renew a coordinator lease                               |
+| `POST` | `/plans`                                      | Create a structured plan                                |
+| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                    |
+| `GET`  | `/plans/:planId/review`                       | Read review hash, remarks, links, and recovery guidance |
+| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash          |
+| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval        |
+| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                           |
+| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported      |
+| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                                |
+| `POST` | `/plans/:planId/validations/feedback`         | Route validation feedback to validation or plan review  |
+| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint                  |
+| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                                 |
+| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback            |
+| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation                 |
+| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                        |
+| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                        |
+| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                      |
 
 The create response includes coordinator ownership metadata and the stable review URL only after
 `plan_review_ready` is durably appended.
 
 ## MCP Surface
 
-Run `appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000`.
+For local development, `npm run dev` starts both the Next.js app and the Streamable HTTP MCP endpoint. The default
+MCP URL is:
+
+```bash
+http://127.0.0.1:3010/mcp
+```
+
+Use `npm run setup:mcp` to print the current endpoint and stdio registration snippets. Override the MCP endpoint with
+`APPRAISE_MCP_HOST`, `APPRAISE_MCP_PORT`, `APPRAISE_MCP_PATH`, and `APPRAISE_MCP_BASE_URL`.
+
+Run only the HTTP MCP endpoint with:
+
+```bash
+npm run dev:mcp
+```
+
+For stdio-only MCP clients, register:
+
+```bash
+appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
+```
 
 Resources:
 
@@ -113,7 +143,9 @@ Tools:
 - `coordinator_heartbeat`
 - `plan_create`
 - `plan_read`
+- `plan_review_read`
 - `plan_wait_for_review`
+- `plan_wait_for_approval`
 - `plan_revise`
 - `plan_start`
 - `plan_task_update`
@@ -122,6 +154,7 @@ Tools:
 - `validation_publish`
 - `validation_decide`
 - `validation_file_approve`
+- `validation_feedback_submit`
 - `validation_review_submit`
 - `implementation_checkpoint`
 - `implementation_task_update`

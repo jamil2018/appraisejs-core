@@ -1,13 +1,17 @@
+import http from 'node:http'
+
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
 
 import {
   CoordinatorRequestError,
   createCoordinatorClient,
+  coordinatorRequestErrorEnvelope,
   type CoordinatorOptions as McpOptions,
 } from './coordinator-client.js'
-import { diagnoseProject } from './diagnostics.js'
+import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { planArtifactSchema } from './plan-file.js'
 
 function text(value: unknown) {
@@ -21,18 +25,32 @@ function toolError(error: unknown) {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify({
-            code: error.code ?? 'coordinator-request-failed',
-            message: error.message,
-            ...(error.path ? { path: error.path } : {}),
-            ...(error.recovery ? { recovery: error.recovery } : {}),
-            ...(error.details ? { details: error.details } : {}),
-          }),
+          text: JSON.stringify(coordinatorRequestErrorEnvelope(error)),
         },
       ],
     }
   }
   throw error
+}
+
+type PlanSnapshot = {
+  plan: { revision: number; lifecycle: string }
+  contentHash: string
+  links: unknown
+}
+
+function approvalGateStatus(lifecycle: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
+  if (lifecycle === 'plan_approved') return 'approved'
+  if (lifecycle === 'changes_requested') return 'changes_requested'
+  if (lifecycle === 'cancelled') return 'cancelled'
+  return undefined
+}
+
+function approvalGateEventStatus(type: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
+  if (type === 'plan_approved') return 'approved'
+  if (type === 'plan_changes_requested') return 'changes_requested'
+  if (type === 'plan_cancelled') return 'cancelled'
+  return undefined
 }
 
 export async function createCoordinatorApiClient(options: McpOptions) {
@@ -42,6 +60,7 @@ export async function createCoordinatorApiClient(options: McpOptions) {
 export async function createAppraiseMcpServer(options: McpOptions): Promise<McpServer> {
   const api = await createCoordinatorApiClient(options)
   const server = new McpServer({ name: 'appraisejs', version: '0.5.0' })
+  const readSnapshot = (planId: string) => api.request(`plans/${planId}`) as Promise<PlanSnapshot>
 
   server.registerResource(
     'project',
@@ -108,6 +127,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async ({ planId }) => text(await api.request(`plans/${planId}`)),
   )
   server.registerTool(
+    'plan_review_read',
+    {
+      description:
+        'Read plan-review remarks, review hash, blocking/non-blocking threads, orphaned thread IDs, links, and recovery guidance without acknowledging events.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => text(await api.request(`plans/${planId}/review`)),
+  )
+  server.registerTool(
     'plan_wait_for_review',
     {
       description: 'Wait for the durable plan_review_ready event before presenting the review URL.',
@@ -118,12 +146,26 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         events?: Array<{ sequence: number; type: string }>
       }
       const reviewReady = result.events?.find(event => event.type === 'plan_review_ready')
-      if (!reviewReady) return text(result)
-      const current = (await api.request(`plans/${planId}`)) as {
-        plan: { revision: number; lifecycle: string }
-        contentHash: string
-        links: unknown
+      if (!reviewReady) {
+        try {
+          const current = await readSnapshot(planId)
+          return text({
+            status: 'pending',
+            planId,
+            revision: current.plan.revision,
+            lifecycle: current.plan.lifecycle,
+            contentHash: current.contentHash,
+            links: current.links,
+            events: result.events ?? [],
+            recovery:
+              'Open the review URL or rerun plan_wait_for_review after sync-plans; no durable plan_review_ready event was delivered yet.',
+          })
+        } catch (error) {
+          if (error instanceof CoordinatorRequestError) return toolError(error)
+          throw error
+        }
       }
+      const current = await readSnapshot(planId)
       return text({
         planId,
         revision: current.plan.revision,
@@ -132,6 +174,65 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         links: current.links,
         eventSequence: reviewReady.sequence,
         events: result.events,
+      })
+    },
+  )
+  server.registerTool(
+    'plan_wait_for_approval',
+    {
+      description:
+        'Read-only long-poll for the plan approval gate; returns when AppraiseJS records approval, requested changes, or cancellation.',
+      inputSchema: { planId: z.string(), afterSequence: z.number().int().nonnegative().default(0) },
+    },
+    async ({ planId, afterSequence }) => {
+      const initial = (await api.request(`plans/${planId}/events?after=${afterSequence}`)) as {
+        events?: Array<{ sequence: number; type: string }>
+      }
+      let events = initial.events ?? []
+      let gateEvent = events.find(event => approvalGateEventStatus(event.type))
+      let current = await readSnapshot(planId)
+      let lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
+
+      if (!gateEvent && !lifecycleStatus) {
+        const waited = (await api.request(`plans/${planId}/events?after=${afterSequence}&wait=true`)) as {
+          events?: Array<{ sequence: number; type: string }>
+        }
+        events = waited.events ?? []
+        gateEvent = events.find(event => approvalGateEventStatus(event.type))
+        current = await readSnapshot(planId)
+        lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
+
+        if (!gateEvent && !lifecycleStatus) {
+          return text({
+            status: 'pending',
+            planId,
+            revision: current.plan.revision,
+            lifecycle: current.plan.lifecycle,
+            contentHash: current.contentHash,
+            links: current.links,
+            events,
+            recovery:
+              'Open the review URL and approve the current revision in AppraiseJS, or rerun plan_wait_for_approval.',
+          })
+        }
+      }
+
+      const status = gateEvent ? approvalGateEventStatus(gateEvent.type) : lifecycleStatus
+      return text({
+        status,
+        planId,
+        revision: current.plan.revision,
+        lifecycle: current.plan.lifecycle,
+        contentHash: current.contentHash,
+        links: current.links,
+        ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
+        events,
+        ...(status === 'changes_requested'
+          ? {
+              recovery:
+                'Call plan_review_read to capture blocking remarks and reviewHash, then submit a higher revision with plan_revise. Do not acknowledge plan_changes_requested until the review decision has been captured.',
+            }
+          : {}),
       })
     },
   )
@@ -228,6 +329,35 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async ({ planId, ...body }) =>
       text(
         await api.request(`plans/${planId}/validations/files`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_feedback_submit',
+    {
+      description:
+        'Route validation review feedback as test-artifact changes or product-scope changes with lifecycle invalidation.',
+      inputSchema: {
+        planId: z.string(),
+        scope: z.enum(['test_artifact', 'product_scope']),
+        target: z.discriminatedUnion('type', [
+          z.object({ type: z.literal('plan') }),
+          z.object({ type: z.literal('task'), taskId: z.string() }),
+          z.object({ type: z.literal('validation'), validationId: z.string() }),
+          z.object({ type: z.literal('result'), resultId: z.string() }),
+          z.object({ type: z.literal('file'), path: z.string() }),
+        ]),
+        body: z.string().min(1),
+        actor: z.string().optional(),
+        affectedValidationIds: z.array(z.string()).optional(),
+        affectedFilePaths: z.array(z.string()).optional(),
+      },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/validations/feedback`, {
           method: 'POST',
           body: JSON.stringify(body),
         }),
@@ -415,4 +545,78 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
 export async function runAppraiseMcp(options: McpOptions): Promise<void> {
   const server = await createAppraiseMcpServer(options)
   await server.connect(new StdioServerTransport())
+}
+
+export type AppraiseHttpMcpOptions = McpOptions & {
+  host: string
+  port: number
+  path: string
+}
+
+function jsonRpcError(res: http.ServerResponse, status: number, code: number, message: string): void {
+  res.writeHead(status, {
+    Allow: 'POST',
+    'Content-Type': 'application/json',
+  })
+  res.end(JSON.stringify({ jsonrpc: '2.0', error: { code, message }, id: null }))
+}
+
+export async function runAppraiseHttpMcp(options: AppraiseHttpMcpOptions): Promise<void> {
+  const server = http.createServer(async (req, res) => {
+    const requestUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? `${options.host}:${options.port}`}`)
+    if (requestUrl.pathname === '/healthz') {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ ok: true, transport: 'streamable-http', path: options.path }))
+      return
+    }
+
+    if (requestUrl.pathname !== options.path) {
+      jsonRpcError(res, 404, -32000, 'Not found.')
+      return
+    }
+
+    if (req.method !== 'POST') {
+      jsonRpcError(res, 405, -32000, 'Method not allowed.')
+      return
+    }
+
+    let mcpServer: McpServer | undefined
+    let transport: StreamableHTTPServerTransport | undefined
+    res.on('close', () => {
+      void transport?.close().catch(() => undefined)
+      void mcpServer?.close().catch(() => undefined)
+    })
+
+    try {
+      mcpServer = await createAppraiseMcpServer(options)
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+        enableJsonResponse: true,
+      })
+      await mcpServer.connect(transport)
+      await transport.handleRequest(req, res)
+    } catch (error) {
+      console.error(formatMcpBootstrapError(error))
+      if (!res.headersSent) jsonRpcError(res, 500, -32603, 'Internal server error.')
+    }
+  })
+
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(options.port, options.host, () => {
+      server.off('error', reject)
+      resolve()
+    })
+  })
+
+  const url = `http://${options.host}:${options.port}${options.path}`
+  console.error(`AppraiseJS MCP HTTP server listening at ${url}`)
+
+  await new Promise<void>(resolve => {
+    const shutdown = () => {
+      server.close(() => resolve())
+    }
+    process.once('SIGINT', shutdown)
+    process.once('SIGTERM', shutdown)
+  })
 }

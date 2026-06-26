@@ -1,4 +1,9 @@
-const EXCLUDED_TEMPLATE_PATH_PREFIXES = ['automation/features/', 'automation/locators/', 'automation/reports/'] as const
+const EXCLUDED_TEMPLATE_PATH_PREFIXES = [
+  'appraise/plans/',
+  'automation/features/',
+  'automation/locators/',
+  'automation/reports/',
+] as const
 const EXCLUDED_TEMPLATE_FILENAMES = new Set(['.DS_Store'])
 
 function toPosixPath(value: string): string {

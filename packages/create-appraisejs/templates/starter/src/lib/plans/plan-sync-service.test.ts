@@ -144,4 +144,22 @@ describe('syncPlans', () => {
       planId: null,
     })
   })
+
+  it('reports invalid new plan artifacts that have no projection yet', async () => {
+    await writePlan('invalid-new-flow', 'version: "1"\nversion: "1"\n')
+
+    await expect(syncPlans({ projectDirectory: workspace, client })).resolves.toMatchObject({
+      errors: 1,
+      stale: 0,
+      issues: [
+        expect.objectContaining({
+          planId: 'invalid-new-flow',
+          artifactPath: 'appraise/plans/invalid-new-flow.yaml',
+          code: 'invalid-artifact',
+          projected: false,
+          message: expect.stringContaining('YAML map keys must be unique'),
+        }),
+      ],
+    })
+  })
 })

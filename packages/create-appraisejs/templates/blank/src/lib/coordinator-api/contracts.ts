@@ -1,6 +1,7 @@
 import type { ZodError } from 'zod'
 
 import { PLAN_CONTRACT_VERSION, PlanContractError } from '@/lib/plan-contract'
+import { CoordinatorPlanCreatePartialError } from '@/services/coordinator/coordinator-plan-service'
 import { ServiceError } from '@/services/shared/errors'
 import { CoordinatorProjectMismatchError } from './request-guard'
 
@@ -48,6 +49,20 @@ export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | und
       code: error.code,
       message: error.message,
       ...(error.code === 'CONFLICT' ? { recovery: 'Read the current plan and retry against its latest hash.' } : {}),
+    }
+  }
+  if (error instanceof CoordinatorPlanCreatePartialError) {
+    return {
+      code: error.code,
+      message: error.message,
+      recovery: error.details.recovery,
+      details: {
+        planId: error.details.planId,
+        artifactPath: error.details.artifactPath,
+        stage: error.details.stage,
+        safeToRetry: error.details.safeToRetry,
+        contentHash: error.details.contentHash,
+      },
     }
   }
 }

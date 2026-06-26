@@ -86,11 +86,12 @@ describe('implementation checkpoint protocol', () => {
   })
 
   it('pauses affected tasks and transitive dependents without stopping independent work', () => {
-    expect(analyzeBlockingFeedback(plan, ['foundation'], ['core', 'documentation'])).toEqual({
+    expect(analyzeBlockingFeedback(plan, validation, ['foundation'], ['core', 'documentation'])).toEqual({
       affectedTaskIds: ['foundation'],
       transitiveDependentIds: ['api'],
       approvalsRequiringConfirmation: ['core'],
       independentTaskIds: ['docs'],
+      impactedValidationIds: ['core-validation'],
     })
   })
 

@@ -16,9 +16,10 @@ import { assessValidationReadiness, fileReviewHash, validationNodeHash } from '@
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent } from './coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
+type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
 
 async function readArtifacts(planId: string, projectDirectory?: string) {
   const projectRoot = await findProjectRoot(projectDirectory)
@@ -50,8 +51,9 @@ export async function publishPreparedValidations(
   options: Options = {},
 ) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const artifacts = await readArtifacts(planId, options.projectDirectory)
-  if (artifacts.plan.lifecycle !== 'preparing_validations') {
+  if (!['preparing_validations', 'validation_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
   }
   if (validation.planId !== planId || validation.revision !== artifacts.plan.revision) {
@@ -73,6 +75,189 @@ export async function publishPreparedValidations(
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
   await appendPlanEvent({ planId, type: 'validation_review_ready', payload: { revision: validation.revision } }, client)
   return { validation, reviewUrl: `/plans/${planId}?review=validation` }
+}
+
+function id(prefix: string): string {
+  return `${prefix}-${randomUUID()}`
+}
+
+function addValidationFeedbackThread(
+  review: ReviewArtifact,
+  input: {
+    scope: ValidationFeedbackScope
+    target: ReviewArtifact['threads'][number]['target']
+    body: string
+    actor?: string
+  },
+) {
+  review.threads.push({
+    id: id('feedback'),
+    target: input.scope === 'product_scope' ? { type: 'plan' } : input.target,
+    blocking: true,
+    events: [
+      {
+        id: id('event'),
+        action: 'created',
+        actor: input.actor ?? 'local-user',
+        createdAt: new Date().toISOString(),
+        body:
+          input.scope === 'product_scope'
+            ? `Product-scope validation feedback requires plan review: ${input.body.trim()}`
+            : input.body.trim(),
+      },
+    ],
+  })
+}
+
+function affectedValidationIds(
+  validation: ValidationArtifact,
+  target: ReviewArtifact['threads'][number]['target'],
+  explicitIds: string[] = [],
+) {
+  const ids = new Set(explicitIds)
+  if (target.type === 'validation') ids.add(target.validationId)
+  if (target.type === 'file') {
+    for (const node of validation.validations) {
+      const paths = [...node.gherkinPaths, ...node.stepPaths, node.executable.path]
+      if (paths.includes(target.path)) ids.add(node.id)
+    }
+  }
+  return ids
+}
+
+function affectedFilePaths(target: ReviewArtifact['threads'][number]['target'], explicitPaths: string[] = []) {
+  const paths = new Set(explicitPaths)
+  if (target.type === 'file') paths.add(target.path)
+  return paths
+}
+
+function invalidateValidationEvidence(
+  validation: ValidationArtifact,
+  input: {
+    scope: ValidationFeedbackScope
+    target: ReviewArtifact['threads'][number]['target']
+    affectedValidationIds?: string[]
+  },
+) {
+  if (input.scope === 'product_scope') {
+    return {
+      ...validation,
+      validationDecisions: [],
+      reviewSubmittedAt: undefined,
+      baselineAttempts: [],
+      baselineAcknowledgements: [],
+      baselineDecision: 'pending' as const,
+    }
+  }
+
+  const validationIds = affectedValidationIds(validation, input.target, input.affectedValidationIds)
+  const removedAttemptIds = new Set(
+    validation.baselineAttempts.filter(attempt => validationIds.has(attempt.validationId)).map(attempt => attempt.id),
+  )
+  return {
+    ...validation,
+    validationDecisions: validation.validationDecisions.filter(decision => !validationIds.has(decision.validationId)),
+    reviewSubmittedAt: undefined,
+    baselineAttempts: validation.baselineAttempts.filter(attempt => !validationIds.has(attempt.validationId)),
+    baselineAcknowledgements: validation.baselineAcknowledgements.filter(
+      acknowledgement => !removedAttemptIds.has(acknowledgement.attemptId),
+    ),
+    baselineDecision: removedAttemptIds.size > 0 ? ('pending' as const) : validation.baselineDecision,
+  }
+}
+
+function invalidateReviewEvidence(
+  review: ReviewArtifact,
+  input: {
+    scope: ValidationFeedbackScope
+    target: ReviewArtifact['threads'][number]['target']
+    affectedFilePaths?: string[]
+    currentPlanRevision: number
+  },
+) {
+  if (input.scope === 'product_scope') {
+    return {
+      ...review,
+      planApprovals: review.planApprovals.filter(approval => approval.revision !== input.currentPlanRevision),
+      fileApprovals: [],
+    }
+  }
+
+  const filePaths = affectedFilePaths(input.target, input.affectedFilePaths)
+  return {
+    ...review,
+    fileApprovals: review.fileApprovals.filter(approval => !filePaths.has(approval.path)),
+  }
+}
+
+// fallow-ignore-next-line complexity
+export async function submitValidationFeedback(
+  input: {
+    planId: string
+    scope: ValidationFeedbackScope
+    target: ReviewArtifact['threads'][number]['target']
+    body: string
+    actor?: string
+    affectedValidationIds?: string[]
+    affectedFilePaths?: string[]
+  },
+  options: Options = {},
+) {
+  if (!input.body.trim()) throw new ServiceError('Feedback text is required.', 'VALIDATION')
+  const client = options.client ?? prisma
+  await assertPlanNotCancelled(input.planId, client)
+  const artifacts = await readArtifacts(input.planId, options.projectDirectory)
+  if (!artifacts.validation || !artifacts.validationStored) {
+    throw new ServiceError('Validation artifact not found.', 'NOT_FOUND')
+  }
+  if (!['awaiting_validation_review', 'validations_approved'].includes(artifacts.plan.lifecycle)) {
+    throw new ServiceError('The plan is not awaiting validation feedback.', 'CONFLICT')
+  }
+
+  const validation = invalidateValidationEvidence(artifacts.validation, input)
+  const review = invalidateReviewEvidence(artifacts.review, {
+    scope: input.scope,
+    target: input.target,
+    affectedFilePaths: input.affectedFilePaths,
+    currentPlanRevision: artifacts.plan.revision,
+  })
+  addValidationFeedbackThread(review, input)
+
+  const nextLifecycle = input.scope === 'product_scope' ? 'changes_requested' : 'validation_changes_requested'
+  const plan = { ...artifacts.plan, lifecycle: nextLifecycle } as PlanArtifact
+  await artifacts.repository.compareAndWrite(
+    'validation',
+    input.planId,
+    artifacts.validationStored.hash,
+    serializeYamlArtifact('validation', validation),
+  )
+  await artifacts.repository.compareAndWrite(
+    'review',
+    input.planId,
+    artifacts.reviewStored.hash,
+    serializeYamlArtifact('review', review),
+  )
+  await artifacts.repository.compareAndWrite(
+    'plan',
+    input.planId,
+    artifacts.planStored.hash,
+    serializeYamlArtifact('plan', plan),
+  )
+  await syncPlans({ projectDirectory: artifacts.projectRoot, client })
+  await appendPlanEvent(
+    {
+      planId: input.planId,
+      type: input.scope === 'product_scope' ? 'plan_changes_requested' : 'validation_changes_requested',
+      payload: {
+        revision: artifacts.plan.revision,
+        scope: input.scope,
+        target: input.target,
+        rationale: input.body.trim(),
+      },
+    },
+    client,
+  )
+  return { plan, review, validation }
 }
 
 // fallow-ignore-next-line complexity
@@ -147,6 +332,7 @@ export async function approveValidationFile(
 // fallow-ignore-next-line complexity
 export async function submitValidationReview(planId: string, options: Options = {}) {
   const client = options.client ?? prisma
+  await assertPlanNotCancelled(planId, client)
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   if (
     artifacts.plan.lifecycle !== 'awaiting_validation_review' ||

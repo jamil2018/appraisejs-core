@@ -54,6 +54,70 @@ describe('plan file commands', () => {
     })
   })
 
+  it('allows ordinary asterisks in text while rejecting YAML references', async () => {
+    const cwd = await workspace()
+    const valid = path.join(cwd, 'glob-text.yaml')
+    await fs.writeFile(
+      valid,
+      [
+        'version: "1"',
+        'planId: glob-text-plan',
+        'revision: 1',
+        'lifecycle: draft',
+        'goal: Exercise glob text',
+        'description: Verify quoted *.md text stays ordinary text.',
+        'tasks:',
+        '  - id: validate-text',
+        '    title: Validate text',
+        '    description: Keep *.md as text.',
+        '    acceptanceCriteria: ["*.md remains text"]',
+        '    validationIntent: Review files matching *.md in prose only.',
+        'edges: []',
+        'implementationGroups: []',
+      ].join('\n'),
+    )
+    await expect(validatePlanFile(valid)).resolves.toMatchObject({ planId: 'glob-text-plan' })
+
+    const anchored = path.join(cwd, 'anchor.yaml')
+    await fs.writeFile(
+      anchored,
+      [
+        'version: &version "1"',
+        'planId: anchor-plan',
+        'revision: 1',
+        'lifecycle: draft',
+        'goal: Exercise anchors',
+        'description: Anchors are unsafe.',
+        'tasks: []',
+        'edges: []',
+        'implementationGroups: []',
+      ].join('\n'),
+    )
+    await expect(validatePlanFile(anchored)).rejects.toThrow('YAML anchors are not allowed.')
+
+    const alias = path.join(cwd, 'alias.yaml')
+    await fs.writeFile(
+      alias,
+      [
+        'version: "1"',
+        'planId: alias-plan',
+        'revision: 1',
+        'lifecycle: draft',
+        'goal: Exercise aliases',
+        'description: &description Aliases are unsafe.',
+        'tasks:',
+        '  - id: alias-task',
+        '    title: Alias task',
+        '    description: *description',
+        '    acceptanceCriteria: [Unsafe]',
+        '    validationIntent: Unsafe',
+        'edges: []',
+        'implementationGroups: []',
+      ].join('\n'),
+    )
+    await expect(validatePlanFile(alias)).rejects.toThrow(/YAML (anchor|alias)s are not allowed./)
+  })
+
   it('creates only a new offline draft and refuses overwrite or progressed lifecycle', async () => {
     const cwd = await workspace()
     const input = path.join(cwd, 'input.yaml')

@@ -1,6 +1,6 @@
 const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist'])
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3', '.tsbuildinfo'])
-const EXCLUDED_PATH_PREFIXES = ['automation/reports/']
+const EXCLUDED_PATH_PREFIXES = ['appraise/plans/', 'automation/reports/']
 const EXCLUDED_FILENAMES = new Set(['.DS_Store'])
 
 function toPosixPath(value: string): string {
@@ -13,7 +13,11 @@ export function shouldExcludeTemplatePath(relativePath: string): boolean {
 
   if (parts.some(part => EXCLUDED_DIRS.has(part))) return true
   if (parts.some(part => EXCLUDED_FILENAMES.has(part))) return true
-  if (EXCLUDED_PATH_PREFIXES.some(prefix => normalizedPath.startsWith(prefix))) return true
+  if (
+    EXCLUDED_PATH_PREFIXES.some(prefix => normalizedPath === prefix.slice(0, -1) || normalizedPath.startsWith(prefix))
+  ) {
+    return true
+  }
 
   const ext = normalizedPath.endsWith('.sqlite3')
     ? '.sqlite3'

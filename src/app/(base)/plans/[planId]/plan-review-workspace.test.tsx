@@ -8,8 +8,18 @@ import type { PlanReviewDetail } from '@/services/plan-review/plan-review-servic
 
 import { PlanReviewWorkspace } from './plan-review-workspace'
 
-const { fitView, savePersonalPlanLayoutAction, setNodes } = vi.hoisted(() => ({
+const {
+  approvePlanRevisionAction,
+  fitView,
+  publishSharedPlanLayoutAction,
+  requestPlanChangesAction,
+  savePersonalPlanLayoutAction,
+  setNodes,
+} = vi.hoisted(() => ({
+  approvePlanRevisionAction: vi.fn(),
   fitView: vi.fn(),
+  publishSharedPlanLayoutAction: vi.fn(),
+  requestPlanChangesAction: vi.fn(),
   savePersonalPlanLayoutAction: vi.fn(),
   setNodes: vi.fn(),
 }))
@@ -53,10 +63,18 @@ vi.mock('@xyflow/react', () => ({
 
 vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   addPlanRemarkAction: vi.fn(),
-  approvePlanRevisionAction: vi.fn(),
-  publishSharedPlanLayoutAction: vi.fn(),
+  acceptBaselineAction: vi.fn(),
+  acknowledgeBaselineFailureAction: vi.fn(),
+  approvePlanRevisionAction,
+  cancelBaselineExecutionAction: vi.fn(),
+  justifyBaselineRegressionPassAction: vi.fn(),
+  publishSharedPlanLayoutAction,
+  reconcileBaselineExecutionAction: vi.fn(),
+  requestPlanChangesAction,
   retargetPlanRemarkAction: vi.fn(),
   savePersonalPlanLayoutAction,
+  startBaselineExecutionAction: vi.fn(),
+  startImplementationAction: vi.fn(),
   transitionPlanRemarkAction: vi.fn(),
 }))
 
@@ -91,6 +109,7 @@ const detail: PlanReviewDetail = {
     ],
     implementationGroups: [{ id: 'delivery', taskIds: ['task-one', 'task-two'] }],
   },
+  contentHash: `sha256:${'a'.repeat(64)}`,
   review: {
     version: '1',
     planId: 'accessible-plan',
@@ -192,11 +211,45 @@ describe('PlanReviewWorkspace', () => {
     expect(taskButtons[0]).toHaveTextContent('Prerequisite task')
     expect(taskButtons[1]).toHaveTextContent('2')
     expect(taskButtons[1]).toHaveTextContent('Dependent task')
+    expect(taskButtons[0]).toHaveTextContent('Stage 1')
+    expect(taskButtons[0]).toHaveTextContent('depends-on to task-one')
+    expect(taskButtons[0]).toHaveTextContent('blocks from task-one')
+    expect(taskButtons[1]).toHaveTextContent('Stage 2')
+    expect(taskButtons[1]).toHaveTextContent('depends-on from task-two')
+    expect(taskButtons[1]).toHaveTextContent('relates-to from task-two')
 
     const taskButton = screen.getByRole('button', { name: /dependent task/i })
     taskButton.focus()
     expect(taskButton).toHaveFocus()
     expect(taskButton).toHaveTextContent('blocked')
+  })
+
+  it('keeps review controls keyboard reachable across tabs, remarks, layout, and approval', async () => {
+    const user = userEvent.setup()
+    render(<PlanReviewWorkspace detail={detail} />)
+
+    await user.tab()
+    expect(screen.getByRole('button', { name: /hide inspector/i })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('tab', { name: /graph/i })).toHaveFocus()
+    screen.getByRole('button', { name: /save layout/i }).focus()
+    expect(screen.getByRole('button', { name: /save layout/i })).toHaveFocus()
+    screen.getByRole('button', { name: /publish shared/i }).focus()
+    expect(screen.getByRole('button', { name: /publish shared/i })).toHaveFocus()
+    await user.click(screen.getByRole('tab', { name: /accessible list/i }))
+    await user.tab()
+    expect(screen.getByRole('tabpanel', { name: /accessible list/i })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('button', { name: /prerequisite task/i })).toHaveFocus()
+    await user.click(screen.getByRole('tab', { name: /graph/i }))
+    screen.getByRole('button', { name: /reset view/i }).focus()
+    expect(screen.getByRole('button', { name: /reset view/i })).toHaveFocus()
+    screen.getByRole('tab', { name: /accessible list/i }).focus()
+    expect(screen.getByRole('tab', { name: /accessible list/i })).toHaveFocus()
+    screen.getByRole('textbox', { name: /add remark/i }).focus()
+    expect(screen.getByRole('textbox', { name: /add remark/i })).toHaveFocus()
+    screen.getByRole('button', { name: /approve exact revision/i }).focus()
+    expect(screen.getByRole('button', { name: /approve exact revision/i })).toHaveFocus()
   })
 
   it('keeps node selection working with custom graph nodes', async () => {
@@ -212,7 +265,7 @@ describe('PlanReviewWorkspace', () => {
     const user = userEvent.setup()
     render(<PlanReviewWorkspace detail={detail} />)
 
-    await user.click(screen.getByRole('button', { name: /reset to flow/i }))
+    await user.click(screen.getByRole('button', { name: /reset view/i }))
 
     const updateNodes = setNodes.mock.calls.at(-1)?.[0] as (
       nodes: Array<{ id: string; position: { x: number; y: number } }>,
@@ -243,5 +296,93 @@ describe('PlanReviewWorkspace', () => {
         'task-two': { x: 500, y: 501 },
       },
     })
+  })
+
+  it('publishes the currently displayed coordinates to the shared layout sidecar', async () => {
+    const user = userEvent.setup()
+    publishSharedPlanLayoutAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    render(<PlanReviewWorkspace detail={detail} />)
+
+    await user.click(screen.getByRole('button', { name: /publish shared/i }))
+
+    expect(publishSharedPlanLayoutAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      positions: {
+        'task-one': { x: 900, y: 901 },
+        'task-two': { x: 500, y: 501 },
+      },
+    })
+  })
+
+  it('submits approval for the exact displayed revision', async () => {
+    const user = userEvent.setup()
+    approvePlanRevisionAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    render(<PlanReviewWorkspace detail={detail} />)
+
+    await user.click(screen.getByRole('button', { name: /approve exact revision/i }))
+
+    expect(approvePlanRevisionAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      displayedRevision: 2,
+      expectedPlanHash: `sha256:${'a'.repeat(64)}`,
+      confirmSuspiciousReplacement: false,
+    })
+  })
+
+  it('submits change requests for the exact displayed revision with blocking remarks', async () => {
+    const user = userEvent.setup()
+    const withBlockingRemark: PlanReviewDetail = {
+      ...detail,
+      review: {
+        ...detail.review!,
+        threads: [
+          {
+            id: 'remark-blocker',
+            target: { type: 'plan' },
+            blocking: true,
+            events: [
+              {
+                id: 'event-created',
+                action: 'created',
+                actor: 'reviewer',
+                createdAt: new Date().toISOString(),
+                body: 'Please cover empty-list state.',
+              },
+            ],
+          },
+        ],
+      },
+      blockingThreadIds: ['remark-blocker'],
+    }
+    requestPlanChangesAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    render(<PlanReviewWorkspace detail={withBlockingRemark} />)
+
+    await user.click(screen.getByRole('button', { name: /request changes/i }))
+
+    expect(requestPlanChangesAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      displayedRevision: 2,
+      expectedPlanHash: `sha256:${'a'.repeat(64)}`,
+    })
+  })
+
+  it('requires a blocking remark before requesting changes', () => {
+    render(<PlanReviewWorkspace detail={detail} />)
+
+    expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
+    expect(screen.getByText(/add a blocking remark before requesting changes/i)).toBeInTheDocument()
+  })
+
+  it('defaults to list review and explains approval lockout when graph readiness failed', () => {
+    render(<PlanReviewWorkspace detail={{ ...detail, reviewReady: false, listFallback: true }} />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Graph unavailable, list review enabled')
+    expect(screen.getByRole('tab', { name: /graph/i })).toBeDisabled()
+    expect(screen.getByRole('tabpanel', { name: /accessible list/i })).toBeInTheDocument()
+    const approvalButton = screen.getByRole('button', { name: /approve exact revision/i })
+    expect(approvalButton).toBeDisabled()
+    expect(
+      screen.getByText(/approval is disabled until the graph and list review representation is ready/i),
+    ).toBeInTheDocument()
   })
 })

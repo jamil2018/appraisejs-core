@@ -13,6 +13,8 @@ AppraiseJS owns lifecycle and business rules. This skill only orchestrates MCP c
 4. Acknowledge each handled event, then reread pending events before continuing.
 5. Present the returned `appraise://` plan link, browser link, revision, lifecycle, and content hash only after
    `plan_review_ready`.
+   If `plan_create` returns links but `plan_wait_for_review` is still pending or fails, show the returned plan links
+   immediately and clearly label that durable review-ready evidence has not arrived yet.
 6. Revise only against the current returned hash.
 7. Stop at the review gate. Do not implement while approval is pending.
 

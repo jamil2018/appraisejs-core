@@ -20,6 +20,14 @@ async function main() {
   if (result.conflicted > 0)
     console.warn(`${result.conflicted} plan(s) contain merge conflicts; progression is disabled.`)
   if (result.reducedAssurance) console.warn('Non-Git plan snapshots are active with reduced assurance.')
+  if (result.issues.length > 0) {
+    console.warn('\nPlan sync issues:')
+    for (const issue of result.issues) {
+      const location = issue.artifactPath ? ` (${issue.artifactPath})` : ''
+      const projection = issue.projected ? 'last valid projection retained' : 'no projection available'
+      console.warn(`- ${issue.planId}${location}: ${issue.message} [${issue.code}; ${projection}]`)
+    }
+  }
   return {
     errors: result.errors > 0 ? [`${result.errors} plan artifact set(s) could not be projected`] : [],
   }
