@@ -44,6 +44,7 @@ import {
   justifyBaselineRegressionPassAction,
   publishSharedPlanLayoutAction,
   reconcileBaselineExecutionAction,
+  requestPlanChangesAction,
   retargetPlanRemarkAction,
   savePersonalPlanLayoutAction,
   startBaselineExecutionAction,
@@ -188,6 +189,23 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
     : !detail.reviewReady
       ? 'Approval is disabled until the graph and list review representation is ready.'
       : null
+  const requestChangesDisabledReason = approved
+    ? 'This exact revision has already been approved.'
+    : detail.plan.lifecycle === 'cancelled'
+      ? 'Cancelled plans cannot request changes.'
+      : detail.plan.lifecycle === 'completed'
+        ? 'Completed plans cannot request changes.'
+        : detail.plan.lifecycle !== 'awaiting_plan_review'
+          ? 'The plan is not awaiting plan review.'
+          : detail.projection.stale
+            ? 'Refresh the stale plan projection before requesting changes.'
+            : detail.projection.conflicted
+              ? 'Resolve artifact conflicts before requesting changes.'
+              : !detail.reviewReady
+                ? 'Changes cannot be requested until the graph and list review representation is ready.'
+                : detail.blockingThreadIds.length === 0
+                  ? 'Add a blocking remark before requesting changes.'
+                  : null
 
   const run = (operation: () => Promise<{ success?: boolean; error?: string }>, successMessage: string) => {
     setMessage(null)
@@ -822,6 +840,31 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                 {approvalDisabledReason ? (
                   <p id="approval-disabled-reason" className="text-sm text-muted-foreground">
                     {approvalDisabledReason}
+                  </p>
+                ) : null}
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  aria-describedby={requestChangesDisabledReason ? 'request-changes-disabled-reason' : undefined}
+                  disabled={isPending || Boolean(requestChangesDisabledReason)}
+                  onClick={() =>
+                    run(
+                      () =>
+                        requestPlanChangesAction({
+                          planId: detail.plan.planId,
+                          displayedRevision: detail.plan.revision,
+                          expectedPlanHash: detail.contentHash,
+                        }),
+                      'Plan changes requested.',
+                    )
+                  }
+                >
+                  <MessageSquare className="mr-2 size-4" />
+                  Request changes
+                </Button>
+                {requestChangesDisabledReason ? (
+                  <p id="request-changes-disabled-reason" className="text-sm text-muted-foreground">
+                    {requestChangesDisabledReason}
                   </p>
                 ) : null}
                 {message ? (

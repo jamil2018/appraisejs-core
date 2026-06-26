@@ -14,10 +14,17 @@ import {
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
-import { startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
+import { reviseCoordinatorPlan, startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 import { acknowledgePlanEvent, appendPlanEvent, readPlanEvents } from '@/services/coordinator/coordinator-service'
 
-import { addPlanRemark, approvePlanRevision, listPlans, transitionPlanRemark } from './plan-review-service'
+import {
+  addPlanRemark,
+  approvePlanRevision,
+  listPlans,
+  readPlanReviewSummary,
+  requestPlanChanges,
+  transitionPlanRemark,
+} from './plan-review-service'
 
 let workspace: string
 let databasePath: string
@@ -61,6 +68,16 @@ async function writePlan(planId: string, source: string) {
 
 async function readPlanHash(planId: string) {
   return (await new PlanArtifactRepository(workspace).read('plan', planId)).hash
+}
+
+async function readReview(planId: string) {
+  return parseYamlArtifact(
+    'review',
+    await fs.readFile(path.join(workspace, 'appraise', 'plans', 'reviews', `${planId}.review.yaml`), 'utf8'),
+  ) as {
+    threads: Array<{ id: string; blocking: boolean; target: unknown; events: Array<{ body?: string }> }>
+    planApprovals: Array<{ revision: number; contentHash: string; relevantHashes: { plan?: string } }>
+  }
 }
 
 beforeEach(async () => {
@@ -355,6 +372,250 @@ describe('approvePlanRevision', () => {
         { projectDirectory: workspace, client },
       ),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('requestPlanChanges', () => {
+  it('requires an open blocking remark before moving the plan to changes requested', async () => {
+    await writePlan('change-loop', serializeYamlArtifact('plan', plan('change-loop')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const expectedPlanHash = await readPlanHash('change-loop')
+
+    await expect(
+      requestPlanChanges(
+        { planId: 'change-loop', displayedRevision: 1, expectedPlanHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'Add at least one open blocking remark before requesting changes.',
+    })
+
+    await addPlanRemark(
+      { planId: 'change-loop', target: { type: 'plan' }, body: 'Clarify the scope before approval.', blocking: true },
+      { projectDirectory: workspace, client },
+    )
+
+    await expect(
+      requestPlanChanges(
+        { planId: 'change-loop', displayedRevision: 1, expectedPlanHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({
+      planId: 'change-loop',
+      plan: { revision: 1, lifecycle: 'changes_requested' },
+      blockingThreads: [
+        expect.objectContaining({
+          blocking: true,
+          latestBody: 'Clarify the scope before approval.',
+          status: 'created',
+        }),
+      ],
+      recovery: expect.objectContaining({
+        revise: expect.stringContaining('plan_revise'),
+      }),
+    })
+
+    const changedPlan = parseYamlArtifact(
+      'plan',
+      await fs.readFile(path.join(workspace, 'appraise', 'plans', 'change-loop.yaml'), 'utf8'),
+    ) as PlanArtifact
+    expect(changedPlan.lifecycle).toBe('changes_requested')
+    await expect(client.planProjection.findUniqueOrThrow({ where: { planId: 'change-loop' } })).resolves.toMatchObject({
+      lifecycle: 'changes_requested',
+    })
+    await expect(readPlanEvents({ planId: 'change-loop' }, client)).resolves.toEqual([
+      expect.objectContaining({
+        sequence: 1,
+        type: 'plan_changes_requested',
+        payload: expect.objectContaining({
+          revision: 1,
+          reviewHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+          blockingThreadIds: [expect.stringMatching(/^remark-/)],
+        }),
+      }),
+    ])
+  })
+
+  it('rejects stale displayed revision, stale hash, non-blocking-only remarks, and approved plans', async () => {
+    await writePlan('guarded-change-loop', serializeYamlArtifact('plan', plan('guarded-change-loop')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const firstHash = await readPlanHash('guarded-change-loop')
+    await addPlanRemark(
+      {
+        planId: 'guarded-change-loop',
+        target: { type: 'task', taskId: 'first-task' },
+        body: 'This note alone should not force a revision.',
+        blocking: false,
+      },
+      { projectDirectory: workspace, client },
+    )
+
+    await expect(
+      requestPlanChanges(
+        { planId: 'guarded-change-loop', displayedRevision: 1, expectedPlanHash: firstHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({ message: 'Add at least one open blocking remark before requesting changes.' })
+
+    await writePlan(
+      'guarded-change-loop',
+      serializeYamlArtifact('plan', { ...plan('guarded-change-loop'), revision: 2 }),
+    )
+    await syncPlans({ projectDirectory: workspace, client })
+    const secondHash = await readPlanHash('guarded-change-loop')
+    await addPlanRemark(
+      {
+        planId: 'guarded-change-loop',
+        target: { type: 'plan' },
+        body: 'The updated revision still needs changes.',
+        blocking: true,
+      },
+      { projectDirectory: workspace, client },
+    )
+
+    await expect(
+      requestPlanChanges(
+        { planId: 'guarded-change-loop', displayedRevision: 1, expectedPlanHash: secondHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({ message: 'The displayed revision is stale.' })
+    await expect(
+      requestPlanChanges(
+        { planId: 'guarded-change-loop', displayedRevision: 2, expectedPlanHash: firstHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({ message: 'The displayed plan hash is stale.' })
+
+    await writePlan(
+      'approved-change-loop',
+      serializeYamlArtifact('plan', plan('approved-change-loop', 'plan_approved')),
+    )
+    await syncPlans({ projectDirectory: workspace, client })
+    const approvedHash = await readPlanHash('approved-change-loop')
+    await addPlanRemark(
+      { planId: 'approved-change-loop', target: { type: 'plan' }, body: 'Too late for this control.', blocking: true },
+      { projectDirectory: workspace, client },
+    )
+    await expect(
+      requestPlanChanges(
+        { planId: 'approved-change-loop', displayedRevision: 1, expectedPlanHash: approvedHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({ message: 'The plan has already been approved.' })
+  })
+
+  it('invalidates current-revision plan approvals while preserving review threads', async () => {
+    await writePlan('approval-invalidation-loop', serializeYamlArtifact('plan', plan('approval-invalidation-loop')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const expectedPlanHash = await readPlanHash('approval-invalidation-loop')
+    await addPlanRemark(
+      { planId: 'approval-invalidation-loop', target: { type: 'plan' }, body: 'Revise this plan.', blocking: true },
+      { projectDirectory: workspace, client },
+    )
+    const review = await readReview('approval-invalidation-loop')
+    review.planApprovals.push({
+      revision: 1,
+      contentHash: expectedPlanHash,
+      relevantHashes: { plan: expectedPlanHash },
+    })
+    await fs.writeFile(
+      path.join(workspace, 'appraise', 'plans', 'reviews', 'approval-invalidation-loop.review.yaml'),
+      serializeYamlArtifact('review', {
+        version: '1',
+        planId: 'approval-invalidation-loop',
+        threads: review.threads,
+        planApprovals: review.planApprovals.map(approval => ({
+          ...approval,
+          id: 'approval-to-drop',
+          approvedBy: 'local-user',
+          approvedAt: new Date().toISOString(),
+        })),
+        fileApprovals: [],
+      }),
+    )
+
+    await requestPlanChanges(
+      { planId: 'approval-invalidation-loop', displayedRevision: 1, expectedPlanHash },
+      { projectDirectory: workspace, client },
+    )
+
+    const changedReview = await readReview('approval-invalidation-loop')
+    expect(changedReview.planApprovals).toEqual([])
+    expect(changedReview.threads).toHaveLength(1)
+    expect(changedReview.threads[0]).toMatchObject({
+      blocking: true,
+      events: [expect.objectContaining({ body: 'Revise this plan.' })],
+    })
+  })
+
+  it('returns an agent-readable review summary and allows revision back to plan review', async () => {
+    await writePlan('agent-readable-loop', serializeYamlArtifact('plan', plan('agent-readable-loop')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const expectedPlanHash = await readPlanHash('agent-readable-loop')
+    await addPlanRemark(
+      {
+        planId: 'agent-readable-loop',
+        target: { type: 'task', taskId: 'first-task' },
+        body: 'Make the task more specific.',
+        blocking: true,
+      },
+      { projectDirectory: workspace, client },
+    )
+    await addPlanRemark(
+      {
+        planId: 'agent-readable-loop',
+        target: { type: 'task', taskId: 'removed-task' },
+        body: 'Carry this context forward.',
+        blocking: false,
+      },
+      { projectDirectory: workspace, client },
+    )
+    await requestPlanChanges(
+      { planId: 'agent-readable-loop', displayedRevision: 1, expectedPlanHash },
+      { projectDirectory: workspace, client },
+    )
+
+    const summary = await readPlanReviewSummary('agent-readable-loop', { projectDirectory: workspace, client })
+    expect(summary).toMatchObject({
+      planId: 'agent-readable-loop',
+      plan: { revision: 1, lifecycle: 'changes_requested' },
+      blockingThreads: [
+        expect.objectContaining({
+          target: { type: 'task', taskId: 'first-task' },
+          latestBody: 'Make the task more specific.',
+          orphaned: false,
+        }),
+      ],
+      nonBlockingThreads: [
+        expect.objectContaining({
+          target: { type: 'task', taskId: 'removed-task' },
+          latestBody: 'Carry this context forward.',
+          orphaned: true,
+        }),
+      ],
+      orphanedThreadIds: [expect.stringMatching(/^remark-/)],
+      links: { appraise: 'appraise://plans/agent-readable-loop', route: '/plans/agent-readable-loop' },
+    })
+    expect(summary.reviewHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+
+    const changesRequestedHash = await readPlanHash('agent-readable-loop')
+    await reviseCoordinatorPlan(
+      'agent-readable-loop',
+      {
+        ...plan('agent-readable-loop', 'changes_requested'),
+        revision: 2,
+        description: 'Review and approve the clarified agent-readable revision.',
+      },
+      changesRequestedHash,
+      { projectDirectory: workspace, client },
+    )
+    const revisedPlan = parseYamlArtifact(
+      'plan',
+      await fs.readFile(path.join(workspace, 'appraise', 'plans', 'agent-readable-loop.yaml'), 'utf8'),
+    ) as PlanArtifact
+    expect(revisedPlan.lifecycle).toBe('awaiting_plan_review')
+    expect((await readReview('agent-readable-loop')).threads).toHaveLength(2)
   })
 })
 

@@ -127,6 +127,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async ({ planId }) => text(await api.request(`plans/${planId}`)),
   )
   server.registerTool(
+    'plan_review_read',
+    {
+      description:
+        'Read plan-review remarks, review hash, blocking/non-blocking threads, orphaned thread IDs, links, and recovery guidance without acknowledging events.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => text(await api.request(`plans/${planId}/review`)),
+  )
+  server.registerTool(
     'plan_wait_for_review',
     {
       description: 'Wait for the durable plan_review_ready event before presenting the review URL.',
@@ -218,6 +227,12 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         links: current.links,
         ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
         events,
+        ...(status === 'changes_requested'
+          ? {
+              recovery:
+                'Call plan_review_read to capture blocking remarks and reviewHash, then submit a higher revision with plan_revise. Do not acknowledge plan_changes_requested until the review decision has been captured.',
+            }
+          : {}),
       })
     },
   )

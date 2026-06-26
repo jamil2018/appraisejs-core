@@ -7,6 +7,7 @@ import {
   addPlanRemark,
   approvePlanRevision,
   publishSharedPlanLayout,
+  requestPlanChanges,
   retargetPlanRemark,
   savePersonalPlanLayout,
   transitionPlanRemark,
@@ -78,6 +79,17 @@ export async function approvePlanRevisionAction(input: unknown): Promise<ActionR
     })
     .parse(input)
   return runAction(value.planId, () => approvePlanRevision(value))
+}
+
+export async function requestPlanChangesAction(input: unknown): Promise<ActionResponse> {
+  const value = z
+    .object({
+      planId: idSchema,
+      displayedRevision: z.number().int().positive(),
+      expectedPlanHash: z.string().startsWith('sha256:'),
+    })
+    .parse(input)
+  return runAction(value.planId, () => requestPlanChanges(value).then(() => undefined))
 }
 
 export async function savePersonalPlanLayoutAction(input: unknown): Promise<ActionResponse> {

@@ -122,9 +122,13 @@ export async function reviseCoordinatorPlan(
   if (plan.revision <= currentPlan.revision) {
     throw new ServiceError('A revision must increase the current revision number.', 'CONFLICT')
   }
-  await repository.compareAndWrite('plan', planId, expectedHash, serializeYamlArtifact('plan', plan))
+  const nextPlan =
+    currentPlan.lifecycle === 'changes_requested' && plan.lifecycle !== 'awaiting_plan_review'
+      ? ({ ...plan, lifecycle: 'awaiting_plan_review' as const } satisfies PlanArtifact)
+      : plan
+  await repository.compareAndWrite('plan', planId, expectedHash, serializeYamlArtifact('plan', nextPlan))
   await syncPlans({ projectDirectory: projectRoot, client })
-  await appendPlanEvent({ planId, type: 'plan_revision_submitted', payload: { revision: plan.revision } }, client)
+  await appendPlanEvent({ planId, type: 'plan_revision_submitted', payload: { revision: nextPlan.revision } }, client)
   return readCoordinatorPlan(planId, options)
 }
 

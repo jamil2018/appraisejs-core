@@ -8,14 +8,21 @@ import type { PlanReviewDetail } from '@/services/plan-review/plan-review-servic
 
 import { PlanReviewWorkspace } from './plan-review-workspace'
 
-const { approvePlanRevisionAction, fitView, publishSharedPlanLayoutAction, savePersonalPlanLayoutAction, setNodes } =
-  vi.hoisted(() => ({
-    approvePlanRevisionAction: vi.fn(),
-    fitView: vi.fn(),
-    publishSharedPlanLayoutAction: vi.fn(),
-    savePersonalPlanLayoutAction: vi.fn(),
-    setNodes: vi.fn(),
-  }))
+const {
+  approvePlanRevisionAction,
+  fitView,
+  publishSharedPlanLayoutAction,
+  requestPlanChangesAction,
+  savePersonalPlanLayoutAction,
+  setNodes,
+} = vi.hoisted(() => ({
+  approvePlanRevisionAction: vi.fn(),
+  fitView: vi.fn(),
+  publishSharedPlanLayoutAction: vi.fn(),
+  requestPlanChangesAction: vi.fn(),
+  savePersonalPlanLayoutAction: vi.fn(),
+  setNodes: vi.fn(),
+}))
 
 vi.mock('@xyflow/react', () => ({
   Background: () => null,
@@ -63,6 +70,7 @@ vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   justifyBaselineRegressionPassAction: vi.fn(),
   publishSharedPlanLayoutAction,
   reconcileBaselineExecutionAction: vi.fn(),
+  requestPlanChangesAction,
   retargetPlanRemarkAction: vi.fn(),
   savePersonalPlanLayoutAction,
   startBaselineExecutionAction: vi.fn(),
@@ -319,6 +327,50 @@ describe('PlanReviewWorkspace', () => {
       expectedPlanHash: `sha256:${'a'.repeat(64)}`,
       confirmSuspiciousReplacement: false,
     })
+  })
+
+  it('submits change requests for the exact displayed revision with blocking remarks', async () => {
+    const user = userEvent.setup()
+    const withBlockingRemark: PlanReviewDetail = {
+      ...detail,
+      review: {
+        ...detail.review!,
+        threads: [
+          {
+            id: 'remark-blocker',
+            target: { type: 'plan' },
+            blocking: true,
+            events: [
+              {
+                id: 'event-created',
+                action: 'created',
+                actor: 'reviewer',
+                createdAt: new Date().toISOString(),
+                body: 'Please cover empty-list state.',
+              },
+            ],
+          },
+        ],
+      },
+      blockingThreadIds: ['remark-blocker'],
+    }
+    requestPlanChangesAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    render(<PlanReviewWorkspace detail={withBlockingRemark} />)
+
+    await user.click(screen.getByRole('button', { name: /request changes/i }))
+
+    expect(requestPlanChangesAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      displayedRevision: 2,
+      expectedPlanHash: `sha256:${'a'.repeat(64)}`,
+    })
+  })
+
+  it('requires a blocking remark before requesting changes', () => {
+    render(<PlanReviewWorkspace detail={detail} />)
+
+    expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
+    expect(screen.getByText(/add a blocking remark before requesting changes/i)).toBeInTheDocument()
   })
 
   it('defaults to list review and explains approval lockout when graph readiness failed', () => {

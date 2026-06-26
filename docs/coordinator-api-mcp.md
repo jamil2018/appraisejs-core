@@ -76,32 +76,34 @@ Future lifecycle sessions may add event types without changing delivery semantic
 only after the transition they permit succeeds. New blocking feedback must invalidate an approval that has not started
 its permitted transition.
 
-`plan_wait_for_approval` also recognizes a future `plan_changes_requested` event if plan-review change requests become
-event-backed.
+`plan_changes_requested` is emitted after a human explicitly submits open blocking plan-review remarks as a change
+request. `plan_wait_for_approval` returns `status: "changes_requested"` for that event and directs the coordinator to
+read `plan_review_read` before revising.
 
 ## Internal API
 
 All routes are under `/api/internal/coordinator`.
 
-| Method | Path                                          | Purpose                                                |
-| ------ | --------------------------------------------- | ------------------------------------------------------ |
-| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease   |
-| `POST` | `/heartbeat`                                  | Renew a coordinator lease                              |
-| `POST` | `/plans`                                      | Create a structured plan                               |
-| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                   |
-| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash         |
-| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval       |
-| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                          |
-| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported     |
-| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                               |
-| `POST` | `/plans/:planId/validations/feedback`         | Route validation feedback to validation or plan review |
-| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint                 |
-| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                                |
-| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback           |
-| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation                |
-| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                       |
-| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                       |
-| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                     |
+| Method | Path                                          | Purpose                                                 |
+| ------ | --------------------------------------------- | ------------------------------------------------------- |
+| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease    |
+| `POST` | `/heartbeat`                                  | Renew a coordinator lease                               |
+| `POST` | `/plans`                                      | Create a structured plan                                |
+| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                    |
+| `GET`  | `/plans/:planId/review`                       | Read review hash, remarks, links, and recovery guidance |
+| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash          |
+| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval        |
+| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                           |
+| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported      |
+| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                                |
+| `POST` | `/plans/:planId/validations/feedback`         | Route validation feedback to validation or plan review  |
+| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint                  |
+| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                                 |
+| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback            |
+| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation                 |
+| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                        |
+| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                        |
+| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                      |
 
 The create response includes coordinator ownership metadata and the stable review URL only after
 `plan_review_ready` is durably appended.
@@ -141,6 +143,7 @@ Tools:
 - `coordinator_heartbeat`
 - `plan_create`
 - `plan_read`
+- `plan_review_read`
 - `plan_wait_for_review`
 - `plan_wait_for_approval`
 - `plan_revise`

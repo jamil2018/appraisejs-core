@@ -134,6 +134,7 @@ try {
     'plan_event_acknowledge',
     'plan_events_read',
     'plan_read',
+    'plan_review_read',
     'plan_revise',
     'plan_start',
     'plan_task_update',
@@ -224,6 +225,13 @@ try {
   const firstRead = await callTool('plan_read', { planId })
   const firstHash = firstRead.contentHash as string
   assert(firstHash.startsWith('sha256:'), 'Plan read did not return a content hash.')
+  const firstReview = await callTool('plan_review_read', { planId })
+  assert(firstReview.reviewHash && typeof firstReview.reviewHash === 'string', 'Plan review read missed review hash.')
+  assert((firstReview.blockingThreads as unknown[]).length === 0, 'New plan unexpectedly has blocking review threads.')
+  assert(
+    (firstReview.recovery as { revise?: string }).revise?.includes('plan_revise'),
+    'Plan review read did not return revision recovery guidance.',
+  )
   const planResource = await client.readResource({ uri: `appraise://plans/${planId}` })
   assert(planResource.contents[0]?.text?.includes(planId), 'Plan resource did not return the created plan.')
 

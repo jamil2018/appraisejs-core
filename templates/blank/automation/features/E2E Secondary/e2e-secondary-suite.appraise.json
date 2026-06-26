@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "testSuite": {
+    "name": "E2E Secondary Suite",
+    "modulePath": "/E2E Secondary"
+  },
+  "testCases": []
+}

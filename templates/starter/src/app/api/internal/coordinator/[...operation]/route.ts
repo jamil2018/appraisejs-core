@@ -46,6 +46,7 @@ import {
   reviewImplementationCompletion,
   updateImplementationTask,
 } from '@/services/coordinator/coordinator-implementation-service'
+import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { ServiceError } from '@/services/shared/errors'
 
 export const runtime = 'nodejs'
@@ -97,6 +98,11 @@ async function getPlan(request: Request, operation: string[]) {
   return Response.json(withLinks(await readCoordinatorPlan(planId), planId, request))
 }
 
+async function getReview(request: Request, operation: string[]) {
+  const planId = idSchema.parse(operation[1])
+  return Response.json(withLinks(await readPlanReviewSummary(planId), planId, request))
+}
+
 async function getEvents(request: Request, operation: string[]) {
   const url = new URL(request.url)
   const planId = idSchema.parse(operation[1])
@@ -146,6 +152,7 @@ async function dispatchGet(request: Request, operation: string[]) {
   const handlers: Record<string, () => Promise<Response>> = {
     plan: () => getPlan(request, operation),
     events: () => getEvents(request, operation),
+    review: () => getReview(request, operation),
     completion: async () => Response.json(await reviewImplementationCompletion(idSchema.parse(operation[1]))),
   }
   const handler = handlers[operation[2] ?? 'plan']

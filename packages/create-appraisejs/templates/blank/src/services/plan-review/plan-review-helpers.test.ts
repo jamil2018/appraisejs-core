@@ -18,6 +18,7 @@ const plan = (tasks: PlanArtifact['tasks'], revision = 1): PlanArtifact => ({
   revision,
   lifecycle: 'awaiting_plan_review',
   goal: 'Review a plan',
+  description: 'Review the plan structure, remarks, and approval state.',
   tasks,
   edges: [],
   implementationGroups: [],
@@ -86,6 +87,9 @@ describe('plan review helpers', () => {
       canApprovePlan({
         displayedRevision: 1,
         currentRevision: 2,
+        expectedPlanHash: `sha256:${'a'.repeat(64)}`,
+        currentPlanHash: `sha256:${'a'.repeat(64)}`,
+        stale: false,
         conflicted: false,
         representationReady: true,
         blockingThreads: 0,
@@ -98,6 +102,9 @@ describe('plan review helpers', () => {
       canApprovePlan({
         displayedRevision: 2,
         currentRevision: 2,
+        expectedPlanHash: `sha256:${'a'.repeat(64)}`,
+        currentPlanHash: `sha256:${'a'.repeat(64)}`,
+        stale: false,
         conflicted: false,
         representationReady: true,
         blockingThreads: 0,
@@ -106,6 +113,42 @@ describe('plan review helpers', () => {
         suspiciousReplacementConfirmed: false,
       }),
     ).toEqual({ allowed: true })
+  })
+
+  it('rejects stale hashes, stale projections, conflicted projections, and unconfirmed replacements', () => {
+    const base = {
+      displayedRevision: 2,
+      currentRevision: 2,
+      expectedPlanHash: `sha256:${'a'.repeat(64)}`,
+      currentPlanHash: `sha256:${'a'.repeat(64)}`,
+      stale: false,
+      conflicted: false,
+      representationReady: true,
+      blockingThreads: 0,
+      orphanedThreads: 0,
+      suspiciousReplacement: false,
+      suspiciousReplacementConfirmed: false,
+    }
+
+    expect(canApprovePlan({ ...base, expectedPlanHash: `sha256:${'b'.repeat(64)}` })).toEqual({
+      allowed: false,
+      reason: 'The displayed plan hash is stale.',
+    })
+    expect(canApprovePlan({ ...base, stale: true })).toEqual({
+      allowed: false,
+      reason: 'Refresh the stale plan projection before approval.',
+    })
+    expect(canApprovePlan({ ...base, conflicted: true })).toEqual({
+      allowed: false,
+      reason: 'Resolve artifact conflicts before approval.',
+    })
+    expect(canApprovePlan({ ...base, suspiciousReplacement: true })).toEqual({
+      allowed: false,
+      reason: 'Confirm the suspicious node replacement before approval.',
+    })
+    expect(canApprovePlan({ ...base, suspiciousReplacement: true, suspiciousReplacementConfirmed: true })).toEqual({
+      allowed: true,
+    })
   })
 
   it('times out a stale graph worker and permits retry', () => {
