@@ -13,5 +13,7 @@ AppraiseJS owns lifecycle and business rules. This skill coordinates test prepar
 4. Publish validation nodes and changed-file evidence.
 5. Present returned `appraise://` links and hashes for review.
 6. Do not implement while approval is pending.
+7. Route validation artifact feedback back to validation review and product-scope feedback back to plan review.
+8. Proceed toward baseline only after `validations_approved`.
 
 Flag production or `requires_review` files for exact hash-bound approval. Never write lifecycle artifacts or SQLite directly.

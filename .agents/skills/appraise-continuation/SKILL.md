@@ -14,5 +14,7 @@ AppraiseJS owns lifecycle and business rules. This skill restores orchestration 
 5. Never request takeover unless the user explicitly approved it.
 6. Acknowledge handled events, then reread status, revision, lifecycle, hash, and returned `appraise://` links.
 7. Do not implement while approval is pending.
+8. Treat `changes_requested`, pause, resume, cancellation, and blocking feedback as current durable state.
+9. Report whether resumed evidence was verified through UI, MCP, service, or filesystem state.
 
 Warn clearly about non-Git projects, dirty artifacts, reduced reproducibility, and coordinator takeover.
