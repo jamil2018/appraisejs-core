@@ -1,10 +1,10 @@
-import { execFileSync } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 
 import {
   acknowledgePlanEvent,
@@ -22,12 +22,6 @@ let workspace: string
 let databasePath: string
 let client: PrismaClient
 
-async function applyMigration(name: string) {
-  execFileSync('sqlite3', [databasePath], {
-    input: await fs.readFile(path.join(process.cwd(), 'prisma', 'migrations', name, 'migration.sql')),
-  })
-}
-
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-coordinator-'))
   databasePath = path.join(workspace, 'coordinator.db')
@@ -35,36 +29,7 @@ beforeEach(async () => {
   // Test databases intentionally mirror the plan sync integration fixture.
   // fallow-ignore-next-line code-duplication
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-
-  const projectionTable = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='PlanProjection';",
-  ])
-    .toString()
-    .trim()
-  if (!projectionTable) await applyMigration('20260609002500_add_plan_projection_and_sync')
-  const descriptionColumn = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM pragma_table_info('PlanProjection') WHERE name='description';",
-  ])
-    .toString()
-    .trim()
-  if (!descriptionColumn) await applyMigration('20260613015000_add_plan_description')
-
-  const eventTable = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='PlanEvent';",
-  ])
-    .toString()
-    .trim()
-  if (!eventTable) await applyMigration('20260609090000_add_plan_review_runtime')
-  const identityTable = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='AppraiseProjectIdentity';",
-  ])
-    .toString()
-    .trim()
-  if (!identityTable) await applyMigration('20260609160000_add_coordinator_events_api_mcp')
+  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
 
   client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
   await client.planProjection.create({

@@ -23,6 +23,7 @@ export async function GET(
     const testRun = await prisma.testRun.findUnique({
       where: { runId },
       include: {
+        targetProject: true,
         testCases: {
           where: { id: testCaseId },
         },
@@ -82,6 +83,7 @@ export async function POST(
     const testRun = await prisma.testRun.findUnique({
       where: { runId },
       include: {
+        targetProject: true,
         testCases: {
           where: { id: testCaseId },
           include: {
@@ -107,7 +109,7 @@ export async function POST(
       return NextResponse.json({ error: 'No trace path available for this test case' }, { status: 400 })
     }
 
-    const absoluteTracePath = resolveStoredPath(tracePath)
+    const absoluteTracePath = resolveStoredPath(tracePath, testRun.targetProject?.canonicalPath)
 
     // Validate trace file exists
     try {

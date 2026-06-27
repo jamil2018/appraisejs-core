@@ -14,6 +14,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ste
       where: { id: stepId },
       select: {
         screenshotPath: true,
+        reportScenario: {
+          select: {
+            reportFeature: {
+              select: {
+                report: {
+                  select: {
+                    testRun: {
+                      select: {
+                        targetProject: {
+                          select: { canonicalPath: true },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     })
 
@@ -25,7 +44,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ste
       return NextResponse.json({ error: 'Screenshot not available for this step' }, { status: 404 })
     }
 
-    const screenshotPath = resolveStoredPath(step.screenshotPath)
+    const projectRoot = step.reportScenario?.reportFeature.report.testRun.targetProject?.canonicalPath
+    const screenshotPath = resolveStoredPath(step.screenshotPath, projectRoot)
 
     try {
       await fs.access(screenshotPath)

@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 647 nodes · 1003 edges · 71 communities (68 shown, 3 thin omitted)
+- 649 nodes · 997 edges · 72 communities (68 shown, 4 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `899c1e5b`
+- Built from commit: `e34e9eaa`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,6 +44,7 @@
 - [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `LocatorPickerCompanion` - 16 edges
@@ -54,37 +55,37 @@
 6. `TemplateId` - 13 edges
 7. `createBaseTemplate()` - 12 edges
 8. `main()` - 12 edges
-9. `createCoordinatorClient()` - 9 edges
-10. `LocatorCache` - 9 edges
+9. `LocatorCache` - 9 edges
+10. `compilerOptions` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `bootstrap()` --calls--> `Config`  [INFERRED]
   cucumber-runtime/src/executor.ts → create-appraisejs/src/config.ts
-- `onlineClient()` --calls--> `createCoordinatorClient()`  [EXTRACTED]
-  appraisejs/src/cli.ts → appraisejs/src/coordinator-client.ts
-- `workspace()` --calls--> `deriveProjectIdentity()`  [EXTRACTED]
-  appraisejs/src/coordinator-client.test.ts → appraisejs/src/project-identity.ts
-- `toolError()` --calls--> `coordinatorRequestErrorEnvelope()`  [EXTRACTED]
-  appraisejs/src/mcp.ts → appraisejs/src/coordinator-client.ts
+- `main()` --calls--> `getTemplateDefinitions()`  [EXTRACTED]
+  create-appraisejs/scripts/prepare-template.ts → create-appraisejs/src/template-catalog.ts
 - `CliOptions` --references--> `TemplateId`  [EXTRACTED]
   create-appraisejs/src/cli-args.ts → create-appraisejs/src/template-catalog.ts
+- `getSuccessMessageLines()` --calls--> `getInstallCommand()`  [INFERRED]
+  create-appraisejs/src/cli.ts → create-appraisejs/src/install.ts
+- `CreateProjectResult` --references--> `Config`  [EXTRACTED]
+  create-appraisejs/src/create-project.ts → create-appraisejs/src/config.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (71 total, 3 thin omitted)
+## Communities (72 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.05
-Nodes (62): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+54 more)
+Nodes (63): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+55 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.05
-Nodes (66): baseTemplateDir, cleanupTempWorkspace(), composedVerifyDir, composeTemplateForVerification(), computeTemplateInputHash(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyFallbackSeedDatabase() (+58 more)
+Nodes (65): baseTemplateDir, cleanupTempWorkspace(), composedVerifyDir, composeTemplateForVerification(), computeTemplateInputHash(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyFallbackSeedDatabase() (+57 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.06
-Nodes (43): program, onlineClient(), OnlineOptions, plan, printErrorJson(), printJson(), runCommand(), validation (+35 more)
+Nodes (37): onlineClient(), OnlineOptions, plan, printErrorJson(), printJson(), program, project, runCommand() (+29 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.08
@@ -95,8 +96,8 @@ Cohesion: 0.04
 Nodes (44): author, bin, appraisejs, bugs, url, dependencies, commander, @modelcontextprotocol/sdk (+36 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.09
-Nodes (26): addStepBySlug(), AddStepDependencies, defaultDependencies, PAYLOAD, removeTempPayloadFile(), runLocalInstaller(), writePayloadToTempFile(), AppraiseProjectInfo (+18 more)
+Cohesion: 0.07
+Nodes (31): addStepBySlug(), AddStepDependencies, defaultDependencies, PAYLOAD, removeTempPayloadFile(), runLocalInstaller(), writePayloadToTempFile(), AppraiseProjectInfo (+23 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.11
@@ -174,33 +175,33 @@ Nodes (3): LocatorMapCache, getAutomationLocatorMapPath(), LocatorMap
 Cohesion: 0.40
 Nodes (5): dependencies, cli-progress, cross-spawn, fs-extra, @inquirer/prompts
 
-### Community 26 - "Community 26"
+### Community 27 - "Community 27"
 Cohesion: 0.50
 Nodes (4): repository, directory, type, url
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 0.50
 Nodes (3): generatedAt, steps, version
 
 ## Knowledge Gaps
-- **224 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+219 more)
+- **226 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+221 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Config` connect `Community 0` to `Community 13`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **Why does `bootstrap()` connect `Community 13` to `Community 0`?**
   _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `description` to the rest of the system?**
-  _224 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _226 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.0515406162464986 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05088919288645691 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.052982456140350874 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05369369369369369 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.05547785547785548 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06298701298701298 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.07896575821104122 - nodes in this community are weakly interconnected._

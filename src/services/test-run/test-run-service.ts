@@ -9,6 +9,7 @@ import {
   TestRunTestCaseResult,
   Tag,
   Environment,
+  BrowserEngine,
 } from '@prisma/client'
 import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
@@ -22,6 +23,7 @@ import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-servi
 import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 import { storeReportFromFileService } from '@/services/report/report-service'
+import { resolveTargetProject } from '@/services/target-project/target-project-service'
 import {
   buildOrExpression,
   buildTestRunsWhereClause,
@@ -506,11 +508,15 @@ async function scheduleTestRunCompletion(args: {
   testRunTestCases: TestRunTestCaseLink[]
   value: TestRunFormValue
   logger: Awaited<ReturnType<typeof createTestRunLogger>>
+  projectRoot?: string
+  prepareWorkspace?: boolean
 }): Promise<void> {
-  const { testRun, environment, tagExpression, testRunTestCases, value, logger } = args
+  const { testRun, environment, tagExpression, testRunTestCases, value, logger, projectRoot, prepareWorkspace } = args
 
   try {
-    await ensureFeatureFilesForTestRun(testRunTestCases)
+    if (prepareWorkspace !== false) {
+      await ensureFeatureFilesForTestRun(testRunTestCases)
+    }
 
     const { process: spawnedProcess, reportPath } = await localExecutorAdapter.executeTestRun({
       testRunId: testRun.runId,
@@ -519,6 +525,8 @@ async function scheduleTestRunCompletion(args: {
       testWorkersCount: value.testWorkersCount || 1,
       browserEngine: value.browserEngine,
       headless: true,
+      projectRoot,
+      prepareWorkspace,
     })
 
     await prisma.testRun.update({
@@ -716,6 +724,81 @@ export async function createTestRunFromValidatedValue(value: TestRunFormValue): 
   })
 
   return { runId: testRun.runId, id: testRun.id }
+}
+
+export type StandaloneTargetTestRunInput = {
+  target: string
+  environmentId: string
+  name?: string
+  tagExpression?: string | null
+  testWorkersCount?: number
+  browserEngine?: BrowserEngine
+}
+
+export async function createStandaloneTargetTestRun(
+  input: StandaloneTargetTestRunInput,
+): Promise<{ runId: string; id: string; targetProjectId: string }> {
+  const targetProject = await resolveTargetProject(input.target)
+  const environment = await prisma.environment.findUnique({
+    where: { id: input.environmentId },
+  })
+
+  if (!environment) {
+    throw new ServiceError('Environment not found', 'VALIDATION', 400)
+  }
+
+  const name = input.name?.trim() || `${targetProject.displayName} standalone ${new Date().toISOString()}`
+  const nameTaken = await isTestRunNameTaken(name)
+  if (nameTaken) {
+    throw new ServiceError(
+      'A test run with this name already exists. Please choose a different name.',
+      'VALIDATION',
+      400,
+    )
+  }
+
+  const testRun = await prisma.testRun.create({
+    data: {
+      name,
+      environmentId: environment.id,
+      testWorkersCount: input.testWorkersCount || 1,
+      browserEngine: input.browserEngine ?? BrowserEngine.CHROMIUM,
+      status: TestRunStatus.RUNNING,
+      result: TestRunResult.PENDING,
+      planId: null,
+      targetProjectId: targetProject.id,
+    },
+  })
+
+  const logger = await createTestRunLogger(testRun.runId)
+  const logFilePath = getLogFilePath(testRun.runId)
+
+  await prisma.testRun.update({
+    where: { id: testRun.id },
+    data: {
+      logPath: logFilePath,
+    },
+  })
+
+  await scheduleTestRunCompletion({
+    testRun,
+    environment,
+    tagExpression: input.tagExpression ?? '',
+    testRunTestCases: [],
+    value: {
+      name,
+      environmentId: environment.id,
+      tags: [],
+      testSuites: [],
+      testWorkersCount: input.testWorkersCount || 1,
+      browserEngine: input.browserEngine ?? BrowserEngine.CHROMIUM,
+    },
+    logger,
+    projectRoot: targetProject.canonicalPath,
+    prepareWorkspace: false,
+  })
+
+  return { runId: testRun.runId, id: testRun.id, targetProjectId: targetProject.id }
 }
 
 export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
