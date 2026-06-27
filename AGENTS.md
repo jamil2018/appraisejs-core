@@ -66,7 +66,7 @@ For server actions, follow `docs/server-actions-conventions.md`: actions parse i
 business rules; persistence uses Prisma or dedicated helpers.
 
 For scaffolded-app changes, follow `docs/scaffold-template-sync.md`. Edit root/base source first, then run
-`npm run sync-template` and, when relevant, `npm --prefix packages/create-appraisejs run sync-templates`.
+`npm --prefix packages/create-appraisejs run prepare-template`.
 
 ## Never Do
 

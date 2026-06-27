@@ -10,7 +10,7 @@ export type TemplateId = (typeof TEMPLATE_IDS)[number]
 
 export interface TemplateDefinition {
   id: TemplateId
-  internalDirectory: 'starter' | 'blank'
+  flavorDirectory: 'starter' | 'blank'
   promptLabel: string
   promptDescription: string
 }
@@ -20,13 +20,13 @@ export const DEFAULT_TEMPLATE_ID: TemplateId = 'starter'
 const TEMPLATE_CATALOG: Record<TemplateId, TemplateDefinition> = {
   starter: {
     id: 'starter',
-    internalDirectory: 'starter',
+    flavorDirectory: 'starter',
     promptLabel: 'starter',
     promptDescription: 'Opinionated scaffold with bundled core template steps.',
   },
   blank: {
     id: 'blank',
-    internalDirectory: 'blank',
+    flavorDirectory: 'blank',
     promptLabel: 'blank',
     promptDescription: 'Same scaffold without bundled template steps.',
   },
@@ -62,11 +62,15 @@ export function getTemplateChoices(): Array<{
 }
 
 export function resolveBundledTemplatePath(template: TemplateId): string {
-  return path.join(packageDir, 'templates', getTemplateDefinition(template).internalDirectory)
+  return resolveBundledFlavorPath(template)
 }
 
-export function resolveRemoteTemplateSubpath(template: TemplateId): string {
-  return `templates/${getTemplateDefinition(template).internalDirectory}`
+export function resolveBundledBaseTemplatePath(): string {
+  return path.join(packageDir, 'templates', 'base')
+}
+
+export function resolveBundledFlavorPath(template: TemplateId): string {
+  return path.join(packageDir, 'templates', 'flavors', getTemplateDefinition(template).flavorDirectory)
 }
 
 export function formatTemplateList(): string {

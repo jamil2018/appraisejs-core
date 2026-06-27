@@ -1,6 +1,17 @@
 #!/usr/bin/env node
 import crypto from 'crypto'
-import { cpSync, createReadStream, existsSync, mkdirSync, promises as fs, rmSync, rmdirSync } from 'fs'
+import {
+  cpSync,
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  promises as fs,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  rmdirSync,
+  writeFileSync,
+} from 'fs'
 import path from 'path'
 import { spawn } from 'child_process'
 import { fileURLToPath, pathToFileURL } from 'url'
@@ -11,21 +22,38 @@ import {
   verifyPreparedTemplateState,
   type TemplateMetadata,
 } from '../src/prepare-template-utils.js'
+import {
+  getEmptyEnvironmentsFileContent,
+  getEmptyLocatorMapFileContent,
+  setSeededTemplateFilesTracked,
+} from '../src/scaffold-gitignore.js'
 import { getTemplateDefinition, getTemplateDefinitions, type TemplateId } from '../src/template-catalog.js'
+import { shouldExcludeBundledTemplatePath } from '../src/sync-templates-utils.js'
+import { shouldBackfillLegacyEnvironmentConfig, shouldExcludeTemplatePath } from '../../../src/lib/template-sync-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.join(__dirname, '..')
 const repoRoot = path.join(packageRoot, '..', '..')
+const packageTemplatesDir = path.join(packageRoot, 'templates')
+const baseTemplateDir = path.join(packageTemplatesDir, 'base')
+const flavorsDir = path.join(packageTemplatesDir, 'flavors')
 const tempWorkspaceDir = path.join(repoRoot, '.tmp', 'create-appraisejs-template-build')
 const tempWorkspaceRootDir = path.dirname(tempWorkspaceDir)
-const templateMetaPath = path.join(repoRoot, 'templates', 'starter', '.appraise-template-meta.json')
+const composedVerifyDir = path.join(repoRoot, '.tmp', 'create-appraisejs-template-verify')
+const templateMetaPath = path.join(baseTemplateDir, '.appraise-template-meta.json')
 
-function getRootTemplateDir(template: TemplateId): string {
-  return path.join(repoRoot, 'templates', getTemplateDefinition(template).internalDirectory)
+type InternalPackageSyncConfig = {
+  name: string
+  directories: string[]
 }
 
-function getPackageTemplateDir(template: TemplateId): string {
-  return path.join(packageRoot, 'templates', getTemplateDefinition(template).internalDirectory)
+const INTERNAL_PACKAGES: InternalPackageSyncConfig[] = [
+  { name: 'cucumber-runtime', directories: ['src'] },
+  { name: 'locator-picker-companion', directories: ['src', 'dist'] },
+]
+
+function getPackageFlavorDir(template: TemplateId): string {
+  return path.join(flavorsDir, getTemplateDefinition(template).flavorDirectory)
 }
 
 function getTsxCliPath(): string {
@@ -42,6 +70,36 @@ function getPrismaCliPath(): string {
 
 function getSeedDatabaseCandidates(): string[] {
   return [path.join(repoRoot, 'prisma', 'dev.db'), path.join(repoRoot, 'prisma', 'prisma', 'dev.db')]
+}
+
+function copyFile(src: string, dest: string): void {
+  mkdirSync(path.dirname(dest), { recursive: true })
+  cpSync(src, dest, { force: true })
+}
+
+function copyDirWithFilter(
+  src: string,
+  dest: string,
+  options: { base?: string; shouldExcludePath?: (relativePath: string) => boolean } = {},
+): void {
+  if (!existsSync(src)) return
+
+  const { base = src, shouldExcludePath = shouldExcludeTemplatePath } = options
+  mkdirSync(dest, { recursive: true })
+
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name)
+    const relativePath = path.relative(base, srcPath).replace(/\\/g, '/')
+    if (shouldExcludePath(relativePath)) continue
+
+    const destPath = path.join(dest, entry.name)
+    if (entry.isDirectory()) {
+      copyDirWithFilter(srcPath, destPath, { base, shouldExcludePath })
+      continue
+    }
+
+    cpSync(srcPath, destPath, { force: true })
+  }
 }
 
 async function runProcess(command: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv): Promise<void> {
@@ -128,12 +186,9 @@ async function computeTemplateInputHash(): Promise<string> {
     inputFiles.add(file)
   }
 
-  ;[
-    path.join(repoRoot, 'prisma', 'schema.prisma'),
-    path.join(repoRoot, 'scripts', 'sync-appraise-base-template.ts'),
-    path.join(packageRoot, 'scripts', 'sync-templates.ts'),
-    path.join(packageRoot, 'scripts', 'prepare-template.ts'),
-  ].forEach(file => inputFiles.add(file))
+  ;[path.join(repoRoot, 'prisma', 'schema.prisma'), path.join(packageRoot, 'scripts', 'prepare-template.ts')].forEach(
+    file => inputFiles.add(file),
+  )
 
   const hash = crypto.createHash('sha256')
   for (const file of Array.from(inputFiles).sort()) {
@@ -155,9 +210,12 @@ async function readExistingTemplateMetadata(): Promise<TemplateMetadata | null> 
   return JSON.parse(raw) as TemplateMetadata
 }
 
-async function writeTemplateMetadata(inputHash: string): Promise<void> {
+async function writeTemplateMetadata(inputHash: string, previousMetadata: TemplateMetadata | null): Promise<void> {
   const metadata: TemplateMetadata = {
-    preparedAt: new Date().toISOString(),
+    preparedAt:
+      previousMetadata?.inputHash === inputHash && previousMetadata.databasePath === 'prisma/dev.db'
+        ? previousMetadata.preparedAt
+        : new Date().toISOString(),
     inputHash,
     databasePath: 'prisma/dev.db',
   }
@@ -195,15 +253,220 @@ async function seedDatabaseForWorkspace(template: TemplateId): Promise<boolean> 
   return false
 }
 
+function resetAutomationReports(templateRoot: string): void {
+  const reportsRoot = path.join(templateRoot, 'automation', 'reports')
+  rmSync(reportsRoot, { recursive: true, force: true })
+  mkdirSync(path.join(reportsRoot, 'logs'), { recursive: true })
+  mkdirSync(path.join(reportsRoot, 'traces'), { recursive: true })
+}
+
+function resetAutomationLocatorMap(templateRoot: string): void {
+  const locatorMapPath = path.join(templateRoot, 'automation', 'mapping', 'locator-map.json')
+  mkdirSync(path.dirname(locatorMapPath), { recursive: true })
+  writeFileSync(locatorMapPath, getEmptyLocatorMapFileContent())
+}
+
+function resetAutomationEnvironments(templateRoot: string): void {
+  const environmentsPath = path.join(templateRoot, 'automation', 'config', 'environments', 'environments.json')
+  mkdirSync(path.dirname(environmentsPath), { recursive: true })
+  writeFileSync(environmentsPath, getEmptyEnvironmentsFileContent())
+}
+
+function syncLegacyEnvironmentConfig(): void {
+  const legacyEnvironmentsDir = path.join(repoRoot, 'src', 'tests', 'config', 'environments')
+  const targetEnvironmentsDir = path.join(baseTemplateDir, 'automation', 'config', 'environments')
+  const targetEnvironmentsFile = path.join(targetEnvironmentsDir, 'environments.json')
+
+  if (!shouldBackfillLegacyEnvironmentConfig(existsSync(targetEnvironmentsFile), existsSync(legacyEnvironmentsDir))) {
+    return
+  }
+
+  mkdirSync(targetEnvironmentsDir, { recursive: true })
+  cpSync(legacyEnvironmentsDir, targetEnvironmentsDir, { recursive: true, force: true })
+  console.log('Backfilled automation/config/environments from legacy src/tests config.')
+}
+
+function syncInternalPackage({ name, directories }: InternalPackageSyncConfig): void {
+  const internalPackageRoot = path.join(repoRoot, 'packages', name)
+  const packageTarget = path.join(baseTemplateDir, 'packages', name)
+
+  rmSync(packageTarget, { recursive: true, force: true })
+  mkdirSync(packageTarget, { recursive: true })
+
+  copyFile(path.join(internalPackageRoot, 'package.json'), path.join(packageTarget, 'package.json'))
+  copyFile(path.join(internalPackageRoot, 'tsconfig.json'), path.join(packageTarget, 'tsconfig.json'))
+
+  const shouldExcludeInternalPackagePath = (relativePath: string): boolean => {
+    if (relativePath === 'dist' || relativePath.startsWith('dist/')) {
+      return false
+    }
+
+    return shouldExcludeTemplatePath(relativePath)
+  }
+
+  for (const directory of directories) {
+    copyDirWithFilter(path.join(internalPackageRoot, directory), path.join(packageTarget, directory), {
+      base: internalPackageRoot,
+      shouldExcludePath: shouldExcludeInternalPackagePath,
+    })
+  }
+}
+
+function writeTemplatePackageJson(): void {
+  const rootPkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')) as {
+    scripts: Record<string, string>
+    [key: string]: unknown
+  }
+  rootPkg.scripts = {
+    ...rootPkg.scripts,
+    build: 'npm run build:local',
+    'build:local':
+      'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
+    start: 'next start',
+    'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
+    'migrate-db': 'npx prisma migrate deploy',
+    'install-playwright': 'npx playwright install',
+    setup: 'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
+    'setup:db': 'npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run sync-all',
+    'setup:full':
+      'npm run install-dependencies && npm run setup:db && npm run build:local && npm run protect-seeded-files',
+    'protect-seeded-files': 'npx tsx scripts/protect-seeded-files.ts',
+    'appraisejs:setup': 'npm run setup',
+    'appraisejs:sync': 'npm run sync-all',
+    'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
+  }
+  delete rootPkg.scripts['build:appraisejs']
+  delete rootPkg.scripts['build-step-registry']
+  writeFileSync(path.join(baseTemplateDir, 'package.json'), JSON.stringify(rootPkg, null, 2) + '\n')
+}
+
+function preparePackagedGitignore(): void {
+  const gitignorePath = path.join(baseTemplateDir, '.gitignore')
+  const packagedGitignorePath = path.join(baseTemplateDir, 'gitignore')
+  if (!existsSync(gitignorePath) && !existsSync(packagedGitignorePath)) return
+
+  const gitignore = readFileSync(existsSync(gitignorePath) ? gitignorePath : packagedGitignorePath, 'utf8')
+  writeFileSync(packagedGitignorePath, setSeededTemplateFilesTracked(gitignore, true))
+  rmSync(gitignorePath, { force: true })
+}
+
+function createBaseTemplate(): void {
+  rmSync(packageTemplatesDir, { recursive: true, force: true })
+  mkdirSync(baseTemplateDir, { recursive: true })
+
+  console.log('Copying src/...')
+  copyDirWithFilter(path.join(repoRoot, 'src'), path.join(baseTemplateDir, 'src'))
+
+  console.log('Copying automation/...')
+  copyDirWithFilter(path.join(repoRoot, 'automation'), path.join(baseTemplateDir, 'automation'), {
+    base: repoRoot,
+    shouldExcludePath: relativePath =>
+      shouldExcludeTemplatePath(relativePath) || shouldExcludeBundledTemplatePath(relativePath),
+  })
+  syncLegacyEnvironmentConfig()
+  resetAutomationReports(baseTemplateDir)
+  resetAutomationLocatorMap(baseTemplateDir)
+  resetAutomationEnvironments(baseTemplateDir)
+
+  for (const internalPackage of INTERNAL_PACKAGES) {
+    console.log(`Copying internal package ${internalPackage.name}...`)
+    syncInternalPackage(internalPackage)
+  }
+
+  console.log('Copying prisma/...')
+  copyDirWithFilter(path.join(repoRoot, 'prisma'), path.join(baseTemplateDir, 'prisma'))
+  console.log('Copying public/...')
+  copyDirWithFilter(path.join(repoRoot, 'public'), path.join(baseTemplateDir, 'public'))
+  console.log('Copying scripts/...')
+  copyDirWithFilter(path.join(repoRoot, 'scripts'), path.join(baseTemplateDir, 'scripts'))
+  console.log('Copying e2e/...')
+  copyDirWithFilter(path.join(repoRoot, 'e2e'), path.join(baseTemplateDir, 'e2e'))
+
+  const legacyTestsRoot = path.join(baseTemplateDir, 'src', 'tests')
+  rmSync(legacyTestsRoot, { recursive: true, force: true })
+
+  const configFiles = [
+    '.gitattributes',
+    '.gitconfig.appraise',
+    '.editorconfig',
+    '.prettierrc',
+    '.gitignore',
+    'eslint.config.mjs',
+    'tailwind.config.ts',
+    'tsconfig.json',
+    'postcss.config.mjs',
+    'components.json',
+    'next.config.ts',
+    'next-env.d.ts',
+    'playwright.config.ts',
+    '.env.example',
+    'package-lock.json',
+    'yarn.lock',
+    'pnpm-lock.yaml',
+    'bun.lockb',
+  ]
+  for (const name of configFiles) {
+    const src = path.join(repoRoot, name)
+    if (existsSync(src)) {
+      copyFile(src, path.join(baseTemplateDir, name))
+    }
+  }
+
+  const cucumberSource = path.join(repoRoot, 'cucumber.mjs')
+  if (existsSync(cucumberSource)) {
+    copyFile(cucumberSource, path.join(baseTemplateDir, 'cucumber.mjs'))
+  }
+
+  const vscodeSource = path.join(repoRoot, '.vscode')
+  if (existsSync(vscodeSource)) {
+    cpSync(vscodeSource, path.join(baseTemplateDir, '.vscode'), { recursive: true, force: true })
+  }
+
+  writeTemplatePackageJson()
+  preparePackagedGitignore()
+  rmSync(path.join(baseTemplateDir, '.env'), { force: true })
+  rmSync(path.join(baseTemplateDir, 'prisma', 'dev.db'), { force: true })
+  rmSync(path.join(baseTemplateDir, 'prisma', 'prisma'), { recursive: true, force: true })
+  rmSync(path.join(baseTemplateDir, 'automation', 'steps'), { recursive: true, force: true })
+
+  console.log('Created package base template.')
+}
+
+function copyDirWithoutBundledExclusions(sourceDir: string, destDir: string): void {
+  copyDirWithFilter(sourceDir, destDir, {
+    shouldExcludePath: relativePath => shouldExcludeBundledTemplatePath(relativePath),
+  })
+}
+
+function copyStarterOverlayFiles(): void {
+  const starterFlavorDir = getPackageFlavorDir('starter')
+  const sourceStepsDir = path.join(repoRoot, 'automation', 'steps')
+  const destStepsDir = path.join(starterFlavorDir, 'automation', 'steps')
+  if (existsSync(sourceStepsDir)) {
+    copyDirWithoutBundledExclusions(sourceStepsDir, destStepsDir)
+  }
+}
+
+function resetFlavorDir(template: TemplateId): void {
+  const flavorDir = getPackageFlavorDir(template)
+  rmSync(flavorDir, { recursive: true, force: true })
+  mkdirSync(path.join(flavorDir, 'prisma'), { recursive: true })
+}
+
+function copyFlavorIntoWorkspace(template: TemplateId): void {
+  const flavorDir = getPackageFlavorDir(template)
+  copyDirWithFilter(flavorDir, tempWorkspaceDir, { shouldExcludePath: shouldExcludeBundledTemplatePath })
+}
+
 async function seedTemplateDatabase(
   template: TemplateId,
-  templateDir: string,
   inputHash: string,
   previousMetadata: TemplateMetadata | null,
 ): Promise<void> {
   rmSync(tempWorkspaceDir, { recursive: true, force: true })
   mkdirSync(tempWorkspaceRootDir, { recursive: true })
-  cpSync(templateDir, tempWorkspaceDir, { recursive: true, force: true })
+  cpSync(baseTemplateDir, tempWorkspaceDir, { recursive: true, force: true })
+  copyFlavorIntoWorkspace(template)
   rmSync(path.join(tempWorkspaceDir, '.env'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'dev.db'), { force: true })
   rmSync(path.join(tempWorkspaceDir, 'prisma', 'prisma'), { recursive: true, force: true })
@@ -234,25 +497,23 @@ async function seedTemplateDatabase(
     throw new Error(`Seeded template database was not created at ${seededDbPath}`)
   }
 
-  cpSync(seededDbPath, path.join(templateDir, 'prisma', 'dev.db'), { force: true })
-  rmSync(path.join(templateDir, 'prisma', 'prisma'), { recursive: true, force: true })
-  rmSync(path.join(templateDir, '.env'), { force: true })
-  rmSync(path.join(templateDir, 'automation', 'reports'), { recursive: true, force: true })
-  mkdirSync(path.join(templateDir, 'automation', 'reports', 'logs'), { recursive: true })
-  mkdirSync(path.join(templateDir, 'automation', 'reports', 'traces'), { recursive: true })
+  cpSync(seededDbPath, path.join(getPackageFlavorDir(template), 'prisma', 'dev.db'), { force: true })
 }
 
-function createBlankRootTemplateFromStarter(): void {
-  const starterTemplateDir = getRootTemplateDir('starter')
-  const blankTemplateDir = getRootTemplateDir('blank')
-
-  rmSync(blankTemplateDir, { recursive: true, force: true })
-  cpSync(starterTemplateDir, blankTemplateDir, { recursive: true, force: true })
-  rmSync(path.join(blankTemplateDir, 'automation', 'steps'), { recursive: true, force: true })
+function composeTemplateForVerification(template: TemplateId): string {
+  const composedDir = path.join(composedVerifyDir, template)
+  rmSync(composedDir, { recursive: true, force: true })
+  mkdirSync(composedDir, { recursive: true })
+  cpSync(baseTemplateDir, composedDir, { recursive: true, force: true })
+  copyDirWithFilter(getPackageFlavorDir(template), composedDir, {
+    shouldExcludePath: shouldExcludeBundledTemplatePath,
+  })
+  return composedDir
 }
 
 function cleanupTempWorkspace(): void {
   rmSync(tempWorkspaceDir, { recursive: true, force: true })
+  rmSync(composedVerifyDir, { recursive: true, force: true })
 
   try {
     rmdirSync(tempWorkspaceRootDir)
@@ -269,17 +530,22 @@ async function main(): Promise<void> {
   const previousMetadata = await readExistingTemplateMetadata()
 
   try {
-    await runTypeScriptScript(path.join('scripts', 'sync-appraise-base-template.ts'), repoRoot)
-    await seedTemplateDatabase('starter', getRootTemplateDir('starter'), inputHash, previousMetadata)
-    createBlankRootTemplateFromStarter()
-    await seedTemplateDatabase('blank', getRootTemplateDir('blank'), inputHash, previousMetadata)
-    await runTypeScriptScript(path.join('packages', 'create-appraisejs', 'scripts', 'sync-templates.ts'), repoRoot)
+    createBaseTemplate()
 
     for (const template of getTemplateDefinitions().map(definition => definition.id)) {
-      await verifyPreparedTemplateState(getPackageTemplateDir(template), template)
+      resetFlavorDir(template)
+    }
+    copyStarterOverlayFiles()
+
+    for (const template of getTemplateDefinitions().map(definition => definition.id)) {
+      await seedTemplateDatabase(template, inputHash, previousMetadata)
     }
 
-    await writeTemplateMetadata(inputHash)
+    for (const template of getTemplateDefinitions().map(definition => definition.id)) {
+      await verifyPreparedTemplateState(composeTemplateForVerification(template), template)
+    }
+
+    await writeTemplateMetadata(inputHash, previousMetadata)
   } finally {
     cleanupTempWorkspace()
   }
