@@ -30,6 +30,13 @@ When instructions conflict, follow this order:
 - Commands and scripts: `package.json`
 - Database model: `prisma/schema.prisma`
 - Prisma client setup: `src/config/db-config.ts`
+- Agent harness map: `docs/agent-harness.md`
+- Agent task recipes: `docs/agent-task-recipes.md`
+- Agent validation matrix: `docs/agent-validation-matrix.md`
+- Generated artifact map: `docs/agent-generated-artifacts.md`
+- Appraise lifecycle flow: `docs/agent-lifecycle-flow.md`
+- Scaffold flow: `docs/agent-scaffold-flow.md`
+- MCP setup: `docs/agent-mcp-setup.md`
 - Automation sync rules: `docs/automation-sync-rules.md`
 - Scaffold/template sync rules: `docs/scaffold-template-sync.md`
 - Test run runtime map: `docs/test-run-runtime.md`
@@ -68,6 +75,16 @@ business rules; persistence uses Prisma or dedicated helpers.
 For scaffolded-app changes, follow `docs/scaffold-template-sync.md`. Edit root/base source first, then run
 `npm --prefix packages/create-appraisejs run prepare-template`.
 
+For Appraise lifecycle or MCP work, follow `docs/agent-lifecycle-flow.md`, `docs/coordinator-api-mcp.md`, and
+`docs/agent-mcp-setup.md`. Keep lifecycle transitions Appraise-owned; do not replace plan, validation, baseline, or
+completion gates with chat approval.
+
+For E2E or Playwright changes, follow `docs/test-run-runtime.md` for runtime behavior and
+`docs/agent-task-recipes.md` for focused validation routing.
+
+For package work, read the package `AGENTS.md` first when present, then the package README, `package.json`, and tests.
+Package instructions may narrow validation but do not override root safety rules.
+
 ## Never Do
 
 - Do not patch generated automation output when a source, generator, or sync script should change instead.
@@ -78,6 +95,7 @@ For scaffolded-app changes, follow `docs/scaffold-template-sync.md`. Edit root/b
 - Do not treat historical development plans as authoritative without checking current source.
 - Do not guess on broad behavior, schema, runtime, or template-sync changes when repo inspection leaves important
   questions unanswered.
+- Do not claim MCP tools are available until the client has been registered or restarted with the current setup.
 
 ## Validation
 
@@ -95,6 +113,7 @@ Common validation commands:
 - `npm run test`
 - `npm run quality:fallow:commit`
 - `npm run quality:react-doctor:commit`
+- `npm run check:harness`
 - `npm run build`
 
 Run related tests when tests exist or are added. Run `npm run build` for broad changes, package/config/schema changes,

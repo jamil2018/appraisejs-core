@@ -13,5 +13,7 @@ AppraiseJS owns lifecycle and business rules. This skill starts and observes app
 4. Present Appraise test-run evidence and returned `appraise://` links.
 5. Wait for explicit baseline acceptance or change requests.
 6. Do not implement while approval is pending.
+7. Start implementation only after `baseline_accepted`.
+8. Report whether acceptance came from browser/UI review or backend/service approval.
 
 Do not infer acceptance from conversation text or mutate baseline records directly.

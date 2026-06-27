@@ -5,7 +5,7 @@ model = "gpt-5.5"
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 
-[projects."/Users/mdhasnat/Projects/appraisejs"]
+[projects."/Users/jamil/Personal Projects/appraisejs"]
 trust_level = "trusted"
 
 [features]
