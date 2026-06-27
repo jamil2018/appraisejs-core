@@ -44,7 +44,7 @@ Use `package.json` as the command source of truth. Common sync commands are:
 - `npm run sync-locator-groups`, `npm run sync-locators`, `npm run sync-environments`, `npm run sync-modules`,
   `npm run sync-tags`, `npm run sync-test-suites`, `npm run sync-test-cases`: run focused syncs when the touched domain
   is known.
-- `npm run sync-template`: copy root app changes into `templates/starter`.
+- `npm --prefix packages/create-appraisejs run prepare-template`: refresh the scaffold base template and flavor overlays.
 
 ## Agent Workflow
 

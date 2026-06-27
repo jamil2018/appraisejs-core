@@ -2,7 +2,13 @@ import fs from 'fs-extra'
 import path from 'path'
 import cliProgress from 'cli-progress'
 import type { PackageManager } from './prompts.js'
-import { DEFAULT_TEMPLATE_ID, resolveBundledTemplatePath, type TemplateId } from './template-catalog.js'
+import {
+  DEFAULT_TEMPLATE_ID,
+  resolveBundledBaseTemplatePath,
+  resolveBundledFlavorPath,
+  resolveBundledTemplatePath,
+  type TemplateId,
+} from './template-catalog.js'
 
 const SEEDED_DB_PATH = path.join('prisma', 'dev.db')
 const PACKAGED_GITIGNORE_PATH = 'gitignore'
@@ -78,6 +84,10 @@ export function getTemplatePath(template: TemplateId = DEFAULT_TEMPLATE_ID): str
   return resolveBundledTemplatePath(template)
 }
 
+export function getBaseTemplatePath(): string {
+  return resolveBundledBaseTemplatePath()
+}
+
 function getDestinationRelativePath(relativePath: string): string {
   return relativePath === PACKAGED_GITIGNORE_PATH ? '.gitignore' : relativePath
 }
@@ -85,18 +95,27 @@ function getDestinationRelativePath(relativePath: string): string {
 export async function copyTemplate(
   destDir: string,
   onProgress?: (current: number, total: number, filename: string) => void,
-  templatePathOverride?: string,
+  baseTemplatePathOverride?: string,
   packageManager?: PackageManager,
   template: TemplateId = DEFAULT_TEMPLATE_ID,
+  flavorTemplatePathOverride?: string,
 ): Promise<void> {
-  const templatePath = templatePathOverride ?? getTemplatePath(template)
-  if (!(await fs.pathExists(templatePath))) {
-    throw new Error(`Template not found at: ${templatePath}`)
+  const baseTemplatePath = baseTemplatePathOverride ?? getBaseTemplatePath()
+  const flavorTemplatePath = flavorTemplatePathOverride ?? resolveBundledFlavorPath(template)
+
+  if (!(await fs.pathExists(baseTemplatePath))) {
+    throw new Error(`Base template not found at: ${baseTemplatePath}`)
+  }
+  if (!(await fs.pathExists(flavorTemplatePath))) {
+    throw new Error(`Template flavor not found at: ${flavorTemplatePath}`)
   }
 
   await fs.ensureDir(destDir)
-  const files = collectFiles(templatePath, '', packageManager)
-  const total = files.length
+  const copyGroups = [
+    { root: baseTemplatePath, files: collectFiles(baseTemplatePath, '', packageManager) },
+    { root: flavorTemplatePath, files: collectFiles(flavorTemplatePath, '', packageManager) },
+  ]
+  const total = copyGroups.reduce((count, group) => count + group.files.length, 0)
 
   const progressBar = new cliProgress.SingleBar(
     {
@@ -109,14 +128,17 @@ export async function copyTemplate(
   )
   progressBar.start(total, 0)
 
-  for (let i = 0; i < files.length; i++) {
-    const rel = files[i]
-    const srcFile = path.join(templatePath, rel)
-    const destFile = path.join(destDir, getDestinationRelativePath(rel))
-    await fs.ensureDir(path.dirname(destFile))
-    await fs.copy(srcFile, destFile)
-    progressBar.update(i + 1, { filename: rel })
-    onProgress?.(i + 1, total, rel)
+  let copied = 0
+  for (const group of copyGroups) {
+    for (const rel of group.files) {
+      const srcFile = path.join(group.root, rel)
+      const destFile = path.join(destDir, getDestinationRelativePath(rel))
+      await fs.ensureDir(path.dirname(destFile))
+      await fs.copy(srcFile, destFile, { overwrite: true })
+      copied += 1
+      progressBar.update(copied, { filename: rel })
+      onProgress?.(copied, total, rel)
+    }
   }
 
   progressBar.stop()

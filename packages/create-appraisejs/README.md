@@ -24,7 +24,8 @@ The CLI will ask for:
 
 ## What The Scaffolder Does
 
-By default, `create-appraisejs` uses the bundled `starter` template shipped inside the package.
+By default, `create-appraisejs` composes the bundled base template with the `starter` flavor overlay shipped inside the
+package.
 
 Available templates:
 
@@ -33,7 +34,7 @@ Available templates:
 
 During scaffolding it:
 
-1. Copies the packaged AppraiseJS template into your target directory.
+1. Copies the packaged AppraiseJS base template into your target directory, then applies the selected flavor overlay.
 2. Renames the packaged `gitignore` file back to `.gitignore`.
 3. Rewrites `package.json` scripts so they use your chosen package manager.
 4. Preserves the seeded local SQLite database at `prisma/dev.db`.
@@ -75,24 +76,11 @@ The generated project does not include:
 - starter locator files under `automation/locators`
 - automation reports
 
-## Template Source Overrides
+## Template Storage
 
-The package defaults to the bundled template. Remote fetching is only used when you provide one of the override environment variables below.
-
-| Variable                           | Description                                                                                        | Default                                                              |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `CREATE_APPRAISE_REPO_URL`         | Repository URL used for remote template fetching.                                                  | `https://github.com/jamil2018/appraisejs-core.git`                   |
-| `CREATE_APPRAISE_BRANCH`           | Branch or ref to fetch from the remote repository.                                                 | `main`                                                               |
-| `CREATE_APPRAISE_TEMPLATE_SUBPATH` | Path to the template directory inside that repository.                                             | selected template subpath (`templates/starter` or `templates/blank`) |
-| `CREATE_APPRAISE_USE_BUNDLED`      | Set to `1`, `true`, or `yes` to force the bundled template even when remote overrides are present. | bundled template                                                     |
-
-When remote mode is active, the CLI tries the repository tarball first and falls back to `git clone` if needed.
-
-Example:
-
-```bash
-CREATE_APPRAISE_BRANCH=main npx create-appraisejs@latest --template blank
-```
+The package is bundled-only: it does not fetch scaffold templates from a remote repository at runtime. Published
+contents are stored as one full `templates/base` scaffold plus small `templates/flavors/starter` and
+`templates/flavors/blank` overlays.
 
 ## Common Scripts In The Generated App
 

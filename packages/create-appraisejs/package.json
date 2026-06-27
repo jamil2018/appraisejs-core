@@ -34,16 +34,14 @@
   "files": [
     "dist",
     "templates",
-    "templates/starter/prisma/dev.db",
-    "templates/starter/automation/config/environments/environments.json",
-    "templates/blank/prisma/dev.db",
-    "templates/blank/automation/config/environments/environments.json"
+    "templates/base/automation/config/environments/environments.json",
+    "templates/flavors/starter/prisma/dev.db",
+    "templates/flavors/blank/prisma/dev.db"
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "npm run prepare-template && tsc",
     "prepare-template": "tsx scripts/prepare-template.ts",
-    "sync-templates": "tsx scripts/sync-templates.ts",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "publish:alpha": "npm publish --tag alpha",
@@ -59,8 +57,7 @@
     "@inquirer/prompts": "^7.2.0",
     "cli-progress": "^3.12.0",
     "cross-spawn": "^7.0.6",
-    "fs-extra": "^11.2.0",
-    "tar": "^7.0.0"
+    "fs-extra": "^11.2.0"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",

@@ -5,18 +5,10 @@ import type { PromptAnswers } from './prompts.js'
 function createDependencies(overrides: Partial<CreateProjectDependencies> = {}): CreateProjectDependencies {
   return {
     copyTemplate: vi.fn().mockResolvedValue(undefined),
-    downloadRepo: vi.fn().mockResolvedValue({
-      repoRoot: '/tmp/remote-repo',
-      cleanupDir: '/tmp/remote-checkout',
-    }),
     getConfig: vi.fn().mockReturnValue({
-      repoBase: 'https://github.com/jamil2018/appraisejs-core',
-      branch: 'main',
-      templateSubpath: 'templates/starter',
-      useBundled: true,
+      template: 'starter',
     }),
     patchPackageJsonScripts: vi.fn().mockResolvedValue(undefined),
-    removeDirectory: vi.fn().mockResolvedValue(undefined),
     runSetup: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   }
@@ -57,7 +49,6 @@ describe('createProject', () => {
       ANSWERS.packageManager,
       ANSWERS.template,
     )
-    expect(dependencies.downloadRepo).not.toHaveBeenCalled()
     expect(dependencies.patchPackageJsonScripts).toHaveBeenCalledWith(ANSWERS.directory, ANSWERS.packageManager)
     expect(dependencies.runSetup).toHaveBeenCalledWith(
       ANSWERS.directory,
@@ -66,45 +57,6 @@ describe('createProject', () => {
     )
     expect(result.targetDirectory).toBe(ANSWERS.directory)
     expect(messages).toContain('  Copying bundled template files...')
-  })
-
-  it('downloads and cleans up the remote template when overrides disable bundled mode', async () => {
-    const dependencies = createDependencies({
-      getConfig: vi.fn().mockReturnValue({
-        repoBase: 'https://example.com/custom',
-        branch: 'develop',
-        templateSubpath: 'templates/custom',
-        useBundled: false,
-      }),
-    })
-
-    await createProject({ ...ANSWERS, runInstall: false }, dependencies)
-
-    expect(dependencies.downloadRepo).toHaveBeenCalledWith('https://example.com/custom', 'develop', 'templates/custom')
-    expect(dependencies.copyTemplate).toHaveBeenCalledWith(
-      ANSWERS.directory,
-      undefined,
-      '/tmp/remote-repo/templates/custom',
-      ANSWERS.packageManager,
-      ANSWERS.template,
-    )
-    expect(dependencies.removeDirectory).toHaveBeenCalledWith('/tmp/remote-checkout')
-    expect(dependencies.runSetup).not.toHaveBeenCalled()
-  })
-
-  it('still cleans up remote downloads when copying fails', async () => {
-    const dependencies = createDependencies({
-      getConfig: vi.fn().mockReturnValue({
-        repoBase: 'https://example.com/custom',
-        branch: 'develop',
-        templateSubpath: 'templates/custom',
-        useBundled: false,
-      }),
-      copyTemplate: vi.fn().mockRejectedValue(new Error('copy failed')),
-    })
-
-    await expect(createProject({ ...ANSWERS, runInstall: false }, dependencies)).rejects.toThrow('copy failed')
-    expect(dependencies.removeDirectory).toHaveBeenCalledWith('/tmp/remote-checkout')
   })
 
   it('passes blank template selection through to config and bundled copy resolution', async () => {

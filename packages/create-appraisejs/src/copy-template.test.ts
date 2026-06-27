@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import path from 'path'
 import fs from 'fs-extra'
 import os from 'os'
-import { copyTemplate, getTemplatePath } from './copy-template.js'
+import { copyTemplate, getBaseTemplatePath, getTemplatePath } from './copy-template.js'
 
 describe('copy-template', () => {
   let tempDir: string
@@ -20,42 +20,55 @@ describe('copy-template', () => {
   describe('getTemplatePath', () => {
     it('returns a path ending with templates/starter for starter', () => {
       const templatePath = getTemplatePath('starter')
-      expect(templatePath).toMatch(/[\\/]templates[\\/]starter$/)
+      expect(templatePath).toMatch(/[\\/]templates[\\/]flavors[\\/]starter$/)
     })
 
     it('returns a path ending with templates/blank for blank', () => {
       const templatePath = getTemplatePath('blank')
-      expect(templatePath).toMatch(/[\\/]templates[\\/]blank$/)
+      expect(templatePath).toMatch(/[\\/]templates[\\/]flavors[\\/]blank$/)
+    })
+
+    it('returns the package-owned base template path', () => {
+      expect(getBaseTemplatePath()).toMatch(/[\\/]templates[\\/]base$/)
     })
   })
 
   describe('copyTemplate', () => {
-    it('copies template files and excludes node_modules, .env, and lockfiles while keeping the seeded db', async () => {
-      const fixtureDir = path.join(tempDir, 'fixture')
-      await fs.ensureDir(path.join(fixtureDir, 'src', 'app'))
-      await fs.ensureDir(path.join(fixtureDir, 'node_modules', 'pkg'))
-      await fs.ensureDir(path.join(fixtureDir, 'prisma'))
-      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' })
-      await fs.writeFile(path.join(fixtureDir, 'gitignore'), 'node_modules\n')
-      await fs.writeFile(path.join(fixtureDir, '.env'), 'SECRET=1')
-      await fs.writeFile(path.join(fixtureDir, 'package-lock.json'), '{}')
-      await fs.writeFile(path.join(fixtureDir, 'prisma', 'dev.db'), 'db')
-      await fs.writeFile(path.join(fixtureDir, 'src', 'app', 'page.tsx'), 'export default function Page() {}')
+    async function createBaseFixture(): Promise<string> {
+      const baseDir = path.join(tempDir, 'base')
+      await fs.ensureDir(path.join(baseDir, 'src', 'app'))
+      await fs.ensureDir(path.join(baseDir, 'node_modules', 'pkg'))
+      await fs.ensureDir(path.join(baseDir, 'prisma'))
+      await fs.writeJson(path.join(baseDir, 'package.json'), { name: 'test' })
+      await fs.writeFile(path.join(baseDir, 'gitignore'), 'node_modules\n')
+      await fs.writeFile(path.join(baseDir, '.env'), 'SECRET=1')
+      await fs.writeFile(path.join(baseDir, 'package-lock.json'), '{}')
+      await fs.writeFile(path.join(baseDir, 'prisma', 'schema.prisma'), 'datasource db {}')
+      await fs.writeFile(path.join(baseDir, 'src', 'app', 'page.tsx'), 'export default function Page() {}')
+      return baseDir
+    }
 
-      const files = getTemplatePath()
-      expect(files).toMatch(/[\\/]templates[\\/]starter$/)
+    async function createFlavorFixture(name = 'starter'): Promise<string> {
+      const flavorDir = path.join(tempDir, name)
+      await fs.ensureDir(path.join(flavorDir, 'prisma'))
+      await fs.writeFile(path.join(flavorDir, 'prisma', 'dev.db'), `${name}-db`)
+      return flavorDir
+    }
+
+    it('copies base files then overlays flavor files while excluding node_modules, .env, and lockfiles', async () => {
+      const baseDir = await createBaseFixture()
+      const flavorDir = await createFlavorFixture()
 
       const { getCollectedFilesForTest } = await import('./copy-template.js')
-      const collectedFiles = getCollectedFilesForTest(fixtureDir, 'npm')
+      const collectedFiles = getCollectedFilesForTest(baseDir, 'npm')
       expect(collectedFiles).toContain('package.json')
       expect(collectedFiles).toContain('gitignore')
-      expect(collectedFiles).toContain(path.join('prisma', 'dev.db'))
       expect(collectedFiles.some(f => f.includes('node_modules'))).toBe(false)
       expect(collectedFiles.some(f => f.includes('.env'))).toBe(false)
       const srcFiles = collectedFiles.filter(f => f.includes('src'))
       expect(srcFiles.length).toBeGreaterThan(0)
 
-      await copyTemplate(destDir, undefined, fixtureDir, 'npm')
+      await copyTemplate(destDir, undefined, baseDir, 'npm', 'starter', flavorDir)
 
       expect(await fs.pathExists(path.join(destDir, 'package.json'))).toBe(true)
       expect(await fs.pathExists(path.join(destDir, '.gitignore'))).toBe(true)
@@ -63,6 +76,7 @@ describe('copy-template', () => {
       expect(await fs.pathExists(path.join(destDir, 'src'))).toBe(true)
       expect(await fs.pathExists(path.join(destDir, 'src', 'app', 'page.tsx'))).toBe(true)
       expect(await fs.pathExists(path.join(destDir, 'prisma', 'dev.db'))).toBe(true)
+      expect(await fs.readFile(path.join(destDir, 'prisma', 'dev.db'), 'utf8')).toBe('starter-db')
 
       const hasNodeModules = await fs.pathExists(path.join(destDir, 'node_modules'))
       const hasEnv = await fs.pathExists(path.join(destDir, '.env'))
@@ -74,62 +88,57 @@ describe('copy-template', () => {
     })
 
     it('does not copy .DS_Store artifacts', async () => {
-      const fixtureDir = path.join(tempDir, 'fixture')
-      await fs.ensureDir(path.join(fixtureDir, 'automation', 'steps'))
-      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' })
-      await fs.writeFile(path.join(fixtureDir, 'automation', 'steps', '.DS_Store'), 'artifact')
+      const baseDir = await createBaseFixture()
+      const flavorDir = await createFlavorFixture()
+      await fs.ensureDir(path.join(flavorDir, 'automation', 'steps'))
+      await fs.writeFile(path.join(flavorDir, 'automation', 'steps', '.DS_Store'), 'artifact')
 
-      await copyTemplate(destDir, undefined, fixtureDir, 'npm')
+      await copyTemplate(destDir, undefined, baseDir, 'npm', 'starter', flavorDir)
 
       expect(await fs.pathExists(path.join(destDir, 'automation', 'steps', '.DS_Store'))).toBe(false)
     })
 
     it('copies package-lock.json when packageManager is npm', async () => {
-      const fixtureDir = path.join(tempDir, 'fixture')
-      await fs.ensureDir(path.join(fixtureDir, 'src'))
-      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' })
-      await fs.writeFile(path.join(fixtureDir, 'package-lock.json'), '{"lockfileVersion": 3}')
-      await fs.writeFile(path.join(fixtureDir, 'src', 'index.ts'), '// empty')
+      const baseDir = await createBaseFixture()
+      const flavorDir = await createFlavorFixture()
+      await fs.writeFile(path.join(baseDir, 'package-lock.json'), '{"lockfileVersion": 3}')
 
-      await copyTemplate(destDir, undefined, fixtureDir, 'npm')
+      await copyTemplate(destDir, undefined, baseDir, 'npm', 'starter', flavorDir)
 
       expect(await fs.pathExists(path.join(destDir, 'package-lock.json'))).toBe(true)
       expect(await fs.readFile(path.join(destDir, 'package-lock.json'), 'utf-8')).toBe('{"lockfileVersion": 3}')
     })
 
     it('does not copy package-lock.json when packageManager is not npm', async () => {
-      const fixtureDir = path.join(tempDir, 'fixture')
-      await fs.ensureDir(path.join(fixtureDir, 'src'))
-      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' })
-      await fs.writeFile(path.join(fixtureDir, 'package-lock.json'), '{}')
-      await fs.writeFile(path.join(fixtureDir, 'src', 'index.ts'), '// empty')
+      const baseDir = await createBaseFixture()
+      const flavorDir = await createFlavorFixture()
 
-      await copyTemplate(destDir, undefined, fixtureDir, 'yarn')
+      await copyTemplate(destDir, undefined, baseDir, 'yarn', 'starter', flavorDir)
 
       expect(await fs.pathExists(path.join(destDir, 'package-lock.json'))).toBe(false)
     })
 
     it('retains internal package source and dist files in the scaffolded output', async () => {
-      const fixtureDir = path.join(tempDir, 'fixture')
-      await fs.ensureDir(path.join(fixtureDir, 'packages', 'locator-picker-companion', 'src'))
-      await fs.ensureDir(path.join(fixtureDir, 'packages', 'locator-picker-companion', 'dist'))
-      await fs.writeJson(path.join(fixtureDir, 'package.json'), { name: 'test' })
+      const baseDir = await createBaseFixture()
+      const flavorDir = await createFlavorFixture()
+      await fs.ensureDir(path.join(baseDir, 'packages', 'locator-picker-companion', 'src'))
+      await fs.ensureDir(path.join(baseDir, 'packages', 'locator-picker-companion', 'dist'))
       await fs.writeFile(
-        path.join(fixtureDir, 'packages', 'locator-picker-companion', 'package.json'),
+        path.join(baseDir, 'packages', 'locator-picker-companion', 'package.json'),
         JSON.stringify({ name: '@locator-picker-companion' }),
       )
       await fs.writeFile(
-        path.join(fixtureDir, 'packages', 'locator-picker-companion', 'tsconfig.json'),
+        path.join(baseDir, 'packages', 'locator-picker-companion', 'tsconfig.json'),
         '{"extends":"../../tsconfig.json"}',
       )
-      await fs.writeFile(path.join(fixtureDir, 'packages', 'locator-picker-companion', 'src', 'cli.ts'), 'export {};')
-      await fs.writeFile(path.join(fixtureDir, 'packages', 'locator-picker-companion', 'dist', 'cli.js'), 'export {};')
+      await fs.writeFile(path.join(baseDir, 'packages', 'locator-picker-companion', 'src', 'cli.ts'), 'export {};')
+      await fs.writeFile(path.join(baseDir, 'packages', 'locator-picker-companion', 'dist', 'cli.js'), 'export {};')
       await fs.writeFile(
-        path.join(fixtureDir, 'packages', 'locator-picker-companion', 'dist', 'launcher.js'),
+        path.join(baseDir, 'packages', 'locator-picker-companion', 'dist', 'launcher.js'),
         'export {};',
       )
 
-      await copyTemplate(destDir, undefined, fixtureDir, 'npm')
+      await copyTemplate(destDir, undefined, baseDir, 'npm', 'starter', flavorDir)
 
       expect(await fs.pathExists(path.join(destDir, 'packages', 'locator-picker-companion', 'package.json'))).toBe(true)
       expect(await fs.pathExists(path.join(destDir, 'packages', 'locator-picker-companion', 'tsconfig.json'))).toBe(
