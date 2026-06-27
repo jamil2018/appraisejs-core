@@ -53,6 +53,8 @@ const staticFiles = [
   'packages/appraisejs/README.md',
 ]
 
+const rootRelativeReferencePattern = /\b(?:docs\/agent-[A-Za-z0-9-]+\.md|\.agents\/skills\/[A-Za-z0-9-]+\/SKILL\.md)\b/g
+
 function walkFiles(dir, predicate) {
   if (!fs.existsSync(dir)) return []
   return fs
@@ -66,8 +68,32 @@ function collectEntryFiles(fullPath, entry, predicate) {
   return []
 }
 
+function listDirectories(dir) {
+  if (!fs.existsSync(dir)) return []
+  return fs.readdirSync(dir, { withFileTypes: true }).filter(entry => entry.isDirectory())
+}
+
 function lineFor(contents, index) {
   return contents.slice(0, index).split('\n').length
+}
+
+function toRepoRelative(file) {
+  return path.relative(repoRoot, file).replace(/\\/g, '/')
+}
+
+function requireFile(file, reason) {
+  if (!fs.existsSync(path.join(repoRoot, file))) {
+    failures.push(`${file}: ${reason}`)
+  }
+}
+
+function checkRootRelativeReferences(file, contents) {
+  rootRelativeReferencePattern.lastIndex = 0
+  for (const match of contents.matchAll(rootRelativeReferencePattern)) {
+    const target = match[0]
+    if (fs.existsSync(path.join(repoRoot, target))) continue
+    failures.push(`${file}:${lineFor(contents, match.index ?? 0)} references missing harness file "${target}"`)
+  }
 }
 
 const activeFiles = new Set(staticFiles)
@@ -76,21 +102,24 @@ for (const file of walkFiles(path.join(repoRoot, 'docs'), file => {
   const relative = path.relative(repoRoot, file).replace(/\\/g, '/')
   return /^docs\/agent-[^/]+\.md$/.test(relative)
 })) {
-  activeFiles.add(path.relative(repoRoot, file).replace(/\\/g, '/'))
+  activeFiles.add(toRepoRelative(file))
 }
 
 for (const file of walkFiles(path.join(repoRoot, '.agents', 'skills'), file => {
   return path.basename(file) === 'SKILL.md'
 })) {
-  activeFiles.add(path.relative(repoRoot, file).replace(/\\/g, '/'))
+  activeFiles.add(toRepoRelative(file))
 }
 
 const failures = []
 
 for (const file of requiredFiles) {
-  if (!fs.existsSync(path.join(repoRoot, file))) {
-    failures.push(`${file}: missing required harness file`)
-  }
+  requireFile(file, 'missing required harness file')
+}
+
+for (const dir of listDirectories(path.join(repoRoot, '.agents', 'skills'))) {
+  if (!dir.name.startsWith('appraise-')) continue
+  requireFile(`.agents/skills/${dir.name}/SKILL.md`, 'missing appraise skill entrypoint')
 }
 
 for (const file of Array.from(activeFiles).sort()) {
@@ -98,6 +127,7 @@ for (const file of Array.from(activeFiles).sort()) {
   if (!fs.existsSync(fullPath)) continue
 
   const contents = fs.readFileSync(fullPath, 'utf8')
+  checkRootRelativeReferences(file, contents)
 
   for (const token of literalForbidden) {
     let index = contents.indexOf(token)
