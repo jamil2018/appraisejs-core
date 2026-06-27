@@ -40,7 +40,8 @@
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "npm run prepare-template && tsc",
+    "build": "npm run clean && npm run prepare-template && tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "prepare-template": "tsx scripts/prepare-template.ts",
     "test": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",

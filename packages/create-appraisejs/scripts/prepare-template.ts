@@ -210,9 +210,12 @@ async function readExistingTemplateMetadata(): Promise<TemplateMetadata | null> 
   return JSON.parse(raw) as TemplateMetadata
 }
 
-async function writeTemplateMetadata(inputHash: string): Promise<void> {
+async function writeTemplateMetadata(inputHash: string, previousMetadata: TemplateMetadata | null): Promise<void> {
   const metadata: TemplateMetadata = {
-    preparedAt: new Date().toISOString(),
+    preparedAt:
+      previousMetadata?.inputHash === inputHash && previousMetadata.databasePath === 'prisma/dev.db'
+        ? previousMetadata.preparedAt
+        : new Date().toISOString(),
     inputHash,
     databasePath: 'prisma/dev.db',
   }
@@ -542,7 +545,7 @@ async function main(): Promise<void> {
       await verifyPreparedTemplateState(composeTemplateForVerification(template), template)
     }
 
-    await writeTemplateMetadata(inputHash)
+    await writeTemplateMetadata(inputHash, previousMetadata)
   } finally {
     cleanupTempWorkspace()
   }

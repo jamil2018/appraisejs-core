@@ -22,7 +22,7 @@ test.describe('Plan review', () => {
     await page.goto('/plans/semantic-plan-flow-graph')
     await expect(page.getByRole('heading', { name: 'Make plan dependency flow easy to follow' })).toBeVisible()
     await expect(page.getByLabel('Plan dependency graph')).toBeVisible()
-    await expect(page.getByRole('button', { name: /Reset to flow/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Reset view/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /Revision approved|Approve exact revision/i })).toBeDisabled()
 
     await testInfo.attach('plan-review-graph', {
@@ -48,8 +48,9 @@ test.describe('Plan review', () => {
     ).toBeVisible()
     await expect(page.getByLabel('Add remark')).toBeVisible()
 
-    await page.getByRole('button', { name: /Reset to flow/i }).focus()
-    await expect(page.getByRole('button', { name: /Reset to flow/i })).toBeFocused()
+    await page.getByRole('tab', { name: /Graph/i }).click()
+    await page.getByRole('button', { name: /Reset view/i }).focus()
+    await expect(page.getByRole('button', { name: /Reset view/i })).toBeFocused()
     await page.getByRole('textbox', { name: /Add remark/i }).focus()
     await expect(page.getByRole('textbox', { name: /Add remark/i })).toBeFocused()
 
