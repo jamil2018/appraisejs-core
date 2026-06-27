@@ -33,6 +33,7 @@ When instructions conflict, follow this order:
 - Agent harness map: `docs/agent-harness.md`
 - Agent task recipes: `docs/agent-task-recipes.md`
 - Agent validation matrix: `docs/agent-validation-matrix.md`
+- Agent Graphify workflow: `docs/agent-graphify.md`
 - Generated artifact map: `docs/agent-generated-artifacts.md`
 - Appraise lifecycle flow: `docs/agent-lifecycle-flow.md`
 - Scaffold flow: `docs/agent-scaffold-flow.md`
@@ -78,6 +79,10 @@ For scaffolded-app changes, follow `docs/scaffold-template-sync.md`. Edit root/b
 For Appraise lifecycle or MCP work, follow `docs/agent-lifecycle-flow.md`, `docs/coordinator-api-mcp.md`, and
 `docs/agent-mcp-setup.md`. Keep lifecycle transitions Appraise-owned; do not replace plan, validation, baseline, or
 completion gates with chat approval.
+
+For Graphify setup or repo graph work, follow `docs/agent-graphify.md`. Use the Python package `graphifyy` and CLI
+`graphify`; do not add the unrelated Node package `@sentropic/graphify`. When safe source changes touch committed
+graph scopes, run `npm run graphify:auto` before finishing.
 
 For E2E or Playwright changes, follow `docs/test-run-runtime.md` for runtime behavior and
 `docs/agent-task-recipes.md` for focused validation routing.

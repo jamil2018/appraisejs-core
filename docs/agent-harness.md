@@ -31,6 +31,7 @@ and safety layer; this file points to the detailed agent docs that keep navigati
 - Use `docs/agent-generated-artifacts.md` before editing generated or sync-managed output.
 - Use `docs/agent-lifecycle-flow.md` for Appraise-owned plan, validation, baseline, implementation, and completion
   gates.
+- Use `docs/agent-graphify.md` for Graphify setup, repo graph generation, and graph query workflows.
 - Use `docs/agent-harness-guardrails.md` when editing agent instructions, docs, skills, or setup surfaces.
 
 ## MCP Setup

@@ -56,6 +56,7 @@ Before you begin, ensure you have the following installed:
 
    This will:
    - Install dependencies
+   - Install Graphify agent tooling when `uv` is available, or print the manual install command
    - Create `.env` file with SQLite configuration
    - Build the local production app
 
