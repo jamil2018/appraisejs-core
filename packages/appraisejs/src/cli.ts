@@ -159,6 +159,7 @@ plan
 plan
   .command('create')
   .requiredOption('--file <path>', 'plan YAML or JSON file')
+  .option('--target <project>', 'registered target project id, fingerprint, display name, or path')
   .option('--cwd <path>', 'Appraise project directory', process.cwd())
   .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
   .option('--coordinator-id <id>', 'stable coordinator identity', process.env.APPRAISE_COORDINATOR_ID ?? 'coordinator')
@@ -167,16 +168,93 @@ plan
   .option('--json', 'print machine-readable JSON', false)
   .action(
     async (
-      options: OnlineOptions & { file: string; offline: boolean; allowExternalPlanFile: boolean; json: boolean },
+      options: OnlineOptions & {
+        file: string
+        target?: string
+        offline: boolean
+        allowExternalPlanFile: boolean
+        json: boolean
+      },
     ) => {
       await runCommand(async () => {
         if (options.offline) return printJson(await createOfflineDraft(options.file, options.cwd))
         const source = await resolvePlanSource(options.cwd, options.file, options.allowExternalPlanFile)
         const client = await onlineClient(options)
-        printJson(await client.createPlan(await readValidatedPlan(source.path), source))
+        const planArtifact = await readValidatedPlan(source.path)
+        printJson(
+          options.target
+            ? await client.createPlanForTarget(planArtifact, options.target, source)
+            : await client.createPlan(planArtifact, source),
+        )
       }, options.json)
     },
   )
+
+const project = program.command('project').description('Manage repos attached to the local AppraiseJS hub')
+
+addOnlineOptions(
+  project
+    .command('add')
+    .argument('<path>', 'target application repository path')
+    .option('--display-name <name>', 'display label for the target project')
+    .option('--json', 'print machine-readable JSON', false),
+).action(async (projectPath: string, options: OnlineOptions & { displayName?: string; json: boolean }) => {
+  await runCommand(
+    async () => printJson(await (await onlineClient(options)).addTargetProject(projectPath, options.displayName)),
+    options.json,
+  )
+})
+
+addOnlineOptions(project.command('list').option('--json', 'print machine-readable JSON', false)).action(
+  async (options: OnlineOptions & { json: boolean }) => {
+    await runCommand(async () => printJson(await (await onlineClient(options)).listTargetProjects()), options.json)
+  },
+)
+
+const test = program.command('test').description('Run repo-owned tests from an attached target project')
+
+addOnlineOptions(
+  test
+    .command('run')
+    .requiredOption('--target <project>', 'registered target project id, fingerprint, display name, or path')
+    .requiredOption('--environment <id>', 'Appraise environment id to expose as ENVIRONMENT')
+    .option('--name <name>', 'test run display name')
+    .option('--tags <expression>', 'Cucumber tag expression')
+    .option('--workers <count>', 'Cucumber parallel worker count')
+    .option('--browser <browser>', 'browser engine: CHROMIUM, FIREFOX, or WEBKIT', 'CHROMIUM')
+    .option('--json', 'print machine-readable JSON', false),
+).action(
+  async (
+    options: OnlineOptions & {
+      target: string
+      environment: string
+      name?: string
+      tags?: string
+      workers?: string
+      browser: string
+      json: boolean
+    },
+  ) => {
+    await runCommand(async () => {
+      const testWorkersCount = options.workers === undefined ? undefined : Number(options.workers)
+      if (testWorkersCount !== undefined && (!Number.isInteger(testWorkersCount) || testWorkersCount < 1)) {
+        throw new Error(`Expected --workers to be a positive integer, received "${options.workers}".`)
+      }
+      printJson(
+        await (
+          await onlineClient(options)
+        ).runTargetTests({
+          target: options.target,
+          environmentId: options.environment,
+          name: options.name,
+          tagExpression: options.tags,
+          testWorkersCount,
+          browserEngine: options.browser,
+        }),
+      )
+    }, options.json)
+  },
+)
 
 addOnlineOptions(
   plan

@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -20,6 +19,7 @@ import { hashFileContent } from '@/lib/validation-review/file-review'
 import { startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
 import { approvePlanRevision } from '@/services/plan-review/plan-review-service'
+import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 
 import {
   approveValidationFile,
@@ -33,44 +33,8 @@ let workspace: string
 let databasePath: string
 let client: PrismaClient
 
-async function applyMigration(name: string) {
-  execFileSync('sqlite3', [databasePath], {
-    input: await fs.readFile(path.join(process.cwd(), 'prisma', 'migrations', name, 'migration.sql')),
-  })
-}
-
 async function ensurePlanRuntimeSchema() {
-  const projectionTable = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='PlanProjection';",
-  ])
-    .toString()
-    .trim()
-  if (!projectionTable) await applyMigration('20260609002500_add_plan_projection_and_sync')
-
-  const descriptionColumn = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM pragma_table_info('PlanProjection') WHERE name='description';",
-  ])
-    .toString()
-    .trim()
-  if (!descriptionColumn) await applyMigration('20260613015000_add_plan_description')
-
-  const eventTable = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='PlanEvent';",
-  ])
-    .toString()
-    .trim()
-  if (!eventTable) await applyMigration('20260609090000_add_plan_review_runtime')
-
-  const identityTable = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='AppraiseProjectIdentity';",
-  ])
-    .toString()
-    .trim()
-  if (!identityTable) await applyMigration('20260609160000_add_coordinator_events_api_mcp')
+  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
 }
 
 function plan(planId: string): PlanArtifact {

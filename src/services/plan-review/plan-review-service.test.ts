@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -16,6 +15,7 @@ import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { reviseCoordinatorPlan, startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 import { acknowledgePlanEvent, appendPlanEvent, readPlanEvents } from '@/services/coordinator/coordinator-service'
+import { ensurePlanProjectionTestSchema } from '@/test/plan-runtime-schema-test-helper'
 
 import {
   addPlanRemark,
@@ -29,12 +29,6 @@ import {
 let workspace: string
 let databasePath: string
 let client: PrismaClient
-
-async function applyMigration(name: string) {
-  execFileSync('sqlite3', [databasePath], {
-    input: await fs.readFile(path.join(process.cwd(), 'prisma', 'migrations', name, 'migration.sql')),
-  })
-}
 
 function plan(planId: string, lifecycle: PlanLifecycleState = 'awaiting_plan_review'): PlanArtifact {
   return {
@@ -85,22 +79,7 @@ beforeEach(async () => {
   databasePath = path.join(workspace, 'review.db')
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-
-  const projectionTable = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='PlanProjection';",
-  ])
-    .toString()
-    .trim()
-  if (!projectionTable) await applyMigration('20260609002500_add_plan_projection_and_sync')
-
-  const descriptionColumn = execFileSync('sqlite3', [
-    databasePath,
-    "SELECT name FROM pragma_table_info('PlanProjection') WHERE name='description';",
-  ])
-    .toString()
-    .trim()
-  if (!descriptionColumn) await applyMigration('20260613015000_add_plan_description')
+  await ensurePlanProjectionTestSchema(databasePath)
 
   client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
 })

@@ -80,6 +80,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     }),
   )
   server.registerResource(
+    'target-projects',
+    'appraise://target-projects',
+    { title: 'Attached AppraiseJS target projects', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(await api.listTargetProjects()),
+        },
+      ],
+    }),
+  )
+  server.registerResource(
     'plan',
     new ResourceTemplate('appraise://plans/{planId}', { list: undefined }),
     { title: 'AppraiseJS plan', mimeType: 'application/json' },
@@ -104,15 +118,60 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async () => text(await diagnoseProject(options)),
   )
   server.registerTool(
+    'project_add',
+    {
+      description:
+        'Attach an existing application repository as a target project without writing Appraise metadata into it.',
+      inputSchema: { path: z.string().min(1), displayName: z.string().min(1).optional() },
+    },
+    async ({ path, displayName }) => {
+      try {
+        return text(await api.addTargetProject(path, displayName))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'project_list',
+    {
+      description: 'List application repositories attached to the local AppraiseJS hub.',
+      inputSchema: {},
+    },
+    async () => text(await api.listTargetProjects()),
+  )
+  server.registerTool(
     'plan_create',
     {
       description:
         'Create a structured AppraiseJS plan with a short title in goal and a separate description, then wait until its review surface is ready.',
-      inputSchema: { plan: planArtifactSchema },
+      inputSchema: { plan: planArtifactSchema, target: z.string().min(1).optional() },
     },
-    async ({ plan }) => {
+    async ({ plan, target }) => {
       try {
-        return text(await api.createPlan(plan))
+        return text(target ? await api.createPlanForTarget(plan, target) : await api.createPlan(plan))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'test_run',
+    {
+      description:
+        'Run existing Appraise-compatible Cucumber/Playwright artifacts from an attached target repository and record a standalone Appraise test run.',
+      inputSchema: {
+        target: z.string().min(1),
+        environmentId: z.string().min(1),
+        name: z.string().min(1).optional(),
+        tagExpression: z.string().optional(),
+        testWorkersCount: z.number().int().positive().optional(),
+        browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
+      },
+    },
+    async input => {
+      try {
+        return text(await api.runTargetTests(input))
       } catch (error) {
         return toolError(error)
       }

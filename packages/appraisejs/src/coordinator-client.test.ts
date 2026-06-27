@@ -139,6 +139,43 @@ describe('online coordinator client', () => {
     })
   })
 
+  it('sends target project and standalone test-run payloads to the hub coordinator API', async () => {
+    const cwd = await workspace()
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ targetProject: { id: 'target-1' } }))
+      .mockResolvedValueOnce(Response.json({ targetProjects: [{ id: 'target-1' }] }))
+      .mockResolvedValueOnce(Response.json({ planId: 'target-plan', targetProject: { id: 'target-1' } }))
+      .mockResolvedValueOnce(Response.json({ runId: 'run-1', targetProjectId: 'target-1' }))
+    vi.stubGlobal('fetch', fetchMock)
+    const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
+
+    await client.addTargetProject('/target/app', 'Target App')
+    await client.listTargetProjects()
+    await client.createPlanForTarget({ planId: 'target-plan' }, 'target-1')
+    await client.runTargetTests({ target: 'target-1', environmentId: 'env-1', tagExpression: '@smoke' })
+
+    expect(fetchMock.mock.calls.map(call => String(call[0]))).toEqual([
+      'http://localhost:3000/api/internal/coordinator/target-projects',
+      'http://localhost:3000/api/internal/coordinator/target-projects',
+      'http://localhost:3000/api/internal/coordinator/plans',
+      'http://localhost:3000/api/internal/coordinator/test-runs',
+    ])
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      path: '/target/app',
+      displayName: 'Target App',
+    })
+    expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body))).toEqual({
+      plan: { planId: 'target-plan' },
+      target: 'target-1',
+    })
+    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body))).toEqual({
+      target: 'target-1',
+      environmentId: 'env-1',
+      tagExpression: '@smoke',
+    })
+  })
+
   it('preserves project mismatch details separately from wrong-token unauthorized responses', async () => {
     const cwd = await workspace()
     vi.stubGlobal(

@@ -46,7 +46,9 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
 
   let remote:
     | {
-        project?: { fingerprint?: string }
+        project?: { fingerprint?: string; canonicalPath?: string }
+        hubProject?: { fingerprint?: string; canonicalPath?: string }
+        targetProjects?: unknown[]
         contractVersion?: string
         checks?: Check[]
         warnings?: string[]
@@ -94,10 +96,16 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
   const warnings = checks.filter(check => check.status === 'warning').map(check => check.message)
   return {
     ok: checks.every(check => check.status !== 'error'),
+    hubProject: {
+      cwd,
+      fingerprint: remote?.hubProject?.fingerprint ?? remote?.project?.fingerprint,
+      canonicalPath: remote?.hubProject?.canonicalPath ?? remote?.project?.canonicalPath,
+    },
     project: {
       cwd,
       fingerprint: remote?.project?.fingerprint,
     },
+    targetProjects: remote?.targetProjects ?? [],
     contractVersion: remote?.contractVersion,
     baseUrl: options.baseUrl,
     checks,

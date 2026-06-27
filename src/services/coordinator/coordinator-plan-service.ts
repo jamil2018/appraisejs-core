@@ -12,6 +12,7 @@ import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 type PlanServiceOptions = {
   client?: PrismaClient
   projectDirectory?: string
+  targetProjectId?: string | null
 }
 
 export class CoordinatorPlanCreatePartialError extends Error {
@@ -62,6 +63,12 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
   }
   try {
     await syncPlans({ projectDirectory: projectRoot, client })
+    if (options.targetProjectId) {
+      await client.planProjection.update({
+        where: { planId: plan.planId },
+        data: { targetProjectId: options.targetProjectId },
+      })
+    }
   } catch (error) {
     throw partial('sync-projection', error)
   }

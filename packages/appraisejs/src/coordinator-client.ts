@@ -142,6 +142,22 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     },
     createPlan: (plan: unknown, source?: { path: string; external: boolean; warning?: string }) =>
       post('plans', { plan, source }),
+    createPlanForTarget: (
+      plan: unknown,
+      target: string,
+      source?: { path: string; external: boolean; warning?: string },
+    ) => post('plans', { plan, source, target }),
+    addTargetProject: (projectPath: string, displayName?: string) =>
+      post('target-projects', { path: projectPath, ...(displayName ? { displayName } : {}) }),
+    listTargetProjects: () => request('target-projects'),
+    runTargetTests: (input: {
+      target: string
+      environmentId: string
+      name?: string
+      tagExpression?: string
+      testWorkersCount?: number
+      browserEngine?: string
+    }) => post('test-runs', input),
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
     publishValidation: (planId: string, validation: unknown) =>
       post(`plans/${planId}/validations/publish`, { validation }),
