@@ -40,6 +40,7 @@ const {
   mockProcessManagerRemoveListener,
   mockFsAccess,
   mockGenerateFeature,
+  mockResolveTargetProject,
 } = vi.hoisted(() => ({
   mockEnvironmentFindUnique: vi.fn(),
   mockTagFindMany: vi.fn(),
@@ -70,6 +71,7 @@ const {
   mockProcessManagerRemoveListener: vi.fn(),
   mockFsAccess: vi.fn(),
   mockGenerateFeature: vi.fn(),
+  mockResolveTargetProject: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({
@@ -130,6 +132,10 @@ vi.mock('@/services/report/report-service', () => ({
   storeReportFromFileService: mockStoreReportFromFileService,
 }))
 
+vi.mock('@/services/target-project/target-project-service', () => ({
+  resolveTargetProject: mockResolveTargetProject,
+}))
+
 vi.mock('@/lib/test-run/process-manager', () => ({
   processManager: {
     get: mockProcessManagerGet,
@@ -155,6 +161,7 @@ import {
   buildTestRunsWhereClause,
   cancelTestRunService,
   checkTraceViewerStatusService,
+  createStandaloneTargetTestRun,
   createTestRunFromValidatedValue,
   getTestRunLogsService,
   isCancelledOrCancellingStatus,
@@ -334,6 +341,8 @@ describe('createTestRunFromValidatedValue', () => {
       testWorkersCount: 2,
       browserEngine: BrowserEngine.CHROMIUM,
       headless: true,
+      projectRoot: undefined,
+      prepareWorkspace: undefined,
     })
     expect(result).toEqual({ runId: 'run-1', id: 'db-1' })
   })
@@ -400,6 +409,51 @@ describe('createTestRunFromValidatedValue', () => {
       message: 'Test suite "Login Suite" does not have an identifier tag.',
       statusCode: 400,
     })
+  })
+
+  it('creates a standalone target-project run without generating hub feature files', async () => {
+    mockResolveTargetProject.mockResolvedValue({
+      id: 'target-1',
+      displayName: 'Target App',
+      canonicalPath: '/target/app',
+    })
+    mockTestRunFindFirst.mockResolvedValue(null)
+    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+    mockTestRunCreate.mockResolvedValue({ id: 'db-1', runId: 'run-1' })
+
+    const result = await createStandaloneTargetTestRun({
+      target: 'target-1',
+      environmentId: 'env-1',
+      name: 'Target smoke',
+      tagExpression: '@smoke',
+      testWorkersCount: 3,
+      browserEngine: BrowserEngine.FIREFOX,
+    })
+
+    expect(mockGenerateFeature).not.toHaveBeenCalled()
+    expect(mockTestRunCreate).toHaveBeenCalledWith({
+      data: {
+        name: 'Target smoke',
+        environmentId: 'env-1',
+        testWorkersCount: 3,
+        browserEngine: BrowserEngine.FIREFOX,
+        status: TestRunStatus.RUNNING,
+        result: TestRunResult.PENDING,
+        planId: null,
+        targetProjectId: 'target-1',
+      },
+    })
+    expect(mockExecuteTestRun).toHaveBeenCalledWith({
+      testRunId: 'run-1',
+      environment: { id: 'env-1', name: 'QA' },
+      tagExpression: '@smoke',
+      testWorkersCount: 3,
+      browserEngine: BrowserEngine.FIREFOX,
+      headless: true,
+      projectRoot: '/target/app',
+      prepareWorkspace: false,
+    })
+    expect(result).toEqual({ runId: 'run-1', id: 'db-1', targetProjectId: 'target-1' })
   })
 })
 

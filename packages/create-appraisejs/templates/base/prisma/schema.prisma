@@ -263,9 +263,12 @@ model TestRun {
   reports          Report[]
   planId           String?
   plan             PlanProjection?   @relation(fields: [planId], references: [planId], onDelete: SetNull)
+  targetProjectId  String?
+  targetProject    TargetProject?    @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
 
   @@index([completedAt])
   @@index([result])
+  @@index([targetProjectId])
 }
 
 model PlanProjection {
@@ -294,9 +297,30 @@ model PlanProjection {
   coordinatorLease     PlanCoordinatorLease?
   personalLayouts      PlanPersonalLayout[]
   testRuns             TestRun[]
+  targetProjectId      String?
+  targetProject        TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
 
   @@index([stale])
   @@index([conflicted])
+  @@index([targetProjectId])
+}
+
+model TargetProject {
+  id              String           @id @default(uuid())
+  canonicalPath   String           @unique
+  displayName     String
+  packageName     String?
+  packageManager  String?
+  packageJson     String?
+  fingerprint     String           @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  lastDetectedAt  DateTime         @default(now())
+  planProjections PlanProjection[]
+  testRuns        TestRun[]
+
+  @@index([displayName])
+  @@index([fingerprint])
 }
 
 model PlanTaskProjection {

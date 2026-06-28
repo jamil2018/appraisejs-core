@@ -48,6 +48,12 @@ import {
 } from '@/services/coordinator/coordinator-implementation-service'
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { ServiceError } from '@/services/shared/errors'
+import { createStandaloneTargetTestRun } from '@/services/test-run/test-run-service'
+import {
+  listTargetProjects,
+  registerTargetProject,
+  resolveTargetProject,
+} from '@/services/target-project/target-project-service'
 
 export const runtime = 'nodejs'
 
@@ -124,12 +130,18 @@ async function getEvents(request: Request, operation: string[]) {
 
 async function getDiagnostic(request: Request) {
   const identity = await ensureProjectIdentity()
+  const targetProjects = await listTargetProjects()
   return Response.json({
     ok: true,
+    hubProject: {
+      fingerprint: identity.projectFingerprint,
+      canonicalPath: identity.canonicalProjectPath,
+    },
     project: {
       fingerprint: identity.projectFingerprint,
       canonicalPath: identity.canonicalProjectPath,
     },
+    targetProjects,
     contractVersion: coordinatorContractVersion,
     checks: [
       { id: 'application', status: 'ok', message: 'AppraiseJS application and coordinator API are reachable.' },
@@ -148,6 +160,8 @@ async function getDiagnostic(request: Request) {
 // fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
+  if (operation.length === 1 && operation[0] === 'target-projects')
+    return Response.json({ targetProjects: await listTargetProjects() })
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   const handlers: Record<string, () => Promise<Response>> = {
     plan: () => getPlan(request, operation),
@@ -253,42 +267,80 @@ async function postHeartbeat(body: unknown) {
   return Response.json(await heartbeatCoordinator(input))
 }
 
-async function postCreatePlan(request: Request, body: unknown) {
-  const value = z
+const createPlanBodySchema = z.object({
+  plan: z.union([planArtifactSchema, z.string()]),
+  target: z.string().min(1).optional(),
+  source: z
     .object({
-      plan: z.union([planArtifactSchema, z.string()]),
-      source: z
-        .object({
-          path: z.string().min(1),
-          external: z.boolean(),
-          warning: z.string().optional(),
-        })
-        .optional(),
+      path: z.string().min(1),
+      external: z.boolean(),
+      warning: z.string().optional(),
     })
-    .parse(body)
+    .optional(),
+})
+
+function parseCreatePlanBody(body: unknown) {
+  const value = createPlanBodySchema.parse(body)
   const plan =
     typeof value.plan === 'string'
       ? (parseYamlArtifact('plan', value.plan) as z.infer<typeof planArtifactSchema>)
       : value.plan
+  return { ...value, plan }
+}
+
+function sourceResponse(source: z.infer<typeof createPlanBodySchema>['source']) {
+  if (!source) return {}
+  return {
+    source,
+    ...(source.external
+      ? { warnings: ['Plan source is outside the coordinator project and was explicitly allowed.'] }
+      : {}),
+  }
+}
+
+async function postCreatePlan(request: Request, body: unknown) {
+  const value = parseCreatePlanBody(body)
   const identity = await ensureProjectIdentity()
+  const targetProject = value.target ? await resolveTargetProject(value.target) : undefined
+  const createdPlan = await createCoordinatorPlan(value.plan, { targetProjectId: targetProject?.id })
   return Response.json(
     {
-      ...withLinks(await createCoordinatorPlan(plan), plan.planId, request),
+      ...withLinks(createdPlan, value.plan.planId, request),
+      hubProject: {
+        fingerprint: identity.projectFingerprint,
+        canonicalPath: identity.canonicalProjectPath,
+      },
       coordinatorProject: {
         fingerprint: identity.projectFingerprint,
         canonicalPath: identity.canonicalProjectPath,
       },
-      ...(value.source
-        ? {
-            source: value.source,
-            ...(value.source.external
-              ? { warnings: ['Plan source is outside the coordinator project and was explicitly allowed.'] }
-              : {}),
-          }
-        : {}),
+      ...(targetProject ? { targetProject } : {}),
+      ...sourceResponse(value.source),
     },
     { status: 201 },
   )
+}
+
+async function postTargetProject(body: unknown) {
+  const value = z.object({ path: z.string().min(1), displayName: z.string().min(1).optional() }).parse(body)
+  return Response.json(
+    { targetProject: await registerTargetProject({ projectPath: value.path, displayName: value.displayName }) },
+    { status: 201 },
+  )
+}
+
+async function postStandaloneTestRun(body: unknown) {
+  const value = z
+    .object({
+      target: z.string().min(1),
+      environmentId: z.string().min(1),
+      name: z.string().min(1).optional(),
+      tagExpression: z.string().optional(),
+      testWorkersCount: z.number().int().positive().optional(),
+      browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
+    })
+    .parse(body)
+  return Response.json(await createStandaloneTargetTestRun(value), { status: 201 })
 }
 
 async function postStartPlan(operation: string[]) {
@@ -357,6 +409,8 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     register: () => postRegister(body),
     heartbeat: () => postHeartbeat(body),
     plans: () => postCreatePlan(request, body),
+    'target-projects': () => postTargetProject(body),
+    'test-runs': () => postStandaloneTestRun(body),
     start: () => {
       assertPlanOperation(operation)
       return postStartPlan(operation)

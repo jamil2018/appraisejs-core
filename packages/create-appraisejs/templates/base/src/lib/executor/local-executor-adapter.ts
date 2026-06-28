@@ -25,16 +25,19 @@ function mapBrowserEngineToName(
   }
 }
 
-function generateReportPath(testRunId: string): string {
-  return getAutomationRunReportPath(testRunId)
+function generateReportPath(testRunId: string, projectRoot?: string): string {
+  return getAutomationRunReportPath(testRunId, projectRoot)
 }
 
 class LocalExecutorAdapter implements ExecutorAdapter {
   async executeTestRun(config: TestRunExecutionRequest): Promise<TestRunExecutionResult> {
-    await ensureAutomationWorkspaceReady()
+    const projectRoot = config.projectRoot
+    if (config.prepareWorkspace !== false) {
+      await ensureAutomationWorkspaceReady()
+    }
 
     const { testRunId, environment, tagExpression, testWorkersCount, browserEngine, headless = true } = config
-    const reportPath = generateReportPath(testRunId)
+    const reportPath = generateReportPath(testRunId, projectRoot)
     const browserName = mapBrowserEngineToName(browserEngine)
     await fs.mkdir(dirname(reportPath), { recursive: true })
     const childEnv = {
@@ -43,7 +46,7 @@ class LocalExecutorAdapter implements ExecutorAdapter {
       HEADLESS: headless.toString(),
       BROWSER: browserName,
       REPORT_PATH: reportPath,
-      REPORT_FORMAT: buildJsonReportFormat(reportPath),
+      REPORT_FORMAT: buildJsonReportFormat(reportPath, projectRoot),
       TEST_RUN_ID: testRunId,
     }
 
@@ -63,6 +66,7 @@ class LocalExecutorAdapter implements ExecutorAdapter {
       logPrefix: `test-run-${testRunId}`,
       captureOutput: true,
       env: childEnv,
+      ...(projectRoot ? { cwd: projectRoot } : {}),
     })
 
     processManager.register(testRunId, spawnedProcess)
@@ -72,7 +76,7 @@ class LocalExecutorAdapter implements ExecutorAdapter {
 
     return {
       process: spawnedProcess,
-      reportPath: toProjectRelativePath(reportPath),
+      reportPath: toProjectRelativePath(reportPath, projectRoot),
     }
   }
 

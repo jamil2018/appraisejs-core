@@ -8,88 +8,94 @@ function getRepoRoot(): string {
 let automationRootCache: string | undefined
 let legacyTestsRootCache: string | undefined
 
-export function getAutomationRoot(): string {
+function getPathRoot(projectRoot?: string): string {
+  return projectRoot ? path.resolve(projectRoot) : getRepoRoot()
+}
+
+export function getAutomationRoot(projectRoot?: string): string {
+  if (projectRoot) return path.join(getPathRoot(projectRoot), 'automation')
   if (automationRootCache === undefined) {
     automationRootCache = path.join(getRepoRoot(), 'automation')
   }
   return automationRootCache
 }
 
-export function getLegacyTestsRoot(): string {
+export function getLegacyTestsRoot(projectRoot?: string): string {
+  if (projectRoot) return path.join(getPathRoot(projectRoot), 'src', 'tests')
   if (legacyTestsRootCache === undefined) {
     legacyTestsRootCache = path.join(getRepoRoot(), 'src', 'tests')
   }
   return legacyTestsRootCache
 }
 
-export function getAutomationConfigDir(): string {
-  return path.join(getAutomationRoot(), 'config')
+export function getAutomationConfigDir(projectRoot?: string): string {
+  return path.join(getAutomationRoot(projectRoot), 'config')
 }
 
-export function getAutomationEnvironmentsDir(): string {
-  return path.join(getAutomationConfigDir(), 'environments')
+export function getAutomationEnvironmentsDir(projectRoot?: string): string {
+  return path.join(getAutomationConfigDir(projectRoot), 'environments')
 }
 
-export function getAutomationFeaturesDir(): string {
-  return path.join(getAutomationRoot(), 'features')
+export function getAutomationFeaturesDir(projectRoot?: string): string {
+  return path.join(getAutomationRoot(projectRoot), 'features')
 }
 
-export function getAutomationLocatorsDir(): string {
-  return path.join(getAutomationRoot(), 'locators')
+export function getAutomationLocatorsDir(projectRoot?: string): string {
+  return path.join(getAutomationRoot(projectRoot), 'locators')
 }
 
-export function getAutomationMappingDir(): string {
-  return path.join(getAutomationRoot(), 'mapping')
+export function getAutomationMappingDir(projectRoot?: string): string {
+  return path.join(getAutomationRoot(projectRoot), 'mapping')
 }
 
-export function getAutomationReportsDir(): string {
-  return path.join(getAutomationRoot(), 'reports')
+export function getAutomationReportsDir(projectRoot?: string): string {
+  return path.join(getAutomationRoot(projectRoot), 'reports')
 }
 
-export function getAutomationReportRunDir(runId: string): string {
-  return path.join(getAutomationReportsDir(), runId)
+export function getAutomationReportRunDir(runId: string, projectRoot?: string): string {
+  return path.join(getAutomationReportsDir(projectRoot), runId)
 }
 
-export function getAutomationRunReportPath(runId: string): string {
-  return path.join(getAutomationReportRunDir(runId), 'cucumber.json')
+export function getAutomationRunReportPath(runId: string, projectRoot?: string): string {
+  return path.join(getAutomationReportRunDir(runId, projectRoot), 'cucumber.json')
 }
 
-export function buildJsonReportFormat(reportPath: string): string {
-  return `json:${toProjectRelativePath(reportPath)}`
+export function buildJsonReportFormat(reportPath: string, projectRoot?: string): string {
+  return `json:${toProjectRelativePath(reportPath, projectRoot)}`
 }
 
-function getAutomationReportLogsDir(runId: string): string {
-  return path.join(getAutomationReportRunDir(runId), 'logs')
+function getAutomationReportLogsDir(runId: string, projectRoot?: string): string {
+  return path.join(getAutomationReportRunDir(runId, projectRoot), 'logs')
 }
 
-export function getAutomationRunLogPath(runId: string): string {
-  return path.join(getAutomationReportLogsDir(runId), 'run.log')
+export function getAutomationRunLogPath(runId: string, projectRoot?: string): string {
+  return path.join(getAutomationReportLogsDir(runId, projectRoot), 'run.log')
 }
 
-export function toProjectRelativePath(targetPath: string): string {
+export function toProjectRelativePath(targetPath: string, projectRoot?: string): string {
   const normalizedTargetPath = targetPath.replace(/\\/g, '/')
-  const normalizedRepoRoot = getRepoRoot().replace(/\\/g, '/')
+  const normalizedRepoRoot = getPathRoot(projectRoot).replace(/\\/g, '/')
   const normalizedPath = path.isAbsolute(targetPath)
     ? path.posix.relative(normalizedRepoRoot, normalizedTargetPath)
     : normalizedTargetPath
   return normalizedPath
 }
 
-export function resolveStoredPath(storedPath: string): string {
+export function resolveStoredPath(storedPath: string, projectRoot?: string): string {
   if (path.isAbsolute(storedPath)) {
     return storedPath
   }
-  return path.join(getRepoRoot(), storedPath)
+  return path.join(getPathRoot(projectRoot), storedPath)
 }
 
-export function getAutomationStepsDir(): string {
-  return path.join(getAutomationRoot(), 'steps')
+export function getAutomationStepsDir(projectRoot?: string): string {
+  return path.join(getAutomationRoot(projectRoot), 'steps')
 }
 
-export function getAutomationActionStepsDir(): string {
-  return path.join(getAutomationStepsDir(), 'actions')
+export function getAutomationActionStepsDir(projectRoot?: string): string {
+  return path.join(getAutomationStepsDir(projectRoot), 'actions')
 }
 
-export function getAutomationValidationStepsDir(): string {
-  return path.join(getAutomationStepsDir(), 'validations')
+export function getAutomationValidationStepsDir(projectRoot?: string): string {
+  return path.join(getAutomationStepsDir(projectRoot), 'validations')
 }

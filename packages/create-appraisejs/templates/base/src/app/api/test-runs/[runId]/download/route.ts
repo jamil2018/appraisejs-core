@@ -41,9 +41,10 @@ async function addStoredArtifactFile(
   storedPath: string,
   archivePath: string,
   warningLabel: string,
+  projectRoot?: string,
 ): Promise<boolean> {
   try {
-    const resolvedPath = resolveStoredPath(storedPath)
+    const resolvedPath = resolveStoredPath(storedPath, projectRoot)
     await fs.access(resolvedPath)
     archive.file(resolvedPath, { name: archivePath })
     return true
@@ -64,6 +65,11 @@ async function getDownloadTestRun(runId: string) {
     select: {
       logPath: true,
       reportPath: true,
+      targetProject: {
+        select: {
+          canonicalPath: true,
+        },
+      },
       testCases: {
         select: {
           tracePath: true,
@@ -97,12 +103,19 @@ async function addLegacyReportFile(
     return false
   }
 
-  const resolvedReportPath = resolveStoredPath(testRun.reportPath)
+  const projectRoot = testRun.targetProject?.canonicalPath
+  const resolvedReportPath = resolveStoredPath(testRun.reportPath, projectRoot)
   if (isPathWithinDirectory(resolvedReportPath, runArtifactDir) || archivedPaths.has('cucumber.json')) {
     return false
   }
 
-  const didAddReportFile = await addStoredArtifactFile(archive, testRun.reportPath, 'cucumber.json', 'Report file')
+  const didAddReportFile = await addStoredArtifactFile(
+    archive,
+    testRun.reportPath,
+    'cucumber.json',
+    'Report file',
+    projectRoot,
+  )
   if (didAddReportFile) {
     archivedPaths.add('cucumber.json')
   }
@@ -120,13 +133,14 @@ async function addLegacyLogFile(
     return false
   }
 
-  const resolvedLogPath = resolveStoredPath(testRun.logPath)
+  const projectRoot = testRun.targetProject?.canonicalPath
+  const resolvedLogPath = resolveStoredPath(testRun.logPath, projectRoot)
   const archivePath = `logs/${path.basename(testRun.logPath)}`
   if (isPathWithinDirectory(resolvedLogPath, runArtifactDir) || archivedPaths.has(archivePath)) {
     return false
   }
 
-  const didAddLogFile = await addStoredArtifactFile(archive, testRun.logPath, archivePath, 'Log file')
+  const didAddLogFile = await addStoredArtifactFile(archive, testRun.logPath, archivePath, 'Log file', projectRoot)
   if (didAddLogFile) {
     archivedPaths.add(archivePath)
   }
@@ -142,16 +156,17 @@ async function addLegacyTraceFiles(
 ) {
   let didAddAnyTraceFile = false
   const traceFiles = testRun.testCases.flatMap(({ tracePath }) => (tracePath ? [tracePath] : []))
+  const projectRoot = testRun.targetProject?.canonicalPath
 
   for (const tracePath of traceFiles) {
-    const resolvedTracePath = resolveStoredPath(tracePath)
+    const resolvedTracePath = resolveStoredPath(tracePath, projectRoot)
     const archivePath = `traces/${path.basename(tracePath)}`
 
     if (isPathWithinDirectory(resolvedTracePath, runArtifactDir) || archivedPaths.has(archivePath)) {
       continue
     }
 
-    const didAddTraceFile = await addStoredArtifactFile(archive, tracePath, archivePath, 'Trace file')
+    const didAddTraceFile = await addStoredArtifactFile(archive, tracePath, archivePath, 'Trace file', projectRoot)
     didAddAnyTraceFile = didAddTraceFile || didAddAnyTraceFile
     if (didAddTraceFile) {
       archivedPaths.add(archivePath)
@@ -218,7 +233,6 @@ function createZipDownloadResponse(zipBuffer: Buffer, runId: string) {
  */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params
-  const runArtifactDir = getAutomationReportRunDir(runId)
 
   try {
     const testRun = await getDownloadTestRun(runId)
@@ -228,6 +242,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     const archive = createZipArchive()
+    const runArtifactDir = getAutomationReportRunDir(runId, testRun.targetProject?.canonicalPath)
     const hasFiles = await addDownloadArtifacts(archive, testRun, runArtifactDir)
 
     // If no files to add, return an error
