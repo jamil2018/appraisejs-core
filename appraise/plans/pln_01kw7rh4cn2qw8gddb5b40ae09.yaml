@@ -1,0 +1,116 @@
+description: Create a React/Vite todo app using Tailwind CSS, shadcn/ui, and TanStack Form. Users can create, edit, delete, and complete tasks, with task state persisted across browser sessions. AppraiseJS will own plan review and E2E validation; the target project will be attached after the Vite scaffold creates package.json.
+edges:
+  - from: scaffold-app
+    to: attach-appraise-target
+    type: blocks
+  - from: attach-appraise-target
+    to: configure-ui-stack
+    type: blocks
+  - from: configure-ui-stack
+    to: model-persistence
+    type: blocks
+  - from: model-persistence
+    to: create-form
+    type: blocks
+  - from: create-form
+    to: task-list-actions
+    type: blocks
+  - from: task-list-actions
+    to: appraise-e2e
+    type: blocks
+  - from: appraise-e2e
+    to: final-qa
+    type: blocks
+goal: Build simple todo app
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-app
+      - attach-appraise-target
+      - configure-ui-stack
+  - id: todo-behavior
+    taskIds:
+      - model-persistence
+      - create-form
+      - task-list-actions
+  - id: validation
+    taskIds:
+      - appraise-e2e
+      - final-qa
+lifecycle: changes_requested
+planId: pln_01kw7rh4cn2qw8gddb5b40ae09
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The workspace contains a runnable React app created for Vite.
+      - package.json exists so AppraiseJS can attach this folder as a target project.
+      - The app can be started locally with npm run dev.
+      - The app can produce a production build with npm run build.
+    description: Initialize the project structure for a Vite React TypeScript app and establish package scripts for development, build, linting, and preview.
+    id: scaffold-app
+    title: Scaffold React Vite application
+    validationIntent: Run install/build checks and verify the Vite development server can serve the app for browser testing.
+  - acceptanceCriteria:
+      - AppraiseJS project_add succeeds for the simple-todo workspace.
+      - The plan records this repository as the intended implementation and E2E target.
+      - Future AppraiseJS test runs can reference the attached target.
+    description: Register /Users/jamil/Personal Projects/simple-todo as an AppraiseJS target project once package.json exists.
+    id: attach-appraise-target
+    title: Attach the target repo to AppraiseJS
+    validationIntent: Run project_diagnostic/project_add and verify AppraiseJS lists the simple-todo target.
+  - acceptanceCriteria:
+      - Tailwind CSS is wired into the Vite app and styles render in the browser.
+      - shadcn/ui configuration exists and supports the components used by the app.
+      - The interface uses shadcn-style components for buttons, inputs, checkboxes, and inline edit controls as appropriate.
+      - The visual design is compact, responsive, and usable on desktop and mobile viewports.
+    description: Add Tailwind CSS, shadcn/ui configuration, design tokens, and reusable UI primitives needed by the todo interface.
+    id: configure-ui-stack
+    title: Configure Tailwind CSS and shadcn/ui
+    validationIntent: Use browser rendering and screenshot inspection to confirm Tailwind and shadcn UI styles are applied correctly.
+  - acceptanceCriteria:
+      - Each task has a stable id, text/title, and completion state.
+      - Task state is read from localStorage on initial load.
+      - Task changes are written back to localStorage after create, edit, delete, and completion toggles.
+      - Invalid or missing stored data is handled without crashing the app.
+    description: Define the todo task shape and persistence layer using localStorage so tasks survive page reloads and browser restarts.
+    id: model-persistence
+    title: Implement task model and persistence
+    validationIntent: Exercise CRUD actions, reload the page, and assert the same tasks and completion states are restored.
+  - acceptanceCriteria:
+      - Users can enter a task and submit it from the main screen.
+      - TanStack Form owns the form state and validation for task creation.
+      - Blank or whitespace-only tasks are rejected with accessible feedback.
+      - After successful creation, the new task appears in the list and the input resets.
+    description: Use TanStack Form for the create-task form, including validation, submit handling, and empty-input protection.
+    id: create-form
+    title: Build task creation flow with TanStack Form
+    validationIntent: Run E2E coverage for valid creation, invalid empty submission, and focus/keyboard behavior.
+  - acceptanceCriteria:
+      - Users can mark a task as completed and uncompleted.
+      - Users can modify an existing task and save the change.
+      - Users can delete a task from the list.
+      - The UI clearly distinguishes completed tasks from active tasks.
+      - All list actions are keyboard-accessible and expose clear accessible names.
+    description: Render persisted tasks and support marking complete, editing task text, cancelling/saving edits, and deleting tasks.
+    id: task-list-actions
+    title: Implement list editing, completion, and deletion
+    validationIntent: Run AppraiseJS E2E tests for complete/uncomplete, edit/save, edit validation, delete, and persisted state after reload.
+  - acceptanceCriteria:
+      - E2E artifacts live in the target repository so they can run without changing AppraiseJS itself.
+      - Tests cover create, edit, delete, complete, validation error, and persistence across reload.
+      - Tests use stable locators based on roles, labels, and accessible names.
+      - AppraiseJS can run or report the test surface for this target project.
+    description: Create Appraise-compatible Cucumber/Playwright tests that validate the real browser workflow for the todo app.
+    id: appraise-e2e
+    title: Add AppraiseJS E2E validation artifacts
+    validationIntent: Run the AppraiseJS test surface against a local app server and record the E2E result as implementation evidence.
+  - acceptanceCriteria:
+      - npm run build passes.
+      - Configured static checks pass or any unavailable checks are documented with exact reasons.
+      - AppraiseJS E2E validation passes for the covered user flows.
+      - The final app works after a clean reload and retains tasks across sessions.
+    description: Run build, lint/type checks, and AppraiseJS E2E validation; fix any issues before marking the plan complete.
+    id: final-qa
+    title: Perform final quality pass
+    validationIntent: Collect command output and AppraiseJS run evidence before completion review.
+version: '1'
