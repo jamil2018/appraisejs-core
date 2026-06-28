@@ -49,7 +49,7 @@
     "quality:pre-commit": "npm run quality:fallow:commit && npm run quality:react-doctor:commit"
   },
   "dependencies": {
-    "@babel/parser": "^7.27.0",
+    "@babel/parser": "^8.0.0",
     "@babel/types": "^7.27.0",
     "@codemirror/lang-jinja": "^6.0.0",
     "@faker-js/faker": "^10.2.0",
