@@ -36,7 +36,7 @@ Project documentation has moved to [appraisejs.dev](https://appraisejs.dev/).
 
 ### Requirements
 
-- Node.js 18+
+- Node.js 20.19+
 - npm
 
 ### Getting Started

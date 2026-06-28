@@ -3,6 +3,9 @@
   "version": "0.4.0",
   "private": false,
   "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "dev": "node scripts/dev-with-mcp.mjs",
     "dev:web": "next dev",
@@ -66,7 +69,7 @@
     "quality:pre-commit": "npm run quality:fallow:commit && npm run quality:react-doctor:commit"
   },
   "dependencies": {
-    "@babel/parser": "^7.27.0",
+    "@babel/parser": "^7.29.0",
     "@babel/types": "^7.27.0",
     "@codemirror/lang-jinja": "^6.0.0",
     "@faker-js/faker": "^10.2.0",
@@ -75,11 +78,11 @@
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
     "@radix-ui/react-label": "^2.1.7",
-    "@radix-ui/react-popover": "^1.1.14",
+    "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-radio-group": "^1.3.8",
     "@radix-ui/react-scroll-area": "^1.2.9",
-    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.12",
@@ -104,9 +107,9 @@
     "motion": "^12.23.26",
     "next": "^16.1.6",
     "next-themes": "^0.4.4",
-    "react": "^19.2.1",
+    "react": "^19.2.4",
     "react-day-picker": "^9.7.0",
-    "react-dom": "^19.2.1",
+    "react-dom": "^19.2.4",
     "recharts": "^2.15.4",
     "tailwind-merge": "^2.6.0",
     "winston": "^3.19.0",
@@ -114,7 +117,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@babel/traverse": "^7.28.5",
+    "@babel/traverse": "^7.29.0",
     "@cucumber/cucumber": "^12.8.3",
     "@playwright/test": "^1.58.0",
     "@testing-library/dom": "^10.4.1",
@@ -139,7 +142,7 @@
     "postcss": "^8",
     "postcss-load-config": "^6.0.1",
     "prettier": "^3.6.2",
-    "prettier-plugin-tailwindcss": "^0.6.14",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "prisma": "^6.2.1",
     "react-doctor": "^0.1.6",
     "rimraf": "^6.1.2",
