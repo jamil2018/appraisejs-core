@@ -6,7 +6,7 @@ import type { ArtifactKind } from '@/lib/plan-contract'
 
 import { findProjectRoot } from './project-root'
 
-const PLAN_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PLAN_ID_PATTERN = /^(?:[a-z0-9]+(?:-[a-z0-9]+)*|pln_[0-9a-hjkmnp-tv-z]{26})$/
 const WINDOWS_ABSOLUTE_PATTERN = /^[a-zA-Z]:[\\/]/
 
 const artifactLocation: Record<ArtifactKind, { directory: string; extension: string }> = {

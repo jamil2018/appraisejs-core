@@ -20,7 +20,12 @@ vi.mock('@/config/db-config', () => ({
   },
 }))
 
-import { listTargetProjects, registerTargetProject, resolveTargetProject } from './target-project-service'
+import {
+  listTargetProjects,
+  registerTargetProject,
+  resolveTargetProject,
+  writeTargetProjectMarker,
+} from './target-project-service'
 
 const workspaces: string[] = []
 
@@ -58,6 +63,51 @@ describe('target project service', () => {
       }),
     )
     await expect(fs.access(path.join(workspace, '.appraisejs'))).rejects.toBeTruthy()
+  })
+
+  it('writes and refreshes the Appraise continuity marker independently from registration', async () => {
+    const workspace = await createWorkspace()
+    const targetProject = {
+      id: 'target-1',
+      canonicalPath: await fs.realpath(workspace),
+      displayName: 'Target app',
+      fingerprint: 'sha256:target',
+    } as Parameters<typeof writeTargetProjectMarker>[0]
+
+    await expect(writeTargetProjectMarker(targetProject, 'sha256:hub')).resolves.toMatchObject({
+      status: 'written',
+      path: path.join(targetProject.canonicalPath, '.appraisejs', 'project.json'),
+    })
+    await expect(writeTargetProjectMarker(targetProject, 'sha256:hub')).resolves.toMatchObject({
+      status: 'refreshed',
+    })
+
+    const marker = JSON.parse(await fs.readFile(path.join(workspace, '.appraisejs', 'project.json'), 'utf8')) as {
+      hubFingerprint: string
+      targetProjectId: string
+      guidance: string
+    }
+    expect(marker).toMatchObject({
+      hubFingerprint: 'sha256:hub',
+      targetProjectId: 'target-1',
+      guidance: expect.stringContaining('Future AppraiseJS plans'),
+    })
+  })
+
+  it('reports marker write failures as skipped without failing registration callers', async () => {
+    const workspace = await createWorkspace()
+    const blockedPath = path.join(workspace, 'package.json')
+    const targetProject = {
+      id: 'target-1',
+      canonicalPath: blockedPath,
+      displayName: 'Target app',
+      fingerprint: 'sha256:target',
+    } as Parameters<typeof writeTargetProjectMarker>[0]
+
+    await expect(writeTargetProjectMarker(targetProject, 'sha256:hub')).resolves.toMatchObject({
+      status: 'skipped',
+      warning: expect.stringContaining('Target project was registered'),
+    })
   })
 
   it('lists target projects in service-defined order', async () => {

@@ -16,7 +16,11 @@ import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifac
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
-import { appendPlanEvent, assertPlanNotCancelled } from '@/services/coordinator/coordinator-service'
+import {
+  appendPlanEvent,
+  assertPlanNotCancelled,
+  resolvePlanReference,
+} from '@/services/coordinator/coordinator-service'
 
 import {
   canApprovePlan,
@@ -46,6 +50,8 @@ export type PlanReviewDetail = {
   validation?: ValidationArtifact
   graph: ReturnType<typeof derivePlanGraph>
   projection: {
+    slug: string
+    legacyPlanId: string | null
     sourceHash: string
     lifecycle: string
     stale: boolean
@@ -226,11 +232,12 @@ export async function getPlanReviewDetail(
   options?: ReviewMutationOptions,
 ): Promise<PlanReviewDetail> {
   const client = options?.client ?? prisma
+  const canonicalPlanId = await resolvePlanReference(planId, client)
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const [{ plan, planArtifact, review }, projection] = await Promise.all([
-    readPlanAndReview(projectRoot, planId),
+    readPlanAndReview(projectRoot, canonicalPlanId),
     client.planProjection.findUnique({
-      where: { planId },
+      where: { planId: canonicalPlanId },
       include: {
         issues: { where: { resolvedAt: null }, orderBy: { createdAt: 'desc' } },
         revisions: { orderBy: { createdAt: 'desc' } },
@@ -246,7 +253,10 @@ export async function getPlanReviewDetail(
   const readiness = evaluateGraphReadiness(projection.events)
   const canReview = plan.lifecycle === 'awaiting_plan_review'
   if (canReview && !readiness.ready) {
-    await appendPlanEvent({ planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } }, client)
+    await appendPlanEvent(
+      { planId: canonicalPlanId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
+      client,
+    )
   }
   const includePendingReviewReady = canReview && !readiness.ready
 
@@ -290,13 +300,15 @@ export async function readPlanReviewSummary(
   planId: string,
   options?: ReviewMutationOptions,
 ): Promise<PlanReviewSummary> {
+  const client = options?.client ?? prisma
+  const canonicalPlanId = await resolvePlanReference(planId, client)
   const projectRoot = await findProjectRoot(options?.projectDirectory)
-  const { plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, planId)
+  const { plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, canonicalPlanId)
   const orphanedThreads = getOrphanedThreads(plan, review)
   const orphanedThreadIds = new Set(orphanedThreads.map(thread => thread.id))
   const openThreads = review.threads.filter(thread => !['resolved', 'dismissed'].includes(getThreadStatus(thread)))
   return {
-    planId,
+    planId: canonicalPlanId,
     plan: {
       revision: plan.revision,
       lifecycle: plan.lifecycle,
@@ -311,8 +323,8 @@ export async function readPlanReviewSummary(
       .map(thread => summarizeThread(thread, orphanedThreadIds)),
     orphanedThreadIds: [...orphanedThreadIds],
     links: {
-      appraise: `appraise://plans/${planId}`,
-      route: `/plans/${planId}`,
+      appraise: `appraise://plans/${canonicalPlanId}`,
+      route: `/plans/${canonicalPlanId}`,
     },
     recovery: {
       changesRequested:

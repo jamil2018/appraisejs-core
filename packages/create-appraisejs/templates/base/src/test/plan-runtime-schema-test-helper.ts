@@ -42,6 +42,10 @@ export async function ensurePlanProjectionTestSchema(databasePath: string) {
   if (!hasColumn(databasePath, 'PlanProjection', 'targetProjectId')) {
     await applyMigration(databasePath, '20260628090000_add_target_projects')
   }
+
+  if (!hasColumn(databasePath, 'PlanProjection', 'slug')) {
+    await applyMigration(databasePath, '20260628103000_add_plan_slug_legacy_identity')
+  }
 }
 
 export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {

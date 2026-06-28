@@ -59,6 +59,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 import { getThreadStatus, isThreadOpen } from '@/services/plan-review/plan-review-helpers'
@@ -120,6 +121,11 @@ function getReviewUnavailableReason(lifecycle: string): string | null {
 // The graph, list, inspector, and approval controls intentionally share one interaction model.
 // fallow-ignore-next-line complexity
 export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
+  const planSlug = getPlanDisplaySlug({
+    planId: detail.plan.planId,
+    slug: detail.projection.slug,
+    legacyPlanId: detail.projection.legacyPlanId,
+  })
   const semanticFlow = useMemo(() => projectPlanFlow(detail.graph), [detail.graph])
   const openRemarksByTask = useMemo(() => {
     const counts = new Map<string, number>()
@@ -258,7 +264,10 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
               ))}
             </div>
           ) : null}
-          <p className="mt-2 font-mono text-xs text-muted-foreground">{detail.plan.planId}</p>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">
+            {planSlug}
+            {planSlug === detail.plan.planId ? null : <span className="ml-2">ID {detail.plan.planId}</span>}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setInspectorOpen(open => !open)}>

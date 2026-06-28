@@ -274,6 +274,8 @@ model TestRun {
 model PlanProjection {
   id                   String                @id @default(uuid())
   planId               String                @unique
+  slug                 String                @default("")
+  legacyPlanId         String?
   revision             Int
   lifecycle            String
   goal                 String
@@ -302,6 +304,8 @@ model PlanProjection {
 
   @@index([stale])
   @@index([conflicted])
+  @@index([slug])
+  @@index([legacyPlanId])
   @@index([targetProjectId])
 }
 

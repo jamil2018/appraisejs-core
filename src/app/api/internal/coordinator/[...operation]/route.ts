@@ -12,8 +12,10 @@ import {
   implementationValidationRunSchema,
   parseYamlArtifact,
   planArtifactSchema,
+  planIdSchema,
   validationArtifactSchema,
 } from '@/lib/plan-contract'
+import { createOpaquePlanId } from '@/lib/plans/plan-identity'
 import {
   acknowledgePlanEvent,
   ensureProjectIdentity,
@@ -53,11 +55,13 @@ import {
   listTargetProjects,
   registerTargetProject,
   resolveTargetProject,
+  writeTargetProjectMarker,
 } from '@/services/target-project/target-project-service'
 
 export const runtime = 'nodejs'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+const routePlanIdSchema = planIdSchema
 const reviewTargetSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('plan') }),
   z.object({ type: z.literal('task'), taskId: idSchema }),
@@ -100,18 +104,20 @@ function withLinks<T extends object>(value: T, planId: string, request: Request)
 }
 
 async function getPlan(request: Request, operation: string[]) {
-  const planId = idSchema.parse(operation[1])
-  return Response.json(withLinks(await readCoordinatorPlan(planId), planId, request))
+  const planId = routePlanIdSchema.parse(operation[1])
+  const plan = await readCoordinatorPlan(planId)
+  return Response.json(withLinks(plan, plan.planId, request))
 }
 
 async function getReview(request: Request, operation: string[]) {
-  const planId = idSchema.parse(operation[1])
-  return Response.json(withLinks(await readPlanReviewSummary(planId), planId, request))
+  const planId = routePlanIdSchema.parse(operation[1])
+  const review = await readPlanReviewSummary(planId)
+  return Response.json(withLinks(review, review.planId, request))
 }
 
 async function getEvents(request: Request, operation: string[]) {
   const url = new URL(request.url)
-  const planId = idSchema.parse(operation[1])
+  const planId = routePlanIdSchema.parse(operation[1])
   const afterSequence = z.coerce
     .number()
     .int()
@@ -167,7 +173,7 @@ async function dispatchGet(request: Request, operation: string[]) {
     plan: () => getPlan(request, operation),
     events: () => getEvents(request, operation),
     review: () => getReview(request, operation),
-    completion: async () => Response.json(await reviewImplementationCompletion(idSchema.parse(operation[1]))),
+    completion: async () => Response.json(await reviewImplementationCompletion(routePlanIdSchema.parse(operation[1]))),
   }
   const handler = handlers[operation[2] ?? 'plan']
   if (!handler) throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
@@ -177,7 +183,7 @@ async function dispatchGet(request: Request, operation: string[]) {
 // Request parsing branches stay in this thin HTTP adapter.
 // fallow-ignore-next-line complexity
 async function postImplementationOperation(operation: string[], body: unknown) {
-  const planId = idSchema.parse(operation[1])
+  const planId = routePlanIdSchema.parse(operation[1])
   const action = operation[3]
   if (action === 'checkpoint') {
     const value = z
@@ -251,7 +257,7 @@ export async function GET(request: Request, context: RouteContext) {
 async function postRegister(body: unknown) {
   const input = z
     .object({
-      planId: idSchema,
+      planId: routePlanIdSchema,
       coordinatorId: z.string().min(1),
       reconnectConnectionId: z.string().uuid().optional(),
       takeoverApproved: z.boolean().optional(),
@@ -262,13 +268,14 @@ async function postRegister(body: unknown) {
 
 async function postHeartbeat(body: unknown) {
   const input = z
-    .object({ planId: idSchema, coordinatorId: z.string().min(1), connectionId: z.string().uuid() })
+    .object({ planId: routePlanIdSchema, coordinatorId: z.string().min(1), connectionId: z.string().uuid() })
     .parse(body)
   return Response.json(await heartbeatCoordinator(input))
 }
 
+const createPlanArtifactSchema = planArtifactSchema.omit({ planId: true }).extend({ planId: planIdSchema.optional() })
 const createPlanBodySchema = z.object({
-  plan: z.union([planArtifactSchema, z.string()]),
+  plan: z.union([createPlanArtifactSchema, z.string()]),
   target: z.string().min(1).optional(),
   source: z
     .object({
@@ -284,7 +291,7 @@ function parseCreatePlanBody(body: unknown) {
   const plan =
     typeof value.plan === 'string'
       ? (parseYamlArtifact('plan', value.plan) as z.infer<typeof planArtifactSchema>)
-      : value.plan
+      : planArtifactSchema.parse({ ...value.plan, planId: value.plan.planId ?? createOpaquePlanId() })
   return { ...value, plan }
 }
 
@@ -305,7 +312,7 @@ async function postCreatePlan(request: Request, body: unknown) {
   const createdPlan = await createCoordinatorPlan(value.plan, { targetProjectId: targetProject?.id })
   return Response.json(
     {
-      ...withLinks(createdPlan, value.plan.planId, request),
+      ...withLinks(createdPlan, createdPlan.planId, request),
       hubProject: {
         fingerprint: identity.projectFingerprint,
         canonicalPath: identity.canonicalProjectPath,
@@ -323,8 +330,13 @@ async function postCreatePlan(request: Request, body: unknown) {
 
 async function postTargetProject(body: unknown) {
   const value = z.object({ path: z.string().min(1), displayName: z.string().min(1).optional() }).parse(body)
+  const identity = await ensureProjectIdentity()
+  const targetProject = await registerTargetProject({ projectPath: value.path, displayName: value.displayName })
   return Response.json(
-    { targetProject: await registerTargetProject({ projectPath: value.path, displayName: value.displayName }) },
+    {
+      targetProject,
+      marker: await writeTargetProjectMarker(targetProject, identity.projectFingerprint),
+    },
     { status: 201 },
   )
 }
@@ -344,14 +356,14 @@ async function postStandaloneTestRun(body: unknown) {
 }
 
 async function postStartPlan(operation: string[]) {
-  return Response.json(await startCoordinatorPlan(idSchema.parse(operation[1])))
+  return Response.json(await startCoordinatorPlan(routePlanIdSchema.parse(operation[1])))
 }
 
 async function postTaskUpdate(operation: string[], body: unknown) {
   const value = z.object({ status: z.string().min(1), detail: z.string().optional() }).parse(body)
   return Response.json(
     await updateCoordinatorTask({
-      planId: idSchema.parse(operation[1]),
+      planId: routePlanIdSchema.parse(operation[1]),
       taskId: idSchema.parse(operation[3]),
       ...value,
     }),
@@ -360,13 +372,13 @@ async function postTaskUpdate(operation: string[], body: unknown) {
 
 async function postEventAcknowledgement(operation: string[], body: unknown) {
   const value = z.object({ sequence: z.number().int().positive(), coordinatorId: z.string().min(1) }).parse(body)
-  return Response.json(await acknowledgePlanEvent({ planId: idSchema.parse(operation[1]), ...value }))
+  return Response.json(await acknowledgePlanEvent({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
 }
 
 // Request parsing branches stay in this thin HTTP adapter.
 // fallow-ignore-next-line complexity
 async function postValidationOperation(operation: string[], body: unknown) {
-  const planId = idSchema.parse(operation[1])
+  const planId = routePlanIdSchema.parse(operation[1])
   if (operation[3] === 'publish') {
     const value = z.object({ validation: validationArtifactSchema }).parse(body)
     return Response.json(await publishPreparedValidations(planId, value.validation))
@@ -456,8 +468,9 @@ export async function PUT(request: Request, context: RouteContext) {
     const body = z
       .object({ plan: planArtifactSchema, expectedHash: z.string().startsWith('sha256:') })
       .parse(await readCoordinatorJson(request))
-    const planId = idSchema.parse(operation[1])
-    return Response.json(withLinks(await reviseCoordinatorPlan(planId, body.plan, body.expectedHash), planId, request))
+    const planId = routePlanIdSchema.parse(operation[1])
+    const revised = await reviseCoordinatorPlan(planId, body.plan, body.expectedHash)
+    return Response.json(withLinks(revised, revised.planId, request))
   } catch (error) {
     return responseError(error)
   }

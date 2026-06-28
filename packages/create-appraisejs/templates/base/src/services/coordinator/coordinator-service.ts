@@ -69,10 +69,37 @@ function parsePayload(payloadJson: string | null): unknown {
   }
 }
 
-async function getProjection(client: PrismaClient, planId: string) {
+export async function resolvePlanReference(planReference: string, client: PrismaClient = prisma): Promise<string> {
+  const direct = await client.planProjection.findUnique({
+    where: { planId: planReference },
+    select: { planId: true },
+  })
+  if (direct) return direct.planId
+
+  const matches = await client.planProjection.findMany({
+    where: {
+      deletedAt: null,
+      OR: [{ slug: planReference }, { legacyPlanId: planReference }],
+    },
+    select: { planId: true },
+    take: 2,
+  })
+  if (matches.length === 1) return matches[0]!.planId
+  if (matches.length > 1) {
+    throw new ServiceError(
+      `Plan reference "${planReference}" is ambiguous. Use the canonical opaque plan id.`,
+      'VALIDATION',
+      400,
+    )
+  }
+  throw new ServiceError('Plan not found.', 'NOT_FOUND')
+}
+
+async function getProjection(client: PrismaClient, planReference: string) {
+  const planId = await resolvePlanReference(planReference, client)
   const projection = await client.planProjection.findUnique({
     where: { planId },
-    select: { id: true, lifecycle: true },
+    select: { id: true, planId: true, lifecycle: true },
   })
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   return projection
@@ -223,8 +250,9 @@ export async function appendPlanEvent(
 }
 
 export async function ensurePlanReviewReadyEvent(planId: string, client: PrismaClient = prisma) {
+  const canonicalPlanId = await resolvePlanReference(planId, client)
   const projection = await client.planProjection.findUnique({
-    where: { planId },
+    where: { planId: canonicalPlanId },
     select: { id: true, lifecycle: true },
   })
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
@@ -238,7 +266,10 @@ export async function ensurePlanReviewReadyEvent(planId: string, client: PrismaC
     orderBy: { sequence: 'desc' },
   })
   if (existing) return existing
-  return appendPlanEvent({ planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } }, client)
+  return appendPlanEvent(
+    { planId: canonicalPlanId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
+    client,
+  )
 }
 
 export async function readPlanEvents(
@@ -258,7 +289,7 @@ export async function readPlanEvents(
   })
   return events.map(event => ({
     id: event.id,
-    planId: input.planId,
+    planId: projection.planId,
     sequence: event.sequence,
     type: event.type,
     payload: parsePayload(event.payloadJson),
@@ -269,8 +300,9 @@ export async function readPlanEvents(
 }
 
 export async function assertPlanNotCancelled(planId: string, client: PrismaClient = prisma): Promise<void> {
+  const canonicalPlanId = await resolvePlanReference(planId, client)
   const projection = await client.planProjection.findUnique({
-    where: { planId },
+    where: { planId: canonicalPlanId },
     select: {
       id: true,
       lifecycle: true,

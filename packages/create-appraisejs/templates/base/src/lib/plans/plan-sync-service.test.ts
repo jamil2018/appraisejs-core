@@ -64,6 +64,7 @@ describe('syncPlans', () => {
       where: { planId: 'checkout-flow' },
       include: { tasks: true, revisions: true },
     })
+    expect(first).toMatchObject({ slug: 'checkout-flow', legacyPlanId: 'checkout-flow' })
     expect(first.tasks).toHaveLength(1)
     expect(first.revisions[0].reducedAssurance).toBe(true)
     const stableTaskId = first.tasks[0].id

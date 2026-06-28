@@ -18,6 +18,7 @@ vi.mock('next/link', () => ({
 const plans: PlansBrowserPlan[] = [
   {
     planId: 'draft-plan',
+    slug: 'draft-plan',
     goal: 'Draft plan',
     description: 'A draft that has not been submitted.',
     lifecycle: 'draft',
@@ -31,6 +32,7 @@ const plans: PlansBrowserPlan[] = [
   },
   {
     planId: 'review-plan',
+    slug: 'review-plan',
     goal: 'Review plan',
     description: 'A plan awaiting reviewer action.',
     lifecycle: 'awaiting_plan_review',
@@ -44,6 +46,7 @@ const plans: PlansBrowserPlan[] = [
   },
   {
     planId: 'changes-plan',
+    slug: 'changes-plan',
     goal: 'Changes requested plan',
     description: 'A plan waiting for author changes.',
     lifecycle: 'changes_requested',
@@ -72,5 +75,51 @@ describe('PlansBrowser', () => {
     expect(screen.queryByText('Draft plan')).not.toBeInTheDocument()
     expect(screen.getByText('Review plan')).toBeInTheDocument()
     expect(screen.getByText('Changes requested plan')).toBeInTheDocument()
+  })
+
+  it('searches display slugs while cards keep canonical plan links', async () => {
+    const user = userEvent.setup()
+    render(
+      <PlansBrowser
+        plans={[
+          {
+            ...plans[0]!,
+            planId: 'pln_01jz7q1by2e4prv55bda9xf39m',
+            slug: 'checkout-redesign',
+            goal: 'Opaque ID plan',
+          },
+        ]}
+      />,
+    )
+
+    await user.type(screen.getByRole('searchbox', { name: /search plans/i }), 'checkout-redesign')
+
+    expect(screen.getByText('checkout-redesign')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /read the plan opaque id plan/i })).toHaveAttribute(
+      'href',
+      '/plans/pln_01jz7q1by2e4prv55bda9xf39m',
+    )
+  })
+
+  it('uses the incoming query to seed slug search results', () => {
+    render(
+      <PlansBrowser
+        initialQuery="review-plan"
+        plans={[
+          {
+            ...plans[0]!,
+            planId: 'pln_01jz7q1by2e4prv55bda9xf39n',
+            slug: 'review-plan',
+            goal: 'Seeded result',
+          },
+          plans[1]!,
+        ]}
+      />,
+    )
+
+    expect(screen.getByRole('searchbox', { name: /search plans/i })).toHaveValue('review-plan')
+    expect(screen.getByText('Seeded result')).toBeInTheDocument()
+    expect(screen.getByText('Review plan')).toBeInTheDocument()
+    expect(screen.queryByText('Draft plan')).not.toBeInTheDocument()
   })
 })
