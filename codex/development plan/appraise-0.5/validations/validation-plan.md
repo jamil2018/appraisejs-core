@@ -1,9 +1,11 @@
 # AppraiseJS Planning Flow Validation Plan
 
 ## Summary
+
 Validate the AppraiseJS planning feature as a real user workflow: the user asks an agent to generate a plan, the agent publishes it through AppraiseJS, the user reviews and gives feedback in AppraiseJS, the agent revises until exact plan approval, then prepares validation tests for user review, and only after all gates are approved proceeds to implementation. The validating agent will run the interactions, execute tests, and fix issues as they are discovered.
 
 ## Primary User Flow
+
 - Start from a normal chat request to create a feature plan.
 - Agent verifies AppraiseJS project readiness, creates a structured plan through the real coordinator/MCP/API path, and presents the AppraiseJS review link only after `plan_review_ready`.
 - User finds and reviews the plan in AppraiseJS through both the direct link and the plan list/dashboard.
@@ -16,6 +18,7 @@ Validate the AppraiseJS planning feature as a real user workflow: the user asks 
 - User performs final completion review, including optional failures and unresolved non-blocking remarks, then explicitly signs off.
 
 ## Required Validation Flows
+
 - Connection and setup failures:
   Test AppraiseJS not running, MCP misconfiguration, missing identity, auth failure, project mismatch, unreachable API, dirty worktree warning, and non-Git reduced-assurance warning.
 - Plan discovery:
@@ -48,6 +51,7 @@ Validate the AppraiseJS planning feature as a real user workflow: the user asks 
   Explicitly attempt to proceed with chat-only approval, stale displayed revision, unresolved blocking remarks, missing validation approval, unapproved risky file, missing accepted baseline, failed fresh validation, unacknowledged blocking event, and missing final sign-off.
 
 ## Validation And Fix Workflow
+
 - Run the real interactive workflow first, then add or update automated coverage for every observed gap.
 - For every failure, classify immediately:
   - Product bug: fix canonical source and rerun the failed step plus focused regression tests.
@@ -59,6 +63,7 @@ Validate the AppraiseJS planning feature as a real user workflow: the user asks 
 - Do not bypass AppraiseJS approval gates, fake approvals, or treat chat approval as equivalent to AppraiseJS approval.
 
 ## Harnesses And Commands
+
 - Use AppraiseJS UI, MCP, CLI, and internal API paths for primary workflow evidence.
 - Use `Vitest` for contracts, repositories, sync, coordinator, review, validation, baseline, implementation, CLI client, and API-boundary tests.
 - Use `Playwright` for plan list/detail, graph/list review, remarks, approval, validation review, baseline review, recovery states, and accessibility.
@@ -67,6 +72,7 @@ Validate the AppraiseJS planning feature as a real user workflow: the user asks 
 - Run focused checks first, then broader confidence checks: focused `npx vitest run <files>`, selected `playwright test` specs, `npm run smoke:coordinator`, `npm run validate:unit`, `npm run validate:e2e`, and `npm run build`.
 
 ## Acceptance Criteria
+
 - A real normal-user planning session completes from request to AppraiseJS plan review, feedback, plan approval, validation review, baseline acceptance, implementation, fresh validation, and final completion sign-off.
 - Every required flow above is either validated with automated or browser evidence, fixed and regression-tested, or explicitly documented as deferred with a concrete reason.
 - The agent cannot move across plan, validation, baseline, implementation, or completion gates without the corresponding AppraiseJS approval/evidence.
@@ -75,6 +81,7 @@ Validate the AppraiseJS planning feature as a real user workflow: the user asks 
 - Final validation has no unexplained focused test failures, no generated/template drift, no protocol pollution, and no bypassed review gates.
 
 ## Assumptions
+
 - AppraiseJS should be used for the product workflow being tested; it should not be used as the coordinator for creating this meta-plan.
 - Current source, schemas, docs, and tests are authoritative; historical development plans are reference-only.
 - Broad checks may be staged after focused fixes, but any skipped or deferred checks must be reported clearly.
