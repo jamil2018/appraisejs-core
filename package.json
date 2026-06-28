@@ -97,7 +97,7 @@
   },
   "devDependencies": {
     "@babel/traverse": "^7.28.5",
-    "@cucumber/cucumber": "^12.8.3",
+    "@cucumber/cucumber": "^13.0.0",
     "@playwright/test": "^1.58.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
