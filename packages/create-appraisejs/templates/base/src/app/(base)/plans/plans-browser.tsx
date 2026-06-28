@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CircleDashed,
   Clock3,
+  FileText,
   GitBranch,
   ListChecks,
   Network,
@@ -40,7 +41,7 @@ export type PlansBrowserPlan = {
 
 type PlanFilter = 'all' | 'review' | 'baseline' | 'approved' | 'attention'
 
-const reviewStates = new Set(['draft', 'awaiting_plan_review', 'changes_requested'])
+const reviewStates = new Set(['awaiting_plan_review', 'changes_requested'])
 const baselineStates = new Set(['baseline_running', 'baseline_review'])
 const approvedStates = new Set(['plan_approved', 'validations_approved', 'completed'])
 
@@ -86,6 +87,7 @@ const filterPredicates: Record<PlanFilter, (plan: PlansBrowserPlan) => boolean> 
 const lifecycleIconRules: Array<{ matches: (plan: PlansBrowserPlan) => boolean; icon: LucideIcon }> = [
   { matches: plan => plan.conflicted || plan.stale, icon: ShieldAlert },
   { matches: plan => reviewStates.has(plan.lifecycle), icon: AlertTriangle },
+  { matches: plan => plan.lifecycle === 'draft', icon: FileText },
   { matches: plan => baselineStates.has(plan.lifecycle), icon: CircleDashed },
   { matches: plan => approvedStates.has(plan.lifecycle), icon: CheckCircle2 },
   { matches: plan => plan.lifecycle === 'in_progress' || plan.lifecycle === 'validating', icon: Clock3 },
@@ -251,7 +253,7 @@ export function PlansBrowser({ plans }: { plans: PlansBrowserPlan[] }) {
         <StatCard
           title="Needs Review"
           value={counts.needsReview}
-          caption="Draft, awaiting review, or changes requested"
+          caption="Awaiting review or changes requested"
           icon={AlertTriangle}
           className="text-amber-500"
         />

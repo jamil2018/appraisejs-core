@@ -6,6 +6,10 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 
+import { parseYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
+import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { createCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
+
 import {
   acknowledgePlanEvent,
   appendPlanEvent,
@@ -21,6 +25,28 @@ import {
 let workspace: string
 let databasePath: string
 let client: PrismaClient
+
+function plan(planId: string, lifecycle: PlanArtifact['lifecycle'] = 'draft'): PlanArtifact {
+  return {
+    version: '1',
+    planId,
+    revision: 1,
+    lifecycle,
+    goal: `Coordinate ${planId}`,
+    description: `Create a reviewable coordinator plan for ${planId}.`,
+    tasks: [
+      {
+        id: 'first-task',
+        title: 'First task',
+        description: 'Implement the first review task.',
+        acceptanceCriteria: ['The review lifecycle is enforced.'],
+        validationIntent: 'Run focused coordinator service tests.',
+      },
+    ],
+    edges: [],
+    implementationGroups: [],
+  }
+}
 
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-coordinator-'))
@@ -148,6 +174,68 @@ describe('review-ready event repair', () => {
     await expect(ensurePlanReviewReadyEvent('coordinator-plan', client)).resolves.toMatchObject({
       sequence: 1,
       type: 'plan_review_ready',
+    })
+  })
+
+  it('does not append a review-ready event for non-reviewable plans', async () => {
+    await expect(ensurePlanReviewReadyEvent('coordinator-plan', client)).resolves.toBeUndefined()
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'plan_review_ready' }, client)
+
+    await expect(readPlanEvents({ planId: 'coordinator-plan' }, client)).resolves.toEqual([])
+  })
+})
+
+describe('online coordinator plan creation', () => {
+  it('normalizes draft submissions to awaiting plan review before persistence, projection, hash, and event response', async () => {
+    const created = await createCoordinatorPlan(plan('draft-submission'), { projectDirectory: workspace, client })
+    const repository = new PlanArtifactRepository(workspace)
+    const artifact = await repository.read('plan', 'draft-submission')
+    const storedPlan = parseYamlArtifact('plan', artifact.content) as PlanArtifact
+
+    expect(created).toMatchObject({
+      planId: 'draft-submission',
+      revision: 1,
+      lifecycle: 'awaiting_plan_review',
+      contentHash: artifact.hash,
+      eventSequence: 2,
+      reviewUrl: '/plans/draft-submission',
+      plan: { lifecycle: 'awaiting_plan_review' },
+    })
+    expect(storedPlan.lifecycle).toBe('awaiting_plan_review')
+    await expect(
+      client.planProjection.findUniqueOrThrow({ where: { planId: 'draft-submission' } }),
+    ).resolves.toMatchObject({
+      lifecycle: 'awaiting_plan_review',
+    })
+    await expect(readPlanEvents({ planId: 'draft-submission' }, client)).resolves.toEqual([
+      expect.objectContaining({ sequence: 1, type: 'plan_graph_processing_started' }),
+      expect.objectContaining({ sequence: 2, type: 'plan_review_ready' }),
+    ])
+  })
+
+  it('accepts explicit awaiting-review submissions without changing lifecycle', async () => {
+    await expect(
+      createCoordinatorPlan(plan('awaiting-submission', 'awaiting_plan_review'), {
+        projectDirectory: workspace,
+        client,
+      }),
+    ).resolves.toMatchObject({
+      planId: 'awaiting-submission',
+      lifecycle: 'awaiting_plan_review',
+      plan: { lifecycle: 'awaiting_plan_review' },
+    })
+  })
+
+  it('rejects progressed lifecycle submissions for new online review plans', async () => {
+    await expect(
+      createCoordinatorPlan(plan('approved-submission', 'plan_approved'), { projectDirectory: workspace, client }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION',
+      message: expect.stringContaining('only accepts draft or awaiting_plan_review'),
+    })
+
+    await expect(readPlanEvents({ planId: 'approved-submission' }, client)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
     })
   })
 })

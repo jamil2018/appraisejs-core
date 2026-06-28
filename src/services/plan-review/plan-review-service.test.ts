@@ -20,6 +20,7 @@ import { ensurePlanProjectionTestSchema } from '@/test/plan-runtime-schema-test-
 import {
   addPlanRemark,
   approvePlanRevision,
+  getPlanReviewDetail,
   listPlans,
   readPlanReviewSummary,
   requestPlanChanges,
@@ -123,6 +124,26 @@ describe('approvePlanRevision', () => {
         relevantHashes: { plan: approvedHash },
       }),
     ])
+  })
+
+  it('rejects draft plans before recording approval', async () => {
+    await writePlan('draft-approval-flow', serializeYamlArtifact('plan', plan('draft-approval-flow', 'draft')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const expectedPlanHash = await readPlanHash('draft-approval-flow')
+
+    await expect(
+      approvePlanRevision(
+        { planId: 'draft-approval-flow', displayedRevision: 1, expectedPlanHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'This draft has not been submitted for plan review.',
+    })
+
+    await expect(
+      fs.access(path.join(workspace, 'appraise', 'plans', 'reviews', 'draft-approval-flow.review.yaml')),
+    ).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
   it('emits approval notification and permits validation preparation start', async () => {
@@ -351,6 +372,19 @@ describe('approvePlanRevision', () => {
         { projectDirectory: workspace, client },
       ),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('getPlanReviewDetail', () => {
+  it('does not create or fake review-ready evidence for draft plans', async () => {
+    await writePlan('draft-detail-flow', serializeYamlArtifact('plan', plan('draft-detail-flow', 'draft')))
+    await syncPlans({ projectDirectory: workspace, client })
+
+    const detail = await getPlanReviewDetail('draft-detail-flow', undefined, { projectDirectory: workspace, client })
+
+    expect(detail.reviewReady).toBe(false)
+    expect(detail.events).toEqual([])
+    await expect(readPlanEvents({ planId: 'draft-detail-flow' }, client)).resolves.toEqual([])
   })
 })
 

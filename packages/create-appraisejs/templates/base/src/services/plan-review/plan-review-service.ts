@@ -244,9 +244,11 @@ export async function getPlanReviewDetail(
 
   const graph = derivePlanGraph(plan)
   const readiness = evaluateGraphReadiness(projection.events)
-  if (!readiness.ready) {
+  const canReview = plan.lifecycle === 'awaiting_plan_review'
+  if (canReview && !readiness.ready) {
     await appendPlanEvent({ planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } }, client)
   }
+  const includePendingReviewReady = canReview && !readiness.ready
 
   return {
     plan,
@@ -259,25 +261,27 @@ export async function getPlanReviewDetail(
     revisions: projection.revisions,
     events: readiness.ready
       ? projection.events
-      : [
-          ...projection.events,
-          {
-            id: 'pending-plan-review-ready',
-            planProjectionId: projection.id,
-            sequence: Math.max(0, ...projection.events.map(event => event.sequence)) + 1,
-            type: 'plan_review_ready',
-            payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
-            acknowledgedAt: null,
-            acknowledgedBy: null,
-            supersededAt: null,
-            createdAt: new Date(),
-          },
-        ],
+      : includePendingReviewReady
+        ? [
+            ...projection.events,
+            {
+              id: 'pending-plan-review-ready',
+              planProjectionId: projection.id,
+              sequence: Math.max(0, ...projection.events.map(event => event.sequence)) + 1,
+              type: 'plan_review_ready',
+              payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
+              acknowledgedAt: null,
+              acknowledgedBy: null,
+              supersededAt: null,
+              createdAt: new Date(),
+            },
+          ]
+        : projection.events,
     personalPositions: parsePositions(projection.personalLayouts[0]?.positionsJson),
     sharedPositions: parsePositions(projection.layoutJson),
     blockingThreadIds: getBlockingThreads(review).map(thread => thread.id),
     orphanedThreadIds: getOrphanedThreads(plan, review).map(thread => thread.id),
-    reviewReady: readiness.ready || !readiness.staleWorker,
+    reviewReady: canReview && (readiness.ready || !readiness.staleWorker),
     listFallback: readiness.listFallback,
   }
 }
@@ -415,6 +419,14 @@ export async function approvePlanRevision(
     include: { issues: { where: { resolvedAt: null } } },
   })
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
+  if (plan.lifecycle !== 'awaiting_plan_review') {
+    throw new ServiceError(
+      plan.lifecycle === 'draft'
+        ? 'This draft has not been submitted for plan review.'
+        : 'The plan is not awaiting plan review.',
+      'CONFLICT',
+    )
+  }
   if (input.resolveThreadId) {
     const thread = findRemarkThread(review, input.resolveThreadId)
     thread.events.push({
@@ -442,16 +454,13 @@ export async function approvePlanRevision(
     suspiciousReplacementConfirmed: Boolean(input.confirmSuspiciousReplacement),
   })
   if (!decision.allowed) throw new ServiceError(decision.reason ?? 'Plan cannot be approved.', 'CONFLICT')
-  let approvedPlanHash = planArtifact.hash
-  if (plan.lifecycle === 'awaiting_plan_review') {
-    await repository.compareAndWrite(
-      'plan',
-      input.planId,
-      planArtifact.hash,
-      serializeYamlArtifact('plan', { ...plan, lifecycle: 'plan_approved' }),
-    )
-    approvedPlanHash = (await repository.read('plan', input.planId)).hash
-  }
+  await repository.compareAndWrite(
+    'plan',
+    input.planId,
+    planArtifact.hash,
+    serializeYamlArtifact('plan', { ...plan, lifecycle: 'plan_approved' }),
+  )
+  const approvedPlanHash = (await repository.read('plan', input.planId)).hash
   review.planApprovals.push({
     id: id('approval'),
     revision: plan.revision,

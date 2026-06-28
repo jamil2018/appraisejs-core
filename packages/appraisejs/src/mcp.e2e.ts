@@ -175,7 +175,7 @@ try {
     version: '1',
     planId,
     revision: 1,
-    lifecycle: 'awaiting_plan_review',
+    lifecycle: 'draft',
     goal: 'Validate the MCP bridge end to end',
     description: 'Exercise the live MCP bridge across plan creation, review, revision, and implementation tools.',
     tasks: [
@@ -191,6 +191,9 @@ try {
     implementationGroups: [],
   }
   const created = await callTool('plan_create', { plan: initialPlan })
+  assert(created.lifecycle === 'awaiting_plan_review', 'Plan create did not normalize the draft lifecycle.')
+  const createdPlan = created.plan as { lifecycle: string }
+  assert(createdPlan.lifecycle === 'awaiting_plan_review', 'Plan create did not return the normalized plan payload.')
   assert(created.reviewUrl === `/plans/${planId}`, 'Plan create did not return the stable review URL.')
   const createdLinks = created.links as { appraise: string; browser: string; route: string }
   assert(createdLinks.appraise === `appraise://plans/${planId}`, 'Plan create did not return the Appraise link.')

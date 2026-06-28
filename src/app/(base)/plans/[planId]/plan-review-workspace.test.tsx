@@ -373,6 +373,37 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText(/add a blocking remark before requesting changes/i)).toBeInTheDocument()
   })
 
+  it('locks approval and change requests for draft plans with a submitted-for-review message', () => {
+    const draftDetail: PlanReviewDetail = {
+      ...detail,
+      plan: { ...detail.plan, lifecycle: 'draft' },
+      projection: { ...detail.projection, lifecycle: 'draft' },
+      blockingThreadIds: ['remark-blocker'],
+    }
+
+    render(<PlanReviewWorkspace detail={draftDetail} />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/draft not submitted for review/i)
+    expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
+    expect(screen.getAllByText(/this draft has not been submitted for plan review/i)).toHaveLength(2)
+  })
+
+  it('uses the same non-review lifecycle lockout for approval and change requests', () => {
+    const inProgressDetail: PlanReviewDetail = {
+      ...detail,
+      plan: { ...detail.plan, lifecycle: 'in_progress' },
+      projection: { ...detail.projection, lifecycle: 'in_progress' },
+      blockingThreadIds: ['remark-blocker'],
+    }
+
+    render(<PlanReviewWorkspace detail={inProgressDetail} />)
+
+    expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
+    expect(screen.getAllByText(/the plan is not awaiting plan review/i)).toHaveLength(2)
+  })
+
   it('defaults to list review and explains approval lockout when graph readiness failed', () => {
     render(<PlanReviewWorkspace detail={{ ...detail, reviewReady: false, listFallback: true }} />)
 
