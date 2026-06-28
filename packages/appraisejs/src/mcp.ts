@@ -53,6 +53,12 @@ function approvalGateEventStatus(type: string): 'approved' | 'changes_requested'
   return undefined
 }
 
+type CoordinatorToolEvent = { sequence: number; type: string }
+
+export function nextApprovalWaitSequence(afterSequence: number, events: CoordinatorToolEvent[]): number {
+  return events.reduce((latest, event) => Math.max(latest, event.sequence), afterSequence)
+}
+
 export async function createCoordinatorApiClient(options: McpOptions) {
   return createCoordinatorClient(options)
 }
@@ -253,15 +259,17 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       let lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
 
       if (!gateEvent && !lifecycleStatus) {
-        const waited = (await api.request(`plans/${planId}/events?after=${afterSequence}&wait=true`)) as {
-          events?: Array<{ sequence: number; type: string }>
+        const waitAfterSequence = nextApprovalWaitSequence(afterSequence, events)
+        const waited = (await api.request(`plans/${planId}/events?after=${waitAfterSequence}&wait=true`)) as {
+          events?: CoordinatorToolEvent[]
         }
-        events = waited.events ?? []
+        events = [...events, ...(waited.events ?? [])]
         gateEvent = events.find(event => approvalGateEventStatus(event.type))
         current = await readSnapshot(planId)
         lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
 
         if (!gateEvent && !lifecycleStatus) {
+          const nextAfterSequence = nextApprovalWaitSequence(afterSequence, events)
           return text({
             status: 'pending',
             planId,
@@ -270,8 +278,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             contentHash: current.contentHash,
             links: current.links,
             events,
+            nextAfterSequence,
             recovery:
-              'Open the review URL and approve the current revision in AppraiseJS, or rerun plan_wait_for_approval.',
+              'Open the review URL and approve or request changes for the current revision in AppraiseJS, or rerun plan_wait_for_approval with nextAfterSequence.',
           })
         }
       }

@@ -18,9 +18,9 @@ opts out.
 4. Create the structured plan with `plan_create`; do not invent a name-derived plan id.
 5. Call `plan_wait_for_review`, then present the returned `appraise://` plan link, browser link, revision, lifecycle,
    and content hash only after `plan_review_ready`.
-6. After review-ready evidence is shown, call one `plan_wait_for_approval` long poll.
-7. If approval is still pending after that wait, return the compact resumable state and links so the host can wake or
-   resume later without spending tokens while idle.
+6. After review-ready evidence is shown, call `plan_wait_for_approval` with the latest handled event sequence.
+7. If approval is still pending after that wait, use the returned `nextAfterSequence` for any follow-up wait. Return the
+   compact resumable state and links only when the host cannot keep the turn active without spending tokens while idle.
 8. On `approved`, call `plan_start`, acknowledge only after `validation_preparation_started`, then continue to
    validation artifact generation.
 9. On `changes_requested`, call `plan_review_read`, revise against the returned hash, submit the revision, and repeat

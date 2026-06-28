@@ -16,9 +16,9 @@ AppraiseJS owns lifecycle and business rules. This skill only orchestrates MCP c
    If `plan_create` returns links but `plan_wait_for_review` is still pending or fails, show the returned plan links
    immediately and clearly label that durable review-ready evidence has not arrived yet.
 6. Revise only against the current returned hash.
-7. After review-ready evidence is shown, call one `plan_wait_for_approval` long poll.
-8. If approval is still pending after that wait, return the compact resumable state and links so the host can wake or
-   resume later without spending tokens while idle.
+7. After review-ready evidence is shown, call `plan_wait_for_approval` with the latest handled event sequence.
+8. If approval is still pending after that wait, use the returned `nextAfterSequence` for any follow-up wait. Return the
+   compact resumable state and links only when the host cannot keep the turn active without spending tokens while idle.
 9. On `approved`, call `plan_start`, acknowledge only after `validation_preparation_started`, then continue to
    validation artifact generation.
 10. On `changes_requested` or `plan_changes_requested`, call `plan_review_read`, revise against the returned hash,
