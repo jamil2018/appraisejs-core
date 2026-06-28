@@ -5,10 +5,11 @@ import { isAlias, parseDocument, visit } from 'yaml'
 import { z } from 'zod'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-export const planArtifactSchema = z
+const planIdSchema = z.string().regex(/^(?:[a-z0-9]+(?:-[a-z0-9]+)*|pln_[0-9a-hjkmnp-tv-z]{26})$/)
+const planArtifactBaseSchema = z
   .object({
     version: z.literal('1'),
-    planId: idSchema,
+    planId: planIdSchema,
     revision: z.number().int().positive(),
     lifecycle: z.enum([
       'draft',
@@ -59,30 +60,38 @@ export const planArtifactSchema = z
     implementationGroups: z.array(z.object({ id: idSchema, taskIds: z.array(idSchema).min(1) })),
   })
   .strict()
-  .superRefine((plan, context) => {
-    const taskIds = new Set(plan.tasks.map(task => task.id))
-    if (taskIds.size !== plan.tasks.length) {
-      context.addIssue({ code: 'custom', path: ['tasks'], message: 'Plan task IDs must be unique.' })
+
+function validatePlanReferences(plan: z.infer<typeof planArtifactBaseSchema>, context: z.RefinementCtx): void {
+  const taskIds = new Set(plan.tasks.map(task => task.id))
+  if (taskIds.size !== plan.tasks.length) {
+    context.addIssue({ code: 'custom', path: ['tasks'], message: 'Plan task IDs must be unique.' })
+  }
+  for (const [index, edge] of plan.edges.entries()) {
+    if (!taskIds.has(edge.from) || !taskIds.has(edge.to)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['edges', index],
+        message: 'Plan edges must reference existing tasks.',
+      })
     }
-    for (const [index, edge] of plan.edges.entries()) {
-      if (!taskIds.has(edge.from) || !taskIds.has(edge.to)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['edges', index],
-          message: 'Plan edges must reference existing tasks.',
-        })
-      }
+  }
+  for (const [index, group] of plan.implementationGroups.entries()) {
+    if (group.taskIds.some(taskId => !taskIds.has(taskId))) {
+      context.addIssue({
+        code: 'custom',
+        path: ['implementationGroups', index, 'taskIds'],
+        message: 'Implementation groups must reference existing tasks.',
+      })
     }
-    for (const [index, group] of plan.implementationGroups.entries()) {
-      if (group.taskIds.some(taskId => !taskIds.has(taskId))) {
-        context.addIssue({
-          code: 'custom',
-          path: ['implementationGroups', index, 'taskIds'],
-          message: 'Implementation groups must reference existing tasks.',
-        })
-      }
-    }
-  })
+  }
+}
+
+export const planCreateInputSchema = planArtifactBaseSchema
+  .omit({ planId: true })
+  .extend({ planId: planIdSchema.optional() })
+  .superRefine((plan, context) => validatePlanReferences({ ...plan, planId: plan.planId ?? 'draft-plan' }, context))
+
+export const planArtifactSchema = planArtifactBaseSchema.superRefine(validatePlanReferences)
 
 export type PlanFile = z.infer<typeof planArtifactSchema>
 

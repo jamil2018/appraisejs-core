@@ -20,6 +20,11 @@ type RegisterTargetProjectInput = {
 }
 
 type PackageJsonShape = Record<string, unknown>
+export type TargetProjectMarkerStatus = {
+  status: 'written' | 'refreshed' | 'skipped'
+  path: string
+  warning?: string
+}
 
 function detectPackageManager(projectRoot: string): string | undefined {
   if (existsSync(path.join(projectRoot, 'pnpm-lock.yaml'))) return 'pnpm'
@@ -116,6 +121,44 @@ export async function registerTargetProject(
       lastDetectedAt: new Date(),
     },
   })
+}
+
+export async function writeTargetProjectMarker(
+  targetProject: TargetProject,
+  hubFingerprint: string,
+): Promise<TargetProjectMarkerStatus> {
+  const markerDirectory = path.join(targetProject.canonicalPath, '.appraisejs')
+  const markerPath = path.join(markerDirectory, 'project.json')
+  try {
+    const existed = existsSync(markerPath)
+    await fs.mkdir(markerDirectory, { recursive: true })
+    await fs.writeFile(
+      markerPath,
+      `${JSON.stringify(
+        {
+          schema: 'appraise.target-project/v1',
+          hubFingerprint,
+          targetProjectId: targetProject.id,
+          targetProjectFingerprint: targetProject.fingerprint,
+          displayName: targetProject.displayName,
+          registeredAt: new Date().toISOString(),
+          guidance: 'Future AppraiseJS plans for this repository should go through the registered Appraise hub.',
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    )
+    return { status: existed ? 'refreshed' : 'written', path: markerPath }
+  } catch (error) {
+    return {
+      status: 'skipped',
+      path: markerPath,
+      warning: `Target project was registered, but AppraiseJS could not write ${markerPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    }
+  }
 }
 
 export async function listTargetProjects(client: PrismaClient = prisma): Promise<TargetProject[]> {

@@ -13,6 +13,7 @@ import {
 } from '@/lib/plan-contract'
 
 import { PlanArtifactRepository, type StoredPlanArtifact } from './artifact-repository'
+import { createPlanSlug, isLegacyPlanId } from './plan-identity'
 import { findProjectRoot } from './project-root'
 import { capturePlanRevision } from './revision-snapshot'
 
@@ -126,6 +127,8 @@ function syncIssueSummary(
   }
 }
 
+// The projection transaction intentionally keeps every child, issue, and revision update atomic.
+// fallow-ignore-next-line complexity
 async function projectValidPlan(
   client: PrismaClient,
   projectRoot: string,
@@ -139,14 +142,18 @@ async function projectValidPlan(
   })
   const snapshot = await capturePlanRevision(projectRoot, artifacts, existing?.revisions[0]?.gitCommit)
   const unchanged = existing?.sourceHash === hash && !existing.stale && !existing.conflicted
+  const legacyArtifact = isLegacyPlanId(parsed.plan.planId)
+  const slug = legacyArtifact ? parsed.plan.planId : existing?.slug || createPlanSlug(parsed.plan.goal)
+  const legacyPlanId = legacyArtifact ? parsed.plan.planId : existing?.legacyPlanId
 
-  // The transaction intentionally keeps every child, issue, and revision update atomic.
   // fallow-ignore-next-line complexity
   await client.$transaction(async transaction => {
     const projection = await transaction.planProjection.upsert({
       where: { planId: parsed.plan.planId },
       create: {
         planId: parsed.plan.planId,
+        slug,
+        legacyPlanId,
         revision: parsed.plan.revision,
         lifecycle: parsed.plan.lifecycle,
         goal: parsed.plan.goal,
@@ -160,6 +167,8 @@ async function projectValidPlan(
       },
       update: {
         revision: parsed.plan.revision,
+        slug,
+        legacyPlanId,
         lifecycle: parsed.plan.lifecycle,
         goal: parsed.plan.goal,
         description: parsed.plan.description,

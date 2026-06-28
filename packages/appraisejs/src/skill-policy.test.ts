@@ -4,6 +4,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const skills = [
+  'appraise-project-from-brief',
   'appraise-planning',
   'appraise-continuation',
   'appraise-validation-preparation',
@@ -22,6 +23,24 @@ describe('Appraise workflow skills', () => {
     expect(source).toContain('Read pending events')
     expect(source).toContain('appraise://')
     expect(source).not.toMatch(/sqlite3|prisma\.\w+|git (commit|push)/i)
+  })
+
+  it('routes natural-language Appraise project briefs through project registration and plan creation', async () => {
+    const projectFromBrief = await fs.readFile(
+      path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-project-from-brief', 'SKILL.md'),
+      'utf8',
+    )
+
+    expect(projectFromBrief).toContain('use Appraise')
+    expect(projectFromBrief).toContain('create a project using AppraiseJS')
+    expect(projectFromBrief).toContain('build an app with AppraiseJS')
+    expect(projectFromBrief).toContain('.appraisejs/project.json')
+    expect(projectFromBrief).toContain('project_diagnostic')
+    expect(projectFromBrief).toContain('project_add')
+    expect(projectFromBrief).toContain('plan_create')
+    expect(projectFromBrief.indexOf('project_diagnostic')).toBeLessThan(projectFromBrief.indexOf('project_add'))
+    expect(projectFromBrief.indexOf('project_add')).toBeLessThan(projectFromBrief.indexOf('plan_create'))
+    expect(projectFromBrief).toContain('do not invent a name-derived plan id')
   })
 
   it('prevents work while approvals are pending and reports follow-up evidence at completion', async () => {
@@ -43,8 +62,16 @@ describe('Appraise workflow skills', () => {
     expect(planning).toContain('project_diagnostic')
     expect(planning.indexOf('project_diagnostic')).toBeLessThan(planning.indexOf('plan_create'))
     expect(planning).toContain('plan_wait_for_review')
+    expect(planning).toContain('plan_wait_for_approval')
+    expect(planning.indexOf('plan_wait_for_review')).toBeLessThan(planning.indexOf('plan_wait_for_approval'))
+    expect(planning).toContain('call one `plan_wait_for_approval` long poll')
+    expect(planning).toContain('compact resumable state')
+    expect(planning).toContain('plan_start')
+    expect(planning).toContain('validation_preparation_started')
+    expect(planning).toContain('plan_review_read')
     expect(planning).toContain('Acknowledge each handled event')
     expect(planning).toContain('only after')
-    expect(planning).toContain('Stop at the review gate')
+    expect(planning).not.toContain('Stop at the review gate')
+    expect(planning).not.toMatch(/repeated(?:ly)?\s+(?:\w+\s+){0,3}pending|pending\s+(?:\w+\s+){0,3}loop/i)
   })
 })

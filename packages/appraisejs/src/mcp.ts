@@ -12,7 +12,7 @@ import {
   type CoordinatorOptions as McpOptions,
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
-import { planArtifactSchema } from './plan-file.js'
+import { planArtifactSchema, planCreateInputSchema } from './plan-file.js'
 
 function text(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
@@ -121,7 +121,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'project_add',
     {
       description:
-        'Attach an existing application repository as a target project without writing Appraise metadata into it.',
+        'Attach an existing application repository as a target project and write a non-blocking .appraisejs/project.json continuity marker when writable.',
       inputSchema: { path: z.string().min(1), displayName: z.string().min(1).optional() },
     },
     async ({ path, displayName }) => {
@@ -145,7 +145,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Create a structured AppraiseJS plan with a short title in goal and a separate description, then wait until its review surface is ready.',
-      inputSchema: { plan: planArtifactSchema, target: z.string().min(1).optional() },
+      inputSchema: { plan: planCreateInputSchema, target: z.string().min(1).optional() },
     },
     async ({ plan, target }) => {
       try {

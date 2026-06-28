@@ -1,19 +1,19 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 27 files from prisma/schema.prisma and migrations
+- 28 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 626 nodes · 1371 edges · 110 communities
+- 630 nodes · 1379 edges · 112 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 205 edges
-2. `schema.prisma` - 92 edges
+1. `String` - 207 edges
+2. `schema.prisma` - 93 edges
 3. `DateTime` - 76 edges
-4. `PlanProjection` - 64 edges
+4. `PlanProjection` - 67 edges
 5. `TestRun` - 58 edges
 6. `TestCase` - 46 edges
 7. `ReportScenario` - 37 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (110 total)
+## Communities (112 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -110,7 +110,7 @@ Nodes (12): TestRunTestCase, TestRunTestCase.id, TestRunTestCase.testRunId, Test
 Nodes (23): TestRun, TestRun.id, TestRun.name, TestRun.runId, TestRun.startedAt, TestRun.completedAt, TestRun.status, TestRun.result (+more)
 
 ### Community 22 - "PlanProjection"
-Nodes (28): PlanProjection, PlanProjection.id, PlanProjection.planId, PlanProjection.revision, PlanProjection.lifecycle, PlanProjection.goal, PlanProjection.description, PlanProjection.sourceHash (+more)
+Nodes (30): PlanProjection, PlanProjection.id, PlanProjection.planId, PlanProjection.slug, PlanProjection.legacyPlanId, PlanProjection.revision, PlanProjection.lifecycle, PlanProjection.goal (+more)
 
 ### Community 23 - "TargetProject"
 Nodes (13): TargetProject, TargetProject.id, TargetProject.canonicalPath, TargetProject.displayName, TargetProject.packageName, TargetProject.packageManager, TargetProject.packageJson, TargetProject.fingerprint (+more)
@@ -372,6 +372,12 @@ Nodes (1): 20260613015000_add_plan_description
 
 ### Community 109 - "20260628090000_add_target_projects"
 Nodes (1): 20260628090000_add_target_projects
+
+### Community 110 - "new_PlanProjection"
+Nodes (1): new_PlanProjection
+
+### Community 111 - "20260628103000_add_plan_slug_legacy_identity"
+Nodes (1): 20260628103000_add_plan_slug_legacy_identity
 
 ## Suggested Questions
 - Which models are connected to PlanProjection?

@@ -4,6 +4,7 @@ import { Network } from 'lucide-react'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
+import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
 import { listPlans } from '@/services/plan-review/plan-review-service'
 
 import { PlansBrowser, type PlansBrowserPlan } from './plans-browser'
@@ -13,10 +14,16 @@ export const metadata: Metadata = {
   description: 'Review agent-authored implementation plans',
 }
 
-export default async function PlansPage() {
+type PlansPageProps = {
+  searchParams?: Promise<{ query?: string }>
+}
+
+export default async function PlansPage({ searchParams }: PlansPageProps) {
+  const { query = '' } = (await searchParams) ?? {}
   const plans = await listPlans()
   const browserPlans: PlansBrowserPlan[] = plans.map(plan => ({
     planId: plan.planId,
+    slug: getPlanDisplaySlug(plan),
     goal: plan.goal,
     description: plan.description,
     lifecycle: plan.lifecycle,
@@ -48,7 +55,7 @@ export default async function PlansPage() {
         </Badge>
       </header>
 
-      <PlansBrowser plans={browserPlans} />
+      <PlansBrowser plans={browserPlans} initialQuery={query} />
     </main>
   )
 }

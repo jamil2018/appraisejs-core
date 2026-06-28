@@ -189,24 +189,28 @@ describe('online coordinator plan creation', () => {
   it('normalizes draft submissions to awaiting plan review before persistence, projection, hash, and event response', async () => {
     const created = await createCoordinatorPlan(plan('draft-submission'), { projectDirectory: workspace, client })
     const repository = new PlanArtifactRepository(workspace)
-    const artifact = await repository.read('plan', 'draft-submission')
+    const artifact = await repository.read('plan', created.planId)
     const storedPlan = parseYamlArtifact('plan', artifact.content) as PlanArtifact
 
     expect(created).toMatchObject({
-      planId: 'draft-submission',
+      planId: expect.stringMatching(/^pln_[0-9a-hjkmnp-tv-z]{26}$/),
+      slug: 'coordinate-draft-submission',
+      legacyPlanId: 'draft-submission',
       revision: 1,
       lifecycle: 'awaiting_plan_review',
       contentHash: artifact.hash,
       eventSequence: 2,
-      reviewUrl: '/plans/draft-submission',
-      plan: { lifecycle: 'awaiting_plan_review' },
+      reviewUrl: `/plans/${created.planId}`,
+      plan: { planId: created.planId, lifecycle: 'awaiting_plan_review' },
     })
     expect(storedPlan.lifecycle).toBe('awaiting_plan_review')
-    await expect(
-      client.planProjection.findUniqueOrThrow({ where: { planId: 'draft-submission' } }),
-    ).resolves.toMatchObject({
-      lifecycle: 'awaiting_plan_review',
-    })
+    await expect(client.planProjection.findUniqueOrThrow({ where: { planId: created.planId } })).resolves.toMatchObject(
+      {
+        slug: 'coordinate-draft-submission',
+        legacyPlanId: 'draft-submission',
+        lifecycle: 'awaiting_plan_review',
+      },
+    )
     await expect(readPlanEvents({ planId: 'draft-submission' }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 1, type: 'plan_graph_processing_started' }),
       expect.objectContaining({ sequence: 2, type: 'plan_review_ready' }),
@@ -220,7 +224,8 @@ describe('online coordinator plan creation', () => {
         client,
       }),
     ).resolves.toMatchObject({
-      planId: 'awaiting-submission',
+      planId: expect.stringMatching(/^pln_[0-9a-hjkmnp-tv-z]{26}$/),
+      legacyPlanId: 'awaiting-submission',
       lifecycle: 'awaiting_plan_review',
       plan: { lifecycle: 'awaiting_plan_review' },
     })
@@ -236,6 +241,28 @@ describe('online coordinator plan creation', () => {
 
     await expect(readPlanEvents({ planId: 'approved-submission' }, client)).rejects.toMatchObject({
       code: 'NOT_FOUND',
+    })
+  })
+
+  it('rejects ambiguous slug references instead of choosing an arbitrary plan', async () => {
+    const planIds = ['pln_01jz7q1by2e4prv55bda9xf31a', 'pln_01jz7q1by2e4prv55bda9xf32a']
+    await client.planProjection.createMany({
+      data: planIds.map((planId, index) => ({
+        planId,
+        slug: 'shared-slug',
+        revision: 1,
+        lifecycle: 'awaiting_plan_review',
+        goal: `Shared ${index}`,
+        description: 'Two active plans share a slug.',
+        sourceHash: `sha256:${String(index + 1).repeat(64)}`,
+        planPath: `appraise/plans/${planId}.yaml`,
+        lastValidProjectedAt: new Date(),
+      })),
+    })
+
+    await expect(readPlanEvents({ planId: 'shared-slug' }, client)).rejects.toMatchObject({
+      code: 'VALIDATION',
+      message: expect.stringContaining('ambiguous'),
     })
   })
 })

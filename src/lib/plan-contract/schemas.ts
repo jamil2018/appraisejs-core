@@ -6,12 +6,18 @@ import { PLAN_LIFECYCLE_STATES } from './lifecycle'
 export const PLAN_CONTRACT_VERSION = '1' as const
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Expected a lowercase kebab-case ID')
+export const planIdSchema = z
+  .string()
+  .regex(
+    /^(?:[a-z0-9]+(?:-[a-z0-9]+)*|pln_[0-9a-hjkmnp-tv-z]{26})$/,
+    'Expected a legacy kebab-case ID or opaque plan ID',
+  )
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const timestampSchema = z.string().datetime({ offset: true })
 const lifecycleSchema = z.enum(PLAN_LIFECYCLE_STATES)
 const artifactHeaderSchema = z.object({
   version: z.literal(PLAN_CONTRACT_VERSION),
-  planId: idSchema,
+  planId: planIdSchema,
 })
 
 const uniqueIds = <T extends { id: string }>(items: T[], path: string): T[] => {

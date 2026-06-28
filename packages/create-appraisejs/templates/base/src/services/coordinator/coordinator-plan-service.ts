@@ -3,11 +3,17 @@ import type { PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { parseYamlArtifact, serializeYamlArtifact, type PlanArtifact, type ReviewArtifact } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { createOpaquePlanId, createPlanSlug, isLegacyPlanId } from '@/lib/plans/plan-identity'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent, assertPlanNotCancelled, ensurePlanReviewReadyEvent } from './coordinator-service'
+import {
+  appendPlanEvent,
+  assertPlanNotCancelled,
+  ensurePlanReviewReadyEvent,
+  resolvePlanReference,
+} from './coordinator-service'
 
 type PlanServiceOptions = {
   client?: PrismaClient
@@ -45,8 +51,14 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
       'VALIDATION',
     )
   }
-  const reviewPlan =
-    plan.lifecycle === 'draft' ? ({ ...plan, lifecycle: 'awaiting_plan_review' as const } satisfies PlanArtifact) : plan
+  const planId = createOpaquePlanId()
+  const slug = createPlanSlug(plan.goal)
+  const legacyPlanId = isLegacyPlanId(plan.planId) ? plan.planId : null
+  const reviewPlan = {
+    ...plan,
+    planId,
+    lifecycle: plan.lifecycle === 'draft' ? ('awaiting_plan_review' as const) : plan.lifecycle,
+  } satisfies PlanArtifact
   const client = options.client ?? prisma
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
@@ -54,14 +66,14 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
   let contentHash: string | undefined
   const partial = (stage: CoordinatorPlanCreatePartialError['details']['stage'], error: unknown, safeToRetry = true) =>
     new CoordinatorPlanCreatePartialError(
-      `Plan ${plan.planId} was partially created but failed during ${stage}.`,
+      `Plan ${planId} was partially created but failed during ${stage}.`,
       {
-        planId: reviewPlan.planId,
+        planId,
         artifactPath,
         stage,
         safeToRetry,
         contentHash,
-        recovery: `Run npm run sync-plans, then check appraise://plans/${reviewPlan.planId} or retry plan status for ${reviewPlan.planId}.`,
+        recovery: `Run npm run sync-plans, then check appraise://plans/${planId} or retry plan status for ${planId}.`,
       },
       { cause: error },
     )
@@ -73,10 +85,14 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
   }
   try {
     await syncPlans({ projectDirectory: projectRoot, client })
-    if (options.targetProjectId) {
+    if (options.targetProjectId || slug || legacyPlanId) {
       await client.planProjection.update({
-        where: { planId: reviewPlan.planId },
-        data: { targetProjectId: options.targetProjectId },
+        where: { planId },
+        data: {
+          slug,
+          legacyPlanId,
+          ...(options.targetProjectId ? { targetProjectId: options.targetProjectId } : {}),
+        },
       })
     }
   } catch (error) {
@@ -107,6 +123,8 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
   return {
     plan: reviewPlan,
     planId: reviewPlan.planId,
+    slug,
+    legacyPlanId: legacyPlanId ?? undefined,
     revision: reviewPlan.revision,
     lifecycle: reviewPlan.lifecycle,
     contentHash: artifact.hash,
@@ -116,12 +134,22 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
 }
 
 export async function readCoordinatorPlan(planId: string, options: PlanServiceOptions = {}) {
+  const client = options.client ?? prisma
+  const canonicalPlanId = await resolvePlanReference(planId, client)
   const projectRoot = await findProjectRoot(options.projectDirectory)
-  const artifact = await new PlanArtifactRepository(projectRoot).read('plan', planId)
+  const artifact = await new PlanArtifactRepository(projectRoot).read('plan', canonicalPlanId)
+  const plan = parseYamlArtifact('plan', artifact.content) as PlanArtifact
+  const projection = await client.planProjection.findUnique({
+    where: { planId: canonicalPlanId },
+    select: { slug: true, legacyPlanId: true },
+  })
   return {
-    plan: parseYamlArtifact('plan', artifact.content) as PlanArtifact,
+    planId: canonicalPlanId,
+    plan,
+    slug: projection?.slug ?? createPlanSlug(plan.goal),
+    legacyPlanId: projection?.legacyPlanId ?? undefined,
     contentHash: artifact.hash,
-    reviewUrl: `/plans/${planId}`,
+    reviewUrl: `/plans/${canonicalPlanId}`,
   }
 }
 
@@ -131,11 +159,12 @@ export async function reviseCoordinatorPlan(
   expectedHash: string,
   options: PlanServiceOptions = {},
 ) {
-  if (plan.planId !== planId) throw new ServiceError('Plan ID does not match the route.', 'VALIDATION')
   const client = options.client ?? prisma
+  const canonicalPlanId = await resolvePlanReference(planId, client)
+  if (plan.planId !== canonicalPlanId) throw new ServiceError('Plan ID does not match the route.', 'VALIDATION')
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
-  const current = await repository.read('plan', planId)
+  const current = await repository.read('plan', canonicalPlanId)
   const currentPlan = parseYamlArtifact('plan', current.content) as PlanArtifact
   if (plan.revision <= currentPlan.revision) {
     throw new ServiceError('A revision must increase the current revision number.', 'CONFLICT')
@@ -144,20 +173,24 @@ export async function reviseCoordinatorPlan(
     currentPlan.lifecycle === 'changes_requested' && plan.lifecycle !== 'awaiting_plan_review'
       ? ({ ...plan, lifecycle: 'awaiting_plan_review' as const } satisfies PlanArtifact)
       : plan
-  await repository.compareAndWrite('plan', planId, expectedHash, serializeYamlArtifact('plan', nextPlan))
+  await repository.compareAndWrite('plan', canonicalPlanId, expectedHash, serializeYamlArtifact('plan', nextPlan))
   await syncPlans({ projectDirectory: projectRoot, client })
-  await appendPlanEvent({ planId, type: 'plan_revision_submitted', payload: { revision: nextPlan.revision } }, client)
-  return readCoordinatorPlan(planId, options)
+  await appendPlanEvent(
+    { planId: canonicalPlanId, type: 'plan_revision_submitted', payload: { revision: nextPlan.revision } },
+    client,
+  )
+  return readCoordinatorPlan(canonicalPlanId, options)
 }
 
 export async function startCoordinatorPlan(planId: string, options: PlanServiceOptions = {}) {
   const client = options.client ?? prisma
-  await assertPlanNotCancelled(planId, client)
+  const canonicalPlanId = await resolvePlanReference(planId, client)
+  await assertPlanNotCancelled(canonicalPlanId, client)
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
-  const current = await repository.read('plan', planId)
+  const current = await repository.read('plan', canonicalPlanId)
   const plan = parseYamlArtifact('plan', current.content) as PlanArtifact
-  const reviewArtifact = await repository.read('review', planId).catch(() => null)
+  const reviewArtifact = await repository.read('review', canonicalPlanId).catch(() => null)
   const review = reviewArtifact ? (parseYamlArtifact('review', reviewArtifact.content) as ReviewArtifact) : undefined
   if (
     !review?.planApprovals.some(
@@ -167,28 +200,29 @@ export async function startCoordinatorPlan(planId: string, options: PlanServiceO
     throw new ServiceError('The current plan revision has not been approved.', 'CONFLICT')
   }
   const next = { ...plan, lifecycle: 'preparing_validations' as const }
-  await repository.compareAndWrite('plan', planId, current.hash, serializeYamlArtifact('plan', next))
+  await repository.compareAndWrite('plan', canonicalPlanId, current.hash, serializeYamlArtifact('plan', next))
   await syncPlans({ projectDirectory: projectRoot, client })
   await appendPlanEvent(
-    { planId, type: 'validation_preparation_started', payload: { revision: plan.revision } },
+    { planId: canonicalPlanId, type: 'validation_preparation_started', payload: { revision: plan.revision } },
     client,
   )
-  return readCoordinatorPlan(planId, options)
+  return readCoordinatorPlan(canonicalPlanId, options)
 }
 
 export async function updateCoordinatorTask(
   input: { planId: string; taskId: string; status: string; detail?: string },
   client: PrismaClient = prisma,
 ) {
-  await assertPlanNotCancelled(input.planId, client)
+  const canonicalPlanId = await resolvePlanReference(input.planId, client)
+  await assertPlanNotCancelled(canonicalPlanId, client)
   const task = await client.planTaskProjection.findFirst({
-    where: { taskId: input.taskId, plan: { planId: input.planId } },
+    where: { taskId: input.taskId, plan: { planId: canonicalPlanId } },
     select: { id: true },
   })
   if (!task) throw new ServiceError('Plan task not found.', 'NOT_FOUND')
   return appendPlanEvent(
     {
-      planId: input.planId,
+      planId: canonicalPlanId,
       type: 'task_updated',
       payload: { taskId: input.taskId, status: input.status, detail: input.detail },
     },

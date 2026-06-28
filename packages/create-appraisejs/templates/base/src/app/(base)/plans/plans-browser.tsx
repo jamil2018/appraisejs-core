@@ -23,10 +23,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { PlanLifecycleState } from '@/lib/plan-contract/lifecycle'
+import { planCanonicalRoute } from '@/lib/plans/plan-display'
 import { cn } from '@/lib/utils'
 
 export type PlansBrowserPlan = {
   planId: string
+  slug: string
   goal: string
   description: string
   lifecycle: string
@@ -104,7 +106,7 @@ function matchesFilter(plan: PlansBrowserPlan, filter: PlanFilter): boolean {
 
 function matchesSearch(plan: PlansBrowserPlan, query: string): boolean {
   const normalizedQuery = query.toLocaleLowerCase()
-  return [plan.planId, plan.goal, plan.description, plan.lifecycle.replaceAll('_', ' ')].some(value =>
+  return [plan.slug, plan.planId, plan.goal, plan.description, plan.lifecycle.replaceAll('_', ' ')].some(value =>
     value.toLocaleLowerCase().includes(normalizedQuery),
   )
 }
@@ -205,13 +207,16 @@ function PlanCard({ plan }: { plan: PlansBrowserPlan }) {
       )}
     >
       <Link
-        href={`/plans/${plan.planId}`}
+        href={planCanonicalRoute(plan.planId)}
         aria-label={`Read the plan ${plan.goal}`}
         className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       />
       <CardHeader className="relative flex-1 pr-20">
         <div className="min-w-0 pr-0 sm:pr-40">
-          <CardDescription className="mb-3 truncate font-mono text-xs text-primary">{plan.planId}</CardDescription>
+          <CardDescription className="mb-3 truncate font-mono text-xs text-primary">
+            {plan.slug}
+            {plan.slug === plan.planId ? null : <span className="ml-2 text-muted-foreground">ID {plan.planId}</span>}
+          </CardDescription>
           <CardTitle className="line-clamp-2 text-lg leading-6">{plan.goal}</CardTitle>
           <PlanBadge plan={plan} />
         </div>
@@ -228,9 +233,9 @@ function PlanCard({ plan }: { plan: PlansBrowserPlan }) {
 }
 
 // fallow-ignore-next-line complexity
-export function PlansBrowser({ plans }: { plans: PlansBrowserPlan[] }) {
+export function PlansBrowser({ plans, initialQuery = '' }: { plans: PlansBrowserPlan[]; initialQuery?: string }) {
   const [activeFilter, setActiveFilter] = useState<PlanFilter>('all')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
   const counts = useMemo(
     () => ({
       needsReview: plans.filter(plan => reviewStates.has(plan.lifecycle)).length,
@@ -303,7 +308,7 @@ export function PlansBrowser({ plans }: { plans: PlansBrowserPlan[] }) {
             type="search"
             value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder="Search title, ID, description, or status"
+            placeholder="Search slug, title, ID, description, or status"
             aria-label="Search plans"
             className="pl-9"
           />
