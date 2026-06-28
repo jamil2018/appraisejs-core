@@ -7,13 +7,15 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
+import { appendPlanEvent, assertPlanNotCancelled, ensurePlanReviewReadyEvent } from './coordinator-service'
 
 type PlanServiceOptions = {
   client?: PrismaClient
   projectDirectory?: string
   targetProjectId?: string | null
 }
+
+const ONLINE_PLAN_CREATE_LIFECYCLES = ['draft', 'awaiting_plan_review'] as const
 
 export class CoordinatorPlanCreatePartialError extends Error {
   readonly code = 'plan-create-partial'
@@ -37,6 +39,14 @@ export class CoordinatorPlanCreatePartialError extends Error {
 }
 
 export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanServiceOptions = {}) {
+  if (!ONLINE_PLAN_CREATE_LIFECYCLES.includes(plan.lifecycle as (typeof ONLINE_PLAN_CREATE_LIFECYCLES)[number])) {
+    throw new ServiceError(
+      'Online plan creation only accepts draft or awaiting_plan_review lifecycle submissions.',
+      'VALIDATION',
+    )
+  }
+  const reviewPlan =
+    plan.lifecycle === 'draft' ? ({ ...plan, lifecycle: 'awaiting_plan_review' as const } satisfies PlanArtifact) : plan
   const client = options.client ?? prisma
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
@@ -46,18 +56,18 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
     new CoordinatorPlanCreatePartialError(
       `Plan ${plan.planId} was partially created but failed during ${stage}.`,
       {
-        planId: plan.planId,
+        planId: reviewPlan.planId,
         artifactPath,
         stage,
         safeToRetry,
         contentHash,
-        recovery: `Run npm run sync-plans, then check appraise://plans/${plan.planId} or retry plan status for ${plan.planId}.`,
+        recovery: `Run npm run sync-plans, then check appraise://plans/${reviewPlan.planId} or retry plan status for ${reviewPlan.planId}.`,
       },
       { cause: error },
     )
   try {
-    await repository.create('plan', plan.planId, serializeYamlArtifact('plan', plan))
-    artifactPath = `appraise/plans/${plan.planId}.yaml`
+    await repository.create('plan', reviewPlan.planId, serializeYamlArtifact('plan', reviewPlan))
+    artifactPath = `appraise/plans/${reviewPlan.planId}.yaml`
   } catch (error) {
     throw partial('write-artifact', error, false)
   }
@@ -65,7 +75,7 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
     await syncPlans({ projectDirectory: projectRoot, client })
     if (options.targetProjectId) {
       await client.planProjection.update({
-        where: { planId: plan.planId },
+        where: { planId: reviewPlan.planId },
         data: { targetProjectId: options.targetProjectId },
       })
     }
@@ -73,34 +83,35 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
     throw partial('sync-projection', error)
   }
   try {
-    await appendPlanEvent({ planId: plan.planId, type: 'plan_graph_processing_started' }, client)
+    await appendPlanEvent({ planId: reviewPlan.planId, type: 'plan_graph_processing_started' }, client)
   } catch (error) {
     throw partial('append-graph-event', error)
   }
-  let reviewReadyEvent: Awaited<ReturnType<typeof appendPlanEvent>>
+  let reviewReadyEvent: NonNullable<Awaited<ReturnType<typeof ensurePlanReviewReadyEvent>>>
   try {
-    reviewReadyEvent = await appendPlanEvent(
-      { planId: plan.planId, type: 'plan_review_ready', payload: { representation: 'graph-and-list' } },
-      client,
-    )
+    const event = await ensurePlanReviewReadyEvent(reviewPlan.planId, client)
+    if (!event) {
+      throw new ServiceError('The plan is not awaiting plan review.', 'CONFLICT')
+    }
+    reviewReadyEvent = event
   } catch (error) {
     throw partial('append-review-ready', error)
   }
   let artifact
   try {
-    artifact = await repository.read('plan', plan.planId)
+    artifact = await repository.read('plan', reviewPlan.planId)
     contentHash = artifact.hash
   } catch (error) {
     throw partial('read-artifact', error)
   }
   return {
-    plan,
-    planId: plan.planId,
-    revision: plan.revision,
-    lifecycle: plan.lifecycle,
+    plan: reviewPlan,
+    planId: reviewPlan.planId,
+    revision: reviewPlan.revision,
+    lifecycle: reviewPlan.lifecycle,
     contentHash: artifact.hash,
     eventSequence: reviewReadyEvent.sequence,
-    reviewUrl: `/plans/${plan.planId}`,
+    reviewUrl: `/plans/${reviewPlan.planId}`,
   }
 }
 

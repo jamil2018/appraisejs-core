@@ -111,6 +111,12 @@ function taskRelationshipSummary(taskId: string, semanticFlow: ReturnType<typeof
   return [...incoming, ...outgoing].join('; ') || 'No displayed relationships'
 }
 
+function getReviewUnavailableReason(lifecycle: string): string | null {
+  if (lifecycle === 'awaiting_plan_review') return null
+  if (lifecycle === 'draft') return 'This draft has not been submitted for plan review.'
+  return 'The plan is not awaiting plan review.'
+}
+
 // The graph, list, inspector, and approval controls intentionally share one interaction model.
 // fallow-ignore-next-line complexity
 export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
@@ -184,28 +190,27 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
     approval => approval.revision === detail.plan.revision && approval.relevantHashes.plan,
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
+  const reviewUnavailableReason = getReviewUnavailableReason(detail.plan.lifecycle)
   const approvalDisabledReason = approved
     ? 'This exact revision has already been approved.'
-    : !detail.reviewReady
-      ? 'Approval is disabled until the graph and list review representation is ready.'
-      : null
+    : reviewUnavailableReason
+      ? reviewUnavailableReason
+      : !detail.reviewReady
+        ? 'Approval is disabled until the graph and list review representation is ready.'
+        : null
   const requestChangesDisabledReason = approved
     ? 'This exact revision has already been approved.'
-    : detail.plan.lifecycle === 'cancelled'
-      ? 'Cancelled plans cannot request changes.'
-      : detail.plan.lifecycle === 'completed'
-        ? 'Completed plans cannot request changes.'
-        : detail.plan.lifecycle !== 'awaiting_plan_review'
-          ? 'The plan is not awaiting plan review.'
-          : detail.projection.stale
-            ? 'Refresh the stale plan projection before requesting changes.'
-            : detail.projection.conflicted
-              ? 'Resolve artifact conflicts before requesting changes.'
-              : !detail.reviewReady
-                ? 'Changes cannot be requested until the graph and list review representation is ready.'
-                : detail.blockingThreadIds.length === 0
-                  ? 'Add a blocking remark before requesting changes.'
-                  : null
+    : reviewUnavailableReason
+      ? reviewUnavailableReason
+      : detail.projection.stale
+        ? 'Refresh the stale plan projection before requesting changes.'
+        : detail.projection.conflicted
+          ? 'Resolve artifact conflicts before requesting changes.'
+          : !detail.reviewReady
+            ? 'Changes cannot be requested until the graph and list review representation is ready.'
+            : detail.blockingThreadIds.length === 0
+              ? 'Add a blocking remark before requesting changes.'
+              : null
 
   const run = (operation: () => Promise<{ success?: boolean; error?: string }>, successMessage: string) => {
     setMessage(null)
@@ -269,6 +274,16 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
           <AlertTitle>Artifact health requires attention</AlertTitle>
           <AlertDescription>
             {detail.issues.map(issue => issue.message).join(' ') || 'The current projection is stale or conflicted.'}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {detail.plan.lifecycle === 'draft' ? (
+        <Alert>
+          <FileText className="size-4" />
+          <AlertTitle>Draft not submitted for review</AlertTitle>
+          <AlertDescription>
+            Remarks can be captured, but approval and change-request actions are locked until the plan is submitted for
+            plan review.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -820,7 +835,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                 <Button
                   className="w-full"
                   aria-describedby={approvalDisabledReason ? 'approval-disabled-reason' : undefined}
-                  disabled={isPending || approved || !detail.reviewReady}
+                  disabled={isPending || Boolean(approvalDisabledReason)}
                   onClick={() =>
                     run(
                       () =>

@@ -70,7 +70,10 @@ function parsePayload(payloadJson: string | null): unknown {
 }
 
 async function getProjection(client: PrismaClient, planId: string) {
-  const projection = await client.planProjection.findUnique({ where: { planId }, select: { id: true } })
+  const projection = await client.planProjection.findUnique({
+    where: { planId },
+    select: { id: true, lifecycle: true },
+  })
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   return projection
 }
@@ -192,6 +195,7 @@ export async function appendPlanEvent(
       orderBy: { sequence: 'desc' },
       select: { sequence: true },
     })
+    if (input.type === 'plan_review_ready' && projection.lifecycle !== 'awaiting_plan_review') return undefined
     if (input.type === 'plan_cancelled') {
       await transaction.planEvent.updateMany({
         where: {
