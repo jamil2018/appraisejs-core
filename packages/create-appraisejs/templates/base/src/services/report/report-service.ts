@@ -20,6 +20,7 @@ export type StoreReportOutcome =
 
 type ReportStorageTestRun = Prisma.TestRunGetPayload<{
   include: {
+    targetProject: true
     testCases: {
       include: {
         testCase: {
@@ -148,6 +149,7 @@ async function getReportStorageTestRun(testRunId: string) {
   return prisma.testRun.findUnique({
     where: { runId: testRunId },
     include: {
+      targetProject: true,
       testCases: {
         include: {
           testCase: {
@@ -171,7 +173,7 @@ async function createReportShell(testRun: ReportStorageTestRun, reportPath: stri
     data: {
       name: `Test Run Report - ${testRun.name}`,
       description: `Report for test run: ${testRun.name}`,
-      reportPath: toProjectRelativePath(reportPath),
+      reportPath: toProjectRelativePath(reportPath, testRun.targetProject?.canonicalPath),
       testRunId: testRun.id,
     },
   })
@@ -228,7 +230,11 @@ async function createReportScenario(reportFeatureId: string, scenario: ParsedRep
   return reportScenario
 }
 
-async function createReportScenarioExecutionRows(reportScenarioId: string, scenario: ParsedReportScenario) {
+async function createReportScenarioExecutionRows(
+  reportScenarioId: string,
+  scenario: ParsedReportScenario,
+  projectRoot?: string,
+) {
   for (const step of scenario.steps) {
     await prisma.reportStep.create({
       data: {
@@ -241,7 +247,7 @@ async function createReportScenarioExecutionRows(reportScenarioId: string, scena
         duration: String(step.duration),
         errorMessage: step.errorMessage,
         errorTrace: step.errorTrace,
-        screenshotPath: step.screenshotPath ? toProjectRelativePath(step.screenshotPath) : null,
+        screenshotPath: step.screenshotPath ? toProjectRelativePath(step.screenshotPath, projectRoot) : null,
         hidden: step.hidden,
         order: step.order,
       },
@@ -314,7 +320,7 @@ async function createParsedReportGraph(reportId: string, parsedReport: ParsedRep
 
     for (const scenario of feature.scenarios) {
       const reportScenario = await createReportScenario(reportFeature.id, scenario)
-      await createReportScenarioExecutionRows(reportScenario.id, scenario)
+      await createReportScenarioExecutionRows(reportScenario.id, scenario, testRun.targetProject?.canonicalPath)
       await linkReportScenarioToTestCase(reportId, reportScenario.id, scenario, testRun, executedTestCases)
     }
   }
@@ -372,17 +378,6 @@ async function updateExecutedSuiteMetrics(testRun: ReportStorageTestRun, execute
  */
 export async function storeReportFromFileService(testRunId: string, reportPath: string): Promise<StoreReportOutcome> {
   try {
-    const resolvedReportPath = resolveStoredPath(reportPath)
-
-    if (!existsSync(resolvedReportPath)) {
-      console.warn(`[ReportService] Report file not found at ${reportPath} for testRunId: ${testRunId}`)
-      return {
-        success: false,
-        reason: 'file_not_found',
-        message: `Report file not found at ${reportPath}`,
-      }
-    }
-
     const testRun = await getReportStorageTestRun(testRunId)
 
     if (!testRun) {
@@ -390,6 +385,17 @@ export async function storeReportFromFileService(testRunId: string, reportPath: 
         success: false,
         reason: 'test_run_not_found',
         message: `Test run not found for runId: ${testRunId}`,
+      }
+    }
+
+    const resolvedReportPath = resolveStoredPath(reportPath, testRun.targetProject?.canonicalPath)
+
+    if (!existsSync(resolvedReportPath)) {
+      console.warn(`[ReportService] Report file not found at ${reportPath} for testRunId: ${testRunId}`)
+      return {
+        success: false,
+        reason: 'file_not_found',
+        message: `Report file not found at ${reportPath}`,
       }
     }
 

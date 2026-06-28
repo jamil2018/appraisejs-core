@@ -8,6 +8,8 @@ export interface TestRunExecutionRequest {
   testWorkersCount: number
   browserEngine: BrowserEngine
   headless?: boolean
+  projectRoot?: string
+  prepareWorkspace?: boolean
 }
 
 export interface TestRunExecutionResult {

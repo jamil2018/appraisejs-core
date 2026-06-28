@@ -56,5 +56,19 @@ packages/cucumber-runtime/dist/*
 .tmp
 .fallow
 .appraisejs/
+
+# Graphify local-only cache and machine state
+graphify-out/cache/
+graphify-out/memory/
+graphify-out/.graphify_*
+graphify-out/cost.json
+graphify-out/manifest.json
+**/graphify-out/cache/
+**/graphify-out/memory/
+**/graphify-out/.graphify_*
+**/graphify-out/cost.json
+**/graphify-out/manifest.json
+**/graphify-out/.graphify_labels.json
+**/graphify-out/.graphify_analysis.json
 !prisma/dev.db
 !automation/config/environments/environments.json
