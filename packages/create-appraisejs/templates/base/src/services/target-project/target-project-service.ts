@@ -44,7 +44,7 @@ async function readPackageJson(projectRoot: string): Promise<PackageJsonShape> {
     return value as PackageJsonShape
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new ServiceError(`No package.json found in ${projectRoot}.`, 'VALIDATION', 400)
+      return {}
     }
     throw new ServiceError(
       `Invalid package metadata at ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`,
@@ -142,7 +142,8 @@ export async function writeTargetProjectMarker(
           targetProjectFingerprint: targetProject.fingerprint,
           displayName: targetProject.displayName,
           registeredAt: new Date().toISOString(),
-          guidance: 'Future AppraiseJS plans for this repository should go through the registered Appraise hub.',
+          guidance:
+            'Future AppraiseJS plans for this workspace should go through the registered Appraise hub. This marker only records routing metadata; it does not make the target workspace an Appraise hub.',
         },
         null,
         2,

@@ -32,15 +32,20 @@ describe('Appraise workflow skills', () => {
     )
 
     expect(projectFromBrief).toContain('use Appraise')
+    expect(projectFromBrief).toContain('plan and show it in Appraise')
     expect(projectFromBrief).toContain('create a project using AppraiseJS')
     expect(projectFromBrief).toContain('build an app with AppraiseJS')
+    expect(projectFromBrief).toContain('appraisejs agent setup')
+    expect(projectFromBrief).toContain('appraise://agent-guide')
+    expect(projectFromBrief).toContain('Empty writable directories are valid planning targets')
+    expect(projectFromBrief).toContain('planning_session_create')
     expect(projectFromBrief).toContain('.appraisejs/project.json')
     expect(projectFromBrief).toContain('project_diagnostic')
     expect(projectFromBrief).toContain('project_add')
     expect(projectFromBrief).toContain('plan_create')
     expect(projectFromBrief.indexOf('project_diagnostic')).toBeLessThan(projectFromBrief.indexOf('project_add'))
     expect(projectFromBrief.indexOf('project_add')).toBeLessThan(projectFromBrief.indexOf('plan_create'))
-    expect(projectFromBrief).toContain('do not invent a name-derived plan id')
+    expect(projectFromBrief).toMatch(/do not\s+invent a name-derived plan id/i)
   })
 
   it('prevents work while approvals are pending and reports follow-up evidence at completion', async () => {
@@ -60,6 +65,9 @@ describe('Appraise workflow skills', () => {
       'utf8',
     )
     expect(planning).toContain('project_diagnostic')
+    expect(planning).toContain('appraisejs agent setup')
+    expect(planning).toContain('appraise://agent-guide')
+    expect(planning).toContain('planning_session_create')
     expect(planning.indexOf('project_diagnostic')).toBeLessThan(planning.indexOf('plan_create'))
     expect(planning).toContain('plan_wait_for_review')
     expect(planning).toContain('plan_wait_for_approval')

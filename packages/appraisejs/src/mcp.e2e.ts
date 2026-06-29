@@ -130,6 +130,7 @@ try {
     'implementation_control',
     'implementation_feedback',
     'implementation_task_update',
+    'planning_session_create',
     'plan_create',
     'plan_event_acknowledge',
     'plan_events_read',
@@ -140,7 +141,10 @@ try {
     'plan_task_update',
     'plan_wait_for_approval',
     'plan_wait_for_review',
+    'project_add',
     'project_diagnostic',
+    'project_list',
+    'test_run',
     'validation_decide',
     'validation_feedback_submit',
     'validation_file_approve',
@@ -160,6 +164,18 @@ try {
     resources.resources.some(resource => resource.uri === 'appraise://project'),
     'Project resource is missing.',
   )
+  assert(
+    resources.resources.some(resource => resource.uri === 'appraise://agent-guide'),
+    'Agent guide resource is missing.',
+  )
+  assert(
+    resources.resources.some(resource => resource.uri === 'appraise://workflow/planning'),
+    'Planning workflow resource is missing.',
+  )
+  assert(
+    resources.resources.some(resource => resource.uri === 'appraise://workflow/standby'),
+    'Standby workflow resource is missing.',
+  )
   const templates = await client.listResourceTemplates()
   assert(
     templates.resourceTemplates.some(template => template.uriTemplate === 'appraise://plans/{planId}'),
@@ -167,9 +183,15 @@ try {
   )
   const projectResource = await client.readResource({ uri: 'appraise://project' })
   assert(projectResource.contents[0]?.text?.includes('projectFingerprint'), 'Project resource is unreadable.')
+  const agentGuide = await client.readResource({ uri: 'appraise://agent-guide' })
+  assert(agentGuide.contents[0]?.text?.includes('plan_wait_for_approval'), 'Agent guide missed standby guidance.')
   const diagnostic = await callTool('project_diagnostic', {})
   assert(diagnostic.ok === true, `Project diagnostic failed: ${JSON.stringify(diagnostic)}`)
   assert(diagnostic.contractVersion === '1', 'Project diagnostic did not return the contract version.')
+  assert(
+    String(diagnostic.nextRecommendedAction).includes('project_add'),
+    'Project diagnostic did not return next-action guidance.',
+  )
 
   const initialPlan = {
     version: '1',
@@ -198,6 +220,10 @@ try {
   const createdLinks = created.links as { appraise: string; browser: string; route: string }
   assert(createdLinks.appraise === `appraise://plans/${planId}`, 'Plan create did not return the Appraise link.')
   assert(createdLinks.browser === `${baseUrl}/plans/${planId}`, 'Plan create did not return the browser link.')
+  assert(
+    created.nextRequiredAgentBehavior === 'wait_for_plan_review_ready',
+    'Plan create did not require review-ready waiting.',
+  )
 
   const ready = await callTool('plan_wait_for_review', { planId, afterSequence: 0 })
   const readyEvents = ready.events as Array<{ type: string; sequence: number }>
@@ -210,6 +236,10 @@ try {
   assert(
     (ready.links as { appraise: string }).appraise === createdLinks.appraise,
     'Review-ready evidence returned different canonical links.',
+  )
+  assert(
+    ready.nextRequiredAgentBehavior === 'standby_for_appraise_review',
+    'Review-ready response did not instruct standby.',
   )
 
   const directReviewResponse = await fetch(`${baseUrl}${created.reviewUrl}`)
@@ -278,6 +308,10 @@ try {
   await approveCurrentPlan(3, approvedHash)
 
   const approval = await callTool('plan_wait_for_approval', { planId, afterSequence: 0 })
+  assert(
+    approval.nextRequiredAgentBehavior === 'start_validation_preparation',
+    'Approval response did not require validation preparation.',
+  )
   assert(approval.status === 'approved', `Approval wait did not observe plan approval: ${JSON.stringify(approval)}`)
   assert(approval.lifecycle === 'plan_approved', 'Approval wait did not preserve the approved lifecycle.')
   assert(approval.contentHash === approvedHash, 'Approval wait did not return the current approved hash.')
