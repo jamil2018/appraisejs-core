@@ -24,12 +24,20 @@ import {
   startBaselineExecution,
   startImplementation,
 } from '@/services/coordinator/coordinator-baseline-service'
+import {
+  approveCurrentValidationFile,
+  decideValidationNode,
+  submitValidationFeedback,
+  submitValidationReview,
+} from '@/services/coordinator/coordinator-validation-service'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-const targetSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('plan') }),
-  z.object({ type: z.literal('task'), taskId: idSchema }),
-])
+const planTargetSchema = z.object({ type: z.literal('plan') })
+const taskTargetSchema = z.object({ type: z.literal('task'), taskId: idSchema })
+const validationTargetSchema = z.object({ type: z.literal('validation'), validationId: idSchema })
+const fileTargetSchema = z.object({ type: z.literal('file'), path: z.string().min(1) })
+const targetSchema = z.discriminatedUnion('type', [planTargetSchema, taskTargetSchema])
+const validationFeedbackTargetSchema = z.union([planTargetSchema, validationTargetSchema, fileTargetSchema])
 const positionsSchema = z.record(idSchema, z.object({ x: z.number().finite(), y: z.number().finite() }))
 
 async function runAction<T extends { planId: string }>(
@@ -156,5 +164,44 @@ export async function acceptBaselineAction(input: unknown): Promise<ActionRespon
 export async function startImplementationAction(input: unknown): Promise<ActionResponse> {
   return runAction(input, z.object({ planId: planIdSchema }), value =>
     startImplementation(value.planId).then(() => undefined),
+  )
+}
+
+export async function decideValidationNodeAction(input: unknown): Promise<ActionResponse> {
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
+      validationId: idSchema,
+      decision: z.enum(['approved', 'rejected', 'deferred']),
+    }),
+    value => decideValidationNode({ ...value, decidedBy: 'local-user' }).then(() => undefined),
+  )
+}
+
+export async function approveValidationFileAction(input: unknown): Promise<ActionResponse> {
+  return runAction(input, z.object({ planId: planIdSchema, path: z.string().min(1) }), value =>
+    approveCurrentValidationFile({ ...value, approvedBy: 'local-user' }).then(() => undefined),
+  )
+}
+
+export async function submitValidationReviewAction(input: unknown): Promise<ActionResponse> {
+  return runAction(input, z.object({ planId: planIdSchema }), value =>
+    submitValidationReview(value.planId).then(() => undefined),
+  )
+}
+
+export async function submitValidationFeedbackAction(input: unknown): Promise<ActionResponse> {
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
+      scope: z.enum(['test_artifact', 'product_scope']),
+      target: validationFeedbackTargetSchema,
+      body: z.string().trim().min(1),
+      affectedValidationIds: z.array(idSchema).optional(),
+      affectedFilePaths: z.array(z.string().min(1)).optional(),
+    }),
+    value => submitValidationFeedback({ ...value, actor: 'local-user' }).then(() => undefined),
   )
 }

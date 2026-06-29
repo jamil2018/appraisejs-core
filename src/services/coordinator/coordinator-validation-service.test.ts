@@ -195,7 +195,7 @@ describe('validation preparation review gate', () => {
     })
     await expect(readPlanEvents({ planId, afterSequence: 2 }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 3, type: 'validation_review_ready' }),
-      expect.objectContaining({ sequence: 4, type: 'validation_approved' }),
+      expect.objectContaining({ sequence: 4, type: 'validations_approved' }),
     ])
   })
 

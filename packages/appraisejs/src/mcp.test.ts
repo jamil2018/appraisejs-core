@@ -30,9 +30,17 @@ describe('MCP approval wait helpers', () => {
     const response = approvalPendingResponse({
       planId: 'plan-1',
       current: {
-        plan: { revision: 2, lifecycle: 'awaiting_plan_review' },
+        plan: {
+          revision: 2,
+          lifecycle: 'awaiting_plan_review',
+          goal: 'Ship standby',
+          description: 'Keep the review wait resumable.',
+        },
         contentHash: 'sha256:test',
-        links: { browser: 'http://127.0.0.1:3000/plans/plan-1' },
+        links: {
+          appraise: 'appraise://plans/plan-1',
+          browser: 'http://127.0.0.1:3000/plans/plan-1',
+        },
       },
       events: [
         { sequence: 2, type: 'plan_review_ready' },
@@ -47,6 +55,13 @@ describe('MCP approval wait helpers', () => {
       status: 'pending',
       currentAfterSequence: 2,
       nextAfterSequence: 4,
+      browserUrl: 'http://127.0.0.1:3000/plans/plan-1',
+      appraiseUrl: 'appraise://plans/plan-1',
+      goal: 'Ship standby',
+      description: 'Keep the review wait resumable.',
+      revision: 2,
+      lifecycle: 'awaiting_plan_review',
+      contentHash: 'sha256:test',
       recommendedWait: {
         tool: 'plan_wait_for_approval',
         mode: 'long_poll',
@@ -58,15 +73,38 @@ describe('MCP approval wait helpers', () => {
     expect(response.reviewGatePause).toContain('Do not implement')
     expect(response.reviewGatePause).toContain('treat chat messages as approval')
     expect(response.cursorGuidance).toContain('afterSequence is exclusive')
+    expect(response.standbyPresentation.instruction).toContain('Before entering or continuing standby')
+    expect(response.standbyPresentation.requiredFields).toEqual(
+      expect.arrayContaining([
+        'browserUrl',
+        'appraiseUrl',
+        'goal',
+        'description',
+        'revision',
+        'lifecycle',
+        'contentHash',
+        'currentAfterSequence',
+        'nextAfterSequence',
+        'recommendedWait',
+      ]),
+    )
   })
 
   it('returns resumable review-readiness standby for the preferred review loop', () => {
     const response = reviewReadyPendingResponse({
       planId: 'plan-1',
       current: {
-        plan: { revision: 1, lifecycle: 'draft' },
+        plan: {
+          revision: 1,
+          lifecycle: 'draft',
+          goal: 'Prepare review',
+          description: 'Wait for durable review readiness.',
+        },
         contentHash: 'sha256:test',
-        links: { appraise: 'appraise://plans/plan-1' },
+        links: {
+          appraise: 'appraise://plans/plan-1',
+          browser: 'http://127.0.0.1:3000/plans/plan-1',
+        },
       },
       events: [{ sequence: 1, type: 'plan_graph_processing_started' }],
       afterSequence: 0,
@@ -78,6 +116,10 @@ describe('MCP approval wait helpers', () => {
       phase: 'review_ready',
       currentAfterSequence: 0,
       nextAfterSequence: 1,
+      browserUrl: 'http://127.0.0.1:3000/plans/plan-1',
+      appraiseUrl: 'appraise://plans/plan-1',
+      goal: 'Prepare review',
+      description: 'Wait for durable review readiness.',
       recommendedWait: {
         tool: 'plan_review_loop',
         mode: 'long_poll',
@@ -87,6 +129,7 @@ describe('MCP approval wait helpers', () => {
       nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
     })
     expect(response.reviewGatePause).toContain('Do not present the review as durable')
+    expect(response.standbyPresentation.instruction).toContain('browser URL')
   })
 })
 

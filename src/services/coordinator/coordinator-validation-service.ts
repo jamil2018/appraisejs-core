@@ -301,13 +301,19 @@ export async function decideValidationNode(
   return decision
 }
 
+async function readValidationFileForReview(planId: string, path: string, projectDirectory?: string) {
+  const artifacts = await readArtifacts(planId, projectDirectory)
+  const file = artifacts.validation?.files.find(item => item.path === path)
+  if (!file) throw new ServiceError('Validation file not found.', 'NOT_FOUND')
+  return { artifacts, file }
+}
+
 export async function approveValidationFile(
   input: { planId: string; path: string; contentHash: string; approvedBy: string },
   options: Options = {},
 ) {
-  const artifacts = await readArtifacts(input.planId, options.projectDirectory)
-  const file = artifacts.validation?.files.find(item => item.path === input.path)
-  if (!file || fileReviewHash(file) !== input.contentHash) {
+  const { artifacts, file } = await readValidationFileForReview(input.planId, input.path, options.projectDirectory)
+  if (fileReviewHash(file) !== input.contentHash) {
     throw new ServiceError('The file changed since it was presented for review.', 'CONFLICT')
   }
   const approval = {
@@ -327,6 +333,14 @@ export async function approveValidationFile(
     serializeYamlArtifact('review', next),
   )
   return approval
+}
+
+export async function approveCurrentValidationFile(
+  input: { planId: string; path: string; approvedBy: string },
+  options: Options = {},
+) {
+  const { file } = await readValidationFileForReview(input.planId, input.path, options.projectDirectory)
+  return approveValidationFile({ ...input, contentHash: fileReviewHash(file) }, options)
 }
 
 // fallow-ignore-next-line complexity
@@ -360,7 +374,7 @@ export async function submitValidationReview(planId: string, options: Options = 
   )
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
   await appendPlanEvent(
-    { planId, type: 'validation_approved', payload: { revision: plan.revision, submissionId: randomUUID() } },
+    { planId, type: 'validations_approved', payload: { revision: plan.revision, submissionId: randomUUID() } },
     client,
   )
   return { plan, validation }

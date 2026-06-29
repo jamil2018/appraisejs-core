@@ -17,6 +17,7 @@ import { PlanReviewWorkspace } from './plan-review-workspace'
 
 type PageProps = {
   params: Promise<{ planId: string }>
+  searchParams?: Promise<{ review?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -116,10 +117,13 @@ function AmbiguousPlanSlug({ slug, plans }: { slug: string; plans: Awaited<Retur
   )
 }
 
-export default async function PlanReviewPage({ params }: PageProps) {
+// fallow-ignore-next-line complexity
+export default async function PlanReviewPage({ params, searchParams }: PageProps) {
   const { planId: routeKey } = await params
+  const reviewMode = (await searchParams)?.review
   const detail = await readExactPlanDetail(routeKey)
-  if (detail) return <PlanReviewWorkspace detail={detail} />
+  if (detail)
+    return <PlanReviewWorkspace detail={detail} initialTab={reviewMode === 'validation' ? 'validations' : undefined} />
 
   const slugMatches = await resolveSlugMatches(routeKey)
   if (slugMatches.length === 1) redirect(planCanonicalRoute(slugMatches[0]!.planId))

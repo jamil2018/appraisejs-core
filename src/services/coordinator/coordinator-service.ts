@@ -17,6 +17,7 @@ const RUNTIME_DIRECTORY = '.appraisejs'
 const IDENTITY_FILE = 'coordinator.json'
 const PROGRESSION_EVENT_TYPES = [
   'plan_approved',
+  'validations_approved',
   'validation_approved',
   'implementation_started',
   'task_updated',

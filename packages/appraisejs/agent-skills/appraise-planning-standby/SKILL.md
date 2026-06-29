@@ -26,8 +26,9 @@ Appraise, build this project using Appraise, or generate a plan and show it in A
 8. After review readiness, call `plan_wait_for_approval` with an active bounded wait or poll loop by default, then
    enter standby. Pending approval is not completion.
 9. If approval is still pending after a bounded wait, use the returned `nextAfterSequence` for the next bounded wait.
-   Return compact continuation state only as a long-review or host-limit fallback; keep review links, lifecycle, and
-   content hash so a later turn can resume the same wait.
+   Return compact continuation state only as a long-review or host-limit fallback. Before entering or continuing
+   standby, present the browser URL, `appraise://` URL, goal, description, revision, lifecycle, content hash,
+   `currentAfterSequence`, `nextAfterSequence`, and recommended wait call so a later turn can resume the same wait.
 10. On `approved`, call `plan_start`; acknowledge only after `validation_preparation_started`.
 11. On `changes_requested`, call `plan_review_read`, revise against the expected hash, and return to standby.
 12. On `cancelled`, acknowledge the cancellation event and stop.

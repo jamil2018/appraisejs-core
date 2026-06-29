@@ -12,7 +12,9 @@ remarks, revising against the expected hash, and waiting for the next approval e
 Agents should use `plan_review_loop` when it is available, because it keeps review readiness, bounded approval waits,
 change requests, and cancellation inside one Appraise-owned loop. Without that tool, agents should actively continue
 with bounded `plan_wait_for_review` and `plan_wait_for_approval` waits. Compact continuation state is a fallback for
-long reviews or host limits, not the default result after publishing links. Pending review or pending approval is not
+long reviews or host limits, not the default result after publishing links. Every standby handoff should present the
+browser URL, `appraise://` URL, goal, description, revision, lifecycle, content hash, `currentAfterSequence`,
+`nextAfterSequence`, and recommended wait call before the agent waits again. Pending review or pending approval is not
 completion.
 
 ## Approval And Validation Preparation
@@ -23,7 +25,8 @@ transition it permits succeeds. `validation_preparation_started` marks the valid
 ## Validation Review
 
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation
-artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds.
+artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
+older `validation_approved` events may exist in in-flight streams, but new events should use the plural lifecycle name.
 
 ## Baseline
 

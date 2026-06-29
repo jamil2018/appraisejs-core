@@ -15,6 +15,7 @@ import {
 import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
+import { assessValidationReadiness, fileReviewHash, validationNodeHash } from '@/lib/validation-review/approval'
 import { ServiceError } from '@/services/shared/errors'
 import {
   appendPlanEvent,
@@ -48,6 +49,11 @@ export type PlanReviewDetail = {
   contentHash: string
   review?: ReviewArtifact
   validation?: ValidationArtifact
+  validationReview?: {
+    nodeHashes: Record<string, string>
+    fileHashes: Record<string, string>
+    readiness: ReturnType<typeof assessValidationReadiness>
+  }
   graph: ReturnType<typeof derivePlanGraph>
   projection: {
     slug: string
@@ -248,6 +254,13 @@ export async function getPlanReviewDetail(
   ])
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
+  const validationReview = validation
+    ? {
+        nodeHashes: Object.fromEntries(validation.validations.map(node => [node.id, validationNodeHash(node)])),
+        fileHashes: Object.fromEntries(validation.files.map(file => [file.path, fileReviewHash(file)])),
+        readiness: assessValidationReadiness(validation, review),
+      }
+    : undefined
 
   const graph = derivePlanGraph(plan)
   const readiness = evaluateGraphReadiness(projection.events)
@@ -265,6 +278,7 @@ export async function getPlanReviewDetail(
     contentHash: planArtifact.hash,
     review,
     validation,
+    validationReview,
     graph,
     projection,
     issues: projection.issues,

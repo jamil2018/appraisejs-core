@@ -10,18 +10,26 @@ import { PlanReviewWorkspace } from './plan-review-workspace'
 
 const {
   approvePlanRevisionAction,
+  approveValidationFileAction,
+  decideValidationNodeAction,
   fitView,
   publishSharedPlanLayoutAction,
   requestPlanChangesAction,
   savePersonalPlanLayoutAction,
   setNodes,
+  submitValidationFeedbackAction,
+  submitValidationReviewAction,
 } = vi.hoisted(() => ({
   approvePlanRevisionAction: vi.fn(),
+  approveValidationFileAction: vi.fn(),
+  decideValidationNodeAction: vi.fn(),
   fitView: vi.fn(),
   publishSharedPlanLayoutAction: vi.fn(),
   requestPlanChangesAction: vi.fn(),
   savePersonalPlanLayoutAction: vi.fn(),
   setNodes: vi.fn(),
+  submitValidationFeedbackAction: vi.fn(),
+  submitValidationReviewAction: vi.fn(),
 }))
 
 vi.mock('@xyflow/react', () => ({
@@ -65,8 +73,10 @@ vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   addPlanRemarkAction: vi.fn(),
   acceptBaselineAction: vi.fn(),
   acknowledgeBaselineFailureAction: vi.fn(),
+  approveValidationFileAction,
   approvePlanRevisionAction,
   cancelBaselineExecutionAction: vi.fn(),
+  decideValidationNodeAction,
   justifyBaselineRegressionPassAction: vi.fn(),
   publishSharedPlanLayoutAction,
   reconcileBaselineExecutionAction: vi.fn(),
@@ -75,6 +85,8 @@ vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   savePersonalPlanLayoutAction,
   startBaselineExecutionAction: vi.fn(),
   startImplementationAction: vi.fn(),
+  submitValidationFeedbackAction,
+  submitValidationReviewAction,
   transitionPlanRemarkAction: vi.fn(),
 }))
 
@@ -158,6 +170,8 @@ const detail: PlanReviewDetail = {
     ],
   },
   projection: {
+    slug: 'accessible-plan',
+    legacyPlanId: null,
     sourceHash: 'sha256:test',
     lifecycle: 'awaiting_plan_review',
     stale: false,
@@ -177,6 +191,109 @@ const detail: PlanReviewDetail = {
   orphanedThreadIds: [],
   reviewReady: true,
   listFallback: false,
+}
+
+const hashA = `sha256:${'a'.repeat(64)}`
+const hashB = `sha256:${'b'.repeat(64)}`
+const hashC = `sha256:${'c'.repeat(64)}`
+
+const validationDetail: PlanReviewDetail = {
+  ...detail,
+  plan: { ...detail.plan, lifecycle: 'awaiting_validation_review' },
+  projection: { ...detail.projection, lifecycle: 'awaiting_validation_review' },
+  review: {
+    ...detail.review!,
+    fileApprovals: [
+      { path: 'src/app/page.tsx', contentHash: hashC, approvedBy: 'local-user', approvedAt: new Date().toISOString() },
+    ],
+  },
+  validation: {
+    version: '1',
+    planId: 'accessible-plan',
+    revision: 2,
+    baseRevision: { gitCommit: null, snapshotHash: hashA, reducedAssurance: true },
+    classificationOverrides: [],
+    validations: [
+      {
+        id: 'browser-validation',
+        taskIds: ['task-one', 'task-two'],
+        required: true,
+        testCaseIds: ['keyboard-review'],
+        gherkinPaths: ['automation/features/review.feature'],
+        stepPaths: ['automation/steps/review.steps.ts'],
+        executable: { path: 'automation/steps/review.steps.ts', selector: 'validation review' },
+        matrix: [{ browser: 'chromium', environment: 'local' }],
+        expectedFailures: [
+          {
+            browser: 'chromium',
+            environment: 'local',
+            signature: 'Fails until the reviewed UI exists.',
+            order: 0,
+            lastPassingStepId: 'task-one',
+          },
+        ],
+      },
+      {
+        id: 'optional-validation',
+        taskIds: ['task-two'],
+        required: false,
+        testCaseIds: ['optional-smoke'],
+        gherkinPaths: ['automation/features/optional.feature'],
+        stepPaths: ['automation/steps/optional.steps.ts'],
+        executable: { path: 'automation/steps/optional.steps.ts' },
+        matrix: [{ browser: 'webkit', environment: 'local' }],
+        expectedFailures: [],
+      },
+    ],
+    approvals: [],
+    validationDecisions: [
+      {
+        validationId: 'browser-validation',
+        decision: 'approved',
+        contentHash: hashB,
+        decidedBy: 'local-user',
+        decidedAt: new Date().toISOString(),
+      },
+      {
+        validationId: 'optional-validation',
+        decision: 'deferred',
+        contentHash: hashA,
+        decidedBy: 'local-user',
+        decidedAt: new Date().toISOString(),
+      },
+    ],
+    files: [
+      {
+        path: 'automation/features/review.feature',
+        classification: 'test_only',
+        rationale: 'Feature-only validation artifact.',
+        status: 'added',
+        beforeHash: null,
+        contentHash: hashB,
+        patch: 'diff',
+        declared: true,
+      },
+      {
+        path: 'src/app/page.tsx',
+        classification: 'production',
+        rationale: 'Production helper changed during validation prep.',
+        status: 'modified',
+        beforeHash: hashA,
+        contentHash: hashC,
+        patch: 'diff',
+        declared: true,
+      },
+    ],
+    manifestPaths: ['automation/features/review.feature', 'src/app/page.tsx'],
+    baselineAttempts: [],
+    baselineAcknowledgements: [],
+    baselineDecision: 'pending',
+  },
+  validationReview: {
+    nodeHashes: { 'browser-validation': hashB, 'optional-validation': hashA },
+    fileHashes: { 'automation/features/review.feature': hashB, 'src/app/page.tsx': hashC },
+    readiness: { ready: true, blockers: [] },
+  },
 }
 
 describe('PlanReviewWorkspace', () => {
@@ -415,5 +532,75 @@ describe('PlanReviewWorkspace', () => {
     expect(
       screen.getByText(/approval is disabled until the graph and list review representation is ready/i),
     ).toBeInTheDocument()
+  })
+
+  it('opens directly to the validation tab with node and changed-file evidence', () => {
+    render(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
+
+    expect(screen.getByRole('tabpanel', { name: /validations/i })).toBeInTheDocument()
+    expect(screen.getByText('browser-validation')).toBeInTheDocument()
+    expect(screen.getByText('Required')).toBeInTheDocument()
+    expect(screen.getByText('approved')).toBeInTheDocument()
+    expect(screen.getByText('optional-validation')).toBeInTheDocument()
+    expect(screen.getByText('deferred')).toBeInTheDocument()
+    expect(screen.getByText('automation/steps/review.steps.ts :: validation review')).toBeInTheDocument()
+    expect(screen.getByText('chromium/local')).toBeInTheDocument()
+    expect(screen.getByText(/fails until the reviewed ui exists/i)).toBeInTheDocument()
+    expect(screen.getAllByText('automation/features/review.feature').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('src/app/page.tsx')).toBeInTheDocument()
+    expect(screen.getByText('production')).toBeInTheDocument()
+    expect(screen.getAllByText('Declared')).toHaveLength(2)
+    expect(screen.getAllByText('In manifest')).toHaveLength(2)
+    expect(screen.getByText('Approved')).toBeInTheDocument()
+  })
+
+  it('submits validation node decisions, file approvals, validation review, and feedback actions', async () => {
+    const user = userEvent.setup()
+    decideValidationNodeAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    approveValidationFileAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    submitValidationReviewAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    submitValidationFeedbackAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    const needsFileApproval: PlanReviewDetail = {
+      ...validationDetail,
+      review: { ...validationDetail.review!, fileApprovals: [] },
+      validationReview: {
+        ...validationDetail.validationReview!,
+        readiness: {
+          ready: false,
+          blockers: ['File src/app/page.tsx requires approval for its current content hash.'],
+        },
+      },
+    }
+
+    const { rerender } = render(<PlanReviewWorkspace detail={needsFileApproval} initialTab="validations" />)
+
+    await user.click(screen.getAllByRole('button', { name: /^Approve$/i })[0]!)
+    expect(decideValidationNodeAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      validationId: 'browser-validation',
+      decision: 'approved',
+    })
+
+    await user.click(screen.getByRole('button', { name: /approve file/i }))
+    expect(approveValidationFileAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      path: 'src/app/page.tsx',
+    })
+
+    await user.click(screen.getAllByRole('button', { name: /feedback/i })[0]!)
+    await user.type(screen.getByRole('textbox', { name: /feedback/i }), 'Tighten this validation.')
+    await user.click(screen.getByRole('button', { name: /submit validation feedback/i }))
+    expect(submitValidationFeedbackAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      scope: 'test_artifact',
+      target: { type: 'validation', validationId: 'browser-validation' },
+      body: 'Tighten this validation.',
+      affectedValidationIds: ['browser-validation'],
+      affectedFilePaths: undefined,
+    })
+
+    rerender(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
+    await user.click(screen.getByRole('button', { name: /submit validation review/i }))
+    expect(submitValidationReviewAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
   })
 })
