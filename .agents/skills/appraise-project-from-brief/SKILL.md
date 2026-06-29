@@ -25,12 +25,14 @@ generate a plan and show it in Appraise. Also use it when continuing feature wor
 6. Treat an existing `.appraisejs/project.json` marker as continuity guidance that future plans go through Appraise.
 7. Prefer `planning_session_create` when available; otherwise create the structured plan with `plan_create`. Do not
    invent a name-derived plan id.
-8. Call `plan_wait_for_review`, then present the returned `appraise://` plan link, browser link, revision, lifecycle,
-   and content hash only after `plan_review_ready`.
-9. After review-ready evidence is shown, call `plan_wait_for_approval` with the latest handled event sequence. Use a
-   bounded wait or poll mode when the host cannot safely hold a long-poll open.
-10. If approval is still pending after that wait, use the returned `nextAfterSequence` for any follow-up wait. Return the
-    compact resumable state and links only when the host cannot keep the turn active without spending tokens while idle.
+8. Prefer `plan_review_loop` when the tool is available; otherwise call `plan_wait_for_review`, then present the
+   returned `appraise://` plan link, browser link, revision, lifecycle, and content hash only after
+   `plan_review_ready`. Pending review is not completion.
+9. After review-ready evidence is shown, call `plan_wait_for_approval` with the latest handled event sequence. Use an
+   active bounded wait or poll loop by default.
+10. If approval is still pending after a bounded wait, use the returned `nextAfterSequence` for the next bounded wait.
+    Return the compact continuation state and links only as a long-review or host-limit fallback when the host cannot
+    keep the turn active without spending tokens while idle. Pending approval is not completion.
 11. On `approved`, call `plan_start`, acknowledge only after `validation_preparation_started`, then continue to
     validation artifact generation.
 12. On `changes_requested`, call `plan_review_read`, revise against the returned hash, submit the revision, and repeat

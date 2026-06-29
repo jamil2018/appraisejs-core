@@ -66,6 +66,7 @@ setupCommandOutput:
     - appraise://workflow/planning
     - appraise://workflow/standby
 toolAvailability:
+  plan_review_loop: true | false
   planning_session_create: true | false
   project_diagnostic: true | false
   plan_wait_for_approval: true | false
@@ -85,6 +86,8 @@ approvalWait:
   result: 'approved | changes_requested | cancelled | pending | failed'
   nextAfterSequence: '<number or null>'
   nextRequiredAgentBehavior: '<reported behavior>'
+  activeBoundedWaitDefault: true | false
+  compactContinuationReason: 'long-review | host-limit | null'
 blockedBeforeApproval: true | false
 implementationStartedBeforeApproval: true | false
 commandsRun:
@@ -109,22 +112,27 @@ After each subagent reports standby evidence, the coordinator independently veri
 1. The browser route for each reported plan returns `200 OK`.
 2. The route includes the plan ID and goal.
 3. The plan lifecycle and content hash match the reported review-ready evidence.
-4. The approval wait returned approval, requested changes, cancellation, or compact pending standby state.
-5. The subagent did not start validation preparation or implementation before Appraise approval.
-6. Local worktree changes are limited to expected audit artifacts.
-7. Audit-generated plan YAML files are removed after evidence capture unless the user explicitly wants them committed.
+4. The agent used `plan_review_loop` when available, or otherwise kept bounded waits active across review and
+   approval.
+5. The approval wait returned approval, requested changes, cancellation, or compact pending standby state only for a
+   long-review or host-limit fallback.
+6. The subagent did not report pending review or pending approval as completion.
+7. The subagent did not start validation preparation or implementation before Appraise approval.
+8. Local worktree changes are limited to expected audit artifacts.
+9. Audit-generated plan YAML files are removed after evidence capture unless the user explicitly wants them committed.
 
 ## Scoring
 
-`pass`: Native MCP tools/resources are visible, `planning_session_create` creates the plan, review-ready evidence is
-durable, and `plan_wait_for_approval` returns approval/change/cancellation or compact resumable pending standby without
+`pass`: Native MCP tools/resources are visible, `planning_session_create` creates the plan, `plan_review_loop` is used
+when available or bounded waits remain active, review-ready evidence is durable, and approval wait returns
+approval/change/cancellation or compact resumable pending standby for a long-review or host-limit fallback without
 implementation.
 
 `partial`: The agent reaches approval standby only through recovery paths such as setup commands, reconnect recovery,
 manual resource discovery, or raw HTTP JSON-RPC troubleshooting.
 
 `fail`: The agent cannot create a plan, treats chat approval as Appraise lifecycle approval, implements before
-approval, reports completion while approval is pending, or cannot produce durable review-ready evidence.
+approval, reports completion while review or approval is pending, or cannot produce durable review-ready evidence.
 
 Record product feedback from partial or fail runs as follow-up issues. Do not frame those findings as agent prompt
 mistakes when normal product surfaces were insufficient.

@@ -72,9 +72,13 @@ describe('Appraise workflow skills', () => {
     expect(planning).toContain('plan_wait_for_review')
     expect(planning).toContain('plan_wait_for_approval')
     expect(planning.indexOf('plan_wait_for_review')).toBeLessThan(planning.indexOf('plan_wait_for_approval'))
+    expect(planning).toContain('Prefer `plan_review_loop` when the tool is available')
     expect(planning).toContain('call `plan_wait_for_approval` with the latest handled event sequence')
     expect(planning).toContain('nextAfterSequence')
-    expect(planning).toContain('compact resumable state')
+    expect(planning).toContain('active bounded wait or poll loop by default')
+    expect(planning).toContain('compact continuation state')
+    expect(planning).toContain('Pending review is not completion')
+    expect(planning).toContain('Pending approval is not completion')
     expect(planning).toContain('plan_start')
     expect(planning).toContain('validation_preparation_started')
     expect(planning).toContain('plan_review_read')
@@ -82,5 +86,18 @@ describe('Appraise workflow skills', () => {
     expect(planning).toContain('only after')
     expect(planning).not.toContain('Stop at the review gate')
     expect(planning).not.toMatch(/repeated(?:ly)?\s+(?:\w+\s+){0,3}pending|pending\s+(?:\w+\s+){0,3}loop/i)
+  })
+
+  it('keeps packaged standby guidance aligned with active bounded review waits', async () => {
+    const standby = await fs.readFile(
+      path.join(process.cwd(), 'agent-skills', 'appraise-planning-standby', 'SKILL.md'),
+      'utf8',
+    )
+
+    expect(standby).toContain('Prefer `plan_review_loop` when the tool is available')
+    expect(standby).toContain('active bounded wait or poll loop by default')
+    expect(standby).toContain('long-review or host-limit fallback')
+    expect(standby).toContain('Pending review is not completion')
+    expect(standby).toContain('Pending approval is not completion')
   })
 })

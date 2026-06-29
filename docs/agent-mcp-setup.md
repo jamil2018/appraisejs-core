@@ -60,7 +60,7 @@ client. Do not report tools as available until the client has completed that ref
 
 After reconnect, verify these expected capabilities:
 
-- Tool: `planning_session_create`
+- Tools: `planning_session_create`, `plan_review_loop`
 - Resources: `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/standby`
 
 If `project_diagnostic`, `tools/list`, or `resources/list` shows older capabilities, treat the MCP server or client
@@ -81,8 +81,9 @@ with this sequence:
 Raw JSON-RPC calls are for advanced troubleshooting only. They are not the ordinary agent path and should not replace
 native MCP registration.
 
-After `plan_review_ready`, agents must call `plan_wait_for_approval` and enter standby or return a compact
-continuation state. Pending approval is not completion.
+Agents should prefer `plan_review_loop` when it is available. Otherwise, after `plan_review_ready`, agents must call
+`plan_wait_for_approval` and keep an active bounded wait or poll loop by default. Compact continuation state is only a
+long-review or host-limit fallback. Pending review or pending approval is not completion.
 
 ## Troubleshooting
 

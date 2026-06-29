@@ -149,6 +149,7 @@ Tools:
 - `project_add`
 - `project_list`
 - `planning_session_create`
+- `plan_review_loop` when available for active bounded review and approval standby
 - `plan_create`
 - `test_run`
 - `plan_read`
@@ -185,6 +186,11 @@ recovery guidance instead of silently creating a hub-scoped plan.
 `status: "pending"`, `nextAfterSequence`, review links, content hash, and
 `nextRequiredAgentBehavior: "standby_for_appraise_review"`. Clients that can safely keep a request open may opt into
 `mode: "long_poll"` or provide `timeoutMs`.
+
+When exposed by the MCP server, `plan_review_loop` is the preferred agent workflow tool because it keeps bounded
+waiting active through `plan_review_ready`, approval, requested changes, and cancellation. Compact continuation state
+should be treated as a long-review or host-limit fallback. A pending review or pending approval result means the agent
+is still waiting on Appraise-owned lifecycle state; it is not completion.
 
 ## Local Smoke Test
 

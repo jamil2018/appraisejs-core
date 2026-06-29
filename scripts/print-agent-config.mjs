@@ -7,7 +7,7 @@ import { resolveMcpConfig } from './mcp-config.mjs'
 const config = resolveMcpConfig()
 const skillExists = existsSync(config.skillPath)
 const expectedCapabilities = {
-  tools: ['planning_session_create'],
+  tools: ['planning_session_create', 'plan_review_loop'],
   resources: ['appraise://agent-guide', 'appraise://workflow/planning', 'appraise://workflow/standby'],
 }
 const staleCapabilityRecovery = [
@@ -46,5 +46,5 @@ for (const step of staleCapabilityRecovery) console.log(`- ${step}`)
 console.log('\nIf setup text is visible but native MCP tools are not:')
 for (const step of toolsNotVisibleRecovery) console.log(`- ${step}`)
 console.log(
-  'Standby warning: after plan_review_ready, call plan_wait_for_approval and remain resumable; do not terminate while approval is pending.',
+  'Standby warning: prefer plan_review_loop when available. Otherwise keep an active bounded plan_wait_for_approval loop after plan_review_ready. Use compact continuation only for long-review or host-limit fallback; pending review or approval is not completion.',
 )

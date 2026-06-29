@@ -17,7 +17,7 @@ import { resolvePlanSource } from './plan-source.js'
 const program = new Command()
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const expectedAgentCapabilities = {
-  tools: ['planning_session_create'],
+  tools: ['planning_session_create', 'plan_review_loop'],
   resources: ['appraise://agent-guide', 'appraise://workflow/planning', 'appraise://workflow/standby'],
 }
 const staleAgentCapabilityRecovery = [
@@ -198,7 +198,7 @@ agent
         toolsNotVisibleRecovery,
         healthCheck: 'Run appraisejs doctor --json, then call MCP project_diagnostic after reconnecting.',
         standbyWarning:
-          'After plan_review_ready, call plan_wait_for_approval and remain resumable; do not terminate while approval is pending.',
+          'Prefer plan_review_loop when available. Otherwise keep an active bounded plan_wait_for_approval loop after plan_review_ready. Use compact continuation only for long-review or host-limit fallback; pending review or approval is not completion.',
       }
       if (options.json) {
         printJson(setup)

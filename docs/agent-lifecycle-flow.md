@@ -9,6 +9,12 @@ Create or update plans through the Appraise plan surface. Wait for `plan_review_
 `plan_review_read` to inspect current remarks and hashes. A `plan_changes_requested` event requires reading review
 remarks, revising against the expected hash, and waiting for the next approval event.
 
+Agents should use `plan_review_loop` when it is available, because it keeps review readiness, bounded approval waits,
+change requests, and cancellation inside one Appraise-owned loop. Without that tool, agents should actively continue
+with bounded `plan_wait_for_review` and `plan_wait_for_approval` waits. Compact continuation state is a fallback for
+long reviews or host limits, not the default result after publishing links. Pending review or pending approval is not
+completion.
+
 ## Approval And Validation Preparation
 
 `plan_approved` permits starting validation preparation. A coordinator should acknowledge the approval only after the
