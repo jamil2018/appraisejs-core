@@ -4,7 +4,7 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 391 nodes · 671 edges · 24 communities (21 shown, 3 thin omitted)
+- 391 nodes · 669 edges · 25 communities (22 shown, 3 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -35,6 +35,7 @@
 - [[_COMMUNITY_Community 18|Community 18]]
 - [[_COMMUNITY_Community 19|Community 19]]
 - [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `printSyncSummary()` - 23 edges
@@ -63,7 +64,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (24 total, 3 thin omitted)
+## Communities (25 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -74,16 +75,16 @@ Cohesion: 0.07
 Nodes (48): addFieldModifiers(), addFieldTypeEdges(), addLink(), addLocalForeignKeys(), addModelConstraint(), addModelField(), addNode(), addReferencedFields() (+40 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.09
-Nodes (32): ParsedStep, runSyncScript(), printSyncSummary(), SummarySection, buildEnvironmentObjects(), EnvironmentConfig, EnvironmentData, getEnvironmentIdentityKey() (+24 more)
+Cohesion: 0.08
+Nodes (33): ParsedStep, runSyncScript(), printSyncSummary(), SummarySection, splitTagLine(), buildEnvironmentObjects(), EnvironmentConfig, EnvironmentData (+25 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.11
 Nodes (30): extractLocatorGroupName(), extractModulePathFromLocatorFile(), extractTestSuiteNameFromFilename(), buildLocatorGroupsFromFS(), buildLocatorMapRouteMap(), createOrUpdateLocatorGroup(), deleteOrphanedLocatorGroups(), LocatorGroupFromFS (+22 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.12
-Nodes (27): splitTagLine(), createModulePathMap(), createTestSuite(), DbTestSuiteWithModule, deleteOrphanedTestSuite(), deleteOrphanedTestSuiteIfNeeded(), deleteOrphanedTestSuites(), ExistingTestSuite (+19 more)
+Cohesion: 0.13
+Nodes (26): createModulePathMap(), createTestSuite(), DbTestSuiteWithModule, deleteOrphanedTestSuite(), deleteOrphanedTestSuiteIfNeeded(), deleteOrphanedTestSuites(), ExistingTestSuite, extractFeatureLevelTags() (+18 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.15
@@ -107,19 +108,19 @@ Nodes (11): activeFiles, checkRootRelativeReferences(), collectEntryFiles(), fai
 
 ### Community 10 - "Community 10"
 Cohesion: 0.22
-Nodes (9): envValue(), normalizeEndpointPath(), resolveMcpConfig(), config, expectedCapabilities, skillExists, staleCapabilityRecovery, toolsNotVisibleRecovery (+1 more)
-
-### Community 11 - "Community 11"
-Cohesion: 0.22
 Nodes (12): aggregateDatabaseChanges(), DatabaseChanges, DB_CHANGE_PATTERNS, displaySummary(), DIVIDER, executeSyncScript(), hasDatabaseChanges(), main() (+4 more)
 
-### Community 12 - "Community 12"
+### Community 11 - "Community 11"
 Cohesion: 0.35
 Nodes (10): ensureGitInclude(), getLocalConfig(), isGitRepository(), log(), main(), quiet, repoRoot, runGit() (+2 more)
 
-### Community 13 - "Community 13"
+### Community 12 - "Community 12"
 Cohesion: 0.24
 Nodes (8): args, graphifyCommand, graphifyMcpCommand, resolveCommand(), resolveCommandFromPath(), resolveCommandFromUvToolPath(), result, versionCheck
+
+### Community 13 - "Community 13"
+Cohesion: 0.48
+Nodes (4): envValue(), normalizeEndpointPath(), resolveMcpConfig(), config
 
 ### Community 14 - "Community 14"
 Cohesion: 0.29
@@ -130,10 +131,14 @@ Cohesion: 0.38
 Nodes (6): findCommand(), findCommandInUvToolBin(), findCommandOnPath(), graphifyCommand, install, uvCommand
 
 ### Community 16 - "Community 16"
+Cohesion: 0.33
+Nodes (5): config, expectedCapabilities, skillExists, staleCapabilityRecovery, toolsNotVisibleRecovery
+
+### Community 17 - "Community 17"
 Cohesion: 0.60
 Nodes (4): main(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
 
-### Community 18 - "Community 18"
+### Community 19 - "Community 19"
 Cohesion: 0.50
 Nodes (3): databasePath, migrationsRoot, workspace
 
@@ -145,7 +150,7 @@ Nodes (3): databasePath, migrationsRoot, workspace
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `printSyncSummary()` connect `Community 2` to `Community 3`, `Community 11`, `Community 4`, `Community 5`?**
+- **Why does `printSyncSummary()` connect `Community 2` to `Community 10`, `Community 3`, `Community 4`, `Community 5`?**
   _High betweenness centrality (0.102) - this node is a cross-community bridge._
 - **Why does `parseStepFile()` connect `Community 0` to `Community 2`, `Community 7`?**
   _High betweenness centrality (0.072) - this node is a cross-community bridge._
@@ -158,4 +163,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.06787330316742081 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.09024390243902439 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08456659619450317 - nodes in this community are weakly interconnected._

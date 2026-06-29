@@ -39,8 +39,10 @@ import {
   addPlanRemarkAction,
   acceptBaselineAction,
   acknowledgeBaselineFailureAction,
+  approveValidationFileAction,
   approvePlanRevisionAction,
   cancelBaselineExecutionAction,
+  decideValidationNodeAction,
   justifyBaselineRegressionPassAction,
   publishSharedPlanLayoutAction,
   reconcileBaselineExecutionAction,
@@ -49,6 +51,8 @@ import {
   savePersonalPlanLayoutAction,
   startBaselineExecutionAction,
   startImplementationAction,
+  submitValidationFeedbackAction,
+  submitValidationReviewAction,
   transitionPlanRemarkAction,
 } from '@/actions/plan-review/plan-review-actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -66,9 +70,11 @@ import { getThreadStatus, isThreadOpen } from '@/services/plan-review/plan-revie
 
 import { projectPlanFlow } from './plan-flow-projection'
 import { PlanFlowTaskNode, type PlanFlowTaskNode as PlanFlowTaskNodeType } from './plan-flow-task-node'
+import { ValidationReviewPanel } from './validation-review-panel'
 
 type PlanReviewWorkspaceProps = {
   detail: PlanReviewDetail
+  initialTab?: 'graph' | 'list' | 'history' | 'validations'
 }
 
 const edgeColors = {
@@ -120,7 +126,7 @@ function getReviewUnavailableReason(lifecycle: string): string | null {
 
 // The graph, list, inspector, and approval controls intentionally share one interaction model.
 // fallow-ignore-next-line complexity
-export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
+export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceProps) {
   const planSlug = getPlanDisplaySlug({
     planId: detail.plan.planId,
     slug: detail.projection.slug,
@@ -217,6 +223,8 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
             : detail.blockingThreadIds.length === 0
               ? 'Add a blocking remark before requesting changes.'
               : null
+
+  const defaultTab = initialTab ?? (detail.listFallback ? 'list' : 'graph')
 
   const run = (operation: () => Promise<{ success?: boolean; error?: string }>, successMessage: string) => {
     setMessage(null)
@@ -339,7 +347,7 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Tabs defaultValue={detail.listFallback ? 'list' : 'graph'}>
+            <Tabs defaultValue={defaultTab}>
               <div className="border-b px-4 py-3">
                 <TabsList aria-label="Plan review representations">
                   <TabsTrigger value="graph" disabled={detail.listFallback}>
@@ -353,6 +361,10 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                   <TabsTrigger value="history">
                     <GitCompare className="mr-2 size-4" />
                     Revisions
+                  </TabsTrigger>
+                  <TabsTrigger value="validations">
+                    <CheckCircle2 className="mr-2 size-4" />
+                    Validations
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -471,6 +483,24 @@ export function PlanReviewWorkspace({ detail }: PlanReviewWorkspaceProps) {
                     </div>
                   ))}
                 </div>
+              </TabsContent>
+              <TabsContent value="validations" className="m-0">
+                <ValidationReviewPanel
+                  detail={detail}
+                  isPending={isPending}
+                  run={run}
+                  onDecideValidation={(validationId, decision) =>
+                    decideValidationNodeAction({ planId: detail.plan.planId, validationId, decision })
+                  }
+                  onApproveFile={path => approveValidationFileAction({ planId: detail.plan.planId, path })}
+                  onSubmitReview={() => submitValidationReviewAction({ planId: detail.plan.planId })}
+                  onSubmitFeedback={input =>
+                    submitValidationFeedbackAction({
+                      planId: detail.plan.planId,
+                      ...input,
+                    })
+                  }
+                />
               </TabsContent>
             </Tabs>
           </CardContent>

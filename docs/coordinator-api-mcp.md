@@ -183,14 +183,20 @@ checkout. When neither is provided, the tool returns `status: "target_required"`
 recovery guidance instead of silently creating a hub-scoped plan.
 
 `plan_wait_for_approval` defaults to bounded poll behavior for ordinary agents. Pending approval returns
-`status: "pending"`, `nextAfterSequence`, review links, content hash, and
-`nextRequiredAgentBehavior: "standby_for_appraise_review"`. Clients that can safely keep a request open may opt into
-`mode: "long_poll"` or provide `timeoutMs`.
+`status: "pending"`, browser URL, `appraise://` URL, goal, description, revision, lifecycle, content hash,
+`currentAfterSequence`, `nextAfterSequence`, `recommendedWait`, and
+`nextRequiredAgentBehavior: "standby_for_appraise_review"`. Agents must present those fields before entering or
+continuing standby. Clients that can safely keep a request open may opt into `mode: "long_poll"` or provide
+`timeoutMs`.
 
 When exposed by the MCP server, `plan_review_loop` is the preferred agent workflow tool because it keeps bounded
 waiting active through `plan_review_ready`, approval, requested changes, and cancellation. Compact continuation state
 should be treated as a long-review or host-limit fallback. A pending review or pending approval result means the agent
 is still waiting on Appraise-owned lifecycle state; it is not completion.
+
+Validation review approval emits `validations_approved`, matching the plan lifecycle. Legacy `validation_approved`
+events may still appear in older streams, so readers should tolerate both names while new writers prefer the plural
+event.
 
 ## Local Smoke Test
 

@@ -83,7 +83,9 @@ native MCP registration.
 
 Agents should prefer `plan_review_loop` when it is available. Otherwise, after `plan_review_ready`, agents must call
 `plan_wait_for_approval` and keep an active bounded wait or poll loop by default. Compact continuation state is only a
-long-review or host-limit fallback. Pending review or pending approval is not completion.
+long-review or host-limit fallback. Before entering or continuing standby, agents must present the browser URL,
+`appraise://` URL, goal, description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`,
+and recommended wait call. Pending review or pending approval is not completion.
 
 ## Troubleshooting
 

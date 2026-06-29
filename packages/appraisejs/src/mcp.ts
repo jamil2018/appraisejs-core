@@ -338,7 +338,7 @@ function toolError(error: unknown) {
 }
 
 export type PlanSnapshot = {
-  plan: { revision: number; lifecycle: string }
+  plan: { revision: number; lifecycle: string; goal?: string; description?: string }
   contentHash: string
   links: unknown
 }
@@ -361,6 +361,59 @@ type CoordinatorToolEvent = { sequence: number; type: string }
 
 const defaultReviewLoopTimeoutMs = 120_000
 
+type RecommendedWait = {
+  tool: 'plan_wait_for_approval' | 'plan_review_loop' | 'plan_wait_for_review'
+  mode: 'long_poll'
+  timeoutMs: number
+  afterSequence: number
+}
+
+function linkFromSnapshot(links: unknown, key: 'appraise' | 'browser'): string | undefined {
+  if (!links || typeof links !== 'object') return undefined
+  const value = (links as Record<string, unknown>)[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+function standbyPresentation(input: {
+  planId: string
+  current: PlanSnapshot
+  currentAfterSequence: number
+  nextAfterSequence: number
+  recommendedWait: RecommendedWait
+}) {
+  const appraiseUrl = linkFromSnapshot(input.current.links, 'appraise') ?? `appraise://plans/${input.planId}`
+  const browserUrl = linkFromSnapshot(input.current.links, 'browser')
+  return {
+    browserUrl,
+    appraiseUrl,
+    goal: input.current.plan.goal,
+    description: input.current.plan.description,
+    revision: input.current.plan.revision,
+    lifecycle: input.current.plan.lifecycle,
+    contentHash: input.current.contentHash,
+    currentAfterSequence: input.currentAfterSequence,
+    nextAfterSequence: input.nextAfterSequence,
+    recommendedWait: input.recommendedWait,
+    standbyPresentation: {
+      required: true,
+      requiredFields: [
+        'browserUrl',
+        'appraiseUrl',
+        'goal',
+        'description',
+        'revision',
+        'lifecycle',
+        'contentHash',
+        'currentAfterSequence',
+        'nextAfterSequence',
+        'recommendedWait',
+      ],
+      instruction:
+        'Before entering or continuing standby, present the browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and the recommended wait call.',
+    },
+  }
+}
+
 export function nextApprovalWaitSequence(afterSequence: number, events: CoordinatorToolEvent[]): number {
   return events.reduce((latest, event) => Math.max(latest, event.sequence), afterSequence)
 }
@@ -376,22 +429,28 @@ export function approvalPendingResponse(input: {
   const nextAfterSequence = nextApprovalWaitSequence(input.afterSequence, input.events)
   const waitTool = input.waitTool ?? 'plan_review_loop'
   const timeoutMs = input.timeoutMs ?? defaultReviewLoopTimeoutMs
+  const recommendedWait: RecommendedWait = {
+    tool: waitTool,
+    mode: 'long_poll',
+    timeoutMs,
+    afterSequence: nextAfterSequence,
+  }
   return {
     status: 'pending',
     planId: input.planId,
-    revision: input.current.plan.revision,
-    lifecycle: input.current.plan.lifecycle,
+    ...standbyPresentation({
+      planId: input.planId,
+      current: input.current,
+      currentAfterSequence: input.afterSequence,
+      nextAfterSequence,
+      recommendedWait,
+    }),
     contentHash: input.current.contentHash,
     links: input.current.links,
     events: input.events,
     currentAfterSequence: input.afterSequence,
     nextAfterSequence,
-    recommendedWait: {
-      tool: waitTool,
-      mode: 'long_poll',
-      timeoutMs,
-      afterSequence: nextAfterSequence,
-    },
+    recommendedWait,
     cursorGuidance:
       'afterSequence is exclusive. Resume by passing nextAfterSequence exactly; subtract one only when intentionally redelivering unacknowledged events through plan_events_read.',
     reviewGatePause:
@@ -413,23 +472,29 @@ export function reviewReadyPendingResponse(input: {
 }) {
   const nextAfterSequence = nextApprovalWaitSequence(input.afterSequence, input.events)
   const timeoutMs = input.timeoutMs ?? defaultReviewLoopTimeoutMs
+  const recommendedWait: RecommendedWait = {
+    tool: 'plan_review_loop',
+    mode: 'long_poll',
+    timeoutMs,
+    afterSequence: nextAfterSequence,
+  }
   return {
     status: 'pending',
     phase: 'review_ready',
     planId: input.planId,
-    revision: input.current.plan.revision,
-    lifecycle: input.current.plan.lifecycle,
+    ...standbyPresentation({
+      planId: input.planId,
+      current: input.current,
+      currentAfterSequence: input.afterSequence,
+      nextAfterSequence,
+      recommendedWait,
+    }),
     contentHash: input.current.contentHash,
     links: input.current.links,
     events: input.events,
     currentAfterSequence: input.afterSequence,
     nextAfterSequence,
-    recommendedWait: {
-      tool: 'plan_review_loop',
-      mode: 'long_poll',
-      timeoutMs,
-      afterSequence: nextAfterSequence,
-    },
+    recommendedWait,
     cursorGuidance:
       'afterSequence is exclusive. Resume by passing nextAfterSequence exactly; subtract one only when intentionally redelivering unacknowledged events through plan_events_read.',
     reviewGatePause:
@@ -531,7 +596,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             preferredTool: 'plan_review_loop',
             compatibilityTool: 'plan_wait_for_approval',
             pendingBehavior:
-              'Use bounded long-poll standby when possible. On timeout, return compact planId, links, lifecycle, contentHash, currentAfterSequence, nextAfterSequence, and recommendedWait for continuation.',
+              'Use bounded long-poll standby when possible. On timeout, present and return browserUrl, appraiseUrl, goal, description, revision, lifecycle, contentHash, currentAfterSequence, nextAfterSequence, and recommendedWait for continuation.',
             cursorGuidance:
               'afterSequence is exclusive. Resume standby with nextAfterSequence exactly unless intentionally redelivering unacknowledged events through plan_events_read.',
             gateResults: {
@@ -620,7 +685,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         return text(
           withGuidance(target ? await api.createPlanForTarget(plan, target) : await api.createPlan(plan), {
             nextRecommendedAction:
-              'Call plan_review_loop to wait for durable review readiness and Appraise-owned approval feedback before implementation.',
+              'Present the returned browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence when present, nextAfterSequence when present, and recommended wait call; then call plan_review_loop to wait for durable review readiness and Appraise-owned approval feedback before implementation.',
             nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
           }),
         )
@@ -673,19 +738,35 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         }
         const planId = created.planId ?? String((created as { plan?: { planId?: string } }).plan?.planId ?? '')
         let reviewReady: unknown
+        let reviewReadyAfterSequence = 0
         if (planId && input.mode !== 'plan_only') {
           const after = typeof created.eventSequence === 'number' ? Math.max(0, created.eventSequence - 1) : 0
           const result = (await api.request(`plans/${planId}/events?after=${after}&wait=true`)) as {
             events?: CoordinatorToolEvent[]
           }
           const current = await readSnapshot(planId)
+          reviewReadyAfterSequence = nextApprovalWaitSequence(after, result.events ?? [])
           reviewReady = {
             planId,
+            browserUrl: linkFromSnapshot(current.links, 'browser'),
+            appraiseUrl: linkFromSnapshot(current.links, 'appraise') ?? `appraise://plans/${planId}`,
+            goal: current.plan.goal,
+            description: current.plan.description,
             revision: current.plan.revision,
             lifecycle: current.plan.lifecycle,
             contentHash: current.contentHash,
             links: current.links,
             events: result.events ?? [],
+            currentAfterSequence: after,
+            nextAfterSequence: reviewReadyAfterSequence,
+            recommendedWait: {
+              tool: 'plan_review_loop',
+              mode: 'long_poll',
+              timeoutMs: defaultReviewLoopTimeoutMs,
+              afterSequence: reviewReadyAfterSequence,
+            },
+            requiredPresentation:
+              'Present the browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and recommended wait call before entering standby.',
           }
         }
         return text({
@@ -697,10 +778,18 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           standby: {
             preferredTool: 'plan_review_loop',
             compatibilityTool: reviewReady ? 'plan_wait_for_approval' : 'plan_wait_for_review',
-            afterSequence: (reviewReady as { events?: CoordinatorToolEvent[] } | undefined)?.events?.reduce(
-              (latest, event) => Math.max(latest, event.sequence),
-              0,
-            ),
+            currentAfterSequence: reviewReady
+              ? (reviewReady as { currentAfterSequence: number }).currentAfterSequence
+              : 0,
+            nextAfterSequence: reviewReadyAfterSequence,
+            recommendedWait: {
+              tool: 'plan_review_loop',
+              mode: 'long_poll',
+              timeoutMs: defaultReviewLoopTimeoutMs,
+              afterSequence: reviewReadyAfterSequence,
+            },
+            requiredPresentation:
+              'Present the browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and recommended wait call before entering standby.',
             rule: reviewReady
               ? 'Keep an active bounded Appraise review wait when the host supports it. Do not implement until Appraise emits approval and plan_start succeeds.'
               : 'Wait for durable plan_review_ready evidence before presenting the review URL as complete. Pending review is not completion.',
@@ -852,38 +941,43 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       if (!reviewReady) {
         try {
           const current = await readSnapshot(planId)
-          return text({
-            status: 'pending',
-            planId,
-            revision: current.plan.revision,
-            lifecycle: current.plan.lifecycle,
-            contentHash: current.contentHash,
-            links: current.links,
-            events: result.events ?? [],
-            currentAfterSequence: afterSequence,
-            nextAfterSequence: nextApprovalWaitSequence(afterSequence, result.events ?? []),
-            cursorGuidance:
-              'afterSequence is exclusive. Resume by passing nextAfterSequence exactly; subtract one only when intentionally redelivering unacknowledged events through plan_events_read.',
-            recovery:
-              'Open the review URL or rerun plan_wait_for_review after sync-plans; no durable plan_review_ready event was delivered yet.',
-            nextRecommendedAction:
-              'Rerun plan_wait_for_review with the latest handled sequence before presenting the review URL as durable.',
-            nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
-          })
+          return text(
+            reviewReadyPendingResponse({
+              planId,
+              current,
+              events: result.events ?? [],
+              afterSequence,
+              timeoutMs: defaultReviewLoopTimeoutMs,
+            }),
+          )
         } catch (error) {
           if (error instanceof CoordinatorRequestError) return toolError(error)
           throw error
         }
       }
       const current = await readSnapshot(planId)
+      const nextAfterSequence = reviewReady.sequence
+      const recommendedWait: RecommendedWait = {
+        tool: 'plan_review_loop',
+        mode: 'long_poll',
+        timeoutMs: defaultReviewLoopTimeoutMs,
+        afterSequence: nextAfterSequence,
+      }
       return text({
         planId,
-        revision: current.plan.revision,
-        lifecycle: current.plan.lifecycle,
+        ...standbyPresentation({
+          planId,
+          current,
+          currentAfterSequence: afterSequence,
+          nextAfterSequence,
+          recommendedWait,
+        }),
         contentHash: current.contentHash,
         links: current.links,
         eventSequence: reviewReady.sequence,
-        nextAfterSequence: reviewReady.sequence,
+        currentAfterSequence: afterSequence,
+        nextAfterSequence,
+        recommendedWait,
         cursorGuidance:
           'afterSequence is exclusive. Use this eventSequence as the next approval wait cursor, or prefer plan_review_loop for the full review standby.',
         events: result.events,
