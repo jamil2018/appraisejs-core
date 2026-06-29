@@ -18,13 +18,14 @@ import { planArtifactSchema, planCreateInputSchema } from './plan-file.js'
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version?: string }
 const serverStartedAt = new Date().toISOString()
-const mcpSurfaceVersion = '2026-06-29.real-subagent-audit-mitigation'
+const mcpSurfaceVersion = '2026-06-30.review-standby-loop'
 const workflowCriticalTools = [
   'project_diagnostic',
   'project_add',
   'project_list',
   'planning_session_create',
   'plan_create',
+  'plan_review_loop',
   'plan_wait_for_review',
   'plan_wait_for_approval',
   'plan_review_read',
@@ -56,15 +57,15 @@ export const planningWorkflow = {
     'project_diagnostic',
     'project_add when the target workspace is not registered',
     'plan_create',
-    'plan_wait_for_review until durable plan_review_ready evidence exists',
+    'plan_review_loop until durable review readiness and an Appraise-owned approval decision',
     'present appraise:// and browser links',
-    'plan_wait_for_approval standby',
+    'plan_wait_for_approval standby for compatibility with clients that already observed plan_review_ready',
     'handle approved, changes_requested, or cancelled as Appraise-owned events',
   ],
   eventAcknowledgement:
-    'Read delivery does not acknowledge events. Acknowledge a sequence only after the permitted transition or recovery action succeeds.',
+    'Read delivery does not acknowledge events. afterSequence is exclusive: pass the latest handled sequence, and acknowledge a sequence only after the permitted transition or recovery action succeeds.',
   standby:
-    'When approval is pending, remain in a resumable standby state and resume with nextAfterSequence. Do not treat chat approval as Appraise approval.',
+    'When approval is pending, pause at the Appraise review gate in a resumable standby state and resume with nextAfterSequence. Do not implement, finalize, or validate. Do not treat chat approval as Appraise approval.',
 }
 
 export const mcpCapabilityMetadata = {
@@ -164,6 +165,113 @@ export function planningSessionTargetRequiredResponse(input: {
   }
 }
 
+type BriefPlanTask = {
+  id: string
+  title: string
+  description: string
+  acceptanceCriteria: string[]
+  validationIntent: string
+}
+
+function includesAny(value: string, patterns: RegExp[]) {
+  return patterns.some(pattern => pattern.test(value))
+}
+
+function createStructuredTasksFromBrief(projectBrief: string): BriefPlanTask[] | undefined {
+  const brief = projectBrief.toLowerCase()
+  const isAppBrief = includesAny(brief, [
+    /\bapp(?:lication)?\b/,
+    /\bfrontend\b/,
+    /\bweb\b/,
+    /\bui\b/,
+    /\btodo(?:s)?\b/,
+    /\btask(?:s)?\b/,
+  ])
+  const signals = [
+    includesAny(brief, [/\breact\b/, /\bvite\b/, /\btailwind\b/, /\bshadcn\b/, /\btanstack\b/]),
+    includesAny(brief, [/\btodo(?:s)?\b/, /\btask(?:s)?\b/, /\bchecklist\b/]),
+    includesAny(brief, [/\bcrud\b/, /\bcreate\b/, /\badd\b/, /\bedit\b/, /\bupdate\b/, /\bdelete\b/, /\bremove\b/]),
+    includesAny(brief, [/\bcomplete\b/, /\bcompleted\b/, /\bdone\b/, /\btoggle\b/]),
+    includesAny(brief, [
+      /\bpersist(?:ence|ed|ing)?\b/,
+      /\bstorage\b/,
+      /\blocalstorage\b/,
+      /\bdatabase\b/,
+      /\bsqlite\b/,
+    ]),
+    includesAny(brief, [/\btest(?:s|ing)?\b/, /\bvalidation\b/, /\be2e\b/, /\bplaywright\b/, /\bvitest\b/]),
+  ].filter(Boolean).length
+
+  if (!isAppBrief || signals < 3) return undefined
+
+  const stack = [
+    includesAny(brief, [/\breact\b/]) ? 'React' : undefined,
+    includesAny(brief, [/\bvite\b/]) ? 'Vite' : undefined,
+    includesAny(brief, [/\btailwind\b/]) ? 'Tailwind' : undefined,
+    includesAny(brief, [/\bshadcn\b/]) ? 'shadcn/ui' : undefined,
+    includesAny(brief, [/\btanstack\b/]) ? 'TanStack' : undefined,
+  ]
+    .filter(Boolean)
+    .join(', ')
+  const stackSummary = stack || 'the requested frontend stack'
+  const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
+
+  return [
+    {
+      id: 'scaffold-setup',
+      title: 'Scaffold and configure the app shell',
+      description: `Create the ${stackSummary} application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief.`,
+      acceptanceCriteria: [
+        'The app starts locally with the requested stack and no missing dependency errors.',
+        'Base styling, component primitives, and project structure are in place for the planned UI.',
+      ],
+      validationIntent: 'Run install/build or the closest available scaffold validation for the generated app shell.',
+    },
+    {
+      id: 'task-model-ui',
+      title: `Model ${taskNoun} data and build the primary UI`,
+      description: `Define the ${taskNoun} shape, app state boundaries, and visible list/form experience for creating, viewing, and organizing items.`,
+      acceptanceCriteria: [
+        `The UI exposes a clear ${taskNoun} list, empty state, and input flow.`,
+        `${taskNoun} data includes the fields needed for titles and completion state.`,
+      ],
+      validationIntent: 'Exercise the main UI states manually or with component-level tests where available.',
+    },
+    {
+      id: 'crud-completion',
+      title: `Implement ${taskNoun} CRUD and completion behavior`,
+      description: `Add create, read, update, delete, and completion-toggle flows with predictable state updates and accessible controls.`,
+      acceptanceCriteria: [
+        `Users can add, edit, delete, and mark ${taskNoun} items complete or incomplete.`,
+        'Completion changes are reflected immediately in the rendered list without stale UI state.',
+      ],
+      validationIntent: 'Run focused interaction tests or manually verify each CRUD and completion path.',
+    },
+    {
+      id: 'persistence',
+      title: `Persist ${taskNoun} state`,
+      description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
+      acceptanceCriteria: [
+        `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
+        'Persistence failures do not corrupt the visible in-memory state.',
+      ],
+      validationIntent:
+        'Verify saved items reload correctly and cover persistence behavior with the closest available automated test.',
+    },
+    {
+      id: 'validation',
+      title: 'Validate the planned user workflow',
+      description:
+        'Add or run validation that covers startup, primary UI rendering, CRUD behavior, completion toggles, and persistence recovery.',
+      acceptanceCriteria: [
+        'The happy path from app launch through persisted completed items is verified.',
+        'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
+      ],
+      validationIntent: 'Run the focused test suite plus lint/build checks appropriate for the created app.',
+    },
+  ]
+}
+
 export function createPlanFromBrief(input: {
   projectBrief: string
   displayName?: string
@@ -180,13 +288,14 @@ export function createPlanFromBrief(input: {
   ]
     .filter(Boolean)
     .join('\n\n')
+  const structuredTasks = createStructuredTasksFromBrief(input.projectBrief)
   return {
     version: '1',
     revision: 1,
     lifecycle: 'draft',
     goal: title || 'AppraiseJS planning session',
     description: context,
-    tasks: [
+    tasks: structuredTasks ?? [
       {
         id: 'plan-from-brief',
         title: 'Plan from brief',
@@ -195,8 +304,21 @@ export function createPlanFromBrief(input: {
         validationIntent: 'Wait for AppraiseJS plan review readiness before any implementation starts.',
       },
     ],
-    edges: [],
-    implementationGroups: [],
+    edges: structuredTasks
+      ? [
+          { from: 'scaffold-setup', to: 'task-model-ui', type: 'blocks' as const },
+          { from: 'task-model-ui', to: 'crud-completion', type: 'blocks' as const },
+          { from: 'crud-completion', to: 'persistence', type: 'blocks' as const },
+          { from: 'persistence', to: 'validation', type: 'blocks' as const },
+        ]
+      : [],
+    implementationGroups: structuredTasks
+      ? [
+          { id: 'foundation', taskIds: ['scaffold-setup', 'task-model-ui'] },
+          { id: 'behavior', taskIds: ['crud-completion', 'persistence'] },
+          { id: 'quality', taskIds: ['validation'] },
+        ]
+      : [],
   }
 }
 
@@ -215,7 +337,7 @@ function toolError(error: unknown) {
   throw error
 }
 
-type PlanSnapshot = {
+export type PlanSnapshot = {
   plan: { revision: number; lifecycle: string }
   contentHash: string
   links: unknown
@@ -237,16 +359,23 @@ function approvalGateEventStatus(type: string): 'approved' | 'changes_requested'
 
 type CoordinatorToolEvent = { sequence: number; type: string }
 
+const defaultReviewLoopTimeoutMs = 120_000
+
 export function nextApprovalWaitSequence(afterSequence: number, events: CoordinatorToolEvent[]): number {
   return events.reduce((latest, event) => Math.max(latest, event.sequence), afterSequence)
 }
 
-function approvalPendingResponse(input: {
+export function approvalPendingResponse(input: {
   planId: string
   current: PlanSnapshot
   events: CoordinatorToolEvent[]
   afterSequence: number
+  waitTool?: 'plan_wait_for_approval' | 'plan_review_loop'
+  timeoutMs?: number
 }) {
+  const nextAfterSequence = nextApprovalWaitSequence(input.afterSequence, input.events)
+  const waitTool = input.waitTool ?? 'plan_review_loop'
+  const timeoutMs = input.timeoutMs ?? defaultReviewLoopTimeoutMs
   return {
     status: 'pending',
     planId: input.planId,
@@ -255,12 +384,61 @@ function approvalPendingResponse(input: {
     contentHash: input.current.contentHash,
     links: input.current.links,
     events: input.events,
-    nextAfterSequence: nextApprovalWaitSequence(input.afterSequence, input.events),
+    currentAfterSequence: input.afterSequence,
+    nextAfterSequence,
+    recommendedWait: {
+      tool: waitTool,
+      mode: 'long_poll',
+      timeoutMs,
+      afterSequence: nextAfterSequence,
+    },
+    cursorGuidance:
+      'afterSequence is exclusive. Resume by passing nextAfterSequence exactly; subtract one only when intentionally redelivering unacknowledged events through plan_events_read.',
+    reviewGatePause:
+      'Pause at the Appraise review gate. Do not implement, finalize, start validation, or treat chat messages as approval while this status is pending.',
     recovery:
-      'Open the review URL and approve or request changes for the current revision in AppraiseJS, or rerun plan_wait_for_approval with nextAfterSequence.',
+      'Open the review URL in AppraiseJS for the current revision. Continue standby by calling the recommended wait tool with nextAfterSequence until Appraise emits approved, changes_requested, or cancelled.',
     nextRecommendedAction:
-      'Remain in standby, or resume later by calling plan_wait_for_approval with nextAfterSequence.',
+      'Remain in review-gate standby and resume with nextAfterSequence. Only leave standby after an Appraise-owned approved, changes_requested, or cancelled result.',
     nextRequiredAgentBehavior: 'standby_for_appraise_review',
+  }
+}
+
+export function reviewReadyPendingResponse(input: {
+  planId: string
+  current: PlanSnapshot
+  events: CoordinatorToolEvent[]
+  afterSequence: number
+  timeoutMs?: number
+}) {
+  const nextAfterSequence = nextApprovalWaitSequence(input.afterSequence, input.events)
+  const timeoutMs = input.timeoutMs ?? defaultReviewLoopTimeoutMs
+  return {
+    status: 'pending',
+    phase: 'review_ready',
+    planId: input.planId,
+    revision: input.current.plan.revision,
+    lifecycle: input.current.plan.lifecycle,
+    contentHash: input.current.contentHash,
+    links: input.current.links,
+    events: input.events,
+    currentAfterSequence: input.afterSequence,
+    nextAfterSequence,
+    recommendedWait: {
+      tool: 'plan_review_loop',
+      mode: 'long_poll',
+      timeoutMs,
+      afterSequence: nextAfterSequence,
+    },
+    cursorGuidance:
+      'afterSequence is exclusive. Resume by passing nextAfterSequence exactly; subtract one only when intentionally redelivering unacknowledged events through plan_events_read.',
+    reviewGatePause:
+      'Do not present the review as durable and do not implement until plan_review_ready has been observed and the Appraise review gate later emits approved.',
+    recovery:
+      'Continue with plan_review_loop using nextAfterSequence until durable plan_review_ready exists, then remain in standby for approved, changes_requested, or cancelled.',
+    nextRecommendedAction:
+      'Keep waiting for durable review readiness through plan_review_loop. Do not move to implementation or validation from this pending response.',
+    nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
   }
 }
 
@@ -350,9 +528,12 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           mimeType: 'application/json',
           text: JSON.stringify({
             standbyAfter: 'plan_review_ready',
-            tool: 'plan_wait_for_approval',
+            preferredTool: 'plan_review_loop',
+            compatibilityTool: 'plan_wait_for_approval',
             pendingBehavior:
-              'Keep the host alive when possible. Otherwise return planId, links, lifecycle, contentHash, and nextAfterSequence for continuation.',
+              'Use bounded long-poll standby when possible. On timeout, return compact planId, links, lifecycle, contentHash, currentAfterSequence, nextAfterSequence, and recommendedWait for continuation.',
+            cursorGuidance:
+              'afterSequence is exclusive. Resume standby with nextAfterSequence exactly unless intentionally redelivering unacknowledged events through plan_events_read.',
             gateResults: {
               approved: 'Call plan_start, then acknowledge only after validation_preparation_started.',
               changes_requested: 'Call plan_review_read, revise against the expected hash, and return to standby.',
@@ -439,7 +620,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         return text(
           withGuidance(target ? await api.createPlanForTarget(plan, target) : await api.createPlan(plan), {
             nextRecommendedAction:
-              'Call plan_wait_for_review and present review links only after durable plan_review_ready evidence.',
+              'Call plan_review_loop to wait for durable review readiness and Appraise-owned approval feedback before implementation.',
             nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
           }),
         )
@@ -514,14 +695,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           reviewReady,
           nextRequiredAgentBehavior: reviewReady ? 'standby_for_appraise_review' : 'wait_for_plan_review_ready',
           standby: {
-            tool: reviewReady ? 'plan_wait_for_approval' : 'plan_wait_for_review',
+            preferredTool: 'plan_review_loop',
+            compatibilityTool: reviewReady ? 'plan_wait_for_approval' : 'plan_wait_for_review',
             afterSequence: (reviewReady as { events?: CoordinatorToolEvent[] } | undefined)?.events?.reduce(
               (latest, event) => Math.max(latest, event.sequence),
               0,
             ),
             rule: reviewReady
-              ? 'Do not implement until Appraise emits approval and plan_start succeeds.'
-              : 'Wait for durable plan_review_ready evidence before presenting the review URL as complete.',
+              ? 'Keep an active bounded Appraise review wait when the host supports it. Do not implement until Appraise emits approval and plan_start succeeds.'
+              : 'Wait for durable plan_review_ready evidence before presenting the review URL as complete. Pending review is not completion.',
           },
         })
       } catch (error) {
@@ -569,6 +751,94 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async ({ planId }) => text(await api.request(`plans/${planId}/review`)),
   )
   server.registerTool(
+    'plan_review_loop',
+    {
+      description:
+        'Preferred Appraise review standby loop: wait for review readiness when needed, then wait with bounded long-poll semantics for approved, changes_requested, or cancelled.',
+      inputSchema: {
+        planId: z.string(),
+        afterSequence: z.number().int().nonnegative().default(0),
+        timeoutMs: z.number().int().positive().max(300_000).default(defaultReviewLoopTimeoutMs),
+      },
+    },
+    async ({ planId, afterSequence, timeoutMs }) => {
+      const initial = (await api.request(`plans/${planId}/events?after=${afterSequence}`)) as {
+        events?: CoordinatorToolEvent[]
+      }
+      let events = initial.events ?? []
+      let current = await readSnapshot(planId)
+      let gateEvent = events.find(event => approvalGateEventStatus(event.type))
+      let lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
+      let reviewReady =
+        events.some(event => event.type === 'plan_review_ready') ||
+        ['awaiting_plan_review', 'plan_approved', 'changes_requested', 'cancelled'].includes(current.plan.lifecycle)
+
+      if (!reviewReady && !gateEvent && !lifecycleStatus) {
+        const waited = await waitForEvents(api.request, planId, afterSequence, timeoutMs)
+        events = [...events, ...(waited.events ?? [])]
+        current = await readSnapshot(planId)
+        gateEvent = events.find(event => approvalGateEventStatus(event.type))
+        lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
+        reviewReady =
+          events.some(event => event.type === 'plan_review_ready') ||
+          ['awaiting_plan_review', 'plan_approved', 'changes_requested', 'cancelled'].includes(current.plan.lifecycle)
+      }
+
+      if (!reviewReady && !gateEvent && !lifecycleStatus) {
+        return text(reviewReadyPendingResponse({ planId, current, events, afterSequence, timeoutMs }))
+      }
+
+      if (!gateEvent && !lifecycleStatus) {
+        const waitAfterSequence = nextApprovalWaitSequence(afterSequence, events)
+        const waited = await waitForEvents(api.request, planId, waitAfterSequence, timeoutMs)
+        events = [...events, ...(waited.events ?? [])]
+        current = await readSnapshot(planId)
+        gateEvent = events.find(event => approvalGateEventStatus(event.type))
+        lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
+      }
+
+      if (!gateEvent && !lifecycleStatus) {
+        return text(
+          approvalPendingResponse({ planId, current, events, afterSequence, waitTool: 'plan_review_loop', timeoutMs }),
+        )
+      }
+
+      const status = gateEvent ? approvalGateEventStatus(gateEvent.type) : lifecycleStatus
+      return text({
+        status,
+        planId,
+        revision: current.plan.revision,
+        lifecycle: current.plan.lifecycle,
+        contentHash: current.contentHash,
+        links: current.links,
+        ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
+        events,
+        currentAfterSequence: afterSequence,
+        nextAfterSequence: nextApprovalWaitSequence(afterSequence, events),
+        cursorGuidance:
+          'afterSequence is exclusive. Acknowledge the observed gate event only after the permitted transition or recovery action succeeds.',
+        ...(status === 'changes_requested'
+          ? {
+              recovery:
+                'Call plan_review_read to capture blocking remarks and reviewHash, then submit a higher revision with plan_revise. Do not acknowledge plan_changes_requested until the review decision has been captured.',
+            }
+          : {}),
+        nextRecommendedAction:
+          status === 'approved'
+            ? 'Call plan_start, then acknowledge the approval event only after validation_preparation_started.'
+            : status === 'changes_requested'
+              ? 'Call plan_review_read, revise against the current hash, and return to plan_review_loop standby.'
+              : 'Acknowledge cancellation and stop.',
+        nextRequiredAgentBehavior:
+          status === 'approved'
+            ? 'start_validation_preparation'
+            : status === 'changes_requested'
+              ? 'revise_plan_from_review_feedback'
+              : 'stop_after_cancellation',
+      })
+    },
+  )
+  server.registerTool(
     'plan_wait_for_review',
     {
       description: 'Wait for the durable plan_review_ready event before presenting the review URL.',
@@ -590,6 +860,10 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             contentHash: current.contentHash,
             links: current.links,
             events: result.events ?? [],
+            currentAfterSequence: afterSequence,
+            nextAfterSequence: nextApprovalWaitSequence(afterSequence, result.events ?? []),
+            cursorGuidance:
+              'afterSequence is exclusive. Resume by passing nextAfterSequence exactly; subtract one only when intentionally redelivering unacknowledged events through plan_events_read.',
             recovery:
               'Open the review URL or rerun plan_wait_for_review after sync-plans; no durable plan_review_ready event was delivered yet.',
             nextRecommendedAction:
@@ -609,9 +883,12 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         contentHash: current.contentHash,
         links: current.links,
         eventSequence: reviewReady.sequence,
+        nextAfterSequence: reviewReady.sequence,
+        cursorGuidance:
+          'afterSequence is exclusive. Use this eventSequence as the next approval wait cursor, or prefer plan_review_loop for the full review standby.',
         events: result.events,
         nextRecommendedAction:
-          'Present the Appraise/browser review links, then call plan_wait_for_approval using this eventSequence.',
+          'Present the Appraise/browser review links, then continue with plan_review_loop or call plan_wait_for_approval using this eventSequence.',
         nextRequiredAgentBehavior: 'standby_for_appraise_review',
       })
     },
@@ -648,7 +925,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         }
 
         if (!gateEvent && !lifecycleStatus) {
-          return text(approvalPendingResponse({ planId, current, events, afterSequence }))
+          return text(
+            approvalPendingResponse({
+              planId,
+              current,
+              events,
+              afterSequence,
+              waitTool: 'plan_wait_for_approval',
+              timeoutMs,
+            }),
+          )
         }
       }
 
@@ -662,6 +948,10 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         links: current.links,
         ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
         events,
+        currentAfterSequence: afterSequence,
+        nextAfterSequence: nextApprovalWaitSequence(afterSequence, events),
+        cursorGuidance:
+          'afterSequence is exclusive. Acknowledge the observed gate event only after the permitted transition or recovery action succeeds.',
         ...(status === 'changes_requested'
           ? {
               recovery:

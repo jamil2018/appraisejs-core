@@ -144,6 +144,7 @@ try {
     'plan_event_acknowledge',
     'plan_events_read',
     'plan_read',
+    'plan_review_loop',
     'plan_review_read',
     'plan_revise',
     'plan_start',
@@ -319,6 +320,28 @@ try {
   assert(
     typeof pendingApproval.nextAfterSequence === 'number',
     'Pending approval response did not include nextAfterSequence.',
+  )
+  assert(
+    typeof pendingApproval.currentAfterSequence === 'number',
+    'Pending approval response did not include currentAfterSequence.',
+  )
+  assert(
+    String(pendingApproval.reviewGatePause).includes('Do not implement'),
+    'Pending approval response did not include explicit review-gate pause guidance.',
+  )
+  assert(
+    String(pendingApproval.cursorGuidance).includes('afterSequence is exclusive'),
+    'Pending approval response did not include exclusive cursor guidance.',
+  )
+  const loopPending = await callTool('plan_review_loop', { planId, afterSequence: ready.eventSequence, timeoutMs: 1 })
+  assert(loopPending.status === 'pending', 'Review loop did not return compact pending standby on timeout.')
+  assert(
+    loopPending.nextRequiredAgentBehavior === 'standby_for_appraise_review',
+    'Review loop timeout did not preserve standby behavior.',
+  )
+  assert(
+    (loopPending.recommendedWait as { tool?: string } | undefined)?.tool === 'plan_review_loop',
+    'Review loop timeout did not recommend resuming with plan_review_loop.',
   )
 
   const directReviewResponse = await fetch(`${baseUrl}${createdLinks.route}`)
