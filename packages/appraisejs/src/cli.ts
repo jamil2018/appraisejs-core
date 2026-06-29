@@ -16,6 +16,22 @@ import { resolvePlanSource } from './plan-source.js'
 
 const program = new Command()
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const expectedAgentCapabilities = {
+  tools: ['planning_session_create'],
+  resources: ['appraise://agent-guide', 'appraise://workflow/planning', 'appraise://workflow/standby'],
+}
+const staleAgentCapabilityRecovery = [
+  'Restart or reconnect the MCP/agent client.',
+  'Restart the Appraise MCP sidecar.',
+  'Rerun npm run setup:mcp and npm run setup:agent, then call project_diagnostic.',
+]
+const toolsNotVisibleRecovery = [
+  'Register the Streamable HTTP endpoint or the stdio command with the agent client.',
+  'Restart or reconnect the client after changing MCP registration.',
+  'Run appraisejs agent setup --json and inspect httpMcpEndpoint, stdioFallback, and expectedCapabilities.',
+  'Verify HTTP endpoint reachability, then read appraise://agent-guide after reconnect.',
+  'If native tools still are not visible, stop and ask the user to reconnect or restart the client.',
+]
 
 program.name('appraisejs').description('AppraiseJS command line tools').showHelpAfterError()
 
@@ -177,6 +193,9 @@ agent
           instructions: `Install or point the agent client at ${skillPath}.`,
         },
         requiredClientAction: 'Restart or reconnect the MCP/agent client after changing registration.',
+        expectedCapabilities: expectedAgentCapabilities,
+        staleCapabilityRecovery: staleAgentCapabilityRecovery,
+        toolsNotVisibleRecovery,
         healthCheck: 'Run appraisejs doctor --json, then call MCP project_diagnostic after reconnecting.',
         standbyWarning:
           'After plan_review_ready, call plan_wait_for_approval and remain resumable; do not terminate while approval is pending.',
@@ -191,8 +210,14 @@ agent
       console.log(JSON.stringify({ appraisejs: setup.stdioFallback }, null, 2))
       console.log(`\nCurrent bound hub project:\n${setup.currentBoundHubProject}`)
       console.log(`\nGlobal skill/plugin guidance:\n${setup.globalSkill.instructions}`)
+      console.log('\nExpected MCP capabilities after reconnect:')
+      console.log(JSON.stringify(setup.expectedCapabilities, null, 2))
       console.log(`\n${setup.requiredClientAction}`)
       console.log(setup.healthCheck)
+      console.log('\nIf expected capabilities are missing:')
+      for (const step of setup.staleCapabilityRecovery) console.log(`- ${step}`)
+      console.log('\nIf setup text is visible but native MCP tools are not:')
+      for (const step of setup.toolsNotVisibleRecovery) console.log(`- ${step}`)
       console.log(setup.standbyWarning)
     },
   )

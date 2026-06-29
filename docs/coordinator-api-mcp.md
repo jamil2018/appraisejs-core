@@ -172,6 +172,20 @@ Tools:
 - `implementation_completion_review`
 - `implementation_complete`
 
+`project_diagnostic` and `appraise://project` include capability metadata for stale-server checks: package version,
+MCP surface version, server start time, workflow-critical tool names, workflow resource URIs, and recovery text for
+missing or stale native MCP capabilities.
+
+`planning_session_create` requires explicit target selection for normal app briefs. Pass `targetWorkspacePath` for the
+writable target workspace, or pass `targetMode: "hub"` only when the plan is intentionally scoped to the Appraise hub
+checkout. When neither is provided, the tool returns `status: "target_required"` with target project candidates and
+recovery guidance instead of silently creating a hub-scoped plan.
+
+`plan_wait_for_approval` defaults to bounded poll behavior for ordinary agents. Pending approval returns
+`status: "pending"`, `nextAfterSequence`, review links, content hash, and
+`nextRequiredAgentBehavior: "standby_for_appraise_review"`. Clients that can safely keep a request open may opt into
+`mode: "long_poll"` or provide `timeoutMs`.
+
 ## Local Smoke Test
 
 With AppraiseJS running on port 3000:
