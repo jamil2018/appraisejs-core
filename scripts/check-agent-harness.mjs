@@ -51,6 +51,9 @@ const staticFiles = [
   'packages/create-appraisejs/README.md',
   'packages/appraisejs/AGENTS.md',
   'packages/appraisejs/README.md',
+  'scripts/mcp-config.mjs',
+  'scripts/print-agent-config.mjs',
+  'scripts/print-mcp-config.mjs',
 ]
 
 const rootRelativeReferencePattern = /\b(?:docs\/agent-[A-Za-z0-9-]+\.md|\.agents\/skills\/[A-Za-z0-9-]+\/SKILL\.md)\b/g
@@ -97,6 +100,11 @@ function checkRootRelativeReferences(file, contents) {
 }
 
 const activeFiles = new Set(staticFiles)
+
+if (fs.existsSync(path.join(repoRoot, 'packages', 'appraisejs', 'agent-skills'))) {
+  requiredFiles.push('packages/appraisejs/agent-skills/appraise-planning-standby/SKILL.md')
+  activeFiles.add('packages/appraisejs/agent-skills/appraise-planning-standby/SKILL.md')
+}
 
 for (const file of walkFiles(path.join(repoRoot, 'docs'), file => {
   const relative = path.relative(repoRoot, file).replace(/\\/g, '/')

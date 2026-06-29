@@ -34,10 +34,16 @@ afterEach(async () => {
   await Promise.all(workspaces.splice(0).map(directory => fs.rm(directory, { recursive: true, force: true })))
 })
 
-async function createWorkspace(packageJson = { name: 'target-app', version: '1.0.0', scripts: { test: 'vitest' } }) {
+async function createWorkspace(
+  packageJson: { name: string; version: string; scripts: Record<string, string> } | null = {
+    name: 'target-app',
+    version: '1.0.0',
+    scripts: { test: 'vitest' },
+  },
+) {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-target-'))
   workspaces.push(workspace)
-  await fs.writeFile(path.join(workspace, 'package.json'), JSON.stringify(packageJson))
+  if (packageJson) await fs.writeFile(path.join(workspace, 'package.json'), JSON.stringify(packageJson))
   return workspace
 }
 
@@ -65,6 +71,27 @@ describe('target project service', () => {
     await expect(fs.access(path.join(workspace, '.appraisejs'))).rejects.toBeTruthy()
   })
 
+  it('registers empty writable directories as planning targets', async () => {
+    const workspace = await createWorkspace(null)
+    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
+
+    const result = await registerTargetProject({ projectPath: workspace, displayName: 'Empty target' })
+
+    expect(result).toMatchObject({
+      canonicalPath: await fs.realpath(workspace),
+      displayName: 'Empty target',
+      packageName: undefined,
+    })
+    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          packageJson: expect.stringContaining('"scripts":{}'),
+          fingerprint: expect.stringMatching(/^sha256:/),
+        }),
+      }),
+    )
+  })
+
   it('writes and refreshes the Appraise continuity marker independently from registration', async () => {
     const workspace = await createWorkspace()
     const targetProject = {
@@ -90,7 +117,7 @@ describe('target project service', () => {
     expect(marker).toMatchObject({
       hubFingerprint: 'sha256:hub',
       targetProjectId: 'target-1',
-      guidance: expect.stringContaining('Future AppraiseJS plans'),
+      guidance: expect.stringContaining('Future AppraiseJS plans for this workspace'),
     })
   })
 

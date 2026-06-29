@@ -30,7 +30,8 @@
   },
   "files": [
     "dist",
-    "registry"
+    "registry",
+    "agent-skills"
   ],
   "scripts": {
     "prepare": "npm run build",

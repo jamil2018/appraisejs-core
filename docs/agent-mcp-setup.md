@@ -31,6 +31,18 @@ Print current registration details:
 npm run setup:mcp
 ```
 
+Print agent-oriented setup, skill, restart, and standby guidance:
+
+```bash
+npm run setup:agent
+```
+
+The package-level equivalent is:
+
+```bash
+appraisejs agent setup
+```
+
 For stdio-only clients, the command shape is:
 
 ```bash
@@ -39,6 +51,9 @@ appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
 
 Tool visibility requires registering the current endpoint or stdio command and restarting or reconnecting the MCP
 client. Do not report tools as available until the client has completed that refresh.
+
+After `plan_review_ready`, agents must call `plan_wait_for_approval` and enter standby or return a compact
+continuation state. Pending approval is not completion.
 
 ## Troubleshooting
 

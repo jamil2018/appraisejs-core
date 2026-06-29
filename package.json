@@ -11,6 +11,7 @@
     "dev:web": "next dev",
     "dev:mcp": "node scripts/dev-with-mcp.mjs --mcp-only",
     "setup:mcp": "node scripts/print-mcp-config.mjs",
+    "setup:agent": "node scripts/print-agent-config.mjs",
     "check:harness": "node scripts/check-agent-harness.mjs",
     "graphify:install": "node scripts/run-graphify.mjs install --project --platform agents",
     "graphify:build": "node scripts/run-graphify.mjs build-scope src",

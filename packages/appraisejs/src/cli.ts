@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from 'path'
+import { fileURLToPath } from 'url'
 import { Command } from 'commander'
 import { addStepBySlug } from './add-step.js'
 import {
@@ -14,6 +15,7 @@ import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-
 import { resolvePlanSource } from './plan-source.js'
 
 const program = new Command()
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 program.name('appraisejs').description('AppraiseJS command line tools').showHelpAfterError()
 
@@ -21,6 +23,13 @@ type OnlineOptions = {
   cwd: string
   baseUrl: string
   coordinatorId: string
+}
+
+function resolveMcpEndpoint(options?: { host?: string; port?: string; path?: string }): string {
+  const host = options?.host ?? process.env.APPRAISE_MCP_HOST ?? '127.0.0.1'
+  const port = options?.port ?? process.env.APPRAISE_MCP_PORT ?? '3010'
+  const endpointPath = options?.path ?? process.env.APPRAISE_MCP_PATH ?? '/mcp'
+  return `http://${host}:${port}${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`
 }
 
 function addOnlineOptions(command: Command): Command {
@@ -140,6 +149,53 @@ program
     )
     if (!result.ok) process.exitCode = 1
   })
+
+const agent = program.command('agent').description('Set up coding-agent access to AppraiseJS')
+
+agent
+  .command('setup')
+  .description('Print MCP, skill, restart, and standby guidance for coding agents')
+  .option('--cwd <path>', 'Appraise project directory', process.cwd())
+  .option('--base-url <url>', 'local AppraiseJS application URL', 'http://127.0.0.1:3000')
+  .option('--host <host>', 'HTTP MCP bind host', process.env.APPRAISE_MCP_HOST ?? '127.0.0.1')
+  .option('--port <port>', 'HTTP MCP port', process.env.APPRAISE_MCP_PORT ?? '3010')
+  .option('--path <path>', 'HTTP MCP endpoint path', process.env.APPRAISE_MCP_PATH ?? '/mcp')
+  .option('--json', 'print machine-readable JSON', false)
+  .action(
+    async (options: { cwd: string; baseUrl: string; host: string; port: string; path: string; json: boolean }) => {
+      const cwd = path.resolve(options.cwd)
+      const endpoint = resolveMcpEndpoint(options)
+      const stdio = { command: 'appraisejs', args: ['mcp', '--cwd', cwd, '--base-url', options.baseUrl] }
+      const skillPath = path.join(packageRoot, 'agent-skills', 'appraise-planning-standby')
+      const setup = {
+        httpMcpEndpoint: endpoint,
+        stdioFallback: stdio,
+        currentBoundHubProject: cwd,
+        globalSkill: {
+          status: 'manual_install_required',
+          path: skillPath,
+          instructions: `Install or point the agent client at ${skillPath}.`,
+        },
+        requiredClientAction: 'Restart or reconnect the MCP/agent client after changing registration.',
+        healthCheck: 'Run appraisejs doctor --json, then call MCP project_diagnostic after reconnecting.',
+        standbyWarning:
+          'After plan_review_ready, call plan_wait_for_approval and remain resumable; do not terminate while approval is pending.',
+      }
+      if (options.json) {
+        printJson(setup)
+        return
+      }
+      console.log('AppraiseJS agent setup')
+      console.log(`\nHTTP MCP endpoint:\n${setup.httpMcpEndpoint}`)
+      console.log('\nStdio fallback command config:')
+      console.log(JSON.stringify({ appraisejs: setup.stdioFallback }, null, 2))
+      console.log(`\nCurrent bound hub project:\n${setup.currentBoundHubProject}`)
+      console.log(`\nGlobal skill/plugin guidance:\n${setup.globalSkill.instructions}`)
+      console.log(`\n${setup.requiredClientAction}`)
+      console.log(setup.healthCheck)
+      console.log(setup.standbyWarning)
+    },
+  )
 
 const plan = program.command('plan').description('Validate and coordinate AppraiseJS plans')
 

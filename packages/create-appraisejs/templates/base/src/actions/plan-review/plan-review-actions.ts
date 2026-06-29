@@ -14,6 +14,7 @@ import {
 } from '@/services/plan-review/plan-review-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
+import { planIdSchema } from '@/lib/plan-contract'
 import {
   acceptBaseline,
   acknowledgeBaselineFailure,
@@ -31,11 +32,16 @@ const targetSchema = z.discriminatedUnion('type', [
 ])
 const positionsSchema = z.record(idSchema, z.object({ x: z.number().finite(), y: z.number().finite() }))
 
-async function runAction(planId: string, operation: () => Promise<void>): Promise<ActionResponse> {
+async function runAction<T extends { planId: string }>(
+  input: unknown,
+  schema: z.ZodType<T>,
+  operation: (value: T) => Promise<void>,
+): Promise<ActionResponse> {
   try {
-    await operation()
+    const value = schema.parse(input)
+    await operation(value)
     revalidatePath('/plans')
-    revalidatePath(`/plans/${planId}`)
+    revalidatePath(`/plans/${value.planId}`)
     return { status: 200, success: true }
   } catch (error) {
     if (error instanceof ServiceError) return serviceErrorToActionResponse(error)
@@ -45,98 +51,110 @@ async function runAction(planId: string, operation: () => Promise<void>): Promis
 }
 
 export async function addPlanRemarkAction(input: unknown): Promise<ActionResponse> {
-  const value = z
-    .object({ planId: idSchema, target: targetSchema, body: z.string().trim().min(1), blocking: z.boolean() })
-    .parse(input)
-  return runAction(value.planId, () => addPlanRemark(value))
+  return runAction(
+    input,
+    z.object({ planId: planIdSchema, target: targetSchema, body: z.string().trim().min(1), blocking: z.boolean() }),
+    value => addPlanRemark(value),
+  )
 }
 
 export async function transitionPlanRemarkAction(input: unknown): Promise<ActionResponse> {
-  const value = z
-    .object({
-      planId: idSchema,
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
       threadId: idSchema,
       action: z.enum(['addressed', 'disputed', 'resolved', 'dismissed', 'downgraded']),
       body: z.string().optional(),
-    })
-    .parse(input)
-  return runAction(value.planId, () => transitionPlanRemark(value))
+    }),
+    value => transitionPlanRemark(value),
+  )
 }
 
 export async function retargetPlanRemarkAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema, threadId: idSchema, taskId: idSchema }).parse(input)
-  return runAction(value.planId, () => retargetPlanRemark(value))
+  return runAction(input, z.object({ planId: planIdSchema, threadId: idSchema, taskId: idSchema }), value =>
+    retargetPlanRemark(value),
+  )
 }
 
 export async function approvePlanRevisionAction(input: unknown): Promise<ActionResponse> {
-  const value = z
-    .object({
-      planId: idSchema,
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
       displayedRevision: z.number().int().positive(),
       expectedPlanHash: z.string().startsWith('sha256:'),
       resolveThreadId: idSchema.optional(),
       confirmSuspiciousReplacement: z.boolean().optional(),
-    })
-    .parse(input)
-  return runAction(value.planId, () => approvePlanRevision(value))
+    }),
+    value => approvePlanRevision(value),
+  )
 }
 
 export async function requestPlanChangesAction(input: unknown): Promise<ActionResponse> {
-  const value = z
-    .object({
-      planId: idSchema,
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
       displayedRevision: z.number().int().positive(),
       expectedPlanHash: z.string().startsWith('sha256:'),
-    })
-    .parse(input)
-  return runAction(value.planId, () => requestPlanChanges(value).then(() => undefined))
+    }),
+    value => requestPlanChanges(value).then(() => undefined),
+  )
 }
 
 export async function savePersonalPlanLayoutAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema, positions: positionsSchema }).parse(input)
-  return runAction(value.planId, () => savePersonalPlanLayout(value))
+  return runAction(input, z.object({ planId: planIdSchema, positions: positionsSchema }), value =>
+    savePersonalPlanLayout(value),
+  )
 }
 
 export async function publishSharedPlanLayoutAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema, positions: positionsSchema }).parse(input)
-  return runAction(value.planId, () => publishSharedPlanLayout(value))
+  return runAction(input, z.object({ planId: planIdSchema, positions: positionsSchema }), value =>
+    publishSharedPlanLayout(value),
+  )
 }
 
 export async function startBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema }).parse(input)
-  return runAction(value.planId, () => startBaselineExecution(value.planId).then(() => undefined))
+  return runAction(input, z.object({ planId: planIdSchema }), value =>
+    startBaselineExecution(value.planId).then(() => undefined),
+  )
 }
 
 export async function reconcileBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema }).parse(input)
-  return runAction(value.planId, () => reconcileBaselineExecution(value.planId).then(() => undefined))
+  return runAction(input, z.object({ planId: planIdSchema }), value =>
+    reconcileBaselineExecution(value.planId).then(() => undefined),
+  )
 }
 
 export async function cancelBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema }).parse(input)
-  return runAction(value.planId, () => cancelBaselineExecution(value.planId).then(() => undefined))
+  return runAction(input, z.object({ planId: planIdSchema }), value =>
+    cancelBaselineExecution(value.planId).then(() => undefined),
+  )
 }
 
 export async function acknowledgeBaselineFailureAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema, attemptId: idSchema }).parse(input)
-  return runAction(value.planId, () =>
+  return runAction(input, z.object({ planId: planIdSchema, attemptId: idSchema }), value =>
     acknowledgeBaselineFailure({ ...value, acknowledgedBy: 'local-user' }).then(() => undefined),
   )
 }
 
 export async function justifyBaselineRegressionPassAction(input: unknown): Promise<ActionResponse> {
-  const value = z
-    .object({ planId: idSchema, attemptId: idSchema, justification: z.string().trim().min(1) })
-    .parse(input)
-  return runAction(value.planId, () => justifyBaselineRegressionPass(value))
+  return runAction(
+    input,
+    z.object({ planId: planIdSchema, attemptId: idSchema, justification: z.string().trim().min(1) }),
+    value => justifyBaselineRegressionPass(value),
+  )
 }
 
 export async function acceptBaselineAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema }).parse(input)
-  return runAction(value.planId, () => acceptBaseline(value.planId).then(() => undefined))
+  return runAction(input, z.object({ planId: planIdSchema }), value =>
+    acceptBaseline(value.planId).then(() => undefined),
+  )
 }
 
 export async function startImplementationAction(input: unknown): Promise<ActionResponse> {
-  const value = z.object({ planId: idSchema }).parse(input)
-  return runAction(value.planId, () => startImplementation(value.planId).then(() => undefined))
+  return runAction(input, z.object({ planId: planIdSchema }), value =>
+    startImplementation(value.planId).then(() => undefined),
+  )
 }

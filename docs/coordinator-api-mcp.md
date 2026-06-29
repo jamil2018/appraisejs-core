@@ -135,13 +135,22 @@ appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
 Resources:
 
 - `appraise://project`
+- `appraise://target-projects`
+- `appraise://agent-guide`
+- `appraise://workflow/planning`
+- `appraise://workflow/standby`
 - `appraise://plans/{planId}`
 
 Tools:
 
 - `coordinator_register`
 - `coordinator_heartbeat`
+- `project_diagnostic`
+- `project_add`
+- `project_list`
+- `planning_session_create`
 - `plan_create`
+- `test_run`
 - `plan_read`
 - `plan_review_read`
 - `plan_wait_for_review`
