@@ -10,9 +10,9 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 const repoRoot = path.resolve(import.meta.dirname, '../../..')
 const port = 3299
 const baseUrl = `http://127.0.0.1:${port}`
-const planId = `mcp-e2e-${Date.now()}`
-const planPath = path.join(repoRoot, 'appraise', 'plans', `${planId}.yaml`)
-const reviewPath = path.join(repoRoot, 'appraise', 'plans', 'reviews', `${planId}.review.yaml`)
+const requestedPlanId = `mcp-e2e-${Date.now()}`
+let planId = requestedPlanId
+let explicitTargetPlanId: string | undefined
 const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-e2e-'))
 const databasePath = path.join(temporaryDirectory, 'mcp-e2e.db')
 let appServer: ChildProcess | undefined
@@ -62,7 +62,16 @@ async function callTool(name: string, args: Record<string, unknown>) {
   return toolJson(await client!.callTool({ name, arguments: args }))
 }
 
+function planPathFor(id: string) {
+  return path.join(repoRoot, 'appraise', 'plans', `${id}.yaml`)
+}
+
+function reviewPathFor(id: string) {
+  return path.join(repoRoot, 'appraise', 'plans', 'reviews', `${id}.review.yaml`)
+}
+
 async function approveCurrentPlan(revision: number, contentHash: string) {
+  const reviewPath = reviewPathFor(planId)
   await fs.mkdir(path.dirname(reviewPath), { recursive: true })
   await fs.writeFile(
     reviewPath,
@@ -183,19 +192,73 @@ try {
   )
   const projectResource = await client.readResource({ uri: 'appraise://project' })
   assert(projectResource.contents[0]?.text?.includes('projectFingerprint'), 'Project resource is unreadable.')
+  const projectResourceJson = JSON.parse(String(projectResource.contents[0]?.text)) as {
+    capabilities?: { workflowCriticalTools?: string[]; workflowResourceUris?: string[] }
+    capabilityRecovery?: { recoveryActions?: string[] }
+  }
+  assert(
+    projectResourceJson.capabilities?.workflowCriticalTools?.includes('planning_session_create'),
+    'Project resource did not expose workflow-critical tool metadata.',
+  )
+  assert(
+    projectResourceJson.capabilities?.workflowResourceUris?.includes('appraise://workflow/standby'),
+    'Project resource did not expose workflow resource metadata.',
+  )
   const agentGuide = await client.readResource({ uri: 'appraise://agent-guide' })
   assert(agentGuide.contents[0]?.text?.includes('plan_wait_for_approval'), 'Agent guide missed standby guidance.')
   const diagnostic = await callTool('project_diagnostic', {})
   assert(diagnostic.ok === true, `Project diagnostic failed: ${JSON.stringify(diagnostic)}`)
   assert(diagnostic.contractVersion === '1', 'Project diagnostic did not return the contract version.')
+  const diagnosticCapabilities = diagnostic.capabilities as {
+    workflowCriticalTools?: string[]
+    workflowResourceUris?: string[]
+  }
   assert(
-    String(diagnostic.nextRecommendedAction).includes('project_add'),
+    diagnosticCapabilities.workflowCriticalTools?.includes('planning_session_create'),
+    'Project diagnostic did not expose planning_session_create capability metadata.',
+  )
+  assert(
+    diagnosticCapabilities.workflowResourceUris?.includes('appraise://workflow/planning'),
+    'Project diagnostic did not expose workflow resource metadata.',
+  )
+  assert(
+    String(diagnostic.nextRecommendedAction).includes('target workspace'),
     'Project diagnostic did not return next-action guidance.',
+  )
+
+  const missingTarget = await callTool('planning_session_create', {
+    projectBrief: 'Build a small recipe organizer app.',
+    mode: 'plan_only',
+  })
+  assert(missingTarget.status === 'target_required', 'Planning session did not require an explicit target.')
+  assert(
+    missingTarget.nextRequiredAgentBehavior === 'choose_explicit_target_before_planning',
+    'Planning session target recovery did not tell the agent to choose a target.',
+  )
+
+  const targetWorkspacePath = path.join(temporaryDirectory, 'explicit-target-workspace')
+  await fs.mkdir(targetWorkspacePath)
+  const explicitTargetSession = await callTool('planning_session_create', {
+    projectBrief: 'Plan a small target workspace smoke app.',
+    targetWorkspacePath,
+    displayName: 'MCP E2E target workspace',
+  })
+  const explicitTargetCreated = explicitTargetSession.created as { planId?: string } | undefined
+  explicitTargetPlanId = String(explicitTargetCreated?.planId ?? '')
+  assert(explicitTargetPlanId, 'Explicit target planning did not create a plan.')
+  assert(explicitTargetSession.targetProject, 'Explicit target planning did not register or return the target project.')
+  assert(
+    (explicitTargetSession.reviewReady as { planId?: string } | undefined)?.planId === explicitTargetPlanId,
+    'Explicit target planning did not return review-ready evidence for the created plan.',
+  )
+  assert(
+    explicitTargetSession.nextRequiredAgentBehavior === 'standby_for_appraise_review',
+    'Explicit target planning did not enter approval standby.',
   )
 
   const initialPlan = {
     version: '1',
-    planId,
+    planId: requestedPlanId,
     revision: 1,
     lifecycle: 'draft',
     goal: 'Validate the MCP bridge end to end',
@@ -213,11 +276,16 @@ try {
     implementationGroups: [],
   }
   const created = await callTool('plan_create', { plan: initialPlan })
+  planId = String(created.planId)
+  initialPlan.planId = planId
   assert(created.lifecycle === 'awaiting_plan_review', 'Plan create did not normalize the draft lifecycle.')
   const createdPlan = created.plan as { lifecycle: string }
   assert(createdPlan.lifecycle === 'awaiting_plan_review', 'Plan create did not return the normalized plan payload.')
-  assert(created.reviewUrl === `/plans/${planId}`, 'Plan create did not return the stable review URL.')
   const createdLinks = created.links as { appraise: string; browser: string; route: string }
+  assert(
+    createdLinks.route === `/plans/${planId}`,
+    `Plan create did not return the stable review route: ${JSON.stringify(createdLinks)}`,
+  )
   assert(createdLinks.appraise === `appraise://plans/${planId}`, 'Plan create did not return the Appraise link.')
   assert(createdLinks.browser === `${baseUrl}/plans/${planId}`, 'Plan create did not return the browser link.')
   assert(
@@ -242,7 +310,18 @@ try {
     'Review-ready response did not instruct standby.',
   )
 
-  const directReviewResponse = await fetch(`${baseUrl}${created.reviewUrl}`)
+  const pendingApproval = await callTool('plan_wait_for_approval', { planId, afterSequence: ready.eventSequence })
+  assert(pendingApproval.status === 'pending', 'Default approval wait did not return compact pending standby.')
+  assert(
+    pendingApproval.nextRequiredAgentBehavior === 'standby_for_appraise_review',
+    'Pending approval response did not preserve standby behavior.',
+  )
+  assert(
+    typeof pendingApproval.nextAfterSequence === 'number',
+    'Pending approval response did not include nextAfterSequence.',
+  )
+
+  const directReviewResponse = await fetch(`${baseUrl}${createdLinks.route}`)
   assert(directReviewResponse.ok, `Direct review route returned ${directReviewResponse.status}.`)
   const directReviewHtml = await directReviewResponse.text()
   assert(directReviewHtml.includes(planId), 'Direct review route did not include the created plan ID.')
@@ -320,7 +399,7 @@ try {
   const startedPlan = started.plan as { lifecycle: string }
   assert(startedPlan.lifecycle === 'preparing_validations', 'Approved plan did not start validation preparation.')
 
-  const storedPlan = parseYaml(await fs.readFile(planPath, 'utf8')) as { lifecycle: string }
+  const storedPlan = parseYaml(await fs.readFile(planPathFor(planId), 'utf8')) as { lifecycle: string }
   assert(storedPlan.lifecycle === 'preparing_validations', 'Started lifecycle was not persisted.')
   assert(!mcpDiagnostics.includes('stdout'), `Unexpected MCP diagnostics: ${mcpDiagnostics}`)
 
@@ -342,7 +421,13 @@ try {
     appServer.kill('SIGTERM')
     await new Promise(resolve => appServer!.once('exit', resolve))
   }
-  await fs.rm(planPath, { force: true })
-  await fs.rm(reviewPath, { force: true })
+  await fs.rm(planPathFor(planId), { force: true })
+  await fs.rm(reviewPathFor(planId), { force: true })
+  if (explicitTargetPlanId) {
+    await fs.rm(planPathFor(explicitTargetPlanId), { force: true })
+    await fs.rm(reviewPathFor(explicitTargetPlanId), { force: true })
+  }
+  await fs.rm(planPathFor(requestedPlanId), { force: true })
+  await fs.rm(reviewPathFor(requestedPlanId), { force: true })
   await fs.rm(temporaryDirectory, { recursive: true, force: true })
 }

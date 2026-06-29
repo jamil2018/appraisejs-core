@@ -1,4 +1,5 @@
 import http from 'node:http'
+import { createRequire } from 'node:module'
 
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
@@ -13,6 +14,30 @@ import {
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { planArtifactSchema, planCreateInputSchema } from './plan-file.js'
+
+const require = createRequire(import.meta.url)
+const packageJson = require('../package.json') as { version?: string }
+const serverStartedAt = new Date().toISOString()
+const mcpSurfaceVersion = '2026-06-29.real-subagent-audit-mitigation'
+const workflowCriticalTools = [
+  'project_diagnostic',
+  'project_add',
+  'project_list',
+  'planning_session_create',
+  'plan_create',
+  'plan_wait_for_review',
+  'plan_wait_for_approval',
+  'plan_review_read',
+  'plan_revise',
+  'plan_start',
+] as const
+const workflowResourceUris = [
+  'appraise://project',
+  'appraise://target-projects',
+  'appraise://agent-guide',
+  'appraise://workflow/planning',
+  'appraise://workflow/standby',
+] as const
 
 function text(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
@@ -42,6 +67,37 @@ export const planningWorkflow = {
     'When approval is pending, remain in a resumable standby state and resume with nextAfterSequence. Do not treat chat approval as Appraise approval.',
 }
 
+export const mcpCapabilityMetadata = {
+  packageVersion: packageJson.version ?? '0.0.0',
+  mcpSurfaceVersion,
+  serverStartedAt,
+  workflowCriticalTools: [...workflowCriticalTools],
+  workflowResourceUris: [...workflowResourceUris],
+}
+
+export function missingCapabilityRecovery(missing: { tools?: string[]; resources?: string[] } = {}) {
+  const tools = missing.tools ?? []
+  const resources = missing.resources ?? []
+  return {
+    status: tools.length || resources.length ? 'missing_or_stale' : 'available',
+    expected: {
+      workflowCriticalTools: [...workflowCriticalTools],
+      workflowResourceUris: [...workflowResourceUris],
+    },
+    missing: {
+      tools,
+      resources,
+    },
+    recoveryActions: [
+      'Restart or reconnect the MCP client so it refreshes tool and resource discovery.',
+      'Restart the Appraise MCP sidecar so the running server matches the current branch source.',
+      'Rerun `npm run setup:mcp` and `npm run setup:agent`, then verify planning_session_create and appraise://workflow/standby are visible.',
+    ],
+    toolsNotVisible:
+      'If setup text is visible but native MCP tools are absent, register the Streamable HTTP endpoint or stdio command with the host, then restart or reconnect the client.',
+  }
+}
+
 export const agentGuide = {
   summary:
     'Use AppraiseJS as the lifecycle owner for planning, validation, baseline, implementation, and completion gates.',
@@ -51,11 +107,61 @@ export const agentGuide = {
     mcpDetails: 'npm run setup:mcp',
   },
   planningWorkflow,
+  capabilityRecovery: missingCapabilityRecovery(),
   links: {
     lifecycle: 'docs/agent-lifecycle-flow.md',
     mcpSetup: 'docs/agent-mcp-setup.md',
     contract: 'docs/coordinator-api-mcp.md',
   },
+}
+
+function diagnosticGuidance(diagnostic: unknown) {
+  const ok = Boolean((diagnostic as { ok?: unknown })?.ok)
+  return {
+    nextRecommendedAction: ok
+      ? 'For an existing app, register or select the target workspace with project_add before planning. For hub checkout work, call planning_session_create with targetMode:"hub". If expected MCP tools or resources are missing, restart/reconnect the MCP client and sidecar.'
+      : 'Resolve diagnostics first. For stale or missing MCP capabilities, restart/reconnect the MCP client, restart the Appraise MCP sidecar, then rerun npm run setup:mcp and npm run setup:agent.',
+    nextRequiredAgentBehavior: ok ? 'choose_explicit_target_before_planning' : 'recover_mcp_or_project_binding',
+  }
+}
+
+function projectPayload(api: Awaited<ReturnType<typeof createCoordinatorApiClient>>) {
+  return {
+    projectFingerprint: api.identity.projectFingerprint,
+    canonicalProjectPath: api.project.canonicalProjectPath,
+    capabilities: mcpCapabilityMetadata,
+    capabilityRecovery: missingCapabilityRecovery(),
+  }
+}
+
+export function planningSessionTargetRequiredResponse(input: {
+  projectBrief: string
+  targetProjects: unknown
+  hubProjectPath: string
+}) {
+  return {
+    status: 'target_required',
+    code: 'planning-target-required',
+    message:
+      'planning_session_create requires targetWorkspacePath for a new-app brief, or explicit targetMode:"hub" when the plan is intentionally scoped to the Appraise hub checkout.',
+    projectBrief: input.projectBrief,
+    targetProjectCandidates: input.targetProjects,
+    hubProject: {
+      canonicalPath: input.hubProjectPath,
+      targetMode: 'hub',
+    },
+    recovery: {
+      existingTarget:
+        'If the app repository already exists, call project_add or rerun planning_session_create with targetWorkspacePath.',
+      newWorkspace:
+        'If this is a brand-new app, create or choose the target workspace path first, then pass targetWorkspacePath.',
+      hubMode:
+        'Only pass targetMode:"hub" when the requested work is intentionally for the AppraiseJS hub checkout itself.',
+    },
+    nextRecommendedAction:
+      'Choose an explicit targetWorkspacePath, or rerun with targetMode:"hub" for intentional hub-scoped planning.',
+    nextRequiredAgentBehavior: 'choose_explicit_target_before_planning',
+  }
 }
 
 export function createPlanFromBrief(input: {
@@ -135,6 +241,51 @@ export function nextApprovalWaitSequence(afterSequence: number, events: Coordina
   return events.reduce((latest, event) => Math.max(latest, event.sequence), afterSequence)
 }
 
+function approvalPendingResponse(input: {
+  planId: string
+  current: PlanSnapshot
+  events: CoordinatorToolEvent[]
+  afterSequence: number
+}) {
+  return {
+    status: 'pending',
+    planId: input.planId,
+    revision: input.current.plan.revision,
+    lifecycle: input.current.plan.lifecycle,
+    contentHash: input.current.contentHash,
+    links: input.current.links,
+    events: input.events,
+    nextAfterSequence: nextApprovalWaitSequence(input.afterSequence, input.events),
+    recovery:
+      'Open the review URL and approve or request changes for the current revision in AppraiseJS, or rerun plan_wait_for_approval with nextAfterSequence.',
+    nextRecommendedAction:
+      'Remain in standby, or resume later by calling plan_wait_for_approval with nextAfterSequence.',
+    nextRequiredAgentBehavior: 'standby_for_appraise_review',
+  }
+}
+
+async function waitForEvents(
+  request: (operation: string, init?: RequestInit) => Promise<unknown>,
+  planId: string,
+  afterSequence: number,
+  timeoutMs?: number,
+) {
+  const controller = timeoutMs && timeoutMs > 0 ? new AbortController() : undefined
+  const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : undefined
+  try {
+    return (await request(`plans/${planId}/events?after=${afterSequence}&wait=true`, {
+      signal: controller?.signal,
+    })) as {
+      events?: CoordinatorToolEvent[]
+    }
+  } catch (error) {
+    if (controller?.signal.aborted) return { events: [] }
+    throw error
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
+}
+
 export async function createCoordinatorApiClient(options: McpOptions) {
   return createCoordinatorClient(options)
 }
@@ -153,10 +304,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         {
           uri: uri.href,
           mimeType: 'application/json',
-          text: JSON.stringify({
-            projectFingerprint: api.identity.projectFingerprint,
-            canonicalProjectPath: api.project.canonicalProjectPath,
-          }),
+          text: JSON.stringify(projectPayload(api)),
         },
       ],
     }),
@@ -237,13 +385,19 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         'Verify application/API reachability, authentication, project identity, Git reproducibility, and contract compatibility.',
       inputSchema: {},
     },
-    async () =>
-      text(
-        withGuidance(await diagnoseProject(options), {
-          nextRecommendedAction:
-            'If diagnostics are ok, register the target workspace with project_add when needed, then create the plan.',
-        }),
-      ),
+    async () => {
+      const diagnostic = await diagnoseProject(options)
+      return text(
+        withGuidance(
+          {
+            ...diagnostic,
+            capabilities: mcpCapabilityMetadata,
+            capabilityRecovery: missingCapabilityRecovery(),
+          },
+          diagnosticGuidance(diagnostic),
+        ),
+      )
+    },
   )
   server.registerTool(
     'project_add',
@@ -302,6 +456,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: {
         projectBrief: z.string().min(1),
         targetWorkspacePath: z.string().min(1).optional(),
+        targetMode: z.enum(['hub']).optional(),
         displayName: z.string().min(1).optional(),
         mode: z.enum(['plan_only', 'plan_then_wait']).default('plan_then_wait'),
         sourceFiles: z.array(z.string().min(1)).optional(),
@@ -311,6 +466,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async input => {
       try {
         const diagnostic = await diagnoseProject(options)
+        if (!input.targetWorkspacePath && input.targetMode !== 'hub') {
+          return text(
+            planningSessionTargetRequiredResponse({
+              projectBrief: input.projectBrief,
+              targetProjects: await api.listTargetProjects(),
+              hubProjectPath: api.project.canonicalProjectPath,
+            }),
+          )
+        }
         let targetProjectResult: unknown
         let target: string | undefined
         if (input.targetWorkspacePath) {
@@ -456,10 +620,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'plan_wait_for_approval',
     {
       description:
-        'Read-only long-poll for the plan approval gate; returns when AppraiseJS records approval, requested changes, or cancellation.',
-      inputSchema: { planId: z.string(), afterSequence: z.number().int().nonnegative().default(0) },
+        'Read-only wait for the plan approval gate; defaults to bounded polling and preserves explicit long-poll mode for clients that can safely wait.',
+      inputSchema: {
+        planId: z.string(),
+        afterSequence: z.number().int().nonnegative().default(0),
+        mode: z.enum(['poll', 'long_poll']).default('poll'),
+        timeoutMs: z.number().int().positive().max(300_000).optional(),
+      },
     },
-    async ({ planId, afterSequence }) => {
+    async ({ planId, afterSequence, mode, timeoutMs }) => {
       const initial = (await api.request(`plans/${planId}/events?after=${afterSequence}`)) as {
         events?: Array<{ sequence: number; type: string }>
       }
@@ -469,32 +638,17 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       let lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
 
       if (!gateEvent && !lifecycleStatus) {
-        const waitAfterSequence = nextApprovalWaitSequence(afterSequence, events)
-        const waited = (await api.request(`plans/${planId}/events?after=${waitAfterSequence}&wait=true`)) as {
-          events?: CoordinatorToolEvent[]
+        if (mode === 'long_poll' || timeoutMs) {
+          const waitAfterSequence = nextApprovalWaitSequence(afterSequence, events)
+          const waited = await waitForEvents(api.request, planId, waitAfterSequence, timeoutMs)
+          events = [...events, ...(waited.events ?? [])]
+          gateEvent = events.find(event => approvalGateEventStatus(event.type))
+          current = await readSnapshot(planId)
+          lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
         }
-        events = [...events, ...(waited.events ?? [])]
-        gateEvent = events.find(event => approvalGateEventStatus(event.type))
-        current = await readSnapshot(planId)
-        lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
 
         if (!gateEvent && !lifecycleStatus) {
-          const nextAfterSequence = nextApprovalWaitSequence(afterSequence, events)
-          return text({
-            status: 'pending',
-            planId,
-            revision: current.plan.revision,
-            lifecycle: current.plan.lifecycle,
-            contentHash: current.contentHash,
-            links: current.links,
-            events,
-            nextAfterSequence,
-            recovery:
-              'Open the review URL and approve or request changes for the current revision in AppraiseJS, or rerun plan_wait_for_approval with nextAfterSequence.',
-            nextRecommendedAction:
-              'Remain in standby, or resume later by calling plan_wait_for_approval with nextAfterSequence.',
-            nextRequiredAgentBehavior: 'standby_for_appraise_review',
-          })
+          return text(approvalPendingResponse({ planId, current, events, afterSequence }))
         }
       }
 
