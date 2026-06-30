@@ -32,10 +32,15 @@ const workflowCriticalTools = [
   'plan_revise',
   'plan_start',
   'validation_publish',
+  'provider_run_create',
+  'provider_run_read',
+  'provider_run_cancel',
+  'provider_permission_decide',
 ] as const
 const workflowResourceUris = [
   'appraise://project',
   'appraise://target-projects',
+  'appraise://provider-runs',
   'appraise://agent-guide',
   'appraise://workflow/planning',
   'appraise://workflow/standby',
@@ -627,6 +632,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     }),
   )
   server.registerResource(
+    'provider-runs',
+    'appraise://provider-runs',
+    { title: 'AppraiseJS provider workflow runs', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(await api.listProviderRuns()),
+        },
+      ],
+    }),
+  )
+  server.registerResource(
     'agent-guide',
     'appraise://agent-guide',
     { title: 'AppraiseJS agent workflow guide', mimeType: 'application/json' },
@@ -719,6 +738,86 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: {},
     },
     async () => text(await api.listTargetProjects()),
+  )
+  server.registerTool(
+    'provider_run_create',
+    {
+      description:
+        'Create a planning-only Appraise-owned provider run for an attached target project. This does not approve plans, validation, baseline, implementation, or completion gates.',
+      inputSchema: {
+        targetProjectId: z.string().uuid(),
+        planId: z.string().min(1).optional(),
+        providerKey: z.string().min(1).optional(),
+        providerProfile: z.string().min(1).optional(),
+        launchPrompt: z.string().trim().min(1),
+      },
+    },
+    async input => {
+      try {
+        return text(
+          withGuidance(await api.createProviderRun(input), {
+            nextRecommendedAction:
+              'Read the provider run, present its event stream, then continue through Appraise plan review or validation gates only when durable Appraise state allows it.',
+            nextRequiredAgentBehavior: 'respect_appraise_lifecycle_gates',
+          }),
+        )
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'provider_run_read',
+    {
+      description: 'Read an Appraise-owned provider run with event, permission, artifact, and target-project context.',
+      inputSchema: { runId: z.string().uuid() },
+    },
+    async ({ runId }) => {
+      try {
+        return text(await api.readProviderRun(runId))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'provider_run_cancel',
+    {
+      description:
+        'Cancel a provider execution attempt. Cancellation updates provider-run status only; plan lifecycle cancellation remains Appraise-owned.',
+      inputSchema: { runId: z.string().uuid() },
+    },
+    async ({ runId }) => {
+      try {
+        return text(await api.cancelProviderRun(runId))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'provider_permission_decide',
+    {
+      description:
+        'Record a user-visible provider permission decision for a provider run without bypassing Appraise lifecycle gates.',
+      inputSchema: {
+        runId: z.string().uuid(),
+        requestId: z.string().min(1),
+        decision: z.enum(['approved', 'denied']),
+        riskTier: z.string().min(1),
+        requestedScope: z.string().min(1),
+        payload: z.record(z.string(), z.unknown()).optional(),
+        reason: z.string().optional(),
+        decidedBy: z.string().min(1).default('mcp-client'),
+      },
+    },
+    async ({ runId, ...input }) => {
+      try {
+        return text(await api.decideProviderPermission(runId, input))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
   )
   server.registerTool(
     'plan_create',

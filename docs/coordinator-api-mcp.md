@@ -137,6 +137,7 @@ Resources:
 
 - `appraise://project`
 - `appraise://target-projects`
+- `appraise://provider-runs`
 - `appraise://agent-guide`
 - `appraise://workflow/planning`
 - `appraise://workflow/standby`
@@ -149,6 +150,10 @@ Tools:
 - `project_diagnostic`
 - `project_add`
 - `project_list`
+- `provider_run_create`
+- `provider_run_read`
+- `provider_run_cancel`
+- `provider_permission_decide`
 - `planning_session_create`
 - `plan_review_loop` when available for active bounded review and approval standby
 - `plan_create`
@@ -177,6 +182,11 @@ Tools:
 `project_diagnostic` and `appraise://project` include capability metadata for stale-server checks: package version,
 MCP surface version, server start time, workflow-critical tool names, workflow resource URIs, and recovery text for
 missing or stale native MCP capabilities.
+
+Provider-run tools expose Appraise-owned execution attempts for orchestration clients. They can create, read, cancel,
+and record permission decisions for provider runs, but they do not approve plan review, validation review, baseline,
+implementation, or completion gates. Those lifecycle transitions remain owned by the existing Appraise lifecycle tools
+and UI review surfaces.
 
 `planning_session_create` requires explicit target selection for normal app briefs. Pass `targetWorkspacePath` for the
 writable target workspace, or pass `targetMode: "hub"` only when the plan is intentionally scoped to the Appraise hub

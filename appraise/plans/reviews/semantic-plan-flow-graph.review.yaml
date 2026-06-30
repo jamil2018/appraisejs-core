@@ -1,0 +1,12 @@
+version: '1'
+planId: semantic-plan-flow-graph
+threads: []
+planApprovals:
+  - id: approval-semantic-plan-flow-graph
+    revision: 1
+    contentHash: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    relevantHashes:
+      plan: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    approvedBy: local-user
+    approvedAt: 2026-06-01T00:00:00.000Z
+fileApprovals: []

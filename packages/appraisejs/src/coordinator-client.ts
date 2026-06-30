@@ -150,6 +150,28 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     addTargetProject: (projectPath: string, displayName?: string) =>
       post('target-projects', { path: projectPath, ...(displayName ? { displayName } : {}) }),
     listTargetProjects: () => request('target-projects'),
+    listProviderRuns: () => request('provider-runs'),
+    readProviderRun: (runId: string) => request(`provider-runs/${runId}`),
+    createProviderRun: (input: {
+      targetProjectId: string
+      planId?: string
+      providerKey?: string
+      providerProfile?: string
+      launchPrompt: string
+    }) => post('provider-runs', input),
+    cancelProviderRun: (runId: string) => post(`provider-runs/${runId}/cancel`, {}),
+    decideProviderPermission: (
+      runId: string,
+      input: {
+        requestId: string
+        decision: 'approved' | 'denied'
+        riskTier: string
+        requestedScope: string
+        payload?: Record<string, unknown>
+        reason?: string
+        decidedBy: string
+      },
+    ) => post(`provider-runs/${runId}/permissions`, input),
     runTargetTests: (input: {
       target: string
       environmentId: string

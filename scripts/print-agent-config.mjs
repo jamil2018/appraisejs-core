@@ -7,8 +7,13 @@ import { resolveMcpConfig } from './mcp-config.mjs'
 const config = resolveMcpConfig()
 const skillExists = existsSync(config.skillPath)
 const expectedCapabilities = {
-  tools: ['planning_session_create', 'plan_review_loop', 'validation_publish'],
-  resources: ['appraise://agent-guide', 'appraise://workflow/planning', 'appraise://workflow/standby'],
+  tools: ['planning_session_create', 'plan_review_loop', 'validation_publish', 'provider_run_create'],
+  resources: [
+    'appraise://agent-guide',
+    'appraise://workflow/planning',
+    'appraise://workflow/standby',
+    'appraise://provider-runs',
+  ],
 }
 const staleCapabilityRecovery = [
   'Restart or reconnect the MCP/agent client.',

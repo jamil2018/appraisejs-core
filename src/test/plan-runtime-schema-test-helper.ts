@@ -59,3 +59,11 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
     await applyMigration(databasePath, '20260609160000_add_coordinator_events_api_mcp')
   }
 }
+
+export async function ensureProviderRunTestSchema(databasePath: string) {
+  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+
+  if (!hasTable(databasePath, 'ProviderWorkflowRun')) {
+    await applyMigration(databasePath, '20260701090000_add_provider_workflow_runs')
+  }
+}
