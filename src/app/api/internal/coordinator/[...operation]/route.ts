@@ -18,6 +18,13 @@ import {
 } from '@/lib/plan-contract'
 import { createOpaquePlanId } from '@/lib/plans/plan-identity'
 import {
+  cancelProviderWorkflowRun,
+  createProviderWorkflowRun,
+  getProviderWorkflowRun,
+  listProviderWorkflowRuns,
+  recordProviderPermissionDecision,
+} from '@/services/coordinator/coordinator-provider-run-service'
+import {
   acknowledgePlanEvent,
   ensureProjectIdentity,
   ensurePlanReviewReadyEvent,
@@ -174,6 +181,10 @@ async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
+  if (operation[0] === 'provider-runs') {
+    if (operation.length === 1) return Response.json({ providerRuns: await listProviderWorkflowRuns() })
+    return Response.json(await getProviderWorkflowRun(z.string().uuid().parse(operation[1])))
+  }
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   const handlers: Record<string, () => Promise<Response>> = {
     plan: () => getPlan(request, operation),
@@ -361,6 +372,40 @@ async function postStandaloneTestRun(body: unknown) {
   return Response.json(await createStandaloneTargetTestRun(value), { status: 201 })
 }
 
+async function postProviderRun(operation: string[], body: unknown) {
+  if (operation.length === 1) {
+    const value = z
+      .object({
+        targetProjectId: z.string().uuid(),
+        planId: routePlanIdSchema.optional(),
+        providerKey: z.string().min(1).optional(),
+        providerProfile: z.string().min(1).optional(),
+        launchPrompt: z.string().trim().min(1),
+      })
+      .parse(body)
+    return Response.json(await createProviderWorkflowRun({ ...value, approvedScope: { mode: 'planning_only' } }), {
+      status: 201,
+    })
+  }
+  const runId = z.string().uuid().parse(operation[1])
+  if (operation[2] === 'cancel') return Response.json(await cancelProviderWorkflowRun(runId))
+  if (operation[2] === 'permissions') {
+    const value = z
+      .object({
+        requestId: z.string().min(1),
+        decision: z.enum(['approved', 'denied']),
+        riskTier: z.string().min(1),
+        requestedScope: z.string().min(1),
+        payload: z.record(z.string(), z.unknown()).default({}),
+        reason: z.string().optional(),
+        decidedBy: z.string().min(1),
+      })
+      .parse(body)
+    return Response.json(await recordProviderPermissionDecision({ runId, ...value }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
 async function postStartPlan(operation: string[]) {
   return Response.json(await startCoordinatorPlan(routePlanIdSchema.parse(operation[1])))
 }
@@ -431,6 +476,7 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     plans: () => postCreatePlan(request, body),
     'target-projects': () => postTargetProject(body),
     'test-runs': () => postStandaloneTestRun(body),
+    'provider-runs': () => postProviderRun(operation, body),
     start: () => {
       assertPlanOperation(operation)
       return postStartPlan(operation)

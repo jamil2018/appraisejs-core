@@ -105,6 +105,9 @@ export default function RootLayout({
                 <NavLink href="/plans" icon={<Network className="size-5 text-primary" />}>
                   Plans
                 </NavLink>
+                <NavLink href="/provider-runs" icon={<Bot className="size-5 text-primary" />}>
+                  Provider Runs
+                </NavLink>
                 <NavMenuCardDeck
                   containerButtonText="Automate"
                   containerButtonIcon={<Bot className="size-5 text-primary" />}

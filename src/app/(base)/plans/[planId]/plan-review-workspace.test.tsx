@@ -2,7 +2,7 @@
 
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 
@@ -89,6 +89,10 @@ vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   submitValidationReviewAction,
   transitionPlanRemarkAction: vi.fn(),
 }))
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 const detail: PlanReviewDetail = {
   plan: {

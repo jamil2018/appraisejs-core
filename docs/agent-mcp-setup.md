@@ -60,8 +60,9 @@ client. Do not report tools as available until the client has completed that ref
 
 After reconnect, verify these expected capabilities:
 
-- Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`
-- Resources: `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/standby`
+- Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`, `provider_run_create`
+- Resources: `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/standby`,
+  `appraise://provider-runs`
 
 If `project_diagnostic`, `tools/list`, or `resources/list` shows older capabilities, treat the MCP server or client
 registration as stale. Restart or reconnect the MCP client, restart the Appraise MCP sidecar, rerun
