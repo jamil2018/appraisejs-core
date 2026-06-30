@@ -31,6 +31,7 @@ const workflowCriticalTools = [
   'plan_review_read',
   'plan_revise',
   'plan_start',
+  'validation_publish',
 ] as const
 const workflowResourceUris = [
   'appraise://project',
@@ -66,6 +67,21 @@ export const planningWorkflow = {
     'Read delivery does not acknowledge events. afterSequence is exclusive: pass the latest handled sequence, and acknowledge a sequence only after the permitted transition or recovery action succeeds.',
   standby:
     'When approval is pending, pause at the Appraise review gate in a resumable standby state and resume with nextAfterSequence. Do not implement, finalize, or validate. Do not treat chat approval as Appraise approval.',
+}
+
+export const standbyWorkflow = {
+  standbyAfter: 'plan_review_ready',
+  preferredTool: 'plan_review_loop',
+  compatibilityTool: 'plan_wait_for_approval',
+  pendingBehavior:
+    'Use bounded long-poll standby when possible. No wait call before complete URL handoff: present and return the complete direct browserUrl, appraiseUrl, planId, goal, description, revision, lifecycle, contentHash, currentAfterSequence, nextAfterSequence, and recommendedWait before entering or continuing standby.',
+  cursorGuidance:
+    'afterSequence is exclusive. Resume standby with nextAfterSequence exactly unless intentionally redelivering unacknowledged events through plan_events_read.',
+  gateResults: {
+    approved: 'Call plan_start, then acknowledge only after validation_preparation_started.',
+    changes_requested: 'Call plan_review_read, revise against the expected hash, and return to standby.',
+    cancelled: 'Acknowledge the cancellation event and stop.',
+  },
 }
 
 export const mcpCapabilityMetadata = {
@@ -374,6 +390,35 @@ function linkFromSnapshot(links: unknown, key: 'appraise' | 'browser'): string |
   return typeof value === 'string' ? value : undefined
 }
 
+function formatReviewHandoff(input: {
+  browserUrl?: string
+  appraiseUrl: string
+  planId: string
+  goal?: string
+  description?: string
+  revision: number
+  lifecycle: string
+  contentHash: string
+  currentAfterSequence: number
+  nextAfterSequence: number
+  recommendedWait: RecommendedWait
+}) {
+  return [
+    'No wait call before complete URL handoff.',
+    `Direct browser URL: ${input.browserUrl ?? '(not returned)'}`,
+    `Appraise URL: ${input.appraiseUrl}`,
+    `Plan ID: ${input.planId}`,
+    `Goal: ${input.goal ?? '(not returned)'}`,
+    `Description: ${input.description ?? '(not returned)'}`,
+    `Revision: ${input.revision}`,
+    `Lifecycle: ${input.lifecycle}`,
+    `Content hash: ${input.contentHash}`,
+    `Current after sequence: ${input.currentAfterSequence}`,
+    `Next after sequence: ${input.nextAfterSequence}`,
+    `Recommended wait call: ${input.recommendedWait.tool}({ planId: "${input.planId}", afterSequence: ${input.recommendedWait.afterSequence}, timeoutMs: ${input.recommendedWait.timeoutMs} })`,
+  ].join('\n')
+}
+
 function standbyPresentation(input: {
   planId: string
   current: PlanSnapshot
@@ -383,9 +428,24 @@ function standbyPresentation(input: {
 }) {
   const appraiseUrl = linkFromSnapshot(input.current.links, 'appraise') ?? `appraise://plans/${input.planId}`
   const browserUrl = linkFromSnapshot(input.current.links, 'browser')
+  const handoffMarkdown = formatReviewHandoff({
+    browserUrl,
+    appraiseUrl,
+    planId: input.planId,
+    goal: input.current.plan.goal,
+    description: input.current.plan.description,
+    revision: input.current.plan.revision,
+    lifecycle: input.current.plan.lifecycle,
+    contentHash: input.current.contentHash,
+    currentAfterSequence: input.currentAfterSequence,
+    nextAfterSequence: input.nextAfterSequence,
+    recommendedWait: input.recommendedWait,
+  })
   return {
     browserUrl,
     appraiseUrl,
+    handoffMarkdown,
+    requiredUserFacingMessage: handoffMarkdown,
     goal: input.current.plan.goal,
     description: input.current.plan.description,
     revision: input.current.plan.revision,
@@ -409,7 +469,7 @@ function standbyPresentation(input: {
         'recommendedWait',
       ],
       instruction:
-        'Before entering or continuing standby, present the browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and the recommended wait call.',
+        'No wait call before complete URL handoff. Before entering or continuing standby, present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and the recommended wait call.',
     },
   }
 }
@@ -591,20 +651,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         {
           uri: uri.href,
           mimeType: 'application/json',
-          text: JSON.stringify({
-            standbyAfter: 'plan_review_ready',
-            preferredTool: 'plan_review_loop',
-            compatibilityTool: 'plan_wait_for_approval',
-            pendingBehavior:
-              'Use bounded long-poll standby when possible. On timeout, present and return browserUrl, appraiseUrl, goal, description, revision, lifecycle, contentHash, currentAfterSequence, nextAfterSequence, and recommendedWait for continuation.',
-            cursorGuidance:
-              'afterSequence is exclusive. Resume standby with nextAfterSequence exactly unless intentionally redelivering unacknowledged events through plan_events_read.',
-            gateResults: {
-              approved: 'Call plan_start, then acknowledge only after validation_preparation_started.',
-              changes_requested: 'Call plan_review_read, revise against the expected hash, and return to standby.',
-              cancelled: 'Acknowledge the cancellation event and stop.',
-            },
-          }),
+          text: JSON.stringify(standbyWorkflow),
         },
       ],
     }),
@@ -748,25 +795,23 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           reviewReadyAfterSequence = nextApprovalWaitSequence(after, result.events ?? [])
           reviewReady = {
             planId,
-            browserUrl: linkFromSnapshot(current.links, 'browser'),
-            appraiseUrl: linkFromSnapshot(current.links, 'appraise') ?? `appraise://plans/${planId}`,
-            goal: current.plan.goal,
-            description: current.plan.description,
-            revision: current.plan.revision,
-            lifecycle: current.plan.lifecycle,
+            ...standbyPresentation({
+              planId,
+              current,
+              currentAfterSequence: after,
+              nextAfterSequence: reviewReadyAfterSequence,
+              recommendedWait: {
+                tool: 'plan_review_loop',
+                mode: 'long_poll',
+                timeoutMs: defaultReviewLoopTimeoutMs,
+                afterSequence: reviewReadyAfterSequence,
+              },
+            }),
             contentHash: current.contentHash,
             links: current.links,
             events: result.events ?? [],
             currentAfterSequence: after,
             nextAfterSequence: reviewReadyAfterSequence,
-            recommendedWait: {
-              tool: 'plan_review_loop',
-              mode: 'long_poll',
-              timeoutMs: defaultReviewLoopTimeoutMs,
-              afterSequence: reviewReadyAfterSequence,
-            },
-            requiredPresentation:
-              'Present the browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and recommended wait call before entering standby.',
           }
         }
         return text({
@@ -789,7 +834,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
               afterSequence: reviewReadyAfterSequence,
             },
             requiredPresentation:
-              'Present the browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and recommended wait call before entering standby.',
+              'No wait call before complete URL handoff. Present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and recommended wait call before entering standby.',
             rule: reviewReady
               ? 'Keep an active bounded Appraise review wait when the host supports it. Do not implement until Appraise emits approval and plan_start succeeds.'
               : 'Wait for durable plan_review_ready evidence before presenting the review URL as complete. Pending review is not completion.',
@@ -1124,13 +1169,47 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       description: 'Publish generated validation nodes and changed-file evidence for user review.',
       inputSchema: { planId: z.string(), validation: z.record(z.string(), z.unknown()) },
     },
-    async ({ planId, validation }) =>
-      text(
-        await api.request(`plans/${planId}/validations/publish`, {
-          method: 'POST',
-          body: JSON.stringify({ validation }),
-        }),
-      ),
+    async ({ planId, validation }) => {
+      const published = (await api.request(`plans/${planId}/validations/publish`, {
+        method: 'POST',
+        body: JSON.stringify({ validation }),
+      })) as {
+        validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
+        lifecycle?: string
+        revision?: number
+        validationArtifactPath?: string
+        validationCount?: number
+        changedFileCount?: number
+        manifestPaths?: string[]
+        reusedStepPaths?: string[]
+        newStepPaths?: string[]
+      }
+      return text({
+        ...published,
+        browserUrl: published.validationReviewLinks?.browser,
+        appraiseUrl: published.validationReviewLinks?.appraise ?? `appraise://plans/${planId}`,
+        requiredUserFacingMessage: [
+          `Direct validation review URL: ${published.validationReviewLinks?.browser ?? published.validationReviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
+          `Appraise URL: ${published.validationReviewLinks?.appraise ?? `appraise://plans/${planId}`}`,
+          `Plan ID: ${planId}`,
+          `Lifecycle: ${published.lifecycle ?? 'awaiting_validation_review'}`,
+          `Revision: ${published.revision ?? '(not returned)'}`,
+          `Validation artifact path: ${published.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
+          `Validation count: ${published.validationCount ?? 0}`,
+          `Changed-file count: ${published.changedFileCount ?? 0}`,
+          `Manifest paths: ${(published.manifestPaths ?? []).join(', ')}`,
+          `Reused registry/template step paths: ${(published.reusedStepPaths ?? []).join(', ')}`,
+          `New custom step paths: ${(published.newStepPaths ?? []).join(', ') || '(none)'}`,
+          'Next review action: open the validation review URL and wait for Appraise validation approval or changes.',
+        ].join('\n'),
+        handoffMarkdown: [
+          'Validation artifacts are published and validation_review_ready has been emitted.',
+          `Review: ${published.validationReviewLinks?.browser ?? published.validationReviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
+          `Artifact: ${published.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
+        ].join('\n'),
+        nextRequiredAgentBehavior: 'standby_for_validation_review',
+      })
+    },
   )
   server.registerTool(
     'validation_decide',

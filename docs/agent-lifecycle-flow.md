@@ -12,21 +12,28 @@ remarks, revising against the expected hash, and waiting for the next approval e
 Agents should use `plan_review_loop` when it is available, because it keeps review readiness, bounded approval waits,
 change requests, and cancellation inside one Appraise-owned loop. Without that tool, agents should actively continue
 with bounded `plan_wait_for_review` and `plan_wait_for_approval` waits. Compact continuation state is a fallback for
-long reviews or host limits, not the default result after publishing links. Every standby handoff should present the
-browser URL, `appraise://` URL, goal, description, revision, lifecycle, content hash, `currentAfterSequence`,
-`nextAfterSequence`, and recommended wait call before the agent waits again. Pending review or pending approval is not
-completion.
+long reviews or host limits, not the default result after publishing links. No wait call before complete URL handoff:
+every standby handoff should present the complete direct browser URL, `appraise://` URL, plan ID, goal, description,
+revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait call before the
+agent waits again. Pending review or pending approval is not completion.
 
 ## Approval And Validation Preparation
 
 `plan_approved` permits starting validation preparation. A coordinator should acknowledge the approval only after the
 transition it permits succeeds. `validation_preparation_started` marks the validation file generation phase.
+Validation preparation must create AppraiseJS-native review artifacts before standby: `ValidationArtifact`, validation
+nodes, `automation/features`, `automation/steps`, executable metadata, browser/environment matrix, expected failures,
+changed-file evidence, manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`. Agents must call
+`validation_publish` before claiming the user can review validations.
 
 ## Validation Review
 
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation
 artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
 older `validation_approved` events may exist in in-flight streams, but new events should use the plural lifecycle name.
+The validation review handoff should include the direct validation review URL, `appraise://` URL, lifecycle, revision,
+validation artifact path, validation count, changed-file count, manifest paths, reused registry/template step paths,
+new custom step paths, and the next review action.
 
 ## Baseline
 

@@ -10,6 +10,7 @@ import {
   planningSessionTargetRequiredResponse,
   planningWorkflow,
   reviewReadyPendingResponse,
+  standbyWorkflow,
 } from './mcp.js'
 
 describe('MCP approval wait helpers', () => {
@@ -73,7 +74,12 @@ describe('MCP approval wait helpers', () => {
     expect(response.reviewGatePause).toContain('Do not implement')
     expect(response.reviewGatePause).toContain('treat chat messages as approval')
     expect(response.cursorGuidance).toContain('afterSequence is exclusive')
+    expect(response.requiredUserFacingMessage).toContain('No wait call before complete URL handoff')
+    expect(response.requiredUserFacingMessage).toContain('Direct browser URL: http://127.0.0.1:3000/plans/plan-1')
+    expect(response.requiredUserFacingMessage).toContain('Plan ID: plan-1')
+    expect(response.requiredUserFacingMessage).toContain('Recommended wait call: plan_wait_for_approval')
     expect(response.standbyPresentation.instruction).toContain('Before entering or continuing standby')
+    expect(response.standbyPresentation.instruction).toContain('complete direct browser URL')
     expect(response.standbyPresentation.requiredFields).toEqual(
       expect.arrayContaining([
         'browserUrl',
@@ -130,6 +136,8 @@ describe('MCP approval wait helpers', () => {
     })
     expect(response.reviewGatePause).toContain('Do not present the review as durable')
     expect(response.standbyPresentation.instruction).toContain('browser URL')
+    expect(response.requiredUserFacingMessage).toContain('No wait call before complete URL handoff')
+    expect(response.requiredUserFacingMessage).toContain('Recommended wait call: plan_review_loop')
   })
 })
 
@@ -221,11 +229,23 @@ describe('MCP capability and recovery metadata', () => {
   it('exposes workflow-critical tools and resources for stale server checks', () => {
     expect(mcpCapabilityMetadata.packageVersion).toMatch(/^\d+\.\d+\.\d+/)
     expect(mcpCapabilityMetadata.workflowCriticalTools).toEqual(
-      expect.arrayContaining(['project_diagnostic', 'planning_session_create', 'plan_review_loop']),
+      expect.arrayContaining([
+        'project_diagnostic',
+        'planning_session_create',
+        'plan_review_loop',
+        'validation_publish',
+      ]),
     )
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(
       expect.arrayContaining(['appraise://project', 'appraise://workflow/planning', 'appraise://workflow/standby']),
     )
+  })
+
+  it('keeps standby workflow resource aligned with complete handoff-before-wait guidance', () => {
+    expect(standbyWorkflow.pendingBehavior).toContain('No wait call before complete URL handoff')
+    expect(standbyWorkflow.pendingBehavior).toContain('complete direct browserUrl')
+    expect(standbyWorkflow.pendingBehavior).toContain('planId')
+    expect(standbyWorkflow.pendingBehavior).toContain('before entering or continuing standby')
   })
 
   it('gives explicit recovery text when expected capabilities are missing', () => {

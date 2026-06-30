@@ -4,6 +4,7 @@ import {
   coordinatorContractVersion,
   coordinatorError,
   planLinks,
+  validationReviewLinks,
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
@@ -101,6 +102,11 @@ function responseError(error: unknown): Response {
 function withLinks<T extends object>(value: T, planId: string, request: Request) {
   const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
   return { ...value, links: planLinks(planId, baseUrl) }
+}
+
+function withValidationReviewLinks<T extends object>(value: T, planId: string, request: Request) {
+  const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
+  return { ...value, validationReviewLinks: validationReviewLinks(planId, baseUrl) }
 }
 
 async function getPlan(request: Request, operation: string[]) {
@@ -377,11 +383,13 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
 
 // Request parsing branches stay in this thin HTTP adapter.
 // fallow-ignore-next-line complexity
-async function postValidationOperation(operation: string[], body: unknown) {
+async function postValidationOperation(request: Request, operation: string[], body: unknown) {
   const planId = routePlanIdSchema.parse(operation[1])
   if (operation[3] === 'publish') {
     const value = z.object({ validation: validationArtifactSchema }).parse(body)
-    return Response.json(await publishPreparedValidations(planId, value.validation))
+    return Response.json(
+      withValidationReviewLinks(await publishPreparedValidations(planId, value.validation), planId, request),
+    )
   }
   if (operation[3] === 'feedback') {
     const value = z
@@ -437,7 +445,7 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     },
     validations: () => {
       assertPlanOperation(operation)
-      return postValidationOperation(operation, body)
+      return postValidationOperation(request, operation, body)
     },
     implementation: () => {
       assertPlanOperation(operation)

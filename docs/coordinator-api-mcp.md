@@ -84,26 +84,27 @@ read `plan_review_read` before revising.
 
 All routes are under `/api/internal/coordinator`.
 
-| Method | Path                                          | Purpose                                                 |
-| ------ | --------------------------------------------- | ------------------------------------------------------- |
-| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease    |
-| `POST` | `/heartbeat`                                  | Renew a coordinator lease                               |
-| `POST` | `/plans`                                      | Create a structured plan                                |
-| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                    |
-| `GET`  | `/plans/:planId/review`                       | Read review hash, remarks, links, and recovery guidance |
-| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash          |
-| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval        |
-| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                           |
-| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported      |
-| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                                |
-| `POST` | `/plans/:planId/validations/feedback`         | Route validation feedback to validation or plan review  |
-| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint                  |
-| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                                 |
-| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback            |
-| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation                 |
-| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                        |
-| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                        |
-| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                      |
+| Method | Path                                          | Purpose                                                  |
+| ------ | --------------------------------------------- | -------------------------------------------------------- |
+| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease     |
+| `POST` | `/heartbeat`                                  | Renew a coordinator lease                                |
+| `POST` | `/plans`                                      | Create a structured plan                                 |
+| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                     |
+| `GET`  | `/plans/:planId/review`                       | Read review hash, remarks, links, and recovery guidance  |
+| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash           |
+| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval         |
+| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                            |
+| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported       |
+| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                                 |
+| `POST` | `/plans/:planId/validations/publish`          | Persist validation artifacts and enter validation review |
+| `POST` | `/plans/:planId/validations/feedback`         | Route validation feedback to validation or plan review   |
+| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint                   |
+| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                                  |
+| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback             |
+| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation                  |
+| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                         |
+| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                         |
+| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                       |
 
 The create response includes coordinator ownership metadata and the stable review URL only after
 `plan_review_ready` is durably appended.
@@ -186,8 +187,8 @@ recovery guidance instead of silently creating a hub-scoped plan.
 `status: "pending"`, browser URL, `appraise://` URL, goal, description, revision, lifecycle, content hash,
 `currentAfterSequence`, `nextAfterSequence`, `recommendedWait`, and
 `nextRequiredAgentBehavior: "standby_for_appraise_review"`. Agents must present those fields before entering or
-continuing standby. Clients that can safely keep a request open may opt into `mode: "long_poll"` or provide
-`timeoutMs`.
+continuing standby. No wait call before complete URL handoff; handoffs must include the complete direct browser URL.
+Clients that can safely keep a request open may opt into `mode: "long_poll"` or provide `timeoutMs`.
 
 When exposed by the MCP server, `plan_review_loop` is the preferred agent workflow tool because it keeps bounded
 waiting active through `plan_review_ready`, approval, requested changes, and cancellation. Compact continuation state
@@ -197,6 +198,17 @@ is still waiting on Appraise-owned lifecycle state; it is not completion.
 Validation review approval emits `validations_approved`, matching the plan lifecycle. Legacy `validation_approved`
 events may still appear in older streams, so readers should tolerate both names while new writers prefer the plural
 event.
+
+After `validation_preparation_started`, agents must generate AppraiseJS-native `ValidationArtifact` evidence before
+validation review standby. `validation_publish` persists `appraise/plans/validations/<plan-id>.validation.yaml`,
+emits `validation_review_ready`, moves the lifecycle to `awaiting_validation_review`, and returns a validation review
+handoff containing the direct validation review URL, `appraise://` URL, revision, lifecycle, validation artifact path,
+validation count, changed-file count, manifest paths, reused registry/template step paths, new custom step paths, and
+the next review action.
+
+Validation preparation is registry-first. Agents should inspect or use existing registry/template steps for common web
+workflows before creating custom step definitions. Custom steps must include a gap justification naming the missing
+reusable capability and explaining why locators plus existing registry/template steps are insufficient.
 
 ## Local Smoke Test
 

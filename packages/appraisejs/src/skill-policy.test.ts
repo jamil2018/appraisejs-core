@@ -74,6 +74,8 @@ describe('Appraise workflow skills', () => {
     expect(planning.indexOf('plan_wait_for_review')).toBeLessThan(planning.indexOf('plan_wait_for_approval'))
     expect(planning).toContain('Prefer `plan_review_loop` when the tool is available')
     expect(planning).toContain('call `plan_wait_for_approval` with the latest handled event sequence')
+    expect(planning).toContain('No wait call before complete URL handoff')
+    expect(planning).toContain('complete direct browser URL')
     expect(planning).toContain('nextAfterSequence')
     expect(planning).toContain('active bounded wait or poll loop by default')
     expect(planning).toContain('compact continuation state')
@@ -86,6 +88,28 @@ describe('Appraise workflow skills', () => {
     expect(planning).toContain('only after')
     expect(planning).not.toContain('Stop at the review gate')
     expect(planning).not.toMatch(/repeated(?:ly)?\s+(?:\w+\s+){0,3}pending|pending\s+(?:\w+\s+){0,3}loop/i)
+  })
+
+  it('requires validation publish artifacts and registry-first step reuse before validation review standby', async () => {
+    const validationPreparation = await fs.readFile(
+      path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-validation-preparation', 'SKILL.md'),
+      'utf8',
+    )
+
+    expect(validationPreparation).toContain('ValidationArtifact')
+    expect(validationPreparation).toContain('automation/features')
+    expect(validationPreparation).toContain('automation/steps')
+    expect(validationPreparation).toContain('appraise/plans/validations/<plan-id>.validation.yaml')
+    expect(validationPreparation).toContain('registry/template steps')
+    expect(validationPreparation).toContain('zero new custom step definitions')
+    expect(validationPreparation).toContain('gap justification')
+    expect(validationPreparation.indexOf('registry/template steps')).toBeLessThan(
+      validationPreparation.indexOf('Any custom step requires'),
+    )
+    expect(validationPreparation).toContain('validation_publish')
+    expect(validationPreparation.indexOf('validation_publish')).toBeLessThan(
+      validationPreparation.indexOf('Present returned direct validation review URL'),
+    )
   })
 
   it('keeps packaged standby guidance aligned with active bounded review waits', async () => {
