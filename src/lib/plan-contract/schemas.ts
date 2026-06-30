@@ -180,6 +180,17 @@ export const validationArtifactSchema = artifactHeaderSchema
       )
       .transform(items => uniqueIds(items, 'validations')),
     approvals: z.array(approvalSchema),
+    reusedStepPaths: z.array(z.string().min(1)).optional(),
+    newStepPaths: z.array(z.string().min(1)).optional(),
+    customStepJustifications: z
+      .array(
+        z.object({
+          path: z.string().min(1),
+          missingCapability: z.string().min(1),
+          whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
+        }),
+      )
+      .optional(),
     validationDecisions: z.array(
       z.object({
         validationId: idSchema,

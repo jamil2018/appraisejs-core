@@ -22,6 +22,15 @@ export function planLinks(planId: string, baseUrl: string) {
   }
 }
 
+export function validationReviewLinks(planId: string, baseUrl: string) {
+  const route = `/plans/${planId}?review=validation`
+  return {
+    appraise: `appraise://plans/${planId}`,
+    browser: new URL(route, `${baseUrl.replace(/\/$/, '')}/`).href,
+    route,
+  }
+}
+
 export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | undefined {
   if (error instanceof CoordinatorProjectMismatchError) {
     return {

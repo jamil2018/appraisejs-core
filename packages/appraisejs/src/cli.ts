@@ -17,7 +17,7 @@ import { resolvePlanSource } from './plan-source.js'
 const program = new Command()
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const expectedAgentCapabilities = {
-  tools: ['planning_session_create', 'plan_review_loop'],
+  tools: ['planning_session_create', 'plan_review_loop', 'validation_publish'],
   resources: ['appraise://agent-guide', 'appraise://workflow/planning', 'appraise://workflow/standby'],
 }
 const staleAgentCapabilityRecovery = [

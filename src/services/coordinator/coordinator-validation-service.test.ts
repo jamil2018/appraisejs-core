@@ -113,6 +113,8 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
       },
     ],
     manifestPaths: ['src/product.ts', 'automation/features/case-one.feature'],
+    reusedStepPaths: ['automation/steps/actions/case-one.step.ts'],
+    newStepPaths: [],
     baselineAttempts: [],
     baselineAcknowledgements: [],
     baselineDecision: 'pending',
@@ -162,6 +164,16 @@ describe('validation preparation review gate', () => {
     ).resolves.toEqual({
       validation: artifact,
       reviewUrl: `/plans/${planId}?review=validation`,
+      lifecycle: 'awaiting_validation_review',
+      revision: 1,
+      validationArtifactPath: `appraise/plans/validations/${planId}.validation.yaml`,
+      validationCount: 1,
+      changedFileCount: 2,
+      manifestPaths: ['src/product.ts', 'automation/features/case-one.feature'],
+      reusedStepPaths: ['automation/steps/actions/case-one.step.ts'],
+      newStepPaths: [],
+      nextReviewAction:
+        'Open the validation review URL, inspect validation nodes and changed-file evidence, then approve or request changes.',
     })
     await expect(readPlanEvents({ planId, afterSequence: 1 }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 2, type: 'validation_preparation_started' }),
@@ -197,6 +209,68 @@ describe('validation preparation review gate', () => {
       expect.objectContaining({ sequence: 3, type: 'validation_review_ready' }),
       expect.objectContaining({ sequence: 4, type: 'validations_approved' }),
     ])
+  })
+
+  it('requires gap justification before publishing new custom step paths', async () => {
+    const planId = 'validation-custom-step-policy'
+    await preparePlanForValidation(planId)
+    const artifact = validation(planId, {
+      newStepPaths: ['automation/steps/actions/todo-only.step.ts'],
+      customStepJustifications: [],
+    })
+
+    await expect(
+      publishPreparedValidations(planId, artifact, { projectDirectory: workspace, client }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION',
+      message: expect.stringContaining(
+        'Custom step automation/steps/actions/todo-only.step.ts requires a registry/template-step reuse gap justification.',
+      ),
+    })
+  })
+
+  it('derives custom step policy from validation step paths even when newStepPaths is omitted', async () => {
+    const planId = 'validation-derived-custom-step-policy'
+    await preparePlanForValidation(planId)
+    const artifact = validation(planId, {
+      reusedStepPaths: ['automation/steps/actions/click.step.ts', 'automation/steps/actions/case-one.step.ts'],
+      newStepPaths: undefined,
+      customStepJustifications: undefined,
+      validations: [
+        {
+          ...validation(planId).validations[0]!,
+          stepPaths: ['automation/steps/actions/todo-workflow.steps.ts'],
+        },
+      ],
+      manifestPaths: [
+        'src/product.ts',
+        'automation/features/case-one.feature',
+        'automation/steps/actions/todo-workflow.steps.ts',
+      ],
+      files: [
+        ...validation(planId).files,
+        {
+          path: 'automation/steps/actions/todo-workflow.steps.ts',
+          classification: 'test_infrastructure',
+          rationale: 'Custom todo workflow step',
+          status: 'added',
+          beforeHash: null,
+          contentHash: hashFileContent('When todo custom step'),
+          patch:
+            '--- a/automation/steps/actions/todo-workflow.steps.ts\n+++ b/automation/steps/actions/todo-workflow.steps.ts',
+          declared: true,
+        },
+      ],
+    })
+
+    await expect(
+      publishPreparedValidations(planId, artifact, { projectDirectory: workspace, client }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION',
+      message: expect.stringContaining(
+        'Custom step automation/steps/actions/todo-workflow.steps.ts requires a registry/template-step reuse gap justification.',
+      ),
+    })
   })
 
   it('rejects manifest mismatches and invalidates approvals after generated evidence changes', async () => {
@@ -314,6 +388,7 @@ describe('validation preparation review gate', () => {
         'automation/features/case-two.feature',
         'src/secondary-product.ts',
       ],
+      reusedStepPaths: ['automation/steps/actions/case-one.step.ts', 'automation/steps/actions/case-two.step.ts'],
       baselineAttempts: [
         {
           id: 'attempt-one',
@@ -445,10 +520,12 @@ describe('validation preparation review gate', () => {
       manifestPaths: validationAfterFeedback.manifestPaths,
     }
     await expect(publishPreparedValidations(planId, revised, { projectDirectory: workspace, client })).resolves.toEqual(
-      {
+      expect.objectContaining({
         validation: revised,
         reviewUrl: `/plans/${planId}?review=validation`,
-      },
+        lifecycle: 'awaiting_validation_review',
+        validationArtifactPath: `appraise/plans/validations/${planId}.validation.yaml`,
+      }),
     )
   })
 

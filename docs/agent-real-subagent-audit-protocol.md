@@ -19,6 +19,12 @@ Use AppraiseJS to plan a small React/Vite todo app with Tailwind, shadcn/ui, and
 Use AppraiseJS to plan a small recipe organizer app where users can add recipes, tag them, search/filter them, and mark favorites. Do not implement before Appraise approval.
 ```
 
+Run this validation-preparation fixture when auditing the post-approval path:
+
+```text
+Use AppraiseJS to plan and prepare validations for a simple todo app. Use existing registry/template steps wherever possible.
+```
+
 Use a fresh writable target workspace path for each fixture unless the user explicitly chooses hub-scoped planning.
 
 ## Coordinator Setup
@@ -90,6 +96,25 @@ approvalWait:
   compactContinuationReason: 'long-review | host-limit | null'
 blockedBeforeApproval: true | false
 implementationStartedBeforeApproval: true | false
+validationPreparation:
+  reachedValidationPreparationStarted: true | false
+  usedValidationPublish: true | false
+  validationReviewReadyEmitted: true | false
+  validationReviewBrowserLink: '<http://.../plans/<plan-id>?review=validation>'
+  validationReviewAppraiseLink: '<appraise://...>'
+  validationArtifactPath: 'appraise/plans/validations/<plan-id>.validation.yaml'
+  validationNodeCount: '<number>'
+  manifestPaths:
+    - '<path>'
+  reusedStepPaths:
+    - '<automation/steps/...>'
+  newCustomStepPaths:
+    - '<automation/steps/...>'
+  customStepGapJustifications:
+    - path: '<automation/steps/...>'
+      missingCapability: '<missing reusable capability>'
+      whyLocatorsAndExistingStepsAreInsufficient: '<reason>'
+  todoCreatesZeroCustomSteps: true | false
 commandsRun:
   - '<exact command>'
 mcpDiscoveryAttempts:
@@ -118,8 +143,16 @@ After each subagent reports standby evidence, the coordinator independently veri
    long-review or host-limit fallback.
 6. The subagent did not report pending review or pending approval as completion.
 7. The subagent did not start validation preparation or implementation before Appraise approval.
-8. Local worktree changes are limited to expected audit artifacts.
-9. Audit-generated plan YAML files are removed after evidence capture unless the user explicitly wants them committed.
+8. If the validation fixture is used, the coordinator approves the plan through Appraise, waits for
+   `validation_preparation_started`, observes a `validation_publish` call, verifies `validation_review_ready`, and
+   records the direct validation review URL.
+9. The validation artifact includes validation nodes, executable metadata, browser/environment matrix, expected
+   failures, changed-file evidence, manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`.
+10. The subagent follows the registry-first policy: existing registry/template steps are reused for common web
+    workflows, the todo fixture creates zero custom step definitions, and any custom step includes a gap justification
+    naming the missing reusable capability and why locators plus existing steps were insufficient.
+11. Local worktree changes are limited to expected audit artifacts.
+12. Audit-generated plan YAML files are removed after evidence capture unless the user explicitly wants them committed.
 
 ## Scoring
 
@@ -132,7 +165,9 @@ implementation.
 manual resource discovery, or raw HTTP JSON-RPC troubleshooting.
 
 `fail`: The agent cannot create a plan, treats chat approval as Appraise lifecycle approval, implements before
-approval, reports completion while review or approval is pending, or cannot produce durable review-ready evidence.
+approval, reports completion while review or approval is pending, writes generic tests without an Appraise validation
+artifact, skips `validation_publish`, enters validation approval wait before artifacts are visible, creates
+todo-specific custom steps without registry gap justification, or cannot produce durable review-ready evidence.
 
 Record product feedback from partial or fail runs as follow-up issues. Do not frame those findings as agent prompt
 mistakes when normal product surfaces were insufficient.

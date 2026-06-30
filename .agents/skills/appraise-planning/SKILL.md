@@ -21,8 +21,9 @@ AppraiseJS owns lifecycle and business rules. This skill only orchestrates MCP c
 7. Acknowledge each handled event, then reread pending events before continuing.
 8. Prefer `plan_review_loop` when the tool is available; it should keep the agent in an active bounded wait across
    review readiness, approval, change requests, and cancellation. If it is not available, call `plan_wait_for_review`.
-9. Present the returned `appraise://` plan link, browser link, revision, lifecycle, and content hash only after
-   `plan_review_ready`.
+9. No wait call before complete URL handoff. Present the returned complete direct browser URL, `appraise://` plan
+   link, plan ID, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait
+   call only after `plan_review_ready`.
    If `plan_create` returns links but `plan_wait_for_review` is still pending or fails, show the returned plan links
    immediately and clearly label that durable review-ready evidence has not arrived yet.
    Pending review is not completion.

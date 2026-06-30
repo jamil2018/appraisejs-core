@@ -60,7 +60,7 @@ client. Do not report tools as available until the client has completed that ref
 
 After reconnect, verify these expected capabilities:
 
-- Tools: `planning_session_create`, `plan_review_loop`
+- Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`
 - Resources: `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/standby`
 
 If `project_diagnostic`, `tools/list`, or `resources/list` shows older capabilities, treat the MCP server or client
@@ -83,9 +83,15 @@ native MCP registration.
 
 Agents should prefer `plan_review_loop` when it is available. Otherwise, after `plan_review_ready`, agents must call
 `plan_wait_for_approval` and keep an active bounded wait or poll loop by default. Compact continuation state is only a
-long-review or host-limit fallback. Before entering or continuing standby, agents must present the browser URL,
-`appraise://` URL, goal, description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`,
-and recommended wait call. Pending review or pending approval is not completion.
+long-review or host-limit fallback. No wait call before complete URL handoff. Before entering or continuing standby,
+agents must present the complete direct browser URL, `appraise://` URL, plan ID, goal, description, revision,
+lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait call. Pending review or
+pending approval is not completion.
+
+After `validation_preparation_started`, agents must create AppraiseJS-native validation artifacts and call
+`validation_publish` before entering validation review standby. The publish response should include the direct
+validation review URL, `appraise://` URL, `ValidationArtifact` path, validation count, changed-file count, manifest
+paths, reused registry/template step paths, new custom step paths, and the next review action.
 
 ## Troubleshooting
 

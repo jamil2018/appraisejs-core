@@ -20,6 +20,9 @@ import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
+const validationArtifactPath = (planId: string) => `appraise/plans/validations/${planId}.validation.yaml`
+const isAutomationStepPath = (filePath: string) =>
+  filePath.startsWith('automation/steps/') && /\.(?:step|steps)\.ts$/.test(filePath)
 
 async function readArtifacts(planId: string, projectDirectory?: string) {
   const projectRoot = await findProjectRoot(projectDirectory)
@@ -43,6 +46,27 @@ async function readArtifacts(planId: string, projectDirectory?: string) {
   }
 }
 
+function assertCustomStepJustifications(validation: ValidationArtifact) {
+  const justifiedPaths = new Set(validation.customStepJustifications?.map(justification => justification.path) ?? [])
+  const reusedPaths = new Set(validation.reusedStepPaths ?? [])
+  const declaredNewPaths = new Set(validation.newStepPaths ?? [])
+  const stepPaths = new Set([
+    ...declaredNewPaths,
+    ...validation.validations.flatMap(item => item.stepPaths),
+    ...validation.manifestPaths,
+    ...validation.files.map(file => file.path),
+  ])
+  for (const stepPath of stepPaths) {
+    if (!isAutomationStepPath(stepPath) || reusedPaths.has(stepPath)) continue
+    if (!justifiedPaths.has(stepPath)) {
+      throw new ServiceError(
+        `Custom step ${stepPath} requires a registry/template-step reuse gap justification.`,
+        'VALIDATION',
+      )
+    }
+  }
+}
+
 // Domain rules are tested separately; this coordinates locked writes and durable events.
 // fallow-ignore-next-line complexity
 export async function publishPreparedValidations(
@@ -59,6 +83,7 @@ export async function publishPreparedValidations(
   if (validation.planId !== planId || validation.revision !== artifacts.plan.revision) {
     throw new ServiceError('Validation artifact does not match the current plan revision.', 'VALIDATION')
   }
+  assertCustomStepJustifications(validation)
   const content = serializeYamlArtifact('validation', validation)
   if (artifacts.validationStored) {
     await artifacts.repository.compareAndWrite('validation', planId, artifacts.validationStored.hash, content)
@@ -74,7 +99,20 @@ export async function publishPreparedValidations(
   )
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
   await appendPlanEvent({ planId, type: 'validation_review_ready', payload: { revision: validation.revision } }, client)
-  return { validation, reviewUrl: `/plans/${planId}?review=validation` }
+  return {
+    validation,
+    reviewUrl: `/plans/${planId}?review=validation`,
+    lifecycle: nextPlan.lifecycle,
+    revision: nextPlan.revision,
+    validationArtifactPath: validationArtifactPath(planId),
+    validationCount: validation.validations.length,
+    changedFileCount: validation.files.length,
+    manifestPaths: validation.manifestPaths,
+    reusedStepPaths: validation.reusedStepPaths ?? [],
+    newStepPaths: validation.newStepPaths ?? [],
+    nextReviewAction:
+      'Open the validation review URL, inspect validation nodes and changed-file evidence, then approve or request changes.',
+  }
 }
 
 function id(prefix: string): string {
