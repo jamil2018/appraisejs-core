@@ -8,7 +8,9 @@ import {
   createProviderWorkflowRun,
   recordProviderPermissionDecision,
 } from '@/services/coordinator/coordinator-provider-run-service'
+import { ensureProjectIdentity } from '@/services/coordinator/coordinator-service'
 import { providerActionErrorResponse } from '@/actions/shared/provider-action-error'
+import { registerTargetProject, writeTargetProjectMarker } from '@/services/target-project/target-project-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
 const createProviderRunSchema = z.object({
@@ -20,6 +22,11 @@ const createProviderRunSchema = z.object({
 })
 
 const cancelProviderRunSchema = z.object({ runId: z.string().uuid() })
+
+const registerTargetProjectSchema = z.object({
+  projectPath: z.string().trim().min(1),
+  displayName: z.string().trim().optional(),
+})
 
 const permissionDecisionSchema = z.object({
   runId: z.string().uuid(),
@@ -62,6 +69,31 @@ export async function createProviderRunAction(input: unknown): Promise<ActionRes
     },
     'Provider run launch failed',
     run => ({ status: 200, success: true, data: { runId: run.id } }),
+  )
+}
+
+export async function registerProviderTargetProjectAction(input: unknown): Promise<ActionResponse> {
+  return runProviderAction(
+    async () => {
+      const value = registerTargetProjectSchema.parse(input)
+      const [identity, targetProject] = await Promise.all([
+        ensureProjectIdentity(),
+        registerTargetProject({ projectPath: value.projectPath, displayName: value.displayName }),
+      ])
+      const marker = await writeTargetProjectMarker(targetProject, identity.projectFingerprint)
+      revalidateProviderRunPaths()
+      return { targetProject, marker }
+    },
+    'Target project registration failed',
+    result => ({
+      status: 200,
+      success: true,
+      data: {
+        targetProjectId: result.targetProject.id,
+        displayName: result.targetProject.displayName,
+        marker: result.marker,
+      },
+    }),
   )
 }
 

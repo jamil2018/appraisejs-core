@@ -20,6 +20,7 @@ import {
   Clock3,
   ExternalLink,
   FileText,
+  FolderPlus,
   Play,
   Settings2,
   ShieldCheck,
@@ -29,6 +30,7 @@ import {
   cancelProviderRunAction,
   createProviderRunAction,
   decideProviderPermissionAction,
+  registerProviderTargetProjectAction,
 } from '@/actions/provider-runs/provider-run-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -138,6 +140,8 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
   const [providerKey, setProviderKey] = useState(adapters[0]?.key ?? '')
   const [providerProfile, setProviderProfile] = useState(adapters[0]?.defaultProfile ?? 'planning-default')
   const [launchPrompt, setLaunchPrompt] = useState('')
+  const [newTargetPath, setNewTargetPath] = useState('')
+  const [newTargetName, setNewTargetName] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -164,6 +168,25 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
       const runId = (response.data as { runId?: string } | undefined)?.runId
       if (runId) setSelectedRunId(runId)
       setLaunchPrompt('')
+      router.refresh()
+    })
+  }
+
+  function registerTargetProject() {
+    setMessage(null)
+    startTransition(async () => {
+      const response = await registerProviderTargetProjectAction({
+        projectPath: newTargetPath,
+        displayName: newTargetName || undefined,
+      })
+      if (!response.success) {
+        setMessage(response.error ?? 'Target project registration failed.')
+        return
+      }
+      const targetProjectId = (response.data as { targetProjectId?: string } | undefined)?.targetProjectId
+      if (targetProjectId) setTargetProjectId(targetProjectId)
+      setNewTargetPath('')
+      setNewTargetName('')
       router.refresh()
     })
   }
@@ -234,6 +257,42 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="rounded-md border border-zinc-800 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <FolderPlus className="size-4" />
+                Register Target
+              </div>
+              <div className="mt-3 space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="new-target-path">Project Path</Label>
+                  <Input
+                    id="new-target-path"
+                    value={newTargetPath}
+                    onChange={event => setNewTargetPath(event.target.value)}
+                    placeholder="/path/to/application"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-target-name">Display Name</Label>
+                  <Input
+                    id="new-target-name"
+                    value={newTargetName}
+                    onChange={event => setNewTargetName(event.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={registerTargetProject}
+                  disabled={!newTargetPath.trim() || isPending}
+                >
+                  <FolderPlus className="size-4" />
+                  Add Target
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
