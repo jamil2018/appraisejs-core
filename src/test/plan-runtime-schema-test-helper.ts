@@ -66,4 +66,8 @@ export async function ensureProviderRunTestSchema(databasePath: string) {
   if (!hasTable(databasePath, 'ProviderWorkflowRun')) {
     await applyMigration(databasePath, '20260701090000_add_provider_workflow_runs')
   }
+
+  if (!hasColumn(databasePath, 'ProviderAdapterRegistration', 'launchEnabled')) {
+    await applyMigration(databasePath, '20260701120000_add_provider_registration_settings')
+  }
 }

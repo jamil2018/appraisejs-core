@@ -337,11 +337,21 @@ model ProviderAdapterRegistration {
   adapterVersion   String
   capabilitiesJson String
   enabled          Boolean               @default(true)
+  executablePath   String?
+  detectedVersion  String?
+  probeStatus      String                @default("not_probed")
+  probeMessage     String?
+  lastProbedAt     DateTime?
+  defaultProfile   String?
+  defaultModel     String?
+  launchEnabled    Boolean               @default(false)
+  settingsJson     String?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
   runs             ProviderWorkflowRun[]
 
   @@index([providerKind, enabled])
+  @@index([enabled, launchEnabled, probeStatus])
 }
 
 model ProviderWorkflowRun {

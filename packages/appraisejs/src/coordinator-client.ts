@@ -150,6 +150,19 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     addTargetProject: (projectPath: string, displayName?: string) =>
       post('target-projects', { path: projectPath, ...(displayName ? { displayName } : {}) }),
     listTargetProjects: () => request('target-projects'),
+    listProviders: () => request('providers'),
+    probeProvider: (providerKey: string) => post(`providers/${providerKey}/probe`, {}),
+    updateProvider: (
+      providerKey: string,
+      input: {
+        executablePath?: string | null
+        defaultProfile?: string | null
+        defaultModel?: string | null
+        enabled?: boolean
+        launchEnabled?: boolean
+        settings?: Record<string, unknown> | null
+      },
+    ) => post(`providers/${providerKey}/update`, input),
     listProviderRuns: () => request('provider-runs'),
     readProviderRun: (runId: string) => request(`provider-runs/${runId}`),
     createProviderRun: (input: {

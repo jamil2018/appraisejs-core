@@ -299,6 +299,7 @@ model PlanProjection {
   coordinatorLease     PlanCoordinatorLease?
   personalLayouts      PlanPersonalLayout[]
   testRuns             TestRun[]
+  providerRuns         ProviderWorkflowRun[]
   targetProjectId      String?
   targetProject        TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
 
@@ -310,21 +311,132 @@ model PlanProjection {
 }
 
 model TargetProject {
-  id              String           @id @default(uuid())
-  canonicalPath   String           @unique
+  id              String                @id @default(uuid())
+  canonicalPath   String                @unique
   displayName     String
   packageName     String?
   packageManager  String?
   packageJson     String?
-  fingerprint     String           @unique
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  lastDetectedAt  DateTime         @default(now())
+  fingerprint     String                @unique
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  lastDetectedAt  DateTime              @default(now())
   planProjections PlanProjection[]
+  providerRuns    ProviderWorkflowRun[]
   testRuns        TestRun[]
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+model ProviderAdapterRegistration {
+  id               String                @id @default(uuid())
+  key              String                @unique
+  displayName      String
+  providerKind     String
+  adapterVersion   String
+  capabilitiesJson String
+  enabled          Boolean               @default(true)
+  executablePath   String?
+  detectedVersion  String?
+  probeStatus      String                @default("not_probed")
+  probeMessage     String?
+  lastProbedAt     DateTime?
+  defaultProfile   String?
+  defaultModel     String?
+  launchEnabled    Boolean               @default(false)
+  settingsJson     String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  runs             ProviderWorkflowRun[]
+
+  @@index([providerKind, enabled])
+  @@index([enabled, launchEnabled, probeStatus])
+}
+
+model ProviderWorkflowRun {
+  id                      String                       @id @default(uuid())
+  planProjectionId        String?
+  targetProjectId         String
+  providerAdapterId       String?
+  providerKind            String
+  providerProfile         String?
+  adapterVersion          String
+  status                  String
+  lifecyclePhase          String
+  capabilitySnapshotJson  String
+  launchPrompt            String
+  approvedScopeJson       String?
+  appraiseInstructions    String
+  providerSessionId       String?
+  providerThreadId        String?
+  providerProcessId       String?
+  preRunRepoSnapshotJson  String?
+  postRunRepoSnapshotJson String?
+  changedFilesJson        String?
+  artifactHashesJson      String?
+  failureReason           String?
+  cancelledAt             DateTime?
+  startedAt               DateTime?
+  completedAt             DateTime?
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  plan                    PlanProjection?              @relation(fields: [planProjectionId], references: [id], onDelete: SetNull)
+  targetProject           TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Cascade)
+  providerAdapter         ProviderAdapterRegistration? @relation(fields: [providerAdapterId], references: [id], onDelete: SetNull)
+  events                  ProviderRunEvent[]
+  permissionDecisions     ProviderPermissionDecision[]
+  artifactSnapshots       ProviderArtifactSnapshot[]
+
+  @@index([planProjectionId])
+  @@index([targetProjectId])
+  @@index([providerKind, status])
+  @@index([createdAt])
+}
+
+model ProviderRunEvent {
+  id          String              @id @default(uuid())
+  runId       String
+  sequence    Int
+  type        String
+  payloadJson String?
+  stream      String?
+  createdAt   DateTime            @default(now())
+  run         ProviderWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, sequence])
+  @@index([runId, createdAt])
+}
+
+model ProviderPermissionDecision {
+  id             String              @id @default(uuid())
+  runId          String
+  requestId      String
+  decision       String
+  riskTier       String
+  requestedScope String
+  payloadJson    String
+  reason         String?
+  decidedBy      String
+  decidedAt      DateTime            @default(now())
+  run            ProviderWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, requestId])
+  @@index([runId, decidedAt])
+}
+
+model ProviderArtifactSnapshot {
+  id           String              @id @default(uuid())
+  runId        String
+  path         String
+  kind         String
+  hash         String?
+  metadataJson String?
+  capturedAt   DateTime            @default(now())
+  run          ProviderWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, path, kind])
+  @@index([runId, capturedAt])
 }
 
 model PlanTaskProjection {

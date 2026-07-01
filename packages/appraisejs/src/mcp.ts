@@ -23,6 +23,9 @@ const workflowCriticalTools = [
   'project_diagnostic',
   'project_add',
   'project_list',
+  'provider_list',
+  'provider_probe',
+  'provider_update',
   'planning_session_create',
   'plan_create',
   'plan_review_loop',
@@ -40,6 +43,7 @@ const workflowCriticalTools = [
 const workflowResourceUris = [
   'appraise://project',
   'appraise://target-projects',
+  'appraise://providers',
   'appraise://provider-runs',
   'appraise://agent-guide',
   'appraise://workflow/planning',
@@ -646,6 +650,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     }),
   )
   server.registerResource(
+    'providers',
+    'appraise://providers',
+    { title: 'AppraiseJS coding agent providers', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(await api.listProviders()),
+        },
+      ],
+    }),
+  )
+  server.registerResource(
     'agent-guide',
     'appraise://agent-guide',
     { title: 'AppraiseJS agent workflow guide', mimeType: 'application/json' },
@@ -738,6 +756,57 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: {},
     },
     async () => text(await api.listTargetProjects()),
+  )
+  server.registerTool(
+    'provider_list',
+    {
+      description: 'List built-in coding agent providers, registration state, probe status, and launchability.',
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return text(await api.listProviders())
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'provider_probe',
+    {
+      description: 'Probe a built-in coding agent provider executable without storing secrets.',
+      inputSchema: { providerKey: z.string().min(1) },
+    },
+    async ({ providerKey }) => {
+      try {
+        return text(await api.probeProvider(providerKey))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'provider_update',
+    {
+      description:
+        'Update non-secret coding agent registration settings such as executable override and enabled state.',
+      inputSchema: {
+        providerKey: z.string().min(1),
+        executablePath: z.string().nullable().optional(),
+        defaultProfile: z.string().nullable().optional(),
+        defaultModel: z.string().nullable().optional(),
+        enabled: z.boolean().optional(),
+        launchEnabled: z.boolean().optional(),
+        settings: z.record(z.string(), z.unknown()).nullable().optional(),
+      },
+    },
+    async ({ providerKey, ...input }) => {
+      try {
+        return text(await api.updateProvider(providerKey, input))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
   )
   server.registerTool(
     'provider_run_create',
