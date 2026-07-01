@@ -4,10 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { providerActionErrorResponse } from '@/actions/shared/provider-action-error'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import {
   probeProviderRegistration,
   updateProviderRegistration,
 } from '@/services/coordinator/coordinator-provider-run-service'
+import { ServiceError } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
 const providerKeySchema = z.object({ providerKey: z.string().trim().min(1) })
@@ -25,8 +27,19 @@ function revalidateProviderPaths() {
   revalidatePath('/provider-runs')
 }
 
+function assertProviderNativeRunsEnabled() {
+  if (!isProviderNativeRunsEnabled()) {
+    throw new ServiceError(
+      'Provider-native runs are experimental and disabled. Start planning from your coding agent through Appraise MCP instead.',
+      'VALIDATION',
+      400,
+    )
+  }
+}
+
 export async function probeProviderAction(input: unknown): Promise<ActionResponse> {
   try {
+    assertProviderNativeRunsEnabled()
     const { providerKey } = providerKeySchema.parse(input)
     const registration = await probeProviderRegistration(providerKey)
     revalidateProviderPaths()
@@ -42,6 +55,7 @@ export async function probeProviderAction(input: unknown): Promise<ActionRespons
 
 export async function updateProviderAction(input: unknown): Promise<ActionResponse> {
   try {
+    assertProviderNativeRunsEnabled()
     const value = updateProviderSchema.parse(input)
     const registration = await updateProviderRegistration({
       ...value,

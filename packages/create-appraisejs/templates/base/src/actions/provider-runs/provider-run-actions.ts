@@ -10,6 +10,8 @@ import {
 } from '@/services/coordinator/coordinator-provider-run-service'
 import { ensureProjectIdentity } from '@/services/coordinator/coordinator-service'
 import { providerActionErrorResponse } from '@/actions/shared/provider-action-error'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
+import { ServiceError } from '@/services/shared/errors'
 import { registerTargetProject, writeTargetProjectMarker } from '@/services/target-project/target-project-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
@@ -43,6 +45,16 @@ function revalidateProviderRunPaths(runId?: string) {
   if (runId) revalidatePath(`/provider-runs/${runId}`)
 }
 
+function assertProviderNativeRunsEnabled() {
+  if (!isProviderNativeRunsEnabled()) {
+    throw new ServiceError(
+      'Provider-native runs are experimental and disabled. Start planning from your coding agent through Appraise MCP instead.',
+      'VALIDATION',
+      400,
+    )
+  }
+}
+
 async function runProviderAction<T>(
   operation: () => Promise<T>,
   errorPrefix: string,
@@ -58,6 +70,7 @@ async function runProviderAction<T>(
 export async function createProviderRunAction(input: unknown): Promise<ActionResponse> {
   return runProviderAction(
     async () => {
+      assertProviderNativeRunsEnabled()
       const value = createProviderRunSchema.parse(input)
       const run = await createProviderWorkflowRun({
         ...value,
@@ -75,6 +88,7 @@ export async function createProviderRunAction(input: unknown): Promise<ActionRes
 export async function registerProviderTargetProjectAction(input: unknown): Promise<ActionResponse> {
   return runProviderAction(
     async () => {
+      assertProviderNativeRunsEnabled()
       const value = registerTargetProjectSchema.parse(input)
       const [identity, targetProject] = await Promise.all([
         ensureProjectIdentity(),
@@ -100,6 +114,7 @@ export async function registerProviderTargetProjectAction(input: unknown): Promi
 export async function cancelProviderRunAction(input: unknown): Promise<ActionResponse> {
   return runProviderAction(
     async () => {
+      assertProviderNativeRunsEnabled()
       const value = cancelProviderRunSchema.parse(input)
       const run = await cancelProviderWorkflowRun(value.runId)
       revalidateProviderRunPaths(run.id)
@@ -112,6 +127,7 @@ export async function cancelProviderRunAction(input: unknown): Promise<ActionRes
 
 export async function decideProviderPermissionAction(input: unknown): Promise<ActionResponse> {
   return runProviderAction(async () => {
+    assertProviderNativeRunsEnabled()
     const value = permissionDecisionSchema.parse(input)
     await recordProviderPermissionDecision({ ...value, decidedBy: 'local-user' })
     revalidateProviderRunPaths(value.runId)

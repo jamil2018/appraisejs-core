@@ -8,6 +8,7 @@ import {
   LayoutTemplate,
   ListChecks,
   Network,
+  Bot,
   Puzzle,
   Server,
   Settings2,
@@ -61,48 +62,57 @@ const commandModeLabels: Record<SearchCommandMode, string> = {
   'search-template-test-case': 'Search Template Test Case',
 }
 
-export const navigationCommandGroups: NavigationCommandGroup[] = [
-  {
-    heading: 'Overview',
-    items: [
-      { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/plans', label: 'Plans', icon: Network },
-      { href: '/settings', label: 'Settings', icon: Settings2 },
-    ],
-  },
-  {
-    heading: 'Automate',
-    items: [
-      { href: '/test-suites', label: 'Test Suites', icon: TestTubes },
-      { href: '/test-cases', label: 'Test Cases', icon: TestTubeDiagonal },
-      { href: '/test-runs', label: 'Test Runs', icon: ListChecks },
-      { href: '/reports', label: 'Reports', icon: FileCheck },
-      { href: '/test-runs/create', label: 'Create Test Run', icon: ListChecks },
-      { href: '/test-suites/create', label: 'Create Test Suite', icon: TestTubes },
-      { href: '/test-cases/create', label: 'Create Test Case', icon: TestTubeDiagonal },
-    ],
-  },
-  {
-    heading: 'Template',
-    items: [
-      { href: '/template-steps', label: 'Template Steps', icon: LayoutTemplate },
-      { href: '/template-step-groups', label: 'Template Step Groups', icon: Component },
-      { href: '/template-test-cases', label: 'Template Test Cases', icon: Blocks },
-      { href: '/template-steps/create', label: 'Create Template Step', icon: LayoutTemplate },
-      { href: '/template-test-cases/create', label: 'Create Template Test Case', icon: Blocks },
-    ],
-  },
-  {
-    heading: 'Configuration',
-    items: [
-      { href: '/locators', label: 'Locators', icon: Code },
-      { href: '/locator-groups', label: 'Locator Groups', icon: Group },
-      { href: '/modules', label: 'Modules', icon: Puzzle },
-      { href: '/environments', label: 'Environments', icon: Server },
-      { href: '/tags', label: 'Tags', icon: Tag },
-    ],
-  },
-]
+export type NavigationCommandGroupOptions = {
+  providerRunsEnabled?: boolean
+}
+
+export function getNavigationCommandGroups({
+  providerRunsEnabled = false,
+}: NavigationCommandGroupOptions = {}): NavigationCommandGroup[] {
+  return [
+    {
+      heading: 'Overview',
+      items: [
+        { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/plans', label: 'Plans', icon: Network },
+        ...(providerRunsEnabled ? [{ href: '/provider-runs', label: 'Provider Runs', icon: Bot }] : []),
+        { href: '/settings', label: 'Settings', icon: Settings2 },
+      ],
+    },
+    {
+      heading: 'Automate',
+      items: [
+        { href: '/test-suites', label: 'Test Suites', icon: TestTubes },
+        { href: '/test-cases', label: 'Test Cases', icon: TestTubeDiagonal },
+        { href: '/test-runs', label: 'Test Runs', icon: ListChecks },
+        { href: '/reports', label: 'Reports', icon: FileCheck },
+        { href: '/test-runs/create', label: 'Create Test Run', icon: ListChecks },
+        { href: '/test-suites/create', label: 'Create Test Suite', icon: TestTubes },
+        { href: '/test-cases/create', label: 'Create Test Case', icon: TestTubeDiagonal },
+      ],
+    },
+    {
+      heading: 'Template',
+      items: [
+        { href: '/template-steps', label: 'Template Steps', icon: LayoutTemplate },
+        { href: '/template-step-groups', label: 'Template Step Groups', icon: Component },
+        { href: '/template-test-cases', label: 'Template Test Cases', icon: Blocks },
+        { href: '/template-steps/create', label: 'Create Template Step', icon: LayoutTemplate },
+        { href: '/template-test-cases/create', label: 'Create Template Test Case', icon: Blocks },
+      ],
+    },
+    {
+      heading: 'Configuration',
+      items: [
+        { href: '/locators', label: 'Locators', icon: Code },
+        { href: '/locator-groups', label: 'Locator Groups', icon: Group },
+        { href: '/modules', label: 'Modules', icon: Puzzle },
+        { href: '/environments', label: 'Environments', icon: Server },
+        { href: '/tags', label: 'Tags', icon: Tag },
+      ],
+    },
+  ]
+}
 
 export const searchCommandItems: SearchCommandItem[] = [
   { mode: 'search-test-case', label: 'Search Test Cases', icon: TestTubeDiagonal },

@@ -4,6 +4,7 @@ import PageHeader from '@/components/typography/page-header'
 import { SettingsSyncPanel } from './settings-sync-panel'
 import { SettingsCodingAgentsPanel } from './settings-coding-agents-panel'
 import { getSyncPendingCounts } from '@/lib/sync/sync-pending-counts'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { listProviderRegistrations } from '@/services/coordinator/coordinator-provider-run-service'
 
 export const metadata: Metadata = {
@@ -12,7 +13,11 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  const [pendingCounts, providers] = await Promise.all([getSyncPendingCounts(), listProviderRegistrations()])
+  const providerRunsEnabled = isProviderNativeRunsEnabled()
+  const [pendingCounts, providers] = await Promise.all([
+    getSyncPendingCounts(),
+    providerRunsEnabled ? listProviderRegistrations() : Promise.resolve([]),
+  ])
   const serializedProviders = providers.map(provider => ({
     ...provider,
     createdAt: provider.createdAt.toISOString(),
@@ -32,7 +37,7 @@ export default async function SettingsPage() {
       </div>
       <section className="max-w-6xl">
         <div className="space-y-6">
-          <SettingsCodingAgentsPanel providers={serializedProviders} />
+          {providerRunsEnabled ? <SettingsCodingAgentsPanel providers={serializedProviders} /> : null}
           <SettingsSyncPanel key={JSON.stringify(pendingCounts)} pendingCounts={pendingCounts} />
         </div>
       </section>

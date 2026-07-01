@@ -1,5 +1,15 @@
 # Provider Run Orchestration
 
+Provider-native runs are experimental and disabled by default. The canonical workflow is MCP-first: a user starts a
+planning session from their coding agent through Appraise MCP, and AppraiseJS reflects the plan, review, validation,
+and approval layers back into the app.
+
+To opt into this experimental surface, start AppraiseJS with:
+
+```bash
+APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true npm run dev
+```
+
 Provider runs are Appraise-owned workflow execution attempts. They attach a target project, optional plan, provider
 adapter, launch prompt, capability snapshot, durable event stream, permission decisions, and artifact snapshots to one
 recoverable record.
@@ -12,7 +22,7 @@ The important boundary is lifecycle ownership:
 - Provider exit status updates only the provider run status. It does not approve a plan, publish validation, accept a
   baseline, start implementation, or complete work.
 
-## Phase 1 Surface
+## Experimental Surface
 
 The first implementation ships a deterministic mock planning adapter and a `/provider-runs` console. This gives the
 product a durable contract before wiring real provider binaries:
@@ -47,6 +57,7 @@ resume, continuation, and structured replay disabled.
 
 ## MCP Compatibility
 
-MCP-first clients remain supported. Provider-run MCP resources and tools should be additive and must call service/API
-boundaries rather than writing Prisma records directly. Provider-run tools may create, read, cancel, resume, or decide
-permissions only where those operations do not bypass Appraise lifecycle gates.
+MCP-first clients are the primary workflow. Provider-run MCP resources and tools are registered only when
+`APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true` and must call service/API boundaries rather than writing Prisma records
+directly. Provider-run tools may create, read, cancel, resume, or decide permissions only where those operations do not
+bypass Appraise lifecycle gates.

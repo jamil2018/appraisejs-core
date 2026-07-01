@@ -13,7 +13,7 @@ import {
   commandModePlaceholders,
   defaultCommandPlaceholder,
   getCommandBadge,
-  navigationCommandGroups,
+  getNavigationCommandGroups,
   searchCommandItems,
 } from './nav-command-helpers'
 import { NavCommandSearch } from './nav-command-search'
@@ -21,12 +21,14 @@ import { useNavCommand } from './use-nav-command'
 
 export type NavCommandProps = {
   className?: string
+  providerRunsEnabled?: boolean
 }
 
-export default function NavCommand({ className }: NavCommandProps) {
+export default function NavCommand({ className, providerRunsEnabled = false }: NavCommandProps) {
   const { push } = useRouter()
   const { open, setOpen, commandMode, searchQuery, setSearchQuery, isMac, clearSearchMode, selectSearchMode } =
     useNavCommand()
+  const navigationCommandGroups = getNavigationCommandGroups({ providerRunsEnabled })
 
   const handleNavigate = (href: string) => {
     push(href)

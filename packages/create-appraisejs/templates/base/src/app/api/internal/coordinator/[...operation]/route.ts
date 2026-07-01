@@ -7,6 +7,7 @@ import {
   validationReviewLinks,
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import { CoordinatorProjectMismatchError } from '@/lib/coordinator-api/request-guard'
 import {
@@ -119,6 +120,16 @@ function withValidationReviewLinks<T extends object>(value: T, planId: string, r
   return { ...value, validationReviewLinks: validationReviewLinks(planId, baseUrl) }
 }
 
+function assertProviderNativeRunsEnabled() {
+  if (!isProviderNativeRunsEnabled()) {
+    throw new ServiceError(
+      'Provider-native runs are experimental and disabled. Start planning from your coding agent through Appraise MCP instead.',
+      'VALIDATION',
+      400,
+    )
+  }
+}
+
 async function getPlan(request: Request, operation: string[]) {
   const planId = routePlanIdSchema.parse(operation[1])
   const plan = await readCoordinatorPlan(planId)
@@ -184,9 +195,12 @@ async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
-  if (operation.length === 1 && operation[0] === 'providers')
+  if (operation.length === 1 && operation[0] === 'providers') {
+    assertProviderNativeRunsEnabled()
     return Response.json({ providers: await listProviderRegistrations() })
+  }
   if (operation[0] === 'provider-runs') {
+    assertProviderNativeRunsEnabled()
     if (operation.length === 1) return Response.json({ providerRuns: await listProviderWorkflowRuns() })
     return Response.json(await getProviderWorkflowRun(z.string().uuid().parse(operation[1])))
   }
@@ -495,8 +509,14 @@ function assertPlanOperation(operation: string[]): void {
 
 // fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
-  if (operation[0] === 'provider-runs') return postProviderRun(operation, body)
-  if (operation[0] === 'providers') return postProviderRegistration(operation, body)
+  if (operation[0] === 'provider-runs') {
+    assertProviderNativeRunsEnabled()
+    return postProviderRun(operation, body)
+  }
+  if (operation[0] === 'providers') {
+    assertProviderNativeRunsEnabled()
+    return postProviderRegistration(operation, body)
+  }
   const handlers: Record<string, () => Promise<Response>> = {
     register: () => postRegister(body),
     heartbeat: () => postHeartbeat(body),

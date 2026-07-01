@@ -8,6 +8,7 @@ import Link from 'next/link'
 import NavMenuCardDeck from '@/components/navigation/nav-menu-card-deck'
 import NavCommand from '@/components/navigation/nav-command'
 import NavLink from '@/components/navigation/nav-link'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import {
   Blocks,
   Bot,
@@ -87,6 +88,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const providerRunsEnabled = isProviderNativeRunsEnabled()
+
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${interTight.variable} min-h-screen antialiased`}>
@@ -105,6 +108,11 @@ export default function RootLayout({
                 <NavLink href="/plans" icon={<Network className="size-5 text-primary" />}>
                   Plans
                 </NavLink>
+                {providerRunsEnabled ? (
+                  <NavLink href="/provider-runs" icon={<Bot className="size-5 text-primary" />}>
+                    Provider Runs
+                  </NavLink>
+                ) : null}
                 <NavMenuCardDeck
                   containerButtonText="Automate"
                   containerButtonIcon={<Bot className="size-5 text-primary" />}
@@ -198,7 +206,7 @@ export default function RootLayout({
                 <NavLink href="/settings" icon={<Settings2 className="size-5 text-primary" />}>
                   Settings
                 </NavLink>
-                <NavCommand className="ml-auto" />
+                <NavCommand className="ml-auto" providerRunsEnabled={providerRunsEnabled} />
               </div>
             </nav>
             {children}

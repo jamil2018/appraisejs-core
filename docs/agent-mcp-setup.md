@@ -60,9 +60,12 @@ client. Do not report tools as available until the client has completed that ref
 
 After reconnect, verify these expected capabilities:
 
-- Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`, `provider_run_create`
-- Resources: `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/standby`,
-  `appraise://provider-runs`
+- Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`
+- Resources: `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/standby`
+
+Provider-native runs are experimental and disabled by default. If `APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true` is set
+before starting AppraiseJS, the MCP server also exposes provider resources and tools such as
+`appraise://provider-runs` and `provider_run_create`.
 
 If `project_diagnostic`, `tools/list`, or `resources/list` shows older capabilities, treat the MCP server or client
 registration as stale. Restart or reconnect the MCP client, restart the Appraise MCP sidecar, rerun
