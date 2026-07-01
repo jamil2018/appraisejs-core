@@ -42,6 +42,12 @@ describe('ProviderRunWorkspace', () => {
     expect(screen.getByRole('link', { name: /Open Settings/i })).toHaveAttribute('href', '/settings')
   })
 
+  it('does not select an existing target project by default', () => {
+    render(<ProviderRunWorkspace runs={[]} adapters={[]} targetProjects={[targetProject]} plans={[]} />)
+
+    expect(screen.getByRole('combobox', { name: 'Target Project' })).toHaveTextContent('No target selected')
+  })
+
   it('registers a target project from the launch workspace', async () => {
     const { default: userEvent } = await import('@testing-library/user-event')
     const user = userEvent.setup()

@@ -56,6 +56,8 @@ type ProviderRunWorkspaceProps = {
   plans: Array<PlanProjection & { tasks: unknown[]; issues: unknown[] }>
 }
 
+const TARGET_PROJECT_NONE_VALUE = 'none'
+
 const statusStyles: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   queued: { label: 'Queued', className: 'border-sky-500/50 text-sky-300', icon: <Clock3 className="size-3" /> },
   running: { label: 'Running', className: 'border-emerald-500/50 text-emerald-300', icon: <Play className="size-3" /> },
@@ -135,7 +137,7 @@ function RunCard({ run, active, onSelect }: { run: RunWithRelations; active: boo
 export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: ProviderRunWorkspaceProps) {
   const router = useRouter()
   const [selectedRunId, setSelectedRunId] = useState(runs[0]?.id ?? '')
-  const [targetProjectId, setTargetProjectId] = useState(targetProjects[0]?.id ?? '')
+  const [targetProjectId, setTargetProjectId] = useState(TARGET_PROJECT_NONE_VALUE)
   const [planId, setPlanId] = useState('none')
   const [providerKey, setProviderKey] = useState(adapters[0]?.key ?? '')
   const [providerProfile, setProviderProfile] = useState(adapters[0]?.defaultProfile ?? 'planning-default')
@@ -152,10 +154,15 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
 
   function launchRun() {
     setMessage(null)
+    const selectedTargetProjectId = targetProjectId === TARGET_PROJECT_NONE_VALUE ? '' : targetProjectId
+    if (!selectedTargetProjectId) {
+      setMessage('Select a target project before launching a run.')
+      return
+    }
     // fallow-ignore-next-line complexity
     startTransition(async () => {
       const response = await createProviderRunAction({
-        targetProjectId,
+        targetProjectId: selectedTargetProjectId,
         planId: planId === 'none' ? undefined : planId,
         providerKey,
         providerProfile,
@@ -218,7 +225,9 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
     })
   }
 
-  const canLaunch = Boolean(targetProjectId && providerKey && launchPrompt.trim() && adapters.length > 0) && !isPending
+  const selectedTargetProjectId = targetProjectId === TARGET_PROJECT_NONE_VALUE ? '' : targetProjectId
+  const canLaunch =
+    Boolean(selectedTargetProjectId && providerKey && launchPrompt.trim() && adapters.length > 0) && !isPending
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(320px,420px)_1fr]" aria-label="Provider run workspace">
@@ -250,6 +259,7 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
                   <SelectValue placeholder="Select a target project" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={TARGET_PROJECT_NONE_VALUE}>No target selected</SelectItem>
                   {targetProjects.map(project => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.displayName}
