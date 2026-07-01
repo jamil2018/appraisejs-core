@@ -52,6 +52,7 @@ export function buildCodexExecArgs(input: ProviderLaunchInput) {
     input.targetProjectPath,
     '--sandbox',
     'read-only',
+    '--ignore-user-config',
     '-c',
     'mcp_servers.appraisejs.command="appraisejs"',
     '-c',
