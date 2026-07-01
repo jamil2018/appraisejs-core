@@ -11,6 +11,9 @@ const repoRoot = path.resolve(import.meta.dirname, '../../..')
 const port = 3299
 const baseUrl = `http://127.0.0.1:${port}`
 const requestedPlanId = `mcp-e2e-${Date.now()}`
+const providerNativeRunsEnabled = ['1', 'true', 'yes', 'on'].includes(
+  (process.env.APPRAISE_EXPERIMENTAL_PROVIDER_RUNS ?? '').trim().toLowerCase(),
+)
 let planId = requestedPlanId
 let explicitTargetPlanId: string | undefined
 const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-e2e-'))
@@ -151,10 +154,17 @@ try {
     'plan_task_update',
     'plan_wait_for_approval',
     'plan_wait_for_review',
-    'provider_permission_decide',
-    'provider_run_cancel',
-    'provider_run_create',
-    'provider_run_read',
+    ...(providerNativeRunsEnabled
+      ? [
+          'provider_list',
+          'provider_permission_decide',
+          'provider_probe',
+          'provider_run_cancel',
+          'provider_run_create',
+          'provider_run_read',
+          'provider_update',
+        ]
+      : []),
     'project_add',
     'project_diagnostic',
     'project_list',
@@ -190,6 +200,17 @@ try {
     resources.resources.some(resource => resource.uri === 'appraise://workflow/standby'),
     'Standby workflow resource is missing.',
   )
+  if (providerNativeRunsEnabled) {
+    assert(
+      resources.resources.some(resource => resource.uri === 'appraise://provider-runs'),
+      'Provider runs resource is missing when provider-native runs are enabled.',
+    )
+  } else {
+    assert(
+      !resources.resources.some(resource => resource.uri === 'appraise://provider-runs'),
+      'Provider runs resource should be hidden by default.',
+    )
+  }
   const templates = await client.listResourceTemplates()
   assert(
     templates.resourceTemplates.some(template => template.uriTemplate === 'appraise://plans/{planId}'),

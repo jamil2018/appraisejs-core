@@ -2,7 +2,10 @@ import type { Metadata } from 'next'
 import { Settings2 } from 'lucide-react'
 import PageHeader from '@/components/typography/page-header'
 import { SettingsSyncPanel } from './settings-sync-panel'
+import { SettingsCodingAgentsPanel } from './settings-coding-agents-panel'
 import { getSyncPendingCounts } from '@/lib/sync/sync-pending-counts'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
+import { listProviderRegistrations } from '@/services/coordinator/coordinator-provider-run-service'
 
 export const metadata: Metadata = {
   title: 'Appraise | Settings',
@@ -10,7 +13,17 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  const pendingCounts = await getSyncPendingCounts()
+  const providerRunsEnabled = isProviderNativeRunsEnabled()
+  const [pendingCounts, providers] = await Promise.all([
+    getSyncPendingCounts(),
+    providerRunsEnabled ? listProviderRegistrations() : Promise.resolve([]),
+  ])
+  const serializedProviders = providers.map(provider => ({
+    ...provider,
+    createdAt: provider.createdAt.toISOString(),
+    updatedAt: provider.updatedAt.toISOString(),
+    lastProbedAt: provider.lastProbedAt?.toISOString() ?? null,
+  }))
 
   return (
     <div className="space-y-8">
@@ -23,7 +36,10 @@ export default async function SettingsPage() {
         </PageHeader>
       </div>
       <section className="max-w-6xl">
-        <SettingsSyncPanel key={JSON.stringify(pendingCounts)} pendingCounts={pendingCounts} />
+        <div className="space-y-6">
+          {providerRunsEnabled ? <SettingsCodingAgentsPanel providers={serializedProviders} /> : null}
+          <SettingsSyncPanel key={JSON.stringify(pendingCounts)} pendingCounts={pendingCounts} />
+        </div>
       </section>
     </div>
   )

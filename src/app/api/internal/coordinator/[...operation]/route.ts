@@ -7,6 +7,7 @@ import {
   validationReviewLinks,
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import { CoordinatorProjectMismatchError } from '@/lib/coordinator-api/request-guard'
 import {
@@ -21,8 +22,11 @@ import {
   cancelProviderWorkflowRun,
   createProviderWorkflowRun,
   getProviderWorkflowRun,
+  listProviderRegistrations,
   listProviderWorkflowRuns,
+  probeProviderRegistration,
   recordProviderPermissionDecision,
+  updateProviderRegistration,
 } from '@/services/coordinator/coordinator-provider-run-service'
 import {
   acknowledgePlanEvent,
@@ -116,6 +120,16 @@ function withValidationReviewLinks<T extends object>(value: T, planId: string, r
   return { ...value, validationReviewLinks: validationReviewLinks(planId, baseUrl) }
 }
 
+function assertProviderNativeRunsEnabled() {
+  if (!isProviderNativeRunsEnabled()) {
+    throw new ServiceError(
+      'Provider-native runs are experimental and disabled. Start planning from your coding agent through Appraise MCP instead.',
+      'VALIDATION',
+      400,
+    )
+  }
+}
+
 async function getPlan(request: Request, operation: string[]) {
   const planId = routePlanIdSchema.parse(operation[1])
   const plan = await readCoordinatorPlan(planId)
@@ -181,7 +195,12 @@ async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
+  if (operation.length === 1 && operation[0] === 'providers') {
+    assertProviderNativeRunsEnabled()
+    return Response.json({ providers: await listProviderRegistrations() })
+  }
   if (operation[0] === 'provider-runs') {
+    assertProviderNativeRunsEnabled()
     if (operation.length === 1) return Response.json({ providerRuns: await listProviderWorkflowRuns() })
     return Response.json(await getProviderWorkflowRun(z.string().uuid().parse(operation[1])))
   }
@@ -372,6 +391,25 @@ async function postStandaloneTestRun(body: unknown) {
   return Response.json(await createStandaloneTargetTestRun(value), { status: 201 })
 }
 
+async function postProviderRegistration(operation: string[], body: unknown) {
+  const providerKey = z.string().min(1).parse(operation[1])
+  if (operation[2] === 'probe') return Response.json(await probeProviderRegistration(providerKey))
+  if (operation[2] === 'update') {
+    const value = z
+      .object({
+        executablePath: z.string().trim().nullable().optional(),
+        defaultProfile: z.string().trim().nullable().optional(),
+        defaultModel: z.string().trim().nullable().optional(),
+        enabled: z.boolean().optional(),
+        launchEnabled: z.boolean().optional(),
+        settings: z.record(z.string(), z.unknown()).nullable().optional(),
+      })
+      .parse(body)
+    return Response.json(await updateProviderRegistration({ providerKey, ...value }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
 async function postProviderRun(operation: string[], body: unknown) {
   if (operation.length === 1) {
     const value = z
@@ -469,14 +507,22 @@ function assertPlanOperation(operation: string[]): void {
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
+// fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'provider-runs') {
+    assertProviderNativeRunsEnabled()
+    return postProviderRun(operation, body)
+  }
+  if (operation[0] === 'providers') {
+    assertProviderNativeRunsEnabled()
+    return postProviderRegistration(operation, body)
+  }
   const handlers: Record<string, () => Promise<Response>> = {
     register: () => postRegister(body),
     heartbeat: () => postHeartbeat(body),
     plans: () => postCreatePlan(request, body),
     'target-projects': () => postTargetProject(body),
     'test-runs': () => postStandaloneTestRun(body),
-    'provider-runs': () => postProviderRun(operation, body),
     start: () => {
       assertPlanOperation(operation)
       return postStartPlan(operation)

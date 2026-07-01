@@ -4,8 +4,10 @@ import {
   coordinatorContractVersion,
   coordinatorError,
   planLinks,
+  validationReviewLinks,
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
+import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { guardCoordinatorRequest, readCoordinatorJson } from '@/lib/coordinator-api/request-guard'
 import { CoordinatorProjectMismatchError } from '@/lib/coordinator-api/request-guard'
 import {
@@ -16,6 +18,16 @@ import {
   validationArtifactSchema,
 } from '@/lib/plan-contract'
 import { createOpaquePlanId } from '@/lib/plans/plan-identity'
+import {
+  cancelProviderWorkflowRun,
+  createProviderWorkflowRun,
+  getProviderWorkflowRun,
+  listProviderRegistrations,
+  listProviderWorkflowRuns,
+  probeProviderRegistration,
+  recordProviderPermissionDecision,
+  updateProviderRegistration,
+} from '@/services/coordinator/coordinator-provider-run-service'
 import {
   acknowledgePlanEvent,
   ensureProjectIdentity,
@@ -103,6 +115,21 @@ function withLinks<T extends object>(value: T, planId: string, request: Request)
   return { ...value, links: planLinks(planId, baseUrl) }
 }
 
+function withValidationReviewLinks<T extends object>(value: T, planId: string, request: Request) {
+  const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
+  return { ...value, validationReviewLinks: validationReviewLinks(planId, baseUrl) }
+}
+
+function assertProviderNativeRunsEnabled() {
+  if (!isProviderNativeRunsEnabled()) {
+    throw new ServiceError(
+      'Provider-native runs are experimental and disabled. Start planning from your coding agent through Appraise MCP instead.',
+      'VALIDATION',
+      400,
+    )
+  }
+}
+
 async function getPlan(request: Request, operation: string[]) {
   const planId = routePlanIdSchema.parse(operation[1])
   const plan = await readCoordinatorPlan(planId)
@@ -168,6 +195,15 @@ async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
+  if (operation.length === 1 && operation[0] === 'providers') {
+    assertProviderNativeRunsEnabled()
+    return Response.json({ providers: await listProviderRegistrations() })
+  }
+  if (operation[0] === 'provider-runs') {
+    assertProviderNativeRunsEnabled()
+    if (operation.length === 1) return Response.json({ providerRuns: await listProviderWorkflowRuns() })
+    return Response.json(await getProviderWorkflowRun(z.string().uuid().parse(operation[1])))
+  }
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   const handlers: Record<string, () => Promise<Response>> = {
     plan: () => getPlan(request, operation),
@@ -355,6 +391,59 @@ async function postStandaloneTestRun(body: unknown) {
   return Response.json(await createStandaloneTargetTestRun(value), { status: 201 })
 }
 
+async function postProviderRegistration(operation: string[], body: unknown) {
+  const providerKey = z.string().min(1).parse(operation[1])
+  if (operation[2] === 'probe') return Response.json(await probeProviderRegistration(providerKey))
+  if (operation[2] === 'update') {
+    const value = z
+      .object({
+        executablePath: z.string().trim().nullable().optional(),
+        defaultProfile: z.string().trim().nullable().optional(),
+        defaultModel: z.string().trim().nullable().optional(),
+        enabled: z.boolean().optional(),
+        launchEnabled: z.boolean().optional(),
+        settings: z.record(z.string(), z.unknown()).nullable().optional(),
+      })
+      .parse(body)
+    return Response.json(await updateProviderRegistration({ providerKey, ...value }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
+async function postProviderRun(operation: string[], body: unknown) {
+  if (operation.length === 1) {
+    const value = z
+      .object({
+        targetProjectId: z.string().uuid(),
+        planId: routePlanIdSchema.optional(),
+        providerKey: z.string().min(1).optional(),
+        providerProfile: z.string().min(1).optional(),
+        launchPrompt: z.string().trim().min(1),
+      })
+      .parse(body)
+    return Response.json(await createProviderWorkflowRun({ ...value, approvedScope: { mode: 'planning_only' } }), {
+      status: 201,
+    })
+  }
+  const runId = z.string().uuid().parse(operation[1])
+  if (operation[2] === 'cancel') return Response.json(await cancelProviderWorkflowRun(runId))
+  if (operation[2] === 'permissions') {
+    const value = z
+      .object({
+        requestId: z.string().min(1),
+        decision: z.enum(['approved', 'denied']),
+        riskTier: z.string().min(1),
+        requestedScope: z.string().min(1),
+        payload: z.record(z.string(), z.unknown()).default({}),
+        reason: z.string().optional(),
+        decidedBy: z.string().min(1),
+      })
+      .parse(body)
+    return Response.json(await recordProviderPermissionDecision({ runId, ...value }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
 async function postStartPlan(operation: string[]) {
   return Response.json(await startCoordinatorPlan(routePlanIdSchema.parse(operation[1])))
 }
@@ -377,11 +466,13 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
 
 // Request parsing branches stay in this thin HTTP adapter.
 // fallow-ignore-next-line complexity
-async function postValidationOperation(operation: string[], body: unknown) {
+async function postValidationOperation(request: Request, operation: string[], body: unknown) {
   const planId = routePlanIdSchema.parse(operation[1])
   if (operation[3] === 'publish') {
     const value = z.object({ validation: validationArtifactSchema }).parse(body)
-    return Response.json(await publishPreparedValidations(planId, value.validation))
+    return Response.json(
+      withValidationReviewLinks(await publishPreparedValidations(planId, value.validation), planId, request),
+    )
   }
   if (operation[3] === 'feedback') {
     const value = z
@@ -416,7 +507,16 @@ function assertPlanOperation(operation: string[]): void {
   if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
+// fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'provider-runs') {
+    assertProviderNativeRunsEnabled()
+    return postProviderRun(operation, body)
+  }
+  if (operation[0] === 'providers') {
+    assertProviderNativeRunsEnabled()
+    return postProviderRegistration(operation, body)
+  }
   const handlers: Record<string, () => Promise<Response>> = {
     register: () => postRegister(body),
     heartbeat: () => postHeartbeat(body),
@@ -437,7 +537,7 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     },
     validations: () => {
       assertPlanOperation(operation)
-      return postValidationOperation(operation, body)
+      return postValidationOperation(request, operation, body)
     },
     implementation: () => {
       assertPlanOperation(operation)
