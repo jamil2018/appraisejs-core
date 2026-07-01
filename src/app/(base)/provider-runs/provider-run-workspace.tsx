@@ -20,7 +20,11 @@ import {
   Clock3,
   ExternalLink,
   FileText,
+  FolderOpen,
   FolderPlus,
+  GitBranch,
+  MapPinned,
+  PackageCheck,
   Play,
   Settings2,
   ShieldCheck,
@@ -38,6 +42,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 
 type RunWithRelations = ProviderWorkflowRun & {
@@ -57,6 +62,12 @@ type ProviderRunWorkspaceProps = {
 }
 
 const TARGET_PROJECT_NONE_VALUE = 'none'
+const TARGET_TAB_EXISTING_VALUE = 'existing'
+const TARGET_TAB_REGISTER_VALUE = 'register'
+
+type TargetProjectFile = File & {
+  path?: string
+}
 
 const statusStyles: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   queued: { label: 'Queued', className: 'border-sky-500/50 text-sky-300', icon: <Clock3 className="size-3" /> },
@@ -133,10 +144,24 @@ function RunCard({ run, active, onSelect }: { run: RunWithRelations; active: boo
   )
 }
 
+function getDirectoryPathFromFiles(files: FileList | null) {
+  const firstFile = files?.[0] as TargetProjectFile | undefined
+  if (!firstFile?.path) return ''
+  const relativePath = firstFile.webkitRelativePath
+  if (!relativePath) return firstFile.path
+  const selectedDirectoryName = relativePath.split(/[\\/]/)[0] ?? ''
+  const filePathWithinDirectory = relativePath.slice(selectedDirectoryName.length).replace(/^[\\/]/, '')
+  if (!filePathWithinDirectory) return firstFile.path
+  return firstFile.path.slice(0, -filePathWithinDirectory.length).replace(/[\\/]$/, '')
+}
+
 // fallow-ignore-next-line complexity
 export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: ProviderRunWorkspaceProps) {
   const router = useRouter()
   const [selectedRunId, setSelectedRunId] = useState(runs[0]?.id ?? '')
+  const [targetTab, setTargetTab] = useState(
+    targetProjects.length > 0 ? TARGET_TAB_EXISTING_VALUE : TARGET_TAB_REGISTER_VALUE,
+  )
   const [targetProjectId, setTargetProjectId] = useState(TARGET_PROJECT_NONE_VALUE)
   const [planId, setPlanId] = useState('none')
   const [providerKey, setProviderKey] = useState(adapters[0]?.key ?? '')
@@ -192,10 +217,22 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
       }
       const targetProjectId = (response.data as { targetProjectId?: string } | undefined)?.targetProjectId
       if (targetProjectId) setTargetProjectId(targetProjectId)
+      setTargetTab(TARGET_TAB_EXISTING_VALUE)
       setNewTargetPath('')
       setNewTargetName('')
       router.refresh()
     })
+  }
+
+  function handleTargetDirectoryChange(files: FileList | null) {
+    setMessage(null)
+    const directoryPath = getDirectoryPathFromFiles(files)
+    if (!directoryPath) {
+      setNewTargetPath('')
+      setMessage('The browser did not expose a local folder path. Choose from an environment that allows path access.')
+      return
+    }
+    setNewTargetPath(directoryPath)
   }
 
   function cancelRun(runId: string) {
@@ -252,58 +289,114 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
                 </Button>
               </div>
             ) : null}
-            <div className="space-y-2">
-              <Label htmlFor="target-project">Target Project</Label>
-              <Select value={targetProjectId} onValueChange={setTargetProjectId}>
-                <SelectTrigger id="target-project">
-                  <SelectValue placeholder="Select a target project" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TARGET_PROJECT_NONE_VALUE}>No target selected</SelectItem>
-                  {targetProjects.map(project => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.displayName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Tabs value={targetTab} onValueChange={setTargetTab} className="space-y-3">
+              <div className="rounded-lg border border-zinc-800 bg-[linear-gradient(135deg,rgba(14,165,233,0.08),rgba(245,158,11,0.08)_48%,rgba(39,39,42,0.28))] p-1.5">
+                <TabsList className="grid h-auto w-full grid-cols-2 rounded-md bg-zinc-950/70 p-1">
+                  <TabsTrigger value={TARGET_TAB_EXISTING_VALUE} className="gap-2 py-2">
+                    <PackageCheck className="size-4" />
+                    Existing
+                  </TabsTrigger>
+                  <TabsTrigger value={TARGET_TAB_REGISTER_VALUE} className="gap-2 py-2">
+                    <FolderPlus className="size-4" />
+                    Register new
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-            <div className="rounded-md border border-zinc-800 p-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <FolderPlus className="size-4" />
-                Register Target
-              </div>
-              <div className="mt-3 space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="new-target-path">Project Path</Label>
-                  <Input
-                    id="new-target-path"
-                    value={newTargetPath}
-                    onChange={event => setNewTargetPath(event.target.value)}
-                    placeholder="/path/to/application"
-                  />
+              <TabsContent value={TARGET_TAB_EXISTING_VALUE} className="m-0">
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+                  <div className="mb-3 flex items-start gap-3">
+                    <div className="mt-0.5 rounded-md border border-sky-400/30 bg-sky-400/10 p-2 text-sky-200">
+                      <MapPinned className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <Label htmlFor="target-project">Target Project</Label>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Pick the workspace this provider run can inspect.
+                      </p>
+                    </div>
+                  </div>
+                  <Select value={targetProjectId} onValueChange={setTargetProjectId}>
+                    <SelectTrigger id="target-project">
+                      <SelectValue placeholder="Select a target project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={TARGET_PROJECT_NONE_VALUE}>No target selected</SelectItem>
+                      {targetProjects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-target-name">Display Name</Label>
-                  <Input
-                    id="new-target-name"
-                    value={newTargetName}
-                    onChange={event => setNewTargetName(event.target.value)}
-                  />
+              </TabsContent>
+
+              <TabsContent value={TARGET_TAB_REGISTER_VALUE} className="m-0">
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+                  <div className="mb-3 flex items-start gap-3">
+                    <div className="mt-0.5 rounded-md border border-amber-400/30 bg-amber-400/10 p-2 text-amber-200">
+                      <GitBranch className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">Register Target</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Choose the local project folder Appraise should track.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="target-folder-picker">Project Folder</Label>
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <Input
+                          id="target-folder-display"
+                          aria-label="Selected project path"
+                          value={newTargetPath}
+                          readOnly
+                          placeholder="Choose a folder"
+                          className="font-mono text-xs"
+                        />
+                        <Label
+                          htmlFor="target-folder-picker"
+                          className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <FolderOpen className="size-4" />
+                          Browse
+                        </Label>
+                        <input
+                          id="target-folder-picker"
+                          aria-label="Project folder chooser"
+                          type="file"
+                          className="sr-only"
+                          onChange={event => handleTargetDirectoryChange(event.currentTarget.files)}
+                          {...({ directory: '', webkitdirectory: '' } as Record<string, string>)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-target-name">Display Name</Label>
+                      <Input
+                        id="new-target-name"
+                        value={newTargetName}
+                        onChange={event => setNewTargetName(event.target.value)}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={registerTargetProject}
+                      disabled={!newTargetPath.trim() || isPending}
+                      className="w-fit"
+                    >
+                      <FolderPlus className="size-4" />
+                      Add Target
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={registerTargetProject}
-                  disabled={!newTargetPath.trim() || isPending}
-                >
-                  <FolderPlus className="size-4" />
-                  Add Target
-                </Button>
-              </div>
-            </div>
+              </TabsContent>
+            </Tabs>
 
             <div className="space-y-2">
               <Label htmlFor="plan">Plan Context</Label>

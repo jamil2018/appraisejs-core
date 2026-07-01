@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProviderRunWorkspace } from './provider-run-workspace'
 
@@ -35,6 +35,10 @@ const targetProject = {
 }
 
 describe('ProviderRunWorkspace', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('links to settings when no launchable providers are available', () => {
     render(<ProviderRunWorkspace runs={[]} adapters={[]} targetProjects={[targetProject]} plans={[]} />)
 
@@ -59,7 +63,12 @@ describe('ProviderRunWorkspace', () => {
 
     render(<ProviderRunWorkspace runs={[]} adapters={[]} targetProjects={[targetProject]} plans={[]} />)
 
-    await user.type(screen.getByLabelText('Project Path'), '/tmp/new-target')
+    await user.click(screen.getByRole('tab', { name: /Register new/i }))
+    const packageFile = new File(['{}'], 'package.json', { type: 'application/json' })
+    Object.defineProperty(packageFile, 'path', { value: '/tmp/new-target/package.json' })
+    Object.defineProperty(packageFile, 'webkitRelativePath', { value: 'new-target/package.json' })
+
+    await user.upload(screen.getByLabelText('Project folder chooser'), packageFile)
     await user.type(screen.getByLabelText('Display Name'), 'New Target')
     await user.click(screen.getByRole('button', { name: 'Add Target' }))
 
