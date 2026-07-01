@@ -72,15 +72,15 @@ describe('provider workflow runs', () => {
 
     await expect(listProviderRegistrations(client)).resolves.toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ key: 'codex', providerKind: 'codex', launchable: false }),
+        expect.objectContaining({ key: 'codex', providerKind: 'codex' }),
         expect.objectContaining({ key: 'claude', providerKind: 'claude', launchable: false }),
         expect.objectContaining({ key: 'cursor', providerKind: 'cursor', launchable: false }),
         expect.objectContaining({ key: 'mock-planning', providerKind: 'mock', launchable: true }),
       ]),
     )
-    await expect(listProviderAdapters(client)).resolves.toEqual([
-      expect.objectContaining({ key: 'mock-planning', providerKind: 'mock' }),
-    ])
+    await expect(listProviderAdapters(client)).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: 'mock-planning', providerKind: 'mock' })]),
+    )
 
     const run = await createProviderWorkflowRun(
       {

@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
 
 import type {
   NormalizedProviderEvent,
@@ -44,7 +46,28 @@ export function buildCodexMcpArgs(input: Pick<ProviderLaunchInput, 'hubProjectPa
   return ['mcp', '--cwd', input.hubProjectPath, '--base-url', input.baseUrl ?? 'http://127.0.0.1:3000']
 }
 
+function buildCodexMcpCommandConfig(input: Pick<ProviderLaunchInput, 'hubProjectPath' | 'baseUrl'>) {
+  const localCliPath = path.join(input.hubProjectPath, 'packages', 'appraisejs', 'dist', 'cli.js')
+  if (fs.existsSync(localCliPath)) {
+    return { command: process.execPath, args: [localCliPath, ...buildCodexMcpArgs(input)] }
+  }
+  return { command: 'appraisejs', args: buildCodexMcpArgs(input) }
+}
+
+const codexPlanningMcpTools = [
+  'project_diagnostic',
+  'project_add',
+  'project_list',
+  'planning_session_create',
+  'plan_create',
+  'plan_review_loop',
+  'plan_wait_for_review',
+  'plan_review_read',
+  'plan_revise',
+]
+
 export function buildCodexExecArgs(input: ProviderLaunchInput) {
+  const mcpConfig = buildCodexMcpCommandConfig(input)
   const args = [
     'exec',
     '--json',
@@ -53,11 +76,17 @@ export function buildCodexExecArgs(input: ProviderLaunchInput) {
     '--sandbox',
     'read-only',
     '--ignore-user-config',
+    '--skip-git-repo-check',
     '-c',
-    'mcp_servers.appraisejs.command="appraisejs"',
+    `mcp_servers.appraisejs.command=${JSON.stringify(mcpConfig.command)}`,
     '-c',
-    `mcp_servers.appraisejs.args=${JSON.stringify(buildCodexMcpArgs(input))}`,
+    `mcp_servers.appraisejs.args=${JSON.stringify(mcpConfig.args)}`,
+    '-c',
+    'mcp_servers.appraisejs.approval_mode="approve"',
   ]
+  for (const toolName of codexPlanningMcpTools) {
+    args.push('-c', `mcp_servers.appraisejs.tools.${toolName}.approval_mode="approve"`)
+  }
   if (input.providerModel) args.push('--model', input.providerModel)
   args.push('-')
   return args
@@ -71,7 +100,8 @@ export function buildCodexPlanningPrompt(input: ProviderLaunchInput) {
     `Target project path: ${input.targetProjectPath}.`,
     '',
     'Use the Appraise MCP tools to create or revise a durable target-bound Appraise plan.',
-    'Stop once the plan is ready for Appraise-owned plan review. Do not approve, validate, baseline, implement, or complete lifecycle gates.',
+    'Stop after Appraise returns the created or revised plan link and awaiting-plan-review lifecycle evidence.',
+    'Do not wait for plan review, wait for approval, approve, validate, baseline, implement, or complete lifecycle gates.',
     '',
     'User brief:',
     input.launchPrompt,
@@ -131,6 +161,7 @@ export const codexProviderAdapter: ProviderAdapter = {
   capabilities: planningOnlyCapabilitySnapshot,
   defaultExecutable: 'codex',
   defaultProfile: 'planning-default',
+  defaultModel: 'gpt-5.5',
   setupMessage: 'Install and sign in to the Codex CLI. Appraise stores no provider secrets.',
   launchableWhenProbed: true,
   probe: probeCodexProvider,
