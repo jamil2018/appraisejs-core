@@ -78,4 +78,25 @@ describe('ProviderRunWorkspace', () => {
     })
     expect(refresh).toHaveBeenCalled()
   })
+
+  it('registers a target project from a manually entered path', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    registerProviderTargetProjectAction.mockResolvedValue({
+      status: 200,
+      success: true,
+      data: { targetProjectId: 'target-3' },
+    })
+
+    render(<ProviderRunWorkspace runs={[]} adapters={[]} targetProjects={[targetProject]} plans={[]} />)
+
+    await user.click(screen.getByRole('tab', { name: /Register new/i }))
+    await user.type(screen.getByLabelText('Project Path'), '/tmp/manual-target')
+    await user.click(screen.getByRole('button', { name: 'Add Target' }))
+
+    expect(registerProviderTargetProjectAction).toHaveBeenCalledWith({
+      projectPath: '/tmp/manual-target',
+      displayName: undefined,
+    })
+  })
 })

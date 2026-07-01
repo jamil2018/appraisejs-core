@@ -292,11 +292,17 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
             <Tabs value={targetTab} onValueChange={setTargetTab} className="space-y-3">
               <div className="rounded-lg border border-zinc-800 bg-[linear-gradient(135deg,rgba(14,165,233,0.08),rgba(245,158,11,0.08)_48%,rgba(39,39,42,0.28))] p-1.5">
                 <TabsList className="grid h-auto w-full grid-cols-2 rounded-md bg-zinc-950/70 p-1">
-                  <TabsTrigger value={TARGET_TAB_EXISTING_VALUE} className="gap-2 py-2">
+                  <TabsTrigger
+                    value={TARGET_TAB_EXISTING_VALUE}
+                    className="gap-2 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
                     <PackageCheck className="size-4" />
                     Existing
                   </TabsTrigger>
-                  <TabsTrigger value={TARGET_TAB_REGISTER_VALUE} className="gap-2 py-2">
+                  <TabsTrigger
+                    value={TARGET_TAB_REGISTER_VALUE}
+                    className="gap-2 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
                     <FolderPlus className="size-4" />
                     Register new
                   </TabsTrigger>
@@ -347,14 +353,13 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
                   </div>
                   <div className="grid gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="target-folder-picker">Project Folder</Label>
+                      <Label htmlFor="new-target-path">Project Path</Label>
                       <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                         <Input
-                          id="target-folder-display"
-                          aria-label="Selected project path"
+                          id="new-target-path"
                           value={newTargetPath}
-                          readOnly
-                          placeholder="Choose a folder"
+                          onChange={event => setNewTargetPath(event.target.value)}
+                          placeholder="/path/to/application"
                           className="font-mono text-xs"
                         />
                         <Label
