@@ -132,6 +132,8 @@ describe('MCP approval wait helpers', () => {
         timeoutMs: 15_000,
         afterSequence: 1,
       },
+      terminal: false,
+      mustContinue: true,
       nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
     })
     expect(response.reviewGatePause).toContain('Do not present the review as durable')
@@ -234,6 +236,11 @@ describe('MCP capability and recovery metadata', () => {
         'planning_session_create',
         'plan_review_loop',
         'validation_publish',
+        'validation_review_loop',
+        'baseline_start',
+        'baseline_reconcile',
+        'baseline_accept',
+        'implementation_start',
       ]),
     )
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(

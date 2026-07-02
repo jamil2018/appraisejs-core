@@ -84,27 +84,34 @@ read `plan_review_read` before revising.
 
 All routes are under `/api/internal/coordinator`.
 
-| Method | Path                                          | Purpose                                                  |
-| ------ | --------------------------------------------- | -------------------------------------------------------- |
-| `POST` | `/register`                                   | Acquire, reconnect, or take over a coordinator lease     |
-| `POST` | `/heartbeat`                                  | Renew a coordinator lease                                |
-| `POST` | `/plans`                                      | Create a structured plan                                 |
-| `GET`  | `/plans/:planId`                              | Read the plan and exact content hash                     |
-| `GET`  | `/plans/:planId/review`                       | Read review hash, remarks, links, and recovery guidance  |
-| `PUT`  | `/plans/:planId`                              | Submit a higher revision with an expected hash           |
-| `POST` | `/plans/:planId/start`                        | Start validation preparation after plan approval         |
-| `POST` | `/plans/:planId/tasks/:taskId`                | Publish a task progress event                            |
-| `GET`  | `/plans/:planId/events`                       | Read events; `after` and `wait=true` are supported       |
-| `POST` | `/plans/:planId/events/ack`                   | Acknowledge one sequence                                 |
-| `POST` | `/plans/:planId/validations/publish`          | Persist validation artifacts and enter validation review |
-| `POST` | `/plans/:planId/validations/feedback`         | Route validation feedback to validation or plan review   |
-| `POST` | `/plans/:planId/implementation/checkpoint`    | Poll a named implementation checkpoint                   |
-| `POST` | `/plans/:planId/implementation/tasks/:taskId` | Transition a task state                                  |
-| `POST` | `/plans/:planId/implementation/feedback`      | Analyze or apply confirmed blocking feedback             |
-| `POST` | `/plans/:planId/implementation/control`       | Pause, resume, or cancel implementation                  |
-| `POST` | `/plans/:planId/implementation/validations`   | Record fresh validation evidence                         |
-| `GET`  | `/plans/:planId/completion`                   | Read the final completion review                         |
-| `POST` | `/plans/:planId/implementation/complete`      | Apply explicit final user approval                       |
+| Method | Path                                                      | Purpose                                                  |
+| ------ | --------------------------------------------------------- | -------------------------------------------------------- |
+| `POST` | `/register`                                               | Acquire, reconnect, or take over a coordinator lease     |
+| `POST` | `/heartbeat`                                              | Renew a coordinator lease                                |
+| `POST` | `/plans`                                                  | Create a structured plan                                 |
+| `GET`  | `/plans/:planId`                                          | Read the plan and exact content hash                     |
+| `GET`  | `/plans/:planId/review`                                   | Read review hash, remarks, links, and recovery guidance  |
+| `PUT`  | `/plans/:planId`                                          | Submit a higher revision with an expected hash           |
+| `POST` | `/plans/:planId/start`                                    | Start validation preparation after plan approval         |
+| `POST` | `/plans/:planId/tasks/:taskId`                            | Publish a task progress event                            |
+| `GET`  | `/plans/:planId/events`                                   | Read events; `after` and `wait=true` are supported       |
+| `POST` | `/plans/:planId/events/ack`                               | Acknowledge one sequence                                 |
+| `POST` | `/plans/:planId/validations/publish`                      | Persist validation artifacts and enter validation review |
+| `POST` | `/plans/:planId/validations/feedback`                     | Route validation feedback to validation or plan review   |
+| `POST` | `/plans/:planId/baseline/start`                           | Start required baseline execution                        |
+| `POST` | `/plans/:planId/baseline/reconcile`                       | Refresh baseline run evidence and enter baseline review  |
+| `POST` | `/plans/:planId/baseline/cancel`                          | Cancel active baseline runs                              |
+| `POST` | `/plans/:planId/baseline/failures/:attemptId/acknowledge` | Acknowledge unrelated baseline failure evidence          |
+| `POST` | `/plans/:planId/baseline/regressions/:attemptId/justify`  | Justify accepted regression-pass evidence                |
+| `POST` | `/plans/:planId/baseline/accept`                          | Accept complete baseline evidence                        |
+| `POST` | `/plans/:planId/implementation/start`                     | Unlock implementation after baseline acceptance          |
+| `POST` | `/plans/:planId/implementation/checkpoint`                | Poll a named implementation checkpoint                   |
+| `POST` | `/plans/:planId/implementation/tasks/:taskId`             | Transition a task state                                  |
+| `POST` | `/plans/:planId/implementation/feedback`                  | Analyze or apply confirmed blocking feedback             |
+| `POST` | `/plans/:planId/implementation/control`                   | Pause, resume, or cancel implementation                  |
+| `POST` | `/plans/:planId/implementation/validations`               | Record fresh validation evidence                         |
+| `GET`  | `/plans/:planId/completion`                               | Read the final completion review                         |
+| `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                       |
 
 The create response includes coordinator ownership metadata and the stable review URL only after
 `plan_review_ready` is durably appended.
@@ -167,6 +174,14 @@ Tools:
 - `validation_file_approve`
 - `validation_feedback_submit`
 - `validation_review_submit`
+- `validation_review_loop`
+- `baseline_start`
+- `baseline_reconcile`
+- `baseline_cancel`
+- `baseline_failure_acknowledge`
+- `baseline_regression_justify`
+- `baseline_accept`
+- `implementation_start`
 - `implementation_checkpoint`
 - `implementation_task_update`
 - `implementation_feedback`

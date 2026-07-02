@@ -323,4 +323,61 @@ describe('baseline execution and implementation gate', () => {
       message: expect.stringContaining('Validation files changed after approval or baseline execution'),
     })
   })
+
+  it('checks validation files against a bound target project and reports structured drift', async () => {
+    const planId = 'target-bound-baseline'
+    const targetWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-target-'))
+    await fs.writeFile(path.join(targetWorkspace, 'package.json'), '{}')
+    await fs.mkdir(path.join(targetWorkspace, 'automation', 'features'), { recursive: true })
+    await fs.writeFile(path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'), 'Feature: case one\n')
+    await writeArtifacts(planId)
+    await fs.writeFile(path.join(workspace, 'automation', 'features', 'case-one.feature'), 'Feature: hub drift\n')
+    const targetProject = await client.targetProject.create({
+      data: {
+        canonicalPath: targetWorkspace,
+        displayName: 'External target',
+        fingerprint: 'sha256:target-bound',
+      },
+    })
+    await client.planProjection.update({ where: { planId }, data: { targetProjectId: targetProject.id } })
+
+    await expect(
+      startBaselineExecution(planId, {
+        projectDirectory: workspace,
+        client,
+        submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
+      }),
+    ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
+
+    const driftPlanId = 'target-bound-drift'
+    await writeArtifacts(driftPlanId)
+    await client.planProjection.update({ where: { planId: driftPlanId }, data: { targetProjectId: targetProject.id } })
+    await fs.writeFile(
+      path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
+      'Feature: target drift\n',
+    )
+
+    await expect(
+      startBaselineExecution(driftPlanId, {
+        projectDirectory: workspace,
+        client,
+        submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      details: {
+        changedFiles: [
+          expect.objectContaining({
+            path: 'automation/features/case-one.feature',
+            resolvedAbsolutePath: path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
+            expectedHash: hashFileContent('Feature: case one\n'),
+            currentHash: hashFileContent('Feature: target drift\n'),
+          }),
+        ],
+        targetProject: expect.objectContaining({ id: targetProject.id, canonicalPath: targetWorkspace }),
+      },
+    })
+
+    await fs.rm(targetWorkspace, { recursive: true, force: true })
+  })
 })

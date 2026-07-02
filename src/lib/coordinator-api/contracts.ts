@@ -57,6 +57,7 @@ export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | und
     return {
       code: error.code,
       message: error.message,
+      ...(error.details ? { details: error.details } : {}),
       ...(error.code === 'CONFLICT' ? { recovery: 'Read the current plan and retry against its latest hash.' } : {}),
     }
   }

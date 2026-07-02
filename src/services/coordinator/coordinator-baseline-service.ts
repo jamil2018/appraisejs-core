@@ -47,15 +47,25 @@ type BaselineOptions = {
   loadEvidence?: (testRunId: string) => Promise<BaselineEvidence & { status: 'running' | 'completed' }>
 }
 
-async function readBaselineArtifacts(planId: string, projectDirectory?: string) {
+async function readBaselineArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
   const projectRoot = await findProjectRoot(projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
-  const [planStored, validationStored] = await Promise.all([
+  const [planStored, validationStored, projection] = await Promise.all([
     repository.read('plan', planId),
     repository.read('validation', planId),
+    client.planProjection.findUnique({
+      where: { planId },
+      select: {
+        targetProject: {
+          select: { id: true, canonicalPath: true, displayName: true, fingerprint: true },
+        },
+      },
+    }),
   ])
   return {
     projectRoot,
+    validationFileRoot: projection?.targetProject?.canonicalPath ?? projectRoot,
+    targetProject: projection?.targetProject ?? null,
     repository,
     planStored,
     validationStored,
@@ -87,11 +97,22 @@ async function writeBaselineArtifacts(
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
 }
 
-async function assertValidationFilesUnchanged(projectRoot: string, validation: ValidationArtifact) {
-  const changed: string[] = []
-  for (const file of validation.files) {
-    const absolutePath = path.resolve(projectRoot, file.path)
-    const relative = path.relative(projectRoot, absolutePath)
+async function assertValidationFilesUnchanged(input: {
+  projectRoot: string
+  validationFileRoot: string
+  targetProject: Awaited<ReturnType<typeof readBaselineArtifacts>>['targetProject']
+  validation: ValidationArtifact
+}) {
+  const changedFiles: Array<{
+    path: string
+    resolvedAbsolutePath: string
+    expectedHash: string | null
+    currentHash: string | null
+  }> = []
+  const root = input.validationFileRoot
+  for (const file of input.validation.files) {
+    const absolutePath = path.resolve(root, file.path)
+    const relative = path.relative(root, absolutePath)
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new ServiceError(`Validation file path escapes the project: ${file.path}`, 'VALIDATION')
     }
@@ -100,19 +121,40 @@ async function assertValidationFilesUnchanged(projectRoot: string, validation: V
       throw error
     })
     const currentHash = content === null ? null : hashFileContent(content)
-    if (currentHash !== file.contentHash) changed.push(file.path)
+    if (currentHash !== file.contentHash) {
+      changedFiles.push({
+        path: file.path,
+        resolvedAbsolutePath: absolutePath,
+        expectedHash: file.contentHash,
+        currentHash,
+      })
+    }
   }
-  if (changed.length > 0) {
+  if (changedFiles.length > 0) {
     throw new ServiceError(
-      `Validation files changed after approval or baseline execution: ${changed.join(', ')}. Re-review is required.`,
+      `Validation files changed after approval or baseline execution: ${changedFiles.map(file => file.path).join(', ')}. Re-review is required.`,
       'CONFLICT',
+      undefined,
+      {
+        changedFiles,
+        targetProject: input.targetProject
+          ? {
+              id: input.targetProject.id,
+              canonicalPath: input.targetProject.canonicalPath,
+              displayName: input.targetProject.displayName,
+              fingerprint: input.targetProject.fingerprint,
+            }
+          : null,
+        hubProject: { canonicalPath: input.projectRoot },
+        resolvedRoot: root,
+      },
     )
   }
 }
 
 async function readRunningBaselineArtifacts(planId: string, options: BaselineOptions) {
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory)
+  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
   if (artifacts.plan.lifecycle !== 'baseline_running') {
     throw new ServiceError('The plan is not running baselines.', 'CONFLICT')
   }
@@ -120,7 +162,7 @@ async function readRunningBaselineArtifacts(planId: string, options: BaselineOpt
 }
 
 async function assertBaselineReady(artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>): Promise<void> {
-  await assertValidationFilesUnchanged(artifacts.projectRoot, artifacts.validation)
+  await assertValidationFilesUnchanged(artifacts)
   const readiness = assessBaselineAcceptance(artifacts.validation)
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
 }
@@ -209,11 +251,11 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
 
 export async function startBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory)
+  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
   if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
   }
-  await assertValidationFilesUnchanged(artifacts.projectRoot, artifacts.validation)
+  await assertValidationFilesUnchanged(artifacts)
   const active = new Set(
     artifacts.validation.baselineAttempts
       .filter(attempt => ['scheduled', 'running'].includes(attempt.status))
@@ -248,7 +290,7 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
 
 export async function reconcileBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const { client, artifacts } = await readRunningBaselineArtifacts(planId, options)
-  await assertValidationFilesUnchanged(artifacts.projectRoot, artifacts.validation)
+  await assertValidationFilesUnchanged(artifacts)
   const loadEvidence = options.loadEvidence ?? (testRunId => loadAppraiseEvidence(testRunId, client))
   const attempts = await Promise.all(
     artifacts.validation.baselineAttempts.map(async attempt => {
@@ -304,7 +346,7 @@ export async function acknowledgeBaselineFailure(
   options: BaselineOptions = {},
 ) {
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory)
+  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
   const attempt = artifacts.validation.baselineAttempts.find(item => item.id === input.attemptId)
   if (attempt?.classification !== 'pre_existing_unrelated_failure' || !attempt.signatureHash) {
     throw new ServiceError('Only current unrelated failures can be acknowledged.', 'CONFLICT')
@@ -332,7 +374,7 @@ export async function justifyBaselineRegressionPass(
 ) {
   if (!input.justification.trim()) throw new ServiceError('Regression justification is required.', 'VALIDATION')
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory)
+  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
   const attempt = artifacts.validation.baselineAttempts.find(item => item.id === input.attemptId)
   if (attempt?.classification !== 'accepted_regression_pass') {
     throw new ServiceError('Only passing baselines accept regression justification.', 'CONFLICT')
@@ -348,7 +390,7 @@ export async function justifyBaselineRegressionPass(
 
 export async function acceptBaseline(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory)
+  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
   if (artifacts.plan.lifecycle !== 'baseline_review') {
     throw new ServiceError('The plan is not awaiting baseline acceptance.', 'CONFLICT')
   }
@@ -362,7 +404,7 @@ export async function acceptBaseline(planId: string, options: BaselineOptions = 
 
 export async function startImplementation(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory)
+  const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
   if (artifacts.plan.lifecycle !== 'baseline_accepted' || artifacts.validation.baselineDecision !== 'accepted') {
     throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
   }

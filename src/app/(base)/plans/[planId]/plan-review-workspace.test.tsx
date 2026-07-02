@@ -12,10 +12,15 @@ const {
   approvePlanRevisionAction,
   approveValidationFileAction,
   decideValidationNodeAction,
+  acceptBaselineAction,
+  cancelBaselineExecutionAction,
   fitView,
   publishSharedPlanLayoutAction,
+  reconcileBaselineExecutionAction,
   requestPlanChangesAction,
   savePersonalPlanLayoutAction,
+  startBaselineExecutionAction,
+  startImplementationAction,
   setNodes,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
@@ -23,10 +28,15 @@ const {
   approvePlanRevisionAction: vi.fn(),
   approveValidationFileAction: vi.fn(),
   decideValidationNodeAction: vi.fn(),
+  acceptBaselineAction: vi.fn(),
+  cancelBaselineExecutionAction: vi.fn(),
   fitView: vi.fn(),
   publishSharedPlanLayoutAction: vi.fn(),
+  reconcileBaselineExecutionAction: vi.fn(),
   requestPlanChangesAction: vi.fn(),
   savePersonalPlanLayoutAction: vi.fn(),
+  startBaselineExecutionAction: vi.fn(),
+  startImplementationAction: vi.fn(),
   setNodes: vi.fn(),
   submitValidationFeedbackAction: vi.fn(),
   submitValidationReviewAction: vi.fn(),
@@ -71,20 +81,20 @@ vi.mock('@xyflow/react', () => ({
 
 vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   addPlanRemarkAction: vi.fn(),
-  acceptBaselineAction: vi.fn(),
+  acceptBaselineAction,
   acknowledgeBaselineFailureAction: vi.fn(),
   approveValidationFileAction,
   approvePlanRevisionAction,
-  cancelBaselineExecutionAction: vi.fn(),
+  cancelBaselineExecutionAction,
   decideValidationNodeAction,
   justifyBaselineRegressionPassAction: vi.fn(),
   publishSharedPlanLayoutAction,
-  reconcileBaselineExecutionAction: vi.fn(),
+  reconcileBaselineExecutionAction,
   requestPlanChangesAction,
   retargetPlanRemarkAction: vi.fn(),
   savePersonalPlanLayoutAction,
-  startBaselineExecutionAction: vi.fn(),
-  startImplementationAction: vi.fn(),
+  startBaselineExecutionAction,
+  startImplementationAction,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
   transitionPlanRemarkAction: vi.fn(),
@@ -604,7 +614,57 @@ describe('PlanReviewWorkspace', () => {
     })
 
     rerender(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
-    await user.click(screen.getByRole('button', { name: /submit validation review/i }))
+    await user.click(screen.getByRole('button', { name: /approve validation review and continue/i }))
     expect(submitValidationReviewAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
+  })
+
+  it('shows lifecycle actions in the validation tab after validation approval', async () => {
+    const user = userEvent.setup()
+    startBaselineExecutionAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    const approvedDetail: PlanReviewDetail = {
+      ...validationDetail,
+      plan: { ...validationDetail.plan, lifecycle: 'validations_approved' },
+      projection: { ...validationDetail.projection, lifecycle: 'validations_approved' },
+    }
+
+    render(<PlanReviewWorkspace detail={approvedDetail} initialTab="validations" />)
+
+    expect(screen.getByText(/start required baseline runs before implementation/i)).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: /start required baselines/i })[0]!)
+    expect(startBaselineExecutionAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
+  })
+
+  it.each([
+    {
+      lifecycle: 'baseline_running',
+      button: /reconcile run evidence/i,
+      action: reconcileBaselineExecutionAction,
+    },
+    {
+      lifecycle: 'baseline_review',
+      button: /accept complete baseline/i,
+      action: acceptBaselineAction,
+    },
+    {
+      lifecycle: 'baseline_accepted',
+      button: /unlock implementation/i,
+      action: startImplementationAction,
+    },
+  ] as const)('shows $lifecycle lifecycle action in the validation tab', async ({ lifecycle, button, action }) => {
+    const user = userEvent.setup()
+    action.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    const lifecycleDetail: PlanReviewDetail = {
+      ...validationDetail,
+      plan: { ...validationDetail.plan, lifecycle },
+      projection: { ...validationDetail.projection, lifecycle },
+    }
+
+    render(<PlanReviewWorkspace detail={lifecycleDetail} initialTab="validations" />)
+
+    if (lifecycle === 'baseline_running') {
+      expect(screen.getAllByRole('button', { name: /cancel baseline runs/i }).length).toBeGreaterThan(0)
+    }
+    await user.click(screen.getAllByRole('button', { name: button })[0]!)
+    expect(action).toHaveBeenCalledWith({ planId: 'accessible-plan' })
   })
 })

@@ -179,6 +179,25 @@ afterEach(async () => {
 })
 
 describe('implementation coordinator checkpoints', () => {
+  it('returns recovery guidance when checkpoint is called before implementation starts', async () => {
+    const planId = 'checkpoint-before-implementation'
+    await writeArtifacts(planId, { lifecycle: 'baseline_review' }, { baselineDecision: 'pending' })
+
+    await expect(
+      reachImplementationCheckpoint({ planId, type: 'before_group' }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      status: 'blocked_pre_implementation',
+      lifecycle: 'baseline_review',
+      terminal: false,
+      mustContinue: true,
+      nextAllowedAction: {
+        action: 'accept_baseline',
+        tool: 'baseline_accept',
+      },
+      nextRequiredAgentBehavior: 'accept_baseline',
+    })
+  })
+
   it('checkpoints runnable work, records provenance, pauses scoped feedback, and requires impacted reruns', async () => {
     const planId = 'checkpoint-flow'
     await writeArtifacts(planId)
@@ -292,9 +311,10 @@ describe('implementation coordinator checkpoints', () => {
 
     await expect(
       reachImplementationCheckpoint({ planId, type: 'before_task' }, { projectDirectory: workspace, client }),
-    ).rejects.toMatchObject({
-      code: 'CONFLICT',
-      message: 'Accepted baselines are required before implementation.',
+    ).resolves.toMatchObject({
+      status: 'blocked_pre_implementation',
+      baselineDecision: 'pending',
+      nextRequiredAgentBehavior: 'wait_for_lifecycle_gate',
     })
 
     await writeArtifacts(planId)
