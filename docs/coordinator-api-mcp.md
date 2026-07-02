@@ -146,6 +146,7 @@ Resources:
 - `appraise://target-projects`
 - `appraise://agent-guide`
 - `appraise://workflow/planning`
+- `appraise://workflow/validation-preparation`
 - `appraise://workflow/standby`
 - `appraise://plans/{planId}`
 
@@ -229,6 +230,16 @@ emits `validation_review_ready`, moves the lifecycle to `awaiting_validation_rev
 handoff containing the direct validation review URL, `appraise://` URL, revision, lifecycle, validation artifact path,
 validation count, changed-file count, manifest paths, reused registry/template step paths, new custom step paths, and
 the next review action.
+
+The MCP surface must expose the validation artifact contract before an agent calls `validation_publish`. Agents should
+read `appraise://workflow/validation-preparation` and the native `validation_publish` input schema for the required
+`appraise.validation/v1` shape instead of inspecting AppraiseJS source files. The contract includes validation nodes,
+AppraiseJS modules, test suites, test cases, ordered test steps, locator groups, locators, Gherkin paths, step paths,
+executable metadata, browser/environment matrix, expected failures, changed-file evidence, manifest paths, approval
+arrays, baseline arrays, and `baselineDecision`. Initial validation publishes should use empty `approvals`,
+`validationDecisions`, `baselineAttempts`, and `baselineAcknowledgements`, with `baselineDecision: "pending"`.
+AppraiseJS authored artifacts are the primary review and later execution surface; Playwright and generated feature
+files are runtime evidence derived from those artifacts.
 
 Validation preparation is registry-first. Agents should inspect or use existing registry/template steps for common web
 workflows before creating custom step definitions. Custom steps must include a gap justification naming the missing

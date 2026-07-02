@@ -62,6 +62,79 @@ export const implementationValidationRunSchema = z.object({
   completedAt: timestampSchema,
 })
 
+const validationAppraiseArtifactsSchema = z.object({
+  modules: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        parentId: idSchema.nullable().optional(),
+      }),
+    )
+    .default([]),
+  testSuites: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        description: z.string().min(1).optional(),
+        moduleId: idSchema,
+        testCaseIds: z.array(idSchema).min(1),
+      }),
+    )
+    .min(1),
+  testCases: z
+    .array(
+      z.object({
+        id: idSchema,
+        title: z.string().min(1),
+        description: z.string().min(1),
+        steps: z.array(
+          z.object({
+            id: idSchema,
+            order: z.number().int().nonnegative(),
+            label: z.string().min(1),
+            gherkinStep: z.string().min(1),
+            templateStepId: idSchema.optional(),
+            templateStepName: z.string().min(1).optional(),
+            parameters: z
+              .array(
+                z.object({
+                  name: z.string().min(1),
+                  value: z.string(),
+                  type: z.string().min(1).optional(),
+                  locatorId: idSchema.optional(),
+                  locatorName: z.string().min(1).optional(),
+                }),
+              )
+              .default([]),
+          }),
+        ),
+      }),
+    )
+    .min(1),
+  locatorGroups: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        route: z.string().min(1),
+        moduleId: idSchema,
+      }),
+    )
+    .default([]),
+  locators: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        value: z.string().min(1),
+        locatorGroupId: idSchema,
+      }),
+    )
+    .default([]),
+})
+
 export const planArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
@@ -153,6 +226,7 @@ export const validationArtifactSchema = artifactHeaderSchema
           taskIds: z.array(idSchema).min(1),
           required: z.boolean(),
           testCaseIds: z.array(idSchema).min(1),
+          appraiseArtifacts: validationAppraiseArtifactsSchema,
           gherkinPaths: z.array(z.string().min(1)).min(1),
           stepPaths: z.array(z.string().min(1)).min(1),
           executable: z.object({

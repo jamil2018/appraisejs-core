@@ -30,7 +30,9 @@ Appraise, build this project using Appraise, or generate a plan and show it in A
    handoff: before entering or continuing standby, present the complete direct browser URL, `appraise://` URL, plan ID,
    goal, description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended
    wait call so a later turn can resume the same wait.
-10. On `approved`, call `plan_start`; acknowledge only after `validation_preparation_started`.
+10. On `approved`, call `plan_start`; acknowledge only after `validation_preparation_started`. Before publishing
+    validations, read `appraise://workflow/validation-preparation` and use the `validation_publish` input schema for
+    the required artifact shape instead of inspecting AppraiseJS source files.
 11. On `changes_requested`, call `plan_review_read`, revise against the expected hash, and return to standby.
 12. On `cancelled`, acknowledge the cancellation event and stop.
 

@@ -10,8 +10,10 @@ AppraiseJS owns lifecycle and business rules. This skill coordinates test prepar
 1. Read pending events before starting and after each validation-preparation task.
 2. Confirm the returned status permits validation preparation.
 3. Create AppraiseJS-native validation artifacts, not product implementation: `ValidationArtifact`, validation nodes,
-   `automation/features`, `automation/steps`, executable metadata, browser/environment matrix, expected failures,
-   changed-file evidence, manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`.
+   modules, test suites, test cases, ordered steps, locator groups, locators, `automation/features`,
+   `automation/steps`, executable metadata, browser/environment matrix, expected failures, changed-file evidence,
+   manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`. AppraiseJS artifacts are the primary
+   review and future execution surface; Playwright/Gherkin files are runtime evidence derived from them.
 4. Inspect and prefer existing registry/template steps before creating custom step definitions. Common navigation,
    click, hover, input, wait, visibility, text, URL, store, and random-data flows should reuse template steps; simple
    todo CRUD validations should usually create zero new custom step definitions.

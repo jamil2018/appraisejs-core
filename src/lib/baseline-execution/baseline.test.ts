@@ -11,6 +11,35 @@ import {
 } from './baseline'
 
 const hash = `sha256:${'a'.repeat(64)}`
+const appraiseArtifacts = {
+  modules: [{ id: 'checkout-module', name: 'Checkout' }],
+  testSuites: [
+    {
+      id: 'checkout-suite',
+      name: 'Checkout suite',
+      moduleId: 'checkout-module',
+      testCaseIds: ['case-one'],
+    },
+  ],
+  testCases: [
+    {
+      id: 'case-one',
+      title: 'Checkout succeeds',
+      description: 'AppraiseJS-authored checkout validation.',
+      steps: [
+        {
+          id: 'when-submit',
+          order: 0,
+          label: 'Submit checkout',
+          gherkinStep: 'When I submit checkout',
+          parameters: [],
+        },
+      ],
+    },
+  ],
+  locatorGroups: [],
+  locators: [],
+}
 const validation = {
   version: '1',
   planId: 'checkout',
@@ -23,6 +52,7 @@ const validation = {
       taskIds: ['task-one'],
       required: true,
       testCaseIds: ['case-one'],
+      appraiseArtifacts,
       gherkinPaths: ['automation/features/case-one.feature'],
       stepPaths: ['automation/steps/case-one.ts'],
       executable: { path: 'automation/features/case-one.feature' },

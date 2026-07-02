@@ -205,6 +205,10 @@ try {
     'Planning workflow resource is missing.',
   )
   assert(
+    resources.resources.some(resource => resource.uri === 'appraise://workflow/validation-preparation'),
+    'Validation preparation workflow resource is missing.',
+  )
+  assert(
     resources.resources.some(resource => resource.uri === 'appraise://workflow/standby'),
     'Standby workflow resource is missing.',
   )
@@ -240,6 +244,11 @@ try {
   )
   const agentGuide = await client.readResource({ uri: 'appraise://agent-guide' })
   assert(agentGuide.contents[0]?.text?.includes('plan_wait_for_approval'), 'Agent guide missed standby guidance.')
+  const validationPreparation = await client.readResource({ uri: 'appraise://workflow/validation-preparation' })
+  assert(
+    validationPreparation.contents[0]?.text?.includes('baselineDecision'),
+    'Validation preparation resource missed artifact contract guidance.',
+  )
   const diagnostic = await callTool('project_diagnostic', {})
   assert(diagnostic.ok === true, `Project diagnostic failed: ${JSON.stringify(diagnostic)}`)
   assert(diagnostic.contractVersion === '1', 'Project diagnostic did not return the contract version.')

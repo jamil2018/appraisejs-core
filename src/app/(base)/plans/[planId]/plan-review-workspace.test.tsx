@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { FormEvent } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
@@ -211,6 +212,53 @@ const hashA = `sha256:${'a'.repeat(64)}`
 const hashB = `sha256:${'b'.repeat(64)}`
 const hashC = `sha256:${'c'.repeat(64)}`
 
+const appraiseArtifacts = {
+  modules: [{ id: 'review-module', name: 'Review module' }],
+  testSuites: [
+    {
+      id: 'review-suite',
+      name: 'Validation review suite',
+      description: 'Reviewable AppraiseJS suite for validation.',
+      moduleId: 'review-module',
+      testCaseIds: ['keyboard-review'],
+    },
+  ],
+  testCases: [
+    {
+      id: 'keyboard-review',
+      title: 'Approve validation evidence',
+      description: 'Reviews validation evidence through AppraiseJS-authored steps.',
+      steps: [
+        {
+          id: 'open-review',
+          order: 0,
+          label: 'Open validation review',
+          gherkinStep: 'Given I open the validation review page',
+          templateStepName: 'Navigate to URL',
+          parameters: [{ name: 'url', value: '/plans/accessible-plan?review=validation', type: 'TEXT' }],
+        },
+        {
+          id: 'approve-node',
+          order: 1,
+          label: 'Approve required node',
+          gherkinStep: 'When I approve the required validation node',
+          templateStepName: 'Click element',
+          parameters: [{ name: 'target', value: 'Approve button', type: 'LOCATOR', locatorName: 'Approve button' }],
+        },
+      ],
+    },
+  ],
+  locatorGroups: [{ id: 'review-page', name: 'Review page', route: '/plans/:planId', moduleId: 'review-module' }],
+  locators: [
+    {
+      id: 'approve-button',
+      name: 'Approve button',
+      value: 'button:has-text("Approve")',
+      locatorGroupId: 'review-page',
+    },
+  ],
+}
+
 const validationDetail: PlanReviewDetail = {
   ...detail,
   plan: { ...detail.plan, lifecycle: 'awaiting_validation_review' },
@@ -233,6 +281,7 @@ const validationDetail: PlanReviewDetail = {
         taskIds: ['task-one', 'task-two'],
         required: true,
         testCaseIds: ['keyboard-review'],
+        appraiseArtifacts,
         gherkinPaths: ['automation/features/review.feature'],
         stepPaths: ['automation/steps/review.steps.ts'],
         executable: { path: 'automation/steps/review.steps.ts', selector: 'validation review' },
@@ -252,6 +301,33 @@ const validationDetail: PlanReviewDetail = {
         taskIds: ['task-two'],
         required: false,
         testCaseIds: ['optional-smoke'],
+        appraiseArtifacts: {
+          ...appraiseArtifacts,
+          testSuites: [
+            {
+              id: 'optional-suite',
+              name: 'Optional smoke suite',
+              moduleId: 'review-module',
+              testCaseIds: ['optional-smoke'],
+            },
+          ],
+          testCases: [
+            {
+              id: 'optional-smoke',
+              title: 'Run optional smoke validation',
+              description: 'Reviews the optional validation path.',
+              steps: [
+                {
+                  id: 'open-optional',
+                  order: 0,
+                  label: 'Open optional flow',
+                  gherkinStep: 'Given I open the optional flow',
+                  parameters: [],
+                },
+              ],
+            },
+          ],
+        },
         gherkinPaths: ['automation/features/optional.feature'],
         stepPaths: ['automation/steps/optional.steps.ts'],
         executable: { path: 'automation/steps/optional.steps.ts' },
@@ -558,6 +634,11 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText('optional-validation')).toBeInTheDocument()
     expect(screen.getByText('deferred')).toBeInTheDocument()
     expect(screen.getByText('automation/steps/review.steps.ts :: validation review')).toBeInTheDocument()
+    expect(screen.getAllByText('AppraiseJS artifacts').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Validation review suite (1)')).toBeInTheDocument()
+    expect(screen.getByText('Approve validation evidence')).toBeInTheDocument()
+    expect(screen.getByText('When I approve the required validation node')).toBeInTheDocument()
+    expect(screen.getAllByText('Approve button').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('chromium/local')).toBeInTheDocument()
     expect(screen.getByText(/fails until the reviewed ui exists/i)).toBeInTheDocument()
     expect(screen.getAllByText('automation/features/review.feature').length).toBeGreaterThanOrEqual(1)
@@ -595,7 +676,9 @@ describe('PlanReviewWorkspace', () => {
       decision: 'approved',
     })
 
-    await user.click(screen.getByRole('button', { name: /approve file/i }))
+    const approveFileButton = screen.getByRole('button', { name: /approve file/i })
+    await waitFor(() => expect(approveFileButton).toBeEnabled())
+    await user.click(approveFileButton)
     expect(approveValidationFileAction).toHaveBeenCalledWith({
       planId: 'accessible-plan',
       path: 'src/app/page.tsx',
@@ -616,6 +699,39 @@ describe('PlanReviewWorkspace', () => {
     rerender(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
     await user.click(screen.getByRole('button', { name: /approve validation review and continue/i }))
     expect(submitValidationReviewAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
+  })
+
+  it('does not submit a parent form or duplicate node decisions from validation approval buttons', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault())
+    decideValidationNodeAction.mockResolvedValue({ success: false, error: 'Expected test stop.' })
+
+    render(
+      <form onSubmit={onSubmit}>
+        <PlanReviewWorkspace detail={validationDetail} initialTab="validations" />
+      </form>,
+    )
+
+    const approveButtons = screen.getAllByRole('button', { name: /^Approve$/i })
+    await user.click(approveButtons[0]!)
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(decideValidationNodeAction).toHaveBeenCalledTimes(1)
+    expect(decideValidationNodeAction).toHaveBeenLastCalledWith({
+      planId: 'accessible-plan',
+      validationId: 'browser-validation',
+      decision: 'approved',
+    })
+
+    await user.click(approveButtons[1]!)
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(decideValidationNodeAction).toHaveBeenCalledTimes(2)
+    expect(decideValidationNodeAction).toHaveBeenLastCalledWith({
+      planId: 'accessible-plan',
+      validationId: 'optional-validation',
+      decision: 'approved',
+    })
   })
 
   it('shows lifecycle actions in the validation tab after validation approval', async () => {
