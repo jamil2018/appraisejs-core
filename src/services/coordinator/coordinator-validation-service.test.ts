@@ -231,8 +231,12 @@ describe('validation preparation review gate', () => {
 
     await decideValidationNode(
       { planId, validationId: 'required-check', decision: 'approved', decidedBy: 'reviewer' },
-      { projectDirectory: workspace },
+      { projectDirectory: workspace, client },
     )
+    const projectionAfterDecision = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+    expect(JSON.parse(projectionAfterDecision.validationJson ?? '{}')).toMatchObject({
+      validationDecisions: [expect.objectContaining({ validationId: 'required-check', decision: 'approved' })],
+    })
     await approveValidationFile(
       {
         planId,
@@ -240,8 +244,12 @@ describe('validation preparation review gate', () => {
         contentHash: artifact.files[0]!.contentHash!,
         approvedBy: 'reviewer',
       },
-      { projectDirectory: workspace },
+      { projectDirectory: workspace, client },
     )
+    const projectionAfterFileApproval = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+    expect(JSON.parse(projectionAfterFileApproval.reviewJson ?? '{}')).toMatchObject({
+      fileApprovals: [expect.objectContaining({ path: 'src/product.ts' })],
+    })
 
     await expect(submitValidationReview(planId, { projectDirectory: workspace, client })).resolves.toMatchObject({
       plan: { lifecycle: 'validations_approved' },

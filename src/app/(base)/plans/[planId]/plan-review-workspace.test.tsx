@@ -25,6 +25,7 @@ const {
   setNodes,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
+  routerRefresh,
 } = vi.hoisted(() => ({
   approvePlanRevisionAction: vi.fn(),
   approveValidationFileAction: vi.fn(),
@@ -41,6 +42,7 @@ const {
   setNodes: vi.fn(),
   submitValidationFeedbackAction: vi.fn(),
   submitValidationReviewAction: vi.fn(),
+  routerRefresh: vi.fn(),
 }))
 
 vi.mock('@xyflow/react', () => ({
@@ -99,6 +101,10 @@ vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   submitValidationFeedbackAction,
   submitValidationReviewAction,
   transitionPlanRemarkAction: vi.fn(),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: routerRefresh }),
 }))
 
 beforeEach(() => {
@@ -646,7 +652,9 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText('production')).toBeInTheDocument()
     expect(screen.getAllByText('Declared')).toHaveLength(2)
     expect(screen.getAllByText('In manifest')).toHaveLength(2)
-    expect(screen.getByText('Approved')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approved' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Deferred' })).toBeDisabled()
+    expect(screen.getAllByText('Approved').length).toBeGreaterThanOrEqual(1)
   })
 
   it('submits validation node decisions, file approvals, validation review, and feedback actions', async () => {
@@ -658,6 +666,12 @@ describe('PlanReviewWorkspace', () => {
     const needsFileApproval: PlanReviewDetail = {
       ...validationDetail,
       review: { ...validationDetail.review!, fileApprovals: [] },
+      validation: {
+        ...validationDetail.validation!,
+        validationDecisions: validationDetail.validation!.validationDecisions.filter(
+          decision => decision.validationId !== 'browser-validation',
+        ),
+      },
       validationReview: {
         ...validationDetail.validationReview!,
         readiness: {
@@ -705,10 +719,24 @@ describe('PlanReviewWorkspace', () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault())
     decideValidationNodeAction.mockResolvedValue({ success: false, error: 'Expected test stop.' })
+    const undecidedDetail: PlanReviewDetail = {
+      ...validationDetail,
+      validation: { ...validationDetail.validation!, validationDecisions: [] },
+      validationReview: {
+        ...validationDetail.validationReview!,
+        readiness: {
+          ready: false,
+          blockers: [
+            'Required validation browser-validation is not approved for its current content hash.',
+            'Optional validation optional-validation needs a current decision.',
+          ],
+        },
+      },
+    }
 
     render(
       <form onSubmit={onSubmit}>
-        <PlanReviewWorkspace detail={validationDetail} initialTab="validations" />
+        <PlanReviewWorkspace detail={undecidedDetail} initialTab="validations" />
       </form>,
     )
 
@@ -736,7 +764,12 @@ describe('PlanReviewWorkspace', () => {
 
   it('shows lifecycle actions in the validation tab after validation approval', async () => {
     const user = userEvent.setup()
-    startBaselineExecutionAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    startBaselineExecutionAction.mockResolvedValueOnce({
+      success: false,
+      error:
+        'Validation files changed after approval or baseline execution: automation/features/review.feature, src/app/page.tsx. Re-review is required.',
+    })
+    submitValidationFeedbackAction.mockResolvedValueOnce({ success: true })
     const approvedDetail: PlanReviewDetail = {
       ...validationDetail,
       plan: { ...validationDetail.plan, lifecycle: 'validations_approved' },
@@ -748,9 +781,26 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText(/start required baseline runs before implementation/i)).toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: /start required baselines/i })[0]!)
     expect(startBaselineExecutionAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
+    expect(await screen.findByText('Action blocked')).toBeInTheDocument()
+    expect(screen.getByText(/validation files changed after approval or baseline execution/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Reopen validation review' }))
+    expect(submitValidationFeedbackAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      scope: 'test_artifact',
+      target: { type: 'plan' },
+      body: 'Validation files changed after approval or baseline execution: automation/features/review.feature, src/app/page.tsx. Re-review is required.',
+      affectedValidationIds: ['browser-validation', 'optional-validation'],
+      affectedFilePaths: ['automation/features/review.feature', 'src/app/page.tsx'],
+    })
   })
 
   it.each([
+    {
+      lifecycle: 'validation_changes_requested',
+      button: /waiting for updated validations/i,
+      action: null,
+    },
     {
       lifecycle: 'baseline_running',
       button: /reconcile run evidence/i,
@@ -768,7 +818,7 @@ describe('PlanReviewWorkspace', () => {
     },
   ] as const)('shows $lifecycle lifecycle action in the validation tab', async ({ lifecycle, button, action }) => {
     const user = userEvent.setup()
-    action.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
+    action?.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
     const lifecycleDetail: PlanReviewDetail = {
       ...validationDetail,
       plan: { ...validationDetail.plan, lifecycle },
@@ -779,6 +829,11 @@ describe('PlanReviewWorkspace', () => {
 
     if (lifecycle === 'baseline_running') {
       expect(screen.getAllByRole('button', { name: /cancel baseline runs/i }).length).toBeGreaterThan(0)
+    }
+    if (lifecycle === 'validation_changes_requested') {
+      expect(screen.getByRole('button', { name: button })).toBeDisabled()
+      expect(screen.getByText(/republish updated validation artifacts before approval/i)).toBeInTheDocument()
+      return
     }
     await user.click(screen.getAllByRole('button', { name: button })[0]!)
     expect(action).toHaveBeenCalledWith({ planId: 'accessible-plan' })

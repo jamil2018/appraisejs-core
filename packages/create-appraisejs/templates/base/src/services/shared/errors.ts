@@ -5,11 +5,18 @@ export type ServiceErrorCode = 'NOT_FOUND' | 'VALIDATION' | 'UNAUTHORIZED' | 'CO
 export class ServiceError extends Error {
   readonly code: ServiceErrorCode
   readonly statusCode: number
+  readonly details?: Record<string, unknown>
 
-  constructor(message: string, code: ServiceErrorCode = 'INTERNAL', statusCode?: number) {
+  constructor(
+    message: string,
+    code: ServiceErrorCode = 'INTERNAL',
+    statusCode?: number,
+    details?: Record<string, unknown>,
+  ) {
     super(message)
     this.name = 'ServiceError'
     this.code = code
+    this.details = details
     this.statusCode =
       statusCode ??
       (code === 'NOT_FOUND'

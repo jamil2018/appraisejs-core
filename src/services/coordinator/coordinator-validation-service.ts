@@ -336,6 +336,7 @@ export async function decideValidationNode(
     artifacts.validationStored.hash,
     serializeYamlArtifact('validation', next),
   )
+  await syncPlans({ projectDirectory: artifacts.projectRoot, client: options.client ?? prisma })
   return decision
 }
 
@@ -370,6 +371,7 @@ export async function approveValidationFile(
     artifacts.reviewStored.hash,
     serializeYamlArtifact('review', next),
   )
+  await syncPlans({ projectDirectory: artifacts.projectRoot, client: options.client ?? prisma })
   return approval
 }
 
