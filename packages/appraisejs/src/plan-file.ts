@@ -6,6 +6,106 @@ import { z } from 'zod'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const planIdSchema = z.string().regex(/^(?:[a-z0-9]+(?:-[a-z0-9]+)*|pln_[0-9a-hjkmnp-tv-z]{26})$/)
+const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
+const timestampSchema = z.string().datetime({ offset: true })
+const approvalSchema = z.object({
+  id: idSchema,
+  revision: z.number().int().positive(),
+  contentHash: hashSchema,
+  relevantHashes: z.record(z.string(), hashSchema),
+  approvedBy: z.string().min(1),
+  approvedAt: timestampSchema,
+})
+const implementationValidationRunSchema = z.object({
+  id: idSchema,
+  validationId: idSchema,
+  taskIds: z.array(idSchema).min(1),
+  required: z.boolean(),
+  status: z.enum(['passed', 'failed', 'cancelled', 'infrastructure_failure']),
+  fresh: z.boolean(),
+  commitHash: z.string().min(1),
+  evidenceUrls: z.array(z.string().min(1)),
+  failureSignatureHash: hashSchema.optional(),
+  acknowledgedAt: timestampSchema.optional(),
+  completedAt: timestampSchema,
+})
+const validationAppraiseArtifactsSchema = z.object({
+  modules: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        parentId: idSchema.nullable().optional(),
+      }),
+    )
+    .default([])
+    .describe('AppraiseJS modules that own generated suites and locator groups.'),
+  testSuites: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        description: z.string().min(1).optional(),
+        moduleId: idSchema,
+        testCaseIds: z.array(idSchema).min(1),
+      }),
+    )
+    .min(1)
+    .describe('AppraiseJS test suites generated for this validation.'),
+  testCases: z
+    .array(
+      z.object({
+        id: idSchema,
+        title: z.string().min(1),
+        description: z.string().min(1),
+        steps: z.array(
+          z.object({
+            id: idSchema,
+            order: z.number().int().nonnegative(),
+            label: z.string().min(1),
+            gherkinStep: z.string().min(1),
+            templateStepId: idSchema.optional(),
+            templateStepName: z.string().min(1).optional(),
+            parameters: z
+              .array(
+                z.object({
+                  name: z.string().min(1),
+                  value: z.string(),
+                  type: z.string().min(1).optional(),
+                  locatorId: idSchema.optional(),
+                  locatorName: z.string().min(1).optional(),
+                }),
+              )
+              .default([]),
+          }),
+        ),
+      }),
+    )
+    .min(1)
+    .describe('AppraiseJS test cases and ordered steps users can review and later execute.'),
+  locatorGroups: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        route: z.string().min(1),
+        moduleId: idSchema,
+      }),
+    )
+    .default([])
+    .describe('AppraiseJS locator groups used by the generated test cases.'),
+  locators: z
+    .array(
+      z.object({
+        id: idSchema,
+        name: z.string().min(1),
+        value: z.string().min(1),
+        locatorGroupId: idSchema,
+      }),
+    )
+    .default([])
+    .describe('AppraiseJS locators used by test case step parameters.'),
+})
 const planArtifactBaseSchema = z
   .object({
     version: z.literal('1'),
@@ -94,6 +194,194 @@ export const planCreateInputSchema = planArtifactBaseSchema
 export const planArtifactSchema = planArtifactBaseSchema.superRefine(validatePlanReferences)
 
 export type PlanFile = z.infer<typeof planArtifactSchema>
+
+export const validationArtifactSchema = z
+  .object({
+    version: z.literal('1').describe('Validation artifact contract version.'),
+    planId: planIdSchema.describe('The same plan ID passed to validation_publish.'),
+    revision: z.number().int().positive().describe('Plan revision that these validations cover.'),
+    baseRevision: z
+      .object({
+        gitCommit: z.string().min(1).nullable(),
+        snapshotHash: hashSchema,
+        reducedAssurance: z.boolean(),
+      })
+      .describe('Source snapshot used when validation artifacts were prepared.'),
+    classificationOverrides: z
+      .array(
+        z.object({
+          pattern: z.string().min(1),
+          classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
+        }),
+      )
+      .default([])
+      .describe('Optional file classification overrides used for changed-file evidence.'),
+    validations: z
+      .array(
+        z.object({
+          id: idSchema.describe('Stable lowercase kebab-case validation node ID.'),
+          taskIds: z.array(idSchema).min(1).describe('Plan task IDs covered by this validation.'),
+          required: z.boolean().describe('Required validations must be approved before baseline can start.'),
+          testCaseIds: z.array(idSchema).min(1).describe('Authored AppraiseJS test case IDs exercised.'),
+          appraiseArtifacts: validationAppraiseArtifactsSchema.describe(
+            'The AppraiseJS-native suites, test cases, steps, and locators generated for review and later execution.',
+          ),
+          gherkinPaths: z.array(z.string().min(1)).min(1).describe('Generated or reused Gherkin feature paths.'),
+          stepPaths: z.array(z.string().min(1)).min(1).describe('Generated or reused step definition paths.'),
+          executable: z
+            .object({
+              path: z.string().min(1),
+              selector: z.string().min(1).optional(),
+            })
+            .describe('Runnable command target, usually the feature file plus optional selector.'),
+          matrix: z
+            .array(
+              z.object({
+                browser: z.string().min(1),
+                environment: z.string().min(1),
+              }),
+            )
+            .min(1)
+            .describe('Browser/environment combinations this validation covers.'),
+          expectedFailures: z.array(
+            z.object({
+              browser: z.string().min(1),
+              environment: z.string().min(1),
+              signature: z.string().min(1),
+              order: z.number().int().nonnegative(),
+              lastPassingStepId: idSchema,
+            }),
+          ),
+        }),
+      )
+      .min(1)
+      .describe('Validation nodes shown in validation review.'),
+    approvals: z
+      .array(approvalSchema)
+      .describe('Historical validation-level approvals; usually empty at publish time.'),
+    reusedStepPaths: z
+      .array(z.string().min(1))
+      .optional()
+      .describe('Registry/template step paths reused before creating any custom steps.'),
+    newStepPaths: z.array(z.string().min(1)).optional().describe('New custom step paths created for validation prep.'),
+    customStepJustifications: z
+      .array(
+        z.object({
+          path: z.string().min(1),
+          missingCapability: z.string().min(1),
+          whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
+        }),
+      )
+      .optional()
+      .describe('Required for each custom step path when registry/template steps are insufficient.'),
+    validationDecisions: z
+      .array(
+        z.object({
+          validationId: idSchema,
+          decision: z.enum(['approved', 'rejected', 'deferred']),
+          contentHash: hashSchema,
+          decidedBy: z.string().min(1),
+          decidedAt: timestampSchema,
+        }),
+      )
+      .describe('Hash-bound user decisions; usually empty at publish time.'),
+    files: z
+      .array(
+        z.object({
+          path: z.string().min(1),
+          classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
+          rationale: z.string().min(1),
+          status: z.enum(['added', 'modified', 'deleted']),
+          beforeHash: hashSchema.nullable(),
+          contentHash: hashSchema.nullable(),
+          patch: z.string(),
+          declared: z.boolean(),
+        }),
+      )
+      .describe('Changed-file evidence shown to the reviewer.'),
+    manifestPaths: z.array(z.string().min(1)).describe('Every path intentionally changed for validation prep.'),
+    reviewSubmittedAt: timestampSchema.optional(),
+    baselineAttempts: z
+      .array(
+        z.object({
+          id: idSchema,
+          validationId: idSchema,
+          browser: z.string().min(1),
+          environment: z.string().min(1),
+          testRunId: z.string().min(1),
+          status: z.enum(['scheduled', 'running', 'completed', 'cancelled', 'interrupted']),
+          classification: z
+            .enum([
+              'expected_behavioral_failure',
+              'accepted_regression_pass',
+              'pre_existing_unrelated_failure',
+              'invalid_baseline_failure',
+            ])
+            .optional(),
+          signatureHash: hashSchema.optional(),
+          regressionJustification: z.string().min(1).optional(),
+          evidence: z.object({
+            logsUrl: z.string().min(1),
+            reportUrl: z.string().min(1),
+            traceUrls: z.array(z.string().min(1)).default([]),
+            screenshotUrls: z.array(z.string().min(1)).default([]),
+          }),
+          createdAt: timestampSchema,
+          completedAt: timestampSchema.optional(),
+        }),
+      )
+      .default([])
+      .describe('Baseline execution attempts; empty when publishing initial validation artifacts.'),
+    baselineAcknowledgements: z
+      .array(
+        z.object({
+          attemptId: idSchema,
+          signatureHash: hashSchema,
+          acknowledgedBy: z.string().min(1),
+          acknowledgedAt: timestampSchema,
+        }),
+      )
+      .default([])
+      .describe('Baseline acknowledgements; empty when publishing initial validation artifacts.'),
+    baselineDecision: z
+      .enum(['pending', 'accepted', 'changes-requested'])
+      .describe('Use pending when publishing validation artifacts before baseline execution.'),
+    implementation: z
+      .object({
+        taskStates: z.record(idSchema, z.enum(['pending', 'in_progress', 'implemented', 'verified'])),
+        approvedGroupIds: z.array(idSchema),
+        pausedTaskIds: z.array(idSchema),
+        checkpoint: z
+          .object({
+            type: z.enum([
+              'before_task',
+              'after_task',
+              'before_group',
+              'after_group',
+              'before_validation',
+              'before_completion',
+            ]),
+            taskIds: z.array(idSchema),
+            queuedFeedbackCount: z.number().int().nonnegative(),
+            reachedAt: timestampSchema,
+          })
+          .optional(),
+        validationRuns: z.array(implementationValidationRunSchema),
+        commits: z.array(
+          z.object({
+            hash: z.string().min(1),
+            taskIds: z.array(idSchema).min(1),
+            createdAt: timestampSchema,
+          }),
+        ),
+        evidenceProtected: z.boolean(),
+      })
+      .optional()
+      .describe('Implementation evidence; omit during initial validation preparation.'),
+  })
+  .strict()
+
+export type ValidationFile = z.infer<typeof validationArtifactSchema>
 
 function assertNoYamlReferences(document: ReturnType<typeof parseDocument>): void {
   let blockedReference: 'anchor' | 'alias' | undefined

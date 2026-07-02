@@ -13,7 +13,7 @@ import {
   type CoordinatorOptions as McpOptions,
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
-import { planArtifactSchema, planCreateInputSchema } from './plan-file.js'
+import { planArtifactSchema, planCreateInputSchema, validationArtifactSchema } from './plan-file.js'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version?: string }
@@ -70,6 +70,7 @@ const baseWorkflowResourceUris = [
   'appraise://target-projects',
   'appraise://agent-guide',
   'appraise://workflow/planning',
+  'appraise://workflow/validation-preparation',
   'appraise://workflow/standby',
 ] as const
 const providerNativeWorkflowResourceUris = ['appraise://providers', 'appraise://provider-runs'] as const
@@ -121,6 +122,155 @@ export const standbyWorkflow = {
   },
 }
 
+export const validationPreparationWorkflow = {
+  phase: 'validation_preparation',
+  preferredTool: 'validation_publish',
+  contractResource: 'appraise://workflow/validation-preparation',
+  artifactContract: 'appraise.validation/v1',
+  requiredTopLevelFields: [
+    'version',
+    'planId',
+    'revision',
+    'baseRevision',
+    'validations',
+    'approvals',
+    'validationDecisions',
+    'files',
+    'manifestPaths',
+    'baselineAttempts',
+    'baselineAcknowledgements',
+    'baselineDecision',
+  ],
+  initialPublishDefaults: {
+    approvals: [],
+    validationDecisions: [],
+    baselineAttempts: [],
+    baselineAcknowledgements: [],
+    baselineDecision: 'pending',
+  },
+  validationNodeFields: [
+    'id',
+    'taskIds',
+    'required',
+    'testCaseIds',
+    'appraiseArtifacts',
+    'gherkinPaths',
+    'stepPaths',
+    'executable',
+    'matrix',
+    'expectedFailures',
+  ],
+  appraiseArtifactFields: {
+    modules: ['id', 'name', 'parentId'],
+    testSuites: ['id', 'name', 'description', 'moduleId', 'testCaseIds'],
+    testCases: ['id', 'title', 'description', 'steps'],
+    testCaseSteps: ['id', 'order', 'label', 'gherkinStep', 'templateStepId', 'templateStepName', 'parameters'],
+    locatorGroups: ['id', 'name', 'route', 'moduleId'],
+    locators: ['id', 'name', 'value', 'locatorGroupId'],
+  },
+  changedFileFields: [
+    'path',
+    'classification',
+    'rationale',
+    'status',
+    'beforeHash',
+    'contentHash',
+    'patch',
+    'declared',
+  ],
+  registryFirst:
+    'Inspect and prefer existing registry/template steps before creating custom step definitions. Report reusedStepPaths. For every newStepPaths entry, include customStepJustifications with missingCapability and whyLocatorsAndExistingStepsAreInsufficient.',
+  appraiseFirst:
+    'Generate AppraiseJS-native authored artifacts first: modules, test suites, test cases, ordered steps, locator groups, and locators. Gherkin, step-definition, and Playwright runtime files are execution evidence derived from those authored artifacts, not the primary review surface.',
+  lifecycle:
+    'Call validation_publish only after plan_start has moved the plan into validation preparation. validation_publish persists appraise/plans/validations/<plan-id>.validation.yaml, emits validation_review_ready, and moves the plan to awaiting_validation_review.',
+  minimalSkeleton: {
+    version: '1',
+    planId: '<plan-id>',
+    revision: 1,
+    baseRevision: {
+      gitCommit: null,
+      snapshotHash: 'sha256:<64 lowercase hex chars>',
+      reducedAssurance: true,
+    },
+    classificationOverrides: [],
+    validations: [
+      {
+        id: 'primary-workflow',
+        taskIds: ['task-id'],
+        required: true,
+        testCaseIds: ['primary-workflow'],
+        appraiseArtifacts: {
+          modules: [{ id: 'core-module', name: 'Core workflow' }],
+          testSuites: [
+            {
+              id: 'primary-suite',
+              name: 'Primary workflow',
+              description: 'End-to-end reviewable workflow generated for validation.',
+              moduleId: 'core-module',
+              testCaseIds: ['primary-workflow'],
+            },
+          ],
+          testCases: [
+            {
+              id: 'primary-workflow',
+              title: 'Complete the primary workflow',
+              description: 'Verifies the reviewed user path through AppraiseJS-authored steps.',
+              steps: [
+                {
+                  id: 'open-page',
+                  order: 0,
+                  label: 'Open the app',
+                  gherkinStep: 'Given I open the application',
+                  templateStepName: 'Navigate to URL',
+                  parameters: [{ name: 'url', value: '/', type: 'TEXT' }],
+                },
+              ],
+            },
+          ],
+          locatorGroups: [{ id: 'core-page', name: 'Core page', route: '/', moduleId: 'core-module' }],
+          locators: [
+            {
+              id: 'primary-action',
+              name: 'Primary action',
+              value: '[data-testid="primary-action"]',
+              locatorGroupId: 'core-page',
+            },
+          ],
+        },
+        gherkinPaths: ['automation/features/primary-workflow.feature'],
+        stepPaths: ['automation/steps/primary-workflow.steps.ts'],
+        executable: { path: 'automation/features/primary-workflow.feature', selector: 'Primary workflow' },
+        matrix: [{ browser: 'chromium', environment: 'local' }],
+        expectedFailures: [],
+      },
+    ],
+    approvals: [],
+    reusedStepPaths: ['automation/steps/templates/navigation.steps.ts'],
+    newStepPaths: [],
+    customStepJustifications: [],
+    validationDecisions: [],
+    files: [
+      {
+        path: 'automation/features/primary-workflow.feature',
+        classification: 'test_only',
+        rationale: 'Validation artifact for reviewed plan behavior.',
+        status: 'added',
+        beforeHash: null,
+        contentHash: 'sha256:<64 lowercase hex chars>',
+        patch: '<unified diff or concise patch evidence>',
+        declared: true,
+      },
+    ],
+    manifestPaths: ['automation/features/primary-workflow.feature'],
+    baselineAttempts: [],
+    baselineAcknowledgements: [],
+    baselineDecision: 'pending',
+  },
+  errorRecovery:
+    'If validation_publish returns invalid-request, read the returned path and correct that field. Do not inspect AppraiseJS core source to infer the contract; use this resource and the validation_publish input schema.',
+}
+
 export const mcpCapabilityMetadata = {
   packageVersion: packageJson.version ?? '0.0.0',
   mcpSurfaceVersion,
@@ -167,6 +317,7 @@ export const agentGuide = {
     mcpSetup: 'docs/agent-mcp-setup.md',
     contract: 'docs/coordinator-api-mcp.md',
   },
+  validationPreparationWorkflow,
 }
 
 function diagnosticGuidance(diagnostic: unknown) {
@@ -789,6 +940,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     { title: 'AppraiseJS planning workflow', mimeType: 'application/json' },
     async uri => ({
       contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(planningWorkflow) }],
+    }),
+  )
+  server.registerResource(
+    'workflow-validation-preparation',
+    'appraise://workflow/validation-preparation',
+    { title: 'AppraiseJS validation preparation workflow and artifact contract', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(validationPreparationWorkflow),
+        },
+      ],
     }),
   )
   server.registerResource(
@@ -1449,8 +1614,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'validation_publish',
     {
-      description: 'Publish generated validation nodes and changed-file evidence for user review.',
-      inputSchema: { planId: z.string(), validation: z.record(z.string(), z.unknown()) },
+      description:
+        'Publish generated validation nodes and changed-file evidence for user review. The validation argument must satisfy the appraise.validation/v1 ValidationArtifact contract exposed by appraise://workflow/validation-preparation; use empty arrays for approvals, validationDecisions, baselineAttempts, and baselineAcknowledgements on initial publish, and baselineDecision:"pending".',
+      inputSchema: { planId: z.string(), validation: validationArtifactSchema },
     },
     async ({ planId, validation }) => {
       const published = (await api.request(`plans/${planId}/validations/publish`, {

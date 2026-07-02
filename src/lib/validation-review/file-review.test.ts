@@ -56,6 +56,35 @@ describe('validation preparation file review', () => {
 })
 
 describe('validation review approval', () => {
+  const appraiseArtifacts = {
+    modules: [{ id: 'checkout-module', name: 'Checkout' }],
+    testSuites: [
+      {
+        id: 'checkout-suite',
+        name: 'Checkout suite',
+        moduleId: 'checkout-module',
+        testCaseIds: ['case-one'],
+      },
+    ],
+    testCases: [
+      {
+        id: 'case-one',
+        title: 'Checkout review',
+        description: 'AppraiseJS-authored checkout review validation.',
+        steps: [
+          {
+            id: 'review-step',
+            order: 0,
+            label: 'Review checkout',
+            gherkinStep: 'Given I review checkout',
+            parameters: [],
+          },
+        ],
+      },
+    ],
+    locatorGroups: [],
+    locators: [],
+  }
   const validation: ValidationArtifact = {
     version: '1',
     planId: 'checkout',
@@ -68,6 +97,7 @@ describe('validation review approval', () => {
         taskIds: ['task-one'],
         required: true,
         testCaseIds: ['case-one'],
+        appraiseArtifacts,
         gherkinPaths: ['automation/features/case-one.feature'],
         stepPaths: ['automation/steps/actions/case-one.step.ts'],
         executable: { path: 'automation/features/case-one.feature' },

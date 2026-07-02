@@ -59,6 +59,46 @@ function plan(planId: string): PlanArtifact {
   }
 }
 
+function appraiseArtifacts(testCaseId = 'case-one') {
+  return {
+    modules: [{ id: 'validation-module', name: 'Validation module' }],
+    testSuites: [
+      {
+        id: 'validation-suite',
+        name: 'Validation suite',
+        moduleId: 'validation-module',
+        testCaseIds: [testCaseId],
+      },
+    ],
+    testCases: [
+      {
+        id: testCaseId,
+        title: `Validate ${testCaseId}`,
+        description: `AppraiseJS-authored test case for ${testCaseId}.`,
+        steps: [
+          {
+            id: `${testCaseId}-step`,
+            order: 0,
+            label: 'Run validation step',
+            gherkinStep: 'Given I run the validation step',
+            templateStepName: 'Run step',
+            parameters: [],
+          },
+        ],
+      },
+    ],
+    locatorGroups: [{ id: 'validation-page', name: 'Validation page', route: '/', moduleId: 'validation-module' }],
+    locators: [
+      {
+        id: 'validation-target',
+        name: 'Validation target',
+        value: '[data-testid="validation-target"]',
+        locatorGroupId: 'validation-page',
+      },
+    ],
+  }
+}
+
 function validation(planId: string, overrides: Partial<ValidationArtifact> = {}): ValidationArtifact {
   const base: ValidationArtifact = {
     version: '1',
@@ -72,6 +112,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         taskIds: ['first-task'],
         required: true,
         testCaseIds: ['case-one'],
+        appraiseArtifacts: appraiseArtifacts('case-one'),
         gherkinPaths: ['automation/features/case-one.feature'],
         stepPaths: ['automation/steps/actions/case-one.step.ts'],
         executable: { path: 'automation/features/case-one.feature' },
@@ -350,6 +391,7 @@ describe('validation preparation review gate', () => {
           taskIds: ['first-task'],
           required: true,
           testCaseIds: ['case-two'],
+          appraiseArtifacts: appraiseArtifacts('case-two'),
           gherkinPaths: ['automation/features/case-two.feature'],
           stepPaths: ['automation/steps/actions/case-two.step.ts'],
           executable: { path: 'automation/features/case-two.feature' },

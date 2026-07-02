@@ -75,6 +75,41 @@ function plan(planId: string, lifecycle: PlanArtifact['lifecycle'] = 'in_progres
   }
 }
 
+function appraiseArtifacts(testCaseId: string) {
+  return {
+    modules: [{ id: 'implementation-module', name: 'Implementation module' }],
+    testSuites: [
+      {
+        id: `${testCaseId}-suite`,
+        name: `${testCaseId} suite`,
+        moduleId: 'implementation-module',
+        testCaseIds: [testCaseId],
+      },
+    ],
+    testCases: [
+      {
+        id: testCaseId,
+        title: `Validate ${testCaseId}`,
+        description: `AppraiseJS-authored implementation validation for ${testCaseId}.`,
+        steps: [
+          {
+            id: `${testCaseId}-step`,
+            order: 0,
+            label: 'Run implementation validation step',
+            gherkinStep: 'Given I run the implementation validation step',
+            templateStepName: 'Run step',
+            parameters: [],
+          },
+        ],
+      },
+    ],
+    locatorGroups: [
+      { id: `${testCaseId}-page`, name: `${testCaseId} page`, route: '/', moduleId: 'implementation-module' },
+    ],
+    locators: [],
+  }
+}
+
 function validation(planId: string, overrides: Partial<ValidationArtifact> = {}): ValidationArtifact {
   const artifact: ValidationArtifact = {
     version: '1',
@@ -88,6 +123,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         taskIds: ['foundation', 'api'],
         required: true,
         testCaseIds: ['case-core'],
+        appraiseArtifacts: appraiseArtifacts('case-core'),
         gherkinPaths: ['automation/features/core.feature'],
         stepPaths: ['automation/steps/core.step.ts'],
         executable: { path: 'automation/features/core.feature' },
@@ -99,6 +135,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         taskIds: ['docs'],
         required: true,
         testCaseIds: ['case-docs'],
+        appraiseArtifacts: appraiseArtifacts('case-docs'),
         gherkinPaths: ['automation/features/docs.feature'],
         stepPaths: ['automation/steps/docs.step.ts'],
         executable: { path: 'automation/features/docs.feature' },

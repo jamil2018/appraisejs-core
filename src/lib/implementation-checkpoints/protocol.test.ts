@@ -43,6 +43,35 @@ const validation = {
       taskIds: ['foundation', 'api'],
       required: true,
       testCaseIds: ['test-one'],
+      appraiseArtifacts: {
+        modules: [{ id: 'implementation-module', name: 'Implementation' }],
+        testSuites: [
+          {
+            id: 'implementation-suite',
+            name: 'Implementation suite',
+            moduleId: 'implementation-module',
+            testCaseIds: ['test-one'],
+          },
+        ],
+        testCases: [
+          {
+            id: 'test-one',
+            title: 'Validate implementation',
+            description: 'AppraiseJS-authored implementation validation.',
+            steps: [
+              {
+                id: 'run-validation',
+                order: 0,
+                label: 'Run validation',
+                gherkinStep: 'Given I run validation',
+                parameters: [],
+              },
+            ],
+          },
+        ],
+        locatorGroups: [],
+        locators: [],
+      },
       gherkinPaths: ['test.feature'],
       stepPaths: ['steps.ts'],
       executable: { path: 'test.ts' },

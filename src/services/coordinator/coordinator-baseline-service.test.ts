@@ -57,6 +57,39 @@ function plan(planId: string, lifecycle: PlanArtifact['lifecycle'] = 'validation
   }
 }
 
+function appraiseArtifacts(testCaseId = 'case-one') {
+  return {
+    modules: [{ id: 'baseline-module', name: 'Baseline module' }],
+    testSuites: [
+      {
+        id: 'baseline-suite',
+        name: 'Baseline suite',
+        moduleId: 'baseline-module',
+        testCaseIds: [testCaseId],
+      },
+    ],
+    testCases: [
+      {
+        id: testCaseId,
+        title: `Baseline ${testCaseId}`,
+        description: `AppraiseJS-authored baseline test case for ${testCaseId}.`,
+        steps: [
+          {
+            id: `${testCaseId}-step`,
+            order: 0,
+            label: 'Run baseline step',
+            gherkinStep: 'Given I run the baseline step',
+            templateStepName: 'Run step',
+            parameters: [],
+          },
+        ],
+      },
+    ],
+    locatorGroups: [{ id: 'baseline-page', name: 'Baseline page', route: '/', moduleId: 'baseline-module' }],
+    locators: [],
+  }
+}
+
 function validation(planId: string, overrides: Partial<ValidationArtifact> = {}): ValidationArtifact {
   const artifact: ValidationArtifact = {
     version: '1',
@@ -70,6 +103,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         taskIds: ['first-task'],
         required: true,
         testCaseIds: ['case-one'],
+        appraiseArtifacts: appraiseArtifacts('case-one'),
         gherkinPaths: ['automation/features/case-one.feature'],
         stepPaths: ['automation/steps/actions/case-one.step.ts'],
         executable: { path: 'automation/features/case-one.feature' },

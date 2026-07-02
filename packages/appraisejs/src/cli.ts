@@ -27,7 +27,12 @@ const expectedAgentCapabilities = {
     'baseline_accept',
     'implementation_start',
   ],
-  resources: ['appraise://agent-guide', 'appraise://workflow/planning', 'appraise://workflow/standby'],
+  resources: [
+    'appraise://agent-guide',
+    'appraise://workflow/planning',
+    'appraise://workflow/validation-preparation',
+    'appraise://workflow/standby',
+  ],
 }
 const staleAgentCapabilityRecovery = [
   'Restart or reconnect the MCP/agent client.',

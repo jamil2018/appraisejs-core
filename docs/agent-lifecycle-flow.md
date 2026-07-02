@@ -22,8 +22,10 @@ agent waits again. Pending review or pending approval is not completion.
 `plan_approved` permits starting validation preparation. A coordinator should acknowledge the approval only after the
 transition it permits succeeds. `validation_preparation_started` marks the validation file generation phase.
 Validation preparation must create AppraiseJS-native review artifacts before standby: `ValidationArtifact`, validation
-nodes, `automation/features`, `automation/steps`, executable metadata, browser/environment matrix, expected failures,
-changed-file evidence, manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`. Agents must call
+nodes, modules, test suites, test cases, ordered steps, locator groups, locators, `automation/features`,
+`automation/steps`, executable metadata, browser/environment matrix, expected failures, changed-file evidence, manifest
+paths, and `appraise/plans/validations/<plan-id>.validation.yaml`. The AppraiseJS artifacts are the primary review and
+future execution surface; Playwright/Gherkin files are runtime evidence derived from them. Agents must call
 `validation_publish` before claiming the user can review validations.
 
 ## Validation Review

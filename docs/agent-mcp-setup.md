@@ -61,7 +61,8 @@ client. Do not report tools as available until the client has completed that ref
 After reconnect, verify these expected capabilities:
 
 - Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`
-- Resources: `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/standby`
+- Resources: `appraise://agent-guide`, `appraise://workflow/planning`,
+  `appraise://workflow/validation-preparation`, `appraise://workflow/standby`
 
 Provider-native runs are experimental and disabled by default. If `APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true` is set
 before starting AppraiseJS, the MCP server also exposes provider resources and tools such as
@@ -96,6 +97,11 @@ After `validation_preparation_started`, agents must create AppraiseJS-native val
 `validation_publish` before entering validation review standby. The publish response should include the direct
 validation review URL, `appraise://` URL, `ValidationArtifact` path, validation count, changed-file count, manifest
 paths, reused registry/template step paths, new custom step paths, and the next review action.
+Agents should read `appraise://workflow/validation-preparation` and the `validation_publish` input schema for the
+required validation artifact shape instead of inspecting AppraiseJS source files.
+The artifact shape must include AppraiseJS-native modules, test suites, test cases, ordered test steps, locator groups,
+and locators so users can review real tests in AppraiseJS and execute them later. Runtime Gherkin, step-definition, and
+Playwright files are supporting evidence, not the primary review artifact.
 
 ## Troubleshooting
 

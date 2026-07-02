@@ -11,6 +11,7 @@ import {
   planningWorkflow,
   reviewReadyPendingResponse,
   standbyWorkflow,
+  validationPreparationWorkflow,
 } from './mcp.js'
 
 describe('MCP approval wait helpers', () => {
@@ -244,8 +245,52 @@ describe('MCP capability and recovery metadata', () => {
       ]),
     )
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(
-      expect.arrayContaining(['appraise://project', 'appraise://workflow/planning', 'appraise://workflow/standby']),
+      expect.arrayContaining([
+        'appraise://project',
+        'appraise://workflow/planning',
+        'appraise://workflow/validation-preparation',
+        'appraise://workflow/standby',
+      ]),
     )
+  })
+
+  it('exposes validation artifact expectations before validation_publish is called', () => {
+    expect(agentGuide.validationPreparationWorkflow).toBe(validationPreparationWorkflow)
+    expect(validationPreparationWorkflow.preferredTool).toBe('validation_publish')
+    expect(validationPreparationWorkflow.artifactContract).toBe('appraise.validation/v1')
+    expect(validationPreparationWorkflow.requiredTopLevelFields).toEqual(
+      expect.arrayContaining(['validations', 'files', 'manifestPaths', 'baselineDecision']),
+    )
+    expect(validationPreparationWorkflow.validationNodeFields).toContain('appraiseArtifacts')
+    expect(validationPreparationWorkflow.appraiseFirst).toContain('AppraiseJS-native authored artifacts first')
+    expect(validationPreparationWorkflow.appraiseArtifactFields).toMatchObject({
+      testSuites: expect.arrayContaining(['id', 'name', 'testCaseIds']),
+      testCases: expect.arrayContaining(['id', 'title', 'steps']),
+      locators: expect.arrayContaining(['id', 'name', 'value']),
+    })
+    expect(validationPreparationWorkflow.initialPublishDefaults).toMatchObject({
+      approvals: [],
+      validationDecisions: [],
+      baselineAttempts: [],
+      baselineAcknowledgements: [],
+      baselineDecision: 'pending',
+    })
+    expect(validationPreparationWorkflow.registryFirst).toContain('customStepJustifications')
+    expect(validationPreparationWorkflow.minimalSkeleton).toMatchObject({
+      version: '1',
+      validations: [
+        expect.objectContaining({
+          appraiseArtifacts: expect.objectContaining({
+            testSuites: expect.any(Array),
+            testCases: expect.any(Array),
+            locators: expect.any(Array),
+          }),
+          gherkinPaths: expect.any(Array),
+          stepPaths: expect.any(Array),
+        }),
+      ],
+      files: [expect.objectContaining({ classification: 'test_only', declared: true })],
+    })
   })
 
   it('keeps standby workflow resource aligned with complete handoff-before-wait guidance', () => {
