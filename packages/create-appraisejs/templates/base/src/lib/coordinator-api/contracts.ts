@@ -22,6 +22,15 @@ export function planLinks(planId: string, baseUrl: string) {
   }
 }
 
+export function validationReviewLinks(planId: string, baseUrl: string) {
+  const route = `/plans/${planId}?review=validation`
+  return {
+    appraise: `appraise://plans/${planId}`,
+    browser: new URL(route, `${baseUrl.replace(/\/$/, '')}/`).href,
+    route,
+  }
+}
+
 export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | undefined {
   if (error instanceof CoordinatorProjectMismatchError) {
     return {
@@ -48,6 +57,7 @@ export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | und
     return {
       code: error.code,
       message: error.message,
+      ...(error.details ? { details: error.details } : {}),
       ...(error.code === 'CONFLICT' ? { recovery: 'Read the current plan and retry against its latest hash.' } : {}),
     }
   }

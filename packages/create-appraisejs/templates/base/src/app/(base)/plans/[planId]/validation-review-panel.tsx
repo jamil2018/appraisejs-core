@@ -13,6 +13,7 @@ import type { PlanReviewDetail } from '@/services/plan-review/plan-review-servic
 type ActionResult = { success?: boolean; error?: string }
 type ValidationArtifact = NonNullable<PlanReviewDetail['validation']>
 type ValidationNode = ValidationArtifact['validations'][number]
+type ValidationAppraiseArtifacts = ValidationNode['appraiseArtifacts']
 type ChangedFile = ValidationArtifact['files'][number]
 type ValidationReviewState = NonNullable<PlanReviewDetail['validationReview']>
 type ValidationDecision = ValidationArtifact['validationDecisions'][number]
@@ -25,10 +26,19 @@ type FeedbackScope = 'test_artifact' | 'product_scope'
 type ValidationReviewPanelProps = {
   detail: PlanReviewDetail
   isPending: boolean
-  run: (operation: () => Promise<ActionResult>, successMessage: string) => void
+  run: (
+    operation: () => Promise<ActionResult>,
+    successMessage: string,
+    options?: { recovery?: 'validation-drift' },
+  ) => void
   onDecideValidation: (validationId: string, decision: 'approved' | 'rejected' | 'deferred') => Promise<ActionResult>
   onApproveFile: (path: string) => Promise<ActionResult>
   onSubmitReview: () => Promise<ActionResult>
+  onStartBaseline: () => Promise<ActionResult>
+  onReconcileBaseline: () => Promise<ActionResult>
+  onCancelBaseline: () => Promise<ActionResult>
+  onAcceptBaseline: () => Promise<ActionResult>
+  onStartImplementation: () => Promise<ActionResult>
   onSubmitFeedback: (input: {
     scope: FeedbackScope
     target: ValidationFeedbackTarget
@@ -53,10 +63,28 @@ function fileNeedsApproval(file: ChangedFile): boolean {
 }
 
 function submitDisabledReason(lifecycle: string, reviewState: ValidationReviewState): string | null {
-  if (lifecycle === 'validations_approved')
-    return 'Validations are already approved. Baseline controls are available separately.'
+  if (lifecycle === 'validations_approved') return 'Validations are approved. Start required baselines to continue.'
+  if (lifecycle === 'validation_changes_requested') {
+    return 'Validation changes were requested. Republish updated validation artifacts before approval.'
+  }
   if (lifecycle !== 'awaiting_validation_review') return 'The plan is not awaiting validation review.'
   return reviewState.readiness.ready ? null : reviewState.readiness.blockers.join(' ')
+}
+
+function submitButtonLabel(lifecycle: string): string {
+  if (lifecycle === 'validations_approved') return 'Validation review approved'
+  if (lifecycle === 'validation_changes_requested') return 'Waiting for updated validations'
+  return 'Approve validation review and continue'
+}
+
+function baselineActionDescription(lifecycle: string): string | null {
+  if (lifecycle === 'validations_approved' || lifecycle === 'baseline_changes_requested') {
+    return 'Validation review is approved. Start required baseline runs before implementation.'
+  }
+  if (lifecycle === 'baseline_running') return 'Baseline runs are active. Reconcile evidence or cancel the run.'
+  if (lifecycle === 'baseline_review') return 'Baseline evidence is ready for acceptance.'
+  if (lifecycle === 'baseline_accepted') return 'Baseline evidence is accepted. Unlock implementation to continue.'
+  return null
 }
 
 function feedbackTargetLabel(target: ValidationFeedbackTarget): string {
@@ -74,6 +102,128 @@ function Info({ label, value }: { label: string; value: string }) {
   )
 }
 
+function AppraiseArtifactSummary({ artifacts }: { artifacts?: ValidationAppraiseArtifacts }) {
+  if (!artifacts) return null
+
+  return (
+    <div className="mt-4 space-y-3 border-t pt-4">
+      <div>
+        <h5 className="text-sm font-semibold">AppraiseJS artifacts</h5>
+        <div className="mt-2 grid gap-3 text-sm md:grid-cols-3">
+          <Info label="Modules" value={artifacts.modules.map(module => module.name).join(', ') || 'None'} />
+          <Info
+            label="Test suites"
+            value={artifacts.testSuites.map(suite => `${suite.name} (${suite.testCaseIds.length})`).join(', ')}
+          />
+          <Info label="Locators" value={artifacts.locators.map(locator => locator.name).join(', ') || 'None'} />
+        </div>
+      </div>
+      <div className="space-y-3">
+        {artifacts.testCases.map(testCase => (
+          <div key={testCase.id} className="space-y-2">
+            <div>
+              <p className="font-medium">{testCase.title}</p>
+              <p className="text-sm text-muted-foreground">{testCase.description}</p>
+            </div>
+            <ol className="space-y-2">
+              {testCase.steps.map(step => (
+                <li key={step.id} className="grid gap-2 text-sm md:grid-cols-[3rem_minmax(0,1fr)]">
+                  <span className="font-mono text-xs text-muted-foreground">#{step.order + 1}</span>
+                  <div className="min-w-0">
+                    <p className="font-medium">{step.label}</p>
+                    <p className="break-words font-mono text-xs text-muted-foreground">{step.gherkinStep}</p>
+                    {step.templateStepName || step.parameters.length ? (
+                      <p className="mt-1 break-words text-xs text-muted-foreground">
+                        {[step.templateStepName, ...step.parameters.map(param => `${param.name}: ${param.value}`)]
+                          .filter(Boolean)
+                          .join(' | ')}
+                      </p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BaselineLifecycleActions({
+  lifecycle,
+  isPending,
+  run,
+  onStartBaseline,
+  onReconcileBaseline,
+  onCancelBaseline,
+  onAcceptBaseline,
+  onStartImplementation,
+}: {
+  lifecycle: string
+  isPending: boolean
+  run: ValidationReviewPanelProps['run']
+  onStartBaseline: ValidationReviewPanelProps['onStartBaseline']
+  onReconcileBaseline: ValidationReviewPanelProps['onReconcileBaseline']
+  onCancelBaseline: ValidationReviewPanelProps['onCancelBaseline']
+  onAcceptBaseline: ValidationReviewPanelProps['onAcceptBaseline']
+  onStartImplementation: ValidationReviewPanelProps['onStartImplementation']
+}) {
+  const description = baselineActionDescription(lifecycle)
+  if (!description) return null
+
+  const canStartBaseline = lifecycle === 'validations_approved' || lifecycle === 'baseline_changes_requested'
+  return (
+    <div className="mt-4 rounded-md border p-3">
+      <p className="text-sm text-muted-foreground">{description}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {canStartBaseline ? (
+          <Button
+            type="button"
+            disabled={isPending}
+            onClick={() => run(onStartBaseline, 'Baseline runs submitted.', { recovery: 'validation-drift' })}
+          >
+            Start required baselines
+          </Button>
+        ) : null}
+        {lifecycle === 'baseline_running' ? (
+          <>
+            <Button
+              type="button"
+              disabled={isPending}
+              onClick={() => run(onReconcileBaseline, 'Baseline evidence reconciled.')}
+            >
+              Reconcile run evidence
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => run(onCancelBaseline, 'Baseline execution cancelled.')}
+            >
+              Cancel baseline runs
+            </Button>
+          </>
+        ) : null}
+        {lifecycle === 'baseline_review' ? (
+          <Button type="button" disabled={isPending} onClick={() => run(onAcceptBaseline, 'Baselines accepted.')}>
+            Accept complete baseline
+          </Button>
+        ) : null}
+        {lifecycle === 'baseline_accepted' ? (
+          <Button
+            type="button"
+            disabled={isPending}
+            onClick={() => run(onStartImplementation, 'Implementation unlocked.')}
+          >
+            Unlock implementation
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function ValidationSummary({
   detail,
   validation,
@@ -81,6 +231,11 @@ function ValidationSummary({
   isPending,
   run,
   onSubmitReview,
+  onStartBaseline,
+  onReconcileBaseline,
+  onCancelBaseline,
+  onAcceptBaseline,
+  onStartImplementation,
 }: {
   detail: PlanReviewDetail
   validation: ValidationArtifact
@@ -88,6 +243,11 @@ function ValidationSummary({
   isPending: boolean
   run: ValidationReviewPanelProps['run']
   onSubmitReview: ValidationReviewPanelProps['onSubmitReview']
+  onStartBaseline: ValidationReviewPanelProps['onStartBaseline']
+  onReconcileBaseline: ValidationReviewPanelProps['onReconcileBaseline']
+  onCancelBaseline: ValidationReviewPanelProps['onCancelBaseline']
+  onAcceptBaseline: ValidationReviewPanelProps['onAcceptBaseline']
+  onStartImplementation: ValidationReviewPanelProps['onStartImplementation']
 }) {
   const disabledReason = submitDisabledReason(detail.plan.lifecycle, reviewState)
 
@@ -120,12 +280,13 @@ function ValidationSummary({
       ) : null}
       <div className="mt-4">
         <Button
+          type="button"
           disabled={isPending || Boolean(disabledReason)}
           aria-describedby={disabledReason ? 'validation-submit-disabled-reason' : undefined}
           onClick={() => run(onSubmitReview, 'Validation review approved. Baseline is now available.')}
         >
           <ShieldCheck className="mr-2 size-4" />
-          Submit validation review
+          {submitButtonLabel(detail.plan.lifecycle)}
         </Button>
         {disabledReason ? (
           <p id="validation-submit-disabled-reason" className="mt-2 text-sm text-muted-foreground">
@@ -133,6 +294,16 @@ function ValidationSummary({
           </p>
         ) : null}
       </div>
+      <BaselineLifecycleActions
+        lifecycle={detail.plan.lifecycle}
+        isPending={isPending}
+        run={run}
+        onStartBaseline={onStartBaseline}
+        onReconcileBaseline={onReconcileBaseline}
+        onCancelBaseline={onCancelBaseline}
+        onAcceptBaseline={onAcceptBaseline}
+        onStartImplementation={onStartImplementation}
+      />
     </div>
   )
 }
@@ -142,6 +313,7 @@ function ValidationNodeCard({
   node,
   hash,
   currentDecision,
+  canDecide,
   isPending,
   run,
   onDecideValidation,
@@ -150,6 +322,7 @@ function ValidationNodeCard({
   node: ValidationNode
   hash: string
   currentDecision?: ValidationDecision
+  canDecide: boolean
   isPending: boolean
   run: ValidationReviewPanelProps['run']
   onDecideValidation: ValidationReviewPanelProps['onDecideValidation']
@@ -157,6 +330,7 @@ function ValidationNodeCard({
 }) {
   const decide = (decision: 'approved' | 'rejected' | 'deferred') =>
     run(() => onDecideValidation(node.id, decision), `Validation ${node.id} ${decision}.`)
+  const controlsLocked = isPending || !canDecide
 
   return (
     <div className="rounded-lg border p-4">
@@ -172,19 +346,37 @@ function ValidationNodeCard({
           <p className="mt-2 font-mono text-xs text-muted-foreground">{hash}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={isPending} onClick={() => decide('approved')}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={controlsLocked || currentDecision?.decision === 'approved'}
+            onClick={() => decide('approved')}
+          >
             <Check className="mr-1 size-3.5" />
-            Approve
-          </Button>
-          <Button size="sm" variant="outline" disabled={isPending || node.required} onClick={() => decide('deferred')}>
-            <Clock className="mr-1 size-3.5" />
-            Defer
-          </Button>
-          <Button size="sm" variant="outline" disabled={isPending || node.required} onClick={() => decide('rejected')}>
-            <XCircle className="mr-1 size-3.5" />
-            Reject
+            {currentDecision?.decision === 'approved' ? 'Approved' : 'Approve'}
           </Button>
           <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={controlsLocked || node.required || currentDecision?.decision === 'deferred'}
+            onClick={() => decide('deferred')}
+          >
+            <Clock className="mr-1 size-3.5" />
+            {currentDecision?.decision === 'deferred' ? 'Deferred' : 'Defer'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={controlsLocked || node.required || currentDecision?.decision === 'rejected'}
+            onClick={() => decide('rejected')}
+          >
+            <XCircle className="mr-1 size-3.5" />
+            {currentDecision?.decision === 'rejected' ? 'Rejected' : 'Reject'}
+          </Button>
+          <Button
+            type="button"
             size="sm"
             variant="ghost"
             onClick={() => onFeedbackTarget({ type: 'validation', validationId: node.id })}
@@ -196,6 +388,10 @@ function ValidationNodeCard({
       </div>
       <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
         <Info label="Task IDs" value={node.taskIds.join(', ')} />
+        <Info label="Test cases" value={node.testCaseIds.join(', ')} />
+      </div>
+      <AppraiseArtifactSummary artifacts={node.appraiseArtifacts} />
+      <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
         <Info
           label="Executable"
           value={`${node.executable.path}${node.executable.selector ? ` :: ${node.executable.selector}` : ''}`}
@@ -220,6 +416,7 @@ function ValidationNodeList({
   validation,
   reviewState,
   decisions,
+  canDecide,
   isPending,
   run,
   onDecideValidation,
@@ -228,6 +425,7 @@ function ValidationNodeList({
   validation: ValidationArtifact
   reviewState: ValidationReviewState
   decisions: Map<string, ValidationDecision>
+  canDecide: boolean
   isPending: boolean
   run: ValidationReviewPanelProps['run']
   onDecideValidation: ValidationReviewPanelProps['onDecideValidation']
@@ -248,6 +446,7 @@ function ValidationNodeList({
             node={node}
             hash={hash}
             currentDecision={currentDecision}
+            canDecide={canDecide}
             isPending={isPending}
             run={run}
             onDecideValidation={onDecideValidation}
@@ -303,6 +502,7 @@ function ChangedFileCard({
         <div className="flex flex-wrap gap-2">
           {requiresApproval ? (
             <Button
+              type="button"
               size="sm"
               disabled={isPending || approved}
               onClick={() => run(() => onApproveFile(file.path), `File ${file.path} approved.`)}
@@ -311,7 +511,12 @@ function ChangedFileCard({
               Approve file
             </Button>
           ) : null}
-          <Button size="sm" variant="ghost" onClick={() => onFeedbackTarget({ type: 'file', path: file.path })}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => onFeedbackTarget({ type: 'file', path: file.path })}
+          >
             <MessageSquare className="mr-1 size-3.5" />
             Feedback
           </Button>
@@ -432,6 +637,7 @@ function ValidationFeedbackForm({
         />
       </div>
       <Button
+        type="button"
         className="mt-3"
         variant="outline"
         disabled={isPending || !feedbackBody.trim()}
@@ -463,6 +669,11 @@ export function ValidationReviewPanel({
   onDecideValidation,
   onApproveFile,
   onSubmitReview,
+  onStartBaseline,
+  onReconcileBaseline,
+  onCancelBaseline,
+  onAcceptBaseline,
+  onStartImplementation,
   onSubmitFeedback,
 }: ValidationReviewPanelProps) {
   const validation = detail.validation
@@ -495,6 +706,7 @@ export function ValidationReviewPanel({
     setFeedbackScope('test_artifact')
     setFeedbackTarget(target)
   }
+  const canDecideValidation = detail.plan.lifecycle === 'awaiting_validation_review'
 
   return (
     <div className="space-y-5 p-5">
@@ -505,11 +717,17 @@ export function ValidationReviewPanel({
         isPending={isPending}
         run={run}
         onSubmitReview={onSubmitReview}
+        onStartBaseline={onStartBaseline}
+        onReconcileBaseline={onReconcileBaseline}
+        onCancelBaseline={onCancelBaseline}
+        onAcceptBaseline={onAcceptBaseline}
+        onStartImplementation={onStartImplementation}
       />
       <ValidationNodeList
         validation={validation}
         reviewState={reviewState}
         decisions={decisions}
+        canDecide={canDecideValidation}
         isPending={isPending}
         run={run}
         onDecideValidation={onDecideValidation}

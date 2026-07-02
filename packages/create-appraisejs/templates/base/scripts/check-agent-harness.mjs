@@ -33,6 +33,7 @@ const requiredFiles = [
   'docs/agent-scaffold-flow.md',
   'docs/agent-mcp-setup.md',
   'docs/agent-harness-guardrails.md',
+  'docs/agent-real-subagent-audit-protocol.md',
   '.agents/skills/appraise-repo-navigation/SKILL.md',
   '.agents/skills/appraise-lifecycle-flow/SKILL.md',
   '.agents/skills/appraise-scaffold-maintenance/SKILL.md',
@@ -57,6 +58,38 @@ const staticFiles = [
 ]
 
 const rootRelativeReferencePattern = /\b(?:docs\/agent-[A-Za-z0-9-]+\.md|\.agents\/skills\/[A-Za-z0-9-]+\/SKILL\.md)\b/g
+
+const requiredTokens = [
+  {
+    file: 'docs/agent-lifecycle-flow.md',
+    tokens: [
+      'No wait call before complete URL handoff',
+      'validation_publish',
+      'appraise/plans/validations/<plan-id>.validation.yaml',
+    ],
+  },
+  {
+    file: 'docs/agent-real-subagent-audit-protocol.md',
+    tokens: [
+      'Use AppraiseJS to plan and prepare validations for a simple todo app',
+      'validation_publish',
+      'validation_review_ready',
+      'todoCreatesZeroCustomSteps',
+      'customStepGapJustifications',
+    ],
+  },
+  {
+    file: '.agents/skills/appraise-validation-preparation/SKILL.md',
+    tokens: [
+      'ValidationArtifact',
+      'automation/features',
+      'automation/steps',
+      'registry/template steps',
+      'gap justification',
+      'validation_publish',
+    ],
+  },
+]
 
 function walkFiles(dir, predicate) {
   if (!fs.existsSync(dir)) return []
@@ -123,6 +156,15 @@ const failures = []
 
 for (const file of requiredFiles) {
   requireFile(file, 'missing required harness file')
+}
+
+for (const { file, tokens } of requiredTokens) {
+  const fullPath = path.join(repoRoot, file)
+  if (!fs.existsSync(fullPath)) continue
+  const contents = fs.readFileSync(fullPath, 'utf8')
+  for (const token of tokens) {
+    if (!contents.includes(token)) failures.push(`${file}: missing required harness token "${token}"`)
+  }
 }
 
 for (const dir of listDirectories(path.join(repoRoot, '.agents', 'skills'))) {

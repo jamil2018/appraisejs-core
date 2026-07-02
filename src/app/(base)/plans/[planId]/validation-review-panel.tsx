@@ -26,7 +26,11 @@ type FeedbackScope = 'test_artifact' | 'product_scope'
 type ValidationReviewPanelProps = {
   detail: PlanReviewDetail
   isPending: boolean
-  run: (operation: () => Promise<ActionResult>, successMessage: string) => void
+  run: (
+    operation: () => Promise<ActionResult>,
+    successMessage: string,
+    options?: { recovery?: 'validation-drift' },
+  ) => void
   onDecideValidation: (validationId: string, decision: 'approved' | 'rejected' | 'deferred') => Promise<ActionResult>
   onApproveFile: (path: string) => Promise<ActionResult>
   onSubmitReview: () => Promise<ActionResult>
@@ -60,8 +64,17 @@ function fileNeedsApproval(file: ChangedFile): boolean {
 
 function submitDisabledReason(lifecycle: string, reviewState: ValidationReviewState): string | null {
   if (lifecycle === 'validations_approved') return 'Validations are approved. Start required baselines to continue.'
+  if (lifecycle === 'validation_changes_requested') {
+    return 'Validation changes were requested. Republish updated validation artifacts before approval.'
+  }
   if (lifecycle !== 'awaiting_validation_review') return 'The plan is not awaiting validation review.'
   return reviewState.readiness.ready ? null : reviewState.readiness.blockers.join(' ')
+}
+
+function submitButtonLabel(lifecycle: string): string {
+  if (lifecycle === 'validations_approved') return 'Validation review approved'
+  if (lifecycle === 'validation_changes_requested') return 'Waiting for updated validations'
+  return 'Approve validation review and continue'
 }
 
 function baselineActionDescription(lifecycle: string): string | null {
@@ -165,7 +178,11 @@ function BaselineLifecycleActions({
       <p className="text-sm text-muted-foreground">{description}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {canStartBaseline ? (
-          <Button type="button" disabled={isPending} onClick={() => run(onStartBaseline, 'Baseline runs submitted.')}>
+          <Button
+            type="button"
+            disabled={isPending}
+            onClick={() => run(onStartBaseline, 'Baseline runs submitted.', { recovery: 'validation-drift' })}
+          >
             Start required baselines
           </Button>
         ) : null}
@@ -269,7 +286,7 @@ function ValidationSummary({
           onClick={() => run(onSubmitReview, 'Validation review approved. Baseline is now available.')}
         >
           <ShieldCheck className="mr-2 size-4" />
-          Approve validation review and continue
+          {submitButtonLabel(detail.plan.lifecycle)}
         </Button>
         {disabledReason ? (
           <p id="validation-submit-disabled-reason" className="mt-2 text-sm text-muted-foreground">
@@ -296,6 +313,7 @@ function ValidationNodeCard({
   node,
   hash,
   currentDecision,
+  canDecide,
   isPending,
   run,
   onDecideValidation,
@@ -304,6 +322,7 @@ function ValidationNodeCard({
   node: ValidationNode
   hash: string
   currentDecision?: ValidationDecision
+  canDecide: boolean
   isPending: boolean
   run: ValidationReviewPanelProps['run']
   onDecideValidation: ValidationReviewPanelProps['onDecideValidation']
@@ -311,6 +330,7 @@ function ValidationNodeCard({
 }) {
   const decide = (decision: 'approved' | 'rejected' | 'deferred') =>
     run(() => onDecideValidation(node.id, decision), `Validation ${node.id} ${decision}.`)
+  const controlsLocked = isPending || !canDecide
 
   return (
     <div className="rounded-lg border p-4">
@@ -326,29 +346,34 @@ function ValidationNodeCard({
           <p className="mt-2 font-mono text-xs text-muted-foreground">{hash}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" disabled={isPending} onClick={() => decide('approved')}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={controlsLocked || currentDecision?.decision === 'approved'}
+            onClick={() => decide('approved')}
+          >
             <Check className="mr-1 size-3.5" />
-            Approve
+            {currentDecision?.decision === 'approved' ? 'Approved' : 'Approve'}
           </Button>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            disabled={isPending || node.required}
+            disabled={controlsLocked || node.required || currentDecision?.decision === 'deferred'}
             onClick={() => decide('deferred')}
           >
             <Clock className="mr-1 size-3.5" />
-            Defer
+            {currentDecision?.decision === 'deferred' ? 'Deferred' : 'Defer'}
           </Button>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            disabled={isPending || node.required}
+            disabled={controlsLocked || node.required || currentDecision?.decision === 'rejected'}
             onClick={() => decide('rejected')}
           >
             <XCircle className="mr-1 size-3.5" />
-            Reject
+            {currentDecision?.decision === 'rejected' ? 'Rejected' : 'Reject'}
           </Button>
           <Button
             type="button"
@@ -391,6 +416,7 @@ function ValidationNodeList({
   validation,
   reviewState,
   decisions,
+  canDecide,
   isPending,
   run,
   onDecideValidation,
@@ -399,6 +425,7 @@ function ValidationNodeList({
   validation: ValidationArtifact
   reviewState: ValidationReviewState
   decisions: Map<string, ValidationDecision>
+  canDecide: boolean
   isPending: boolean
   run: ValidationReviewPanelProps['run']
   onDecideValidation: ValidationReviewPanelProps['onDecideValidation']
@@ -419,6 +446,7 @@ function ValidationNodeList({
             node={node}
             hash={hash}
             currentDecision={currentDecision}
+            canDecide={canDecide}
             isPending={isPending}
             run={run}
             onDecideValidation={onDecideValidation}
@@ -678,6 +706,7 @@ export function ValidationReviewPanel({
     setFeedbackScope('test_artifact')
     setFeedbackTarget(target)
   }
+  const canDecideValidation = detail.plan.lifecycle === 'awaiting_validation_review'
 
   return (
     <div className="space-y-5 p-5">
@@ -698,6 +727,7 @@ export function ValidationReviewPanel({
         validation={validation}
         reviewState={reviewState}
         decisions={decisions}
+        canDecide={canDecideValidation}
         isPending={isPending}
         run={run}
         onDecideValidation={onDecideValidation}

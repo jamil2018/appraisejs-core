@@ -57,6 +57,39 @@ function plan(planId: string, lifecycle: PlanArtifact['lifecycle'] = 'validation
   }
 }
 
+function appraiseArtifacts(testCaseId = 'case-one') {
+  return {
+    modules: [{ id: 'baseline-module', name: 'Baseline module' }],
+    testSuites: [
+      {
+        id: 'baseline-suite',
+        name: 'Baseline suite',
+        moduleId: 'baseline-module',
+        testCaseIds: [testCaseId],
+      },
+    ],
+    testCases: [
+      {
+        id: testCaseId,
+        title: `Baseline ${testCaseId}`,
+        description: `AppraiseJS-authored baseline test case for ${testCaseId}.`,
+        steps: [
+          {
+            id: `${testCaseId}-step`,
+            order: 0,
+            label: 'Run baseline step',
+            gherkinStep: 'Given I run the baseline step',
+            templateStepName: 'Run step',
+            parameters: [],
+          },
+        ],
+      },
+    ],
+    locatorGroups: [{ id: 'baseline-page', name: 'Baseline page', route: '/', moduleId: 'baseline-module' }],
+    locators: [],
+  }
+}
+
 function validation(planId: string, overrides: Partial<ValidationArtifact> = {}): ValidationArtifact {
   const artifact: ValidationArtifact = {
     version: '1',
@@ -70,6 +103,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         taskIds: ['first-task'],
         required: true,
         testCaseIds: ['case-one'],
+        appraiseArtifacts: appraiseArtifacts('case-one'),
         gherkinPaths: ['automation/features/case-one.feature'],
         stepPaths: ['automation/steps/actions/case-one.step.ts'],
         executable: { path: 'automation/features/case-one.feature' },
@@ -322,5 +356,62 @@ describe('baseline execution and implementation gate', () => {
       code: 'CONFLICT',
       message: expect.stringContaining('Validation files changed after approval or baseline execution'),
     })
+  })
+
+  it('checks validation files against a bound target project and reports structured drift', async () => {
+    const planId = 'target-bound-baseline'
+    const targetWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-target-'))
+    await fs.writeFile(path.join(targetWorkspace, 'package.json'), '{}')
+    await fs.mkdir(path.join(targetWorkspace, 'automation', 'features'), { recursive: true })
+    await fs.writeFile(path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'), 'Feature: case one\n')
+    await writeArtifacts(planId)
+    await fs.writeFile(path.join(workspace, 'automation', 'features', 'case-one.feature'), 'Feature: hub drift\n')
+    const targetProject = await client.targetProject.create({
+      data: {
+        canonicalPath: targetWorkspace,
+        displayName: 'External target',
+        fingerprint: 'sha256:target-bound',
+      },
+    })
+    await client.planProjection.update({ where: { planId }, data: { targetProjectId: targetProject.id } })
+
+    await expect(
+      startBaselineExecution(planId, {
+        projectDirectory: workspace,
+        client,
+        submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
+      }),
+    ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
+
+    const driftPlanId = 'target-bound-drift'
+    await writeArtifacts(driftPlanId)
+    await client.planProjection.update({ where: { planId: driftPlanId }, data: { targetProjectId: targetProject.id } })
+    await fs.writeFile(
+      path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
+      'Feature: target drift\n',
+    )
+
+    await expect(
+      startBaselineExecution(driftPlanId, {
+        projectDirectory: workspace,
+        client,
+        submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      details: {
+        changedFiles: [
+          expect.objectContaining({
+            path: 'automation/features/case-one.feature',
+            resolvedAbsolutePath: path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
+            expectedHash: hashFileContent('Feature: case one\n'),
+            currentHash: hashFileContent('Feature: target drift\n'),
+          }),
+        ],
+        targetProject: expect.objectContaining({ id: targetProject.id, canonicalPath: targetWorkspace }),
+      },
+    })
+
+    await fs.rm(targetWorkspace, { recursive: true, force: true })
   })
 })

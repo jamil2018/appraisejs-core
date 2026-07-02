@@ -14,6 +14,7 @@ import {
   useNodesState,
   type NodeMouseHandler,
 } from '@xyflow/react'
+import { useRouter } from 'next/navigation'
 import {
   AlertTriangle,
   Check,
@@ -76,6 +77,7 @@ type PlanReviewWorkspaceProps = {
   detail: PlanReviewDetail
   initialTab?: 'graph' | 'list' | 'history' | 'validations'
 }
+type ActionMessage = { tone: 'success' | 'error'; text: string; recovery?: 'validation-drift' }
 
 const edgeColors = {
   'depends-on': 'var(--muted-foreground)',
@@ -127,6 +129,7 @@ function getReviewUnavailableReason(lifecycle: string): string | null {
 // The graph, list, inspector, and approval controls intentionally share one interaction model.
 // fallow-ignore-next-line complexity
 export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceProps) {
+  const router = useRouter()
   const planSlug = getPlanDisplaySlug({
     planId: detail.plan.planId,
     slug: detail.projection.slug,
@@ -185,7 +188,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(detail.plan.tasks[0]?.id ?? null)
   const [remarkBody, setRemarkBody] = useState('')
   const [blocking, setBlocking] = useState(true)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<ActionMessage | null>(null)
   const [confirmReplacement, setConfirmReplacement] = useState(false)
   const [regressionJustification, setRegressionJustification] = useState('')
   const [inspectorOpen, setInspectorOpen] = useState(true)
@@ -226,14 +229,44 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
 
   const defaultTab = initialTab ?? (detail.listFallback ? 'list' : 'graph')
 
-  const run = (operation: () => Promise<{ success?: boolean; error?: string }>, successMessage: string) => {
+  const run = (
+    operation: () => Promise<{ success?: boolean; error?: string }>,
+    successMessage: string,
+    options?: { recovery?: ActionMessage['recovery'] },
+  ) => {
     setMessage(null)
     startTransition(async () => {
       const result = await operation()
-      setMessage(result.success ? successMessage : (result.error ?? 'The action failed.'))
-      if (result.success) window.location.reload()
+      const recovery =
+        !result.success &&
+        options?.recovery === 'validation-drift' &&
+        result.error?.includes('Validation files changed after approval or baseline execution')
+          ? options.recovery
+          : undefined
+      setMessage({
+        tone: result.success ? 'success' : 'error',
+        text: result.success ? successMessage : (result.error ?? 'The action failed.'),
+        recovery,
+      })
+      if (result.success) router.refresh()
     })
   }
+
+  const reopenValidationReviewAfterDrift = () =>
+    run(
+      () =>
+        submitValidationFeedbackAction({
+          planId: detail.plan.planId,
+          scope: 'test_artifact',
+          target: { type: 'plan' },
+          body:
+            message?.text ??
+            'Validation files changed after approval or baseline execution. Re-review validation artifacts.',
+          affectedValidationIds: detail.validation?.validations.map(validation => validation.id),
+          affectedFilePaths: detail.validation?.files.map(file => file.path),
+        }),
+      'Validation review reopened.',
+    )
 
   const positions = () =>
     Object.fromEntries(nodes.map(node => [node.id, { x: Math.round(node.position.x), y: Math.round(node.position.y) }]))
@@ -291,6 +324,27 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
           <AlertTitle>Artifact health requires attention</AlertTitle>
           <AlertDescription>
             {detail.issues.map(issue => issue.message).join(' ') || 'The current projection is stale or conflicted.'}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {message ? (
+        <Alert variant={message.tone === 'error' ? 'destructive' : 'default'}>
+          {message.tone === 'error' ? <AlertTriangle className="size-4" /> : <CheckCircle2 className="size-4" />}
+          <AlertTitle>{message.tone === 'error' ? 'Action blocked' : 'Action complete'}</AlertTitle>
+          <AlertDescription>
+            <span>{message.text}</span>
+            {message.recovery === 'validation-drift' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-destructive/50 hover:bg-destructive/10 mt-3 text-destructive hover:text-destructive"
+                disabled={isPending}
+                onClick={reopenValidationReviewAfterDrift}
+              >
+                Reopen validation review
+              </Button>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -494,6 +548,11 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   }
                   onApproveFile={path => approveValidationFileAction({ planId: detail.plan.planId, path })}
                   onSubmitReview={() => submitValidationReviewAction({ planId: detail.plan.planId })}
+                  onStartBaseline={() => startBaselineExecutionAction({ planId: detail.plan.planId })}
+                  onReconcileBaseline={() => reconcileBaselineExecutionAction({ planId: detail.plan.planId })}
+                  onCancelBaseline={() => cancelBaselineExecutionAction({ planId: detail.plan.planId })}
+                  onAcceptBaseline={() => acceptBaselineAction({ planId: detail.plan.planId })}
+                  onStartImplementation={() => startImplementationAction({ planId: detail.plan.planId })}
                   onSubmitFeedback={input =>
                     submitValidationFeedbackAction({
                       planId: detail.plan.planId,
@@ -637,6 +696,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                           run(
                             () => startBaselineExecutionAction({ planId: detail.plan.planId }),
                             'Baseline runs submitted.',
+                            { recovery: 'validation-drift' },
                           )
                         }
                       >
@@ -919,11 +979,6 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                 {requestChangesDisabledReason ? (
                   <p id="request-changes-disabled-reason" className="text-sm text-muted-foreground">
                     {requestChangesDisabledReason}
-                  </p>
-                ) : null}
-                {message ? (
-                  <p role="status" className="text-sm text-muted-foreground">
-                    {message}
                   </p>
                 ) : null}
               </CardContent>
