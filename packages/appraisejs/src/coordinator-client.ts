@@ -199,6 +199,15 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     submitValidationFeedback: (planId: string, feedback: unknown) =>
       post(`plans/${planId}/validations/feedback`, feedback),
     submitValidation: (planId: string) => post(`plans/${planId}/validations/submit`, {}),
+    startBaseline: (planId: string) => post(`plans/${planId}/baseline/start`, {}),
+    reconcileBaseline: (planId: string) => post(`plans/${planId}/baseline/reconcile`, {}),
+    cancelBaseline: (planId: string) => post(`plans/${planId}/baseline/cancel`, {}),
+    acceptBaseline: (planId: string) => post(`plans/${planId}/baseline/accept`, {}),
+    acknowledgeBaselineFailure: (planId: string, attemptId: string, acknowledgedBy: string) =>
+      post(`plans/${planId}/baseline/failures/${attemptId}/acknowledge`, { acknowledgedBy }),
+    justifyBaselineRegression: (planId: string, attemptId: string, justification: string) =>
+      post(`plans/${planId}/baseline/regressions/${attemptId}/justify`, { justification }),
+    startImplementation: (planId: string) => post(`plans/${planId}/implementation/start`, {}),
     completionReview: (planId: string) => request(`plans/${planId}/completion`),
   }
 }

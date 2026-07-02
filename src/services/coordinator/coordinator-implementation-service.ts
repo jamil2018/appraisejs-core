@@ -101,6 +101,60 @@ function assertBaselineAccepted(validation: ValidationArtifact) {
   throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
 }
 
+function preImplementationRecovery(plan: PlanArtifact, validation: ValidationArtifact) {
+  if (
+    ['in_progress', 'paused', 'ready_for_validation', 'validating', 'failed_validation', 'validation_passed'].includes(
+      plan.lifecycle,
+    ) &&
+    validation.baselineDecision === 'accepted'
+  ) {
+    return null
+  }
+  const next =
+    plan.lifecycle === 'validations_approved' || plan.lifecycle === 'baseline_changes_requested'
+      ? {
+          action: 'start_baseline',
+          tool: 'baseline_start',
+          endpoint: `/api/internal/coordinator/plans/${plan.planId}/baseline/start`,
+        }
+      : plan.lifecycle === 'baseline_running'
+        ? {
+            action: 'reconcile_baseline',
+            tool: 'baseline_reconcile',
+            endpoint: `/api/internal/coordinator/plans/${plan.planId}/baseline/reconcile`,
+          }
+        : plan.lifecycle === 'baseline_review'
+          ? {
+              action: 'accept_baseline',
+              tool: 'baseline_accept',
+              endpoint: `/api/internal/coordinator/plans/${plan.planId}/baseline/accept`,
+            }
+          : plan.lifecycle === 'baseline_accepted' && validation.baselineDecision === 'accepted'
+            ? {
+                action: 'start_implementation',
+                tool: 'implementation_start',
+                endpoint: `/api/internal/coordinator/plans/${plan.planId}/implementation/start`,
+              }
+            : {
+                action: 'wait_for_lifecycle_gate',
+                tool: 'validation_review_loop',
+                endpoint: `/api/internal/coordinator/plans/${plan.planId}/events`,
+              }
+  return {
+    status: 'blocked_pre_implementation',
+    planId: plan.planId,
+    lifecycle: plan.lifecycle,
+    baselineDecision: validation.baselineDecision,
+    terminal: false,
+    mustContinue: true,
+    blockingReasons: ['Implementation checkpoints require accepted baseline evidence and implementation_start.'],
+    nextAllowedAction: next,
+    nextRecommendedAction:
+      'Complete validation review, baseline execution, baseline acceptance, and implementation_start before recording implementation checkpoints.',
+    nextRequiredAgentBehavior: next.action,
+  }
+}
+
 async function implementationContext(planId: string, options: Options) {
   const client = options.client ?? prisma
   await assertPlanNotCancelled(planId, client)
@@ -115,7 +169,14 @@ export async function reachImplementationCheckpoint(
   input: { planId: string; type: CheckpointType; taskIds?: string[]; queuedFeedbackCount?: number },
   options: Options = {},
 ) {
-  const { client, artifacts, implementation } = await implementationContext(input.planId, options)
+  const client = options.client ?? prisma
+  await assertPlanNotCancelled(input.planId, client)
+  const artifacts = await readArtifacts(input.planId, options.projectDirectory)
+  const recovery = preImplementationRecovery(artifacts.plan, artifacts.validation)
+  if (recovery) return recovery
+  assertImplementationLifecycle(artifacts.plan)
+  assertBaselineAccepted(artifacts.validation)
+  const implementation = implementationState(artifacts.validation)
   const checkpoint = {
     type: input.type,
     taskIds: input.taskIds ?? [],

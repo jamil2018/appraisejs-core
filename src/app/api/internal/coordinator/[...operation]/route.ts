@@ -60,6 +60,15 @@ import {
   reviewImplementationCompletion,
   updateImplementationTask,
 } from '@/services/coordinator/coordinator-implementation-service'
+import {
+  acceptBaseline,
+  acknowledgeBaselineFailure,
+  cancelBaselineExecution,
+  justifyBaselineRegressionPass,
+  reconcileBaselineExecution,
+  startBaselineExecution,
+  startImplementation,
+} from '@/services/coordinator/coordinator-baseline-service'
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { ServiceError } from '@/services/shared/errors'
 import { createStandaloneTargetTestRun } from '@/services/test-run/test-run-service'
@@ -221,6 +230,9 @@ async function dispatchGet(request: Request, operation: string[]) {
 async function postImplementationOperation(operation: string[], body: unknown) {
   const planId = routePlanIdSchema.parse(operation[1])
   const action = operation[3]
+  if (action === 'start') {
+    return Response.json(await startImplementation(planId))
+  }
   if (action === 'checkpoint') {
     const value = z
       .object({
@@ -277,6 +289,38 @@ async function postImplementationOperation(operation: string[], body: unknown) {
   if (action === 'complete') {
     const value = z.object({ approvedBy: z.string().min(1), contentHash: z.string().startsWith('sha256:') }).parse(body)
     return Response.json(await approveImplementationCompletion({ planId, ...value }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
+// Baseline actions are thin coordinator API wrappers around the lifecycle-owned service.
+// fallow-ignore-next-line complexity
+async function postBaselineOperation(operation: string[], body: unknown) {
+  const planId = routePlanIdSchema.parse(operation[1])
+  const action = operation[3]
+  if (action === 'start') return Response.json(await startBaselineExecution(planId))
+  if (action === 'reconcile') return Response.json(await reconcileBaselineExecution(planId))
+  if (action === 'cancel') return Response.json(await cancelBaselineExecution(planId))
+  if (action === 'accept') return Response.json(await acceptBaseline(planId))
+  if (action === 'failures' && operation[5] === 'acknowledge') {
+    const value = z.object({ acknowledgedBy: z.string().min(1) }).parse(body)
+    return Response.json(
+      await acknowledgeBaselineFailure({
+        planId,
+        attemptId: idSchema.parse(operation[4]),
+        acknowledgedBy: value.acknowledgedBy,
+      }),
+    )
+  }
+  if (action === 'regressions' && operation[5] === 'justify') {
+    const value = z.object({ justification: z.string().trim().min(1) }).parse(body)
+    return Response.json(
+      await justifyBaselineRegressionPass({
+        planId,
+        attemptId: idSchema.parse(operation[4]),
+        justification: value.justification,
+      }),
+    )
   }
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
@@ -538,6 +582,10 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     validations: () => {
       assertPlanOperation(operation)
       return postValidationOperation(request, operation, body)
+    },
+    baseline: () => {
+      assertPlanOperation(operation)
+      return postBaselineOperation(operation, body)
     },
     implementation: () => {
       assertPlanOperation(operation)

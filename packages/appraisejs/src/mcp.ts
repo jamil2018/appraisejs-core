@@ -18,7 +18,7 @@ import { planArtifactSchema, planCreateInputSchema } from './plan-file.js'
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version?: string }
 const serverStartedAt = new Date().toISOString()
-const mcpSurfaceVersion = '2026-06-30.review-standby-loop'
+const mcpSurfaceVersion = '2026-07-02.lifecycle-hardening'
 const truthyFeatureValues = new Set(['1', 'true', 'yes', 'on'])
 
 function providerNativeRunsEnabled() {
@@ -38,6 +38,19 @@ const baseWorkflowCriticalTools = [
   'plan_revise',
   'plan_start',
   'validation_publish',
+  'validation_review_loop',
+  'validation_decide',
+  'validation_file_approve',
+  'validation_feedback_submit',
+  'validation_review_submit',
+  'baseline_start',
+  'baseline_reconcile',
+  'baseline_cancel',
+  'baseline_failure_acknowledge',
+  'baseline_regression_justify',
+  'baseline_accept',
+  'implementation_start',
+  'implementation_checkpoint',
 ] as const
 const providerNativeWorkflowTools = [
   'provider_list',
@@ -397,12 +410,26 @@ function approvalGateEventStatus(type: string): 'approved' | 'changes_requested'
   return undefined
 }
 
+function validationGateStatus(lifecycle: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
+  if (lifecycle === 'validations_approved') return 'approved'
+  if (lifecycle === 'awaiting_validation_review') return undefined
+  if (lifecycle === 'cancelled') return 'cancelled'
+  return undefined
+}
+
+function validationGateEventStatus(type: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
+  if (type === 'validations_approved' || type === 'validation_approved') return 'approved'
+  if (type === 'validation_changes_requested') return 'changes_requested'
+  if (type === 'plan_cancelled') return 'cancelled'
+  return undefined
+}
+
 type CoordinatorToolEvent = { sequence: number; type: string }
 
 const defaultReviewLoopTimeoutMs = 120_000
 
 type RecommendedWait = {
-  tool: 'plan_wait_for_approval' | 'plan_review_loop' | 'plan_wait_for_review'
+  tool: 'plan_wait_for_approval' | 'plan_review_loop' | 'plan_wait_for_review' | 'validation_review_loop'
   mode: 'long_poll'
   timeoutMs: number
   afterSequence: number
@@ -521,6 +548,8 @@ export function approvalPendingResponse(input: {
   }
   return {
     status: 'pending',
+    terminal: false,
+    mustContinue: true,
     planId: input.planId,
     ...standbyPresentation({
       planId: input.planId,
@@ -547,6 +576,70 @@ export function approvalPendingResponse(input: {
   }
 }
 
+export function validationReviewPendingResponse(input: {
+  planId: string
+  current: PlanSnapshot
+  events: CoordinatorToolEvent[]
+  afterSequence: number
+  timeoutMs?: number
+}) {
+  const nextAfterSequence = nextApprovalWaitSequence(input.afterSequence, input.events)
+  const timeoutMs = input.timeoutMs ?? defaultReviewLoopTimeoutMs
+  const recommendedWait: RecommendedWait = {
+    tool: 'validation_review_loop',
+    mode: 'long_poll',
+    timeoutMs,
+    afterSequence: nextAfterSequence,
+  }
+  const browserUrl = linkFromSnapshot(input.current.links, 'browser')
+  const appraiseUrl = linkFromSnapshot(input.current.links, 'appraise') ?? `appraise://plans/${input.planId}`
+  return {
+    status: 'pending',
+    phase: 'validation_review',
+    terminal: false,
+    mustContinue: true,
+    planId: input.planId,
+    browserUrl: browserUrl ? `${browserUrl}?review=validation` : undefined,
+    appraiseUrl,
+    revision: input.current.plan.revision,
+    lifecycle: input.current.plan.lifecycle,
+    contentHash: input.current.contentHash,
+    links: input.current.links,
+    events: input.events,
+    currentAfterSequence: input.afterSequence,
+    nextAfterSequence,
+    recommendedWait,
+    cursorGuidance:
+      'afterSequence is exclusive. Resume by passing nextAfterSequence exactly; do not treat pending validation review as completion.',
+    nextRecommendedAction:
+      'Remain in validation-review standby until Appraise emits validations_approved, validation_changes_requested, or cancellation.',
+    nextRequiredAgentBehavior: 'standby_for_validation_review',
+  }
+}
+
+function lifecycleToolPayload(input: {
+  planId: string
+  result: unknown
+  nextRequiredAgentBehavior: string
+  nextRecommendedAction: string
+  terminal?: boolean
+  mustContinue?: boolean
+  nextAllowedAction?: unknown
+}) {
+  const result = input.result && typeof input.result === 'object' ? (input.result as Record<string, unknown>) : {}
+  const plan = result.plan && typeof result.plan === 'object' ? (result.plan as Record<string, unknown>) : result
+  return {
+    ...result,
+    planId: input.planId,
+    lifecycle: typeof plan.lifecycle === 'string' ? plan.lifecycle : undefined,
+    terminal: input.terminal ?? false,
+    mustContinue: input.mustContinue ?? true,
+    nextAllowedAction: input.nextAllowedAction,
+    nextRecommendedAction: input.nextRecommendedAction,
+    nextRequiredAgentBehavior: input.nextRequiredAgentBehavior,
+  }
+}
+
 export function reviewReadyPendingResponse(input: {
   planId: string
   current: PlanSnapshot
@@ -564,6 +657,8 @@ export function reviewReadyPendingResponse(input: {
   }
   return {
     status: 'pending',
+    terminal: false,
+    mustContinue: true,
     phase: 'review_ready',
     planId: input.planId,
     ...standbyPresentation({
@@ -1419,6 +1514,192 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'validation_review_loop',
+    {
+      description:
+        'Wait for validation review to resolve through validations_approved, validation_changes_requested, or cancellation.',
+      inputSchema: {
+        planId: z.string(),
+        afterSequence: z.number().int().nonnegative().default(0),
+        timeoutMs: z.number().int().positive().max(300_000).default(defaultReviewLoopTimeoutMs),
+      },
+    },
+    async ({ planId, afterSequence, timeoutMs }) => {
+      const initial = (await api.request(`plans/${planId}/events?after=${afterSequence}`)) as {
+        events?: CoordinatorToolEvent[]
+      }
+      let events = initial.events ?? []
+      let current = await readSnapshot(planId)
+      let gateEvent = events.find(event => validationGateEventStatus(event.type))
+      let lifecycleStatus = validationGateStatus(current.plan.lifecycle)
+
+      if (!gateEvent && !lifecycleStatus) {
+        const waited = await waitForEvents(
+          api.request,
+          planId,
+          nextApprovalWaitSequence(afterSequence, events),
+          timeoutMs,
+        )
+        events = [...events, ...(waited.events ?? [])]
+        current = await readSnapshot(planId)
+        gateEvent = events.find(event => validationGateEventStatus(event.type))
+        lifecycleStatus = validationGateStatus(current.plan.lifecycle)
+      }
+
+      if (!gateEvent && !lifecycleStatus) {
+        return text(validationReviewPendingResponse({ planId, current, events, afterSequence, timeoutMs }))
+      }
+
+      const status = gateEvent ? validationGateEventStatus(gateEvent.type) : lifecycleStatus
+      return text({
+        status,
+        planId,
+        revision: current.plan.revision,
+        lifecycle: current.plan.lifecycle,
+        contentHash: current.contentHash,
+        links: current.links,
+        terminal: status === 'cancelled',
+        mustContinue: status !== 'cancelled',
+        ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
+        events,
+        currentAfterSequence: afterSequence,
+        nextAfterSequence: nextApprovalWaitSequence(afterSequence, events),
+        cursorGuidance:
+          'afterSequence is exclusive. Acknowledge the observed validation gate only after the permitted transition or recovery action succeeds.',
+        nextRecommendedAction:
+          status === 'approved'
+            ? 'Call baseline_start, then keep reconciling baseline evidence until baseline review is ready.'
+            : status === 'changes_requested'
+              ? 'Read validation feedback, revise validation artifacts, publish again, and return to validation_review_loop standby.'
+              : 'Acknowledge cancellation and stop.',
+        nextRequiredAgentBehavior:
+          status === 'approved'
+            ? 'start_baseline'
+            : status === 'changes_requested'
+              ? 'revise_validation_artifacts'
+              : 'stop_after_cancellation',
+      })
+    },
+  )
+  server.registerTool(
+    'baseline_start',
+    {
+      description: 'Start required baseline executions after validation review approval.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/baseline/start`, { method: 'POST', body: '{}' }),
+          nextRecommendedAction: 'Call baseline_reconcile until baseline evidence enters review.',
+          nextRequiredAgentBehavior: 'reconcile_baseline',
+          nextAllowedAction: { tool: 'baseline_reconcile' },
+        }),
+      ),
+  )
+  server.registerTool(
+    'baseline_reconcile',
+    {
+      description: 'Refresh baseline execution evidence and detect when baseline review is ready.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => {
+      const result = await api.request(`plans/${planId}/baseline/reconcile`, { method: 'POST', body: '{}' })
+      const lifecycle =
+        result && typeof result === 'object' && 'plan' in result
+          ? (result as { plan?: { lifecycle?: string } }).plan?.lifecycle
+          : undefined
+      return text(
+        lifecycleToolPayload({
+          planId,
+          result,
+          nextRecommendedAction:
+            lifecycle === 'baseline_review'
+              ? 'Review baseline evidence, acknowledge or justify allowed results, then call baseline_accept.'
+              : 'Continue calling baseline_reconcile until baseline review is ready, or cancel if the run should stop.',
+          nextRequiredAgentBehavior:
+            lifecycle === 'baseline_review' ? 'review_and_accept_baseline' : 'reconcile_baseline',
+          nextAllowedAction:
+            lifecycle === 'baseline_review' ? { tool: 'baseline_accept' } : { tool: 'baseline_reconcile' },
+        }),
+      )
+    },
+  )
+  server.registerTool(
+    'baseline_cancel',
+    {
+      description: 'Cancel active baseline executions and return the plan to baseline changes requested.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/baseline/cancel`, { method: 'POST', body: '{}' }),
+          nextRecommendedAction: 'Revise validation or baseline setup, then call baseline_start again when ready.',
+          nextRequiredAgentBehavior: 'revise_baseline_or_validation',
+        }),
+      ),
+  )
+  server.registerTool(
+    'baseline_failure_acknowledge',
+    {
+      description: 'Acknowledge a current unrelated baseline failure by attempt id.',
+      inputSchema: { planId: z.string(), attemptId: z.string(), acknowledgedBy: z.string().min(1) },
+    },
+    async ({ planId, attemptId, acknowledgedBy }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/baseline/failures/${attemptId}/acknowledge`, {
+            method: 'POST',
+            body: JSON.stringify({ acknowledgedBy }),
+          }),
+          nextRecommendedAction: 'Continue baseline review and call baseline_accept when all blockers are resolved.',
+          nextRequiredAgentBehavior: 'review_and_accept_baseline',
+          nextAllowedAction: { tool: 'baseline_accept' },
+        }),
+      ),
+  )
+  server.registerTool(
+    'baseline_regression_justify',
+    {
+      description: 'Justify an accepted regression-pass baseline attempt before baseline acceptance.',
+      inputSchema: { planId: z.string(), attemptId: z.string(), justification: z.string().min(1) },
+    },
+    async ({ planId, attemptId, justification }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/baseline/regressions/${attemptId}/justify`, {
+            method: 'POST',
+            body: JSON.stringify({ justification }),
+          }),
+          nextRecommendedAction: 'Continue baseline review and call baseline_accept when all blockers are resolved.',
+          nextRequiredAgentBehavior: 'review_and_accept_baseline',
+          nextAllowedAction: { tool: 'baseline_accept' },
+        }),
+      ),
+  )
+  server.registerTool(
+    'baseline_accept',
+    {
+      description: 'Accept complete baseline evidence and unlock the implementation_start gate.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/baseline/accept`, { method: 'POST', body: '{}' }),
+          nextRecommendedAction: 'Call implementation_start before recording implementation checkpoints.',
+          nextRequiredAgentBehavior: 'start_implementation',
+          nextAllowedAction: { tool: 'implementation_start' },
+        }),
+      ),
+  )
+  server.registerTool(
     'validation_file_approve',
     {
       description: 'Approve one flagged changed file for its exact current content hash.',
@@ -1488,6 +1769,23 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         await api.request(`plans/${planId}/events/ack`, {
           method: 'POST',
           body: JSON.stringify({ sequence, coordinatorId: options.coordinatorId }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_start',
+    {
+      description: 'Start implementation after accepted baseline evidence.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/implementation/start`, { method: 'POST', body: '{}' }),
+          nextRecommendedAction: 'Call implementation_checkpoint before task work, then update runnable tasks.',
+          nextRequiredAgentBehavior: 'record_implementation_checkpoint',
+          nextAllowedAction: { tool: 'implementation_checkpoint', type: 'before_group' },
         }),
       ),
   )

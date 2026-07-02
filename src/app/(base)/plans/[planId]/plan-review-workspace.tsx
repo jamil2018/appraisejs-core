@@ -494,6 +494,11 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   }
                   onApproveFile={path => approveValidationFileAction({ planId: detail.plan.planId, path })}
                   onSubmitReview={() => submitValidationReviewAction({ planId: detail.plan.planId })}
+                  onStartBaseline={() => startBaselineExecutionAction({ planId: detail.plan.planId })}
+                  onReconcileBaseline={() => reconcileBaselineExecutionAction({ planId: detail.plan.planId })}
+                  onCancelBaseline={() => cancelBaselineExecutionAction({ planId: detail.plan.planId })}
+                  onAcceptBaseline={() => acceptBaselineAction({ planId: detail.plan.planId })}
+                  onStartImplementation={() => startImplementationAction({ planId: detail.plan.planId })}
                   onSubmitFeedback={input =>
                     submitValidationFeedbackAction({
                       planId: detail.plan.planId,

@@ -134,6 +134,12 @@ try {
   const tools = await client.listTools()
   const toolNames = tools.tools.map(tool => tool.name).sort()
   const expectedTools = [
+    'baseline_accept',
+    'baseline_cancel',
+    'baseline_failure_acknowledge',
+    'baseline_reconcile',
+    'baseline_regression_justify',
+    'baseline_start',
     'coordinator_heartbeat',
     'coordinator_register',
     'implementation_checkpoint',
@@ -141,6 +147,7 @@ try {
     'implementation_completion_review',
     'implementation_control',
     'implementation_feedback',
+    'implementation_start',
     'implementation_task_update',
     'planning_session_create',
     'plan_create',
@@ -173,6 +180,7 @@ try {
     'validation_feedback_submit',
     'validation_file_approve',
     'validation_publish',
+    'validation_review_loop',
     'validation_review_submit',
   ]
   assert(
