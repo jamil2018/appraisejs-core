@@ -4,13 +4,29 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 
-import { serializeYamlArtifact, type PlanArtifact, type ReviewArtifact } from '../src/lib/plan-contract'
+import prisma from '../src/config/db-config'
+import {
+  serializeYamlArtifact,
+  type PlanArtifact,
+  type ReviewArtifact,
+  type ValidationArtifact,
+} from '../src/lib/plan-contract'
 import { syncPlans } from '../src/lib/plans/plan-sync-service'
 import { disconnectPrisma, resetE2eData } from './helpers/test-data'
 
 const seededPlanId = 'e2e-semantic-plan-flow-graph'
 const seededPlanPath = join(process.cwd(), 'appraise', 'plans', `${seededPlanId}.yaml`)
 const seededReviewPath = join(process.cwd(), 'appraise', 'plans', 'reviews', `${seededPlanId}.review.yaml`)
+const validationPlanId = 'e2e-validation-review-approval'
+const validationPlanPath = join(process.cwd(), 'appraise', 'plans', `${validationPlanId}.yaml`)
+const validationReviewPath = join(process.cwd(), 'appraise', 'plans', 'reviews', `${validationPlanId}.review.yaml`)
+const validationArtifactPath = join(
+  process.cwd(),
+  'appraise',
+  'plans',
+  'validations',
+  `${validationPlanId}.validation.yaml`,
+)
 
 const seededPlan: PlanArtifact = {
   version: '1',
@@ -41,12 +57,38 @@ const seededPlan: PlanArtifact = {
   ],
 }
 
+const validationPlan: PlanArtifact = {
+  version: '1',
+  planId: validationPlanId,
+  revision: 1,
+  lifecycle: 'awaiting_validation_review',
+  goal: 'Approve validation review from the app',
+  description: 'Exercise evidence approval and revision-level validation submission from the browser.',
+  tasks: [
+    {
+      id: 'validation-workflow',
+      title: 'Review validation workflow',
+      description: 'Approve required validation evidence and submit the validation review.',
+      acceptanceCriteria: ['The validation review emits validations_approved.'],
+      validationIntent: 'Drive validation review through the browser UI.',
+    },
+  ],
+  edges: [],
+  implementationGroups: [{ id: 'quality', taskIds: ['validation-workflow'] }],
+}
+
 function hashContent(content: string): string {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
 }
 
 async function removeSeededPlan(): Promise<void> {
-  await Promise.all([rm(seededPlanPath, { force: true }), rm(seededReviewPath, { force: true })])
+  await Promise.all([
+    rm(seededPlanPath, { force: true }),
+    rm(seededReviewPath, { force: true }),
+    rm(validationPlanPath, { force: true }),
+    rm(validationReviewPath, { force: true }),
+    rm(validationArtifactPath, { force: true }),
+  ])
 }
 
 async function seedReviewablePlan(): Promise<void> {
@@ -77,10 +119,124 @@ async function seedReviewablePlan(): Promise<void> {
   ])
 }
 
+async function seedValidationReviewPlan(): Promise<void> {
+  const planContent = serializeYamlArtifact('plan', validationPlan)
+  const planHash = hashContent(planContent)
+  const productionFileHash = hashContent('export function WeatherResult() { return null }')
+  const review: ReviewArtifact = {
+    version: '1',
+    planId: validationPlanId,
+    threads: [],
+    planApprovals: [
+      {
+        id: 'approval-e2e-validation-flow',
+        revision: validationPlan.revision,
+        contentHash: planHash,
+        relevantHashes: { plan: planHash },
+        approvedBy: 'e2e-reviewer',
+        approvedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ],
+    fileApprovals: [],
+  }
+  const validation: ValidationArtifact = {
+    version: '1',
+    planId: validationPlanId,
+    revision: 1,
+    baseRevision: {
+      gitCommit: null,
+      snapshotHash: hashContent('validation-review-snapshot'),
+      reducedAssurance: true,
+    },
+    classificationOverrides: [],
+    validations: [
+      {
+        id: 'browser-validation',
+        taskIds: ['validation-workflow'],
+        required: true,
+        testCaseIds: ['validation-review-path'],
+        appraiseArtifacts: {
+          modules: [{ id: 'validation-module', name: 'Validation review' }],
+          testSuites: [
+            {
+              id: 'validation-suite',
+              name: 'Validation review suite',
+              description: 'Reviews browser validation approval.',
+              moduleId: 'validation-module',
+              testCaseIds: ['validation-review-path'],
+            },
+          ],
+          testCases: [
+            {
+              id: 'validation-review-path',
+              title: 'Approve validation in the app',
+              description: 'Approve evidence and submit the validation review.',
+              steps: [
+                {
+                  id: 'open-validation-review',
+                  order: 0,
+                  label: 'Open validation review',
+                  gherkinStep: 'Given I open the validation review page',
+                  templateStepName: 'Navigate to URL',
+                  parameters: [{ name: 'url', value: `/plans/${validationPlanId}?review=validation`, type: 'TEXT' }],
+                },
+              ],
+            },
+          ],
+          locatorGroups: [
+            { id: 'validation-page', name: 'Validation page', route: '/plans', moduleId: 'validation-module' },
+          ],
+          locators: [
+            {
+              id: 'submit-validation-review',
+              name: 'Submit validation review',
+              value: 'button:has-text("Submit validation review")',
+              locatorGroupId: 'validation-page',
+            },
+          ],
+        },
+        gherkinPaths: ['automation/features/validation-review.feature'],
+        stepPaths: ['automation/steps/validation-review.steps.ts'],
+        executable: { path: 'automation/features/validation-review.feature', selector: 'Validation review suite' },
+        matrix: [{ browser: 'chromium', environment: 'local' }],
+        expectedFailures: [],
+      },
+    ],
+    approvals: [],
+    validationDecisions: [],
+    files: [
+      {
+        path: 'src/app/weather-result.tsx',
+        classification: 'production',
+        rationale: 'Production surface changed by validation-prep fixture.',
+        status: 'added',
+        beforeHash: null,
+        contentHash: productionFileHash,
+        patch:
+          '--- /dev/null\n+++ b/src/app/weather-result.tsx\n@@\n+export function WeatherResult() { return null }\n',
+        declared: true,
+      },
+    ],
+    manifestPaths: ['src/app/weather-result.tsx'],
+    baselineAttempts: [],
+    baselineAcknowledgements: [],
+    baselineDecision: 'pending',
+  }
+
+  await mkdir(join(process.cwd(), 'appraise', 'plans', 'reviews'), { recursive: true })
+  await mkdir(join(process.cwd(), 'appraise', 'plans', 'validations'), { recursive: true })
+  await Promise.all([
+    writeFile(validationPlanPath, planContent),
+    writeFile(validationReviewPath, serializeYamlArtifact('review', review)),
+    writeFile(validationArtifactPath, serializeYamlArtifact('validation', validation)),
+  ])
+}
+
 test.describe('Plan review', () => {
   test.beforeEach(async () => {
     await resetE2eData()
     await seedReviewablePlan()
+    await seedValidationReviewPlan()
     await syncPlans()
   })
 
@@ -135,5 +291,33 @@ test.describe('Plan review', () => {
       contentType: 'image/png',
     })
     expect(consoleErrors).toEqual([])
+  })
+
+  test('submits validation review only after evidence and file approvals', async ({ page }) => {
+    await page.goto(`/plans/${validationPlanId}?review=validation`)
+
+    const validationsPanel = page.getByRole('tabpanel', { name: /validations/i })
+    await expect(validationsPanel).toBeVisible()
+    await page.getByRole('button', { name: /Approve evidence/i }).click()
+    await expect(page.getByRole('button', { name: /Evidence approved/i })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /Submit validation review/i })).toBeDisabled()
+    await expect(validationsPanel.getByRole('button', { name: /Start required baselines/i })).toHaveCount(0)
+
+    const afterNodeApproval = await prisma.planProjection.findUniqueOrThrow({ where: { planId: validationPlanId } })
+    expect(afterNodeApproval.lifecycle).toBe('awaiting_validation_review')
+
+    await page.getByRole('button', { name: /Approve file/i }).click()
+    await expect(page.getByText(/submitting the validation review emits validations_approved/i)).toBeVisible()
+    await page.getByRole('button', { name: /Submit validation review/i }).click()
+
+    await expect(page.getByText(/validations approved/i)).toBeVisible()
+    await expect(validationsPanel.getByRole('button', { name: /Start required baselines/i })).toBeVisible()
+
+    const projection = await prisma.planProjection.findUniqueOrThrow({
+      where: { planId: validationPlanId },
+      include: { events: { orderBy: { sequence: 'asc' } } },
+    })
+    expect(projection.lifecycle).toBe('validations_approved')
+    expect(projection.events.map(event => event.type)).toContain('validations_approved')
   })
 })

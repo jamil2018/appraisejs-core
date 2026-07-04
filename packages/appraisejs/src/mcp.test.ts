@@ -13,6 +13,7 @@ import {
   standbyWorkflow,
   validationPreparationWorkflow,
 } from './mcp.js'
+import { validationArtifactSchema } from './plan-file.js'
 
 describe('MCP approval wait helpers', () => {
   it('advances the long-poll cursor past non-gate events that were already delivered', () => {
@@ -158,15 +159,15 @@ describe('MCP agent workflow guidance', () => {
 
   it('creates a minimal review plan from a normal project brief', () => {
     const plan = createPlanFromBrief({
-      projectBrief: 'Build a tiny todo app with persisted filters.',
-      displayName: 'Todo app',
+      projectBrief: 'Review the release checklist and prepare it for Appraise approval.',
+      displayName: 'Release checklist review',
       sourceFiles: ['src/App.tsx'],
     })
 
     expect(plan).toMatchObject({
       version: '1',
       lifecycle: 'draft',
-      goal: 'Todo app',
+      goal: 'Release checklist review',
       tasks: [
         expect.objectContaining({
           id: 'plan-from-brief',
@@ -226,6 +227,46 @@ describe('MCP agent workflow guidance', () => {
       ]),
     )
   })
+
+  it('creates weather-specific tasks for an API-backed information app brief', () => {
+    const plan = createPlanFromBrief({
+      projectBrief:
+        'Build Weather Guy as a React Vite web app. Users enter a location, search the weather API, see current conditions and forecast details, and get clear loading and error states. Add focused validation.',
+      displayName: 'Weather Guy',
+    })
+
+    const taskText = plan.tasks
+      .map(task =>
+        [task.id, task.title, task.description, task.acceptanceCriteria.join(' '), task.validationIntent].join(' '),
+      )
+      .join(' ')
+
+    expect(plan.tasks.map(task => task.id)).toEqual([
+      'scaffold-setup',
+      'input-search',
+      'api-integration',
+      'result-rendering',
+      'validation',
+    ])
+    expect(taskText).toMatch(/location|query/i)
+    expect(taskText).toMatch(/weather API/i)
+    expect(taskText).toMatch(/weather results|current conditions|forecast/i)
+    expect(taskText).toMatch(/loading.*error|error.*loading/i)
+    expect(taskText).not.toMatch(/\btodo\b|completion-toggle|completed items|CRUD/i)
+    expect(taskText).not.toMatch(/persist/i)
+  })
+
+  it('keeps ambiguous app briefs reviewable instead of inventing todo behavior', () => {
+    const plan = createPlanFromBrief({
+      projectBrief: 'Build a small web app for comparing neighborhood ideas. Use React and make it easy to review.',
+      displayName: 'Ideas app',
+    })
+
+    const taskText = plan.tasks.map(task => `${task.title} ${task.description}`).join(' ')
+    expect(plan.tasks.map(task => task.id)).toEqual(['scaffold-setup', 'review-plan'])
+    expect(taskText).toContain('preserving only behavior that appears in the brief')
+    expect(taskText).not.toMatch(/\btodo\b|completion|CRUD|persistence/i)
+  })
 })
 
 describe('MCP capability and recovery metadata', () => {
@@ -275,6 +316,14 @@ describe('MCP capability and recovery metadata', () => {
       baselineAcknowledgements: [],
       baselineDecision: 'pending',
     })
+    expect(validationPreparationWorkflow.gitlessTargetEvidence).toMatchObject({
+      valid: true,
+      assurance: 'reduced',
+      recommendedBaseRevision: {
+        gitCommit: null,
+        reducedAssurance: true,
+      },
+    })
     expect(validationPreparationWorkflow.registryFirst).toContain('customStepJustifications')
     expect(validationPreparationWorkflow.minimalSkeleton).toMatchObject({
       version: '1',
@@ -291,6 +340,8 @@ describe('MCP capability and recovery metadata', () => {
       ],
       files: [expect.objectContaining({ classification: 'test_only', declared: true })],
     })
+    expect(validationArtifactSchema.safeParse(validationPreparationWorkflow.minimalSkeleton).success).toBe(true)
+    expect(validationPreparationWorkflow.errorRecovery).toContain('Do not inspect AppraiseJS core source')
   })
 
   it('keeps standby workflow resource aligned with complete handoff-before-wait guidance', () => {

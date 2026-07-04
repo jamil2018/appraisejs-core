@@ -79,11 +79,14 @@ export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | und
 
 export function zodCoordinatorError(error: ZodError): CoordinatorErrorEnvelope {
   const issue = error.issues[0]
+  const path = issue?.path.join('.')
   return {
     code: 'invalid-request',
-    message: issue?.message ?? 'Invalid request.',
-    ...(issue?.path.length ? { path: issue.path.join('.') } : {}),
-    recovery: 'Correct the identified field and retry.',
+    message: path ? `${path}: ${issue?.message ?? 'Invalid request.'}` : (issue?.message ?? 'Invalid request.'),
+    ...(path ? { path } : {}),
+    recovery: path
+      ? `Fill or correct ${path}, then retry. For validation_publish, read appraise://workflow/validation-preparation and use the minimal skeleton for the next valid value.`
+      : 'Correct the identified field and retry. For validation_publish, read appraise://workflow/validation-preparation and use the minimal skeleton.',
   }
 }
 

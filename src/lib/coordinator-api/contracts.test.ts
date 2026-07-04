@@ -21,9 +21,9 @@ describe('coordinator public contracts', () => {
 
     expect(zodCoordinatorError(result.error)).toEqual({
       code: 'invalid-request',
-      message: expect.any(String),
+      message: expect.stringContaining('plan.tasks.0.validationIntent'),
       path: 'plan.tasks.0.validationIntent',
-      recovery: 'Correct the identified field and retry.',
+      recovery: expect.stringContaining('appraise://workflow/validation-preparation'),
     })
   })
 

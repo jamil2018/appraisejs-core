@@ -74,7 +74,7 @@ function submitDisabledReason(lifecycle: string, reviewState: ValidationReviewSt
 function submitButtonLabel(lifecycle: string): string {
   if (lifecycle === 'validations_approved') return 'Validation review approved'
   if (lifecycle === 'validation_changes_requested') return 'Waiting for updated validations'
-  return 'Approve validation review and continue'
+  return 'Submit validation review'
 }
 
 function baselineActionDescription(lifecycle: string): string | null {
@@ -277,6 +277,11 @@ function ValidationSummary({
             <li key={blocker}>{blocker}</li>
           ))}
         </ul>
+      ) : detail.plan.lifecycle === 'awaiting_validation_review' ? (
+        <div className="mt-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+          Validation evidence is ready. Submitting the validation review emits validations_approved and unlocks baseline
+          actions.
+        </div>
       ) : null}
       <div className="mt-4">
         <Button
@@ -353,7 +358,7 @@ function ValidationNodeCard({
             onClick={() => decide('approved')}
           >
             <Check className="mr-1 size-3.5" />
-            {currentDecision?.decision === 'approved' ? 'Approved' : 'Approve'}
+            {currentDecision?.decision === 'approved' ? 'Evidence approved' : 'Approve evidence'}
           </Button>
           <Button
             type="button"
