@@ -148,6 +148,17 @@ export const validationPreparationWorkflow = {
     baselineAcknowledgements: [],
     baselineDecision: 'pending',
   },
+  gitlessTargetEvidence: {
+    valid: true,
+    assurance: 'reduced',
+    recommendedBaseRevision: {
+      gitCommit: null,
+      snapshotHash: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+      reducedAssurance: true,
+    },
+    guidance:
+      'A target workspace without Git is valid lower-assurance evidence, not a validation failure. Use gitCommit:null, include a filesystem snapshot hash, set reducedAssurance:true, and say plainly that reproducibility is reduced.',
+  },
   validationNodeFields: [
     'id',
     'taskIds',
@@ -186,11 +197,11 @@ export const validationPreparationWorkflow = {
     'Call validation_publish only after plan_start has moved the plan into validation preparation. validation_publish persists appraise/plans/validations/<plan-id>.validation.yaml, emits validation_review_ready, and moves the plan to awaiting_validation_review.',
   minimalSkeleton: {
     version: '1',
-    planId: '<plan-id>',
+    planId: 'primary-plan',
     revision: 1,
     baseRevision: {
       gitCommit: null,
-      snapshotHash: 'sha256:<64 lowercase hex chars>',
+      snapshotHash: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
       reducedAssurance: true,
     },
     classificationOverrides: [],
@@ -257,7 +268,7 @@ export const validationPreparationWorkflow = {
         rationale: 'Validation artifact for reviewed plan behavior.',
         status: 'added',
         beforeHash: null,
-        contentHash: 'sha256:<64 lowercase hex chars>',
+        contentHash: 'sha256:1111111111111111111111111111111111111111111111111111111111111111',
         patch: '<unified diff or concise patch evidence>',
         declared: true,
       },
@@ -377,11 +388,29 @@ type BriefPlanTask = {
   validationIntent: string
 }
 
+type StructuredBriefPlan = {
+  tasks: BriefPlanTask[]
+  edges: Array<{ from: string; to: string; type: 'blocks' }>
+  implementationGroups: Array<{ id: string; taskIds: string[] }>
+}
+
 function includesAny(value: string, patterns: RegExp[]) {
   return patterns.some(pattern => pattern.test(value))
 }
 
-function createStructuredTasksFromBrief(projectBrief: string): BriefPlanTask[] | undefined {
+function structuredBriefPlan(tasks: BriefPlanTask[]): StructuredBriefPlan {
+  return {
+    tasks,
+    edges: tasks.slice(0, -1).map((task, index) => ({ from: task.id, to: tasks[index + 1]!.id, type: 'blocks' })),
+    implementationGroups: [
+      { id: 'foundation', taskIds: tasks.slice(0, 2).map(task => task.id) },
+      { id: 'behavior', taskIds: tasks.slice(2, -1).map(task => task.id) },
+      { id: 'quality', taskIds: [tasks[tasks.length - 1]!.id] },
+    ].filter(group => group.taskIds.length > 0),
+  }
+}
+
+function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPlan | undefined {
   const brief = projectBrief.toLowerCase()
   const isAppBrief = includesAny(brief, [
     /\bapp(?:lication)?\b/,
@@ -390,23 +419,12 @@ function createStructuredTasksFromBrief(projectBrief: string): BriefPlanTask[] |
     /\bui\b/,
     /\btodo(?:s)?\b/,
     /\btask(?:s)?\b/,
+    /\bdashboard\b/,
+    /\beditor\b/,
+    /\bnotes?\b/,
   ])
-  const signals = [
-    includesAny(brief, [/\breact\b/, /\bvite\b/, /\btailwind\b/, /\bshadcn\b/, /\btanstack\b/]),
-    includesAny(brief, [/\btodo(?:s)?\b/, /\btask(?:s)?\b/, /\bchecklist\b/]),
-    includesAny(brief, [/\bcrud\b/, /\bcreate\b/, /\badd\b/, /\bedit\b/, /\bupdate\b/, /\bdelete\b/, /\bremove\b/]),
-    includesAny(brief, [/\bcomplete\b/, /\bcompleted\b/, /\bdone\b/, /\btoggle\b/]),
-    includesAny(brief, [
-      /\bpersist(?:ence|ed|ing)?\b/,
-      /\bstorage\b/,
-      /\blocalstorage\b/,
-      /\bdatabase\b/,
-      /\bsqlite\b/,
-    ]),
-    includesAny(brief, [/\btest(?:s|ing)?\b/, /\bvalidation\b/, /\be2e\b/, /\bplaywright\b/, /\bvitest\b/]),
-  ].filter(Boolean).length
 
-  if (!isAppBrief || signals < 3) return undefined
+  if (!isAppBrief) return undefined
 
   const stack = [
     includesAny(brief, [/\breact\b/]) ? 'React' : undefined,
@@ -417,63 +435,325 @@ function createStructuredTasksFromBrief(projectBrief: string): BriefPlanTask[] |
   ]
     .filter(Boolean)
     .join(', ')
-  const stackSummary = stack || 'the requested frontend stack'
-  const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
+  const stackSummary = stack || 'requested frontend'
+  const setupTask: BriefPlanTask = {
+    id: 'scaffold-setup',
+    title: 'Scaffold and configure the app shell',
+    description: `Create the ${stackSummary} application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief.`,
+    acceptanceCriteria: [
+      'The app starts locally with the requested stack and no missing dependency errors.',
+      'Base styling, component primitives, and project structure are in place for the planned UI.',
+    ],
+    validationIntent: 'Run install/build or the closest available scaffold validation for the generated app shell.',
+  }
+  const asksForPersistence = includesAny(brief, [
+    /\bpersist(?:ence|ed|ing)?\b/,
+    /\bstorage\b/,
+    /\blocalstorage\b/,
+    /\bdatabase\b/,
+    /\bsqlite\b/,
+    /\bsaved?\b/,
+    /\bhistory\b/,
+  ])
+  const asksForCrud = includesAny(brief, [
+    /\bcrud\b/,
+    /\bcreate\b/,
+    /\badd\b/,
+    /\bedit\b/,
+    /\bupdate\b/,
+    /\bdelete\b/,
+    /\bremove\b/,
+  ])
+  const asksForCompletion = includesAny(brief, [/\bcomplete\b/, /\bcompleted\b/, /\bdone\b/, /\btoggle\b/])
+  const isTodoBrief = includesAny(brief, [/\btodo(?:s)?\b/, /\btask(?:s)?\b/, /\bchecklist\b/])
+  const isApiInformationBrief = includesAny(brief, [
+    /\bweather\b/,
+    /\bforecast\b/,
+    /\bapi\b/,
+    /\bsearch\b/,
+    /\blookup\b/,
+    /\bcurrent conditions?\b/,
+  ])
+  const isEditorBrief = includesAny(brief, [/\bnotes?\b/, /\bdocument\b/, /\beditor\b/, /\bmarkdown\b/, /\bwrite\b/])
+  const isDashboardBrief = includesAny(brief, [
+    /\bdashboard\b/,
+    /\bmetrics?\b/,
+    /\bsummary\b/,
+    /\bfilter(?:ing)?\b/,
+    /\bsort(?:ing)?\b/,
+    /\breport(?:ing)?\b/,
+  ])
 
-  return [
+  if (isTodoBrief && (asksForCrud || asksForCompletion || asksForPersistence)) {
+    const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
+    return structuredBriefPlan([
+      setupTask,
+      {
+        id: 'task-model-ui',
+        title: `Model ${taskNoun} data and build the primary UI`,
+        description: `Define the ${taskNoun} shape, app state boundaries, and visible list/form experience for creating, viewing, and organizing items.`,
+        acceptanceCriteria: [
+          `The UI exposes a clear ${taskNoun} list, empty state, and input flow.`,
+          `${taskNoun} data includes the fields needed for titles and completion state.`,
+        ],
+        validationIntent: 'Exercise the main UI states manually or with component-level tests where available.',
+      },
+      {
+        id: 'crud-completion',
+        title: `Implement ${taskNoun} CRUD and completion behavior`,
+        description: `Add create, read, update, delete, and completion-toggle flows with predictable state updates and accessible controls.`,
+        acceptanceCriteria: [
+          `Users can add, edit, delete, and mark ${taskNoun} items complete or incomplete.`,
+          'Completion changes are reflected immediately in the rendered list without stale UI state.',
+        ],
+        validationIntent: 'Run focused interaction tests or manually verify each CRUD and completion path.',
+      },
+      {
+        id: 'persistence',
+        title: `Persist ${taskNoun} state`,
+        description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
+        acceptanceCriteria: [
+          `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
+          'Persistence failures do not corrupt the visible in-memory state.',
+        ],
+        validationIntent:
+          'Verify saved items reload correctly and cover persistence behavior with the closest available automated test.',
+      },
+      {
+        id: 'validation',
+        title: 'Validate the planned user workflow',
+        description:
+          'Add or run validation that covers startup, primary UI rendering, CRUD behavior, completion toggles, and persistence recovery.',
+        acceptanceCriteria: [
+          'The happy path from app launch through persisted completed items is verified.',
+          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
+        ],
+        validationIntent: 'Run the focused test suite plus lint/build checks appropriate for the created app.',
+      },
+    ])
+  }
+
+  if (isApiInformationBrief) {
+    const resultNoun = includesAny(brief, [/\bweather\b/, /\bforecast\b/]) ? 'weather results' : 'API results'
+    const apiName = includesAny(brief, [/\bweather\b/, /\bforecast\b/]) ? 'weather API' : 'external API'
+    return structuredBriefPlan([
+      setupTask,
+      {
+        id: 'input-search',
+        title: 'Build the input and search flow',
+        description:
+          'Create the user input flow for entering a location or query, submitting the lookup, and clearing or revising the search.',
+        acceptanceCriteria: [
+          'Users can enter a location or query and submit it from the primary screen.',
+          'The interface communicates the active query and handles empty input without a broken request.',
+        ],
+        validationIntent: 'Exercise the search/input path with the closest available component or browser check.',
+      },
+      {
+        id: 'api-integration',
+        title: `Integrate the ${apiName}`,
+        description:
+          'Fetch information from the requested API source, normalize the response for the UI, and protect the interface from network or response-shape failures.',
+        acceptanceCriteria: [
+          `Successful responses populate ${resultNoun} without leaking raw transport details to users.`,
+          'Loading, empty, and error states are visible and recoverable from the primary flow.',
+        ],
+        validationIntent:
+          'Use a mocked or deterministic API response in focused tests when live API access is not stable.',
+      },
+      {
+        id: 'result-rendering',
+        title: `Render ${resultNoun}`,
+        description:
+          'Display the fetched information with clear hierarchy, useful metadata, and responsive layout states for desktop and mobile.',
+        acceptanceCriteria: [
+          `${resultNoun} include the user-relevant fields requested by the brief.`,
+          'The result view remains usable across loading, success, empty, and error states.',
+        ],
+        validationIntent: 'Verify the rendered result and state transitions with focused UI or E2E coverage.',
+      },
+      {
+        id: 'validation',
+        title: 'Validate the information workflow',
+        description:
+          'Add or run validation that covers app startup, query submission, API success, loading and error states, and result rendering.',
+        acceptanceCriteria: [
+          'The primary information lookup path is verified with deterministic evidence.',
+          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
+        ],
+        validationIntent: 'Run focused tests with mocked API evidence plus lint/build checks appropriate for the app.',
+      },
+    ])
+  }
+
+  if (isEditorBrief) {
+    return structuredBriefPlan([
+      setupTask,
+      {
+        id: 'editor-state',
+        title: 'Build editor state and controls',
+        description:
+          'Create the document or note editing experience, including editing state, selection affordances, and save-ready UI feedback.',
+        acceptanceCriteria: [
+          'Users can create or update written content through the primary editor.',
+          'Unsaved, saved, empty, and invalid states are represented clearly.',
+        ],
+        validationIntent: 'Exercise editor state transitions with focused component or browser validation.',
+      },
+      {
+        id: 'document-management',
+        title: 'Manage documents or notes',
+        description:
+          'Add the list/detail workflow for creating, selecting, renaming, deleting, or organizing documents as requested by the brief.',
+        acceptanceCriteria: [
+          'Users can move between document list and editor surfaces without losing context.',
+          'Document management actions update the visible state predictably.',
+        ],
+        validationIntent: 'Verify the document/list workflow and destructive action safeguards.',
+      },
+      {
+        id: 'persistence',
+        title: 'Persist editor content',
+        description:
+          'Store document content with the persistence layer requested by the brief and restore it on reload.',
+        acceptanceCriteria: [
+          'Saved content survives a page reload or app restart according to the selected persistence layer.',
+          'Persistence failures surface a recoverable state without corrupting visible content.',
+        ],
+        validationIntent: 'Verify saved content reloads and persistence failures are handled.',
+      },
+      {
+        id: 'validation',
+        title: 'Validate the editor workflow',
+        description:
+          'Add or run validation that covers editing, document management, persistence, and recovery states.',
+        acceptanceCriteria: [
+          'The primary editor workflow is verified with deterministic evidence.',
+          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
+        ],
+        validationIntent: 'Run focused tests plus lint/build checks appropriate for the app.',
+      },
+    ])
+  }
+
+  if (isDashboardBrief) {
+    return structuredBriefPlan([
+      setupTask,
+      {
+        id: 'data-source',
+        title: 'Connect dashboard data sources',
+        description:
+          'Prepare the dashboard data source, fixture, or API integration and normalize data for summaries and tables.',
+        acceptanceCriteria: [
+          'Dashboard data loads from the source requested by the brief or a deterministic fixture when needed.',
+          'Empty and error data-source states are visible and recoverable.',
+        ],
+        validationIntent: 'Validate data loading with deterministic fixture or mocked source evidence.',
+      },
+      {
+        id: 'dashboard-controls',
+        title: 'Add filtering, sorting, and summaries',
+        description:
+          'Implement the dashboard controls, summary metrics, and list/table views needed to inspect and compare the data.',
+        acceptanceCriteria: [
+          'Users can filter or sort the dashboard data where the brief requests comparison or scanning.',
+          'Summary metrics and detailed rows remain consistent after control changes.',
+        ],
+        validationIntent: 'Exercise filters, sorting, summaries, and empty states in focused UI validation.',
+      },
+      {
+        id: 'dashboard-states',
+        title: 'Polish operational states',
+        description:
+          'Cover loading, empty, error, and responsive states so repeated dashboard use remains predictable.',
+        acceptanceCriteria: [
+          'The dashboard remains scannable across loading, empty, success, and error states.',
+          'Responsive layouts preserve key controls and summaries on smaller screens.',
+        ],
+        validationIntent: 'Verify dashboard states with component or E2E checks.',
+      },
+      {
+        id: 'validation',
+        title: 'Validate the dashboard workflow',
+        description: 'Add or run validation that covers data loading, filtering/sorting, summaries, and error states.',
+        acceptanceCriteria: [
+          'The primary dashboard workflow is verified with deterministic evidence.',
+          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
+        ],
+        validationIntent: 'Run focused tests plus lint/build checks appropriate for the app.',
+      },
+    ])
+  }
+
+  if (asksForCrud) {
+    const persistenceTask: BriefPlanTask[] = asksForPersistence
+      ? [
+          {
+            id: 'persistence',
+            title: 'Persist entity state',
+            description:
+              'Store entity data using the persistence approach requested by the brief and restore saved state on reload.',
+            acceptanceCriteria: [
+              'Entity data survives a page reload or app restart according to the selected persistence layer.',
+              'Persistence failures do not corrupt the visible in-memory state.',
+            ],
+            validationIntent:
+              'Verify saved entities reload correctly and cover persistence behavior with the closest available automated test.',
+          },
+        ]
+      : []
+    return structuredBriefPlan([
+      setupTask,
+      {
+        id: 'entity-model',
+        title: 'Model the requested entity data',
+        description:
+          'Define the entity shape, state boundaries, validation rules, and list/detail UI needed by the brief.',
+        acceptanceCriteria: [
+          'The UI exposes the requested entity list, empty state, and input flow.',
+          'Entity fields match the nouns and attributes present in the user brief.',
+        ],
+        validationIntent: 'Exercise the primary model and UI states manually or with component tests.',
+      },
+      {
+        id: 'crud-workflow',
+        title: 'Implement create, edit, delete, and list flows',
+        description:
+          'Add the requested entity operations with predictable state updates, accessible controls, and safe destructive actions.',
+        acceptanceCriteria: [
+          'Users can create, edit, delete, and list the requested entities.',
+          'State changes are reflected immediately without stale UI state.',
+        ],
+        validationIntent: 'Run focused interaction tests or manually verify each requested CRUD path.',
+      },
+      ...persistenceTask,
+      {
+        id: 'validation',
+        title: 'Validate the CRUD workflow',
+        description: 'Add or run validation that covers startup, entity CRUD behavior, and requested persistence.',
+        acceptanceCriteria: [
+          'The primary entity workflow is verified with deterministic evidence.',
+          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
+        ],
+        validationIntent: 'Run the focused test suite plus lint/build checks appropriate for the created app.',
+      },
+    ])
+  }
+
+  return structuredBriefPlan([
+    setupTask,
     {
-      id: 'scaffold-setup',
-      title: 'Scaffold and configure the app shell',
-      description: `Create the ${stackSummary} application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief.`,
-      acceptanceCriteria: [
-        'The app starts locally with the requested stack and no missing dependency errors.',
-        'Base styling, component primitives, and project structure are in place for the planned UI.',
-      ],
-      validationIntent: 'Run install/build or the closest available scaffold validation for the generated app shell.',
-    },
-    {
-      id: 'task-model-ui',
-      title: `Model ${taskNoun} data and build the primary UI`,
-      description: `Define the ${taskNoun} shape, app state boundaries, and visible list/form experience for creating, viewing, and organizing items.`,
-      acceptanceCriteria: [
-        `The UI exposes a clear ${taskNoun} list, empty state, and input flow.`,
-        `${taskNoun} data includes the fields needed for titles and completion state.`,
-      ],
-      validationIntent: 'Exercise the main UI states manually or with component-level tests where available.',
-    },
-    {
-      id: 'crud-completion',
-      title: `Implement ${taskNoun} CRUD and completion behavior`,
-      description: `Add create, read, update, delete, and completion-toggle flows with predictable state updates and accessible controls.`,
-      acceptanceCriteria: [
-        `Users can add, edit, delete, and mark ${taskNoun} items complete or incomplete.`,
-        'Completion changes are reflected immediately in the rendered list without stale UI state.',
-      ],
-      validationIntent: 'Run focused interaction tests or manually verify each CRUD and completion path.',
-    },
-    {
-      id: 'persistence',
-      title: `Persist ${taskNoun} state`,
-      description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
-      acceptanceCriteria: [
-        `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
-        'Persistence failures do not corrupt the visible in-memory state.',
-      ],
-      validationIntent:
-        'Verify saved items reload correctly and cover persistence behavior with the closest available automated test.',
-    },
-    {
-      id: 'validation',
-      title: 'Validate the planned user workflow',
+      id: 'review-plan',
+      title: 'Clarify the requested app behavior',
       description:
-        'Add or run validation that covers startup, primary UI rendering, CRUD behavior, completion toggles, and persistence recovery.',
+        'Keep the first plan concise and reviewable, preserving only behavior that appears in the brief without adding flows the user did not request.',
       acceptanceCriteria: [
-        'The happy path from app launch through persisted completed items is verified.',
-        'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
+        'The plan uses nouns and behaviors from the user brief.',
+        'Any missing product decisions are surfaced for Appraise review instead of being assumed.',
       ],
-      validationIntent: 'Run the focused test suite plus lint/build checks appropriate for the created app.',
+      validationIntent: 'Use the Appraise review loop to confirm the intended workflow before implementation starts.',
     },
-  ]
+  ])
 }
 
 export function createPlanFromBrief(input: {
@@ -492,14 +772,14 @@ export function createPlanFromBrief(input: {
   ]
     .filter(Boolean)
     .join('\n\n')
-  const structuredTasks = createStructuredTasksFromBrief(input.projectBrief)
+  const structuredPlan = createStructuredTasksFromBrief(input.projectBrief)
   return {
     version: '1',
     revision: 1,
     lifecycle: 'draft',
     goal: title || 'AppraiseJS planning session',
     description: context,
-    tasks: structuredTasks ?? [
+    tasks: structuredPlan?.tasks ?? [
       {
         id: 'plan-from-brief',
         title: 'Plan from brief',
@@ -508,21 +788,8 @@ export function createPlanFromBrief(input: {
         validationIntent: 'Wait for AppraiseJS plan review readiness before any implementation starts.',
       },
     ],
-    edges: structuredTasks
-      ? [
-          { from: 'scaffold-setup', to: 'task-model-ui', type: 'blocks' as const },
-          { from: 'task-model-ui', to: 'crud-completion', type: 'blocks' as const },
-          { from: 'crud-completion', to: 'persistence', type: 'blocks' as const },
-          { from: 'persistence', to: 'validation', type: 'blocks' as const },
-        ]
-      : [],
-    implementationGroups: structuredTasks
-      ? [
-          { id: 'foundation', taskIds: ['scaffold-setup', 'task-model-ui'] },
-          { id: 'behavior', taskIds: ['crud-completion', 'persistence'] },
-          { id: 'quality', taskIds: ['validation'] },
-        ]
-      : [],
+    edges: structuredPlan?.edges ?? [],
+    implementationGroups: structuredPlan?.implementationGroups ?? [],
   }
 }
 

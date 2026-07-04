@@ -652,7 +652,7 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText('production')).toBeInTheDocument()
     expect(screen.getAllByText('Declared')).toHaveLength(2)
     expect(screen.getAllByText('In manifest')).toHaveLength(2)
-    expect(screen.getByRole('button', { name: 'Approved' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Evidence approved' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Deferred' })).toBeDisabled()
     expect(screen.getAllByText('Approved').length).toBeGreaterThanOrEqual(1)
   })
@@ -683,7 +683,7 @@ describe('PlanReviewWorkspace', () => {
 
     const { rerender } = render(<PlanReviewWorkspace detail={needsFileApproval} initialTab="validations" />)
 
-    await user.click(screen.getAllByRole('button', { name: /^Approve$/i })[0]!)
+    await user.click(screen.getAllByRole('button', { name: /^Approve evidence$/i })[0]!)
     expect(decideValidationNodeAction).toHaveBeenCalledWith({
       planId: 'accessible-plan',
       validationId: 'browser-validation',
@@ -711,7 +711,8 @@ describe('PlanReviewWorkspace', () => {
     })
 
     rerender(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
-    await user.click(screen.getByRole('button', { name: /approve validation review and continue/i }))
+    expect(screen.getByText(/submitting the validation review emits validations_approved/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /submit validation review/i }))
     expect(submitValidationReviewAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
   })
 
@@ -740,7 +741,7 @@ describe('PlanReviewWorkspace', () => {
       </form>,
     )
 
-    const approveButtons = screen.getAllByRole('button', { name: /^Approve$/i })
+    const approveButtons = screen.getAllByRole('button', { name: /^Approve evidence$/i })
     await user.click(approveButtons[0]!)
 
     expect(onSubmit).not.toHaveBeenCalled()

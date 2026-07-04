@@ -32,6 +32,11 @@ describe('CLI diagnostics', () => {
         expect.objectContaining({ id: 'transport', status: 'error', code: 'transport-failed' }),
       ]),
     )
+    expect(result.recommendedValidationBaseRevision).toMatchObject({
+      gitCommit: null,
+      reducedAssurance: true,
+      guidance: expect.stringContaining('valid with reduced assurance'),
+    })
   })
 
   it('initializes identity before reporting same-run diagnostic state in a generic directory', async () => {

@@ -24,6 +24,14 @@ async function gitStatus(cwd: string): Promise<{ available: boolean; dirty: bool
   })
 }
 
+const gitlessBaseRevisionGuidance = {
+  gitCommit: null,
+  snapshotHash: 'sha256:<hash filesystem evidence for the planned artifacts>',
+  reducedAssurance: true,
+  guidance:
+    'Non-git target workspaces are valid with reduced assurance. Use this shape for validation baseRevision and call out the reduced reproducibility in the validation handoff.',
+}
+
 export async function diagnoseProject(options: { cwd: string; baseUrl: string; coordinatorId?: string }) {
   const cwd = path.resolve(options.cwd)
   const checks: Check[] = []
@@ -110,6 +118,7 @@ export async function diagnoseProject(options: { cwd: string; baseUrl: string; c
     baseUrl: options.baseUrl,
     checks,
     warnings,
+    recommendedValidationBaseRevision: git.available && !git.dirty ? undefined : gitlessBaseRevisionGuidance,
     recoveryActions: [
       ...checks.flatMap(check => (check.recovery ? [check.recovery] : [])),
       ...(remote?.recoveryActions ?? []),
