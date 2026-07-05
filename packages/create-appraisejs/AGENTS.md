@@ -19,6 +19,8 @@ for package-specific routing.
   layout state.
 - Prefer changing root/base source, then running `npm --prefix packages/create-appraisejs run prepare-template`, when
   generated apps should inherit root behavior.
+- Update scaffold docs, package README content, and generated-artifact guidance when scaffold behavior, template
+  preparation, flavor overlays, seeded data, or package commands change.
 
 ## Validation
 

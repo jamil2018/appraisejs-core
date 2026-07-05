@@ -8,6 +8,6 @@ alwaysApply: false
 Follow root `AGENTS.md` as the canonical routing and safety layer for this repository.
 
 Use `docs/agent-harness.md` for the current agent map, including source-of-truth routing, generated artifact
-boundaries, scaffold rules, MCP setup, validation strategy, and stale-instruction traps.
+boundaries, scaffold rules, MCP setup, validation strategy, documentation maintenance, and stale-instruction traps.
 
 Historical plans and Cursor plan files are reference material unless the user names one as the task source.

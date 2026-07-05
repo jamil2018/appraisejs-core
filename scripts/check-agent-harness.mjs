@@ -24,7 +24,9 @@ const regexForbidden = [
   },
 ]
 
-const requiredFiles = [
+const hasRootAgentHarness = fs.existsSync(path.join(repoRoot, 'docs', 'agent-harness.md'))
+
+const rootHarnessRequiredFiles = [
   'docs/agent-harness.md',
   'docs/agent-task-recipes.md',
   'docs/agent-validation-matrix.md',
@@ -42,6 +44,8 @@ const requiredFiles = [
   'packages/create-appraisejs/AGENTS.md',
   'packages/appraisejs/AGENTS.md',
 ]
+
+const requiredFiles = hasRootAgentHarness ? [...rootHarnessRequiredFiles] : []
 
 const staticFiles = [
   'AGENTS.md',
@@ -77,6 +81,14 @@ const requiredTokens = [
       'todoCreatesZeroCustomSteps',
       'customStepGapJustifications',
     ],
+  },
+  {
+    file: 'docs/agent-harness.md',
+    tokens: ['Documentation Maintenance', 'Major behavior, architecture, workflow, package, schema, scaffold'],
+  },
+  {
+    file: 'docs/agent-harness-guardrails.md',
+    tokens: ['Major behavior, architecture, workflow, package, schema, scaffold'],
   },
   {
     file: '.agents/skills/appraise-validation-preparation/SKILL.md',

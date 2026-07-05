@@ -12,7 +12,7 @@ Describe what changed and why.
 - [ ] `npm run build`
 - [ ] `npm run check:harness` when agent instructions, docs, skills, package READMEs, MCP setup, or routing changed
 - [ ] Tests added/updated if needed
-- [ ] Documentation updated if needed
+- [ ] Current docs updated for major behavior, workflow, package, schema, scaffold, lifecycle, or toolchain changes
 
 ## Checklist
 

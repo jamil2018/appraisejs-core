@@ -50,6 +50,10 @@ When instructions conflict, follow this order:
 Generated or sync-managed automation output lives under `automation/`. Prefer changing source data, generators, or
 sync scripts instead of editing generated output directly.
 
+For major behavior, architecture, workflow, package, schema, scaffold, lifecycle, or toolchain changes, update the
+relevant current docs in the same change set. Treat doc drift as part of the bug: if repo inspection shows active docs
+no longer match current source, scripts, package layout, or generated-artifact rules, fix those docs before finishing.
+
 ## Task Routing
 
 For CRUD/domain work, start with `src/actions/*`, `src/services/*`, `prisma/schema.prisma`, and the matching
@@ -82,7 +86,9 @@ completion gates with chat approval.
 
 For Graphify setup or repo graph work, follow `docs/agent-graphify.md`. Use the Python package `graphifyy` and CLI
 `graphify`; do not add the unrelated Node package `@sentropic/graphify`. When safe source changes touch committed
-graph scopes, run `npm run graphify:auto` before finishing.
+graph scopes, run `npm run graphify:auto` before finishing. When changing Graphify behavior or graph-update logic,
+load and follow the `graphify` skill for any required `graphify-out/` output updates instead of hand-editing those
+outputs.
 
 For E2E or Playwright changes, follow `docs/test-run-runtime.md` for runtime behavior and
 `docs/agent-task-recipes.md` for focused validation routing.
@@ -98,6 +104,9 @@ Package instructions may narrow validation but do not override root safety rules
 - Do not bypass pre-commit hooks or ignore hook failures.
 - Do not apply broad formatting churn unrelated to the task.
 - Do not treat historical development plans as authoritative without checking current source.
+- Do not hand-edit `graphify-out/` outputs when a Graphify skill-driven update or rebuild should produce them.
+- Do not leave active docs stale after a major source, schema, workflow, toolchain, package, scaffold, or lifecycle
+  change.
 - Do not guess on broad behavior, schema, runtime, or template-sync changes when repo inspection leaves important
   questions unanswered.
 - Do not claim MCP tools are available until the client has been registered or restarted with the current setup.
@@ -130,6 +139,8 @@ Before finishing, make sure:
 
 - The change is made in canonical source files.
 - Generated/template sync has run when applicable.
+- Current docs were updated for major behavior, workflow, package, schema, scaffold, lifecycle, or toolchain changes,
+  and any active-doc deviations found during repo inspection are corrected.
 - Focused linting and formatting have passed, or failures are explained.
 - Relevant tests, static analysis, and build checks have run based on risk.
 - Hook failures introduced by the change are fixed.

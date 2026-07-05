@@ -11,12 +11,18 @@ Prisma or dedicated helpers.
 Validation: affected unit tests, `npx eslint <files>`, `npx prettier --check <files>`, and broader checks when schema
 or shared services change.
 
+For any major behavior or workflow change, update the matching current docs before finishing. Treat stale active docs
+found during repo inspection as part of the task scope.
+
 ## Prisma Schema And Migrations
 
 Read `prisma/schema.prisma`, affected services/actions, migrations, sync scripts, and tests before changing models.
 Check generated or prepared artifacts only after the canonical model and migration behavior are correct.
 
 Validation: migration validation, affected tests, and `npm run build` for broad schema or package impacts.
+
+Update schema, sync, scaffold, or runtime docs when the model change affects how agents or maintainers should navigate,
+prepare, or validate the repo.
 
 ## Appraise Lifecycle And MCP
 
@@ -28,6 +34,9 @@ Validation: focused service/package tests, `npm run setup:mcp` when setup text c
 when lifecycle API behavior changes, and `npm --prefix packages/appraisejs run test:mcp:e2e` when MCP transport or
 tools change.
 
+Update `docs/agent-lifecycle-flow.md`, `docs/coordinator-api-mcp.md`, `docs/agent-mcp-setup.md`, or package guidance
+when lifecycle states, MCP tools, handoff URLs, setup commands, or ownership boundaries change.
+
 ## Scaffold And Template Changes
 
 Read `docs/agent-scaffold-flow.md`, `docs/scaffold-template-sync.md`, `packages/create-appraisejs/AGENTS.md`, and
@@ -36,6 +45,9 @@ flow into generated apps.
 
 Validation: `npm --prefix packages/create-appraisejs run prepare-template`, package tests when CLI behavior changes,
 and careful review of template diffs.
+
+Update scaffold docs and generated-artifact guidance when the bundled template model, preparation command, preserved
+template files, or seeded-data rules change.
 
 ## Test Run, Reports, And Logs
 
@@ -46,6 +58,8 @@ Read `docs/test-run-runtime.md`, then inspect `src/actions/test-run/test-run-act
 Validation: focused unit tests, Cucumber or Playwright checks when runtime behavior changes, and `npm run build` for
 shared runtime changes.
 
+Update runtime docs when execution commands, report locations, log streaming, adapters, or run-state behavior change.
+
 ## React Routes And Components
 
 Read `docs/component-organization-rules.md` and keep route-specific UI local unless reuse or separation clearly
@@ -54,12 +68,18 @@ justifies moving it into `src/components`.
 Validation: affected tests, `npx eslint <files>`, `npx prettier --check <files>`, and browser checks for user-facing
 interaction changes.
 
+Update component or route organization docs when a UI change establishes a new shared pattern or moves ownership
+between route-local and reusable components.
+
 ## Automation Sync
 
 Read `docs/automation-sync-rules.md`, then inspect the relevant generator, parser, database sync, and `scripts/sync-*`
 entry point. Prefer source data, generators, or sync logic over direct generated-output edits.
 
 Validation: dry-run sync when available, affected sync tests, and review of generated diffs.
+
+Update automation sync or generated-artifact docs when canonical sources, sync commands, or generated output ownership
+changes.
 
 ## E2E And Playwright
 
