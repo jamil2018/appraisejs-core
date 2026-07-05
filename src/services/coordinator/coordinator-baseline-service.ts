@@ -33,6 +33,10 @@ import {
 } from '@/services/test-run/test-run-service'
 
 import { appendPlanEvent } from './coordinator-service'
+import {
+  assertProjectedBaselineRecords,
+  assertValidationEnvironmentsReady,
+} from './validation-runtime-projection-service'
 
 type BaselineOptions = {
   client?: PrismaClient
@@ -161,10 +165,23 @@ async function readRunningBaselineArtifacts(planId: string, options: BaselineOpt
   return { client, artifacts }
 }
 
-async function assertBaselineReady(artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>): Promise<void> {
+async function assertBaselineReady(
+  artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
+  client: PrismaClient,
+): Promise<void> {
   await assertValidationFilesUnchanged(artifacts)
+  await assertValidationEnvironmentsReady(artifacts.validation, client, artifacts.targetProject)
   const readiness = assessBaselineAcceptance(artifacts.validation)
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
+}
+
+async function assertBaselinePreflight(
+  planId: string,
+  artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
+  client: PrismaClient,
+) {
+  await assertValidationFilesUnchanged(artifacts)
+  await assertProjectedBaselineRecords(planId, artifacts.validation, client, artifacts.targetProject)
 }
 
 function browserEngine(browser: string): BrowserEngine {
@@ -255,7 +272,7 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
   if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
   }
-  await assertValidationFilesUnchanged(artifacts)
+  await assertBaselinePreflight(planId, artifacts, client)
   const active = new Set(
     artifacts.validation.baselineAttempts
       .filter(attempt => ['scheduled', 'running'].includes(attempt.status))
@@ -394,7 +411,7 @@ export async function acceptBaseline(planId: string, options: BaselineOptions = 
   if (artifacts.plan.lifecycle !== 'baseline_review') {
     throw new ServiceError('The plan is not awaiting baseline acceptance.', 'CONFLICT')
   }
-  await assertBaselineReady(artifacts)
+  await assertBaselineReady(artifacts, client)
   const plan = { ...artifacts.plan, lifecycle: 'baseline_accepted' as const }
   const validation = { ...artifacts.validation, baselineDecision: 'accepted' as const }
   await writeBaselineArtifacts(artifacts, plan, validation, client)
@@ -408,7 +425,7 @@ export async function startImplementation(planId: string, options: BaselineOptio
   if (artifacts.plan.lifecycle !== 'baseline_accepted' || artifacts.validation.baselineDecision !== 'accepted') {
     throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
   }
-  await assertBaselineReady(artifacts)
+  await assertBaselineReady(artifacts, client)
   const plan = { ...artifacts.plan, lifecycle: 'in_progress' as const }
   await writeBaselineArtifacts(artifacts, plan, artifacts.validation, client)
   await appendPlanEvent({ planId, type: 'implementation_started', payload: { revision: plan.revision } }, client)

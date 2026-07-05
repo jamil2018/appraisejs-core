@@ -4,6 +4,7 @@ import {
   agentGuide,
   approvalPendingResponse,
   createPlanFromBrief,
+  latestGateEvent,
   mcpCapabilityMetadata,
   missingCapabilityRecovery,
   nextApprovalWaitSequence,
@@ -11,6 +12,7 @@ import {
   planningWorkflow,
   reviewReadyPendingResponse,
   standbyWorkflow,
+  validationGateStatus,
   validationPreparationWorkflow,
 } from './mcp.js'
 import { validationArtifactSchema } from './plan-file.js'
@@ -27,6 +29,23 @@ describe('MCP approval wait helpers', () => {
 
   it('preserves the caller cursor when no newer events were delivered', () => {
     expect(nextApprovalWaitSequence(5, [{ sequence: 3, type: 'plan_review_ready' }])).toBe(5)
+  })
+
+  it('uses the latest validation gate event so changes requested supersedes stale approval', () => {
+    const event = latestGateEvent(
+      [
+        { sequence: 4, type: 'validations_approved' },
+        { sequence: 5, type: 'validation_changes_requested' },
+      ],
+      type => {
+        if (type === 'validations_approved') return 'approved'
+        if (type === 'validation_changes_requested') return 'changes_requested'
+        return undefined
+      },
+    )
+
+    expect(event).toEqual({ sequence: 5, type: 'validation_changes_requested' })
+    expect(validationGateStatus('validation_changes_requested')).toBe('changes_requested')
   })
 
   it('returns compact resumable approval standby with strict review-gate pause guidance', () => {
