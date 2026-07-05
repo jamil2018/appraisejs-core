@@ -35,11 +35,8 @@ type ValidationReviewPanelProps = {
   onDecideValidation: (validationId: string, decision: 'approved' | 'rejected' | 'deferred') => Promise<ActionResult>
   onApproveFile: (path: string) => Promise<ActionResult>
   onSubmitReview: () => Promise<ActionResult>
-  onStartBaseline: () => Promise<ActionResult>
-  onReconcileBaseline: () => Promise<ActionResult>
   onCancelBaseline: () => Promise<ActionResult>
   onAcceptBaseline: () => Promise<ActionResult>
-  onStartImplementation: () => Promise<ActionResult>
   onSubmitFeedback: (input: {
     scope: FeedbackScope
     target: ValidationFeedbackTarget
@@ -64,7 +61,9 @@ function fileNeedsApproval(file: ChangedFile): boolean {
 }
 
 function submitDisabledReason(lifecycle: string, reviewState: ValidationReviewState): string | null {
-  if (lifecycle === 'validations_approved') return 'Validations are approved. Start required baselines to continue.'
+  if (lifecycle === 'validations_approved') {
+    return 'Validations are approved. The connected agent starts required baselines through MCP.'
+  }
   if (lifecycle === 'validation_changes_requested') {
     return 'Validation changes were requested. Republish updated validation artifacts before approval.'
   }
@@ -80,11 +79,15 @@ function submitButtonLabel(lifecycle: string): string {
 
 function baselineActionDescription(lifecycle: string): string | null {
   if (lifecycle === 'validations_approved' || lifecycle === 'baseline_changes_requested') {
-    return 'Validation review is approved. Start required baseline runs before implementation.'
+    return 'Validation review is approved. The connected agent starts required baselines through MCP.'
   }
-  if (lifecycle === 'baseline_running') return 'Baseline runs are active. Reconcile evidence or cancel the run.'
+  if (lifecycle === 'baseline_running') {
+    return 'Baseline runs are active. The connected agent reconciles run evidence through MCP.'
+  }
   if (lifecycle === 'baseline_review') return 'Baseline evidence is ready for acceptance.'
-  if (lifecycle === 'baseline_accepted') return 'Baseline evidence is accepted. Unlock implementation to continue.'
+  if (lifecycle === 'baseline_accepted') {
+    return 'Baseline evidence is accepted. The connected agent unlocks implementation through MCP.'
+  }
   return null
 }
 
@@ -204,69 +207,35 @@ function BaselineLifecycleActions({
   lifecycle,
   isPending,
   run,
-  onStartBaseline,
-  onReconcileBaseline,
   onCancelBaseline,
   onAcceptBaseline,
-  onStartImplementation,
 }: {
   lifecycle: string
   isPending: boolean
   run: ValidationReviewPanelProps['run']
-  onStartBaseline: ValidationReviewPanelProps['onStartBaseline']
-  onReconcileBaseline: ValidationReviewPanelProps['onReconcileBaseline']
   onCancelBaseline: ValidationReviewPanelProps['onCancelBaseline']
   onAcceptBaseline: ValidationReviewPanelProps['onAcceptBaseline']
-  onStartImplementation: ValidationReviewPanelProps['onStartImplementation']
 }) {
   const description = baselineActionDescription(lifecycle)
   if (!description) return null
 
-  const canStartBaseline = lifecycle === 'validations_approved' || lifecycle === 'baseline_changes_requested'
   return (
     <div className="mt-4 rounded-md border p-3">
       <p className="text-sm text-muted-foreground">{description}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {canStartBaseline ? (
+        {lifecycle === 'baseline_running' ? (
           <Button
             type="button"
+            variant="outline"
             disabled={isPending}
-            onClick={() => run(onStartBaseline, 'Baseline runs submitted.', { recovery: 'validation-drift' })}
+            onClick={() => run(onCancelBaseline, 'Baseline execution cancelled.')}
           >
-            Start required baselines
+            Cancel baseline runs
           </Button>
-        ) : null}
-        {lifecycle === 'baseline_running' ? (
-          <>
-            <Button
-              type="button"
-              disabled={isPending}
-              onClick={() => run(onReconcileBaseline, 'Baseline evidence reconciled.')}
-            >
-              Reconcile run evidence
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isPending}
-              onClick={() => run(onCancelBaseline, 'Baseline execution cancelled.')}
-            >
-              Cancel baseline runs
-            </Button>
-          </>
         ) : null}
         {lifecycle === 'baseline_review' ? (
           <Button type="button" disabled={isPending} onClick={() => run(onAcceptBaseline, 'Baselines accepted.')}>
             Accept complete baseline
-          </Button>
-        ) : null}
-        {lifecycle === 'baseline_accepted' ? (
-          <Button
-            type="button"
-            disabled={isPending}
-            onClick={() => run(onStartImplementation, 'Implementation unlocked.')}
-          >
-            Unlock implementation
           </Button>
         ) : null}
       </div>
@@ -281,11 +250,8 @@ function ValidationSummary({
   isPending,
   run,
   onSubmitReview,
-  onStartBaseline,
-  onReconcileBaseline,
   onCancelBaseline,
   onAcceptBaseline,
-  onStartImplementation,
 }: {
   detail: PlanReviewDetail
   validation: ValidationArtifact
@@ -293,11 +259,8 @@ function ValidationSummary({
   isPending: boolean
   run: ValidationReviewPanelProps['run']
   onSubmitReview: ValidationReviewPanelProps['onSubmitReview']
-  onStartBaseline: ValidationReviewPanelProps['onStartBaseline']
-  onReconcileBaseline: ValidationReviewPanelProps['onReconcileBaseline']
   onCancelBaseline: ValidationReviewPanelProps['onCancelBaseline']
   onAcceptBaseline: ValidationReviewPanelProps['onAcceptBaseline']
-  onStartImplementation: ValidationReviewPanelProps['onStartImplementation']
 }) {
   const disabledReason = submitDisabledReason(detail.plan.lifecycle, reviewState)
 
@@ -354,11 +317,8 @@ function ValidationSummary({
         lifecycle={detail.plan.lifecycle}
         isPending={isPending}
         run={run}
-        onStartBaseline={onStartBaseline}
-        onReconcileBaseline={onReconcileBaseline}
         onCancelBaseline={onCancelBaseline}
         onAcceptBaseline={onAcceptBaseline}
-        onStartImplementation={onStartImplementation}
       />
     </div>
   )
@@ -732,11 +692,8 @@ export function ValidationReviewPanel({
   onDecideValidation,
   onApproveFile,
   onSubmitReview,
-  onStartBaseline,
-  onReconcileBaseline,
   onCancelBaseline,
   onAcceptBaseline,
-  onStartImplementation,
   onSubmitFeedback,
 }: ValidationReviewPanelProps) {
   const validation = detail.validation
@@ -780,11 +737,8 @@ export function ValidationReviewPanel({
         isPending={isPending}
         run={run}
         onSubmitReview={onSubmitReview}
-        onStartBaseline={onStartBaseline}
-        onReconcileBaseline={onReconcileBaseline}
         onCancelBaseline={onCancelBaseline}
         onAcceptBaseline={onAcceptBaseline}
-        onStartImplementation={onStartImplementation}
       />
       <ValidationNodeList
         validation={validation}

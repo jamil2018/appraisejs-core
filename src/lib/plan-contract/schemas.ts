@@ -56,7 +56,28 @@ export const implementationValidationRunSchema = z.object({
   status: z.enum(['running', 'passed', 'failed', 'cancelled', 'infrastructure_failure']),
   fresh: z.boolean(),
   commitHash: z.string().min(1),
+  evidenceSource: z.enum(['managed', 'manual']).default('manual'),
+  assurance: z.enum(['full', 'reduced']).default('reduced'),
+  testRunId: z.string().min(1).optional(),
+  browser: z.string().min(1).optional(),
+  environment: z.string().min(1).optional(),
+  tagExpression: z.string().min(1).optional(),
+  runtimePaths: z
+    .object({
+      gherkinPaths: z.array(z.string().min(1)).default([]),
+      stepPaths: z.array(z.string().min(1)).default([]),
+      executablePath: z.string().min(1).optional(),
+    })
+    .optional(),
   evidenceUrls: z.array(z.string().min(1)),
+  evidence: z
+    .object({
+      logsUrl: z.string().min(1).optional(),
+      reportUrl: z.string().min(1).optional(),
+      traceUrls: z.array(z.string().min(1)).default([]),
+      screenshotUrls: z.array(z.string().min(1)).default([]),
+    })
+    .optional(),
   failureSignatureHash: hashSchema.optional(),
   acknowledgedAt: timestampSchema.optional(),
   completedAt: timestampSchema.optional(),

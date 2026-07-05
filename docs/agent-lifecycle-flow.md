@@ -43,6 +43,12 @@ Baseline execution evidence must be visible and accepted before implementation s
 that unlocks task implementation. File hash drift or stale validation evidence should block progression until rerun or
 explicitly resolved.
 
+Normal baseline execution is agent-owned through MCP: after `validations_approved`, the connected agent calls
+`baseline_start` and continues with `baseline_reconcile` until baseline review is ready. The Appraise UI should present
+read-only guidance for those mechanical transitions rather than competing buttons. Human/Appraise UI ownership remains
+with baseline decisions and interrupts: cancelling active baseline runs, acknowledging unrelated failures, justifying
+accepted regression-pass evidence, and accepting complete baseline evidence.
+
 ## Implementation
 
 Tasks move through `pending`, `in_progress`, `implemented`, and `verified`. Dependencies must be verified before a
@@ -50,6 +56,24 @@ dependent task starts. Poll before and after task groups, before validation, and
 pauses affected tasks and dependents until impact is confirmed and applied.
 
 Pause, resume, and cancellation are lifecycle transitions. Cancellation is terminal after acknowledgement.
+
+Implementation start is also agent-owned: once baseline evidence is accepted, the connected agent calls
+`implementation_start` through MCP. Required implementation validations should follow
+`implementation_validation_start -> bound test_run -> implementation_validation_reconcile -> implementation_completion_review`.
+`implementation_validation_record` is only for exceptional manual evidence and is reduced assurance; required runtime
+validations need fresh managed Appraise `TestRun` evidence before completion can pass.
+
+## Ownership Matrix
+
+| Surface                                                                        | Normal owner     | Notes                                                              |
+| ------------------------------------------------------------------------------ | ---------------- | ------------------------------------------------------------------ |
+| Plan approval and change requests                                              | User/Appraise UI | MCP decision tools only relay explicit Appraise/user decisions.    |
+| Validation evidence decisions, file approvals, feedback, and review submission | User/Appraise UI | Review authority stays human-owned.                                |
+| Validation preparation and publish                                             | Agent/MCP        | Mechanical preparation after plan approval.                        |
+| Baseline start and reconcile                                                   | Agent/MCP        | UI presents guidance; `baseline_cancel` remains a human interrupt. |
+| Baseline acceptance, failure acknowledgement, and regression justification     | User/Appraise UI | MCP tools relay explicit user decisions when used.                 |
+| Implementation start, checkpoints, task state, and validation reconciliation   | Agent/MCP        | Implementation validation reconciles from real `TestRun` rows.     |
+| Final completion approval                                                      | User/Appraise UI | MCP completion approval must relay explicit final sign-off.        |
 
 ## Final Validation And Completion
 

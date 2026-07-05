@@ -23,6 +23,10 @@ import { automationProjectionService } from '@/lib/automation/projection-service
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
+import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
+import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { findProjectRoot } from '@/lib/plans/project-root'
+import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { storeReportFromFileService } from '@/services/report/report-service'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
 import {
@@ -502,6 +506,69 @@ async function ensureFeatureFilesForTestRun(testRunTestCases: TestRunTestCaseLin
   await Promise.all([...suiteIds].map(suiteId => automationProjectionService.generateFeature(suiteId)))
 }
 
+type ImplementationValidationBinding = {
+  planId: string
+  validationId: string
+  implementationValidationRunId: string
+}
+
+async function updateImplementationValidationRunFromTestRun(
+  input: ImplementationValidationBinding & { runId: string },
+): Promise<void> {
+  const projectRoot = await findProjectRoot()
+  const repository = new PlanArtifactRepository(projectRoot)
+  const stored = await repository.read('validation', input.planId)
+  const validation = parseYamlArtifact('validation', stored.content) as ValidationArtifact
+  const testRun = await prisma.testRun.findUnique({
+    where: { runId: input.runId },
+    select: { runId: true, result: true, status: true, completedAt: true },
+  })
+  if (!testRun) return
+
+  const status =
+    testRun.status === TestRunStatus.RUNNING ||
+    testRun.status === TestRunStatus.QUEUED ||
+    testRun.status === TestRunStatus.CANCELLING
+      ? ('running' as const)
+      : testRun.result === TestRunResult.PASSED
+        ? ('passed' as const)
+        : testRun.result === TestRunResult.CANCELLED
+          ? ('cancelled' as const)
+          : ('failed' as const)
+  const implementation = validation.implementation
+  if (!implementation) return
+  const validationRuns = implementation.validationRuns.map(run =>
+    run.id === input.implementationValidationRunId
+      ? {
+          ...run,
+          validationId: input.validationId,
+          evidenceSource: 'managed' as const,
+          assurance: status === 'passed' ? ('full' as const) : ('reduced' as const),
+          status,
+          testRunId: testRun.runId,
+          evidenceUrls: [`/test-runs/${testRun.runId}`, `/api/test-runs/${testRun.runId}/logs`],
+          evidence: {
+            logsUrl: `/api/test-runs/${testRun.runId}/logs`,
+            reportUrl: `/test-runs/${testRun.runId}`,
+            traceUrls: [],
+            screenshotUrls: [],
+          },
+          completedAt: status === 'running' ? undefined : (testRun.completedAt ?? new Date()).toISOString(),
+        }
+      : run,
+  )
+  await repository.compareAndWrite(
+    'validation',
+    input.planId,
+    stored.hash,
+    serializeYamlArtifact('validation', {
+      ...validation,
+      implementation: { ...implementation, validationRuns },
+    }),
+  )
+  await syncPlans({ projectDirectory: projectRoot })
+}
+
 async function scheduleTestRunCompletion(args: {
   testRun: { id: string; runId: string }
   environment: Environment
@@ -514,6 +581,7 @@ async function scheduleTestRunCompletion(args: {
   importPaths?: string[]
   supportPaths?: string[]
   prepareWorkspace?: boolean
+  implementationValidationBinding?: ImplementationValidationBinding
 }): Promise<void> {
   const {
     testRun,
@@ -527,6 +595,7 @@ async function scheduleTestRunCompletion(args: {
     importPaths,
     supportPaths,
     prepareWorkspace,
+    implementationValidationBinding,
   } = args
 
   try {
@@ -647,6 +716,17 @@ async function scheduleTestRunCompletion(args: {
         cleanupListener()
 
         await storeReportAfterRunIfNeeded(testRun.id, testRun.runId, reportPath)
+        if (implementationValidationBinding) {
+          await updateImplementationValidationRunFromTestRun({
+            ...implementationValidationBinding,
+            runId: testRun.runId,
+          }).catch(error => {
+            console.error(
+              `[TestRunService] Error updating implementation validation binding for testRunId: ${testRun.runId}:`,
+              error,
+            )
+          })
+        }
       })
       .catch(async error => {
         console.error(`[TestRunService] Error executing test run for testRunId: ${testRun.runId}:`, error)
@@ -761,6 +841,13 @@ export type StandaloneTargetTestRunInput = {
   tagExpression?: string | null
   testWorkersCount?: number
   browserEngine?: BrowserEngine
+  planId?: string
+  validationId?: string
+  implementationValidationRunId?: string
+  featurePaths?: string[]
+  importPaths?: string[]
+  supportPaths?: string[]
+  prepareWorkspace?: boolean
 }
 
 export async function createStandaloneTargetTestRun(
@@ -793,7 +880,7 @@ export async function createStandaloneTargetTestRun(
       browserEngine: input.browserEngine ?? BrowserEngine.CHROMIUM,
       status: TestRunStatus.RUNNING,
       result: TestRunResult.PENDING,
-      planId: null,
+      planId: input.planId ?? null,
       targetProjectId: targetProject.id,
     },
   })
@@ -807,6 +894,22 @@ export async function createStandaloneTargetTestRun(
       logPath: logFilePath,
     },
   })
+
+  const implementationValidationBinding =
+    input.planId && input.validationId && input.implementationValidationRunId
+      ? {
+          planId: input.planId,
+          validationId: input.validationId,
+          implementationValidationRunId: input.implementationValidationRunId,
+        }
+      : undefined
+
+  if (implementationValidationBinding) {
+    await updateImplementationValidationRunFromTestRun({
+      ...implementationValidationBinding,
+      runId: testRun.runId,
+    })
+  }
 
   await scheduleTestRunCompletion({
     testRun,
@@ -823,7 +926,11 @@ export async function createStandaloneTargetTestRun(
     },
     logger,
     projectRoot: targetProject.canonicalPath,
-    prepareWorkspace: false,
+    featurePaths: input.featurePaths,
+    importPaths: input.importPaths,
+    supportPaths: input.supportPaths,
+    prepareWorkspace: input.prepareWorkspace ?? false,
+    implementationValidationBinding,
   })
 
   return { runId: testRun.runId, id: testRun.id, targetProjectId: targetProject.id }

@@ -84,13 +84,7 @@ describe('coordinator adapter boundaries', () => {
         'implementation_validation_reconcile',
         'implementation_complete',
       ],
-      ui: [
-        'approvePlanRevisionAction',
-        'requestPlanChangesAction',
-        'startBaselineExecutionAction',
-        'acknowledgeBaselineFailureAction',
-        'startImplementationAction',
-      ],
+      ui: ['approvePlanRevisionAction', 'requestPlanChangesAction', 'acknowledgeBaselineFailureAction'],
     }
 
     for (const [adapter, operations] of Object.entries(expectedOperations)) {

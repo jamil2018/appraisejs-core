@@ -383,6 +383,16 @@ describe('implementation coordinator checkpoints', () => {
     expect(started).toMatchObject({
       plan: { lifecycle: 'validating' },
       runs: [expect.objectContaining({ validationId: 'core-validation', status: 'running' })],
+      testRunInputs: [
+        expect.objectContaining({
+          planId,
+          validationId: 'core-validation',
+          implementationValidationRunId: expect.stringContaining('implementation-validation-core-validation'),
+          browserEngine: 'CHROMIUM',
+          featurePaths: ['automation/features/core.feature'],
+          importPaths: ['automation/steps/core.step.ts'],
+        }),
+      ],
     })
 
     const run = started.runs[0]!
@@ -390,13 +400,7 @@ describe('implementation coordinator checkpoints', () => {
       reconcileImplementationValidation(
         {
           planId,
-          runs: [
-            {
-              ...run,
-              status: 'passed',
-              evidenceUrls: ['/reports/core-final'],
-            },
-          ],
+          runIds: [run.id],
         },
         { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
       ),
@@ -404,7 +408,7 @@ describe('implementation coordinator checkpoints', () => {
       plan: { lifecycle: 'failed_validation' },
       readiness: {
         ready: false,
-        blockers: [expect.stringContaining('docs-validation')],
+        blockers: [expect.stringContaining('core-validation'), expect.stringContaining('docs-validation')],
       },
     })
   })
@@ -462,6 +466,9 @@ describe('implementation coordinator checkpoints', () => {
           status: 'passed',
           fresh: true,
           commitHash: 'commit-final',
+          evidenceSource: 'managed',
+          assurance: 'full',
+          testRunId: 'test-run-core-final',
           evidenceUrls: ['/reports/run-core-final', '/traces/run-core-final.zip', '/screenshots/run-core-final.png'],
           completedAt,
         },
@@ -473,6 +480,9 @@ describe('implementation coordinator checkpoints', () => {
           status: 'passed',
           fresh: true,
           commitHash: 'commit-final',
+          evidenceSource: 'managed',
+          assurance: 'full',
+          testRunId: 'test-run-docs-final',
           evidenceUrls: ['/reports/run-docs-final'],
           completedAt,
         },
@@ -484,6 +494,8 @@ describe('implementation coordinator checkpoints', () => {
           status: 'failed',
           fresh: true,
           commitHash: 'commit-final',
+          evidenceSource: 'manual',
+          assurance: 'reduced',
           evidenceUrls: ['/reports/run-optional-final'],
           failureSignatureHash: hashFileContent('known optional failure'),
           acknowledgedAt: completedAt,

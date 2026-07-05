@@ -46,12 +46,9 @@ import {
   decideValidationNodeAction,
   justifyBaselineRegressionPassAction,
   publishSharedPlanLayoutAction,
-  reconcileBaselineExecutionAction,
   requestPlanChangesAction,
   retargetPlanRemarkAction,
   savePersonalPlanLayoutAction,
-  startBaselineExecutionAction,
-  startImplementationAction,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
   transitionPlanRemarkAction,
@@ -558,11 +555,8 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   }
                   onApproveFile={path => approveValidationFileAction({ planId: detail.plan.planId, path })}
                   onSubmitReview={() => submitValidationReviewAction({ planId: detail.plan.planId })}
-                  onStartBaseline={() => startBaselineExecutionAction({ planId: detail.plan.planId })}
-                  onReconcileBaseline={() => reconcileBaselineExecutionAction({ planId: detail.plan.planId })}
                   onCancelBaseline={() => cancelBaselineExecutionAction({ planId: detail.plan.planId })}
                   onAcceptBaseline={() => acceptBaselineAction({ planId: detail.plan.planId })}
-                  onStartImplementation={() => startImplementationAction({ planId: detail.plan.planId })}
                   onSubmitFeedback={input =>
                     submitValidationFeedbackAction({
                       planId: detail.plan.planId,
@@ -709,32 +703,15 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   </div>
                   <div className="grid gap-2">
                     {['validations_approved', 'baseline_changes_requested'].includes(detail.plan.lifecycle) ? (
-                      <Button
-                        disabled={isPending}
-                        onClick={() =>
-                          run(
-                            () => startBaselineExecutionAction({ planId: detail.plan.planId }),
-                            'Baseline runs submitted.',
-                            { recovery: 'validation-drift' },
-                          )
-                        }
-                      >
-                        Start required baselines
-                      </Button>
+                      <p className="rounded-md border p-3 text-sm text-muted-foreground">
+                        Validation review is approved. The connected agent starts required baselines through MCP.
+                      </p>
                     ) : null}
                     {detail.plan.lifecycle === 'baseline_running' ? (
                       <>
-                        <Button
-                          disabled={isPending}
-                          onClick={() =>
-                            run(
-                              () => reconcileBaselineExecutionAction({ planId: detail.plan.planId }),
-                              'Baseline evidence reconciled.',
-                            )
-                          }
-                        >
-                          Reconcile run evidence
-                        </Button>
+                        <p className="rounded-md border p-3 text-sm text-muted-foreground">
+                          Baseline runs are active. The connected agent reconciles run evidence through MCP.
+                        </p>
                         <Button
                           variant="outline"
                           disabled={isPending}
@@ -760,17 +737,9 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                       </Button>
                     ) : null}
                     {detail.plan.lifecycle === 'baseline_accepted' ? (
-                      <Button
-                        disabled={isPending}
-                        onClick={() =>
-                          run(
-                            () => startImplementationAction({ planId: detail.plan.planId }),
-                            'Implementation unlocked.',
-                          )
-                        }
-                      >
-                        Unlock implementation
-                      </Button>
+                      <p className="rounded-md border p-3 text-sm text-muted-foreground">
+                        Baseline evidence is accepted. The connected agent unlocks implementation through MCP.
+                      </p>
                     ) : null}
                   </div>
                 </CardContent>

@@ -20,9 +20,6 @@ import {
   acknowledgeBaselineFailure,
   cancelBaselineExecution,
   justifyBaselineRegressionPass,
-  reconcileBaselineExecution,
-  startBaselineExecution,
-  startImplementation,
 } from '@/services/coordinator/coordinator-baseline-service'
 import {
   approveCurrentValidationFile,
@@ -123,18 +120,6 @@ export async function publishSharedPlanLayoutAction(input: unknown): Promise<Act
   )
 }
 
-export async function startBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
-  return runAction(input, z.object({ planId: planIdSchema }), value =>
-    startBaselineExecution(value.planId).then(() => undefined),
-  )
-}
-
-export async function reconcileBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
-  return runAction(input, z.object({ planId: planIdSchema }), value =>
-    reconcileBaselineExecution(value.planId).then(() => undefined),
-  )
-}
-
 export async function cancelBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
   return runAction(input, z.object({ planId: planIdSchema }), value =>
     cancelBaselineExecution(value.planId).then(() => undefined),
@@ -158,12 +143,6 @@ export async function justifyBaselineRegressionPassAction(input: unknown): Promi
 export async function acceptBaselineAction(input: unknown): Promise<ActionResponse> {
   return runAction(input, z.object({ planId: planIdSchema }), value =>
     acceptBaseline(value.planId).then(() => undefined),
-  )
-}
-
-export async function startImplementationAction(input: unknown): Promise<ActionResponse> {
-  return runAction(input, z.object({ planId: planIdSchema }), value =>
-    startImplementation(value.planId).then(() => undefined),
   )
 }
 
