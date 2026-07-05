@@ -53,7 +53,7 @@ type BaselineOptions = {
   loadEvidence?: (testRunId: string) => Promise<BaselineEvidence & { status: 'running' | 'completed' }>
 }
 
-function supportImportPaths(projectRoot: string) {
+export function supportImportPaths(projectRoot: string) {
   return [
     path.join(projectRoot, 'packages/cucumber-runtime/src/parameter-types.ts'),
     path.join(projectRoot, 'packages/cucumber-runtime/src/hooks.ts'),
@@ -61,7 +61,7 @@ function supportImportPaths(projectRoot: string) {
   ]
 }
 
-function runtimePathsForValidation(
+export function runtimePathsForValidation(
   runtimeValidation: ValidationArtifact,
   validation: ValidationArtifact['validations'][number],
 ) {
@@ -74,6 +74,15 @@ function runtimePathsForValidation(
     featurePaths: validation.gherkinPaths.map(resolveRuntimePath),
     importPaths: validation.stepPaths.map(resolveRuntimePath),
   }
+}
+
+export async function readStoredJsonReport(reportPath: string | null | undefined) {
+  return reportPath
+    ? fs
+        .readFile(resolveStoredPath(reportPath), 'utf8')
+        .then(content => JSON.parse(content) as unknown)
+        .catch(() => null)
+    : null
 }
 
 async function readBaselineArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
@@ -307,12 +316,7 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
     .filter(log => log.type === 'stderr')
     .map(log => log.message.trim())
     .filter(Boolean)
-  const report = run.reportPath
-    ? await fs
-        .readFile(resolveStoredPath(run.reportPath), 'utf8')
-        .then(content => JSON.parse(content) as unknown)
-        .catch(() => null)
-    : null
+  const report = await readStoredJsonReport(run.reportPath)
   const reportEvidence = extractCucumberEvidence(report)
   return {
     status: 'completed' as const,

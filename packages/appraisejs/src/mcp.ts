@@ -126,7 +126,28 @@ const implementationValidationRunInputSchema = z.object({
   status: z.enum(['running', 'passed', 'failed', 'cancelled', 'infrastructure_failure']),
   fresh: z.boolean(),
   commitHash: z.string().min(1),
+  evidenceSource: z.enum(['managed', 'manual']).default('manual'),
+  assurance: z.enum(['full', 'reduced']).default('reduced'),
+  testRunId: z.string().min(1).optional(),
+  browser: z.string().min(1).optional(),
+  environment: z.string().min(1).optional(),
+  tagExpression: z.string().min(1).optional(),
+  runtimePaths: z
+    .object({
+      gherkinPaths: z.array(z.string().min(1)).default([]),
+      stepPaths: z.array(z.string().min(1)).default([]),
+      executablePath: z.string().min(1).optional(),
+    })
+    .optional(),
   evidenceUrls: z.array(z.string().min(1)),
+  evidence: z
+    .object({
+      logsUrl: z.string().min(1).optional(),
+      reportUrl: z.string().min(1).optional(),
+      traceUrls: z.array(z.string().min(1)).default([]),
+      screenshotUrls: z.array(z.string().min(1)).default([]),
+    })
+    .optional(),
   failureSignatureHash: z.string().startsWith('sha256:').optional(),
   acknowledgedAt: z.string().datetime({ offset: true }).optional(),
   completedAt: z.string().datetime({ offset: true }).optional(),
@@ -1701,6 +1722,13 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         tagExpression: z.string().optional(),
         testWorkersCount: z.number().int().positive().optional(),
         browserEngine: z.enum(['CHROMIUM', 'FIREFOX', 'WEBKIT']).optional(),
+        planId: z.string().min(1).optional(),
+        validationId: z.string().min(1).optional(),
+        implementationValidationRunId: z.string().min(1).optional(),
+        featurePaths: z.array(z.string().min(1)).optional(),
+        importPaths: z.array(z.string().min(1)).optional(),
+        supportPaths: z.array(z.string().min(1)).optional(),
+        prepareWorkspace: z.boolean().optional(),
       },
     },
     async input => {
@@ -2265,7 +2293,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'validation_decide',
     {
-      description: 'Record a hash-bound decision for one validation node.',
+      description: 'Explicit user/Appraise decision relay: record a hash-bound decision for one validation node.',
       inputSchema: {
         planId: z.string(),
         validationId: z.string(),
@@ -2352,7 +2380,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'baseline_start',
     {
-      description: 'Start required baseline executions after validation review approval.',
+      description: 'Agent-owned execution tool: start required baseline executions after validation review approval.',
       inputSchema: { planId: z.string() },
     },
     async ({ planId }) =>
@@ -2369,7 +2397,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'baseline_reconcile',
     {
-      description: 'Refresh baseline execution evidence and detect when baseline review is ready.',
+      description: 'Agent-owned execution tool: refresh baseline evidence and detect when review is ready.',
       inputSchema: { planId: z.string() },
     },
     async ({ planId }) => {
@@ -2397,7 +2425,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'baseline_cancel',
     {
-      description: 'Cancel active baseline executions and return the plan to baseline changes requested.',
+      description:
+        'Explicit user/Appraise interrupt relay: cancel active baseline executions and return the plan to baseline changes requested.',
       inputSchema: { planId: z.string() },
     },
     async ({ planId }) =>
@@ -2413,7 +2442,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'baseline_failure_acknowledge',
     {
-      description: 'Acknowledge a current unrelated baseline failure by attempt id.',
+      description:
+        'Explicit user/Appraise decision relay: acknowledge a current unrelated baseline failure by attempt id.',
       inputSchema: { planId: z.string(), attemptId: z.string(), acknowledgedBy: z.string().min(1) },
     },
     async ({ planId, attemptId, acknowledgedBy }) =>
@@ -2433,7 +2463,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'baseline_regression_justify',
     {
-      description: 'Justify an accepted regression-pass baseline attempt before baseline acceptance.',
+      description:
+        'Explicit user/Appraise decision relay: justify an accepted regression-pass baseline attempt before baseline acceptance.',
       inputSchema: { planId: z.string(), attemptId: z.string(), justification: z.string().min(1) },
     },
     async ({ planId, attemptId, justification }) =>
@@ -2453,7 +2484,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'baseline_accept',
     {
-      description: 'Accept complete baseline evidence and unlock the implementation_start gate.',
+      description: 'Explicit user/Appraise decision relay: accept complete baseline evidence.',
       inputSchema: { planId: z.string() },
     },
     async ({ planId }) =>
@@ -2470,7 +2501,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'validation_file_approve',
     {
-      description: 'Approve one flagged changed file for its exact current content hash.',
+      description:
+        'Explicit user/Appraise decision relay: approve one flagged changed file for its exact current content hash.',
       inputSchema: { planId: z.string(), path: z.string(), contentHash: z.string(), approvedBy: z.string() },
     },
     async ({ planId, ...body }) =>
@@ -2513,7 +2545,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'validation_review_submit',
     {
-      description: 'Submit the revision-level validation review after all required decisions are current.',
+      description:
+        'Explicit user/Appraise decision relay: submit the revision-level validation review after all required decisions are current.',
       inputSchema: { planId: z.string() },
     },
     async ({ planId }) => text(await api.request(`plans/${planId}/validations/submit`, { method: 'POST', body: '{}' })),
@@ -2543,7 +2576,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'implementation_start',
     {
-      description: 'Start implementation after accepted baseline evidence.',
+      description: 'Agent-owned execution tool: start implementation after accepted baseline evidence.',
       inputSchema: { planId: z.string() },
     },
     async ({ planId }) =>
@@ -2625,7 +2658,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'implementation_validation_record',
     {
-      description: 'Record plan-bound implementation validation evidence.',
+      description:
+        'Record exceptional manual implementation validation evidence. This is always reduced assurance and does not replace managed Appraise TestRun evidence for required runtime validations.',
       inputSchema: { planId: z.string(), run: implementationValidationRunInputSchema },
     },
     async ({ planId, run }) =>
@@ -2639,7 +2673,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'implementation_validation_start',
     {
-      description: 'Create Appraise-owned, plan-bound implementation validation run records.',
+      description:
+        'Create agent-owned, plan-bound implementation validation run records and return bound test_run inputs to execute through Appraise.',
       inputSchema: {
         planId: z.string(),
         validationIds: z.array(z.string().min(1)).optional(),
@@ -2655,23 +2690,23 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             body: JSON.stringify({ validationIds, commitHash }),
           }),
           nextRecommendedAction:
-            'Run the created implementation validations, then call implementation_validation_reconcile.',
-          nextRequiredAgentBehavior: 'reconcile_implementation_validation',
-          nextAllowedAction: { tool: 'implementation_validation_reconcile' },
+            'Call test_run once for each returned testRunInputs item, then call implementation_validation_reconcile with the implementation run IDs.',
+          nextRequiredAgentBehavior: 'run_bound_test_runs_then_reconcile',
+          nextAllowedAction: { tool: 'test_run' },
         }),
       ),
   )
   server.registerTool(
     'implementation_validation_reconcile',
     {
-      description: 'Reconcile Appraise-owned implementation validation runs with completed evidence.',
-      inputSchema: { planId: z.string(), runs: z.array(implementationValidationRunInputSchema).optional() },
+      description: 'Reconcile Appraise-owned implementation validation runs from bound TestRun rows.',
+      inputSchema: { planId: z.string(), runIds: z.array(z.string().min(1)).optional() },
     },
-    async ({ planId, runs }) =>
+    async ({ planId, runIds }) =>
       text(
         await api.request(`plans/${planId}/implementation/validations/reconcile`, {
           method: 'POST',
-          body: JSON.stringify({ runs }),
+          body: JSON.stringify({ runIds }),
         }),
       ),
   )
@@ -2723,7 +2758,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'implementation_complete',
     {
-      description: 'Complete a validation-passed plan only after explicit final user approval.',
+      description: 'Explicit user/Appraise decision relay: complete a validation-passed plan after final approval.',
       inputSchema: {
         planId: z.string(),
         approvedBy: z.string(),

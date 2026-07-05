@@ -192,6 +192,13 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       tagExpression?: string
       testWorkersCount?: number
       browserEngine?: string
+      planId?: string
+      validationId?: string
+      implementationValidationRunId?: string
+      featurePaths?: string[]
+      importPaths?: string[]
+      supportPaths?: string[]
+      prepareWorkspace?: boolean
     }) => post('test-runs', input),
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
     publishValidation: (planId: string, validation: unknown) =>
@@ -218,8 +225,8 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       post(`plans/${planId}/implementation/validations`, { run }),
     startImplementationValidation: (planId: string, input: { validationIds?: string[]; commitHash?: string } = {}) =>
       post(`plans/${planId}/implementation/validations/start`, input),
-    reconcileImplementationValidation: (planId: string, runs?: unknown[]) =>
-      post(`plans/${planId}/implementation/validations/reconcile`, { runs }),
+    reconcileImplementationValidation: (planId: string, runIds?: string[]) =>
+      post(`plans/${planId}/implementation/validations/reconcile`, { runIds }),
     completionReview: (planId: string) => request(`plans/${planId}/completion`),
   }
 }

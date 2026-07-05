@@ -17,11 +17,8 @@ const {
   cancelBaselineExecutionAction,
   fitView,
   publishSharedPlanLayoutAction,
-  reconcileBaselineExecutionAction,
   requestPlanChangesAction,
   savePersonalPlanLayoutAction,
-  startBaselineExecutionAction,
-  startImplementationAction,
   setNodes,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
@@ -34,11 +31,8 @@ const {
   cancelBaselineExecutionAction: vi.fn(),
   fitView: vi.fn(),
   publishSharedPlanLayoutAction: vi.fn(),
-  reconcileBaselineExecutionAction: vi.fn(),
   requestPlanChangesAction: vi.fn(),
   savePersonalPlanLayoutAction: vi.fn(),
-  startBaselineExecutionAction: vi.fn(),
-  startImplementationAction: vi.fn(),
   setNodes: vi.fn(),
   submitValidationFeedbackAction: vi.fn(),
   submitValidationReviewAction: vi.fn(),
@@ -92,12 +86,9 @@ vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   decideValidationNodeAction,
   justifyBaselineRegressionPassAction: vi.fn(),
   publishSharedPlanLayoutAction,
-  reconcileBaselineExecutionAction,
   requestPlanChangesAction,
   retargetPlanRemarkAction: vi.fn(),
   savePersonalPlanLayoutAction,
-  startBaselineExecutionAction,
-  startImplementationAction,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
   transitionPlanRemarkAction: vi.fn(),
@@ -763,14 +754,7 @@ describe('PlanReviewWorkspace', () => {
     })
   })
 
-  it('shows lifecycle actions in the validation tab after validation approval', async () => {
-    const user = userEvent.setup()
-    startBaselineExecutionAction.mockResolvedValueOnce({
-      success: false,
-      error:
-        'Validation files changed after approval or baseline execution: automation/features/review.feature, src/app/page.tsx. Re-review is required.',
-    })
-    submitValidationFeedbackAction.mockResolvedValueOnce({ success: true })
+  it('shows agent-owned baseline guidance after validation approval without a start button', () => {
     const approvedDetail: PlanReviewDetail = {
       ...validationDetail,
       plan: { ...validationDetail.plan, lifecycle: 'validations_approved' },
@@ -779,45 +763,41 @@ describe('PlanReviewWorkspace', () => {
 
     render(<PlanReviewWorkspace detail={approvedDetail} initialTab="validations" />)
 
-    expect(screen.getByText(/start required baseline runs before implementation/i)).toBeInTheDocument()
-    await user.click(screen.getAllByRole('button', { name: /start required baselines/i })[0]!)
-    expect(startBaselineExecutionAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
-    expect(await screen.findByText('Action blocked')).toBeInTheDocument()
-    expect(screen.getByText(/validation files changed after approval or baseline execution/i)).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Reopen validation review' }))
-    expect(submitValidationFeedbackAction).toHaveBeenCalledWith({
-      planId: 'accessible-plan',
-      scope: 'test_artifact',
-      target: { type: 'plan' },
-      body: 'Validation files changed after approval or baseline execution: automation/features/review.feature, src/app/page.tsx. Re-review is required.',
-      affectedValidationIds: ['browser-validation', 'optional-validation'],
-      affectedFilePaths: ['automation/features/review.feature', 'src/app/page.tsx'],
-    })
+    expect(screen.getAllByText(/connected agent starts required baselines through MCP/i).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: /start required baselines/i })).not.toBeInTheDocument()
   })
 
   it.each([
     {
       lifecycle: 'validation_changes_requested',
       button: /waiting for updated validations/i,
+      absentButton: null,
+      guidance: /republish updated validation artifacts before approval/i,
       action: null,
     },
     {
       lifecycle: 'baseline_running',
-      button: /reconcile run evidence/i,
-      action: reconcileBaselineExecutionAction,
+      button: /cancel baseline runs/i,
+      absentButton: /reconcile run evidence/i,
+      guidance: /connected agent reconciles run evidence through MCP/i,
+      action: cancelBaselineExecutionAction,
     },
     {
       lifecycle: 'baseline_review',
       button: /accept complete baseline/i,
+      absentButton: null,
+      guidance: null,
       action: acceptBaselineAction,
     },
     {
       lifecycle: 'baseline_accepted',
-      button: /unlock implementation/i,
-      action: startImplementationAction,
+      button: null,
+      absentButton: /unlock implementation/i,
+      guidance: /connected agent unlocks implementation through MCP/i,
+      action: null,
     },
-  ] as const)('shows $lifecycle lifecycle action in the validation tab', async ({ lifecycle, button, action }) => {
+  ] as const)('shows $lifecycle lifecycle action in the validation tab', async options => {
+    const { lifecycle, button, absentButton, guidance, action } = options
     const user = userEvent.setup()
     action?.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
     const lifecycleDetail: PlanReviewDetail = {
@@ -828,12 +808,18 @@ describe('PlanReviewWorkspace', () => {
 
     render(<PlanReviewWorkspace detail={lifecycleDetail} initialTab="validations" />)
 
-    if (lifecycle === 'baseline_running') {
-      expect(screen.getAllByRole('button', { name: /cancel baseline runs/i }).length).toBeGreaterThan(0)
+    if (guidance) {
+      expect(screen.getAllByText(guidance).length).toBeGreaterThan(0)
+    }
+    if (absentButton) {
+      expect(screen.queryByRole('button', { name: absentButton })).not.toBeInTheDocument()
     }
     if (lifecycle === 'validation_changes_requested') {
-      expect(screen.getByRole('button', { name: button })).toBeDisabled()
-      expect(screen.getByText(/republish updated validation artifacts before approval/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: button! })).toBeDisabled()
+      expect(screen.getByText(guidance!)).toBeInTheDocument()
+      return
+    }
+    if (!button || !action) {
       return
     }
     await user.click(screen.getAllByRole('button', { name: button })[0]!)

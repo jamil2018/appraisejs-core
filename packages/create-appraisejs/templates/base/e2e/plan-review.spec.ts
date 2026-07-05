@@ -332,7 +332,8 @@ test.describe('Plan review', () => {
     await page.getByRole('button', { name: /Submit validation review/i }).click()
 
     await expect(page.getByText(/validations approved/i)).toBeVisible()
-    await expect(validationsPanel.getByRole('button', { name: /Start required baselines/i })).toBeVisible()
+    await expect(validationsPanel.getByRole('button', { name: /Start required baselines/i })).toHaveCount(0)
+    await expect(validationsPanel.getByText(/connected agent starts required baselines through MCP/i)).toBeVisible()
 
     const projection = await prisma.planProjection.findUniqueOrThrow({
       where: { planId: validationPlanId },

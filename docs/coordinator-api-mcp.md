@@ -98,18 +98,20 @@ All routes are under `/api/internal/coordinator`.
 | `POST` | `/plans/:planId/events/ack`                               | Acknowledge one sequence                                 |
 | `POST` | `/plans/:planId/validations/publish`                      | Persist validation artifacts and enter validation review |
 | `POST` | `/plans/:planId/validations/feedback`                     | Route validation feedback to validation or plan review   |
-| `POST` | `/plans/:planId/baseline/start`                           | Start required baseline execution                        |
-| `POST` | `/plans/:planId/baseline/reconcile`                       | Refresh baseline run evidence and enter baseline review  |
+| `POST` | `/plans/:planId/baseline/start`                           | Agent-owned start of required baseline execution         |
+| `POST` | `/plans/:planId/baseline/reconcile`                       | Agent-owned baseline evidence reconciliation             |
 | `POST` | `/plans/:planId/baseline/cancel`                          | Cancel active baseline runs                              |
 | `POST` | `/plans/:planId/baseline/failures/:attemptId/acknowledge` | Acknowledge unrelated baseline failure evidence          |
 | `POST` | `/plans/:planId/baseline/regressions/:attemptId/justify`  | Justify accepted regression-pass evidence                |
 | `POST` | `/plans/:planId/baseline/accept`                          | Accept complete baseline evidence                        |
-| `POST` | `/plans/:planId/implementation/start`                     | Unlock implementation after baseline acceptance          |
+| `POST` | `/plans/:planId/implementation/start`                     | Agent-owned implementation unlock after baseline         |
 | `POST` | `/plans/:planId/implementation/checkpoint`                | Poll a named implementation checkpoint                   |
 | `POST` | `/plans/:planId/implementation/tasks/:taskId`             | Transition a task state                                  |
 | `POST` | `/plans/:planId/implementation/feedback`                  | Analyze or apply confirmed blocking feedback             |
 | `POST` | `/plans/:planId/implementation/control`                   | Pause, resume, or cancel implementation                  |
-| `POST` | `/plans/:planId/implementation/validations`               | Record fresh validation evidence                         |
+| `POST` | `/plans/:planId/implementation/validations`               | Record exceptional manual reduced-assurance evidence     |
+| `POST` | `/plans/:planId/implementation/validations/start`         | Create managed implementation validation run intents     |
+| `POST` | `/plans/:planId/implementation/validations/reconcile`     | Reconcile managed implementation validations from runs   |
 | `GET`  | `/plans/:planId/completion`                               | Read the final completion review                         |
 | `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                       |
 
@@ -193,6 +195,27 @@ Tools:
 `project_diagnostic` and `appraise://project` include capability metadata for stale-server checks: package version,
 MCP surface version, server start time, workflow-critical tool names, workflow resource URIs, and recovery text for
 missing or stale native MCP capabilities.
+
+## Lifecycle Ownership
+
+Use one normal writer for each workflow surface. User/Appraise UI owns review decisions: plan approval and change
+requests, validation node and changed-file decisions, validation review submission, baseline acceptance and
+acknowledgements, regression-pass justification, cancellation interrupts, and final completion approval. MCP tools that
+write those decisions are relays for explicit Appraise/user intent.
+
+The connected agent owns execution mechanics after each review gate opens the next phase: validation preparation and
+publish, `baseline_start`, `baseline_reconcile`, `implementation_start`, implementation checkpoints, implementation
+task progress, and implementation validation reconciliation.
+
+Managed implementation validation follows this sequence:
+
+```text
+implementation_validation_start -> test_run for each returned bound input -> implementation_validation_reconcile -> implementation_completion_review
+```
+
+Required runtime validations pass completion only when a fresh managed Appraise `TestRun` is bound to the
+implementation validation run and has passed. Manual evidence through `implementation_validation_record` is retained as
+explicit reduced-assurance evidence and must not be treated as ordinary managed runtime proof.
 
 The canonical agent path is MCP-first: create or revise plans from the coding agent and let AppraiseJS reflect review,
 validation, and approval state back into the app. Provider-native runs are experimental and disabled by default. When

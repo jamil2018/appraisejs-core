@@ -110,8 +110,18 @@ export function canCompleteImplementation(
 
   for (const requiredValidation of validation.validations.filter(item => item.required)) {
     const run = [...implementation.validationRuns].reverse().find(item => item.validationId === requiredValidation.id)
-    if (!run?.fresh || run.status !== 'passed') {
-      blockers.push(`Required validation "${requiredValidation.id}" needs a fresh passing run.`)
+    if (!run?.fresh) {
+      blockers.push(`Required validation "${requiredValidation.id}" needs a fresh passing managed Appraise run.`)
+      continue
+    }
+    if (run.evidenceSource !== 'managed' || run.assurance !== 'full' || !run.testRunId) {
+      blockers.push(
+        `Required validation "${requiredValidation.id}" needs managed Appraise TestRun evidence; manual evidence is reduced assurance.`,
+      )
+      continue
+    }
+    if (run.status !== 'passed') {
+      blockers.push(`Required validation "${requiredValidation.id}" needs a fresh passing managed Appraise run.`)
     }
   }
   if (!implementation.evidenceProtected) {
