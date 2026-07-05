@@ -95,7 +95,12 @@ const nodeTypes = { planTask: PlanFlowTaskNode }
 
 function getBaselineIcon(status: string, classification?: string) {
   if (status === 'running' || status === 'scheduled') return Loader2
-  if (status === 'cancelled' || status === 'interrupted' || classification === 'invalid_baseline_failure')
+  if (
+    status === 'cancelled' ||
+    status === 'interrupted' ||
+    classification === 'invalid_baseline_failure' ||
+    classification === 'validation_harness_failure'
+  )
     return XCircle
   if (status === 'completed') return CheckCircle2
   return Clock
@@ -103,7 +108,12 @@ function getBaselineIcon(status: string, classification?: string) {
 
 function getBaselineIconClass(status: string, classification?: string): string {
   if (status === 'running' || status === 'scheduled') return 'animate-spin text-sky-500'
-  if (status === 'cancelled' || status === 'interrupted' || classification === 'invalid_baseline_failure') {
+  if (
+    status === 'cancelled' ||
+    status === 'interrupted' ||
+    classification === 'invalid_baseline_failure' ||
+    classification === 'validation_harness_failure'
+  ) {
     return 'text-destructive'
   }
   if (status === 'completed') return 'text-emerald-500'
@@ -613,7 +623,10 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                               </span>
                               <Badge
                                 variant={
-                                  attempt.classification === 'invalid_baseline_failure' ? 'destructive' : 'outline'
+                                  attempt.classification === 'invalid_baseline_failure' ||
+                                  attempt.classification === 'validation_harness_failure'
+                                    ? 'destructive'
+                                    : 'outline'
                                 }
                               >
                                 {attempt.classification?.replaceAll('_', ' ') ?? attempt.status}
@@ -654,6 +667,12 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                               >
                                 Acknowledge unchanged failure
                               </Button>
+                            ) : null}
+                            {attempt.classification === 'validation_harness_failure' ? (
+                              <div className="border-destructive/30 bg-destructive/10 mt-3 rounded-md border p-3 text-xs text-destructive">
+                                Runtime harness wiring failed. Fix missing step definitions, imports, Cucumber config,
+                                or browser/world setup, then republish validation evidence.
+                              </div>
                             ) : null}
                             {attempt.classification === 'accepted_regression_pass' &&
                             !attempt.regressionJustification ? (

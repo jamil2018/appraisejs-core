@@ -20,11 +20,14 @@ import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-sche
 
 import {
   applyBlockingFeedback,
+  approveImplementationGroups,
   approveImplementationCompletion,
   controlImplementation,
   reachImplementationCheckpoint,
   recordImplementationValidation,
+  reconcileImplementationValidation,
   reviewImplementationCompletion,
+  startImplementationValidation,
   updateImplementationTask,
 } from './coordinator-implementation-service'
 
@@ -259,6 +262,12 @@ describe('implementation coordinator checkpoints', () => {
     )
     await expect(reviewImplementationCompletion(planId, { projectDirectory: workspace })).resolves.toMatchObject({
       readiness: { ready: false, blockers: expect.arrayContaining([expect.stringContaining('foundation')]) },
+      structuredBlockers: expect.arrayContaining([
+        expect.objectContaining({
+          nextMcpAction: 'implementation_task_update',
+          requiredInput: expect.objectContaining({ taskId: '<task-id>', status: 'verified' }),
+        }),
+      ]),
     })
     await updateImplementationTask(
       { planId, taskId: 'foundation', status: 'verified' },
@@ -340,6 +349,64 @@ describe('implementation coordinator checkpoints', () => {
       expect.objectContaining({ sequence: 9, type: 'implementation_feedback_applied' }),
       expect.objectContaining({ sequence: 10, type: 'implementation_checkpoint' }),
     ])
+  })
+
+  it('approves implementation groups and reconciles Appraise-owned validation runs', async () => {
+    const planId = 'implementation-validation-run'
+    await writeArtifacts(planId, undefined, {
+      implementation: {
+        taskStates: { foundation: 'verified', api: 'verified', docs: 'verified' },
+        approvedGroupIds: [],
+        pausedTaskIds: [],
+        validationRuns: [],
+        commits: [
+          {
+            hash: 'commit-final',
+            taskIds: ['foundation', 'api', 'docs'],
+            createdAt: '2026-06-11T00:00:00.000Z',
+          },
+        ],
+        evidenceProtected: true,
+      },
+    })
+
+    await expect(
+      approveImplementationGroups({ planId, groupIds: ['core'] }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      implementation: { approvedGroupIds: ['core'] },
+    })
+
+    const started = await startImplementationValidation(
+      { planId, validationIds: ['core-validation'], commitHash: 'commit-final' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T00:01:00.000Z') },
+    )
+    expect(started).toMatchObject({
+      plan: { lifecycle: 'validating' },
+      runs: [expect.objectContaining({ validationId: 'core-validation', status: 'running' })],
+    })
+
+    const run = started.runs[0]!
+    await expect(
+      reconcileImplementationValidation(
+        {
+          planId,
+          runs: [
+            {
+              ...run,
+              status: 'passed',
+              evidenceUrls: ['/reports/core-final'],
+            },
+          ],
+        },
+        { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
+      ),
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'failed_validation' },
+      readiness: {
+        ready: false,
+        blockers: [expect.stringContaining('docs-validation')],
+      },
+    })
   })
 
   it('rejects unaccepted baselines and supports pause, resume, and cancel controls', async () => {

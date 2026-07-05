@@ -7,6 +7,7 @@ export type BaselineClassification =
   | 'accepted_regression_pass'
   | 'pre_existing_unrelated_failure'
   | 'invalid_baseline_failure'
+  | 'validation_harness_failure'
 
 export type BaselineEvidence = {
   result: 'passed' | 'failed' | 'cancelled' | 'interrupted'
@@ -90,9 +91,10 @@ export function classifyBaselineResult(
   }
   if (evidence.failureSignatures.some(signature => isBlockingFailure(signature))) {
     return {
-      classification: 'invalid_baseline_failure',
+      classification: 'validation_harness_failure',
       signatureHash,
-      reason: 'The run contains an undefined step, setup, fixture, infrastructure, or timeout failure.',
+      reason:
+        'The run contains a validation harness failure such as an undefined step, failed import, missing setup, or timeout.',
     }
   }
   const lastExpectedStep = expected.at(-1)?.lastPassingStepId
@@ -149,6 +151,9 @@ function baselineCombinationBlockers(
   const key = baselineCombinationKey(combination)
   const latest = attempts.at(-1)
   if (!latest || latest.status !== 'completed') return [`${key} has no completed baseline.`]
+  if (latest.classification === 'validation_harness_failure') {
+    return [`${key} has a validation harness failure that must be remediated in validation review.`]
+  }
   if (latest.classification === 'invalid_baseline_failure') return [`${key} has an invalid baseline failure.`]
   if (latest.classification === 'accepted_regression_pass' && !latest.regressionJustification?.trim()) {
     return [`${key} needs regression-coverage justification.`]
@@ -163,7 +168,7 @@ function baselineCombinationBlockers(
 }
 
 function isBlockingFailure(signature: string): boolean {
-  return /(undefined step|ambiguous step|beforeall|beforeeach|afterall|aftereach|fixture|setup|infrastructure|timed? out|timeout)/i.test(
+  return /(undefined step|ambiguous step|cannot find module|failed to import|import error|typescript|ts-node|syntaxerror|beforeall|beforeeach|afterall|aftereach|fixture|browser world|world setup|cucumber config|setup|infrastructure|timed? out|timeout)/i.test(
     signature,
   )
 }

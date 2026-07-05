@@ -34,6 +34,7 @@ import {
   publishValidationDraft,
   readValidationContext,
   upsertValidationFile,
+  upsertValidationStepMetadata,
   upsertValidationTestCase,
 } from './coordinator-validation-draft-service'
 
@@ -325,9 +326,47 @@ describe('validation preparation review gate', () => {
       taskIds: ['first-task'],
       testCaseIds: ['case-one'],
     })
+    expect(validationArtifact.runtimePreflight).toMatchObject({ status: 'passed' })
+    expect(validationArtifact.runtimeProjections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'gherkin',
+          declaredPath: 'automation/features/case-one.feature',
+          materialization: 'generated',
+        }),
+      ]),
+    )
     await expect(readPlanEvents({ planId, afterSequence: 2 }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 3, type: 'validation_review_ready', payload: { revision: 1 } }),
     ])
+  })
+
+  it('mutates draft step metadata without legacy publish fallback', async () => {
+    const planId = 'validation-step-metadata'
+    await preparePlanForValidation(planId)
+    await createValidationDraft(planId, { projectDirectory: workspace, client })
+
+    const result = await upsertValidationStepMetadata(
+      planId,
+      {
+        reusedStepPaths: ['automation/steps/actions/case-one.step.ts'],
+        newStepPaths: ['automation/steps/actions/todo-only.step.ts'],
+        customStepJustifications: [
+          {
+            path: 'automation/steps/actions/todo-only.step.ts',
+            missingCapability: 'No reusable todo workflow step exists.',
+            whyLocatorsAndExistingStepsAreInsufficient: 'The workflow needs custom current-location setup.',
+          },
+        ],
+      },
+      { projectDirectory: workspace, client },
+    )
+
+    expect(result.draft).toMatchObject({
+      reusedStepPaths: ['automation/steps/actions/case-one.step.ts'],
+      newStepPaths: ['automation/steps/actions/todo-only.step.ts'],
+      customStepJustifications: [expect.objectContaining({ path: 'automation/steps/actions/todo-only.step.ts' })],
+    })
   })
 
   it('publishes reviewable validation artifacts and blocks submission until current approvals exist', async () => {
@@ -337,8 +376,14 @@ describe('validation preparation review gate', () => {
 
     await expect(
       publishPreparedValidations(planId, artifact, { projectDirectory: workspace, client }),
-    ).resolves.toEqual({
-      validation: artifact,
+    ).resolves.toMatchObject({
+      validation: {
+        runtimePreflight: { status: 'passed' },
+        runtimeProjections: expect.arrayContaining([
+          expect.objectContaining({ role: 'gherkin', declaredPath: 'automation/features/case-one.feature' }),
+          expect.objectContaining({ role: 'step', declaredPath: 'automation/steps/actions/case-one.step.ts' }),
+        ]),
+      },
       reviewUrl: `/plans/${planId}?review=validation`,
       lifecycle: 'awaiting_validation_review',
       revision: 1,
@@ -708,14 +753,27 @@ describe('validation preparation review gate', () => {
       path.join(workspace, 'automation', 'features', 'case-one-revised.feature'),
       'Feature: case one revised',
     )
-    await expect(publishPreparedValidations(planId, revised, { projectDirectory: workspace, client })).resolves.toEqual(
-      expect.objectContaining({
-        validation: revised,
-        reviewUrl: `/plans/${planId}?review=validation`,
-        lifecycle: 'awaiting_validation_review',
-        validationArtifactPath: `appraise/plans/validations/${planId}.validation.yaml`,
-      }),
-    )
+    await expect(
+      publishPreparedValidations(planId, revised, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      validation: {
+        validations: [
+          expect.objectContaining({ gherkinPaths: ['automation/features/case-one-revised.feature'] }),
+          expect.objectContaining({ id: 'unaffected-check' }),
+        ],
+        runtimePreflight: { status: 'passed' },
+        runtimeProjections: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'gherkin',
+            declaredPath: 'automation/features/case-one-revised.feature',
+            materialization: 'generated',
+          }),
+        ]),
+      },
+      reviewUrl: `/plans/${planId}?review=validation`,
+      lifecycle: 'awaiting_validation_review',
+      validationArtifactPath: `appraise/plans/validations/${planId}.validation.yaml`,
+    })
   })
 
   it('routes product-scope validation feedback back to plan review and invalidates plan approval evidence', async () => {

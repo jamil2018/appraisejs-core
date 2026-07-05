@@ -28,6 +28,9 @@ type ValidationFileRoot = {
   validationFileRoot: string
   targetProject: TargetProjectMetadata
 }
+type RuntimeProjection = NonNullable<ValidationArtifact['runtimeProjections']>[number]
+type RuntimePreflight = NonNullable<ValidationArtifact['runtimePreflight']>
+type RuntimePreflightBlocker = RuntimePreflight['blockers'][number]
 
 const projectionTag = (planId: string) => `@appraise_plan_${planId}`
 const testCaseTag = (testCaseId: string) => `@tc_${testCaseId}`
@@ -47,6 +50,108 @@ function resolveValidationPath(root: string, filePath: string) {
   return absolutePath
 }
 
+async function readFileIfExists(filePath: string) {
+  return fs.readFile(filePath, 'utf8').catch(error => {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+    throw error
+  })
+}
+
+async function writeRuntimeFile(filePath: string, content: string) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true })
+  await fs.writeFile(filePath, content)
+}
+
+async function copyRuntimeFile(source: string, destination: string) {
+  if (source === destination) return
+  await fs.mkdir(path.dirname(destination), { recursive: true })
+  await fs.copyFile(source, destination)
+}
+
+function runtimeProjection(input: {
+  role: RuntimeProjection['role']
+  declaredPath: string
+  targetPath: string
+  runtimePath: string
+  materialization: RuntimeProjection['materialization']
+  content: string | null
+}): RuntimeProjection {
+  return {
+    role: input.role,
+    declaredPath: input.declaredPath,
+    targetPath: input.targetPath,
+    runtimePath: input.runtimePath,
+    materialization: input.materialization,
+    contentHash: input.content === null ? null : hashFileContent(input.content),
+  }
+}
+
+function featureTextForPath(planId: string, validation: ValidationArtifact, featurePath: string) {
+  const nodes = validation.validations.filter(node => node.gherkinPaths.includes(featurePath))
+  return [
+    `@appraise_plan_${planId}`,
+    `Feature: ${path.basename(featurePath, path.extname(featurePath))}`,
+    '',
+    ...nodes.flatMap(node =>
+      node.appraiseArtifacts.testCases.flatMap(testCase => [
+        `  @appraise_validation_${node.id} @tc_${testCase.id}`,
+        `  Scenario: ${testCase.title}`,
+        ...testCase.steps.sort((left, right) => left.order - right.order).map(step => `    ${step.gherkinStep}`),
+        '',
+      ]),
+    ),
+  ].join('\n')
+}
+
+function uniqueRuntimeEntries(validation: ValidationArtifact) {
+  const entries = new Map<string, RuntimeProjection['role']>()
+  for (const node of validation.validations) {
+    for (const filePath of node.gherkinPaths) entries.set(filePath, 'gherkin')
+    for (const filePath of node.stepPaths) entries.set(filePath, 'step')
+    entries.set(node.executable.path, entries.get(node.executable.path) ?? 'executable')
+  }
+  for (const filePath of validation.files.filter(file => file.status !== 'deleted').map(file => file.path)) {
+    entries.set(filePath, entries.get(filePath) ?? 'file')
+  }
+  for (const filePath of validation.manifestPaths) entries.set(filePath, entries.get(filePath) ?? 'manifest')
+  return [...entries].map(([declaredPath, role]) => ({ declaredPath, role }))
+}
+
+function preflightBlocker(
+  code: string,
+  declaredPath: string,
+  message: string,
+  recovery: string,
+  phrase?: string,
+): RuntimePreflightBlocker {
+  return {
+    code,
+    path: ['runtimeProjections', declaredPath],
+    ...(phrase ? { phrase } : {}),
+    message,
+    recovery,
+  }
+}
+
+function buildRuntimePreflight(projections: RuntimeProjection[]): RuntimePreflight {
+  const blockers = projections.flatMap(projection => {
+    if (projection.contentHash) return []
+    return [
+      preflightBlocker(
+        projection.role === 'step' ? 'missing-runtime-step-path' : 'missing-runtime-path',
+        projection.declaredPath,
+        `Runtime ${projection.role} path is missing: ${projection.runtimePath}.`,
+        'Materialize the declared validation runtime file, mark the path as reused, or revise the validation draft.',
+      ),
+    ]
+  })
+  return {
+    status: blockers.length > 0 ? 'blocked' : 'passed',
+    checkedAt: new Date().toISOString(),
+    blockers,
+  }
+}
+
 function declaredValidationPaths(validation: ValidationArtifact) {
   return [
     ...new Set([
@@ -55,6 +160,64 @@ function declaredValidationPaths(validation: ValidationArtifact) {
       ...validation.manifestPaths,
     ]),
   ]
+}
+
+export async function materializeValidationRuntime(input: ValidationFileRoot & { validation: ValidationArtifact }) {
+  const projections: RuntimeProjection[] = []
+  const reusedPaths = new Set(input.validation.reusedStepPaths ?? [])
+  const featurePaths = new Set(input.validation.validations.flatMap(node => node.gherkinPaths))
+
+  for (const entry of uniqueRuntimeEntries(input.validation)) {
+    const targetPath = resolveValidationPath(input.validationFileRoot, entry.declaredPath)
+    const runtimePath = resolveValidationPath(input.projectRoot, entry.declaredPath)
+
+    if (entry.role === 'gherkin' && featurePaths.has(entry.declaredPath)) {
+      const content = featureTextForPath(input.validation.planId, input.validation, entry.declaredPath)
+      await writeRuntimeFile(targetPath, content)
+      await writeRuntimeFile(runtimePath, content)
+      projections.push(
+        runtimeProjection({
+          ...entry,
+          targetPath,
+          runtimePath,
+          materialization: 'generated',
+          content,
+        }),
+      )
+      continue
+    }
+
+    const targetContent = await readFileIfExists(targetPath)
+    if (targetContent !== null) await copyRuntimeFile(targetPath, runtimePath)
+    const runtimeContent = await readFileIfExists(runtimePath)
+    projections.push(
+      runtimeProjection({
+        ...entry,
+        targetPath,
+        runtimePath,
+        materialization:
+          entry.role === 'step' && reusedPaths.has(entry.declaredPath)
+            ? 'reused'
+            : targetContent !== null && targetPath !== runtimePath
+              ? 'copied'
+              : 'declared',
+        content: runtimeContent,
+      }),
+    )
+  }
+
+  const runtimePreflight = buildRuntimePreflight(projections)
+  return { ...input.validation, runtimeProjections: projections, runtimePreflight }
+}
+
+export function assertRuntimePreflightPassed(validation: ValidationArtifact) {
+  if (validation.runtimePreflight?.status !== 'blocked') return
+  throw new ServiceError('Validation runtime preflight failed.', 'CONFLICT', undefined, {
+    blockerType: 'validation_runtime_preflight',
+    runtimePreflight: validation.runtimePreflight,
+    nextRecommendedAction:
+      'Resolve runtime projection blockers, republish validation artifacts, and resubmit validation review.',
+  })
 }
 
 export async function assertValidationFilesMaterialized(

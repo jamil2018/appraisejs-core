@@ -18,8 +18,10 @@ import { ServiceError } from '@/services/shared/errors'
 
 import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 import {
+  assertRuntimePreflightPassed,
   assertValidationEnvironmentsReady,
   assertValidationFilesMaterialized,
+  materializeValidationRuntime,
   projectValidationArtifacts,
 } from './validation-runtime-projection-service'
 
@@ -99,11 +101,18 @@ export async function publishPreparedValidations(
     throw new ServiceError('Validation artifact does not match the current plan revision.', 'VALIDATION')
   }
   assertCustomStepJustifications(validation)
-  const materializedValidation = await assertValidationFilesMaterialized({
+  const runtimeValidation = await materializeValidationRuntime({
     projectRoot: artifacts.projectRoot,
     validationFileRoot: artifacts.validationFileRoot,
     targetProject: artifacts.targetProject,
     validation,
+  })
+  assertRuntimePreflightPassed(runtimeValidation)
+  const materializedValidation = await assertValidationFilesMaterialized({
+    projectRoot: artifacts.projectRoot,
+    validationFileRoot: artifacts.validationFileRoot,
+    targetProject: artifacts.targetProject,
+    validation: runtimeValidation,
     verifyHashes: false,
   })
   const content = serializeYamlArtifact('validation', materializedValidation)
@@ -419,16 +428,23 @@ export async function submitValidationReview(planId: string, options: Options = 
   }
   const readiness = assessValidationReadiness(artifacts.validation, artifacts.review)
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
-  await assertValidationFilesMaterialized({
+  const runtimeValidation = await materializeValidationRuntime({
     projectRoot: artifacts.projectRoot,
     validationFileRoot: artifacts.validationFileRoot,
     targetProject: artifacts.targetProject,
     validation: artifacts.validation,
   })
-  await assertValidationEnvironmentsReady(artifacts.validation, client, artifacts.targetProject)
-  const projection = await projectValidationArtifacts({ planId, validation: artifacts.validation }, client)
+  assertRuntimePreflightPassed(runtimeValidation)
+  const materializedValidation = await assertValidationFilesMaterialized({
+    projectRoot: artifacts.projectRoot,
+    validationFileRoot: artifacts.validationFileRoot,
+    targetProject: artifacts.targetProject,
+    validation: runtimeValidation,
+  })
+  await assertValidationEnvironmentsReady(materializedValidation, client, artifacts.targetProject)
+  const projection = await projectValidationArtifacts({ planId, validation: materializedValidation }, client)
 
-  const validation = { ...artifacts.validation, reviewSubmittedAt: new Date().toISOString() }
+  const validation = { ...materializedValidation, reviewSubmittedAt: new Date().toISOString() }
   await artifacts.repository.compareAndWrite(
     'validation',
     planId,

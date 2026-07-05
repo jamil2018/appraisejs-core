@@ -35,7 +35,9 @@ import {
 import { appendPlanEvent } from './coordinator-service'
 import {
   assertProjectedBaselineRecords,
+  assertRuntimePreflightPassed,
   assertValidationEnvironmentsReady,
+  materializeValidationRuntime,
 } from './validation-runtime-projection-service'
 
 type BaselineOptions = {
@@ -181,7 +183,15 @@ async function assertBaselinePreflight(
   client: PrismaClient,
 ) {
   await assertValidationFilesUnchanged(artifacts)
-  await assertProjectedBaselineRecords(planId, artifacts.validation, client, artifacts.targetProject)
+  const runtimeValidation = await materializeValidationRuntime({
+    projectRoot: artifacts.projectRoot,
+    validationFileRoot: artifacts.validationFileRoot,
+    targetProject: artifacts.targetProject,
+    validation: artifacts.validation,
+  })
+  assertRuntimePreflightPassed(runtimeValidation)
+  await assertProjectedBaselineRecords(planId, runtimeValidation, client, artifacts.targetProject)
+  return runtimeValidation
 }
 
 function browserEngine(browser: string): BrowserEngine {
@@ -272,17 +282,17 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
   if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
   }
-  await assertBaselinePreflight(planId, artifacts, client)
+  const runtimeValidation = await assertBaselinePreflight(planId, artifacts, client)
   const active = new Set(
-    artifacts.validation.baselineAttempts
+    runtimeValidation.baselineAttempts
       .filter(attempt => ['scheduled', 'running'].includes(attempt.status))
       .map(baselineCombinationKey),
   )
   const submitRun = options.submitRun ?? (input => submitAppraiseTestRun(input, client))
-  const attempts = [...artifacts.validation.baselineAttempts]
-  for (const combination of requiredBaselineCombinations(artifacts.validation)) {
+  const attempts = [...runtimeValidation.baselineAttempts]
+  for (const combination of requiredBaselineCombinations(runtimeValidation)) {
     if (active.has(baselineCombinationKey(combination))) continue
-    const validation = artifacts.validation.validations.find(item => item.id === combination.validationId)!
+    const validation = runtimeValidation.validations.find(item => item.id === combination.validationId)!
     const { testRunId } = await submitRun({ planId, validation, ...combination })
     attempts.push({
       id: `baseline-${randomUUID()}`,
@@ -299,7 +309,7 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
     })
   }
   const plan = { ...artifacts.plan, lifecycle: 'baseline_running' as const }
-  const validation = { ...artifacts.validation, baselineAttempts: attempts, baselineDecision: 'pending' as const }
+  const validation = { ...runtimeValidation, baselineAttempts: attempts, baselineDecision: 'pending' as const }
   await writeBaselineArtifacts(artifacts, plan, validation, client)
   await appendPlanEvent({ planId, type: 'baseline_started', payload: { attempts: attempts.length } }, client)
   return { plan, validation }
@@ -326,13 +336,37 @@ export async function reconcileBaselineExecution(planId: string, options: Baseli
     }),
   )
   const stillRunning = attempts.some(attempt => ['scheduled', 'running', 'interrupted'].includes(attempt.status))
+  const hasHarnessFailure = attempts.some(
+    attempt => attempt.status === 'completed' && attempt.classification === 'validation_harness_failure',
+  )
   const plan = {
     ...artifacts.plan,
-    lifecycle: stillRunning ? ('baseline_running' as const) : ('baseline_review' as const),
+    lifecycle: stillRunning
+      ? ('baseline_running' as const)
+      : hasHarnessFailure
+        ? ('validation_changes_requested' as const)
+        : ('baseline_review' as const),
   }
-  const validation = { ...artifacts.validation, baselineAttempts: attempts }
+  const validation = {
+    ...artifacts.validation,
+    baselineAttempts: attempts,
+    baselineDecision: hasHarnessFailure ? ('changes-requested' as const) : artifacts.validation.baselineDecision,
+  }
   await writeBaselineArtifacts(artifacts, plan, validation, client)
-  if (!stillRunning) await appendPlanEvent({ planId, type: 'baseline_review_ready' }, client)
+  if (!stillRunning && hasHarnessFailure) {
+    await appendPlanEvent(
+      {
+        planId,
+        type: 'validation_changes_requested',
+        payload: {
+          scope: 'test_artifact',
+          reason:
+            'Baseline execution found a validation harness failure. Fix runtime step definitions, imports, Cucumber config, or browser/world setup before retrying validation review.',
+        },
+      },
+      client,
+    )
+  } else if (!stillRunning) await appendPlanEvent({ planId, type: 'baseline_review_ready' }, client)
   return { plan, validation }
 }
 

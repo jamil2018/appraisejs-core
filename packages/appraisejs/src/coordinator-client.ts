@@ -196,6 +196,10 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
     publishValidation: (planId: string, validation: unknown) =>
       post(`plans/${planId}/validations/publish`, { validation }),
+    upsertValidationStepMetadata: (
+      planId: string,
+      metadata: { reusedStepPaths?: string[]; newStepPaths?: string[]; customStepJustifications?: unknown[] },
+    ) => post(`plans/${planId}/validations/draft/step-metadata`, metadata),
     submitValidationFeedback: (planId: string, feedback: unknown) =>
       post(`plans/${planId}/validations/feedback`, feedback),
     submitValidation: (planId: string) => post(`plans/${planId}/validations/submit`, {}),
@@ -208,6 +212,14 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     justifyBaselineRegression: (planId: string, attemptId: string, justification: string) =>
       post(`plans/${planId}/baseline/regressions/${attemptId}/justify`, { justification }),
     startImplementation: (planId: string) => post(`plans/${planId}/implementation/start`, {}),
+    approveImplementationGroups: (planId: string, groupIds: string[]) =>
+      post(`plans/${planId}/implementation/groups`, { groupIds }),
+    recordImplementationValidation: (planId: string, run: unknown) =>
+      post(`plans/${planId}/implementation/validations`, { run }),
+    startImplementationValidation: (planId: string, input: { validationIds?: string[]; commitHash?: string } = {}) =>
+      post(`plans/${planId}/implementation/validations/start`, input),
+    reconcileImplementationValidation: (planId: string, runs?: unknown[]) =>
+      post(`plans/${planId}/implementation/validations/reconcile`, { runs }),
     completionReview: (planId: string) => request(`plans/${planId}/completion`),
   }
 }

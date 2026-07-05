@@ -298,6 +298,7 @@ describe('MCP capability and recovery metadata', () => {
         'plan_review_loop',
         'validation_context_read',
         'validation_draft_create',
+        'validation_step_metadata_upsert',
         'validation_draft_publish',
         'validation_publish',
         'validation_review_loop',
@@ -305,6 +306,10 @@ describe('MCP capability and recovery metadata', () => {
         'baseline_reconcile',
         'baseline_accept',
         'implementation_start',
+        'implementation_group_approve',
+        'implementation_validation_start',
+        'implementation_validation_reconcile',
+        'implementation_completion_review',
       ]),
     )
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(

@@ -62,15 +62,19 @@ import {
   resetValidationDraft,
   upsertValidationFile,
   upsertValidationNode,
+  upsertValidationStepMetadata,
   upsertValidationTestCase,
 } from '@/services/coordinator/coordinator-validation-draft-service'
 import {
   applyBlockingFeedback,
+  approveImplementationGroups,
   approveImplementationCompletion,
   controlImplementation,
   reachImplementationCheckpoint,
   recordImplementationValidation,
+  reconcileImplementationValidation,
   reviewImplementationCompletion,
+  startImplementationValidation,
   updateImplementationTask,
 } from '@/services/coordinator/coordinator-implementation-service'
 import {
@@ -280,6 +284,10 @@ async function postImplementationOperation(operation: string[], body: unknown) {
       .parse(body)
     return Response.json(await updateImplementationTask({ planId, taskId: idSchema.parse(operation[4]), ...value }))
   }
+  if (action === 'groups') {
+    const value = z.object({ groupIds: z.array(idSchema).min(1) }).parse(body)
+    return Response.json(await approveImplementationGroups({ planId, ...value }))
+  }
   if (action === 'feedback') {
     const value = z
       .object({
@@ -300,6 +308,16 @@ async function postImplementationOperation(operation: string[], body: unknown) {
     return Response.json(await controlImplementation({ planId, ...value }))
   }
   if (action === 'validations') {
+    if (operation[4] === 'start') {
+      const value = z
+        .object({ validationIds: z.array(idSchema).optional(), commitHash: z.string().min(1).optional() })
+        .parse(body)
+      return Response.json(await startImplementationValidation({ planId, ...value }))
+    }
+    if (operation[4] === 'reconcile') {
+      const value = z.object({ runs: z.array(implementationValidationRunSchema).optional() }).parse(body)
+      return Response.json(await reconcileImplementationValidation({ planId, ...value }))
+    }
     const value = z
       .object({
         run: implementationValidationRunSchema,
@@ -551,6 +569,24 @@ async function postValidationOperation(request: Request, operation: string[], bo
     if (action === 'files') {
       const value = z.object({ file: validationFileSchema }).parse(body)
       return Response.json(await upsertValidationFile(planId, value.file as ValidationDraft['files'][number]))
+    }
+    if (action === 'step-metadata') {
+      const value = z
+        .object({
+          reusedStepPaths: z.array(z.string().min(1)).default([]),
+          newStepPaths: z.array(z.string().min(1)).default([]),
+          customStepJustifications: z
+            .array(
+              z.object({
+                path: z.string().min(1),
+                missingCapability: z.string().min(1),
+                whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
+              }),
+            )
+            .default([]),
+        })
+        .parse(body)
+      return Response.json(await upsertValidationStepMetadata(planId, value))
     }
     if (action === 'test-cases') {
       const value = z.object({ proposal: validationTestCaseProposalSchema }).parse(body)

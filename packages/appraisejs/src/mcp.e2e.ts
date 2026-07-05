@@ -147,8 +147,12 @@ try {
     'implementation_completion_review',
     'implementation_control',
     'implementation_feedback',
+    'implementation_group_approve',
     'implementation_start',
     'implementation_task_update',
+    'implementation_validation_reconcile',
+    'implementation_validation_record',
+    'implementation_validation_start',
     'appraise_resources_list',
     'locator_search',
     'planning_session_create',
@@ -192,6 +196,7 @@ try {
     'validation_publish',
     'validation_review_loop',
     'validation_review_submit',
+    'validation_step_metadata_upsert',
     'validation_test_case_upsert',
   ]
   assert(
