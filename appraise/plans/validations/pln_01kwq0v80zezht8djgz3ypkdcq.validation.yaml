@@ -1,0 +1,226 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts: []
+baselineDecision: pending
+baseRevision:
+  gitCommit: null
+  reducedAssurance: true
+  snapshotHash: sha256:ad30491ed95dadcccab5669b5e96f9b27685a856e71c714ac48e4b42c3902657
+classificationOverrides: []
+customStepJustifications:
+  - missingCapability: Browser geolocation permission mocking and Open-Meteo response mocking for current-location weather flows.
+    path: automation/steps/weather-current-location.steps.ts
+    whyLocatorsAndExistingStepsAreInsufficient: The approved plan depends on deterministic geolocation and weather API outcomes. Existing navigation and locator interactions can open the app, but custom hooks are needed to set browser coordinates, simulate permission denial, intercept Open-Meteo responses, and assert weather-specific states without relying on live location or network.
+files:
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:6f500ddd53a1433e33da942547e1da19699dfb423009d82b997cd4e05f164a74
+    declared: true
+    patch: Adds scenarios for successful current-location weather rendering, denied/unavailable geolocation recovery, and weather API failure recovery.
+    path: automation/features/weather-current-location.feature
+    rationale: Derived executable Gherkin coverage for the Appraise-authored current-location weather workflow.
+    status: added
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:e47c7a2fba18431709dd77cde5c8437439d964c9bc3a0e34cfdbcccaa174d751
+    declared: true
+    patch: Adds mocked browser geolocation, Open-Meteo route interception, and assertions for current weather, permission errors, API errors, refresh, and unit controls.
+    path: automation/steps/weather-current-location.steps.ts
+    rationale: Custom deterministic step bindings for geolocation and Open-Meteo response control required by the approved plan.
+    status: added
+manifestPaths:
+  - automation/features/weather-current-location.feature
+  - automation/steps/weather-current-location.steps.ts
+newStepPaths:
+  - automation/steps/weather-current-location.steps.ts
+planId: pln_01kwq0v80zezht8djgz3ypkdcq
+reusedStepPaths:
+  - automation/steps/templates/navigation.steps.ts
+revision: 2
+validationDecisions: []
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: weather-main-page
+          moduleId: weather-app
+          name: Weather main page
+          route: /
+      locators:
+        - id: use-current-location
+          locatorGroupId: weather-main-page
+          name: Use current location button
+          value: '[data-testid="use-current-location"]'
+        - id: weather-summary
+          locatorGroupId: weather-main-page
+          name: Current weather summary
+          value: '[data-testid="weather-summary"]'
+        - id: location-error
+          locatorGroupId: weather-main-page
+          name: Location error message
+          value: '[data-testid="location-error"]'
+        - id: weather-error
+          locatorGroupId: weather-main-page
+          name: Weather error message
+          value: '[data-testid="weather-error"]'
+        - id: refresh-weather
+          locatorGroupId: weather-main-page
+          name: Refresh weather button
+          value: '[data-testid="refresh-weather"]'
+        - id: unit-toggle
+          locatorGroupId: weather-main-page
+          name: Temperature unit toggle
+          value: '[data-testid="unit-toggle"]'
+      modules:
+        - id: weather-app
+          name: Weather app
+      testCases:
+        - description: "Verifies the primary happy path: request location permission, resolve coordinates, fetch Open-Meteo weather, and render current conditions with refresh and unit controls."
+          id: weather-current-location-success
+          steps:
+            - gherkinStep: Given I open the Weather Guy app
+              id: open-weather-app
+              label: Open the weather app
+              order: 0
+              parameters:
+                - name: url
+                  type: TEXT
+                  value: /
+              templateStepName: Navigate to URL
+            - gherkinStep: When I grant browser location for latitude 23.8103 and longitude 90.4125
+              id: grant-location
+              label: Grant current location permission
+              order: 1
+              parameters:
+                - name: latitude
+                  type: TEXT
+                  value: "23.8103"
+                - name: longitude
+                  type: TEXT
+                  value: "90.4125"
+            - gherkinStep: And the weather API returns current conditions for those coordinates
+              id: mock-weather-success
+              label: Provide deterministic weather response
+              order: 2
+              parameters:
+                - name: temperature
+                  type: TEXT
+                  value: "31"
+                - name: condition
+                  type: TEXT
+                  value: Partly cloudy
+            - gherkinStep: When I request weather for my current location
+              id: request-current-location
+              label: Use current location
+              order: 3
+              parameters: []
+            - gherkinStep: Then I see the current weather summary for my location
+              id: assert-current-weather
+              label: See current weather result
+              order: 4
+              parameters: []
+            - gherkinStep: And I can refresh the weather and switch temperature units
+              id: assert-controls
+              label: See refresh and unit controls
+              order: 5
+              parameters: []
+          title: Show current weather for the user's browser location
+        - description: Verifies the app does not break when geolocation permission is denied or unavailable and offers a retry path.
+          id: weather-location-denied
+          steps:
+            - gherkinStep: Given I open the Weather Guy app
+              id: open-weather-app-denied
+              label: Open the weather app
+              order: 0
+              parameters:
+                - name: url
+                  type: TEXT
+                  value: /
+              templateStepName: Navigate to URL
+            - gherkinStep: When browser location permission is denied
+              id: deny-location
+              label: Deny current location permission
+              order: 1
+              parameters: []
+            - gherkinStep: Then I see a recoverable location permission message
+              id: assert-denied-state
+              label: See permission guidance
+              order: 2
+              parameters: []
+            - gherkinStep: And I can retry the current location request without reloading
+              id: assert-retry
+              label: Retry is available
+              order: 3
+              parameters: []
+          title: Handle denied or unavailable location gracefully
+        - description: Verifies network/API failures show a recoverable user-facing state instead of raw transport details.
+          id: weather-api-failure
+          steps:
+            - gherkinStep: Given I open the Weather Guy app
+              id: open-weather-app-api-failure
+              label: Open the weather app
+              order: 0
+              parameters:
+                - name: url
+                  type: TEXT
+                  value: /
+              templateStepName: Navigate to URL
+            - gherkinStep: When I grant browser location for latitude 23.8103 and longitude 90.4125
+              id: grant-location-api-failure
+              label: Grant current location permission
+              order: 1
+              parameters:
+                - name: latitude
+                  type: TEXT
+                  value: "23.8103"
+                - name: longitude
+                  type: TEXT
+                  value: "90.4125"
+            - gherkinStep: And the weather API returns an error
+              id: mock-weather-error
+              label: Weather API fails
+              order: 2
+              parameters: []
+            - gherkinStep: When I request weather for my current location
+              id: request-weather-api-failure
+              label: Use current location
+              order: 3
+              parameters: []
+            - gherkinStep: Then I see a recoverable weather loading error
+              id: assert-api-error
+              label: See recoverable weather error
+              order: 4
+              parameters: []
+          title: Handle weather API failure gracefully
+      testSuites:
+        - description: Validates the approved Weather Guy plan through AppraiseJS-authored current-location weather scenarios.
+          id: weather-current-location-suite
+          moduleId: weather-app
+          name: Current location weather workflow
+          testCaseIds:
+            - weather-current-location-success
+            - weather-location-denied
+            - weather-api-failure
+    executable:
+      path: automation/features/weather-current-location.feature
+      selector: Current location weather workflow
+    expectedFailures: []
+    gherkinPaths:
+      - automation/features/weather-current-location.feature
+    id: weather-current-location-workflow
+    matrix:
+      - browser: chromium
+        environment: local
+    required: true
+    stepPaths:
+      - automation/steps/weather-current-location.steps.ts
+    taskIds:
+      - scaffold-setup
+      - location-permission-flow
+      - weather-api-integration
+      - result-rendering
+      - validation
+    testCaseIds:
+      - weather-current-location-success
+      - weather-location-denied
+      - weather-api-failure
+version: "1"

@@ -1,0 +1,90 @@
+description: Create a small local-first notes app in /Users/jamil/Personal Projects/simple-notes using React, TypeScript, Vite, plain CSS, and browser localStorage. The app should let a user create, view, edit, delete, and search notes; preserve notes across refreshes; show notes ordered by most recently updated first; provide clear empty states and validation for note title/content; and include practical implementation verification such as build/test checks and a browser smoke test.
+edges:
+  - from: scaffold-app-shell
+    to: note-model-state
+    type: blocks
+  - from: note-model-state
+    to: editor-list-crud
+    type: blocks
+  - from: editor-list-crud
+    to: search-validation-empty-states
+    type: blocks
+  - from: search-validation-empty-states
+    to: local-persistence
+    type: blocks
+  - from: local-persistence
+    to: implementation-validation
+    type: blocks
+goal: Simple Notes
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-app-shell
+      - note-model-state
+  - id: notes-workflow
+    taskIds:
+      - editor-list-crud
+      - search-validation-empty-states
+      - local-persistence
+  - id: quality
+    taskIds:
+      - implementation-validation
+lifecycle: awaiting_plan_review
+planId: pln_01kwhyx08b4jvk86yfc141hhkz
+revision: 3
+tasks:
+  - acceptanceCriteria:
+      - The app uses React, TypeScript, Vite, and plain CSS, with package scripts for local development and production build.
+      - The app can be installed and started locally without missing dependency errors.
+      - The first screen shows the notes app experience rather than a placeholder landing page.
+      - The layout works on mobile and desktop widths.
+    description: Create a React + TypeScript + Vite frontend application with plain CSS styling, package scripts, and a responsive app layout ready for the notes workflow. This is a single-user local app with no backend in the initial scope.
+    id: scaffold-app-shell
+    title: Scaffold the React TypeScript Vite app shell
+    validationIntent: Run install/build checks and open the app locally to confirm the React/Vite shell renders.
+  - acceptanceCriteria:
+      - Each note stores a stable id, title, content, created timestamp, and updated timestamp.
+      - Notes are displayed newest-updated first, so newly created notes and recently edited notes move to the top.
+      - When timestamps tie, ordering falls back consistently to created timestamp and then id.
+      - State updates keep the selected note and list view consistent after create, edit, and delete actions.
+      - The implementation keeps note state in a focused module or clearly bounded component state.
+    description: Create the note data shape and state helpers for single-user notes, including stable IDs, title, content, created timestamp, updated timestamp, selected-note behavior, and deterministic ordering by most recently updated first.
+    id: note-model-state
+    title: Define note data, ordering, and state management
+    validationIntent: Verify note ordering and state transitions through focused tests where practical or through manual state-transition checks.
+  - acceptanceCriteria:
+      - Users can create a new note with title and content.
+      - Users can select an existing note, edit it, and see updated ordering reflected in the UI.
+      - Users can delete a note and recover to a coherent empty or selected-note state.
+      - Controls are keyboard-accessible and have clear labels.
+    description: Implement the main notes interface with an ordered searchable list, an editor for creating and updating notes, and controls for deleting notes safely.
+    id: editor-list-crud
+    title: Build note list, editor, and CRUD flows
+    validationIntent: Exercise create, read, update, delete, and updated-first ordering behavior manually or with interaction tests.
+  - acceptanceCriteria:
+      - Search filters notes by title and content without mutating stored notes or changing the updated-first sort order.
+      - Empty states distinguish between having no notes and having no matches for a search query.
+      - Users get clear validation feedback when trying to save an invalid note.
+      - Validation prevents blank or meaningless notes from being persisted.
+    description: Add filtering for notes by title/content, validation for required useful note input, and polished states for no notes and no search results.
+    id: search-validation-empty-states
+    title: Add search, validation, and empty states
+    validationIntent: Verify search result cases, validation messages, and empty states across the primary workflow.
+  - acceptanceCriteria:
+      - Created and edited notes survive a page reload.
+      - Deleted notes remain deleted after reload.
+      - Restored notes retain their timestamps and updated-first ordering.
+      - If stored data cannot be parsed, the app falls back gracefully without breaking the UI.
+    description: Persist notes in browser localStorage and restore them when the app reloads, while handling malformed or unavailable stored data defensively.
+    id: local-persistence
+    title: Persist notes with localStorage
+    validationIntent: Create notes, reload the app, and confirm stored state and note ordering are restored; include automated coverage if the project setup supports it.
+  - acceptanceCriteria:
+      - The app passes the available TypeScript/Vite build, lint, or test command for the chosen stack.
+      - A browser smoke check covers app launch, create, edit, ordering after edit, search, delete, and reload persistence.
+      - Any validation gaps or reduced-assurance areas are documented before implementation is marked complete.
+    description: Run the project quality checks and capture practical evidence that the notes workflow works from startup through persisted CRUD, updated-first ordering, and search.
+    id: implementation-validation
+    title: Validate the completed notes workflow
+    validationIntent: Run the full available verification path and record the results for Appraise validation review.
+version: "1"

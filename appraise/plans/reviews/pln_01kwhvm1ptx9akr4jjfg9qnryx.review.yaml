@@ -1,0 +1,42 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-07-02T16:51:26.833Z
+    approvedBy: local-user
+    contentHash: sha256:de886c38cd5c73152b5dfbb94c5981ce230987cdc7b5ca9238b539bfd819f2f7
+    id: approval-24de771f-4521-4304-bbe6-9065faef5226
+    relevantHashes:
+      plan: sha256:de886c38cd5c73152b5dfbb94c5981ce230987cdc7b5ca9238b539bfd819f2f7
+    revision: 4
+planId: pln_01kwhvm1ptx9akr4jjfg9qnryx
+threads:
+  - blocking: true
+    events:
+      - action: created
+        actor: local-user
+        body: what flavor of react are we planning to use?
+        createdAt: 2026-07-02T16:48:05.379Z
+        id: event-b718cffc-e3c0-42e3-9d6b-b44eb02db444
+      - action: resolved
+        actor: local-user
+        createdAt: 2026-07-02T16:51:25.293Z
+        id: event-628bed63-0d05-45e2-be43-80cf29177a27
+    id: remark-94931dae-f554-4208-b9b8-3d1c2eb8629d
+    target:
+      taskId: scaffold-react-tailwind-shadcn
+      type: task
+  - blocking: true
+    events:
+      - action: created
+        actor: local-user
+        body: is there going to be e2e validations? how would that happen?
+        createdAt: 2026-07-02T16:50:13.670Z
+        id: event-1c963adb-7b1d-4cd5-b393-aaf0bbb29481
+      - action: resolved
+        actor: local-user
+        createdAt: 2026-07-02T16:51:22.304Z
+        id: event-ae863e32-22da-41dc-9662-5a6244f7e054
+    id: remark-d0f97997-dbd5-4f9c-bd17-13100c2adcaf
+    target:
+      taskId: validation-artifacts
+      type: task
+version: "1"

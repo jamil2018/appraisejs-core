@@ -1,0 +1,68 @@
+description: Build a simple todo app using React 19, TypeScript, Tailwind CSS v4, and shadcn/ui in the target workspace /Users/jamil/Personal Projects/simply-todo-5. Prepare an implementation plan before building. The app should support creating todos through an inline add form, listing todos, editing todo text inline, marking todos complete/incomplete, deleting todos through a shadcn AlertDialog confirmation, filtering active/completed/all todos, and persisting todos locally across page reloads. Use a modern Vite React TypeScript setup, Tailwind v4 for styling, shadcn/ui components for controls and layout primitives, accessible forms, responsive design, and a focused validation strategy with lint/typecheck/build plus a small functional test or manual QA checklist.
+edges:
+  - from: scaffold-setup
+    to: task-model-ui
+    type: blocks
+  - from: task-model-ui
+    to: crud-completion
+    type: blocks
+  - from: crud-completion
+    to: persistence
+    type: blocks
+  - from: persistence
+    to: validation
+    type: blocks
+goal: Simply Todo 5
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-setup
+      - task-model-ui
+  - id: behavior
+    taskIds:
+      - crud-completion
+      - persistence
+  - id: quality
+    taskIds:
+      - validation
+lifecycle: validations_approved
+planId: pln_01kwhqz1jj2hntsp9t1pajjrxb
+revision: 3
+tasks:
+  - acceptanceCriteria:
+      - The app starts locally with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui configured without missing dependency errors.
+      - The TypeScript project structure, base styling, component primitives, and app entry points are in place for the planned UI.
+    description: Create the React 19 + TypeScript Vite application foundation, configure Tailwind CSS v4, install and initialize shadcn/ui, add required UI/data dependencies, and wire the base layout and styling entry points requested by the brief.
+    id: scaffold-setup
+    title: Scaffold and configure the React 19 TypeScript app shell
+    validationIntent: Run install/build or the closest available scaffold validation for the generated React 19 TypeScript app shell.
+  - acceptanceCriteria:
+      - The UI exposes a clear todo list, inline add form, all/active/completed filter controls, and a defined empty state for zero todos.
+      - todo data includes typed fields needed for text, completion state, created/updated timestamps, and stable item identity.
+    description: Define the TypeScript todo shape, app state boundaries, and visible list/form experience. The empty state appears when no todos exist and shows a quiet shadcn-styled panel with the heading "No todos yet", supporting text inviting the user to add their first task, and focus remaining on the inline add input above the list.
+    id: task-model-ui
+    title: Model todo data and build the primary UI
+    validationIntent: Exercise the main UI states manually or with component-level tests where available, including the zero-todo empty state.
+  - acceptanceCriteria:
+      - Users can add todos through the inline form without opening a modal.
+      - Users can edit todo text inline, cancel or save the edit, delete only after confirming in an AlertDialog, and mark todo items complete or incomplete.
+      - Completion and edit changes are reflected immediately in the rendered list without stale UI state.
+    description: Add create, read, update, delete, and completion-toggle flows with predictable typed state updates and accessible controls. New todos are added through an inline form at the top of the list, edits happen inline on the todo row, and deletion opens a shadcn AlertDialog confirmation before removing the item.
+    id: crud-completion
+    title: Implement inline todo CRUD and completion behavior
+    validationIntent: Run focused interaction tests or manually verify inline add, inline edit, delete confirmation, cancel delete, confirmed delete, and completion toggle paths.
+  - acceptanceCriteria:
+      - todo items survive a page reload or app restart using localStorage.
+      - Persistence failures do not corrupt the visible in-memory state.
+    description: Store todo data in localStorage with a small typed serialization boundary, and restore saved state on reload.
+    id: persistence
+    title: Persist todo state
+    validationIntent: Verify saved items reload correctly and cover persistence behavior with the closest available automated test.
+  - acceptanceCriteria:
+      - The happy path from app launch through persisted completed items is verified.
+      - Relevant lint, TypeScript, build, unit, component, or end-to-end checks pass or have documented follow-up gaps.
+    description: Add or run validation that covers startup, primary UI rendering, empty state, inline add/edit/delete flows, delete confirmation, completion toggles, filtering, and persistence recovery.
+    id: validation
+    title: Validate the planned user workflow
+    validationIntent: Run the focused test suite plus lint/typecheck/build checks appropriate for the created app.
+version: "1"

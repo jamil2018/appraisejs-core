@@ -1,0 +1,75 @@
+description: Create a polished single-page inventory management app in /Users/jamil/Personal Projects/simple-inventory using React 19 with TypeScript as a Vite single-page app, Tailwind CSS, and shadcn/ui. This is a client-rendered SPA, not Next.js or a server-rendered React framework. The app should support tracking inventory items with add, edit, delete, search/filter, stock status, category grouping, summary metrics, and localStorage persistence. Validation will include lint/build checks plus Playwright e2e coverage for the core inventory workflows, with Appraise validation evidence published after plan approval.
+edges:
+  - from: scaffold-react-tailwind-shadcn
+    to: inventory-data-model-form
+    type: blocks
+  - from: inventory-data-model-form
+    to: inventory-table-actions
+    type: blocks
+  - from: inventory-table-actions
+    to: summary-persistence
+    type: blocks
+  - from: summary-persistence
+    to: validation-artifacts
+    type: blocks
+goal: Simple Inventory
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-react-tailwind-shadcn
+  - id: inventory-experience
+    taskIds:
+      - inventory-data-model-form
+      - inventory-table-actions
+      - summary-persistence
+  - id: quality
+    taskIds:
+      - validation-artifacts
+lifecycle: awaiting_validation_review
+planId: pln_01kwhvm1ptx9akr4jjfg9qnryx
+revision: 4
+tasks:
+  - acceptanceCriteria:
+      - The app uses Vite with React 19 and TypeScript as the React flavor for this project.
+      - The app can install dependencies and start locally without missing module or configuration errors.
+      - Tailwind styling and shadcn/ui components are wired into the React app.
+      - The project has a clear component structure for inventory UI, forms, and shared utilities.
+    description: Create a Vite React TypeScript single-page app in the target workspace, configure Tailwind CSS, add shadcn/ui conventions, and establish the application shell, styling entry points, and component folder structure. Use client-rendered React 19 with TypeScript via Vite rather than Next.js or another SSR framework.
+    id: scaffold-react-tailwind-shadcn
+    title: Scaffold Vite React TypeScript, Tailwind, and shadcn foundation
+    validationIntent: Run dependency install plus the closest available lint/build/startup check for the scaffolded Vite React TypeScript app.
+  - acceptanceCriteria:
+      - Inventory items include name, SKU or identifier, category, quantity, unit price, reorder threshold, and optional notes or supplier metadata where useful.
+      - Users can add new items and edit existing items through a polished, accessible form.
+      - Invalid or incomplete form submissions are prevented with useful inline feedback.
+    description: Define the inventory item type and implement accessible add/edit form flows using shadcn/ui inputs, dialogs or panels, validation, and clear error states.
+    id: inventory-data-model-form
+    title: Build inventory item model and form flows
+    validationIntent: Exercise add/edit form behavior manually and cover it in the Playwright e2e workflow.
+  - acceptanceCriteria:
+      - Users can search inventory items by name, SKU, category, or notes.
+      - Users can filter by category and stock status, including low-stock and out-of-stock items.
+      - Users can delete items with an intentional confirmation or clearly reversible interaction.
+      - The list remains readable and usable on desktop and mobile widths.
+    description: Render the inventory collection in a responsive dashboard-style table or list with search, category/status filters, low-stock indicators, and delete actions.
+    id: inventory-table-actions
+    title: Implement inventory list, filtering, and row actions
+    validationIntent: Verify search, filtering, status display, responsive layout, and delete behavior with representative data and e2e coverage.
+  - acceptanceCriteria:
+      - The UI shows total item count, total stock units, total inventory value, low-stock count, and category coverage or similar useful metrics.
+      - Inventory state is saved to localStorage and restored on reload.
+      - Corrupt or unavailable stored data is handled without breaking the app shell.
+    description: Compute inventory summary cards and persist item state to localStorage so data survives reloads without requiring a backend.
+    id: summary-persistence
+    title: Add summary metrics and local persistence
+    validationIntent: Verify metric calculations against known item data and confirm persisted state restores after reload in the e2e workflow.
+  - acceptanceCriteria:
+      - Lint and production build checks pass, or any remaining gaps are documented with concrete follow-up.
+      - A Playwright e2e test launches the Vite app and verifies adding an item, editing quantity or price, filtering/searching, observing low-stock status or metrics, deleting an item, and persistence after reload.
+      - The validation setup is runnable from the target workspace using a documented npm script such as npm run test:e2e.
+      - After Appraise approval, validation evidence is published through the Appraise validation lifecycle with changed files and workflow coverage called out.
+    description: Add Playwright e2e validation for the inventory workflow, wire an npm script to run it, and publish Appraise validation evidence after the plan is approved and validation preparation starts.
+    id: validation-artifacts
+    title: Add Playwright e2e validation and publish Appraise evidence
+    validationIntent: Run npm run build and npm run test:e2e, then publish Appraise validation artifacts/evidence for review.
+version: "1"

@@ -1,0 +1,153 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts: []
+baselineDecision: pending
+baseRevision:
+  gitCommit: null
+  reducedAssurance: true
+  snapshotHash: sha256:b87e47cfb0207f066bdd3eb3dcaf0e143a80b8c66c6520058174b0c4cb0f9a93
+classificationOverrides: []
+customStepJustifications:
+  - missingCapability: No reusable registry/template step currently covers this target workspace's inventory-specific add, edit, filter, persistence, and metric assertions.
+    path: automation/steps/actions/inventory-workflow.steps.ts
+    whyLocatorsAndExistingStepsAreInsufficient: The planned app is a new inventory UI with product-specific fields and stock-status semantics, so generic locator reuse is insufficient until the app-specific controls exist.
+files:
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:a05ce94c38c8aaff4b260fefc76ecb9d9c1014bbfcf71b1519545623471c2e0f
+    declared: true
+    patch: |
+      --- /dev/null
+      +++ b/automation/features/inventory-workflow.feature
+      +Feature: Simple inventory workflow
+      +  Scenario: Manage an inventory item lifecycle
+      +    Given the inventory app is open
+      +    When I add an inventory item
+      +    And I edit its quantity or price
+      +    And I search or filter for it
+      +    And I reload the page
+      +    Then the item and summary metrics persist
+      +    When I delete the item
+      +    Then the list and metrics update
+    path: automation/features/inventory-workflow.feature
+    rationale: Gherkin feature describing the required inventory item lifecycle e2e validation.
+    status: added
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:a05ce94c38c8aaff4b260fefc76ecb9d9c1014bbfcf71b1519545623471c2e0f
+    declared: true
+    patch: |
+      --- /dev/null
+      +++ b/automation/features/inventory-build.feature
+      +Feature: Inventory app build
+      +  Scenario: Production build passes
+      +    Given dependencies are installed
+      +    When I run the production build
+      +    Then Vite completes without TypeScript, Tailwind, or bundling errors
+    path: automation/features/inventory-build.feature
+    rationale: Gherkin feature documenting the required build/startup validation.
+    status: added
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:7db232f258bb21af76c0dc3722559c53d0447ce629419ac6cea7ca3ef14f6d44
+    declared: true
+    patch: |
+      --- /dev/null
+      +++ b/automation/steps/actions/inventory-workflow.steps.ts
+      +// Playwright/Cucumber steps will open the Vite app, add/edit/filter/delete inventory items, assert metrics, and verify localStorage persistence.
+    path: automation/steps/actions/inventory-workflow.steps.ts
+    rationale: Custom Playwright step definitions for inventory-specific interactions and assertions.
+    status: added
+  - beforeHash: null
+    classification: test_infrastructure
+    contentHash: sha256:673fb07a3ec3f06af27dcd8acb31d9128ac5a2e9a9114fd6d36815bc34653377
+    declared: true
+    patch: |
+      --- /dev/null
+      +++ b/playwright.config.ts
+      +// Configure Playwright to run chromium against the local Vite development server.
+    path: playwright.config.ts
+    rationale: Playwright configuration required to launch the local Vite app for e2e validation.
+    status: added
+  - beforeHash: null
+    classification: test_infrastructure
+    contentHash: sha256:b6d7e440792351f04a9dd759ce36af430005c3b1243220b5bcc78708165d9cf0
+    declared: true
+    patch: |
+      --- /dev/null
+      +++ b/package.json
+      +{"scripts":{"build":"vite build","test:e2e":"playwright test"}}
+    path: package.json
+    rationale: Adds build and e2e scripts needed to run validation from the target workspace.
+    status: added
+manifestPaths:
+  - automation/features/inventory-workflow.feature
+  - automation/features/inventory-build.feature
+  - automation/steps/actions/inventory-workflow.steps.ts
+  - playwright.config.ts
+  - package.json
+newStepPaths:
+  - automation/steps/actions/inventory-workflow.steps.ts
+planId: pln_01kwhvm1ptx9akr4jjfg9qnryx
+reusedStepPaths: []
+revision: 4
+validationDecisions:
+  - contentHash: sha256:f4aab9eca9bc620d3501d108c6c5bbdef558f3d23b73ae70760eb44ae8e11880
+    decidedAt: 2026-07-02T16:53:45.681Z
+    decidedBy: local-user
+    decision: approved
+    validationId: inventory-build-check
+  - contentHash: sha256:e1341f423946a44f1673862fd70c57ffa58ca37cd23bac48c799fde53793e2ab
+    decidedAt: 2026-07-02T16:54:12.383Z
+    decidedBy: local-user
+    decision: approved
+    validationId: inventory-workflow-e2e
+validations:
+  - executable:
+      path: automation/features/inventory-workflow.feature
+    expectedFailures:
+      - browser: chromium
+        environment: local
+        lastPassingStepId: scaffold-react-tailwind-shadcn
+        order: 0
+        signature: Expected to fail before the inventory app and Playwright workflow are implemented.
+    gherkinPaths:
+      - automation/features/inventory-workflow.feature
+    id: inventory-workflow-e2e
+    matrix:
+      - browser: chromium
+        environment: local
+    required: true
+    stepPaths:
+      - automation/steps/actions/inventory-workflow.steps.ts
+    taskIds:
+      - inventory-data-model-form
+      - inventory-table-actions
+      - summary-persistence
+      - validation-artifacts
+    testCaseIds:
+      - inventory-lifecycle
+  - executable:
+      path: automation/features/inventory-build.feature
+      selector: build
+    expectedFailures:
+      - browser: chromium
+        environment: local
+        lastPassingStepId: scaffold-react-tailwind-shadcn
+        order: 0
+        signature: Expected to fail before package.json, Vite, Tailwind, and shadcn setup are implemented.
+    gherkinPaths:
+      - automation/features/inventory-build.feature
+    id: inventory-build-check
+    matrix:
+      - browser: chromium
+        environment: local
+    required: true
+    stepPaths:
+      - automation/steps/actions/inventory-workflow.steps.ts
+    taskIds:
+      - scaffold-react-tailwind-shadcn
+      - validation-artifacts
+    testCaseIds:
+      - production-build
+version: "1"
