@@ -37,6 +37,17 @@ const baseWorkflowCriticalTools = [
   'plan_review_read',
   'plan_revise',
   'plan_start',
+  'validation_context_read',
+  'validation_draft_create',
+  'validation_draft_read',
+  'appraise_resources_list',
+  'template_step_search',
+  'locator_search',
+  'validation_node_upsert',
+  'validation_test_case_upsert',
+  'validation_file_upsert',
+  'validation_draft_check',
+  'validation_draft_publish',
   'validation_publish',
   'validation_review_loop',
   'validation_decide',
@@ -72,6 +83,13 @@ const baseWorkflowResourceUris = [
   'appraise://workflow/planning',
   'appraise://workflow/validation-preparation',
   'appraise://workflow/standby',
+  'appraise://resources/modules',
+  'appraise://resources/test-suites',
+  'appraise://resources/test-cases',
+  'appraise://resources/template-steps',
+  'appraise://resources/locator-groups',
+  'appraise://resources/locators',
+  'appraise://resources/environments',
 ] as const
 const providerNativeWorkflowResourceUris = ['appraise://providers', 'appraise://provider-runs'] as const
 const workflowResourceUris = [
@@ -82,6 +100,38 @@ const workflowResourceUris = [
 function text(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
 }
+
+const validationNodeInputSchema = validationArtifactSchema.shape.validations.element
+const validationFileInputSchema = validationArtifactSchema.shape.files.element
+const validationTestCaseProposalInputSchema = z.object({
+  title: z.string().min(1),
+  behavior: z.string().min(1),
+  coveredTaskIds: z.array(z.string().min(1)).min(1),
+  suiteRef: z.string().min(1).optional(),
+  steps: z
+    .array(
+      z.object({
+        intent: z.string().min(1),
+        gherkinText: z.string().min(1),
+        templateStepRef: z.string().min(1).optional(),
+        parameters: z
+          .array(
+            z.object({
+              name: z.string().min(1),
+              value: z.string(),
+              type: z.string().min(1).optional(),
+              locatorRef: z.string().min(1).optional(),
+            }),
+          )
+          .default([]),
+      }),
+    )
+    .min(1),
+  gherkinPath: z.string().min(1).optional(),
+  stepPath: z.string().min(1).optional(),
+  browser: z.string().min(1).optional(),
+  environment: z.string().min(1).optional(),
+})
 
 function withGuidance(
   value: unknown,
@@ -124,9 +174,23 @@ export const standbyWorkflow = {
 
 export const validationPreparationWorkflow = {
   phase: 'validation_preparation',
-  preferredTool: 'validation_publish',
+  preferredTool: 'validation_draft_publish',
+  legacyTool: 'validation_publish',
   contractResource: 'appraise://workflow/validation-preparation',
   artifactContract: 'appraise.validation/v1',
+  happyPath: [
+    'plan_start',
+    'validation_context_read',
+    'validation_draft_create',
+    'resource discovery/search as needed',
+    'validation_node_upsert or validation_test_case_upsert',
+    'validation_file_upsert',
+    'validation_draft_check',
+    'validation_draft_publish',
+    'validation_review_loop standby',
+  ],
+  appraiseOwnedDraft:
+    'Agents orchestrate Appraise-owned validation draft creation and mutation. Do not hand-author canonical validation YAML as the primary path.',
   requiredTopLevelFields: [
     'version',
     'planId',
@@ -194,7 +258,7 @@ export const validationPreparationWorkflow = {
   appraiseFirst:
     'Generate AppraiseJS-native authored artifacts first: modules, test suites, test cases, ordered steps, locator groups, and locators. Gherkin, step-definition, and Playwright runtime files are execution evidence derived from those authored artifacts, not the primary review surface.',
   lifecycle:
-    'Call validation_publish only after plan_start has moved the plan into validation preparation. validation_publish persists appraise/plans/validations/<plan-id>.validation.yaml, emits validation_review_ready, and moves the plan to awaiting_validation_review.',
+    'Call validation_draft_publish only after plan_start has moved the plan into validation preparation and validation_draft_check reports no blockers. Appraise renders appraise/plans/validations/<plan-id>.validation.yaml from draft state, emits validation_review_ready, and moves the plan to awaiting_validation_review.',
   minimalSkeleton: {
     version: '1',
     planId: 'primary-plan',
@@ -279,7 +343,7 @@ export const validationPreparationWorkflow = {
     baselineDecision: 'pending',
   },
   errorRecovery:
-    'If validation_publish returns invalid-request, read the returned path and correct that field. Do not inspect AppraiseJS core source to infer the contract; use this resource and the validation_publish input schema.',
+    'If a draft tool returns blockers, correct the named draft path and retry the mutation or validation_draft_check. Use validation_publish only for legacy full-artifact compatibility.',
 }
 
 export const mcpCapabilityMetadata = {
@@ -1259,6 +1323,34 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ],
     }),
   )
+  server.registerResource(
+    'validation-context',
+    new ResourceTemplate('appraise://plans/{planId}/validation-context', { list: undefined }),
+    { title: 'AppraiseJS validation context', mimeType: 'application/json' },
+    async (uri, variables) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(await api.request(`plans/${String(variables.planId)}/validations/context`)),
+        },
+      ],
+    }),
+  )
+  server.registerResource(
+    'validation-draft',
+    new ResourceTemplate('appraise://plans/{planId}/validation-draft', { list: undefined }),
+    { title: 'AppraiseJS validation draft', mimeType: 'application/json' },
+    async (uri, variables) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(await api.request(`plans/${String(variables.planId)}/validations/draft`)),
+        },
+      ],
+    }),
+  )
 
   server.registerTool(
     'project_diagnostic',
@@ -1887,10 +1979,196 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'validation_context_read',
+    {
+      description:
+        'Read live Appraise validation-preparation context: current plan tasks, target project metadata, reusable modules, suites, cases, template steps, locators, and environments.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => text(await api.request(`plans/${planId}/validations/context`)),
+  )
+  server.registerTool(
+    'validation_draft_create',
+    {
+      description:
+        'Create an Appraise-owned validation draft for the current plan revision. Use this before proposing validation nodes, files, suites, cases, steps, locators, or matrices.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) =>
+      text(
+        withGuidance(await api.request(`plans/${planId}/validations/draft/create`, { method: 'POST', body: '{}' }), {
+          nextRecommendedAction: 'Call validation_context_read, then mutate the draft with validation_*_upsert tools.',
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_draft_read',
+    {
+      description: 'Read the current Appraise-owned validation draft and structured blockers.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => text(await api.request(`plans/${planId}/validations/draft`)),
+  )
+  server.registerTool(
+    'appraise_resources_list',
+    {
+      description:
+        'List live reusable Appraise resources for validation authoring. This is equivalent to the resources section of validation_context_read.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => {
+      const context = (await api.request(`plans/${planId}/validations/context`)) as { resources?: unknown }
+      return text({
+        resources: context.resources,
+        nextRecommendedAction: 'Use resource IDs or names in draft proposals.',
+      })
+    },
+  )
+  server.registerTool(
+    'template_step_search',
+    {
+      description: 'Search live template steps before proposing custom step definitions.',
+      inputSchema: { planId: z.string(), query: z.string().min(1) },
+    },
+    async ({ planId, query }) => {
+      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+        resources?: { templateSteps?: Array<Record<string, unknown>> }
+      }
+      const needle = query.toLowerCase()
+      const matches = (context.resources?.templateSteps ?? []).filter(step =>
+        JSON.stringify(step).toLowerCase().includes(needle),
+      )
+      return text({ matches, nextRecommendedAction: 'Reuse a matching templateStepRef when possible.' })
+    },
+  )
+  server.registerTool(
+    'locator_search',
+    {
+      description: 'Search live locators before proposing new locator resources.',
+      inputSchema: { planId: z.string(), query: z.string().min(1) },
+    },
+    async ({ planId, query }) => {
+      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+        resources?: { locators?: Array<Record<string, unknown>>; locatorGroups?: Array<Record<string, unknown>> }
+      }
+      const needle = query.toLowerCase()
+      return text({
+        locators: (context.resources?.locators ?? []).filter(locator =>
+          JSON.stringify(locator).toLowerCase().includes(needle),
+        ),
+        locatorGroups: (context.resources?.locatorGroups ?? []).filter(group =>
+          JSON.stringify(group).toLowerCase().includes(needle),
+        ),
+        nextRecommendedAction: 'Reuse a matching locatorRef or locatorGroupRef when possible.',
+      })
+    },
+  )
+  server.registerTool(
+    'validation_node_upsert',
+    {
+      description:
+        'Create or update one validation node inside the Appraise-owned draft. Appraise returns canonical draft state and blockers.',
+      inputSchema: { planId: z.string(), node: validationNodeInputSchema },
+    },
+    async ({ planId, node }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/nodes`, {
+          method: 'POST',
+          body: JSON.stringify({ node }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_test_case_upsert',
+    {
+      description:
+        'Create or update a validation test case from an intent-shaped proposal. Appraise normalizes it into draft suites, cases, steps, matrix, and executable paths.',
+      inputSchema: { planId: z.string(), proposal: validationTestCaseProposalInputSchema },
+    },
+    async ({ planId, proposal }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/test-cases`, {
+          method: 'POST',
+          body: JSON.stringify({ proposal }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_file_upsert',
+    {
+      description: 'Create or update changed-file evidence inside the Appraise-owned validation draft and manifest.',
+      inputSchema: { planId: z.string(), file: validationFileInputSchema },
+    },
+    async ({ planId, file }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/files`, {
+          method: 'POST',
+          body: JSON.stringify({ file }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_draft_check',
+    {
+      description: 'Check the Appraise-owned validation draft for structured blockers before publication.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) =>
+      text(await api.request(`plans/${planId}/validations/draft/check`, { method: 'POST', body: '{}' })),
+  )
+  server.registerTool(
+    'validation_draft_publish',
+    {
+      description:
+        'Publish the Appraise-owned validation draft for user review. Appraise renders the validation YAML, emits validation_review_ready, and moves to validation-review standby.',
+      inputSchema: { planId: z.string(), draftId: z.string() },
+    },
+    async ({ planId, draftId }) => {
+      const published = (await api.request(`plans/${planId}/validations/draft/publish`, {
+        method: 'POST',
+        body: JSON.stringify({ draftId }),
+      })) as {
+        published?: boolean
+        validation?: {
+          validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
+          lifecycle?: string
+          revision?: number
+          validationArtifactPath?: string
+          validationCount?: number
+          changedFileCount?: number
+          manifestPaths?: string[]
+        }
+        validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
+        blockers?: unknown[]
+      }
+      const reviewLinks = published.validation?.validationReviewLinks ?? published.validationReviewLinks
+      return text({
+        ...published,
+        browserUrl: reviewLinks?.browser,
+        appraiseUrl: reviewLinks?.appraise ?? `appraise://plans/${planId}`,
+        requiredUserFacingMessage: published.published
+          ? [
+              `Direct validation review URL: ${reviewLinks?.browser ?? reviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
+              `Appraise URL: ${reviewLinks?.appraise ?? `appraise://plans/${planId}`}`,
+              `Plan ID: ${planId}`,
+              `Lifecycle: ${published.validation?.lifecycle ?? 'awaiting_validation_review'}`,
+              `Revision: ${published.validation?.revision ?? '(not returned)'}`,
+              `Validation artifact path: ${published.validation?.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
+              `Validation count: ${published.validation?.validationCount ?? 0}`,
+              `Changed-file count: ${published.validation?.changedFileCount ?? 0}`,
+              `Manifest paths: ${(published.validation?.manifestPaths ?? []).join(', ')}`,
+              'Next review action: open the validation review URL and wait for Appraise validation approval or changes.',
+            ].join('\n')
+          : `Validation draft has blockers: ${JSON.stringify(published.blockers ?? [])}`,
+        nextRequiredAgentBehavior: published.published ? 'standby_for_validation_review' : 'revise_validation_draft',
+      })
+    },
+  )
+  server.registerTool(
     'validation_publish',
     {
       description:
-        'Publish generated validation nodes and changed-file evidence for user review. The validation argument must satisfy the appraise.validation/v1 ValidationArtifact contract exposed by appraise://workflow/validation-preparation; use empty arrays for approvals, validationDecisions, baselineAttempts, and baselineAcknowledgements on initial publish, and baselineDecision:"pending".',
+        'Legacy compatibility path: publish a full generated validation artifact for user review. Prefer validation_draft_create, draft mutation tools, validation_draft_check, and validation_draft_publish for new agents.',
       inputSchema: { planId: z.string(), validation: validationArtifactSchema },
     },
     async ({ planId, validation }) => {

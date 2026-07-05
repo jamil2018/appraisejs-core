@@ -135,6 +135,125 @@ const validationAppraiseArtifactsSchema = z.object({
     .default([]),
 })
 
+const validationBaseRevisionSchema = z.object({
+  gitCommit: z.string().min(1).nullable(),
+  snapshotHash: hashSchema,
+  reducedAssurance: z.boolean(),
+})
+
+const fileClassificationSchema = z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review'])
+const validationClassificationOverrideSchema = z.object({
+  pattern: z.string().min(1),
+  classification: fileClassificationSchema,
+})
+
+const validationNodeSchema = z.object({
+  id: idSchema,
+  taskIds: z.array(idSchema).min(1),
+  required: z.boolean(),
+  testCaseIds: z.array(idSchema).min(1),
+  appraiseArtifacts: validationAppraiseArtifactsSchema,
+  gherkinPaths: z.array(z.string().min(1)).min(1),
+  stepPaths: z.array(z.string().min(1)).min(1),
+  executable: z.object({
+    path: z.string().min(1),
+    selector: z.string().min(1).optional(),
+  }),
+  matrix: z
+    .array(
+      z.object({
+        browser: z.string().min(1),
+        environment: z.string().min(1),
+      }),
+    )
+    .min(1),
+  expectedFailures: z.array(
+    z.object({
+      browser: z.string().min(1),
+      environment: z.string().min(1),
+      signature: z.string().min(1),
+      order: z.number().int().nonnegative(),
+      lastPassingStepId: idSchema,
+    }),
+  ),
+})
+
+const validationNodesSchema = z.array(validationNodeSchema).transform(items => uniqueIds(items, 'validations'))
+
+const customStepJustificationSchema = z.object({
+  path: z.string().min(1),
+  missingCapability: z.string().min(1),
+  whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
+})
+
+const validationStepProposalParameterSchema = z.object({
+  name: z.string().min(1),
+  value: z.string(),
+  type: z.string().min(1).optional(),
+  locatorRef: z.string().min(1).optional(),
+})
+
+export const validationTestCaseProposalSchema = z.object({
+  title: z.string().min(1),
+  behavior: z.string().min(1),
+  coveredTaskIds: z.array(idSchema).min(1),
+  suiteRef: z.string().min(1).optional(),
+  steps: z
+    .array(
+      z.object({
+        intent: z.string().min(1),
+        gherkinText: z.string().min(1),
+        templateStepRef: z.string().min(1).optional(),
+        parameters: z.array(validationStepProposalParameterSchema).default([]),
+      }),
+    )
+    .min(1),
+  gherkinPath: z.string().min(1).optional(),
+  stepPath: z.string().min(1).optional(),
+  browser: z.string().min(1).optional(),
+  environment: z.string().min(1).optional(),
+})
+
+const validationDraftBlockerSchema = z.object({
+  code: z.string().min(1),
+  path: z.array(z.union([z.string(), z.number()])),
+  message: z.string().min(1),
+  recovery: z.string().min(1),
+})
+
+const validationChangedFileSchema = z.object({
+  path: z.string().min(1),
+  classification: fileClassificationSchema,
+  rationale: z.string().min(1),
+  status: z.enum(['added', 'modified', 'deleted']),
+  beforeHash: hashSchema.nullable(),
+  contentHash: hashSchema.nullable(),
+  patch: z.string(),
+  declared: z.boolean(),
+})
+
+export const validationDraftSchema = artifactHeaderSchema
+  .extend({
+    draftId: idSchema,
+    revision: z.number().int().positive(),
+    status: z.enum(['draft', 'ready_for_review', 'published', 'changes_requested', 'discarded']),
+    targetProjectId: z.string().min(1).nullable(),
+    sourceHash: hashSchema,
+    baseRevision: validationBaseRevisionSchema,
+    classificationOverrides: z.array(validationClassificationOverrideSchema).default([]),
+    validations: validationNodesSchema,
+    files: z.array(validationChangedFileSchema),
+    manifestPaths: z.array(z.string().min(1)),
+    reusedStepPaths: z.array(z.string().min(1)).default([]),
+    newStepPaths: z.array(z.string().min(1)).default([]),
+    customStepJustifications: z.array(customStepJustificationSchema).default([]),
+    blockers: z.array(validationDraftBlockerSchema).default([]),
+    warnings: z.array(z.string().min(1)).default([]),
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema,
+  })
+  .strict()
+
 export const planArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
@@ -206,65 +325,13 @@ export const reviewArtifactSchema = artifactHeaderSchema
 export const validationArtifactSchema = artifactHeaderSchema
   .extend({
     revision: z.number().int().positive(),
-    baseRevision: z.object({
-      gitCommit: z.string().min(1).nullable(),
-      snapshotHash: hashSchema,
-      reducedAssurance: z.boolean(),
-    }),
-    classificationOverrides: z
-      .array(
-        z.object({
-          pattern: z.string().min(1),
-          classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
-        }),
-      )
-      .default([]),
-    validations: z
-      .array(
-        z.object({
-          id: idSchema,
-          taskIds: z.array(idSchema).min(1),
-          required: z.boolean(),
-          testCaseIds: z.array(idSchema).min(1),
-          appraiseArtifacts: validationAppraiseArtifactsSchema,
-          gherkinPaths: z.array(z.string().min(1)).min(1),
-          stepPaths: z.array(z.string().min(1)).min(1),
-          executable: z.object({
-            path: z.string().min(1),
-            selector: z.string().min(1).optional(),
-          }),
-          matrix: z
-            .array(
-              z.object({
-                browser: z.string().min(1),
-                environment: z.string().min(1),
-              }),
-            )
-            .min(1),
-          expectedFailures: z.array(
-            z.object({
-              browser: z.string().min(1),
-              environment: z.string().min(1),
-              signature: z.string().min(1),
-              order: z.number().int().nonnegative(),
-              lastPassingStepId: idSchema,
-            }),
-          ),
-        }),
-      )
-      .transform(items => uniqueIds(items, 'validations')),
+    baseRevision: validationBaseRevisionSchema,
+    classificationOverrides: z.array(validationClassificationOverrideSchema).default([]),
+    validations: validationNodesSchema,
     approvals: z.array(approvalSchema),
     reusedStepPaths: z.array(z.string().min(1)).optional(),
     newStepPaths: z.array(z.string().min(1)).optional(),
-    customStepJustifications: z
-      .array(
-        z.object({
-          path: z.string().min(1),
-          missingCapability: z.string().min(1),
-          whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
-        }),
-      )
-      .optional(),
+    customStepJustifications: z.array(customStepJustificationSchema).optional(),
     validationDecisions: z.array(
       z.object({
         validationId: idSchema,
@@ -274,18 +341,7 @@ export const validationArtifactSchema = artifactHeaderSchema
         decidedAt: timestampSchema,
       }),
     ),
-    files: z.array(
-      z.object({
-        path: z.string().min(1),
-        classification: z.enum(['test_only', 'test_infrastructure', 'production', 'requires_review']),
-        rationale: z.string().min(1),
-        status: z.enum(['added', 'modified', 'deleted']),
-        beforeHash: hashSchema.nullable(),
-        contentHash: hashSchema.nullable(),
-        patch: z.string(),
-        declared: z.boolean(),
-      }),
-    ),
+    files: z.array(validationChangedFileSchema),
     manifestPaths: z.array(z.string().min(1)),
     reviewSubmittedAt: timestampSchema.optional(),
     baselineAttempts: z
@@ -386,4 +442,5 @@ export type ArtifactKind = keyof typeof artifactSchemas
 export type PlanArtifact = z.infer<typeof planArtifactSchema>
 export type ReviewArtifact = z.infer<typeof reviewArtifactSchema>
 export type ValidationArtifact = z.infer<typeof validationArtifactSchema>
+export type ValidationDraft = z.infer<typeof validationDraftSchema>
 export type LayoutArtifact = z.infer<typeof layoutArtifactSchema>

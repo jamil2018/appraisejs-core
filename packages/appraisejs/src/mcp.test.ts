@@ -296,6 +296,9 @@ describe('MCP capability and recovery metadata', () => {
         'project_diagnostic',
         'planning_session_create',
         'plan_review_loop',
+        'validation_context_read',
+        'validation_draft_create',
+        'validation_draft_publish',
         'validation_publish',
         'validation_review_loop',
         'baseline_start',
@@ -310,14 +313,21 @@ describe('MCP capability and recovery metadata', () => {
         'appraise://workflow/planning',
         'appraise://workflow/validation-preparation',
         'appraise://workflow/standby',
+        'appraise://resources/template-steps',
+        'appraise://resources/locators',
       ]),
     )
   })
 
-  it('exposes validation artifact expectations before validation_publish is called', () => {
+  it('exposes Appraise-owned draft guidance before validation review is published', () => {
     expect(agentGuide.validationPreparationWorkflow).toBe(validationPreparationWorkflow)
-    expect(validationPreparationWorkflow.preferredTool).toBe('validation_publish')
+    expect(validationPreparationWorkflow.preferredTool).toBe('validation_draft_publish')
+    expect(validationPreparationWorkflow.legacyTool).toBe('validation_publish')
     expect(validationPreparationWorkflow.artifactContract).toBe('appraise.validation/v1')
+    expect(validationPreparationWorkflow.happyPath).toEqual(
+      expect.arrayContaining(['validation_context_read', 'validation_draft_create', 'validation_draft_publish']),
+    )
+    expect(validationPreparationWorkflow.appraiseOwnedDraft).toContain('Agents orchestrate')
     expect(validationPreparationWorkflow.requiredTopLevelFields).toEqual(
       expect.arrayContaining(['validations', 'files', 'manifestPaths', 'baselineDecision']),
     )
@@ -360,7 +370,7 @@ describe('MCP capability and recovery metadata', () => {
       files: [expect.objectContaining({ classification: 'test_only', declared: true })],
     })
     expect(validationArtifactSchema.safeParse(validationPreparationWorkflow.minimalSkeleton).success).toBe(true)
-    expect(validationPreparationWorkflow.errorRecovery).toContain('Do not inspect AppraiseJS core source')
+    expect(validationPreparationWorkflow.errorRecovery).toContain('Use validation_publish only for legacy')
   })
 
   it('keeps standby workflow resource aligned with complete handoff-before-wait guidance', () => {
