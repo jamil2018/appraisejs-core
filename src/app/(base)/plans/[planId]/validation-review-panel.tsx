@@ -13,6 +13,7 @@ import type { PlanReviewDetail } from '@/services/plan-review/plan-review-servic
 type ActionResult = { success?: boolean; error?: string }
 type ValidationArtifact = NonNullable<PlanReviewDetail['validation']>
 type ValidationNode = ValidationArtifact['validations'][number]
+type RuntimeProjection = NonNullable<ValidationArtifact['runtimeProjections']>[number]
 type ValidationAppraiseArtifacts = ValidationNode['appraiseArtifacts']
 type ChangedFile = ValidationArtifact['files'][number]
 type ValidationReviewState = NonNullable<PlanReviewDetail['validationReview']>
@@ -143,6 +144,55 @@ function AppraiseArtifactSummary({ artifacts }: { artifacts?: ValidationAppraise
                 </li>
               ))}
             </ol>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RuntimePreflightSummary({ validation }: { validation: ValidationArtifact }) {
+  const preflight = validation.runtimePreflight
+  if (!preflight) return null
+
+  return (
+    <div className="mt-4 rounded-md border p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="text-sm font-semibold">Runtime preflight</h3>
+        <Badge variant={preflight.status === 'passed' ? 'default' : 'destructive'}>
+          {formatState(preflight.status)}
+        </Badge>
+        <span className="text-xs text-muted-foreground">{preflight.checkedAt}</span>
+      </div>
+      {preflight.blockers.length ? (
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          {preflight.blockers.map(blocker => (
+            <li key={`${blocker.code}:${blocker.path.join('.')}`}>
+              <span className="font-medium text-foreground">{formatState(blocker.code)}:</span> {blocker.message}{' '}
+              {blocker.phrase ? <span className="font-mono text-xs">({blocker.phrase}) </span> : null}
+              <span>{blocker.recovery}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
+function RuntimeProjectionRows({ projections, paths }: { projections: RuntimeProjection[]; paths: string[] }) {
+  const rows = projections.filter(projection => paths.includes(projection.declaredPath))
+  if (!rows.length) return null
+
+  return (
+    <div className="mt-4 space-y-2 border-t pt-4">
+      <h5 className="text-sm font-semibold">Runtime projections</h5>
+      <div className="space-y-2">
+        {rows.map(projection => (
+          <div key={`${projection.role}:${projection.declaredPath}`} className="grid gap-2 text-sm md:grid-cols-4">
+            <Info label="Role" value={formatState(projection.role)} />
+            <Info label="Materialization" value={formatState(projection.materialization)} />
+            <Info label="Declared" value={projection.declaredPath} />
+            <Info label="Runtime" value={projection.runtimePath} />
           </div>
         ))}
       </div>
@@ -283,6 +333,7 @@ function ValidationSummary({
           actions.
         </div>
       ) : null}
+      <RuntimePreflightSummary validation={validation} />
       <div className="mt-4">
         <Button
           type="button"
@@ -316,6 +367,7 @@ function ValidationSummary({
 // fallow-ignore-next-line complexity
 function ValidationNodeCard({
   node,
+  projections,
   hash,
   currentDecision,
   canDecide,
@@ -325,6 +377,7 @@ function ValidationNodeCard({
   onFeedbackTarget,
 }: {
   node: ValidationNode
+  projections: RuntimeProjection[]
   hash: string
   currentDecision?: ValidationDecision
   canDecide: boolean
@@ -396,6 +449,10 @@ function ValidationNodeCard({
         <Info label="Test cases" value={node.testCaseIds.join(', ')} />
       </div>
       <AppraiseArtifactSummary artifacts={node.appraiseArtifacts} />
+      <RuntimeProjectionRows
+        projections={projections}
+        paths={[...node.gherkinPaths, ...node.stepPaths, node.executable.path]}
+      />
       <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
         <Info
           label="Executable"
@@ -449,6 +506,7 @@ function ValidationNodeList({
           <ValidationNodeCard
             key={node.id}
             node={node}
+            projections={validation.runtimeProjections ?? []}
             hash={hash}
             currentDecision={currentDecision}
             canDecide={canDecide}

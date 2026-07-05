@@ -53,13 +53,13 @@ export const implementationValidationRunSchema = z.object({
   validationId: idSchema,
   taskIds: z.array(idSchema).min(1),
   required: z.boolean(),
-  status: z.enum(['passed', 'failed', 'cancelled', 'infrastructure_failure']),
+  status: z.enum(['running', 'passed', 'failed', 'cancelled', 'infrastructure_failure']),
   fresh: z.boolean(),
   commitHash: z.string().min(1),
   evidenceUrls: z.array(z.string().min(1)),
   failureSignatureHash: hashSchema.optional(),
   acknowledgedAt: timestampSchema.optional(),
-  completedAt: timestampSchema,
+  completedAt: timestampSchema.optional(),
 })
 
 const validationAppraiseArtifactsSchema = z.object({
@@ -217,8 +217,24 @@ export const validationTestCaseProposalSchema = z.object({
 const validationDraftBlockerSchema = z.object({
   code: z.string().min(1),
   path: z.array(z.union([z.string(), z.number()])),
+  phrase: z.string().min(1).optional(),
   message: z.string().min(1),
   recovery: z.string().min(1),
+})
+
+const runtimeProjectionSchema = z.object({
+  role: z.enum(['gherkin', 'step', 'executable', 'manifest', 'file']),
+  declaredPath: z.string().min(1),
+  targetPath: z.string().min(1),
+  runtimePath: z.string().min(1),
+  materialization: z.enum(['generated', 'copied', 'reused', 'declared']),
+  contentHash: hashSchema.nullable(),
+})
+
+const runtimePreflightSchema = z.object({
+  status: z.enum(['passed', 'blocked']),
+  checkedAt: timestampSchema,
+  blockers: z.array(validationDraftBlockerSchema),
 })
 
 const validationChangedFileSchema = z.object({
@@ -247,6 +263,8 @@ export const validationDraftSchema = artifactHeaderSchema
     reusedStepPaths: z.array(z.string().min(1)).default([]),
     newStepPaths: z.array(z.string().min(1)).default([]),
     customStepJustifications: z.array(customStepJustificationSchema).default([]),
+    runtimeProjections: z.array(runtimeProjectionSchema).default([]),
+    runtimePreflight: runtimePreflightSchema.optional(),
     blockers: z.array(validationDraftBlockerSchema).default([]),
     warnings: z.array(z.string().min(1)).default([]),
     createdAt: timestampSchema,
@@ -332,6 +350,8 @@ export const validationArtifactSchema = artifactHeaderSchema
     reusedStepPaths: z.array(z.string().min(1)).optional(),
     newStepPaths: z.array(z.string().min(1)).optional(),
     customStepJustifications: z.array(customStepJustificationSchema).optional(),
+    runtimeProjections: z.array(runtimeProjectionSchema).optional(),
+    runtimePreflight: runtimePreflightSchema.optional(),
     validationDecisions: z.array(
       z.object({
         validationId: idSchema,
@@ -359,6 +379,7 @@ export const validationArtifactSchema = artifactHeaderSchema
               'accepted_regression_pass',
               'pre_existing_unrelated_failure',
               'invalid_baseline_failure',
+              'validation_harness_failure',
             ])
             .optional(),
           signatureHash: hashSchema.optional(),

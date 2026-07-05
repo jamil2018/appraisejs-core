@@ -91,6 +91,18 @@ function appraiseArtifacts(testCaseId = 'case-one') {
   }
 }
 
+function generatedFeatureContent(planId: string) {
+  return [
+    `@appraise_plan_${planId}`,
+    'Feature: case-one',
+    '',
+    '  @appraise_validation_required-check @tc_case-one',
+    '  Scenario: Baseline case-one',
+    '    Given I run the baseline step',
+    '',
+  ].join('\n')
+}
+
 function validation(planId: string, overrides: Partial<ValidationArtifact> = {}): ValidationArtifact {
   const artifact: ValidationArtifact = {
     version: '1',
@@ -133,7 +145,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         rationale: 'Baseline feature file',
         status: 'added',
         beforeHash: null,
-        contentHash: hashFileContent('Feature: case one\n'),
+        contentHash: hashFileContent(generatedFeatureContent(planId)),
         patch:
           '--- a/automation/features/case-one.feature\n+++ b/automation/features/case-one.feature\n+Feature: case one',
         declared: true,
@@ -151,7 +163,12 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
 async function writeArtifacts(planId: string, lifecycle?: PlanArtifact['lifecycle']) {
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'validations'), { recursive: true })
   await fs.mkdir(path.join(workspace, 'automation', 'features'), { recursive: true })
-  await fs.writeFile(path.join(workspace, 'automation', 'features', 'case-one.feature'), 'Feature: case one\n')
+  await fs.mkdir(path.join(workspace, 'automation', 'steps', 'actions'), { recursive: true })
+  await fs.writeFile(
+    path.join(workspace, 'automation', 'features', 'case-one.feature'),
+    generatedFeatureContent(planId),
+  )
+  await fs.writeFile(path.join(workspace, 'automation', 'steps', 'actions', 'case-one.step.ts'), 'Given case one')
   await fs.writeFile(
     path.join(workspace, 'appraise', 'plans', `${planId}.yaml`),
     serializeYamlArtifact('plan', plan(planId, lifecycle)),
@@ -342,9 +359,21 @@ describe('baseline execution and implementation gate', () => {
       }),
     })
 
+    const harnessValidation = await readValidation(planId)
+    expect(harnessValidation).toMatchObject({
+      baselineDecision: 'changes-requested',
+      baselineAttempts: expect.arrayContaining([
+        expect.objectContaining({ classification: 'validation_harness_failure' }),
+      ]),
+    })
+    const harnessPlan = parseYamlArtifact(
+      'plan',
+      (await new PlanArtifactRepository(workspace).read('plan', planId)).content,
+    ) as PlanArtifact
+    expect(harnessPlan.lifecycle).toBe('validation_changes_requested')
     await expect(acceptBaseline(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
       code: 'CONFLICT',
-      message: expect.stringContaining('has an invalid baseline failure'),
+      message: 'The plan is not awaiting baseline acceptance.',
     })
 
     const repository = new PlanArtifactRepository(workspace)
@@ -375,7 +404,15 @@ describe('baseline execution and implementation gate', () => {
     const targetWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-target-'))
     await fs.writeFile(path.join(targetWorkspace, 'package.json'), '{}')
     await fs.mkdir(path.join(targetWorkspace, 'automation', 'features'), { recursive: true })
-    await fs.writeFile(path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'), 'Feature: case one\n')
+    await fs.mkdir(path.join(targetWorkspace, 'automation', 'steps', 'actions'), { recursive: true })
+    await fs.writeFile(
+      path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
+      generatedFeatureContent(planId),
+    )
+    await fs.writeFile(
+      path.join(targetWorkspace, 'automation', 'steps', 'actions', 'case-one.step.ts'),
+      'Given case one',
+    )
     await writeArtifacts(planId)
     await fs.writeFile(path.join(workspace, 'automation', 'features', 'case-one.feature'), 'Feature: hub drift\n')
     const targetProject = await client.targetProject.create({
@@ -416,7 +453,7 @@ describe('baseline execution and implementation gate', () => {
           expect.objectContaining({
             path: 'automation/features/case-one.feature',
             resolvedAbsolutePath: path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
-            expectedHash: hashFileContent('Feature: case one\n'),
+            expectedHash: hashFileContent(generatedFeatureContent(driftPlanId)),
             currentHash: hashFileContent('Feature: target drift\n'),
           }),
         ],

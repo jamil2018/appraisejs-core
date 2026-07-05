@@ -27,6 +27,10 @@ const validationArtifactPath = join(
   'validations',
   `${validationPlanId}.validation.yaml`,
 )
+const validationProductionPath = join(process.cwd(), 'src', 'app', 'weather-result.tsx')
+const validationFeaturePath = join(process.cwd(), 'automation', 'features', 'validation-review.feature')
+const validationStepPath = join(process.cwd(), 'automation', 'steps', 'validation-review.steps.ts')
+const validationProductionContent = 'export function WeatherResult() { return null }'
 
 const seededPlan: PlanArtifact = {
   version: '1',
@@ -88,6 +92,9 @@ async function removeSeededPlan(): Promise<void> {
     rm(validationPlanPath, { force: true }),
     rm(validationReviewPath, { force: true }),
     rm(validationArtifactPath, { force: true }),
+    rm(validationProductionPath, { force: true }),
+    rm(validationFeaturePath, { force: true }),
+    rm(validationStepPath, { force: true }),
   ])
 }
 
@@ -120,9 +127,14 @@ async function seedReviewablePlan(): Promise<void> {
 }
 
 async function seedValidationReviewPlan(): Promise<void> {
+  await prisma.environment.upsert({
+    where: { name: 'local' },
+    update: { baseUrl: 'http://127.0.0.1:3200' },
+    create: { name: 'local', baseUrl: 'http://127.0.0.1:3200' },
+  })
   const planContent = serializeYamlArtifact('plan', validationPlan)
   const planHash = hashContent(planContent)
-  const productionFileHash = hashContent('export function WeatherResult() { return null }')
+  const productionFileHash = hashContent(validationProductionContent)
   const review: ReviewArtifact = {
     version: '1',
     planId: validationPlanId,
@@ -225,10 +237,19 @@ async function seedValidationReviewPlan(): Promise<void> {
 
   await mkdir(join(process.cwd(), 'appraise', 'plans', 'reviews'), { recursive: true })
   await mkdir(join(process.cwd(), 'appraise', 'plans', 'validations'), { recursive: true })
+  await mkdir(join(process.cwd(), 'src', 'app'), { recursive: true })
+  await mkdir(join(process.cwd(), 'automation', 'features'), { recursive: true })
+  await mkdir(join(process.cwd(), 'automation', 'steps'), { recursive: true })
   await Promise.all([
     writeFile(validationPlanPath, planContent),
     writeFile(validationReviewPath, serializeYamlArtifact('review', review)),
     writeFile(validationArtifactPath, serializeYamlArtifact('validation', validation)),
+    writeFile(validationProductionPath, validationProductionContent),
+    writeFile(validationFeaturePath, 'Feature: Validation review\n  Scenario: Validation review suite\n'),
+    writeFile(
+      validationStepPath,
+      'import { Given } from "@cucumber/cucumber"\n\nGiven("I open the validation review page", function () {})\n',
+    ),
   ])
 }
 

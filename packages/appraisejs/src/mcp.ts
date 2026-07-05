@@ -46,6 +46,7 @@ const baseWorkflowCriticalTools = [
   'validation_node_upsert',
   'validation_test_case_upsert',
   'validation_file_upsert',
+  'validation_step_metadata_upsert',
   'validation_draft_check',
   'validation_draft_publish',
   'validation_publish',
@@ -61,7 +62,16 @@ const baseWorkflowCriticalTools = [
   'baseline_regression_justify',
   'baseline_accept',
   'implementation_start',
+  'implementation_group_approve',
   'implementation_checkpoint',
+  'implementation_task_update',
+  'implementation_validation_record',
+  'implementation_validation_start',
+  'implementation_validation_reconcile',
+  'implementation_feedback',
+  'implementation_control',
+  'implementation_completion_review',
+  'implementation_complete',
 ] as const
 const providerNativeWorkflowTools = [
   'provider_list',
@@ -103,6 +113,24 @@ function text(value: unknown) {
 
 const validationNodeInputSchema = validationArtifactSchema.shape.validations.element
 const validationFileInputSchema = validationArtifactSchema.shape.files.element
+const customStepJustificationInputSchema = z.object({
+  path: z.string().min(1),
+  missingCapability: z.string().min(1),
+  whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
+})
+const implementationValidationRunInputSchema = z.object({
+  id: z.string().min(1),
+  validationId: z.string().min(1),
+  taskIds: z.array(z.string().min(1)).min(1),
+  required: z.boolean(),
+  status: z.enum(['running', 'passed', 'failed', 'cancelled', 'infrastructure_failure']),
+  fresh: z.boolean(),
+  commitHash: z.string().min(1),
+  evidenceUrls: z.array(z.string().min(1)),
+  failureSignatureHash: z.string().startsWith('sha256:').optional(),
+  acknowledgedAt: z.string().datetime({ offset: true }).optional(),
+  completedAt: z.string().datetime({ offset: true }).optional(),
+})
 const validationTestCaseProposalInputSchema = z.object({
   title: z.string().min(1),
   behavior: z.string().min(1),
@@ -2108,6 +2136,26 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'validation_step_metadata_upsert',
+    {
+      description:
+        'Create or update validation draft step metadata: reused registry/template step paths, new custom step paths, and required custom-step justifications.',
+      inputSchema: {
+        planId: z.string(),
+        reusedStepPaths: z.array(z.string().min(1)).default([]),
+        newStepPaths: z.array(z.string().min(1)).default([]),
+        customStepJustifications: z.array(customStepJustificationInputSchema).default([]),
+      },
+    },
+    async ({ planId, ...body }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/step-metadata`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
     'validation_draft_check',
     {
       description: 'Check the Appraise-owned validation draft for structured blockers before publication.',
@@ -2535,6 +2583,26 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'implementation_group_approve',
+    {
+      description: 'Approve implementation groups and receive currently runnable task IDs.',
+      inputSchema: { planId: z.string(), groupIds: z.array(z.string().min(1)).min(1) },
+    },
+    async ({ planId, groupIds }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/implementation/groups`, {
+            method: 'POST',
+            body: JSON.stringify({ groupIds }),
+          }),
+          nextRecommendedAction: 'Call implementation_checkpoint before working on runnable tasks.',
+          nextRequiredAgentBehavior: 'record_implementation_checkpoint',
+          nextAllowedAction: { tool: 'implementation_checkpoint', type: 'before_group' },
+        }),
+      ),
+  )
+  server.registerTool(
     'implementation_task_update',
     {
       description: 'Move an implementation task through pending, in progress, implemented, and verified.',
@@ -2550,6 +2618,59 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         await api.request(`plans/${planId}/implementation/tasks/${taskId}`, {
           method: 'POST',
           body: JSON.stringify(body),
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_validation_record',
+    {
+      description: 'Record plan-bound implementation validation evidence.',
+      inputSchema: { planId: z.string(), run: implementationValidationRunInputSchema },
+    },
+    async ({ planId, run }) =>
+      text(
+        await api.request(`plans/${planId}/implementation/validations`, {
+          method: 'POST',
+          body: JSON.stringify({ run }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_validation_start',
+    {
+      description: 'Create Appraise-owned, plan-bound implementation validation run records.',
+      inputSchema: {
+        planId: z.string(),
+        validationIds: z.array(z.string().min(1)).optional(),
+        commitHash: z.string().min(1).optional(),
+      },
+    },
+    async ({ planId, validationIds, commitHash }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/implementation/validations/start`, {
+            method: 'POST',
+            body: JSON.stringify({ validationIds, commitHash }),
+          }),
+          nextRecommendedAction:
+            'Run the created implementation validations, then call implementation_validation_reconcile.',
+          nextRequiredAgentBehavior: 'reconcile_implementation_validation',
+          nextAllowedAction: { tool: 'implementation_validation_reconcile' },
+        }),
+      ),
+  )
+  server.registerTool(
+    'implementation_validation_reconcile',
+    {
+      description: 'Reconcile Appraise-owned implementation validation runs with completed evidence.',
+      inputSchema: { planId: z.string(), runs: z.array(implementationValidationRunInputSchema).optional() },
+    },
+    async ({ planId, runs }) =>
+      text(
+        await api.request(`plans/${planId}/implementation/validations/reconcile`, {
+          method: 'POST',
+          body: JSON.stringify({ runs }),
         }),
       ),
   )

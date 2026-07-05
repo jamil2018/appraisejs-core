@@ -155,6 +155,37 @@ function preImplementationRecovery(plan: PlanArtifact, validation: ValidationArt
   }
 }
 
+function completionNextActions(planId: string, blockers: string[]) {
+  return blockers.map(blocker => {
+    if (blocker.includes('Required tasks are not verified')) {
+      return {
+        blocker,
+        nextMcpAction: 'implementation_task_update',
+        requiredInput: { planId, taskId: '<task-id>', status: 'verified' },
+      }
+    }
+    if (blocker.includes('fresh passing run')) {
+      return {
+        blocker,
+        nextMcpAction: 'implementation_validation_start',
+        requiredInput: { planId, validationIds: ['<validation-id>'], commitHash: '<current-commit>' },
+      }
+    }
+    if (blocker.includes('evidence must remain protected')) {
+      return {
+        blocker,
+        nextMcpAction: 'implementation_completion_review',
+        requiredInput: { planId },
+      }
+    }
+    return {
+      blocker,
+      nextMcpAction: 'implementation_checkpoint',
+      requiredInput: { planId, type: 'before_completion' },
+    }
+  })
+}
+
 async function implementationContext(planId: string, options: Options) {
   const client = options.client ?? prisma
   await assertPlanNotCancelled(planId, client)
@@ -257,6 +288,36 @@ export async function updateImplementationTask(
   return validation.implementation
 }
 
+export async function approveImplementationGroups(
+  input: { planId: string; groupIds: string[] },
+  options: Options = {},
+) {
+  const { client, artifacts, implementation } = await implementationContext(input.planId, options)
+  const knownGroupIds = new Set(artifacts.plan.implementationGroups.map(group => group.id))
+  const unknownGroupIds = input.groupIds.filter(groupId => !knownGroupIds.has(groupId))
+  if (unknownGroupIds.length > 0) {
+    throw new ServiceError(`Implementation groups were not found: ${unknownGroupIds.join(', ')}.`, 'NOT_FOUND')
+  }
+  const approvedGroupIds = Array.from(new Set([...implementation.approvedGroupIds, ...input.groupIds])).sort()
+  const validation = { ...artifacts.validation, implementation: { ...implementation, approvedGroupIds } }
+  await writeArtifacts(artifacts, artifacts.plan, validation, artifacts.review, client)
+  const runnableTaskIds = runnableTasks(
+    artifacts.plan,
+    validation.implementation.taskStates,
+    validation.implementation.approvedGroupIds,
+    validation.implementation.pausedTaskIds,
+  )
+  await appendPlanEvent(
+    {
+      planId: input.planId,
+      type: 'implementation_groups_approved',
+      payload: { approvedGroupIds, runnableTaskIds },
+    },
+    client,
+  )
+  return { implementation: validation.implementation, runnableTaskIds }
+}
+
 // fallow-ignore-next-line complexity
 export async function applyBlockingFeedback(
   input: { planId: string; affectedTaskIds: string[]; confirmed: boolean; pausePlanWide?: boolean },
@@ -349,6 +410,94 @@ export async function recordImplementationValidation(
   return { plan, validation, readiness }
 }
 
+export async function startImplementationValidation(
+  input: { planId: string; validationIds?: string[]; commitHash?: string },
+  options: Options = {},
+) {
+  const { client, artifacts, implementation } = await implementationContext(input.planId, options)
+  const requestedIds = new Set(input.validationIds ?? artifacts.validation.validations.map(validation => validation.id))
+  const selected = artifacts.validation.validations.filter(validation => requestedIds.has(validation.id))
+  if (selected.length !== requestedIds.size) {
+    throw new ServiceError('One or more implementation validations were not found.', 'NOT_FOUND')
+  }
+  const startedAt = (options.now ?? new Date()).toISOString()
+  const runningRuns = selected.map(validation => ({
+    id: `implementation-validation-${validation.id}-${startedAt.replace(/[^0-9]/g, '').slice(0, 14)}`,
+    validationId: validation.id,
+    taskIds: validation.taskIds,
+    required: validation.required,
+    status: 'running' as const,
+    fresh: true,
+    commitHash: input.commitHash ?? 'pending',
+    evidenceUrls: [`/plans/${input.planId}?review=implementation#${validation.id}`],
+  }))
+  const existingIds = new Set(runningRuns.map(run => run.id))
+  const validation = {
+    ...artifacts.validation,
+    implementation: {
+      ...implementation,
+      validationRuns: [...implementation.validationRuns.filter(run => !existingIds.has(run.id)), ...runningRuns],
+    },
+  }
+  const plan = { ...artifacts.plan, lifecycle: 'validating' as const }
+  await writeArtifacts(artifacts, plan, validation, artifacts.review, client)
+  await appendPlanEvent(
+    {
+      planId: input.planId,
+      type: 'implementation_validation_started',
+      payload: { runIds: runningRuns.map(run => run.id) },
+    },
+    client,
+  )
+  return { plan, validation, runs: runningRuns }
+}
+
+export async function reconcileImplementationValidation(
+  input: {
+    planId: string
+    runs?: NonNullable<ValidationArtifact['implementation']>['validationRuns']
+  },
+  options: Options = {},
+) {
+  const { client, artifacts, implementation } = await implementationContext(input.planId, options)
+  if (!input.runs?.length) {
+    return {
+      plan: artifacts.plan,
+      validation: artifacts.validation,
+      readiness: canCompleteImplementation(artifacts.plan, artifacts.validation),
+    }
+  }
+  const completedAt = (options.now ?? new Date()).toISOString()
+  const updates = new Map(
+    input.runs.map(run => [
+      run.id,
+      run.status === 'running' ? run : { ...run, completedAt: run.completedAt ?? completedAt },
+    ]),
+  )
+  const validation = {
+    ...artifacts.validation,
+    implementation: {
+      ...implementation,
+      validationRuns: implementation.validationRuns.map(run => updates.get(run.id) ?? run),
+    },
+  }
+  const readiness = canCompleteImplementation(artifacts.plan, validation)
+  const plan = {
+    ...artifacts.plan,
+    lifecycle: readiness.ready ? ('validation_passed' as const) : ('failed_validation' as const),
+  }
+  await writeArtifacts(artifacts, plan, validation, artifacts.review, client)
+  await appendPlanEvent(
+    {
+      planId: input.planId,
+      type: readiness.ready ? 'validation_passed' : 'validation_failed',
+      payload: { runIds: [...updates.keys()], blockers: readiness.blockers },
+    },
+    client,
+  )
+  return { plan, validation, readiness }
+}
+
 export async function reviewImplementationCompletion(planId: string, options: Options = {}) {
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   const implementation = implementationState(artifacts.validation)
@@ -377,6 +526,7 @@ export async function reviewImplementationCompletion(planId: string, options: Op
     tasks,
     commits: implementation.commits,
     validationRuns: implementation.validationRuns,
+    structuredBlockers: completionNextActions(artifacts.plan.planId, readiness.blockers),
     optionalFailures,
     acknowledgedFailures,
     blockingRemarks: artifacts.review.threads.filter(thread => thread.blocking),

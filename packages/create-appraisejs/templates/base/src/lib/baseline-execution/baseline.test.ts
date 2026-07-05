@@ -126,14 +126,14 @@ describe('baseline execution contract', () => {
     ).toBe('invalid_baseline_failure')
   })
 
-  it('blocks infrastructure failures and classifies unmatched failures as unrelated', () => {
+  it('blocks harness failures and classifies unmatched failures as unrelated', () => {
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
         result: 'failed',
         failureSignatures: ['BeforeAll timed out after 30000ms'],
         completedStepIds: [],
       }).classification,
-    ).toBe('invalid_baseline_failure')
+    ).toBe('validation_harness_failure')
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
         result: 'failed',
