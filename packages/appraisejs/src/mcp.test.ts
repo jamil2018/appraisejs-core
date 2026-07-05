@@ -286,6 +286,23 @@ describe('MCP agent workflow guidance', () => {
     expect(taskText).toContain('preserving only behavior that appears in the brief')
     expect(taskText).not.toMatch(/\btodo\b|completion|CRUD|persistence/i)
   })
+
+  it('states reviewable defaults for empty frontend app briefs', () => {
+    const plan = createPlanFromBrief({
+      projectBrief: 'Build a small todo web app with saved state.',
+      displayName: 'Saved todo app',
+    })
+
+    expect(plan.tasks[0]).toMatchObject({
+      id: 'scaffold-setup',
+      description: expect.stringContaining('React 19, TypeScript, Vite, and local browser validation'),
+      acceptanceCriteria: expect.arrayContaining([
+        expect.stringContaining('React 19, TypeScript, Vite, and local browser validation'),
+        'Stack assumptions are stated clearly in the review-ready plan.',
+      ]),
+    })
+    expect(plan.tasks.find(task => task.id === 'persistence')?.description).toContain('saved state')
+  })
 })
 
 describe('MCP capability and recovery metadata', () => {

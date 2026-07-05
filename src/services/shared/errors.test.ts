@@ -19,6 +19,24 @@ describe('serviceErrorToActionResponse', () => {
     const r = serviceErrorToActionResponse(new ServiceError('nope', 'VALIDATION', 400))
     expect(r).toEqual({ status: 400, success: false, error: 'nope' })
   })
+
+  it('preserves structured details for UI recovery', () => {
+    const r = serviceErrorToActionResponse(
+      new ServiceError('blocked', 'CONFLICT', 409, {
+        blockerType: 'validation_runtime_preflight',
+        missingPaths: ['automation/steps/example.step.ts'],
+      }),
+    )
+    expect(r).toEqual({
+      status: 409,
+      success: false,
+      error: 'blocked',
+      details: {
+        blockerType: 'validation_runtime_preflight',
+        missingPaths: ['automation/steps/example.step.ts'],
+      },
+    })
+  })
 })
 
 describe('unknownErrorToActionResponse', () => {

@@ -10,6 +10,7 @@ export type ActionResponse = {
   status: number
   success?: boolean
   data?: ActionResponseData
+  details?: Record<string, unknown>
   message?: string
   error?: string
 }

@@ -39,6 +39,7 @@ export function serviceErrorToActionResponse(error: ServiceError): ActionRespons
     status: error.statusCode,
     success: false,
     error: error.message,
+    ...(error.details ? { details: error.details } : {}),
   }
 }
 

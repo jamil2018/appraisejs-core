@@ -162,46 +162,64 @@ function declaredValidationPaths(validation: ValidationArtifact) {
   ]
 }
 
+async function materializeRuntimeEntry(input: {
+  entry: { declaredPath: string; role: RuntimeProjection['role'] }
+  planId: string
+  validation: ValidationArtifact
+  validationFileRoot: string
+  runtimeRoot: string
+  reusedPaths: Set<string>
+  featurePaths: Set<string>
+}) {
+  const targetPath = resolveValidationPath(input.validationFileRoot, input.entry.declaredPath)
+  const runtimePath = resolveValidationPath(input.runtimeRoot, input.entry.declaredPath)
+
+  if (input.entry.role === 'gherkin' && input.featurePaths.has(input.entry.declaredPath)) {
+    const content = featureTextForPath(input.planId, input.validation, input.entry.declaredPath)
+    await writeRuntimeFile(targetPath, content)
+    if (runtimePath !== targetPath) await writeRuntimeFile(runtimePath, content)
+    return runtimeProjection({
+      ...input.entry,
+      targetPath,
+      runtimePath,
+      materialization: 'generated',
+      content,
+    })
+  }
+
+  const targetContent = await readFileIfExists(targetPath)
+  if (targetContent !== null) await copyRuntimeFile(targetPath, runtimePath)
+  const runtimeContent = await readFileIfExists(runtimePath)
+  return runtimeProjection({
+    ...input.entry,
+    targetPath,
+    runtimePath,
+    materialization:
+      input.entry.role === 'step' && input.reusedPaths.has(input.entry.declaredPath)
+        ? 'reused'
+        : targetContent !== null && targetPath !== runtimePath
+          ? 'copied'
+          : 'declared',
+    content: runtimeContent,
+  })
+}
+
 export async function materializeValidationRuntime(input: ValidationFileRoot & { validation: ValidationArtifact }) {
   const projections: RuntimeProjection[] = []
   const reusedPaths = new Set(input.validation.reusedStepPaths ?? [])
   const featurePaths = new Set(input.validation.validations.flatMap(node => node.gherkinPaths))
+  const runtimeRoot = input.targetProject ? input.validationFileRoot : input.projectRoot
 
   for (const entry of uniqueRuntimeEntries(input.validation)) {
-    const targetPath = resolveValidationPath(input.validationFileRoot, entry.declaredPath)
-    const runtimePath = resolveValidationPath(input.projectRoot, entry.declaredPath)
-
-    if (entry.role === 'gherkin' && featurePaths.has(entry.declaredPath)) {
-      const content = featureTextForPath(input.validation.planId, input.validation, entry.declaredPath)
-      await writeRuntimeFile(targetPath, content)
-      await writeRuntimeFile(runtimePath, content)
-      projections.push(
-        runtimeProjection({
-          ...entry,
-          targetPath,
-          runtimePath,
-          materialization: 'generated',
-          content,
-        }),
-      )
-      continue
-    }
-
-    const targetContent = await readFileIfExists(targetPath)
-    if (targetContent !== null) await copyRuntimeFile(targetPath, runtimePath)
-    const runtimeContent = await readFileIfExists(runtimePath)
     projections.push(
-      runtimeProjection({
-        ...entry,
-        targetPath,
-        runtimePath,
-        materialization:
-          entry.role === 'step' && reusedPaths.has(entry.declaredPath)
-            ? 'reused'
-            : targetContent !== null && targetPath !== runtimePath
-              ? 'copied'
-              : 'declared',
-        content: runtimeContent,
+      await materializeRuntimeEntry({
+        entry,
+        planId: input.validation.planId,
+        validation: input.validation,
+        validationFileRoot: input.validationFileRoot,
+        runtimeRoot,
+        reusedPaths,
+        featurePaths,
       }),
     )
   }

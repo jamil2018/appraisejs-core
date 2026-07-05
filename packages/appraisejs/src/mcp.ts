@@ -527,14 +527,15 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
   ]
     .filter(Boolean)
     .join(', ')
-  const stackSummary = stack || 'requested frontend'
+  const stackSummary = stack || 'React 19, TypeScript, Vite, and local browser validation'
   const setupTask: BriefPlanTask = {
     id: 'scaffold-setup',
     title: 'Scaffold and configure the app shell',
-    description: `Create the ${stackSummary} application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief.`,
+    description: `Create the ${stackSummary} application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief. These defaults are reviewable through Appraise feedback when the brief does not name a stack.`,
     acceptanceCriteria: [
-      'The app starts locally with the requested stack and no missing dependency errors.',
+      `The app starts locally with ${stackSummary} and no missing dependency errors.`,
       'Base styling, component primitives, and project structure are in place for the planned UI.',
+      'Stack assumptions are stated clearly in the review-ready plan.',
     ],
     validationIntent: 'Run install/build or the closest available scaffold validation for the generated app shell.',
   }

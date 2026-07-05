@@ -3,9 +3,31 @@ import { processManager } from '@/lib/test-run/process-manager'
 import { taskSpawner } from '@/lib/process/task-spawner'
 import prisma from '@/config/db-config'
 import { TestRunStatus } from '@prisma/client'
+import { getTestRunLogsService } from '@/services/test-run/test-run-service'
 
 // Ensure this route runs in Node.js runtime (not Edge) for singleton to work
 export const runtime = 'nodejs'
+
+async function storedLogsResponse(input: { runId: string; status: TestRunStatus; wantsText: boolean }) {
+  const logs = await getTestRunLogsService(input.runId)
+  if (input.wantsText) {
+    return new Response(logs.map(log => `[${log.type}] ${log.message}`).join('\n'), {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
+    })
+  }
+
+  return Response.json(
+    {
+      runId: input.runId,
+      status: input.status,
+      logs,
+    },
+    { headers: { 'Cache-Control': 'no-cache' } },
+  )
+}
 
 /**
  * Server-Sent Events (SSE) route handler for streaming test run logs
@@ -19,6 +41,9 @@ export const runtime = 'nodejs'
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params
+  const acceptsEventStream = request.headers.get('accept')?.includes('text/event-stream') ?? false
+  const wantsText =
+    request.nextUrl.searchParams.get('format') === 'text' || request.headers.get('accept') === 'text/plain'
 
   // Verify test run exists in database and check status
   // TODO: Add user authentication check here when authentication is implemented
@@ -52,28 +77,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       })
     }
 
-    // If test run is completed, reject SSE connection - logs should be loaded from DB
-    if (testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED) {
-      console.log(`[SSE] Test run ${runId} is ${testRun.status}, rejecting SSE connection`)
-      const errorStream = new ReadableStream({
-        start(controller) {
-          const encoder = new TextEncoder()
-          const message = `event: error\ndata: ${JSON.stringify({ error: 'Test run has completed. Logs are available in the database.' })}\n\n`
-          controller.enqueue(encoder.encode(message))
-          setTimeout(() => {
-            controller.close()
-          }, 100)
-        },
-      })
-
-      return new Response(errorStream, {
-        status: 200, // Return 200 but with error event so client can handle it
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache, no-transform',
-          Connection: 'keep-alive',
-        },
-      })
+    if (
+      testRun.status === TestRunStatus.COMPLETED ||
+      testRun.status === TestRunStatus.CANCELLED ||
+      !acceptsEventStream
+    ) {
+      return storedLogsResponse({ runId, status: testRun.status, wantsText })
     }
   } catch (error) {
     console.error(`[SSE] Database error verifying test run for runId: ${runId}:`, error)

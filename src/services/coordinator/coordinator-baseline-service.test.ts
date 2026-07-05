@@ -192,8 +192,19 @@ async function writeArtifacts(planId: string, lifecycle?: PlanArtifact['lifecycl
 }
 
 async function readValidation(planId: string) {
-  const repository = new PlanArtifactRepository(workspace)
-  return parseYamlArtifact('validation', (await repository.read('validation', planId)).content) as ValidationArtifact
+  const { content } = await new PlanArtifactRepository(workspace).read('validation', planId)
+  return parseYamlArtifact('validation', content) as ValidationArtifact
+}
+
+function recordSubmittedRun(
+  submitted: Array<{ browser: string; environment: string; testRunId: string }>,
+  prefix = 'run',
+) {
+  return async (input: { browser: string; environment: string }) => {
+    const testRunId = `${prefix}-${input.browser}-${input.environment}`
+    submitted.push({ browser: input.browser, environment: input.environment, testRunId })
+    return { testRunId }
+  }
 }
 
 beforeEach(async () => {
@@ -226,11 +237,7 @@ describe('baseline execution and implementation gate', () => {
         projectDirectory: workspace,
         client,
         now: new Date('2026-06-10T00:00:00.000Z'),
-        submitRun: async input => {
-          const testRunId = `run-${input.browser}-${input.environment}`
-          submitted.push({ browser: input.browser, environment: input.environment, testRunId })
-          return { testRunId }
-        },
+        submitRun: recordSubmittedRun(submitted),
       }),
     ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
 
@@ -239,6 +246,19 @@ describe('baseline execution and implementation gate', () => {
       { browser: 'firefox', environment: 'local', testRunId: 'run-firefox-local' },
       { browser: 'webkit', environment: 'staging', testRunId: 'run-webkit-staging' },
     ])
+    await expect(readPlanEvents({ planId, afterSequence: 0 }, client)).resolves.toEqual([
+      expect.objectContaining({ sequence: 1, type: 'baseline_started', payload: { attempts: 3 } }),
+    ])
+
+    submitted.length = 0
+    await expect(
+      startBaselineExecution(planId, {
+        projectDirectory: workspace,
+        client,
+        submitRun: recordSubmittedRun(submitted, 'unexpected'),
+      }),
+    ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
+    expect(submitted).toEqual([])
     await expect(readPlanEvents({ planId, afterSequence: 0 }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 1, type: 'baseline_started', payload: { attempts: 3 } }),
     ])
@@ -431,6 +451,21 @@ describe('baseline execution and implementation gate', () => {
         submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
       }),
     ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
+    await expect(fs.readFile(path.join(workspace, 'automation', 'features', 'case-one.feature'), 'utf8')).resolves.toBe(
+      'Feature: hub drift\n',
+    )
+    await expect(readValidation(planId)).resolves.toMatchObject({
+      runtimeProjections: expect.arrayContaining([
+        expect.objectContaining({
+          declaredPath: 'automation/features/case-one.feature',
+          runtimePath: path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
+        }),
+        expect.objectContaining({
+          declaredPath: 'automation/steps/actions/case-one.step.ts',
+          runtimePath: path.join(targetWorkspace, 'automation', 'steps', 'actions', 'case-one.step.ts'),
+        }),
+      ]),
+    })
 
     const driftPlanId = 'target-bound-drift'
     await writeArtifacts(driftPlanId)
