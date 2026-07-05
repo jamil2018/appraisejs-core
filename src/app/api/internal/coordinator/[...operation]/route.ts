@@ -15,7 +15,9 @@ import {
   parseYamlArtifact,
   planArtifactSchema,
   planIdSchema,
+  type ValidationDraft,
   validationArtifactSchema,
+  validationTestCaseProposalSchema,
 } from '@/lib/plan-contract'
 import { createOpaquePlanId } from '@/lib/plans/plan-identity'
 import {
@@ -52,6 +54,17 @@ import {
   submitValidationReview,
 } from '@/services/coordinator/coordinator-validation-service'
 import {
+  checkValidationDraft,
+  createValidationDraft,
+  publishValidationDraft,
+  readValidationContext,
+  readValidationDraft,
+  resetValidationDraft,
+  upsertValidationFile,
+  upsertValidationNode,
+  upsertValidationTestCase,
+} from '@/services/coordinator/coordinator-validation-draft-service'
+import {
   applyBlockingFeedback,
   approveImplementationCompletion,
   controlImplementation,
@@ -83,6 +96,8 @@ export const runtime = 'nodejs'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const routePlanIdSchema = planIdSchema
+const validationNodeSchema = z.unknown()
+const validationFileSchema = z.unknown()
 const reviewTargetSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('plan') }),
   z.object({ type: z.literal('task'), taskId: idSchema }),
@@ -218,6 +233,12 @@ async function dispatchGet(request: Request, operation: string[]) {
     plan: () => getPlan(request, operation),
     events: () => getEvents(request, operation),
     review: () => getReview(request, operation),
+    validations: async () => {
+      const planId = routePlanIdSchema.parse(operation[1])
+      if (operation[3] === 'context') return Response.json(await readValidationContext(planId))
+      if (operation[3] === 'draft') return Response.json(await readValidationDraft(planId))
+      throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+    },
     completion: async () => Response.json(await reviewImplementationCompletion(routePlanIdSchema.parse(operation[1]))),
   }
   const handler = handlers[operation[2] ?? 'plan']
@@ -512,6 +533,30 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
 // fallow-ignore-next-line complexity
 async function postValidationOperation(request: Request, operation: string[], body: unknown) {
   const planId = routePlanIdSchema.parse(operation[1])
+  if (operation[3] === 'draft') {
+    const action = operation[4]
+    if (action === 'create') return Response.json(await createValidationDraft(planId), { status: 201 })
+    if (action === 'reset') return Response.json(await resetValidationDraft(planId))
+    if (action === 'check') return Response.json(await checkValidationDraft(planId))
+    if (action === 'publish') {
+      const value = z.object({ draftId: idSchema }).parse(body)
+      return Response.json(
+        withValidationReviewLinks(await publishValidationDraft(planId, value.draftId), planId, request),
+      )
+    }
+    if (action === 'nodes') {
+      const value = z.object({ node: validationNodeSchema }).parse(body)
+      return Response.json(await upsertValidationNode(planId, value.node as ValidationDraft['validations'][number]))
+    }
+    if (action === 'files') {
+      const value = z.object({ file: validationFileSchema }).parse(body)
+      return Response.json(await upsertValidationFile(planId, value.file as ValidationDraft['files'][number]))
+    }
+    if (action === 'test-cases') {
+      const value = z.object({ proposal: validationTestCaseProposalSchema }).parse(body)
+      return Response.json(await upsertValidationTestCase(planId, value.proposal))
+    }
+  }
   if (operation[3] === 'publish') {
     const value = z.object({ validation: validationArtifactSchema }).parse(body)
     return Response.json(
