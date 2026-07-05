@@ -19,6 +19,8 @@ This package provides the public AppraiseJS CLI, registry installer, coordinator
 - A coordinator is bound to one canonical project fingerprint.
 - MCP failures must be returned to the MCP client; do not automatically fall back to a CLI path.
 - Keep `npm run setup:mcp` and docs aligned when endpoint, transport, or registration behavior changes.
+- Update package docs, MCP docs, and agent lifecycle guidance when CLI commands, coordinator project binding, MCP tools,
+  transports, setup output, recovery behavior, or package contracts change.
 
 ## Validation
 

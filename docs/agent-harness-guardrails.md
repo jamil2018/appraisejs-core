@@ -11,6 +11,10 @@ the PR template.
 - Historical plans are not active instructions unless the user names one as the task.
 - MCP setup text must mirror `npm run setup:mcp`.
 - Scaffold docs must describe the current bundled base-plus-flavors model.
+- Major behavior, architecture, workflow, package, schema, scaffold, lifecycle, or toolchain changes must update the
+  matching current docs in the same change set.
+- If active docs already deviate from current source, scripts, package layout, setup commands, or generated-artifact
+  ownership, correct that drift before finishing the task.
 
 ## Stale Reference Classes
 

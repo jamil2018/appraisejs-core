@@ -33,6 +33,16 @@ and safety layer; this file points to the detailed agent docs that keep navigati
   gates.
 - Use `docs/agent-graphify.md` for Graphify setup, repo graph generation, and graph query workflows.
 - Use `docs/agent-harness-guardrails.md` when editing agent instructions, docs, skills, or setup surfaces.
+- Use `docs/agent-real-subagent-audit-protocol.md` when auditing delegated-agent behavior against the real Appraise
+  lifecycle.
+
+## Documentation Maintenance
+
+Major behavior, architecture, workflow, package, schema, scaffold, lifecycle, or toolchain changes must include matching
+updates to current docs in the same change set. Start from the source-of-truth routing above, then update the smallest
+set of active docs that would otherwise mislead the next agent or maintainer. If repo inspection finds active docs that
+already deviate from current source, scripts, package layout, or generated-artifact rules, fix those deviations before
+finishing.
 
 ## MCP Setup
 
@@ -56,3 +66,5 @@ separately from product behavior and rerun only when the task needs live validat
 
 Run `npm run check:harness` after editing root or package agent instructions, `docs/agent-*`, repo-local skills,
 Cursor/Codex routing, package READMEs, or the PR template. The check intentionally ignores historical plan files.
+Passing this check does not replace the documentation-maintenance rule above; it only catches known harness drift
+classes.

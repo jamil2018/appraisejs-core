@@ -18,3 +18,7 @@ or release-like.
 
 Run Fallow and React Doctor through `npm run quality:fallow:commit` and `npm run quality:react-doctor:commit` before
 publishing when the changed surface could affect commit hooks or code quality gates.
+
+For major behavior, architecture, workflow, package, schema, scaffold, lifecycle, or toolchain changes, include the
+current docs that describe that surface in the touched area and validation scope. If an active doc is already stale
+against current source or scripts, update it before publishing even when the code change itself is small.
