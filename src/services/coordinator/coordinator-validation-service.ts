@@ -17,6 +17,11 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
+import {
+  assertValidationEnvironmentsReady,
+  assertValidationFilesMaterialized,
+  projectValidationArtifacts,
+} from './validation-runtime-projection-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
@@ -24,16 +29,26 @@ const validationArtifactPath = (planId: string) => `appraise/plans/validations/$
 const isAutomationStepPath = (filePath: string) =>
   filePath.startsWith('automation/steps/') && /\.(?:step|steps)\.ts$/.test(filePath)
 
-async function readArtifacts(planId: string, projectDirectory?: string) {
+async function readArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
   const projectRoot = await findProjectRoot(projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
-  const [planStored, reviewStored, validationStored] = await Promise.all([
+  const [planStored, reviewStored, validationStored, projection] = await Promise.all([
     repository.read('plan', planId),
     repository.read('review', planId),
     repository.read('validation', planId).catch(() => null),
+    client.planProjection.findUnique({
+      where: { planId },
+      select: {
+        targetProject: {
+          select: { id: true, canonicalPath: true, displayName: true, fingerprint: true },
+        },
+      },
+    }),
   ])
   return {
     projectRoot,
+    validationFileRoot: projection?.targetProject?.canonicalPath ?? projectRoot,
+    targetProject: projection?.targetProject ?? null,
     repository,
     planStored,
     reviewStored,
@@ -76,7 +91,7 @@ export async function publishPreparedValidations(
 ) {
   const client = options.client ?? prisma
   await assertPlanNotCancelled(planId, client)
-  const artifacts = await readArtifacts(planId, options.projectDirectory)
+  const artifacts = await readArtifacts(planId, options.projectDirectory, client)
   if (!['preparing_validations', 'validation_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
   }
@@ -84,7 +99,14 @@ export async function publishPreparedValidations(
     throw new ServiceError('Validation artifact does not match the current plan revision.', 'VALIDATION')
   }
   assertCustomStepJustifications(validation)
-  const content = serializeYamlArtifact('validation', validation)
+  const materializedValidation = await assertValidationFilesMaterialized({
+    projectRoot: artifacts.projectRoot,
+    validationFileRoot: artifacts.validationFileRoot,
+    targetProject: artifacts.targetProject,
+    validation,
+    verifyHashes: false,
+  })
+  const content = serializeYamlArtifact('validation', materializedValidation)
   if (artifacts.validationStored) {
     await artifacts.repository.compareAndWrite('validation', planId, artifacts.validationStored.hash, content)
   } else {
@@ -100,7 +122,7 @@ export async function publishPreparedValidations(
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
   await appendPlanEvent({ planId, type: 'validation_review_ready', payload: { revision: validation.revision } }, client)
   return {
-    validation,
+    validation: materializedValidation,
     reviewUrl: `/plans/${planId}?review=validation`,
     lifecycle: nextPlan.lifecycle,
     revision: nextPlan.revision,
@@ -244,7 +266,7 @@ export async function submitValidationFeedback(
   if (!input.body.trim()) throw new ServiceError('Feedback text is required.', 'VALIDATION')
   const client = options.client ?? prisma
   await assertPlanNotCancelled(input.planId, client)
-  const artifacts = await readArtifacts(input.planId, options.projectDirectory)
+  const artifacts = await readArtifacts(input.planId, options.projectDirectory, client)
   if (!artifacts.validation || !artifacts.validationStored) {
     throw new ServiceError('Validation artifact not found.', 'NOT_FOUND')
   }
@@ -308,7 +330,7 @@ export async function decideValidationNode(
   },
   options: Options = {},
 ) {
-  const artifacts = await readArtifacts(input.planId, options.projectDirectory)
+  const artifacts = await readArtifacts(input.planId, options.projectDirectory, options.client ?? prisma)
   if (!artifacts.validation || !artifacts.validationStored)
     throw new ServiceError('Validation artifact not found.', 'NOT_FOUND')
   const node = artifacts.validation.validations.find(validation => validation.id === input.validationId)
@@ -340,8 +362,8 @@ export async function decideValidationNode(
   return decision
 }
 
-async function readValidationFileForReview(planId: string, path: string, projectDirectory?: string) {
-  const artifacts = await readArtifacts(planId, projectDirectory)
+async function readValidationFileForReview(planId: string, path: string, options: Options = {}) {
+  const artifacts = await readArtifacts(planId, options.projectDirectory, options.client ?? prisma)
   const file = artifacts.validation?.files.find(item => item.path === path)
   if (!file) throw new ServiceError('Validation file not found.', 'NOT_FOUND')
   return { artifacts, file }
@@ -351,7 +373,7 @@ export async function approveValidationFile(
   input: { planId: string; path: string; contentHash: string; approvedBy: string },
   options: Options = {},
 ) {
-  const { artifacts, file } = await readValidationFileForReview(input.planId, input.path, options.projectDirectory)
+  const { artifacts, file } = await readValidationFileForReview(input.planId, input.path, options)
   if (fileReviewHash(file) !== input.contentHash) {
     throw new ServiceError('The file changed since it was presented for review.', 'CONFLICT')
   }
@@ -379,7 +401,7 @@ export async function approveCurrentValidationFile(
   input: { planId: string; path: string; approvedBy: string },
   options: Options = {},
 ) {
-  const { file } = await readValidationFileForReview(input.planId, input.path, options.projectDirectory)
+  const { file } = await readValidationFileForReview(input.planId, input.path, options)
   return approveValidationFile({ ...input, contentHash: fileReviewHash(file) }, options)
 }
 
@@ -387,7 +409,7 @@ export async function approveCurrentValidationFile(
 export async function submitValidationReview(planId: string, options: Options = {}) {
   const client = options.client ?? prisma
   await assertPlanNotCancelled(planId, client)
-  const artifacts = await readArtifacts(planId, options.projectDirectory)
+  const artifacts = await readArtifacts(planId, options.projectDirectory, client)
   if (
     artifacts.plan.lifecycle !== 'awaiting_validation_review' ||
     !artifacts.validation ||
@@ -397,6 +419,14 @@ export async function submitValidationReview(planId: string, options: Options = 
   }
   const readiness = assessValidationReadiness(artifacts.validation, artifacts.review)
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
+  await assertValidationFilesMaterialized({
+    projectRoot: artifacts.projectRoot,
+    validationFileRoot: artifacts.validationFileRoot,
+    targetProject: artifacts.targetProject,
+    validation: artifacts.validation,
+  })
+  await assertValidationEnvironmentsReady(artifacts.validation, client, artifacts.targetProject)
+  const projection = await projectValidationArtifacts({ planId, validation: artifacts.validation }, client)
 
   const validation = { ...artifacts.validation, reviewSubmittedAt: new Date().toISOString() }
   await artifacts.repository.compareAndWrite(
@@ -414,7 +444,11 @@ export async function submitValidationReview(planId: string, options: Options = 
   )
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
   await appendPlanEvent(
-    { planId, type: 'validations_approved', payload: { revision: plan.revision, submissionId: randomUUID() } },
+    {
+      planId,
+      type: 'validations_approved',
+      payload: { revision: plan.revision, submissionId: randomUUID(), projection },
+    },
     client,
   )
   return { plan, validation }

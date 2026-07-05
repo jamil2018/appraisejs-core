@@ -828,8 +828,9 @@ function approvalGateEventStatus(type: string): 'approved' | 'changes_requested'
   return undefined
 }
 
-function validationGateStatus(lifecycle: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
+export function validationGateStatus(lifecycle: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
   if (lifecycle === 'validations_approved') return 'approved'
+  if (lifecycle === 'validation_changes_requested') return 'changes_requested'
   if (lifecycle === 'awaiting_validation_review') return undefined
   if (lifecycle === 'cancelled') return 'cancelled'
   return undefined
@@ -845,6 +846,13 @@ function validationGateEventStatus(type: string): 'approved' | 'changes_requeste
 type CoordinatorToolEvent = { sequence: number; type: string }
 
 const defaultReviewLoopTimeoutMs = 120_000
+
+export function latestGateEvent(
+  events: CoordinatorToolEvent[],
+  statusForEvent: (type: string) => 'approved' | 'changes_requested' | 'cancelled' | undefined,
+) {
+  return events.filter(event => statusForEvent(event.type)).sort((left, right) => right.sequence - left.sequence)[0]
+}
 
 type RecommendedWait = {
   tool: 'plan_wait_for_approval' | 'plan_review_loop' | 'plan_wait_for_review' | 'validation_review_loop'
@@ -1616,7 +1624,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       }
       let events = initial.events ?? []
       let current = await readSnapshot(planId)
-      let gateEvent = events.find(event => approvalGateEventStatus(event.type))
+      let gateEvent = latestGateEvent(events, approvalGateEventStatus)
       let lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
       let reviewReady =
         events.some(event => event.type === 'plan_review_ready') ||
@@ -1626,7 +1634,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         const waited = await waitForEvents(api.request, planId, afterSequence, timeoutMs)
         events = [...events, ...(waited.events ?? [])]
         current = await readSnapshot(planId)
-        gateEvent = events.find(event => approvalGateEventStatus(event.type))
+        gateEvent = latestGateEvent(events, approvalGateEventStatus)
         lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
         reviewReady =
           events.some(event => event.type === 'plan_review_ready') ||
@@ -1642,7 +1650,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         const waited = await waitForEvents(api.request, planId, waitAfterSequence, timeoutMs)
         events = [...events, ...(waited.events ?? [])]
         current = await readSnapshot(planId)
-        gateEvent = events.find(event => approvalGateEventStatus(event.type))
+        gateEvent = latestGateEvent(events, approvalGateEventStatus)
         lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
       }
 
@@ -1764,7 +1772,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         events?: Array<{ sequence: number; type: string }>
       }
       let events = initial.events ?? []
-      let gateEvent = events.find(event => approvalGateEventStatus(event.type))
+      let gateEvent = latestGateEvent(events, approvalGateEventStatus)
       let current = await readSnapshot(planId)
       let lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
 
@@ -1773,7 +1781,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           const waitAfterSequence = nextApprovalWaitSequence(afterSequence, events)
           const waited = await waitForEvents(api.request, planId, waitAfterSequence, timeoutMs)
           events = [...events, ...(waited.events ?? [])]
-          gateEvent = events.find(event => approvalGateEventStatus(event.type))
+          gateEvent = latestGateEvent(events, approvalGateEventStatus)
           current = await readSnapshot(planId)
           lifecycleStatus = approvalGateStatus(current.plan.lifecycle)
         }
@@ -1963,7 +1971,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       }
       let events = initial.events ?? []
       let current = await readSnapshot(planId)
-      let gateEvent = events.find(event => validationGateEventStatus(event.type))
+      let gateEvent = latestGateEvent(events, validationGateEventStatus)
       let lifecycleStatus = validationGateStatus(current.plan.lifecycle)
 
       if (!gateEvent && !lifecycleStatus) {
@@ -1975,7 +1983,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         )
         events = [...events, ...(waited.events ?? [])]
         current = await readSnapshot(planId)
-        gateEvent = events.find(event => validationGateEventStatus(event.type))
+        gateEvent = latestGateEvent(events, validationGateEventStatus)
         lifecycleStatus = validationGateStatus(current.plan.lifecycle)
       }
 

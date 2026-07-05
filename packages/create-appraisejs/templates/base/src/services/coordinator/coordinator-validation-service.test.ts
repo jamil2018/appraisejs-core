@@ -172,6 +172,28 @@ async function writePlanArtifact(planId: string) {
 
 async function preparePlanForValidation(planId: string) {
   await writePlanArtifact(planId)
+  await fs.mkdir(path.join(workspace, 'src'), { recursive: true })
+  await fs.mkdir(path.join(workspace, 'automation', 'features'), { recursive: true })
+  await fs.mkdir(path.join(workspace, 'automation', 'steps', 'actions'), { recursive: true })
+  await fs.writeFile(path.join(workspace, 'src', 'product.ts'), 'new product')
+  await fs.writeFile(path.join(workspace, 'src', 'secondary-product.ts'), 'new secondary')
+  await fs.writeFile(path.join(workspace, 'automation', 'features', 'case-one.feature'), 'Feature: case one')
+  await fs.writeFile(path.join(workspace, 'automation', 'features', 'case-two.feature'), 'Feature: case two')
+  await fs.writeFile(path.join(workspace, 'automation', 'steps', 'actions', 'case-one.step.ts'), 'Given case one')
+  await fs.writeFile(path.join(workspace, 'automation', 'steps', 'actions', 'case-two.step.ts'), 'Given case two')
+  await fs.writeFile(
+    path.join(workspace, 'automation', 'steps', 'actions', 'todo-only.step.ts'),
+    'When todo custom step',
+  )
+  await fs.writeFile(
+    path.join(workspace, 'automation', 'steps', 'actions', 'todo-workflow.steps.ts'),
+    'When todo custom step',
+  )
+  await client.environment.upsert({
+    where: { name: 'local' },
+    update: { baseUrl: 'http://localhost:3000' },
+    create: { name: 'local', baseUrl: 'http://localhost:3000' },
+  })
   await syncPlans({ projectDirectory: workspace, client })
   const repository = new PlanArtifactRepository(workspace)
   const expectedPlanHash = (await repository.read('plan', planId)).hash
@@ -569,6 +591,10 @@ describe('validation preparation review gate', () => {
       files: validationAfterFeedback.files,
       manifestPaths: validationAfterFeedback.manifestPaths,
     }
+    await fs.writeFile(
+      path.join(workspace, 'automation', 'features', 'case-one-revised.feature'),
+      'Feature: case one revised',
+    )
     await expect(publishPreparedValidations(planId, revised, { projectDirectory: workspace, client })).resolves.toEqual(
       expect.objectContaining({
         validation: revised,

@@ -18,6 +18,7 @@ import { hashFileContent } from '@/lib/validation-review/file-review'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 
+import { projectValidationArtifacts } from './validation-runtime-projection-service'
 import {
   acceptBaseline,
   acknowledgeBaselineFailure,
@@ -159,6 +160,17 @@ async function writeArtifacts(planId: string, lifecycle?: PlanArtifact['lifecycl
     path.join(workspace, 'appraise', 'plans', 'validations', `${planId}.validation.yaml`),
     serializeYamlArtifact('validation', validation(planId)),
   )
+  await client.environment.upsert({
+    where: { name: 'local' },
+    update: { baseUrl: 'http://localhost:3000' },
+    create: { name: 'local', baseUrl: 'http://localhost:3000' },
+  })
+  await client.environment.upsert({
+    where: { name: 'staging' },
+    update: { baseUrl: 'https://staging.example.test' },
+    create: { name: 'staging', baseUrl: 'https://staging.example.test' },
+  })
+  await projectValidationArtifacts({ planId, validation: validation(planId) }, client)
   await syncPlans({ projectDirectory: workspace, client })
 }
 
