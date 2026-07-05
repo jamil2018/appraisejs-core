@@ -53,6 +53,29 @@ type BaselineOptions = {
   loadEvidence?: (testRunId: string) => Promise<BaselineEvidence & { status: 'running' | 'completed' }>
 }
 
+function supportImportPaths(projectRoot: string) {
+  return [
+    path.join(projectRoot, 'packages/cucumber-runtime/src/parameter-types.ts'),
+    path.join(projectRoot, 'packages/cucumber-runtime/src/hooks.ts'),
+    path.join(projectRoot, 'packages/cucumber-runtime/src/world.ts'),
+  ]
+}
+
+function runtimePathsForValidation(
+  runtimeValidation: ValidationArtifact,
+  validation: ValidationArtifact['validations'][number],
+) {
+  const projectionsByDeclaredPath = new Map(
+    (runtimeValidation.runtimeProjections ?? []).map(projection => [projection.declaredPath, projection]),
+  )
+  const resolveRuntimePath = (declaredPath: string) =>
+    projectionsByDeclaredPath.get(declaredPath)?.runtimePath ?? declaredPath
+  return {
+    featurePaths: validation.gherkinPaths.map(resolveRuntimePath),
+    importPaths: validation.stepPaths.map(resolveRuntimePath),
+  }
+}
+
 async function readBaselineArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
   const projectRoot = await findProjectRoot(projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
@@ -200,7 +223,7 @@ function browserEngine(browser: string): BrowserEngine {
   throw new ServiceError(`Unsupported baseline browser "${browser}".`, 'VALIDATION')
 }
 
-async function submitAppraiseTestRun(
+async function baselineTestRunValue(
   input: {
     planId: string
     validation: ValidationArtifact['validations'][number]
@@ -208,9 +231,10 @@ async function submitAppraiseTestRun(
     environment: string
   },
   client: PrismaClient,
-): Promise<{ testRunId: string }> {
+): Promise<TestRunFormValue> {
   const environment = await client.environment.findUnique({ where: { name: input.environment } })
   if (!environment) throw new ServiceError(`Environment "${input.environment}" was not found.`, 'VALIDATION')
+
   const testCases = await client.testCase.findMany({
     where: { id: { in: input.validation.testCaseIds } },
     select: { id: true, TestSuite: { select: { id: true } } },
@@ -218,13 +242,15 @@ async function submitAppraiseTestRun(
   if (testCases.length !== input.validation.testCaseIds.length) {
     throw new ServiceError('One or more baseline test cases were not found.', 'VALIDATION')
   }
+
   const suites = new Map<string, string[]>()
   for (const testCase of testCases) {
     const suiteId = testCase.TestSuite[0]?.id
     if (!suiteId) throw new ServiceError(`Test case "${testCase.id}" is not assigned to a suite.`, 'VALIDATION')
     suites.set(suiteId, [...(suites.get(suiteId) ?? []), testCase.id])
   }
-  const value: TestRunFormValue = {
+
+  return {
     name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment} ${randomUUID()}`,
     environmentId: environment.id,
     browserEngine: browserEngine(input.browser),
@@ -232,8 +258,34 @@ async function submitAppraiseTestRun(
     tags: [],
     testSuites: [...suites].map(([testSuiteId, testCaseIds]) => ({ testSuiteId, runAll: false, testCaseIds })),
   }
-  const created = await createTestRunFromValidatedValue(value)
-  await client.testRun.update({ where: { id: created.id }, data: { planId: input.planId } })
+}
+
+async function submitAppraiseTestRun(
+  input: {
+    planId: string
+    projectRoot: string
+    targetProject: Awaited<ReturnType<typeof readBaselineArtifacts>>['targetProject']
+    runtimeValidation: ValidationArtifact
+    validation: ValidationArtifact['validations'][number]
+    browser: string
+    environment: string
+  },
+  client: PrismaClient,
+): Promise<{ testRunId: string }> {
+  const value = await baselineTestRunValue(input, client)
+  const runtimePaths = runtimePathsForValidation(input.runtimeValidation, input.validation)
+  const executionRoot = input.targetProject?.canonicalPath ?? input.projectRoot
+  const created = await createTestRunFromValidatedValue(value, {
+    projectRoot: executionRoot,
+    featurePaths: runtimePaths.featurePaths,
+    importPaths: runtimePaths.importPaths,
+    supportPaths: supportImportPaths(input.projectRoot),
+    prepareWorkspace: false,
+  })
+  await client.testRun.update({
+    where: { id: created.id },
+    data: { planId: input.planId, targetProjectId: input.targetProject?.id ?? null },
+  })
   return { testRunId: created.runId }
 }
 
@@ -279,6 +331,9 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
 export async function startBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
+  if (artifacts.plan.lifecycle === 'baseline_running') {
+    return { plan: artifacts.plan, validation: artifacts.validation }
+  }
   if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
   }
@@ -288,7 +343,18 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
       .filter(attempt => ['scheduled', 'running'].includes(attempt.status))
       .map(baselineCombinationKey),
   )
-  const submitRun = options.submitRun ?? (input => submitAppraiseTestRun(input, client))
+  const submitRun =
+    options.submitRun ??
+    (input =>
+      submitAppraiseTestRun(
+        {
+          projectRoot: artifacts.projectRoot,
+          targetProject: artifacts.targetProject,
+          runtimeValidation,
+          ...input,
+        },
+        client,
+      ))
   const attempts = [...runtimeValidation.baselineAttempts]
   for (const combination of requiredBaselineCombinations(runtimeValidation)) {
     if (active.has(baselineCombinationKey(combination))) continue

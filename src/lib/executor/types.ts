@@ -9,6 +9,9 @@ export interface TestRunExecutionRequest {
   browserEngine: BrowserEngine
   headless?: boolean
   projectRoot?: string
+  featurePaths?: string[]
+  importPaths?: string[]
+  supportPaths?: string[]
   prepareWorkspace?: boolean
 }
 

@@ -12,6 +12,7 @@ import {
   BrowserEngine,
 } from '@prisma/client'
 import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
+import type { TestRunExecutionRequest } from '@/lib/executor/types'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 import { processManager } from '@/lib/test-run/process-manager'
 import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
@@ -509,9 +510,24 @@ async function scheduleTestRunCompletion(args: {
   value: TestRunFormValue
   logger: Awaited<ReturnType<typeof createTestRunLogger>>
   projectRoot?: string
+  featurePaths?: string[]
+  importPaths?: string[]
+  supportPaths?: string[]
   prepareWorkspace?: boolean
 }): Promise<void> {
-  const { testRun, environment, tagExpression, testRunTestCases, value, logger, projectRoot, prepareWorkspace } = args
+  const {
+    testRun,
+    environment,
+    tagExpression,
+    testRunTestCases,
+    value,
+    logger,
+    projectRoot,
+    featurePaths,
+    importPaths,
+    supportPaths,
+    prepareWorkspace,
+  } = args
 
   try {
     if (prepareWorkspace !== false) {
@@ -526,6 +542,9 @@ async function scheduleTestRunCompletion(args: {
       browserEngine: value.browserEngine,
       headless: true,
       projectRoot,
+      featurePaths,
+      importPaths,
+      supportPaths,
       prepareWorkspace,
     })
 
@@ -672,7 +691,15 @@ async function scheduleTestRunCompletion(args: {
   }
 }
 
-export async function createTestRunFromValidatedValue(value: TestRunFormValue): Promise<{ runId: string; id: string }> {
+export type TestRunExecutionOverrides = Pick<
+  TestRunExecutionRequest,
+  'projectRoot' | 'featurePaths' | 'importPaths' | 'supportPaths' | 'prepareWorkspace'
+>
+
+export async function createTestRunFromValidatedValue(
+  value: TestRunFormValue,
+  executionOverrides: TestRunExecutionOverrides = {},
+): Promise<{ runId: string; id: string }> {
   const nameTaken = await isTestRunNameTaken(value.name)
   if (nameTaken) {
     throw new ServiceError(
@@ -721,6 +748,7 @@ export async function createTestRunFromValidatedValue(value: TestRunFormValue): 
     testRunTestCases,
     value,
     logger,
+    ...executionOverrides,
   })
 
   return { runId: testRun.runId, id: testRun.id }

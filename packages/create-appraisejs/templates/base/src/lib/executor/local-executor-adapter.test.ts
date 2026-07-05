@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BrowserEngine } from '@prisma/client'
 
-const { mockSpawnTask, mockEnsureAutomationWorkspaceReady, mockMkdir, mockRegister, mockUnregister } = vi.hoisted(
-  () => ({
+const { mockSpawnTask, mockEnsureAutomationWorkspaceReady, mockMkdir, mockWriteFile, mockRegister, mockUnregister } =
+  vi.hoisted(() => ({
     mockSpawnTask: vi.fn(),
     mockEnsureAutomationWorkspaceReady: vi.fn(),
     mockMkdir: vi.fn(),
+    mockWriteFile: vi.fn(),
     mockRegister: vi.fn(),
     mockUnregister: vi.fn(),
-  }),
-)
+  }))
 
 vi.mock('@/lib/process/task-spawner', () => ({
   spawnTask: mockSpawnTask,
@@ -32,6 +32,7 @@ vi.mock('@/lib/test-run/process-manager', () => ({
 vi.mock('fs', () => ({
   promises: {
     mkdir: mockMkdir,
+    writeFile: mockWriteFile,
   },
 }))
 
@@ -79,5 +80,40 @@ describe('local executor adapter', () => {
       }),
     )
     expect(result.reportPath).toBe('automation/reports/run-1/cucumber.json')
+  })
+
+  it('generates an exact Cucumber config for plan-bound runs', async () => {
+    await localExecutorAdapter.executeTestRun({
+      testRunId: 'run-2',
+      environment: {
+        id: 'env-1',
+        name: 'local',
+        baseUrl: 'http://localhost',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      tagExpression: null,
+      testWorkersCount: 1,
+      browserEngine: BrowserEngine.CHROMIUM,
+      projectRoot: '/target/app',
+      featurePaths: ['/target/app/automation/features/approved.feature'],
+      importPaths: ['/target/app/automation/steps/approved.step.ts'],
+      supportPaths: ['/hub/packages/cucumber-runtime/src/world.ts'],
+      prepareWorkspace: false,
+    })
+
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/target/app/automation/reports/run-2/cucumber.run-2.mjs',
+      expect.stringContaining('automation/features/approved.feature'),
+    )
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/target/app/automation/reports/run-2/cucumber.run-2.mjs',
+      expect.stringContaining('/hub/packages/cucumber-runtime/src/world.ts'),
+    )
+    expect(mockSpawnTask).toHaveBeenCalledWith(
+      'npx',
+      ['cucumber-js', '--config', '/target/app/automation/reports/run-2/cucumber.run-2.mjs'],
+      expect.objectContaining({ cwd: '/target/app' }),
+    )
   })
 })
