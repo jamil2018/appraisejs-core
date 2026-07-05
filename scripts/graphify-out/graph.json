@@ -4246,8 +4246,8 @@
       "_origin": "ast",
       "community": 16,
       "norm_label": "print-agent-config.mjs",
-      "id": "print_agent_config",
-      "community_name": "Community 16"
+      "community_name": "Community 16",
+      "id": "print_agent_config"
     },
     {
       "label": "config",
@@ -4257,8 +4257,8 @@
       "_origin": "ast",
       "community": 16,
       "norm_label": "config",
-      "id": "print_agent_config_config",
-      "community_name": "Community 16"
+      "community_name": "Community 16",
+      "id": "print_agent_config_config"
     },
     {
       "label": "skillExists",
@@ -4268,8 +4268,8 @@
       "_origin": "ast",
       "community": 16,
       "norm_label": "skillexists",
-      "id": "print_agent_config_skillexists",
-      "community_name": "Community 16"
+      "community_name": "Community 16",
+      "id": "print_agent_config_skillexists"
     },
     {
       "label": "expectedCapabilities",
@@ -4279,8 +4279,8 @@
       "_origin": "ast",
       "community": 16,
       "norm_label": "expectedcapabilities",
-      "id": "print_agent_config_expectedcapabilities",
-      "community_name": "Community 16"
+      "community_name": "Community 16",
+      "id": "print_agent_config_expectedcapabilities"
     },
     {
       "label": "staleCapabilityRecovery",
@@ -4290,8 +4290,8 @@
       "_origin": "ast",
       "community": 16,
       "norm_label": "stalecapabilityrecovery",
-      "id": "print_agent_config_stalecapabilityrecovery",
-      "community_name": "Community 16"
+      "community_name": "Community 16",
+      "id": "print_agent_config_stalecapabilityrecovery"
     },
     {
       "label": "toolsNotVisibleRecovery",
@@ -4301,8 +4301,8 @@
       "_origin": "ast",
       "community": 16,
       "norm_label": "toolsnotvisiblerecovery",
-      "id": "print_agent_config_toolsnotvisiblerecovery",
-      "community_name": "Community 16"
+      "community_name": "Community 16",
+      "id": "print_agent_config_toolsnotvisiblerecovery"
     }
   ],
   "links": [
@@ -11325,5 +11325,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "9bf7981fec59e2d1341099d0b1b2cd2461001326"
+  "built_at_commit": "24ea0996830bc03065357a791e302910d2e7f799"
 }
