@@ -13,37 +13,37 @@ export type PlanFlowTaskNode = Node<{
 
 const statusStyles = {
   blocked: {
-    accent: 'border-l-destructive',
+    accent: 'border-l-destructive border-destructive/40 bg-gradient-to-br from-destructive/10 via-card to-card',
     icon: ShieldAlert,
     iconClass: 'text-destructive',
   },
   completed: {
-    accent: 'border-l-emerald-500',
+    accent: 'border-l-emerald-500 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card',
     icon: CheckCircle2,
     iconClass: 'text-emerald-500',
   },
   implemented: {
-    accent: 'border-l-emerald-500',
+    accent: 'border-l-emerald-500 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card',
     icon: CheckCircle2,
     iconClass: 'text-emerald-500',
   },
   verified: {
-    accent: 'border-l-emerald-500',
+    accent: 'border-l-emerald-500 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card',
     icon: CheckCircle2,
     iconClass: 'text-emerald-500',
   },
   in_progress: {
-    accent: 'border-l-violet-500',
+    accent: 'border-l-violet-500 border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-card to-card',
     icon: Loader2,
     iconClass: 'animate-spin text-violet-500',
   },
   running: {
-    accent: 'border-l-violet-500',
+    accent: 'border-l-violet-500 border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-card to-card',
     icon: Loader2,
     iconClass: 'animate-spin text-violet-500',
   },
   ready: {
-    accent: 'border-l-slate-500',
+    accent: 'border-l-slate-500 border-slate-500/30 bg-gradient-to-br from-slate-500/5 via-card to-card',
     icon: Clock,
     iconClass: 'text-slate-500',
   },
@@ -60,11 +60,10 @@ export function PlanFlowTaskNode({ data, selected }: NodeProps<PlanFlowTaskNode>
   return (
     <div
       className={cn(
-        'shadow-background/40 relative min-h-[104px] w-[280px] rounded-lg border border-l-4 bg-card p-3 text-card-foreground shadow-md backdrop-blur transition-all duration-200',
+        'shadow-background/40 relative min-h-[104px] w-[280px] rounded-lg border border-l-4 p-3 text-card-foreground shadow-md backdrop-blur transition-all duration-300 hover:shadow-lg hover:scale-[1.01] cursor-pointer',
         statusStyle.accent,
-        data.status === 'blocked' && 'border-destructive bg-card',
         selected &&
-          'shadow-primary/20 scale-[1.02] border-primary shadow-lg ring-2 ring-primary ring-offset-2 ring-offset-background',
+          'shadow-primary/25 scale-[1.03] border-primary border-l-primary shadow-xl ring-2 ring-primary ring-offset-2 ring-offset-background',
       )}
     >
       <Handle type="target" position={Position.Left} className="!size-2.5 !border-background !bg-muted-foreground" />
