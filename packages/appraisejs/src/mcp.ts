@@ -55,6 +55,7 @@ const baseWorkflowCriticalTools = [
   'validation_file_approve',
   'validation_feedback_submit',
   'validation_review_submit',
+  'test_run_preflight',
   'baseline_start',
   'baseline_reconcile',
   'baseline_cancel',
@@ -72,6 +73,8 @@ const baseWorkflowCriticalTools = [
   'implementation_control',
   'implementation_completion_review',
   'implementation_complete',
+  'test_run_read',
+  'test_run_diagnose',
 ] as const
 const providerNativeWorkflowTools = [
   'provider_list',
@@ -188,6 +191,59 @@ function withGuidance(
 ) {
   const payload = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
   return { ...payload, ...guidance }
+}
+
+const responseModeSchema = z.enum(['summary', 'evidenceOnly', 'blockersOnly', 'linksOnly', 'full']).default('summary')
+
+function applyResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
+  if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
+  const payload = value as Record<string, unknown>
+  if (responseMode === 'linksOnly') {
+    return {
+      testRunPageId: payload.testRunPageId,
+      executionRunId: payload.executionRunId,
+      planId: payload.planId,
+      validationId: payload.validationId,
+      reportUrl: payload.reportUrl,
+      logsUrl: payload.logsUrl,
+      nextAllowedAction: payload.nextAllowedAction,
+    }
+  }
+  if (responseMode === 'blockersOnly') {
+    return {
+      executionRunId: payload.executionRunId,
+      evidenceHealth: payload.evidenceHealth,
+      blockers: payload.blockers,
+      missingArtifacts: payload.missingArtifacts,
+      nextAllowedAction: payload.nextAllowedAction,
+    }
+  }
+  if (responseMode === 'evidenceOnly') {
+    return {
+      testRunPageId: payload.testRunPageId,
+      executionRunId: payload.executionRunId,
+      evidenceHealth: payload.evidenceHealth,
+      grade: payload.grade,
+      counts: payload.counts,
+      blockers: payload.blockers,
+      missingArtifacts: payload.missingArtifacts,
+      reportUrl: payload.reportUrl,
+      logsUrl: payload.logsUrl,
+      nextAllowedAction: payload.nextAllowedAction,
+    }
+  }
+  return {
+    testRunPageId: payload.testRunPageId,
+    executionRunId: payload.executionRunId,
+    planId: payload.planId,
+    validationId: payload.validationId,
+    evidenceHealth: payload.evidenceHealth,
+    grade: payload.grade,
+    blockers: payload.blockers,
+    reportUrl: payload.reportUrl,
+    logsUrl: payload.logsUrl,
+    nextAllowedAction: payload.nextAllowedAction,
+  }
 }
 
 export const planningWorkflow = {
@@ -1711,10 +1767,38 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     },
   )
   server.registerTool(
+    'test_run_preflight',
+    {
+      description:
+        'Read-only blocker check before creating a managed target test run. Use this before plan-bound test_run calls.',
+      inputSchema: {
+        target: z.string().min(1).optional(),
+        environmentId: z.string().min(1).optional(),
+        planId: z.string().min(1).optional(),
+        validationId: z.string().min(1).optional(),
+        featurePaths: z.array(z.string().min(1)).optional(),
+        importPaths: z.array(z.string().min(1)).optional(),
+        supportPaths: z.array(z.string().min(1)).optional(),
+        responseMode: responseModeSchema,
+      },
+    },
+    async ({ responseMode, ...input }) => {
+      try {
+        const result = await api.request('test-runs/preflight', {
+          method: 'POST',
+          body: JSON.stringify(input),
+        })
+        return text(applyResponseMode(result, responseMode))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
     'test_run',
     {
       description:
-        'Run existing Appraise-compatible Cucumber/Playwright artifacts from an attached target repository and record a standalone Appraise test run.',
+        'Run existing Appraise-compatible Cucumber/Playwright artifacts from an attached target repository and record a managed Appraise test run.',
       inputSchema: {
         target: z.string().min(1),
         environmentId: z.string().min(1),
@@ -1729,11 +1813,40 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         importPaths: z.array(z.string().min(1)).optional(),
         supportPaths: z.array(z.string().min(1)).optional(),
         prepareWorkspace: z.boolean().optional(),
+        responseMode: responseModeSchema,
       },
     },
-    async input => {
+    async ({ responseMode, ...input }) => {
       try {
-        return text(await api.runTargetTests(input))
+        return text(applyResponseMode(await api.runTargetTests(input), responseMode))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'test_run_read',
+    {
+      description: 'Read bounded status and evidence summary for a managed Appraise test run.',
+      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
+    },
+    async ({ runId, responseMode }) => {
+      try {
+        return text(applyResponseMode(await api.request(`test-runs/${runId}`), responseMode))
+      } catch (error) {
+        return toolError(error)
+      }
+    },
+  )
+  server.registerTool(
+    'test_run_diagnose',
+    {
+      description: 'Diagnose invalid or suspicious managed test-run evidence with concise blockers and next action.',
+      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
+    },
+    async ({ runId, responseMode }) => {
+      try {
+        return text(applyResponseMode(await api.request(`test-runs/${runId}/diagnose`), responseMode))
       } catch (error) {
         return toolError(error)
       }
@@ -2704,9 +2817,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     },
     async ({ planId, runIds }) =>
       text(
-        await api.request(`plans/${planId}/implementation/validations/reconcile`, {
-          method: 'POST',
-          body: JSON.stringify({ runIds }),
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/implementation/validations/reconcile`, {
+            method: 'POST',
+            body: JSON.stringify({ runIds }),
+          }),
+          nextRecommendedAction:
+            'If readiness is blocked, inspect test_run_diagnose for invalid evidence; otherwise continue toward implementation_completion_review.',
+          nextRequiredAgentBehavior: 'inspect_validation_readiness_then_continue',
+          nextAllowedAction: { tool: 'implementation_completion_review' },
         }),
       ),
   )

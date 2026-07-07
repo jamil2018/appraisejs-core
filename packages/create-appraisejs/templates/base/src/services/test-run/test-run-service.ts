@@ -30,6 +30,13 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { storeReportFromFileService } from '@/services/report/report-service'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
 import {
+  diagnoseRunEvidence,
+  persistRunEvidenceHealth,
+  preflightTestRun,
+  summarizeRunEvidence,
+  type RunEvidenceSummary,
+} from '@/services/test-run/run-evidence-summary-service'
+import {
   buildOrExpression,
   buildTestRunsWhereClause,
   isCancelledOrCancellingStatus,
@@ -417,22 +424,14 @@ async function persistLogsAndUpdateRunStatus(args: {
   })
 
   if (currentTestRun && !isCancelledOrCancellingStatus(currentTestRun.status)) {
-    const result = exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED
-
     await prisma.testRun.update({
       where: { id: testRunDbId },
       data: {
         status: TestRunStatus.COMPLETED,
-        result,
+        result: exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED,
         completedAt: new Date(),
       },
     })
-
-    try {
-      await updateMetricsForTestRun(testRunDbId)
-    } catch (error) {
-      console.error(`[TestRunService] Error updating metrics for test run ${testRunDbId}:`, error)
-    }
   } else if (currentTestRun && !currentTestRun.result) {
     await prisma.testRun.update({
       where: { id: testRunDbId },
@@ -440,6 +439,40 @@ async function persistLogsAndUpdateRunStatus(args: {
         completedAt: new Date(),
       },
     })
+  }
+}
+
+async function reconcileFinalRunEvidence(args: {
+  testRunDbId: string
+  runId: string
+  exitCode: number
+}): Promise<RunEvidenceSummary> {
+  const { testRunDbId, runId, exitCode } = args
+  const summary = await persistRunEvidenceHealth(runId)
+  const result =
+    summary.evidenceHealth === 'valid' && exitCode === 0
+      ? TestRunResult.PASSED
+      : summary.evidenceHealth === 'valid'
+        ? TestRunResult.FAILED
+        : TestRunResult.FAILED
+
+  await prisma.testRun.update({
+    where: { id: testRunDbId },
+    data: {
+      result,
+    },
+  })
+
+  try {
+    await updateMetricsForTestRun(testRunDbId)
+  } catch (error) {
+    console.error(`[TestRunService] Error updating metrics for test run ${testRunDbId}:`, error)
+  }
+
+  return {
+    ...summary,
+    evidenceHealth: summary.evidenceHealth,
+    grade: summary.evidenceHealth === 'valid' ? 'valid' : summary.grade,
   }
 }
 
@@ -716,6 +749,11 @@ async function scheduleTestRunCompletion(args: {
         cleanupListener()
 
         await storeReportAfterRunIfNeeded(testRun.id, testRun.runId, reportPath)
+        await reconcileFinalRunEvidence({
+          testRunDbId: testRun.id,
+          runId: testRun.runId,
+          exitCode,
+        })
         if (implementationValidationBinding) {
           await updateImplementationValidationRunFromTestRun({
             ...implementationValidationBinding,
@@ -751,6 +789,7 @@ async function scheduleTestRunCompletion(args: {
             data: {
               status: TestRunStatus.COMPLETED,
               result: TestRunResult.FAILED,
+              evidenceHealth: 'infrastructure_failure',
               completedAt: new Date(),
             },
           })
@@ -850,9 +889,17 @@ export type StandaloneTargetTestRunInput = {
   prepareWorkspace?: boolean
 }
 
-export async function createStandaloneTargetTestRun(
-  input: StandaloneTargetTestRunInput,
-): Promise<{ runId: string; id: string; targetProjectId: string }> {
+export async function createStandaloneTargetTestRun(input: StandaloneTargetTestRunInput): Promise<{
+  runId: string
+  id: string
+  targetProjectId: string
+  testRunPageId: string
+  executionRunId: string
+  reportUrl: string
+  logsUrl: string
+  evidenceHealth: string
+  nextAllowedAction: { tool: string; reason: string }
+}> {
   const targetProject = await resolveTargetProject(input.target)
   const environment = await prisma.environment.findUnique({
     where: { id: input.environmentId },
@@ -933,7 +980,32 @@ export async function createStandaloneTargetTestRun(
     implementationValidationBinding,
   })
 
-  return { runId: testRun.runId, id: testRun.id, targetProjectId: targetProject.id }
+  return {
+    runId: testRun.runId,
+    id: testRun.id,
+    targetProjectId: targetProject.id,
+    testRunPageId: testRun.id,
+    executionRunId: testRun.runId,
+    reportUrl: `/test-runs/${testRun.runId}`,
+    logsUrl: `/api/test-runs/${testRun.runId}/logs`,
+    evidenceHealth: 'invalid_missing_report',
+    nextAllowedAction: {
+      tool: 'test_run_read',
+      reason: 'Poll bounded run evidence until the managed test run completes.',
+    },
+  }
+}
+
+export async function readTestRunEvidenceSummary(runId: string) {
+  return summarizeRunEvidence(runId)
+}
+
+export async function diagnoseTestRunEvidence(runId: string) {
+  return diagnoseRunEvidence(runId)
+}
+
+export async function preflightStandaloneTargetTestRun(input: Parameters<typeof preflightTestRun>[0]) {
+  return preflightTestRun(input)
 }
 
 export async function deleteTestRunsByIds(ids: string[]): Promise<void> {

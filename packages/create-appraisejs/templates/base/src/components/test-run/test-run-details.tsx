@@ -23,6 +23,7 @@ import { TraceViewerIdleLabel, TraceViewerOpeningLabel, TraceViewerRunningLabel 
 
 import {
   getDurationSeconds,
+  getEvidenceHealthMeta,
   getProgressStats,
   getTestCaseResultMeta,
   getTestCaseStatusMeta,
@@ -41,9 +42,11 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
     useTestRunDetails({ initialTestRun })
 
   const statusMeta = getTestRunStatusMeta(testRun.status, testRun.result)
+  const evidenceHealthMeta = getEvidenceHealthMeta(testRun.evidenceHealth)
   const progress = getProgressStats(testRun.testCases)
   const durationSeconds = getDurationSeconds(testRun.startedAt, testRun.completedAt)
   const StatusIcon = statusMeta.icon
+  const EvidenceIcon = evidenceHealthMeta.icon
 
   return (
     <div className="space-y-4">
@@ -125,6 +128,13 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Result</span>
               <Badge variant="outline">{getTestRunResultText(testRun.result)}</Badge>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm font-medium">Evidence</span>
+              <Badge variant="outline" className={cn(evidenceHealthMeta.badgeClassName, 'py-1')}>
+                <EvidenceIcon className="mr-1 size-4" />
+                <span>{evidenceHealthMeta.label}</span>
+              </Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Run ID</span>

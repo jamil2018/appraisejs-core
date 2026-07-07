@@ -4,12 +4,43 @@ import { taskSpawner } from '@/lib/process/task-spawner'
 import prisma from '@/config/db-config'
 import { TestRunStatus } from '@prisma/client'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
+import type { LogEntry } from '@/lib/test-run/log-formatter'
 
 // Ensure this route runs in Node.js runtime (not Edge) for singleton to work
 export const runtime = 'nodejs'
 
-async function storedLogsResponse(input: { runId: string; status: TestRunStatus; wantsText: boolean }) {
-  const logs = await getTestRunLogsService(input.runId)
+type LogMode = 'full' | 'summary' | 'errorsOnly' | 'tail' | 'aroundFailure'
+
+function parseLogMode(value: string | null): LogMode {
+  if (value === 'summary' || value === 'errorsOnly' || value === 'tail' || value === 'aroundFailure') return value
+  return 'full'
+}
+
+function selectLogs(logs: LogEntry[], mode: LogMode, limit: number) {
+  if (mode === 'errorsOnly') return logs.filter(log => log.type === 'stderr')
+  if (mode === 'tail') return logs.slice(-limit)
+  if (mode === 'aroundFailure') {
+    const failureIndex = logs.findIndex(log => log.type === 'stderr' || /fail|error|exception/i.test(log.message))
+    if (failureIndex === -1) return logs.slice(-limit)
+    const before = Math.max(failureIndex - Math.floor(limit / 2), 0)
+    return logs.slice(before, before + limit)
+  }
+  if (mode === 'summary') {
+    const errors = logs.filter(log => log.type === 'stderr')
+    return [...logs.slice(0, 3), ...errors.slice(0, 5), ...logs.slice(-3)]
+  }
+  return logs
+}
+
+async function storedLogsResponse(input: {
+  runId: string
+  status: TestRunStatus
+  wantsText: boolean
+  mode: LogMode
+  limit: number
+}) {
+  const allLogs = await getTestRunLogsService(input.runId)
+  const logs = selectLogs(allLogs, input.mode, input.limit)
   if (input.wantsText) {
     return new Response(logs.map(log => `[${log.type}] ${log.message}`).join('\n'), {
       headers: {
@@ -23,10 +54,93 @@ async function storedLogsResponse(input: { runId: string; status: TestRunStatus;
     {
       runId: input.runId,
       status: input.status,
+      mode: input.mode,
+      totalLogEntries: allLogs.length,
       logs,
     },
     { headers: { 'Cache-Control': 'no-cache' } },
   )
+}
+
+function sseErrorResponse(status: number, payload: Record<string, unknown>) {
+  const errorStream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder()
+      const message = `event: error\ndata: ${JSON.stringify(payload)}\n\n`
+      controller.enqueue(encoder.encode(message))
+      setTimeout(() => {
+        controller.close()
+      }, 100)
+    },
+  })
+
+  return new Response(errorStream, {
+    status,
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  })
+}
+
+async function readTestRunStatusForLogs(runId: string) {
+  try {
+    const testRun = await prisma.testRun.findUnique({
+      where: { runId },
+      select: { id: true, status: true },
+    })
+
+    if (!testRun) {
+      console.error(`[SSE] Test run not found in database for runId: ${runId}`)
+      return { response: sseErrorResponse(404, { error: 'Test run not found' }) }
+    }
+
+    return { status: testRun.status }
+  } catch (error) {
+    console.error(`[SSE] Database error verifying test run for runId: ${runId}:`, error)
+    return { response: sseErrorResponse(500, { error: 'Internal server error' }) }
+  }
+}
+
+async function waitForRegisteredProcess(runId: string) {
+  let process = processManager.get(runId)
+  const maxWaitTime = 10000
+  const checkInterval = 200
+  let waited = 0
+
+  console.log(`[SSE] Looking for process with runId: ${runId}, current processes: ${processManager.size()}`)
+
+  if (processManager.size() > 0) {
+    const availableProcesses = processManager.getAllTestRunIds()
+    console.log(`[SSE] Available process IDs:`, availableProcesses)
+    console.log(`[SSE] Looking for runId: "${runId}", available:`, availableProcesses.map(id => `"${id}"`).join(', '))
+  } else {
+    console.log(`[SSE] No processes registered yet. ProcessManager size: ${processManager.size()}`)
+  }
+
+  while (!process && waited < maxWaitTime) {
+    await new Promise(resolve => setTimeout(resolve, checkInterval))
+    waited += checkInterval
+    process = processManager.get(runId)
+
+    if (waited % 2000 === 0) {
+      console.log(`[SSE] Still waiting for process ${runId}... (${waited}ms elapsed)`)
+    }
+  }
+
+  if (process) return { process }
+
+  const availableProcesses = processManager.getAllTestRunIds()
+  const errorMessage = `Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}. Available IDs: ${availableProcesses.join(', ') || 'none'}`
+  console.error(`[SSE] ${errorMessage}`)
+
+  return {
+    response: sseErrorResponse(200, {
+      error: 'Test run process not found. The process may not have started yet or may have already completed.',
+      details: `Looking for: ${runId}, Available: ${availableProcesses.join(', ') || 'none'}`,
+    }),
+  }
 }
 
 /**
@@ -44,129 +158,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const acceptsEventStream = request.headers.get('accept')?.includes('text/event-stream') ?? false
   const wantsText =
     request.nextUrl.searchParams.get('format') === 'text' || request.headers.get('accept') === 'text/plain'
+  const mode = parseLogMode(request.nextUrl.searchParams.get('mode'))
+  const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit') ?? 50) || 50, 1), 500)
 
-  // Verify test run exists in database and check status
-  // TODO: Add user authentication check here when authentication is implemented
-  // Example: where: { runId, userId: currentUser.id }
-  try {
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId },
-      select: { id: true, status: true }, // Need status to check if completed
-    })
+  const statusResult = await readTestRunStatusForLogs(runId)
+  if ('response' in statusResult) return statusResult.response
 
-    if (!testRun) {
-      console.error(`[SSE] Test run not found in database for runId: ${runId}`)
-      const errorStream = new ReadableStream({
-        start(controller) {
-          const encoder = new TextEncoder()
-          const message = `event: error\ndata: ${JSON.stringify({ error: 'Test run not found' })}\n\n`
-          controller.enqueue(encoder.encode(message))
-          setTimeout(() => {
-            controller.close()
-          }, 100)
-        },
-      })
-
-      return new Response(errorStream, {
-        status: 404,
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache, no-transform',
-          Connection: 'keep-alive',
-        },
-      })
-    }
-
-    if (
-      testRun.status === TestRunStatus.COMPLETED ||
-      testRun.status === TestRunStatus.CANCELLED ||
-      !acceptsEventStream
-    ) {
-      return storedLogsResponse({ runId, status: testRun.status, wantsText })
-    }
-  } catch (error) {
-    console.error(`[SSE] Database error verifying test run for runId: ${runId}:`, error)
-    const errorStream = new ReadableStream({
-      start(controller) {
-        const encoder = new TextEncoder()
-        const message = `event: error\ndata: ${JSON.stringify({ error: 'Internal server error' })}\n\n`
-        controller.enqueue(encoder.encode(message))
-        setTimeout(() => {
-          controller.close()
-        }, 100)
-      },
-    })
-
-    return new Response(errorStream, {
-      status: 500,
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-      },
-    })
+  if (
+    statusResult.status === TestRunStatus.COMPLETED ||
+    statusResult.status === TestRunStatus.CANCELLED ||
+    !acceptsEventStream
+  ) {
+    return storedLogsResponse({ runId, status: statusResult.status, wantsText, mode, limit })
   }
 
-  // Wait for process to be registered (with timeout)
-  // This handles the race condition where the page loads before the process is spawned
-  let process = processManager.get(runId)
-  const maxWaitTime = 10000 // Increase to 10 seconds
-  const checkInterval = 200 // Check every 200ms
-  let waited = 0
-
-  console.log(`[SSE] Looking for process with runId: ${runId}, current processes: ${processManager.size()}`)
-
-  // Log all available process IDs for debugging
-  if (processManager.size() > 0) {
-    const availableProcesses = processManager.getAllTestRunIds()
-    console.log(`[SSE] Available process IDs:`, availableProcesses)
-    console.log(`[SSE] Looking for runId: "${runId}", available:`, availableProcesses.map(id => `"${id}"`).join(', '))
-  } else {
-    console.log(`[SSE] No processes registered yet. ProcessManager size: ${processManager.size()}`)
-  }
-
-  while (!process && waited < maxWaitTime) {
-    await new Promise(resolve => setTimeout(resolve, checkInterval))
-    waited += checkInterval
-    process = processManager.get(runId)
-
-    // Log progress every 2 seconds
-    if (waited % 2000 === 0) {
-      console.log(`[SSE] Still waiting for process ${runId}... (${waited}ms elapsed)`)
-    }
-  }
-
-  if (!process) {
-    const availableProcesses = processManager.getAllTestRunIds()
-    const errorMessage = `Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}. Available IDs: ${availableProcesses.join(', ') || 'none'}`
-    console.error(`[SSE] ${errorMessage}`)
-
-    // Return an SSE stream with an error event instead of JSON response
-    // This allows EventSource to properly handle the error
-    const errorStream = new ReadableStream({
-      start(controller) {
-        const encoder = new TextEncoder()
-        const message = `event: error\ndata: ${JSON.stringify({
-          error: 'Test run process not found. The process may not have started yet or may have already completed.',
-          details: `Looking for: ${runId}, Available: ${availableProcesses.join(', ') || 'none'}`,
-        })}\n\n`
-        controller.enqueue(encoder.encode(message))
-        setTimeout(() => {
-          controller.close()
-        }, 100)
-      },
-    })
-
-    return new Response(errorStream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-      },
-    })
-  }
-
-  // Process found, proceed with SSE connection
+  const processResult = await waitForRegisteredProcess(runId)
+  if ('response' in processResult) return processResult.response
+  const process = processResult.process
 
   // Store cleanup function reference for cancel handler
   let cleanupRef: (() => void) | null = null
@@ -237,46 +245,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
 
+      const sendFilteredProcessOutput = (type: 'stdout' | 'stderr', processName: string, data: string) => {
+        if (errorOccurred || processName !== process.name) return
+
+        const filteredLines = data.split('\n').filter(line => {
+          const trimmed = line.trim()
+          return trimmed && !isEventJson(trimmed)
+        })
+
+        if (filteredLines.length > 0) {
+          sendSSE('log', JSON.stringify({ type, message: filteredLines.join('\n') }))
+        }
+      }
+
       /**
        * Handler for stdout events
        */
       const onStdout = ({ processName, data }: { processName: string; data: string }) => {
-        // Early return if error occurred to prevent infinite loops
-        if (errorOccurred) return
-
-        if (processName === process.name) {
-          // Filter out event JSON lines - they're for internal processing only
-          const lines = data.split('\n')
-          const filteredLines = lines.filter(line => {
-            const trimmed = line.trim()
-            return trimmed && !isEventJson(trimmed)
-          })
-
-          if (filteredLines.length > 0) {
-            sendSSE('log', JSON.stringify({ type: 'stdout', message: filteredLines.join('\n') }))
-          }
-        }
+        sendFilteredProcessOutput('stdout', processName, data)
       }
 
       /**
        * Handler for stderr events
        */
       const onStderr = ({ processName, data }: { processName: string; data: string }) => {
-        // Early return if error occurred to prevent infinite loops
-        if (errorOccurred) return
-
-        if (processName === process.name) {
-          // Filter out event JSON lines - they're for internal processing only
-          const lines = data.split('\n')
-          const filteredLines = lines.filter(line => {
-            const trimmed = line.trim()
-            return trimmed && !isEventJson(trimmed)
-          })
-
-          if (filteredLines.length > 0) {
-            sendSSE('log', JSON.stringify({ type: 'stderr', message: filteredLines.join('\n') }))
-          }
-        }
+        sendFilteredProcessOutput('stderr', processName, data)
       }
 
       /**

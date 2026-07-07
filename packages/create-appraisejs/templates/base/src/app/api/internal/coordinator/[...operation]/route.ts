@@ -88,7 +88,12 @@ import {
 } from '@/services/coordinator/coordinator-baseline-service'
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { ServiceError } from '@/services/shared/errors'
-import { createStandaloneTargetTestRun } from '@/services/test-run/test-run-service'
+import {
+  createStandaloneTargetTestRun,
+  diagnoseTestRunEvidence,
+  preflightStandaloneTargetTestRun,
+  readTestRunEvidenceSummary,
+} from '@/services/test-run/test-run-service'
 import {
   listTargetProjects,
   registerTargetProject,
@@ -217,10 +222,18 @@ async function getDiagnostic(request: Request) {
   })
 }
 
+async function getTestRunEvidence(operation: string[]) {
+  const runId = z.string().uuid().parse(operation[1])
+  if (operation.length === 2) return Response.json(await readTestRunEvidenceSummary(runId))
+  if (operation[2] === 'diagnose') return Response.json(await diagnoseTestRunEvidence(runId))
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
 // Request routing branches stay in this thin HTTP adapter.
 // fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
+  if (operation[0] === 'test-runs') return getTestRunEvidence(operation)
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
   if (operation.length === 1 && operation[0] === 'providers') {
@@ -481,6 +494,21 @@ async function postStandaloneTestRun(body: unknown) {
   return Response.json(await createStandaloneTargetTestRun(value), { status: 201 })
 }
 
+async function postTestRunPreflight(body: unknown) {
+  const value = z
+    .object({
+      target: z.string().min(1).optional(),
+      environmentId: z.string().min(1).optional(),
+      planId: planIdSchema.optional(),
+      validationId: idSchema.optional(),
+      featurePaths: z.array(z.string().min(1)).optional(),
+      importPaths: z.array(z.string().min(1)).optional(),
+      supportPaths: z.array(z.string().min(1)).optional(),
+    })
+    .parse(body)
+  return Response.json(await preflightStandaloneTargetTestRun(value))
+}
+
 async function postProviderRegistration(operation: string[], body: unknown) {
   const providerKey = z.string().min(1).parse(operation[1])
   if (operation[2] === 'probe') return Response.json(await probeProviderRegistration(providerKey))
@@ -654,7 +682,7 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     heartbeat: () => postHeartbeat(body),
     plans: () => postCreatePlan(request, body),
     'target-projects': () => postTargetProject(body),
-    'test-runs': () => postStandaloneTestRun(body),
+    'test-runs': () => (operation[1] === 'preflight' ? postTestRunPreflight(body) : postStandaloneTestRun(body)),
     start: () => {
       assertPlanOperation(operation)
       return postStartPlan(operation)

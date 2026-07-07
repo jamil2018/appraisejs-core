@@ -453,7 +453,17 @@ describe('createTestRunFromValidatedValue', () => {
       projectRoot: '/target/app',
       prepareWorkspace: false,
     })
-    expect(result).toEqual({ runId: 'run-1', id: 'db-1', targetProjectId: 'target-1' })
+    expect(result).toMatchObject({
+      runId: 'run-1',
+      id: 'db-1',
+      targetProjectId: 'target-1',
+      testRunPageId: 'db-1',
+      executionRunId: 'run-1',
+      reportUrl: '/test-runs/run-1',
+      logsUrl: '/api/test-runs/run-1/logs',
+      evidenceHealth: 'invalid_missing_report',
+      nextAllowedAction: { tool: 'test_run_read' },
+    })
   })
 })
 

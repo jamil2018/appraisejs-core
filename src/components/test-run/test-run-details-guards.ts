@@ -2,7 +2,7 @@ import type { Environment, Report, Tag } from '@prisma/client'
 
 import type { ActionResponseData } from '@/types/form/actionHandler'
 
-import type { TestRunDetailsData, TestRunDetailsTestCase } from './test-run-details-types'
+import type { TestRunDetailsData, TestRunDetailsTestCase, TestRunEvidenceHealth } from './test-run-details-types'
 
 type UnknownRecord = Record<string, unknown>
 
@@ -34,6 +34,19 @@ function isTestSuiteInfo(value: unknown): value is TestRunDetailsTestCase['testS
   return value === null || (isObjectRecord(value) && hasFields(value, ['id', 'name']))
 }
 
+function isEvidenceHealth(value: unknown): value is TestRunEvidenceHealth {
+  return (
+    value === 'valid' ||
+    value === 'invalid_empty_run' ||
+    value === 'invalid_missing_test_cases' ||
+    value === 'invalid_missing_report' ||
+    value === 'invalid_placeholder_binary' ||
+    value === 'invalid_unmatched_scenarios' ||
+    value === 'invalid_stale_runtime' ||
+    value === 'infrastructure_failure'
+  )
+}
+
 function isTestRunDetailsTestCase(value: unknown): value is TestRunDetailsTestCase {
   if (!isObjectRecord(value) || !hasFields(value, ['id', 'status', 'result', 'tracePath', 'testCase', 'testSuite'])) {
     return false
@@ -49,13 +62,15 @@ function hasTestRunScalarFields(value: UnknownRecord) {
       'runId',
       'status',
       'result',
+      'evidenceHealth',
       'startedAt',
       'completedAt',
       'browserEngine',
       'testWorkersCount',
     ]) &&
     value.startedAt instanceof Date &&
-    (value.completedAt instanceof Date || value.completedAt === null)
+    (value.completedAt instanceof Date || value.completedAt === null) &&
+    isEvidenceHealth(value.evidenceHealth)
   )
 }
 

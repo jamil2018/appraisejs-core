@@ -59,27 +59,29 @@ Pause, resume, and cancellation are lifecycle transitions. Cancellation is termi
 
 Implementation start is also agent-owned: once baseline evidence is accepted, the connected agent calls
 `implementation_start` through MCP. Required implementation validations should follow
-`implementation_validation_start -> bound test_run -> implementation_validation_reconcile -> implementation_completion_review`.
+`implementation_validation_start -> test_run_preflight -> bound test_run -> test_run_read or test_run_diagnose ->
+implementation_validation_reconcile -> implementation_completion_review`.
 `implementation_validation_record` is only for exceptional manual evidence and is reduced assurance; required runtime
-validations need fresh managed Appraise `TestRun` evidence before completion can pass.
+validations need fresh managed Appraise `TestRun` evidence with `evidenceHealth: valid` before completion can pass.
 
 ## Ownership Matrix
 
-| Surface                                                                        | Normal owner     | Notes                                                              |
-| ------------------------------------------------------------------------------ | ---------------- | ------------------------------------------------------------------ |
-| Plan approval and change requests                                              | User/Appraise UI | MCP decision tools only relay explicit Appraise/user decisions.    |
-| Validation evidence decisions, file approvals, feedback, and review submission | User/Appraise UI | Review authority stays human-owned.                                |
-| Validation preparation and publish                                             | Agent/MCP        | Mechanical preparation after plan approval.                        |
-| Baseline start and reconcile                                                   | Agent/MCP        | UI presents guidance; `baseline_cancel` remains a human interrupt. |
-| Baseline acceptance, failure acknowledgement, and regression justification     | User/Appraise UI | MCP tools relay explicit user decisions when used.                 |
-| Implementation start, checkpoints, task state, and validation reconciliation   | Agent/MCP        | Implementation validation reconciles from real `TestRun` rows.     |
-| Final completion approval                                                      | User/Appraise UI | MCP completion approval must relay explicit final sign-off.        |
+| Surface                                                                        | Normal owner     | Notes                                                           |
+| ------------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------- |
+| Plan approval and change requests                                              | User/Appraise UI | MCP decision tools only relay explicit Appraise/user decisions. |
+| Validation evidence decisions, file approvals, feedback, and review submission | User/Appraise UI | Review authority stays human-owned.                             |
+| Validation preparation and publish                                             | Agent/MCP        | Mechanical preparation after plan approval.                     |
+| Baseline start and reconcile                                                   | Agent/MCP        | Invalid evidence health is harness or infrastructure evidence.  |
+| Baseline acceptance, failure acknowledgement, and regression justification     | User/Appraise UI | MCP tools relay explicit user decisions when used.              |
+| Implementation start, checkpoints, task state, and validation reconciliation   | Agent/MCP        | Implementation validation reconciles from real `TestRun` rows.  |
+| Final completion approval                                                      | User/Appraise UI | MCP completion approval must relay explicit final sign-off.     |
 
 ## Final Validation And Completion
 
-Completion requires fresh passing required validations, required tasks verified, protected evidence, and a completion
-review. A passing validation matrix emits `validation_passed`; it does not complete the plan. Only explicit final user
-approval writes final sign-off, emits `completed`, and releases evidence protection.
+Completion requires fresh passing required validations with `evidenceHealth: valid`, required tasks verified,
+protected evidence, and a completion review. A passing validation matrix emits `validation_passed`; it does not
+complete the plan. Only explicit final user approval writes final sign-off, emits `completed`, and releases evidence
+protection.
 
 ## Reporting Evidence
 

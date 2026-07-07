@@ -18,6 +18,7 @@ import { cancelTestRunAction, deleteTestRunAction } from '@/actions/test-run/tes
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle, Compass, Flame, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
+import { getEvidenceHealthMeta } from '@/components/test-run/test-run-details-helpers'
 
 const BrowserEngineIcon = {
   [BrowserEngine.CHROMIUM]: (
@@ -137,6 +138,20 @@ export const testRunTableCols: ColumnDef<
         <Badge className={`${resultColorMap[result]} w-full text-center`}>
           <span className="mr-1">{resultIconMap[result]}</span>
           <span>{resultTextMap[result]}</span>
+        </Badge>
+      )
+    },
+  },
+  {
+    accessorKey: 'evidenceHealth',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Evidence" />,
+    cell: ({ row }) => {
+      const meta = getEvidenceHealthMeta(row.original.evidenceHealth)
+      const Icon = meta.icon
+      return (
+        <Badge className={`${meta.badgeClassName ?? ''} w-full text-center`}>
+          <Icon className="mr-1 size-4" />
+          <span>{meta.label}</span>
         </Badge>
       )
     },

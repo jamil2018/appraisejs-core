@@ -163,6 +163,9 @@ Tools:
 - `plan_review_loop` when available for active bounded review and approval standby
 - `plan_create`
 - `test_run`
+- `test_run_preflight`
+- `test_run_read`
+- `test_run_diagnose`
 - `plan_read`
 - `plan_review_read`
 - `plan_wait_for_review`
@@ -191,6 +194,19 @@ Tools:
 - `implementation_control`
 - `implementation_completion_review`
 - `implementation_complete`
+
+Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" | "blockersOnly" | "linksOnly" |
+"full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,
+blockers, and next action are insufficient.
+
+Run evidence tools:
+
+- `test_run_preflight` checks required target, environment, plan/validation binding, and runtime projection inputs
+  before creating a run.
+- `test_run_read` returns a bounded `RunEvidenceSummary` with `testRunPageId`, `executionRunId`, `planId`,
+  `validationId`, `reportUrl`, `logsUrl`, `evidenceHealth`, blockers, counts, and `nextAllowedAction`.
+- `test_run_diagnose` is the recovery path for invalid or suspicious evidence and returns concise root cause,
+  missing artifacts, log excerpt, and next action.
 
 `project_diagnostic` and `appraise://project` include capability metadata for stale-server checks: package version,
 MCP surface version, server start time, workflow-critical tool names, workflow resource URIs, and recovery text for
