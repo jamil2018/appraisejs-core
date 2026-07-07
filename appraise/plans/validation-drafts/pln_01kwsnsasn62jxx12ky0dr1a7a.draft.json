@@ -1,0 +1,342 @@
+{
+  "version": "1",
+  "planId": "pln_01kwsnsasn62jxx12ky0dr1a7a",
+  "draftId": "validation-draft-pln-01kwsnsasn62jxx12ky0dr1a7a",
+  "revision": 1,
+  "status": "published",
+  "targetProjectId": "31e5ecdd-ec9a-41de-a0a0-898af2ff0a40",
+  "sourceHash": "sha256:820c6a48cfa473e2663e59a5783a0e80285c66d232398fff8bfe279b0e6535d9",
+  "baseRevision": {
+    "gitCommit": null,
+    "snapshotHash": "sha256:820c6a48cfa473e2663e59a5783a0e80285c66d232398fff8bfe279b0e6535d9",
+    "reducedAssurance": true
+  },
+  "classificationOverrides": [],
+  "validations": [
+    {
+      "id": "complete-note-crud-workflow-persists-locally",
+      "taskIds": [
+        "scaffold-setup",
+        "editor-state",
+        "document-management",
+        "persistence",
+        "validation"
+      ],
+      "required": true,
+      "testCaseIds": [
+        "complete-note-crud-workflow-persists-locally"
+      ],
+      "appraiseArtifacts": {
+        "modules": [
+          {
+            "id": "validation-module",
+            "name": "Validation module"
+          }
+        ],
+        "testSuites": [
+          {
+            "id": "notepad-core-suite",
+            "name": "notepad-core-suite",
+            "moduleId": "validation-module",
+            "testCaseIds": [
+              "complete-note-crud-workflow-persists-locally"
+            ]
+          }
+        ],
+        "testCases": [
+          {
+            "id": "complete-note-crud-workflow-persists-locally",
+            "title": "Complete note CRUD workflow persists locally",
+            "description": "Validate that the notepad app opens, shows an empty state, creates a note, saves edited title/body content, restores the saved note after reload, updates the note, deletes it, and returns to the empty state.",
+            "steps": [
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-1",
+                "order": 0,
+                "label": "Open the app at the selected local environment base URL.",
+                "gherkinStep": "Given the user opens the notepad app",
+                "templateStepName": "fb77d502-3587-4e1e-92ec-1497f98311bc",
+                "parameters": []
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-2",
+                "order": 1,
+                "label": "Confirm the initial empty state is shown when no notes exist.",
+                "gherkinStep": "Then the note empty state is visible",
+                "templateStepName": "61617d12-4463-4084-929f-1c3c01a41a66",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "note-empty-state",
+                    "type": "locator"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-3",
+                "order": 2,
+                "label": "Create a new blank note from the primary action.",
+                "gherkinStep": "When the user clicks the new note button",
+                "templateStepName": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "new-note-button",
+                    "type": "locator"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-4",
+                "order": 3,
+                "label": "Enter a title for the note.",
+                "gherkinStep": "And the user fills in the note title with value \"Weekend plan\"",
+                "templateStepName": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "parameters": [
+                  {
+                    "name": "field",
+                    "value": "note-title-input",
+                    "type": "locator"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Weekend plan",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-5",
+                "order": 4,
+                "label": "Enter body content for the note.",
+                "gherkinStep": "And the user fills in the note body with value \"Buy coffee beans and write the release notes.\"",
+                "templateStepName": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "parameters": [
+                  {
+                    "name": "field",
+                    "value": "note-body-input",
+                    "type": "locator"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Buy coffee beans and write the release notes.",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-6",
+                "order": 5,
+                "label": "Save the note explicitly.",
+                "gherkinStep": "And the user clicks the save note button",
+                "templateStepName": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "save-note-button",
+                    "type": "locator"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-7",
+                "order": 6,
+                "label": "Confirm the saved note appears in the list.",
+                "gherkinStep": "Then the note list should contain the text \"Weekend plan\"",
+                "templateStepName": "e375ded0-5c1a-465e-875e-c0c1e198eafd",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "note-list",
+                    "type": "locator"
+                  },
+                  {
+                    "name": "contains",
+                    "value": "true",
+                    "type": "boolean"
+                  },
+                  {
+                    "name": "text",
+                    "value": "Weekend plan",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-8",
+                "order": 7,
+                "label": "Reload the app to prove local persistence.",
+                "gherkinStep": "When the user reloads the page",
+                "templateStepName": "cec29b93-dd58-40d6-9fdd-94bd0705ecbe",
+                "parameters": []
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-9",
+                "order": 8,
+                "label": "Confirm the saved note is restored from persistence.",
+                "gherkinStep": "Then the note list should contain the text \"Weekend plan\"",
+                "templateStepName": "e375ded0-5c1a-465e-875e-c0c1e198eafd",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "note-list",
+                    "type": "locator"
+                  },
+                  {
+                    "name": "contains",
+                    "value": "true",
+                    "type": "boolean"
+                  },
+                  {
+                    "name": "text",
+                    "value": "Weekend plan",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-10",
+                "order": 9,
+                "label": "Update the selected note title.",
+                "gherkinStep": "When the user fills in the note title with value \"Weekend errands\"",
+                "templateStepName": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "parameters": [
+                  {
+                    "name": "field",
+                    "value": "note-title-input",
+                    "type": "locator"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Weekend errands",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-11",
+                "order": 10,
+                "label": "Save the updated note.",
+                "gherkinStep": "And the user clicks the save note button",
+                "templateStepName": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "save-note-button",
+                    "type": "locator"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-12",
+                "order": 11,
+                "label": "Confirm the updated title appears in the list.",
+                "gherkinStep": "Then the note list should contain the text \"Weekend errands\"",
+                "templateStepName": "e375ded0-5c1a-465e-875e-c0c1e198eafd",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "note-list",
+                    "type": "locator"
+                  },
+                  {
+                    "name": "contains",
+                    "value": "true",
+                    "type": "boolean"
+                  },
+                  {
+                    "name": "text",
+                    "value": "Weekend errands",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-13",
+                "order": 12,
+                "label": "Delete the selected note using the destructive action.",
+                "gherkinStep": "When the user clicks the delete note button",
+                "templateStepName": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "delete-note-button",
+                    "type": "locator"
+                  }
+                ]
+              },
+              {
+                "id": "complete-note-crud-workflow-persists-locally-step-14",
+                "order": 13,
+                "label": "Confirm the app returns to the empty state after deletion.",
+                "gherkinStep": "Then the note empty state is visible",
+                "templateStepName": "61617d12-4463-4084-929f-1c3c01a41a66",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "note-empty-state",
+                    "type": "locator"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "locatorGroups": [],
+        "locators": []
+      },
+      "gherkinPaths": [
+        "automation/features/notepad-workflow.feature"
+      ],
+      "stepPaths": [
+        "automation/steps/notepad-workflow.steps.ts"
+      ],
+      "executable": {
+        "path": "automation/features/notepad-workflow.feature",
+        "selector": "Complete note CRUD workflow persists locally"
+      },
+      "matrix": [
+        {
+          "browser": "chromium",
+          "environment": "local"
+        }
+      ],
+      "expectedFailures": []
+    }
+  ],
+  "files": [
+    {
+      "path": "automation/features/notepad-workflow.feature",
+      "classification": "test_only",
+      "rationale": "Adds the reviewable Gherkin scenario for the complete notepad create, save, update, delete, reload persistence, and empty-state workflow.",
+      "status": "added",
+      "beforeHash": null,
+      "contentHash": "sha256:68278a4ca66fb7f55e55d259e0508d62f5161689187758712be89e8d5f23c02d",
+      "patch": "Added feature file `automation/features/notepad-workflow.feature` with Appraise plan/validation tags and scenario `Complete note CRUD workflow persists locally` covering: open app, verify empty state, create note, fill title/body, save, assert list entry, reload and assert persistence, update title, save, assert updated title, delete note, and assert empty state.",
+      "declared": true
+    },
+    {
+      "path": "automation/steps/notepad-workflow.steps.ts",
+      "classification": "test_infrastructure",
+      "rationale": "Adds executable Playwright/Cucumber-style step definitions and locators for the notepad workflow validation.",
+      "status": "added",
+      "beforeHash": null,
+      "contentHash": "sha256:07d5d3c21e94fe0c4a5f6390433c15194e0559b1d8d3b3c85504abe74fc0864b",
+      "patch": "Added step definitions for notepad workflow actions and assertions, using stable data-testid locators: note-empty-state, new-note-button, note-title-input, note-body-input, save-note-button, note-list, and delete-note-button. Steps drive the local app, fill fields, click controls, reload, and assert visible/contained text states.",
+      "declared": true
+    }
+  ],
+  "manifestPaths": [
+    "automation/features/notepad-workflow.feature",
+    "automation/steps/notepad-workflow.steps.ts"
+  ],
+  "reusedStepPaths": [
+    "automation/steps/notepad-workflow.steps.ts"
+  ],
+  "newStepPaths": [],
+  "customStepJustifications": [],
+  "runtimeProjections": [],
+  "blockers": [],
+  "warnings": [],
+  "createdAt": "2026-07-05T17:42:02.062Z",
+  "updatedAt": "2026-07-05T17:45:27.533Z"
+}

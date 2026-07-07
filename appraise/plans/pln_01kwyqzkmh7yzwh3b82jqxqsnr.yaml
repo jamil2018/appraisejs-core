@@ -1,0 +1,71 @@
+description: |-
+  Create a simple inventory management system that allows users to keep track of stock, store sales records, and track income. The app should support managing inventory items, recording sales transactions that adjust stock levels, and summarizing income from sales in a clear dashboard/reporting view.
+
+  Target workspace is /Users/jamil/Personal Projects/invatore. This appears to be a newly registered or empty target; propose a practical small-app implementation plan with explicit stack choices, persistence approach, UI workflows, validation strategy, and assumptions. Prioritize a usable first version: inventory list/add/edit/delete, stock quantity tracking, sale entry with quantity validation and automatic stock decrement, sales history, and income totals. Include handling for low/out-of-stock states, invalid sales, and local persistence appropriate for a simple app unless repository context indicates a different existing stack.
+edges:
+  - from: scaffold-setup
+    to: data-source
+    type: blocks
+  - from: data-source
+    to: dashboard-controls
+    type: blocks
+  - from: dashboard-controls
+    to: dashboard-states
+    type: blocks
+  - from: dashboard-states
+    to: validation
+    type: blocks
+goal: Invatore
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-setup
+      - data-source
+  - id: behavior
+    taskIds:
+      - dashboard-controls
+      - dashboard-states
+  - id: quality
+    taskIds:
+      - validation
+lifecycle: completed
+planId: pln_01kwyqzkmh7yzwh3b82jqxqsnr
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The app starts locally with React 19, TypeScript, Vite, and local browser validation and no missing dependency errors.
+      - Base styling, component primitives, and project structure are in place for the planned UI.
+      - Stack assumptions are stated clearly in the review-ready plan.
+    description: Create the React 19, TypeScript, Vite, and local browser validation application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief. These defaults are reviewable through Appraise feedback when the brief does not name a stack.
+    id: scaffold-setup
+    title: Scaffold and configure the app shell
+    validationIntent: Run install/build or the closest available scaffold validation for the generated app shell.
+  - acceptanceCriteria:
+      - Dashboard data loads from the source requested by the brief or a deterministic fixture when needed.
+      - Empty and error data-source states are visible and recoverable.
+    description: Prepare the dashboard data source, fixture, or API integration and normalize data for summaries and tables.
+    id: data-source
+    title: Connect dashboard data sources
+    validationIntent: Validate data loading with deterministic fixture or mocked source evidence.
+  - acceptanceCriteria:
+      - Users can filter or sort the dashboard data where the brief requests comparison or scanning.
+      - Summary metrics and detailed rows remain consistent after control changes.
+    description: Implement the dashboard controls, summary metrics, and list/table views needed to inspect and compare the data.
+    id: dashboard-controls
+    title: Add filtering, sorting, and summaries
+    validationIntent: Exercise filters, sorting, summaries, and empty states in focused UI validation.
+  - acceptanceCriteria:
+      - The dashboard remains scannable across loading, empty, success, and error states.
+      - Responsive layouts preserve key controls and summaries on smaller screens.
+    description: Cover loading, empty, error, and responsive states so repeated dashboard use remains predictable.
+    id: dashboard-states
+    title: Polish operational states
+    validationIntent: Verify dashboard states with component or E2E checks.
+  - acceptanceCriteria:
+      - The primary dashboard workflow is verified with deterministic evidence.
+      - Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.
+    description: Add or run validation that covers data loading, filtering/sorting, summaries, and error states.
+    id: validation
+    title: Validate the dashboard workflow
+    validationIntent: Run focused tests plus lint/build checks appropriate for the app.
+version: "1"

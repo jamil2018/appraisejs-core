@@ -1,0 +1,375 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts:
+  - browser: chromium
+    classification: accepted_regression_pass
+    completedAt: 2026-07-07T16:57:43.390Z
+    createdAt: 2026-07-07T16:57:35.484Z
+    environment: local
+    evidence:
+      logsUrl: /api/test-runs/e901a733-e1ca-4c7b-b555-2b393374dd02/logs
+      reportUrl: /test-runs/e901a733-e1ca-4c7b-b555-2b393374dd02
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-bc336e1f-7110-4541-971c-445893892a9b
+    regressionJustification: "Expected pre-implementation baseline for a new empty target: the approved validation covers inventory, sales, income totals, oversell protection, and persistence that do not exist yet. This failure establishes the before state for implementation."
+    signatureHash: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+    status: completed
+    testRunId: e901a733-e1ca-4c7b-b555-2b393374dd02
+    validationId: inventory-sales-income-workflow
+baselineDecision: accepted
+baseRevision:
+  gitCommit: null
+  reducedAssurance: true
+  snapshotHash: sha256:475cdaac4bc802243ea119954376b2b77acd86019dfe6653e4703373f9177f53
+classificationOverrides: []
+customStepJustifications:
+  - missingCapability: Inventory business-rule validation for stock decrement, sale total calculation, insufficient-stock rejection, sales ledger assertions, and persistence verification.
+    path: automation/steps/inventory-sales-income.steps.ts
+    whyLocatorsAndExistingStepsAreInsufficient: Existing registry/template steps cover generic navigation, fill, click, reload, visibility, and text assertions, but this plan needs readable domain assertions that combine multiple UI controls with calculated stock and income outcomes. Custom steps keep the validation review tied to inventory and sales behavior instead of scattering arithmetic across low-level locator checks.
+files:
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:d9ce9a46bc6d16469cdf1e171dcf7bb885604b5477a4b910b844ac4057b991d5
+    declared: true
+    patch: Add a Cucumber feature tagged @appraise_validation_inventory-sales-income-workflow covering app launch, adding an inventory item, recording a sale, verifying stock decrement and income total, rejecting an oversell attempt, and confirming sales/income persistence after reload.
+    path: automation/features/inventory-sales-income.feature
+    rationale: Defines the reviewable end-to-end behavior for the approved inventory management plan.
+    status: added
+  - beforeHash: null
+    classification: test_infrastructure
+    contentHash: sha256:722736a45c084e560459f31df68eec0189197a18422a4060059719d76e3e972f
+    declared: true
+    patch: Add Playwright-backed step definitions for inventory creation, sale recording, stock/income assertions, oversell validation, sales history verification, and local persistence assertions.
+    path: automation/steps/inventory-sales-income.steps.ts
+    rationale: Provides executable support for the inventory-specific business rules covered by the feature.
+    status: added
+implementation:
+  approvedGroupIds:
+    - behavior
+    - foundation
+    - quality
+  checkpoint:
+    queuedFeedbackCount: 0
+    reachedAt: 2026-07-07T17:17:13.754Z
+    taskIds:
+      - scaffold-setup
+      - data-source
+      - dashboard-controls
+      - dashboard-states
+      - validation
+    type: before_completion
+  commits: []
+  evidenceProtected: false
+  pausedTaskIds: []
+  taskStates:
+    dashboard-controls: verified
+    dashboard-states: verified
+    data-source: verified
+    scaffold-setup: verified
+    validation: verified
+  validationRuns:
+    - assurance: reduced
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-07T17:12:51.642Z
+      environment: local
+      evidence:
+        logsUrl: /api/test-runs/67abbfbe-f3cf-491b-b948-91e31b359c43/logs
+        reportUrl: /test-runs/67abbfbe-f3cf-491b-b948-91e31b359c43
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/67abbfbe-f3cf-491b-b948-91e31b359c43
+        - /api/test-runs/67abbfbe-f3cf-491b-b948-91e31b359c43/logs
+      failureSignatureHash: sha256:96b4627977d5cf498d64acd84de9294ec49d9f311c60b46bd9a5c452fc1aa595
+      fresh: true
+      id: implementation-validation-inventory-sales-income-workflow-chromium-local-20260707171235
+      required: true
+      runtimePaths:
+        executablePath: automation/features/inventory-sales-income.feature
+        gherkinPaths:
+          - /Users/jamil/Personal Projects/invatore/automation/features/inventory-sales-income.feature
+        stepPaths:
+          - /Users/jamil/Personal Projects/invatore/automation/steps/inventory-sales-income.steps.ts
+      status: failed
+      tagExpression: "@tc_inventory-sales-income-e2e"
+      taskIds:
+        - scaffold-setup
+        - data-source
+        - dashboard-controls
+        - dashboard-states
+        - validation
+      testRunId: 67abbfbe-f3cf-491b-b948-91e31b359c43
+      validationId: inventory-sales-income-workflow
+    - assurance: reduced
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-07T17:15:17.854Z
+      environment: local
+      evidence:
+        logsUrl: /api/test-runs/e2ad4d65-7d04-438b-9b78-144c5a291f41/logs
+        reportUrl: /test-runs/e2ad4d65-7d04-438b-9b78-144c5a291f41
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/e2ad4d65-7d04-438b-9b78-144c5a291f41
+        - /api/test-runs/e2ad4d65-7d04-438b-9b78-144c5a291f41/logs
+      failureSignatureHash: sha256:3292aaa680eb98e331fb39799b32da1a696e99d5446ffd1bb8629211dc1c77f1
+      fresh: true
+      id: implementation-validation-inventory-sales-income-workflow-chromium-local-20260707171502
+      required: true
+      runtimePaths:
+        executablePath: automation/features/inventory-sales-income.feature
+        gherkinPaths:
+          - /Users/jamil/Personal Projects/invatore/automation/features/inventory-sales-income.feature
+        stepPaths:
+          - /Users/jamil/Personal Projects/invatore/automation/steps/inventory-sales-income.steps.ts
+      status: failed
+      tagExpression: "@tc_inventory-sales-income-e2e"
+      taskIds:
+        - scaffold-setup
+        - data-source
+        - dashboard-controls
+        - dashboard-states
+        - validation
+      testRunId: e2ad4d65-7d04-438b-9b78-144c5a291f41
+      validationId: inventory-sales-income-workflow
+    - assurance: full
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-07T17:16:26.256Z
+      environment: local
+      evidence:
+        logsUrl: /api/test-runs/3ce03fc8-832e-4480-9b1b-6f5f4ba02640/logs
+        reportUrl: /test-runs/3ce03fc8-832e-4480-9b1b-6f5f4ba02640
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/3ce03fc8-832e-4480-9b1b-6f5f4ba02640
+        - /api/test-runs/3ce03fc8-832e-4480-9b1b-6f5f4ba02640/logs
+      fresh: true
+      id: implementation-validation-inventory-sales-income-workflow-chromium-local-20260707171611
+      required: true
+      runtimePaths:
+        executablePath: automation/features/inventory-sales-income.feature
+        gherkinPaths:
+          - /Users/jamil/Personal Projects/invatore/automation/features/inventory-sales-income.feature
+        stepPaths:
+          - /Users/jamil/Personal Projects/invatore/automation/steps/inventory-sales-income.steps.ts
+      status: passed
+      tagExpression: "@tc_inventory-sales-income-e2e"
+      taskIds:
+        - scaffold-setup
+        - data-source
+        - dashboard-controls
+        - dashboard-states
+        - validation
+      testRunId: 3ce03fc8-832e-4480-9b1b-6f5f4ba02640
+      validationId: inventory-sales-income-workflow
+manifestPaths:
+  - automation/features/inventory-sales-income.feature
+  - automation/steps/inventory-sales-income.steps.ts
+newStepPaths:
+  - automation/steps/inventory-sales-income.steps.ts
+planId: pln_01kwyqzkmh7yzwh3b82jqxqsnr
+reusedStepPaths: []
+reviewSubmittedAt: 2026-07-07T16:57:22.178Z
+revision: 1
+runtimePreflight:
+  blockers: []
+  checkedAt: 2026-07-07T16:57:35.432Z
+  status: passed
+runtimeProjections:
+  - contentHash: sha256:d9ce9a46bc6d16469cdf1e171dcf7bb885604b5477a4b910b844ac4057b991d5
+    declaredPath: automation/features/inventory-sales-income.feature
+    materialization: generated
+    role: gherkin
+    runtimePath: /Users/jamil/Personal Projects/invatore/automation/features/inventory-sales-income.feature
+    targetPath: /Users/jamil/Personal Projects/invatore/automation/features/inventory-sales-income.feature
+  - contentHash: sha256:722736a45c084e560459f31df68eec0189197a18422a4060059719d76e3e972f
+    declaredPath: automation/steps/inventory-sales-income.steps.ts
+    materialization: declared
+    role: step
+    runtimePath: /Users/jamil/Personal Projects/invatore/automation/steps/inventory-sales-income.steps.ts
+    targetPath: /Users/jamil/Personal Projects/invatore/automation/steps/inventory-sales-income.steps.ts
+validationDecisions:
+  - contentHash: sha256:78b8e245cc2a16614bd4034b7ac990678004a4064270ec0887a77c5c3fb01e5c
+    decidedAt: 2026-07-07T16:57:19.355Z
+    decidedBy: local-user
+    decision: approved
+    validationId: inventory-sales-income-workflow
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: inventory-home
+          moduleId: invatore-inventory
+          name: Inventory home
+          route: /
+      locators:
+        - id: dashboard-summary
+          locatorGroupId: inventory-home
+          name: Dashboard summary
+          value: '[data-testid="dashboard-summary"]'
+        - id: item-name-input
+          locatorGroupId: inventory-home
+          name: Item name input
+          value: '[data-testid="item-name-input"]'
+        - id: item-stock-input
+          locatorGroupId: inventory-home
+          name: Item stock input
+          value: '[data-testid="item-stock-input"]'
+        - id: item-price-input
+          locatorGroupId: inventory-home
+          name: Item price input
+          value: '[data-testid="item-price-input"]'
+        - id: add-item-button
+          locatorGroupId: inventory-home
+          name: Add item button
+          value: '[data-testid="add-item-button"]'
+        - id: inventory-table
+          locatorGroupId: inventory-home
+          name: Inventory table
+          value: '[data-testid="inventory-table"]'
+        - id: sale-item-select
+          locatorGroupId: inventory-home
+          name: Sale item select
+          value: '[data-testid="sale-item-select"]'
+        - id: sale-quantity-input
+          locatorGroupId: inventory-home
+          name: Sale quantity input
+          value: '[data-testid="sale-quantity-input"]'
+        - id: record-sale-button
+          locatorGroupId: inventory-home
+          name: Record sale button
+          value: '[data-testid="record-sale-button"]'
+        - id: sales-history
+          locatorGroupId: inventory-home
+          name: Sales history
+          value: '[data-testid="sales-history"]'
+        - id: income-total
+          locatorGroupId: inventory-home
+          name: Income total
+          value: '[data-testid="income-total"]'
+        - id: form-error
+          locatorGroupId: inventory-home
+          name: Form error
+          value: '[data-testid="form-error"]'
+      modules:
+        - id: invatore-inventory
+          name: Invatore inventory
+          parentId: null
+      testCases:
+        - description: Validate that the app opens, creates an inventory item, records a valid sale that decrements stock, updates sales history and income totals, rejects an oversell attempt, and restores persisted stock/sales after reload.
+          id: inventory-sales-income-e2e
+          steps:
+            - gherkinStep: Given the user opens the inventory app
+              id: inventory-sales-income-step-1
+              label: Open app
+              order: 1
+              parameters: []
+              templateStepId: fb77d502-3587-4e1e-92ec-1497f98311bc
+              templateStepName: navigate to environment base url
+            - gherkinStep: Then the inventory dashboard is visible
+              id: inventory-sales-income-step-2
+              label: Dashboard visible
+              order: 2
+              parameters:
+                - locatorId: dashboard-summary
+                  locatorName: Dashboard summary
+                  name: element
+                  type: locator
+                  value: Dashboard summary
+                - name: visible
+                  type: boolean
+                  value: "true"
+              templateStepId: 61617d12-4463-4084-929f-1c3c01a41a66
+              templateStepName: assert element visible
+            - gherkinStep: When the user adds an item named "Rice Bag" with stock 10 and price 25
+              id: inventory-sales-income-step-3
+              label: Add item
+              order: 3
+              parameters: []
+              templateStepName: custom inventory item creation
+            - gherkinStep: Then the inventory table shows "Rice Bag" with stock 10
+              id: inventory-sales-income-step-4
+              label: Item visible
+              order: 4
+              parameters: []
+              templateStepName: custom inventory assertion
+            - gherkinStep: When the user records a sale of 3 units of "Rice Bag"
+              id: inventory-sales-income-step-5
+              label: Record sale
+              order: 5
+              parameters: []
+              templateStepName: custom sale recording
+            - gherkinStep: Then the inventory table shows "Rice Bag" with stock 7 and income total "$75.00"
+              id: inventory-sales-income-step-6
+              label: Sale updates stock and income
+              order: 6
+              parameters: []
+              templateStepName: custom stock and income assertion
+            - gherkinStep: And the sales history shows a sale for "Rice Bag" quantity 3 and total "$75.00"
+              id: inventory-sales-income-step-7
+              label: Sales history visible
+              order: 7
+              parameters: []
+              templateStepName: custom sales history assertion
+            - gherkinStep: When the user attempts to sell 9 units of "Rice Bag"
+              id: inventory-sales-income-step-8
+              label: Reject oversell
+              order: 8
+              parameters: []
+              templateStepName: custom invalid sale attempt
+            - gherkinStep: Then the app shows an insufficient stock error and keeps "Rice Bag" stock at 7
+              id: inventory-sales-income-step-9
+              label: Error shown and totals unchanged
+              order: 9
+              parameters: []
+              templateStepName: custom invalid sale assertion
+            - gherkinStep: When the user reloads the page
+              id: inventory-sales-income-step-10
+              label: Reload
+              order: 10
+              parameters: []
+              templateStepId: cec29b93-dd58-40d6-9fdd-94bd0705ecbe
+              templateStepName: reload
+            - gherkinStep: Then after reload "Rice Bag" stock 7, sales history, and income total "$75.00" are still visible
+              id: inventory-sales-income-step-11
+              label: Persistence restored
+              order: 11
+              parameters: []
+              templateStepName: custom persistence assertion
+          title: Manage inventory, record sales, and track income
+      testSuites:
+        - description: Reviewable coverage for stock tracking, sales records, income summaries, persistence, and invalid sale recovery.
+          id: inventory-sales-suite
+          moduleId: invatore-inventory
+          name: Inventory sales and income workflow
+          testCaseIds:
+            - inventory-sales-income-e2e
+    executable:
+      path: automation/features/inventory-sales-income.feature
+      selector: "@inventory-sales-income"
+    expectedFailures: []
+    gherkinPaths:
+      - automation/features/inventory-sales-income.feature
+    id: inventory-sales-income-workflow
+    matrix:
+      - browser: chromium
+        environment: local
+    required: true
+    stepPaths:
+      - automation/steps/inventory-sales-income.steps.ts
+    taskIds:
+      - scaffold-setup
+      - data-source
+      - dashboard-controls
+      - dashboard-states
+      - validation
+    testCaseIds:
+      - inventory-sales-income-e2e
+version: "1"

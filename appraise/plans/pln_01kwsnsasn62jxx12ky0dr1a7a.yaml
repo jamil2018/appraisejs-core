@@ -1,0 +1,71 @@
+description: |-
+  Create a notepad application that allows users to create, save, update, and delete notes. The app should be suitable for this empty target workspace and include a complete user-facing experience for managing notes. Plan for a modern React application using TypeScript and Vite unless the target workspace indicates a stronger existing convention. Include local persistence so saved notes survive page reloads, note selection and editing workflows, clear empty states, delete confirmation or undo-safe behavior, responsive layout, and validation coverage for creating, saving, updating, deleting, reload persistence, and empty-state behavior.
+
+  Target workspace: /Users/jamil/Personal Projects/notepad. This is a new Appraise target registered as Notepad. Prefer conservative scaffold choices for an empty workspace: React 19, TypeScript, Vite, focused CSS or existing repo conventions if discovered, and Playwright for end-to-end validation.
+edges:
+  - from: scaffold-setup
+    to: editor-state
+    type: blocks
+  - from: editor-state
+    to: document-management
+    type: blocks
+  - from: document-management
+    to: persistence
+    type: blocks
+  - from: persistence
+    to: validation
+    type: blocks
+goal: Notepad
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-setup
+      - editor-state
+  - id: behavior
+    taskIds:
+      - document-management
+      - persistence
+  - id: quality
+    taskIds:
+      - validation
+lifecycle: validation_passed
+planId: pln_01kwsnsasn62jxx12ky0dr1a7a
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The app starts locally with React, Vite and no missing dependency errors.
+      - Base styling, component primitives, and project structure are in place for the planned UI.
+      - Stack assumptions are stated clearly in the review-ready plan.
+    description: Create the React, Vite application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief. These defaults are reviewable through Appraise feedback when the brief does not name a stack.
+    id: scaffold-setup
+    title: Scaffold and configure the app shell
+    validationIntent: Run install/build or the closest available scaffold validation for the generated app shell.
+  - acceptanceCriteria:
+      - Users can create or update written content through the primary editor.
+      - Unsaved, saved, empty, and invalid states are represented clearly.
+    description: Create the document or note editing experience, including editing state, selection affordances, and save-ready UI feedback.
+    id: editor-state
+    title: Build editor state and controls
+    validationIntent: Exercise editor state transitions with focused component or browser validation.
+  - acceptanceCriteria:
+      - Users can move between document list and editor surfaces without losing context.
+      - Document management actions update the visible state predictably.
+    description: Add the list/detail workflow for creating, selecting, renaming, deleting, or organizing documents as requested by the brief.
+    id: document-management
+    title: Manage documents or notes
+    validationIntent: Verify the document/list workflow and destructive action safeguards.
+  - acceptanceCriteria:
+      - Saved content survives a page reload or app restart according to the selected persistence layer.
+      - Persistence failures surface a recoverable state without corrupting visible content.
+    description: Store document content with the persistence layer requested by the brief and restore it on reload.
+    id: persistence
+    title: Persist editor content
+    validationIntent: Verify saved content reloads and persistence failures are handled.
+  - acceptanceCriteria:
+      - The primary editor workflow is verified with deterministic evidence.
+      - Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.
+    description: Add or run validation that covers editing, document management, persistence, and recovery states.
+    id: validation
+    title: Validate the editor workflow
+    validationIntent: Run focused tests plus lint/build checks appropriate for the app.
+version: "1"
