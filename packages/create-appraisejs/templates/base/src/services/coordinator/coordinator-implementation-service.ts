@@ -24,6 +24,7 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
+import { summarizeRunEvidence, type TestRunEvidenceHealthValue } from '@/services/test-run/run-evidence-summary-service'
 
 import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 import { readStoredJsonReport, runtimePathsForValidation, supportImportPaths } from './coordinator-baseline-service'
@@ -404,6 +405,7 @@ type ManagedTestRunEvidence = {
   result: TestRunResult
   reportPath: string | null
   completedAt: Date | null
+  evidenceHealth?: TestRunEvidenceHealthValue
 }
 
 function managedInfrastructureFailure(run: ImplementationValidationRun, now: Date) {
@@ -424,6 +426,11 @@ function implementationRunStatus(testRun: ManagedTestRunEvidence) {
     testRun.status === TestRunStatus.CANCELLING
   ) {
     return 'running' as const
+  }
+  if (testRun.evidenceHealth && testRun.evidenceHealth !== 'valid') {
+    return testRun.evidenceHealth === 'infrastructure_failure'
+      ? ('infrastructure_failure' as const)
+      : ('failed' as const)
   }
   if (testRun.result === TestRunResult.PASSED) return 'passed' as const
   if (testRun.result === TestRunResult.CANCELLED) return 'cancelled' as const
@@ -456,13 +463,15 @@ async function loadManagedImplementationRun(run: ImplementationValidationRun, cl
     return managedInfrastructureFailure(run, now)
   }
 
-  const status = implementationRunStatus(testRun)
+  const evidenceSummary = await summarizeRunEvidence(testRun.runId, client)
+  const status = implementationRunStatus({ ...testRun, evidenceHealth: evidenceSummary.evidenceHealth })
   const failureSignatureHash = await failureSignatureHashForRun(testRun)
 
   return {
     ...run,
     evidenceSource: 'managed' as const,
-    assurance: status === 'passed' ? ('full' as const) : ('reduced' as const),
+    assurance:
+      status === 'passed' && evidenceSummary.evidenceHealth === 'valid' ? ('full' as const) : ('reduced' as const),
     status,
     testRunId: testRun.runId,
     evidenceUrls: [`/test-runs/${testRun.runId}`, `/api/test-runs/${testRun.runId}/logs`],

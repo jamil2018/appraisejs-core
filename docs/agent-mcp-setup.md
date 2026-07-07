@@ -60,7 +60,8 @@ client. Do not report tools as available until the client has completed that ref
 
 After reconnect, verify these expected capabilities:
 
-- Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`
+- Tools: `planning_session_create`, `plan_review_loop`, `validation_publish`, `test_run_preflight`,
+  `test_run_read`, `test_run_diagnose`
 - Resources: `appraise://agent-guide`, `appraise://workflow/planning`,
   `appraise://workflow/validation-preparation`, `appraise://workflow/standby`
 

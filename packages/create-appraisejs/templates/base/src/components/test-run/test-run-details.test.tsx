@@ -39,6 +39,7 @@ function createTestRunDetails(overrides?: Partial<TestRunDetailsData>): TestRunD
     completedAt: null,
     status: TestRunStatus.RUNNING,
     result: TestRunResult.PENDING,
+    evidenceHealth: 'invalid_missing_report',
     updatedAt: new Date('2024-01-01T00:00:00.000Z'),
     environmentId: 'env-1',
     testWorkersCount: 2,

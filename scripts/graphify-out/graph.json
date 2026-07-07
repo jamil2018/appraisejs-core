@@ -4147,8 +4147,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "check-agent-harness.mjs",
-      "id": "check_agent_harness",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness"
     },
     {
       "label": "repoRoot",
@@ -4158,8 +4158,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "reporoot",
-      "id": "check_agent_harness_reporoot",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_reporoot"
     },
     {
       "label": "literalForbidden",
@@ -4169,8 +4169,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "literalforbidden",
-      "id": "check_agent_harness_literalforbidden",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_literalforbidden"
     },
     {
       "label": "regexForbidden",
@@ -4180,8 +4180,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "regexforbidden",
-      "id": "check_agent_harness_regexforbidden",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_regexforbidden"
     },
     {
       "label": "hasRootAgentHarness",
@@ -4191,8 +4191,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "hasrootagentharness",
-      "id": "check_agent_harness_hasrootagentharness",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_hasrootagentharness"
     },
     {
       "label": "rootHarnessRequiredFiles",
@@ -4202,8 +4202,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "rootharnessrequiredfiles",
-      "id": "check_agent_harness_rootharnessrequiredfiles",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_rootharnessrequiredfiles"
     },
     {
       "label": "staticFiles",
@@ -4213,8 +4213,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "staticfiles",
-      "id": "check_agent_harness_staticfiles",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_staticfiles"
     },
     {
       "label": "requiredTokens",
@@ -4224,8 +4224,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "requiredtokens",
-      "id": "check_agent_harness_requiredtokens",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_requiredtokens"
     },
     {
       "label": "walkFiles()",
@@ -4235,8 +4235,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "walkfiles()",
-      "id": "check_agent_harness_walkfiles",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_walkfiles"
     },
     {
       "label": "collectEntryFiles()",
@@ -4246,8 +4246,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "collectentryfiles()",
-      "id": "check_agent_harness_collectentryfiles",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_collectentryfiles"
     },
     {
       "label": "listDirectories()",
@@ -4257,8 +4257,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "listdirectories()",
-      "id": "check_agent_harness_listdirectories",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_listdirectories"
     },
     {
       "label": "lineFor()",
@@ -4268,8 +4268,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "linefor()",
-      "id": "check_agent_harness_linefor",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_linefor"
     },
     {
       "label": "toRepoRelative()",
@@ -4279,8 +4279,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "toreporelative()",
-      "id": "check_agent_harness_toreporelative",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_toreporelative"
     },
     {
       "label": "requireFile()",
@@ -4290,8 +4290,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "requirefile()",
-      "id": "check_agent_harness_requirefile",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_requirefile"
     },
     {
       "label": "checkRootRelativeReferences()",
@@ -4301,8 +4301,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "checkrootrelativereferences()",
-      "id": "check_agent_harness_checkrootrelativereferences",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_checkrootrelativereferences"
     },
     {
       "label": "activeFiles",
@@ -4312,8 +4312,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "activefiles",
-      "id": "check_agent_harness_activefiles",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_activefiles"
     },
     {
       "label": "failures",
@@ -4323,8 +4323,8 @@
       "_origin": "ast",
       "community": 7,
       "norm_label": "failures",
-      "id": "check_agent_harness_failures",
-      "community_name": "Community 7"
+      "community_name": "Community 7",
+      "id": "check_agent_harness_failures"
     }
   ],
   "links": [
@@ -11367,5 +11367,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "0b17a6e3b8967a6f484ee742983996e553d448dc"
+  "built_at_commit": "49ef38d05c0850978e11e256e23d50a931aa6b64"
 }

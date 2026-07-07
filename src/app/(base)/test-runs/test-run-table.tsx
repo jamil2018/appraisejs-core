@@ -6,7 +6,11 @@ import { Environment, Tag, TestRun, TestRunTestCase, TestRunStatus } from '@pris
 import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { testRunTableCols } from './test-run-table-columns'
 
-type TestRunData = TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment }
+type TestRunData = TestRun & {
+  testCases: TestRunTestCase[]
+  tags: Tag[]
+  environment: Environment
+}
 
 interface TestRunTableProps {
   initialData: TestRunData[]

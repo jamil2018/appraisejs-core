@@ -1,6 +1,7 @@
 export type { TestRunDetailsData } from './test-run-details-types'
 export { getTestRunDetailsData, getTraceViewerStatusData } from './test-run-details-guards'
 export {
+  getEvidenceHealthMeta,
   getTestCaseResultMeta,
   getTestCaseStatusMeta,
   getTestRunResultText,

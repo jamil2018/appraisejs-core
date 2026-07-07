@@ -243,31 +243,33 @@ model TestRunTestCase {
 }
 
 model TestRun {
-  id               String            @id @default(uuid())
-  name             String            @unique
-  runId            String            @unique @default(uuid())
-  startedAt        DateTime          @default(now())
+  id               String                @id @default(uuid())
+  name             String                @unique
+  runId            String                @unique @default(uuid())
+  startedAt        DateTime              @default(now())
   completedAt      DateTime?
-  status           TestRunStatus     @default(QUEUED)
-  result           TestRunResult     @default(PENDING)
+  status           TestRunStatus         @default(QUEUED)
+  result           TestRunResult         @default(PENDING)
+  evidenceHealth   TestRunEvidenceHealth @default(invalid_missing_report)
   testCases        TestRunTestCase[]
-  updatedAt        DateTime          @updatedAt
-  environment      Environment       @relation(fields: [environmentId], references: [id])
+  updatedAt        DateTime              @updatedAt
+  environment      Environment           @relation(fields: [environmentId], references: [id])
   environmentId    String
   tags             Tag[]
-  testWorkersCount Int?              @default(1)
-  browserEngine    BrowserEngine     @default(CHROMIUM)
+  testWorkersCount Int?                  @default(1)
+  browserEngine    BrowserEngine         @default(CHROMIUM)
   logs             TestRunLog?
   logPath          String?
   reportPath       String?
   reports          Report[]
   planId           String?
-  plan             PlanProjection?   @relation(fields: [planId], references: [planId], onDelete: SetNull)
+  plan             PlanProjection?       @relation(fields: [planId], references: [planId], onDelete: SetNull)
   targetProjectId  String?
-  targetProject    TargetProject?    @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  targetProject    TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
 
   @@index([completedAt])
   @@index([result])
+  @@index([evidenceHealth])
   @@index([targetProjectId])
 }
 
@@ -758,6 +760,17 @@ enum TestRunResult {
   PASSED
   FAILED
   CANCELLED
+}
+
+enum TestRunEvidenceHealth {
+  valid
+  invalid_empty_run
+  invalid_missing_test_cases
+  invalid_missing_report
+  invalid_placeholder_binary
+  invalid_unmatched_scenarios
+  invalid_stale_runtime
+  infrastructure_failure
 }
 
 enum Role {

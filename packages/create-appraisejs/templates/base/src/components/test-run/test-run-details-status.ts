@@ -1,7 +1,16 @@
 import type { TestRunResult, TestRunStatus, TestRunTestCaseResult, TestRunTestCaseStatus } from '@prisma/client'
-import { CheckCircle, ClipboardCheck, ClipboardX, Clock, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle,
+  ClipboardCheck,
+  ClipboardX,
+  Clock,
+  ListEnd,
+  LoaderCircle,
+  XCircle,
+} from 'lucide-react'
 
-import type { StatusMeta } from './test-run-details-types'
+import type { StatusMeta, TestRunEvidenceHealth } from './test-run-details-types'
 
 export function isTerminalTestRunStatus(status: TestRunStatus) {
   return status === 'COMPLETED' || status === 'CANCELLED'
@@ -38,6 +47,29 @@ export function getTestRunResultText(result: TestRunResult) {
       return 'Cancelled'
     default:
       return 'Unknown'
+  }
+}
+
+export function getEvidenceHealthMeta(evidenceHealth: TestRunEvidenceHealth): StatusMeta {
+  switch (evidenceHealth) {
+    case 'valid':
+      return { label: 'Valid evidence', icon: CheckCircle, badgeClassName: 'bg-emerald-700 text-white' }
+    case 'infrastructure_failure':
+      return { label: 'Infrastructure failure', icon: AlertTriangle, badgeClassName: 'bg-orange-600 text-white' }
+    case 'invalid_empty_run':
+      return { label: 'Empty run evidence', icon: AlertTriangle, badgeClassName: 'bg-red-600 text-white' }
+    case 'invalid_missing_test_cases':
+      return { label: 'Missing expected cases', icon: AlertTriangle, badgeClassName: 'bg-red-600 text-white' }
+    case 'invalid_missing_report':
+      return { label: 'Missing report', icon: AlertTriangle, badgeClassName: 'bg-red-600 text-white' }
+    case 'invalid_placeholder_binary':
+      return { label: 'Placeholder binary', icon: AlertTriangle, badgeClassName: 'bg-red-600 text-white' }
+    case 'invalid_unmatched_scenarios':
+      return { label: 'Unmatched scenarios', icon: AlertTriangle, badgeClassName: 'bg-red-600 text-white' }
+    case 'invalid_stale_runtime':
+      return { label: 'Stale runtime', icon: AlertTriangle, badgeClassName: 'bg-red-600 text-white' }
+    default:
+      return { label: 'Unknown evidence', icon: AlertTriangle, badgeClassName: 'bg-zinc-600 text-white' }
   }
 }
 

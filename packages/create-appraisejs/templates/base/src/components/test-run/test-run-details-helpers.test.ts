@@ -15,6 +15,7 @@ describe('test-run-details helpers', () => {
     runId: 'RUN-1',
     status: TestRunStatus.COMPLETED,
     result: TestRunResult.PASSED,
+    evidenceHealth: 'valid',
     startedAt: new Date('2024-01-01T00:00:00.000Z'),
     completedAt: new Date('2024-01-01T00:00:07.000Z'),
     browserEngine: 'chromium',

@@ -31,6 +31,7 @@ import {
   createTestRunFromValidatedValue,
   getTestRunLogsService,
 } from '@/services/test-run/test-run-service'
+import { summarizeRunEvidence } from '@/services/test-run/run-evidence-summary-service'
 
 import { appendPlanEvent } from './coordinator-service'
 import {
@@ -316,8 +317,17 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
     .filter(log => log.type === 'stderr')
     .map(log => log.message.trim())
     .filter(Boolean)
+  const evidenceSummary = await summarizeRunEvidence(testRunId, client)
   const report = await readStoredJsonReport(run.reportPath)
   const reportEvidence = extractCucumberEvidence(report)
+  if (evidenceSummary.evidenceHealth !== 'valid') {
+    return invalidBaselineEvidence({
+      evidenceHealth: evidenceSummary.evidenceHealth,
+      blockers: evidenceSummary.blockers,
+      logFailureSignatures,
+      completedStepIds: reportEvidence.completedStepIds,
+    })
+  }
   return {
     status: 'completed' as const,
     result:
@@ -329,6 +339,26 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
     failureSignatures:
       reportEvidence.failureSignatures.length > 0 ? reportEvidence.failureSignatures : logFailureSignatures,
     completedStepIds: reportEvidence.completedStepIds,
+  }
+}
+
+function invalidBaselineEvidence(input: {
+  evidenceHealth: string
+  blockers: string[]
+  logFailureSignatures: string[]
+  completedStepIds: string[]
+}) {
+  const evidenceFailureSignatures = input.blockers.length
+    ? input.blockers
+    : [`Evidence health is ${input.evidenceHealth}.`]
+  return {
+    status: 'completed' as const,
+    result: 'failed' as const,
+    failureSignatures:
+      input.evidenceHealth === 'infrastructure_failure'
+        ? [...evidenceFailureSignatures, ...input.logFailureSignatures]
+        : evidenceFailureSignatures,
+    completedStepIds: input.completedStepIds,
   }
 }
 
