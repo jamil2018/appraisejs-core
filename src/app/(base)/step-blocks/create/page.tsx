@@ -1,9 +1,9 @@
 import { createStepBlockAction } from '@/actions/step-block/step-block-actions'
-import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Metadata } from 'next'
 
+import { loadStepBlockFormResources } from '../step-block-form-resources'
 import { getTemplateStepOptions } from '../step-block-helpers'
 import { StepBlockForm } from '../step-block-form'
 
@@ -13,10 +13,10 @@ export const metadata: Metadata = {
 }
 
 const CreateStepBlock = async () => {
-  const { data, error } = await getAllTemplateStepsAction()
+  const resources = await loadStepBlockFormResources()
 
-  if (error) {
-    return <div>Error: {error}</div>
+  if (resources.error) {
+    return <div>Error: {resources.error}</div>
   }
 
   return (
@@ -26,7 +26,11 @@ const CreateStepBlock = async () => {
         <HeaderSubtitle>Create a reusable ordered block from existing template steps</HeaderSubtitle>
       </div>
       <StepBlockForm
-        templateSteps={getTemplateStepOptions(data)}
+        templateSteps={getTemplateStepOptions(resources.templateSteps, resources.templateStepParams)}
+        locators={resources.locators}
+        locatorGroups={resources.locatorGroups}
+        modules={resources.modules}
+        environments={resources.environments}
         successTitle="Step block created"
         successMessage="Step block created successfully"
         onSubmitAction={createStepBlockAction}

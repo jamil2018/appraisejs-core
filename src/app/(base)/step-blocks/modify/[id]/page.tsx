@@ -1,9 +1,9 @@
 import { getStepBlockByIdAction, updateStepBlockAction } from '@/actions/step-block/step-block-actions'
-import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Metadata } from 'next'
 
+import { loadStepBlockFormResources } from '../../step-block-form-resources'
 import { getStepBlockRow, getTemplateStepOptions, toStepBlockFormValues } from '../../step-block-helpers'
 import { StepBlockForm } from '../../step-block-form'
 
@@ -20,9 +20,10 @@ const ModifyStepBlock = async ({ params }: { params: Promise<{ id: string }> }) 
     return <div>Error: {stepBlockResponse.error}</div>
   }
 
-  const templateStepsResponse = await getAllTemplateStepsAction()
-  if (templateStepsResponse.error) {
-    return <div>Error: {templateStepsResponse.error}</div>
+  const resources = await loadStepBlockFormResources()
+
+  if (resources.error) {
+    return <div>Error: {resources.error}</div>
   }
 
   const stepBlock = getStepBlockRow(stepBlockResponse.data)
@@ -38,7 +39,11 @@ const ModifyStepBlock = async ({ params }: { params: Promise<{ id: string }> }) 
       </div>
       <StepBlockForm
         defaultValues={toStepBlockFormValues(stepBlock)}
-        templateSteps={getTemplateStepOptions(templateStepsResponse.data)}
+        templateSteps={getTemplateStepOptions(resources.templateSteps, resources.templateStepParams)}
+        locators={resources.locators}
+        locatorGroups={resources.locatorGroups}
+        modules={resources.modules}
+        environments={resources.environments}
         successTitle="Step block updated"
         successMessage="Step block updated successfully"
         onSubmitAction={updateStepBlockAction}

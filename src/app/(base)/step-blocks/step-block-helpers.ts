@@ -1,12 +1,31 @@
 import type { StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
 import { stepBlockSchema } from '@/constants/form-opts/step-block-form-opts'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
+import type { StepParameterType } from '@prisma/client'
 
 export type StepBlockTemplateStepOption = {
   id: string
   name: string
   signature: string
+  parameters?: Array<{ id: string; name: string; order: number; type: StepParameterType }>
   templateStepGroup?: { name: string } | null
+}
+
+type StepBlockTemplateStepParameter = NonNullable<StepBlockTemplateStepOption['parameters']>[number] & {
+  templateStepId: string
+}
+
+function getParametersByTemplateStep(parameterData: ActionResponseData | undefined) {
+  const parametersByStep = new Map<string, StepBlockTemplateStepParameter[]>()
+  const parameters = Array.isArray(parameterData) ? (parameterData as StepBlockTemplateStepParameter[]) : []
+
+  for (const parameter of parameters) {
+    const current = parametersByStep.get(parameter.templateStepId) ?? []
+    current.push(parameter)
+    parametersByStep.set(parameter.templateStepId, current)
+  }
+
+  return parametersByStep
 }
 
 export type StepBlockStepRow = {
@@ -51,8 +70,17 @@ export function getStepBlockRow(data: ActionResponseData | undefined): StepBlock
   return data ? (data as StepBlockRow) : null
 }
 
-export function getTemplateStepOptions(data: ActionResponseData | undefined): StepBlockTemplateStepOption[] {
-  return Array.isArray(data) ? (data as StepBlockTemplateStepOption[]) : []
+export function getTemplateStepOptions(
+  data: ActionResponseData | undefined,
+  parameterData?: ActionResponseData | undefined,
+): StepBlockTemplateStepOption[] {
+  const templateSteps = Array.isArray(data) ? (data as StepBlockTemplateStepOption[]) : []
+  const parametersByStep = getParametersByTemplateStep(parameterData)
+
+  return templateSteps.map(templateStep => ({
+    ...templateStep,
+    parameters: (parametersByStep.get(templateStep.id) ?? []).sort((left, right) => left.order - right.order),
+  }))
 }
 
 export function toStepBlockFormValues(row: StepBlockRow): StepBlockFormValues {
