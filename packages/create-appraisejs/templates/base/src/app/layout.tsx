@@ -160,6 +160,12 @@ export default function RootLayout({
                       description: 'Organize template steps into logical groups',
                     },
                     {
+                      text: 'Step Blocks',
+                      icon: <Blocks className="size-6 text-primary" />,
+                      href: '/step-blocks',
+                      description: 'Compose reusable ordered template-step sequences',
+                    },
+                    {
                       text: 'Template Test Cases',
                       icon: <Blocks className="size-6 text-primary" />,
                       href: '/template-test-cases',
