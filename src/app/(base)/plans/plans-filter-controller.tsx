@@ -74,7 +74,7 @@ export function PlansFilterController() {
 function PlansStatusTabs({ currentTab, onTabChange }: { currentTab: string; onTabChange: (tab: string) => void }) {
   return (
     <Tabs value={currentTab} onValueChange={onTabChange} className="w-full md:w-auto">
-      <TabsList className="bg-muted/50 flex h-auto flex-wrap gap-1 rounded-lg p-1">
+      <TabsList className="flex h-auto flex-wrap gap-1 rounded-lg border border-white/[0.07] bg-[rgba(18,37,64,0.32)] p-1 backdrop-blur-md">
         <TabsTrigger value="all" className="rounded-md px-3 py-1.5 text-xs font-medium">
           All
         </TabsTrigger>

@@ -15,69 +15,69 @@ type AppDrawerItem = {
 
 export const AppDrawerItemColor = {
   red: {
-    buttonColor: 'bg-red-500/20 hover:bg-red-500/25',
-    iconColor: 'text-red-500',
+    buttonColor: 'border-red-300/20 bg-red-400/[0.07] hover:bg-red-400/[0.11]',
+    iconColor: 'text-red-300',
     badgeColor: 'bg-red-400 text-red-900',
   },
   green: {
-    buttonColor: 'bg-green-500/20 hover:bg-green-500/25',
-    iconColor: 'text-green-500',
+    buttonColor: 'border-green-300/20 bg-green-400/[0.07] hover:bg-green-400/[0.11]',
+    iconColor: 'text-green-300',
     badgeColor: 'bg-green-400 text-green-800',
   },
   yellow: {
-    buttonColor: 'bg-yellow-500/20 hover:bg-yellow-500/25',
-    iconColor: 'text-yellow-500',
+    buttonColor: 'border-yellow-300/20 bg-yellow-400/[0.07] hover:bg-yellow-400/[0.11]',
+    iconColor: 'text-yellow-300',
     badgeColor: 'bg-yellow-400 text-yellow-800',
   },
   blue: {
-    buttonColor: 'bg-blue-500/20 hover:bg-blue-500/25',
-    iconColor: 'text-blue-500',
+    buttonColor: 'border-sky-300/20 bg-sky-400/[0.07] hover:bg-sky-400/[0.11]',
+    iconColor: 'text-sky-300',
     badgeColor: 'bg-blue-400 text-blue-800',
   },
   emerald: {
-    buttonColor: 'bg-emerald-500/20 hover:bg-emerald-500/25',
-    iconColor: 'text-emerald-500',
+    buttonColor: 'border-emerald-300/20 bg-emerald-400/[0.07] hover:bg-emerald-400/[0.11]',
+    iconColor: 'text-emerald-300',
     badgeColor: 'bg-emerald-400 text-emerald-800',
   },
   purple: {
-    buttonColor: 'bg-purple-500/20 hover:bg-purple-500/25',
-    iconColor: 'text-purple-500',
+    buttonColor: 'border-purple-300/20 bg-purple-400/[0.07] hover:bg-purple-400/[0.11]',
+    iconColor: 'text-purple-300',
     badgeColor: 'bg-purple-400 text-purple-800',
   },
   pink: {
-    buttonColor: 'bg-pink-500/20 hover:bg-pink-500/25',
-    iconColor: 'text-pink-500',
+    buttonColor: 'border-pink-300/20 bg-pink-400/[0.07] hover:bg-pink-400/[0.11]',
+    iconColor: 'text-pink-300',
     badgeColor: 'bg-pink-400 text-pink-800',
   },
   rose: {
-    buttonColor: 'bg-rose-500/20 hover:bg-rose-500/25',
-    iconColor: 'text-rose-500',
+    buttonColor: 'border-rose-300/20 bg-rose-400/[0.07] hover:bg-rose-400/[0.11]',
+    iconColor: 'text-rose-300',
     badgeColor: 'bg-rose-400 text-rose-800',
   },
   fuchsia: {
-    buttonColor: 'bg-fuchsia-500/20 hover:bg-fuchsia-500/25',
-    iconColor: 'text-fuchsia-500',
+    buttonColor: 'border-fuchsia-300/20 bg-fuchsia-400/[0.07] hover:bg-fuchsia-400/[0.11]',
+    iconColor: 'text-fuchsia-300',
     badgeColor: 'bg-fuchsia-400 text-fuchsia-800',
   },
   violet: {
-    buttonColor: 'bg-violet-500/20 hover:bg-violet-500/25',
-    iconColor: 'text-violet-500',
+    buttonColor: 'border-violet-300/20 bg-violet-400/[0.07] hover:bg-violet-400/[0.11]',
+    iconColor: 'text-violet-300',
     badgeColor: 'bg-violet-400 text-violet-800',
   },
   sky: {
-    buttonColor: 'bg-sky-500/20 hover:bg-sky-500/25',
-    iconColor: 'text-sky-500',
+    buttonColor: 'border-sky-300/20 bg-sky-400/[0.07] hover:bg-sky-400/[0.11]',
+    iconColor: 'text-sky-300',
     badgeColor: 'bg-sky-400 text-sky-800',
   },
   orange: {
-    buttonColor: 'bg-orange-500/20 hover:bg-orange-500/25',
-    iconColor: 'text-orange-500',
+    buttonColor: 'border-orange-300/20 bg-orange-400/[0.07] hover:bg-orange-400/[0.11]',
+    iconColor: 'text-orange-300',
     badgeColor: 'bg-orange-400 text-orange-800',
   },
   gray: {
-    buttonColor: 'bg-zinc-500/20 hover:bg-zinc-500/25',
-    iconColor: 'text-zinc-500',
-    badgeColor: 'bg-zinc-400 text-zinc-800',
+    buttonColor: 'border-white/[0.055] bg-white/[0.025] hover:bg-white/[0.04]',
+    iconColor: 'text-muted-foreground',
+    badgeColor: 'bg-zinc-500/80 text-zinc-950',
   },
 }
 
@@ -100,7 +100,7 @@ const AppDrawerItem = ({
   return (
     <Button
       variant="outline"
-      className={`relative flex h-fit w-full flex-col items-center justify-center border-none hover:text-zinc-200 ${color.buttonColor} px-2`}
+      className={`relative flex min-h-16 w-full flex-col items-center justify-center rounded-md border px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:text-zinc-100 ${color.buttonColor}`}
       onClick={onClick}
       disabled={!isActive}
     >
@@ -165,7 +165,7 @@ export default function AppDrawer({
   ]
 
   return (
-    <Card id="container" className="w-fit border-zinc-600/10 bg-zinc-600/10">
+    <Card id="container" className="w-fit border-white/[0.07] bg-[rgba(18,37,64,0.34)]">
       <CardHeader id="header">
         <CardTitle className="text-primary">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

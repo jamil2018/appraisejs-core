@@ -28,27 +28,27 @@ export function PlansStatsCards({
         value={totalApproved}
         caption="Ready for baseline or implementation"
         icon={CheckCircle2}
-        accentClassName="border-l-emerald-500"
-        valueClassName="text-emerald-700 dark:text-emerald-400"
-        iconClassName="text-emerald-500"
+        accentClassName="border-l-emerald-300/70"
+        valueClassName="text-emerald-300"
+        iconClassName="text-emerald-300"
       />
       <StatCard
         title="Awaiting Review"
         value={totalAwaitingReview}
         caption="Requires review or feedback"
         icon={AlertTriangle}
-        accentClassName="border-l-amber-500"
-        valueClassName="text-amber-700 dark:text-amber-400"
-        iconClassName="text-amber-500"
+        accentClassName="border-l-amber-300/70"
+        valueClassName="text-amber-300"
+        iconClassName="text-amber-300"
       />
       <StatCard
         title="In Progress"
         value={totalInProgress}
         caption="Active baseline or coding phase"
         icon={Clock}
-        accentClassName="border-l-violet-500"
-        valueClassName="text-violet-700 dark:text-violet-400"
-        iconClassName="text-violet-500"
+        accentClassName="border-l-violet-300/70"
+        valueClassName="text-violet-300"
+        iconClassName="text-violet-300"
       />
     </div>
   )
@@ -72,10 +72,14 @@ function StatCard({
   iconClassName?: string
 }) {
   return (
-    <Card className={`rounded-xl border bg-card shadow-sm ${accentClassName ?? ''}`}>
+    <Card
+      className={`rounded-lg border border-l-[3px] border-white/[0.075] bg-[rgba(18,37,64,0.34)] ${accentClassName ?? 'border-l-primary/60'}`}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <span className={`flex size-8 items-center justify-center rounded-lg border bg-background ${iconClassName}`}>
+        <span
+          className={`flex size-8 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.035] ${iconClassName}`}
+        >
           <Icon className="size-4 stroke-[2.2]" />
         </span>
       </CardHeader>
