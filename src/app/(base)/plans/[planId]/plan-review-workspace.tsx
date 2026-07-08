@@ -2,7 +2,7 @@
 
 import '@xyflow/react/dist/style.css'
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import {
   Background,
   Controls,
@@ -19,18 +19,15 @@ import Link from 'next/link'
 import {
   AlertTriangle,
   ArrowLeft,
-  ArrowDown,
   Check,
   CheckCircle2,
   Clock,
   Copy,
   Download,
-  ExternalLink,
   FileText,
   Folder,
   GitCompare,
   Hash,
-  Image,
   Keyboard,
   Layers,
   List,
@@ -43,27 +40,22 @@ import {
   Save,
   Search,
   Share2,
-  ShieldAlert,
   XCircle,
-  X,
 } from 'lucide-react'
 
 import {
   addPlanRemarkAction,
   acceptBaselineAction,
-  acknowledgeBaselineFailureAction,
   approveValidationFileAction,
   approvePlanRevisionAction,
   cancelBaselineExecutionAction,
   decideValidationNodeAction,
-  justifyBaselineRegressionPassAction,
   publishSharedPlanLayoutAction,
   requestPlanChangesAction,
   retargetPlanRemarkAction,
   savePersonalPlanLayoutAction,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
-  transitionPlanRemarkAction,
 } from '@/actions/plan-review/plan-review-actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -87,10 +79,12 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
-import { getThreadStatus, isThreadOpen } from '@/services/plan-review/plan-review-helpers'
+import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
 
 import { projectPlanFlow } from './plan-flow-projection'
 import { PlanFlowTaskNode, type PlanFlowTaskNode as PlanFlowTaskNodeType } from './plan-flow-task-node'
+import { BaselineAttemptCard } from './baseline-attempt-card'
+import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 
 type PlanReviewWorkspaceProps = {
@@ -112,33 +106,6 @@ const edgeDash = {
 } as const
 
 const nodeTypes = { planTask: PlanFlowTaskNode }
-
-function getBaselineIcon(status: string, classification?: string) {
-  if (status === 'running' || status === 'scheduled') return Loader2
-  if (
-    status === 'cancelled' ||
-    status === 'interrupted' ||
-    classification === 'invalid_baseline_failure' ||
-    classification === 'validation_harness_failure'
-  )
-    return XCircle
-  if (status === 'completed') return CheckCircle2
-  return Clock
-}
-
-function getBaselineIconClass(status: string, classification?: string): string {
-  if (status === 'running' || status === 'scheduled') return 'animate-spin text-sky-500'
-  if (
-    status === 'cancelled' ||
-    status === 'interrupted' ||
-    classification === 'invalid_baseline_failure' ||
-    classification === 'validation_harness_failure'
-  ) {
-    return 'text-destructive'
-  }
-  if (status === 'completed') return 'text-emerald-500'
-  return 'text-muted-foreground'
-}
 
 function taskRelationshipSummary(taskId: string, semanticFlow: ReturnType<typeof projectPlanFlow>): string {
   const incoming = semanticFlow.edges
@@ -275,41 +242,6 @@ const LIFECYCLE_TONE_BY_STATE: Record<string, keyof typeof LIFECYCLE_TONES> = {
   in_progress: 'active',
 }
 
-function getInitials(actor: string): string {
-  if (actor === 'local-user') return 'LU'
-  return actor
-    .split(/[\s_-]+/)
-    .map(p => p[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
-function getRelativeTimeString(date: Date | string | number): string {
-  const time = typeof date === 'number' ? date : new Date(date).getTime()
-  const now = Date.now()
-  const diff = now - time
-
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (days > 7) {
-    return new Date(time).toLocaleDateString()
-  }
-  if (days > 0) {
-    return `${days}d ago`
-  }
-  if (hours > 0) {
-    return `${hours}h ago`
-  }
-  if (minutes > 0) {
-    return `${minutes}m ago`
-  }
-  return 'Just now'
-}
-
 function renderLifecycleBadge(lifecycle: string) {
   const label = lifecycle.replaceAll('_', ' ')
   const tone = LIFECYCLE_TONES[LIFECYCLE_TONE_BY_STATE[lifecycle] ?? 'neutral']
@@ -322,436 +254,6 @@ function renderLifecycleBadge(lifecycle: string) {
       <Icon className={cn('size-3.5', spinning && 'animate-spin')} />
       {label}
     </Badge>
-  )
-}
-
-function MarkdownRemark({ content }: { content: string }) {
-  if (!content) return null
-
-  // Split content by code blocks first
-  const parts = content.split(/(```[\s\S]*?```)/g)
-
-  return (
-    <div className="space-y-1.5 text-sm leading-relaxed">
-      {parts.map((part, index) => {
-        if (part.startsWith('```') && part.endsWith('```')) {
-          const code = part.slice(3, -3).trim()
-          return (
-            <pre key={index} className="my-2 overflow-x-auto rounded-md border bg-muted p-2.5 font-mono text-xs">
-              <code>{code}</code>
-            </pre>
-          )
-        }
-
-        // Process inline formatting (bold, italic, inline code, lists)
-        const lines = part.split('\n')
-        const elements: React.ReactNode[] = []
-        let inList = false
-        let listItems: string[] = []
-
-        const flushList = (key: number) => {
-          if (listItems.length > 0) {
-            elements.push(
-              <ul key={`list-${key}`} className="my-1.5 list-disc space-y-0.5 pl-5">
-                {listItems.map((item, i) => (
-                  <li key={i}>{renderInline(item)}</li>
-                ))}
-              </ul>,
-            )
-            listItems = []
-          }
-        }
-
-        const renderInline = (text: string) => {
-          // Replace inline code, bold, italic
-          const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g)
-          return tokens.map((token, i) => {
-            if (token.startsWith('`') && token.endsWith('`')) {
-              return (
-                <code key={i} className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs">
-                  {token.slice(1, -1)}
-                </code>
-              )
-            }
-            if (token.startsWith('**') && token.endsWith('**')) {
-              return (
-                <strong key={i} className="font-semibold">
-                  {token.slice(2, -2)}
-                </strong>
-              )
-            }
-            if (token.startsWith('*') && token.endsWith('*')) {
-              return <em key={i}>{token.slice(1, -1)}</em>
-            }
-            return token
-          })
-        }
-
-        lines.forEach((line, lineIndex) => {
-          const trimmed = line.trim()
-          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-            inList = true
-            listItems.push(trimmed.slice(2))
-          } else {
-            if (inList) {
-              flushList(lineIndex)
-              inList = false
-            }
-            if (trimmed) {
-              elements.push(<p key={lineIndex}>{renderInline(line)}</p>)
-            } else {
-              elements.push(<div key={lineIndex} className="h-2" />)
-            }
-          }
-        })
-
-        if (inList) {
-          flushList(lines.length)
-        }
-
-        return <div key={index}>{elements}</div>
-      })}
-    </div>
-  )
-}
-
-function RemarkTransitionButton({
-  label,
-  tooltip,
-  icon,
-  disabled,
-  onClick,
-}: {
-  label: string
-  tooltip: string
-  icon: ReactNode
-  disabled: boolean
-  onClick: () => void
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-6 gap-1 px-2 text-[10px] font-semibold"
-          disabled={disabled}
-          onClick={onClick}
-        >
-          {icon}
-          {label}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
-    </Tooltip>
-  )
-}
-
-type PlanActionRunner = (
-  operation: () => Promise<{ success?: boolean; error?: string }>,
-  successMessage: string,
-) => void
-
-type RemarkThread = NonNullable<PlanReviewDetail['review']>['threads'][number]
-type BaselineAttempt = NonNullable<PlanReviewDetail['validation']>['baselineAttempts'][number]
-
-// fallow-ignore-next-line complexity
-function PlanRemarkThreadItem({
-  thread,
-  planId,
-  isPending,
-  run,
-}: {
-  thread: RemarkThread
-  planId: string
-  isPending: boolean
-  run: PlanActionRunner
-}) {
-  return (
-    <div className="group relative">
-      <div className="absolute -left-[19px] top-1.5 flex size-4 items-center justify-center rounded-full border border-border bg-background shadow-sm">
-        <span
-          className={cn(
-            'size-1.5 rounded-full',
-            thread.blocking && isThreadOpen(thread) ? 'animate-pulse bg-destructive' : 'bg-muted-foreground/60',
-          )}
-        />
-      </div>
-
-      <div
-        className={cn(
-          'space-y-2.5 rounded-xl border bg-card p-3 shadow-sm transition-all duration-200 hover:shadow-md',
-          thread.blocking && isThreadOpen(thread)
-            ? 'bg-destructive/[0.02] border-destructive/20'
-            : 'border-border/80',
-        )}
-      >
-        <div className="border-border/40 flex items-center justify-between gap-2 border-b pb-1.5">
-          <div className="flex items-center gap-1">
-            {thread.blocking && <ShieldAlert className="size-3 animate-bounce text-destructive" />}
-            <Badge
-              variant={thread.blocking && isThreadOpen(thread) ? 'destructive' : 'outline'}
-              className="px-1.5 py-0 text-[9px] font-bold uppercase tracking-wider"
-            >
-              {thread.blocking ? 'Blocking' : 'Non-blocking'}
-            </Badge>
-          </div>
-          <span className="text-muted-foreground/75 text-[10px] font-bold uppercase tracking-wider">
-            {getThreadStatus(thread)}
-          </span>
-        </div>
-
-        <div className="space-y-3">
-          {thread.events.map(event => {
-            const initials = getInitials(event.actor)
-            return (
-              <div key={event.id} className="flex gap-2 text-xs">
-                <span
-                  className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary font-mono text-[9px] font-bold text-secondary-foreground shadow-sm"
-                  title={event.actor}
-                >
-                  {initials}
-                </span>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span className="font-bold text-foreground">{event.actor}</span>
-                    <span>{getRelativeTimeString(event.createdAt)}</span>
-                  </div>
-                  {event.body ? (
-                    <div className="bg-muted/30 border-muted/20 rounded-lg border p-2 text-muted-foreground">
-                      <div className="text-muted-foreground/50 mb-1 text-[9px] font-bold uppercase tracking-wider">
-                        {event.action}
-                      </div>
-                      <MarkdownRemark content={event.body} />
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground/70 pl-1 text-[10px] capitalize italic">
-                      {event.action} the thread
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {isThreadOpen(thread) && (
-          <TooltipProvider>
-            <div className="border-border/40 mt-2 flex items-center gap-1.5 border-t pt-2">
-              <span className="text-muted-foreground/70 mr-1 text-[9px] font-semibold uppercase">Action:</span>
-
-              <RemarkTransitionButton
-                label="Resolve"
-                tooltip="Mark as resolved"
-                icon={<Check className="size-3 text-emerald-500" />}
-                disabled={isPending}
-                onClick={() =>
-                  run(
-                    () =>
-                      transitionPlanRemarkAction({
-                        planId,
-                        threadId: thread.id,
-                        action: 'resolved',
-                      }),
-                    'Remark resolved.',
-                  )
-                }
-              />
-
-              <RemarkTransitionButton
-                label="Dismiss"
-                tooltip="Dismiss remark"
-                icon={<X className="size-3 text-muted-foreground" />}
-                disabled={isPending}
-                onClick={() =>
-                  run(
-                    () =>
-                      transitionPlanRemarkAction({
-                        planId,
-                        threadId: thread.id,
-                        action: 'dismissed',
-                      }),
-                    'Remark dismissed.',
-                  )
-                }
-              />
-
-              <RemarkTransitionButton
-                label="Downgrade"
-                tooltip="Downgrade priority"
-                icon={<ArrowDown className="size-3 text-amber-500" />}
-                disabled={isPending}
-                onClick={() =>
-                  run(
-                    () =>
-                      transitionPlanRemarkAction({
-                        planId,
-                        threadId: thread.id,
-                        action: 'downgraded',
-                      }),
-                    'Remark downgraded.',
-                  )
-                }
-              />
-            </div>
-          </TooltipProvider>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// fallow-ignore-next-line complexity
-function BaselineAttemptCard({
-  attempt,
-  planId,
-  isPending,
-  run,
-  regressionJustification,
-  onRegressionJustificationChange,
-}: {
-  attempt: BaselineAttempt
-  planId: string
-  isPending: boolean
-  run: PlanActionRunner
-  regressionJustification: string
-  onRegressionJustificationChange: (value: string) => void
-}) {
-  const BaselineIcon = getBaselineIcon(attempt.status, attempt.classification)
-
-  let cardStatusStyle = 'border-l-slate-400 bg-muted/10'
-  let badgeStyle = 'border-slate-500/30 bg-slate-500/5 text-slate-700 dark:text-slate-300'
-  if (attempt.status === 'running' || attempt.status === 'scheduled') {
-    cardStatusStyle = 'border-l-sky-500 bg-sky-500/[0.03] animate-pulse'
-    badgeStyle = 'border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-300'
-  } else if (
-    attempt.status === 'cancelled' ||
-    attempt.status === 'interrupted' ||
-    attempt.classification === 'invalid_baseline_failure' ||
-    attempt.classification === 'validation_harness_failure'
-  ) {
-    cardStatusStyle = 'border-l-destructive bg-destructive/[0.03]'
-    badgeStyle = 'border-destructive/30 bg-destructive/5 text-destructive'
-  } else if (attempt.status === 'completed') {
-    cardStatusStyle = 'border-l-emerald-500 bg-emerald-500/[0.03]'
-    badgeStyle = 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
-  }
-
-  const evidenceLinks = [
-    { label: 'Logs', href: attempt.evidence.logsUrl, icon: FileText },
-    { label: 'Report', href: attempt.evidence.reportUrl, icon: ExternalLink },
-    ...attempt.evidence.traceUrls.map((url, index) => ({
-      label: `Trace ${index + 1}`,
-      href: url,
-      icon: GitCompare,
-    })),
-    ...attempt.evidence.screenshotUrls.map((url, index) => ({
-      label: `Screenshot ${index + 1}`,
-      href: url,
-      icon: Image,
-    })),
-  ]
-
-  return (
-    <div
-      className={cn(
-        'group space-y-3 rounded-xl border border-l-4 p-3.5 text-xs transition-all duration-200 hover:shadow-sm',
-        cardStatusStyle,
-      )}
-    >
-      <div className="border-border/40 flex flex-wrap items-center justify-between gap-2 border-b pb-2">
-        <span className="flex min-w-0 items-center gap-2 font-bold">
-          <BaselineIcon
-            className={cn('size-4 shrink-0', getBaselineIconClass(attempt.status, attempt.classification))}
-          />
-          <span className="text-foreground/90 truncate text-xs">
-            {attempt.browser} / {attempt.environment}
-          </span>
-        </span>
-        <Badge variant="outline" className={cn('px-1.5 py-0 text-[9px] font-bold uppercase tracking-wider', badgeStyle)}>
-          {attempt.classification?.replaceAll('_', ' ') ?? attempt.status}
-        </Badge>
-      </div>
-      <p className="text-muted-foreground/80 flex items-center justify-between font-mono text-[10px]">
-        <span>ID: {attempt.validationId.slice(0, 12)}...</span>
-        <span>Run: #{attempt.testRunId}</span>
-      </p>
-
-      <div className="flex flex-wrap gap-1.5">
-        {evidenceLinks.map(link => {
-          const EvidenceIcon = link.icon
-          return (
-            <Button
-              key={`${link.label}-${link.href}`}
-              asChild
-              size="sm"
-              variant="secondary"
-              className="bg-secondary/60 border-border/40 h-7 border px-2 text-[10px] font-medium transition-colors hover:bg-secondary"
-            >
-              <a href={link.href} target="_blank" rel="noopener noreferrer">
-                <EvidenceIcon className="mr-1 size-3" />
-                {link.label}
-              </a>
-            </Button>
-          )
-        })}
-      </div>
-
-      {attempt.classification === 'pre_existing_unrelated_failure' && (
-        <Button
-          className="mt-1 h-8 w-full text-xs font-semibold"
-          size="sm"
-          variant="outline"
-          disabled={isPending}
-          onClick={() =>
-            run(
-              () =>
-                acknowledgeBaselineFailureAction({
-                  planId,
-                  attemptId: attempt.id,
-                }),
-              'Unrelated failure acknowledged.',
-            )
-          }
-        >
-          Acknowledge unchanged failure
-        </Button>
-      )}
-      {attempt.classification === 'validation_harness_failure' && (
-        <div className="border-destructive/30 bg-destructive/10 rounded-lg border p-2.5 text-[11px] font-medium leading-normal text-destructive">
-          Runtime harness wiring failed. Fix step definitions, imports, Cucumber config, or setup, then republish.
-        </div>
-      )}
-      {attempt.classification === 'accepted_regression_pass' && !attempt.regressionJustification && (
-        <div className="border-border/40 space-y-2 border-t pt-1.5">
-          <Textarea
-            value={regressionJustification}
-            onChange={event => onRegressionJustificationChange(event.target.value)}
-            placeholder="Why this passing test still provides required regression coverage"
-            className="min-h-[60px] rounded-lg text-xs"
-          />
-          <Button
-            size="sm"
-            className="h-8 w-full text-xs font-semibold"
-            variant="outline"
-            disabled={isPending || !regressionJustification.trim()}
-            onClick={() =>
-              run(
-                () =>
-                  justifyBaselineRegressionPassAction({
-                    planId,
-                    attemptId: attempt.id,
-                    justification: regressionJustification,
-                  }),
-                'Regression coverage justified.',
-              )
-            }
-          >
-            Save justification
-          </Button>
-        </div>
-      )}
-    </div>
   )
 }
 
