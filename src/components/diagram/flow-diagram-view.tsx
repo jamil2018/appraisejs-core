@@ -143,6 +143,7 @@ export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewPro
         setShowAddNodeDialog={model.setShowAddNodeDialog}
         locators={model.mergedLocators}
         defaultValueInput={model.defaultValueInput}
+        parameterMode={model.parameterMode}
         locatorGroups={model.mergedLocatorGroups}
         environments={model.environments}
         modules={model.modules}
@@ -193,6 +194,7 @@ export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewPro
           setShowAddNodeDialog={model.setShowEditNodeDialog}
           locators={model.mergedLocators}
           defaultValueInput={model.defaultValueInput}
+          parameterMode={model.parameterMode}
           locatorGroups={model.mergedLocatorGroups}
           environments={model.environments}
           modules={model.modules}

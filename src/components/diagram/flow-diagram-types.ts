@@ -22,6 +22,7 @@ export type FlowDiagramProps = {
   environments: Array<Pick<Environment, 'id' | 'name'>>
   modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   defaultValueInput?: boolean
+  parameterMode?: 'values' | 'hidden'
   enableNodeSearch?: boolean
   enableNodeGrouping?: boolean
   stepBlocks?: FlowDiagramStepBlock[]

@@ -41,6 +41,7 @@ export function NodeFormFieldsContent({
   modules,
   onLocatorCreated,
   defaultValueInput = false,
+  parameterMode = 'values',
   fieldClassName,
   dynamicFormRef,
   selectedTemplateId,
@@ -85,23 +86,25 @@ export function NodeFormFieldsContent({
           <input type="hidden" name="templateStepId" value={selectedTemplateId} />
           <ErrorMessage message={errors.templateStepId?.[0] ?? ''} visible={!!errors.templateStepId} />
         </div>
-        <div className="mb-4 flex flex-col gap-2">
-          <DynamicFormFields
-            ref={dynamicFormRef}
-            templateStepParams={selectedTemplateStepParams}
-            locators={locators}
-            locatorGroups={locatorGroups}
-            environments={environments}
-            modules={modules}
-            onLocatorCreated={onLocatorCreated}
-            initialParameterValues={initialValues.parameters}
-            onChange={values => {
-              const preview = getParameterPreviewUpdates(selectedTemplateStep, values)
-              onParametersChange(preview.parameters, preview.gherkinStep)
-            }}
-            defaultValueInput={defaultValueInput}
-          />
-        </div>
+        {parameterMode === 'values' ? (
+          <div className="mb-4 flex flex-col gap-2">
+            <DynamicFormFields
+              ref={dynamicFormRef}
+              templateStepParams={selectedTemplateStepParams}
+              locators={locators}
+              locatorGroups={locatorGroups}
+              environments={environments}
+              modules={modules}
+              onLocatorCreated={onLocatorCreated}
+              initialParameterValues={initialValues.parameters}
+              onChange={values => {
+                const preview = getParameterPreviewUpdates(selectedTemplateStep, values)
+                onParametersChange(preview.parameters, preview.gherkinStep)
+              }}
+              defaultValueInput={defaultValueInput}
+            />
+          </div>
+        ) : null}
         {selectedTemplateStep ? (
           <div className="mb-4 flex flex-col gap-2">
             <Label htmlFor="gherkinStep">Gherkin Step</Label>

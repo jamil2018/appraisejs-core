@@ -61,6 +61,7 @@ export function useFlowDiagram({
   modules,
   onNodeOrderChange,
   defaultValueInput = false,
+  parameterMode = 'values',
   enableNodeSearch = false,
   enableNodeGrouping = false,
   stepBlocks = [],
@@ -68,9 +69,10 @@ export function useFlowDiagram({
   layoutRefreshKey,
   onFlowBlocksChange,
 }: FlowDiagramProps) {
+  const shouldSkipParameterValidation = defaultValueInput || parameterMode === 'hidden'
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
-    () => generateInitialNodesAndEdges(nodeOrder, templateStepParams, defaultValueInput),
-    [defaultValueInput, nodeOrder, templateStepParams],
+    () => generateInitialNodesAndEdges(nodeOrder, templateStepParams, shouldSkipParameterValidation),
+    [nodeOrder, shouldSkipParameterValidation, templateStepParams],
   )
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
@@ -193,7 +195,13 @@ export function useFlowDiagram({
       const newNodeId = crypto.randomUUID()
       const newNode: Node = {
         id: newNodeId,
-        data: buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, realCount === 0),
+        data: buildNodeFormData(
+          formData,
+          templateSteps,
+          templateStepParams,
+          shouldSkipParameterValidation,
+          realCount === 0,
+        ),
         position: sourceNode ? { x: sourceNode.position.x + 500, y: sourceNode.position.y } : { x: 0, y: 0 },
         type: 'optionsHeaderNode',
       }
@@ -213,7 +221,16 @@ export function useFlowDiagram({
       setShowAddNodeDialog(false)
       setPendingAddSourceNodeId(null)
     },
-    [setEdges, setNodes, nodes, edges, pendingAddSourceNodeId, templateSteps, templateStepParams, defaultValueInput],
+    [
+      setEdges,
+      setNodes,
+      nodes,
+      edges,
+      pendingAddSourceNodeId,
+      templateSteps,
+      templateStepParams,
+      shouldSkipParameterValidation,
+    ],
   )
 
   const addStepBlock = useCallback(
@@ -224,7 +241,13 @@ export function useFlowDiagram({
         const nodeId = crypto.randomUUID()
         return {
           id: nodeId,
-          data: buildNodeFormData(step, templateSteps, templateStepParams, defaultValueInput, realNodes.length === 0),
+          data: buildNodeFormData(
+            step,
+            templateSteps,
+            templateStepParams,
+            shouldSkipParameterValidation,
+            realNodes.length === 0,
+          ),
           position: sourceNode
             ? { x: sourceNode.position.x + 500 * (index + 1), y: sourceNode.position.y }
             : { x: index * 500, y: 0 },
@@ -258,7 +281,16 @@ export function useFlowDiagram({
         ])
       }
     },
-    [defaultValueInput, flowBlocks, nodes, onFlowBlocksChange, setEdges, setNodes, templateStepParams, templateSteps],
+    [
+      flowBlocks,
+      nodes,
+      onFlowBlocksChange,
+      setEdges,
+      setNodes,
+      shouldSkipParameterValidation,
+      templateStepParams,
+      templateSteps,
+    ],
   )
 
   const openEditStepBlockDialog = useCallback(
@@ -319,7 +351,7 @@ export function useFlowDiagram({
             ...node,
             data: {
               ...node.data,
-              ...buildNodeFormData(step, templateSteps, templateStepParams, defaultValueInput, false),
+              ...buildNodeFormData(step, templateSteps, templateStepParams, shouldSkipParameterValidation, false),
             },
           }
         }),
@@ -331,13 +363,27 @@ export function useFlowDiagram({
       setEditStepBlockName('')
       setEditStepBlockSteps([])
     },
-    [defaultValueInput, editStepBlockId, flowBlocks, onFlowBlocksChange, setNodes, templateStepParams, templateSteps],
+    [
+      editStepBlockId,
+      flowBlocks,
+      onFlowBlocksChange,
+      setNodes,
+      shouldSkipParameterValidation,
+      templateStepParams,
+      templateSteps,
+    ],
   )
 
   const handleEditNodeSubmit = useCallback(
     (formData: NodeFormData) => {
       if (!editNodeId) return
-      const nextNodeData = buildNodeFormData(formData, templateSteps, templateStepParams, defaultValueInput, false)
+      const nextNodeData = buildNodeFormData(
+        formData,
+        templateSteps,
+        templateStepParams,
+        shouldSkipParameterValidation,
+        false,
+      )
 
       setNodes(nds =>
         nds.map(node =>
@@ -354,7 +400,7 @@ export function useFlowDiagram({
       )
       setShowEditNodeDialog(false)
     },
-    [editNodeId, setNodes, templateSteps, templateStepParams, defaultValueInput],
+    [editNodeId, setNodes, templateSteps, templateStepParams, shouldSkipParameterValidation],
   )
 
   useEffect(() => {
@@ -571,6 +617,7 @@ export function useFlowDiagram({
     enableNodeGrouping,
     stepBlocks,
     defaultValueInput,
+    parameterMode,
     environments,
     modules,
     layoutRefreshKey,

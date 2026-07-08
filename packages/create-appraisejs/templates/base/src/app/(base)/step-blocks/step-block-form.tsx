@@ -1,166 +1,220 @@
 'use client'
 
-import { useForm } from '@tanstack/react-form'
-import { ArrowDown, ArrowUp, PlusCircle, Save, Trash2 } from 'lucide-react'
+import type { Environment, Locator, LocatorGroup, Module, TemplateStep, TemplateStepParameter } from '@prisma/client'
+import { Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
+import FlowDiagram from '@/components/diagram/flow-diagram'
 import ErrorMessage from '@/components/form/error-message'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { stepBlockSchema, type StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
 import { toast } from '@/hooks/use-toast'
-import { TanStackForm } from '@/lib/form/tanstack-form'
-import { stepBlockFormOpts, type StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
+import type { NodeOrderMap, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
 
-import {
-  getActionErrorMessage,
-  stepBlockFieldValidators,
-  type StepBlockFormSubmitAction,
-  type StepBlockTemplateStepOption,
-} from './step-block-helpers'
+import { getActionErrorMessage, getStepBlockNodeOrder, type StepBlockFormSubmitAction } from './step-block-helpers'
 
 type StepBlockFormProps = {
   defaultValues?: StepBlockFormValues
-  templateSteps: StepBlockTemplateStepOption[]
+  templateSteps: TemplateStep[]
   successTitle: string
   successMessage: string
   id?: string
   onSubmitAction: StepBlockFormSubmitAction
 }
 
-function getErrorMessage(error: unknown) {
+type StepBlockErrors = Record<string, string | undefined>
+
+const EMPTY_TEMPLATE_STEP_PARAMS: TemplateStepParameter[] = []
+const EMPTY_LOCATORS: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>> = []
+const EMPTY_LOCATOR_GROUPS: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>> = []
+const EMPTY_ENVIRONMENTS: Array<Pick<Environment, 'id' | 'name'>> = []
+const EMPTY_MODULES: Array<Pick<Module, 'id' | 'name' | 'parentId'>> = []
+
+function getFieldErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
   return message === '[object Object]' ? 'Invalid value' : message
 }
 
-function getErrorKey(error: unknown) {
-  return typeof error === 'object' && error !== null ? JSON.stringify(error) : getErrorMessage(error)
+function getOrderedTemplateStepIds(nodesOrder: NodeOrderMap) {
+  return Object.values(nodesOrder)
+    .filter(node => node.templateStepId)
+    .sort((left, right) => {
+      const leftOrder = left.order === -1 ? Number.MAX_SAFE_INTEGER : left.order
+      const rightOrder = right.order === -1 ? Number.MAX_SAFE_INTEGER : right.order
+      return leftOrder - rightOrder
+    })
+    .map(node => node.templateStepId)
 }
 
-function FieldErrors({ errors, isTouched }: { errors: unknown[]; isTouched: boolean }) {
-  if (!isTouched) return null
-  return (
-    <div className="flex flex-col gap-1" aria-live="polite">
-      {errors.map(error => (
-        <ErrorMessage key={getErrorKey(error)} message={getErrorMessage(error)} visible={true} />
-      ))}
-    </div>
+function getSubmitValue(values: {
+  name: string
+  intent: string
+  description: string
+  nodesOrder: NodeOrderMap
+}): StepBlockFormValues {
+  return {
+    name: values.name,
+    intent: values.intent,
+    description: values.description,
+    steps: getOrderedTemplateStepIds(values.nodesOrder).map(templateStepId => ({ templateStepId })),
+  }
+}
+
+function getValidationErrors(result: ReturnType<typeof stepBlockSchema.safeParse>): StepBlockErrors {
+  if (result.success) {
+    return {}
+  }
+
+  const fieldErrors = result.error.flatten().fieldErrors
+  return {
+    name: fieldErrors.name?.map(getFieldErrorMessage)[0],
+    intent: fieldErrors.intent?.map(getFieldErrorMessage)[0],
+    description: fieldErrors.description?.map(getFieldErrorMessage)[0],
+    steps: fieldErrors.steps?.map(getFieldErrorMessage)[0],
+  }
+}
+
+function StepBlockFieldError({ message }: { message?: string }) {
+  return <ErrorMessage message={message ?? ''} visible={Boolean(message)} />
+}
+
+function normalizeInitialText(value: string | undefined) {
+  return value ?? ''
+}
+
+function getInitialMetadataValues(defaultValues: StepBlockFormValues | undefined) {
+  return {
+    name: normalizeInitialText(defaultValues?.name),
+    intent: normalizeInitialText(defaultValues?.intent),
+    description: normalizeInitialText(defaultValues?.description),
+  }
+}
+
+function isSaveDisabled(templateSteps: TemplateStep[]) {
+  return templateSteps.length === 0
+}
+
+function isNodeOrderMap(nodeOrder: NodeOrderMap | TemplateTestCaseNodeOrderMap): nodeOrder is NodeOrderMap {
+  return Object.values(nodeOrder).every(node =>
+    node.parameters.every(
+      (
+        parameter:
+          | NodeOrderMap[string]['parameters'][number]
+          | TemplateTestCaseNodeOrderMap[string]['parameters'][number],
+      ) => 'value' in parameter,
+    ),
   )
 }
 
-type LabeledTextControlProps = {
-  id: string
-  label: string
-  value: string
-  errors: unknown[]
-  isTouched: boolean
-  multiline?: boolean
-  onChange: (value: string) => void
+type StepBlockMetadataFieldsProps = {
+  name: string
+  intent: string
+  description: string
+  errors: StepBlockErrors
+  onNameChange: (value: string) => void
+  onIntentChange: (value: string) => void
+  onDescriptionChange: (value: string) => void
 }
 
-function LabeledTextControl({ id, label, value, errors, isTouched, multiline, onChange }: LabeledTextControlProps) {
-  const Control = multiline ? Textarea : Input
-
+function StepBlockMetadataFields({
+  name,
+  intent,
+  description,
+  errors,
+  onNameChange,
+  onIntentChange,
+  onDescriptionChange,
+}: StepBlockMetadataFieldsProps) {
   return (
-    <div className="mb-4 flex flex-col gap-2 lg:w-1/2">
-      <Label htmlFor={id}>{label}</Label>
-      <Control id={id} name={id} value={value} onChange={event => onChange(event.target.value)} />
-      <FieldErrors errors={errors} isTouched={isTouched} />
-    </div>
-  )
-}
-
-function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
-  const nextIndex = index + direction
-  if (nextIndex < 0 || nextIndex >= items.length) return items
-  const next = [...items]
-  const [removed] = next.splice(index, 1)
-  if (!removed) return items
-  next.splice(nextIndex, 0, removed)
-  return next
-}
-
-type StepBlockStepRowProps = {
-  step: StepBlockFormValues['steps'][number]
-  index: number
-  stepCount: number
-  templateSteps: StepBlockTemplateStepOption[]
-  onChange: (index: number, step: StepBlockFormValues['steps'][number]) => void
-  onMove: (index: number, direction: -1 | 1) => void
-  onRemove: (index: number) => void
-}
-
-function StepBlockStepRow({
-  step,
-  index,
-  stepCount,
-  templateSteps,
-  onChange,
-  onMove,
-  onRemove,
-}: StepBlockStepRowProps) {
-  return (
-    <div className="grid gap-3 rounded-md border p-3 md:grid-cols-[1fr_auto]">
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={`steps-${index}-templateStepId`}>Template Step</Label>
-          <Select
-            value={step.templateStepId}
-            onValueChange={value => {
-              onChange(index, { templateStepId: value })
-            }}
-          >
-            <SelectTrigger id={`steps-${index}-templateStepId`}>
-              <SelectValue placeholder="Select a template step" />
-            </SelectTrigger>
-            <SelectContent>
-              {templateSteps.map(templateStep => (
-                <SelectItem key={templateStep.id} value={templateStep.id}>
-                  {templateStep.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <ErrorMessage message="Template step is required" visible={!step.templateStepId} />
-        </div>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="name">Name</Label>
+        <Input id="name" value={name} onChange={event => onNameChange(event.target.value)} />
+        <StepBlockFieldError message={errors.name} />
       </div>
-      <div className="flex items-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-label="Move step up"
-          disabled={index === 0}
-          onClick={() => onMove(index, -1)}
-        >
-          <ArrowUp className="size-4" aria-hidden />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-label="Move step down"
-          disabled={index === stepCount - 1}
-          onClick={() => onMove(index, 1)}
-        >
-          <ArrowDown className="size-4" aria-hidden />
-        </Button>
-        <Button
-          type="button"
-          variant="destructive"
-          size="icon"
-          aria-label="Remove step"
-          disabled={stepCount === 1}
-          onClick={() => onRemove(index)}
-        >
-          <Trash2 className="size-4" aria-hidden />
-        </Button>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="intent">Intent</Label>
+        <Input id="intent" value={intent} onChange={event => onIntentChange(event.target.value)} />
+        <StepBlockFieldError message={errors.intent} />
+      </div>
+      <div className="flex flex-col gap-2 lg:col-span-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea id="description" value={description} onChange={event => onDescriptionChange(event.target.value)} />
+        <StepBlockFieldError message={errors.description} />
       </div>
     </div>
   )
+}
+
+type StepBlockFlowGraphProps = {
+  nodesOrder: NodeOrderMap
+  templateSteps: TemplateStep[]
+  onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
+}
+
+function StepBlockFlowGraph({ nodesOrder, templateSteps, onNodeOrderChange }: StepBlockFlowGraphProps) {
+  return (
+    <div className="h-[560px] overflow-hidden rounded-xl border border-zinc-700 bg-zinc-500/10">
+      <FlowDiagram
+        nodeOrder={nodesOrder}
+        templateStepParams={EMPTY_TEMPLATE_STEP_PARAMS}
+        templateSteps={templateSteps}
+        locators={EMPTY_LOCATORS}
+        locatorGroups={EMPTY_LOCATOR_GROUPS}
+        environments={EMPTY_ENVIRONMENTS}
+        modules={EMPTY_MODULES}
+        parameterMode="hidden"
+        onNodeOrderChange={nodeOrder => {
+          if (isNodeOrderMap(nodeOrder)) {
+            onNodeOrderChange(nodeOrder)
+          }
+        }}
+      />
+    </div>
+  )
+}
+
+async function submitStepBlockForm({
+  value,
+  id,
+  successTitle,
+  successMessage,
+  onSubmitAction,
+  push,
+  setErrors,
+}: {
+  value: StepBlockFormValues
+  id?: string
+  successTitle: string
+  successMessage: string
+  onSubmitAction: StepBlockFormSubmitAction
+  push: (path: string) => void
+  setErrors: (errors: StepBlockErrors) => void
+}) {
+  const result = stepBlockSchema.safeParse(value)
+  const validationErrors = getValidationErrors(result)
+  setErrors(validationErrors)
+
+  if (!result.success) {
+    return
+  }
+
+  const res = await onSubmitAction(undefined, result.data, id)
+  if (res.status === 200) {
+    toast({ title: successTitle, description: successMessage })
+    push('/step-blocks')
+    return
+  }
+
+  toast({
+    title: 'Error',
+    description: getActionErrorMessage(res),
+    variant: 'destructive',
+  })
 }
 
 export function StepBlockForm({
@@ -172,115 +226,44 @@ export function StepBlockForm({
   onSubmitAction,
 }: StepBlockFormProps) {
   const { push } = useRouter()
-  const initialValues = defaultValues ?? stepBlockFormOpts.defaultValues
-  const nextStepRowId = useRef(initialValues.steps.length)
-  const [stepRowIds, setStepRowIds] = useState(() => initialValues.steps.map((_, index) => `step-row-${index}`))
-  const form = useForm({
-    defaultValues: initialValues,
-    validators: stepBlockFormOpts.validators,
-    onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(undefined, value, id)
-      if (res.status === 200) {
-        toast({ title: successTitle, description: successMessage })
-        push('/step-blocks')
-        return
-      }
-      toast({
-        title: 'Error',
-        description: getActionErrorMessage(res),
-        variant: 'destructive',
-      })
-    },
-  })
+  const initialMetadataValues = getInitialMetadataValues(defaultValues)
+  const [name, setName] = useState(initialMetadataValues.name)
+  const [intent, setIntent] = useState(initialMetadataValues.intent)
+  const [description, setDescription] = useState(initialMetadataValues.description)
+  const [nodesOrder, setNodesOrder] = useState<NodeOrderMap>(() => getStepBlockNodeOrder(defaultValues, templateSteps))
+  const [errors, setErrors] = useState<StepBlockErrors>({})
+
+  const handleSubmit = async () => {
+    await submitStepBlockForm({
+      value: getSubmitValue({ name, intent, description, nodesOrder }),
+      id,
+      successTitle,
+      successMessage,
+      onSubmitAction,
+      push,
+      setErrors,
+    })
+  }
 
   return (
-    <TanStackForm onSubmit={() => form.handleSubmit()}>
-      <form.Field name="name" validators={{ onChange: stepBlockFieldValidators.name }}>
-        {field => (
-          <LabeledTextControl
-            id={field.name}
-            label="Name"
-            value={field.state.value}
-            errors={field.state.meta.errors}
-            isTouched={field.state.meta.isTouched}
-            onChange={field.handleChange}
-          />
-        )}
-      </form.Field>
-      <form.Field name="intent" validators={{ onChange: stepBlockFieldValidators.intent }}>
-        {field => (
-          <LabeledTextControl
-            id={field.name}
-            label="Intent"
-            value={field.state.value ?? ''}
-            errors={field.state.meta.errors}
-            isTouched={field.state.meta.isTouched}
-            onChange={field.handleChange}
-          />
-        )}
-      </form.Field>
-      <form.Field name="description" validators={{ onChange: stepBlockFieldValidators.description }}>
-        {field => (
-          <LabeledTextControl
-            id={field.name}
-            label="Description"
-            value={field.state.value ?? ''}
-            errors={field.state.meta.errors}
-            isTouched={field.state.meta.isTouched}
-            multiline={true}
-            onChange={field.handleChange}
-          />
-        )}
-      </form.Field>
-      <form.Field name="steps" mode="array" validators={{ onChange: stepBlockFieldValidators.steps }}>
-        {field => (
-          <div className="mb-6 flex max-w-4xl flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <Label>Steps</Label>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  const rowId = `step-row-${nextStepRowId.current}`
-                  nextStepRowId.current += 1
-                  setStepRowIds(ids => [...ids, rowId])
-                  field.pushValue({ templateStepId: '' })
-                }}
-              >
-                <PlusCircle className="size-4" aria-hidden />
-                Add Step
-              </Button>
-            </div>
-            {field.state.value.map((step, index) => (
-              <StepBlockStepRow
-                key={stepRowIds[index]}
-                step={step}
-                index={index}
-                stepCount={field.state.value.length}
-                templateSteps={templateSteps}
-                onChange={(stepIndex, nextStep) => field.replaceValue(stepIndex, nextStep)}
-                onMove={(stepIndex, direction) => {
-                  setStepRowIds(ids => moveItem(ids, stepIndex, direction))
-                  field.handleChange(moveItem(field.state.value, stepIndex, direction))
-                }}
-                onRemove={stepIndex => {
-                  setStepRowIds(ids => ids.filter((_, idIndex) => idIndex !== stepIndex))
-                  field.removeValue(stepIndex)
-                }}
-              />
-            ))}
-            <FieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
-          </div>
-        )}
-      </form.Field>
-      <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => (
-          <Button type="submit" disabled={!canSubmit || templateSteps.length === 0}>
-            <Save className="size-4" aria-hidden />
-            <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
-          </Button>
-        )}
-      </form.Subscribe>
-    </TanStackForm>
+    <div className="flex flex-col gap-5">
+      <StepBlockMetadataFields
+        name={name}
+        intent={intent}
+        description={description}
+        errors={errors}
+        onNameChange={setName}
+        onIntentChange={setIntent}
+        onDescriptionChange={setDescription}
+      />
+
+      <StepBlockFlowGraph nodesOrder={nodesOrder} templateSteps={templateSteps} onNodeOrderChange={setNodesOrder} />
+      <StepBlockFieldError message={errors.steps} />
+
+      <Button type="button" className="w-fit px-6" disabled={isSaveDisabled(templateSteps)} onClick={handleSubmit}>
+        <Save className="size-4" aria-hidden />
+        <span className="font-bold">Save</span>
+      </Button>
+    </div>
   )
 }

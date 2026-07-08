@@ -1,12 +1,11 @@
 import type { StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
 import { stepBlockSchema } from '@/constants/form-opts/step-block-form-opts'
+import { getGherkinPreview } from '@/components/diagram/node-form-helpers'
+import type { NodeOrderMap } from '@/types/diagram/diagram'
 import type { ActionResponse, ActionResponseData } from '@/types/form/actionHandler'
-import type { StepParameterType } from '@prisma/client'
+import type { StepParameterType, TemplateStep } from '@prisma/client'
 
-export type StepBlockTemplateStepOption = {
-  id: string
-  name: string
-  signature: string
+export type StepBlockTemplateStepOption = TemplateStep & {
   parameters?: Array<{ id: string; name: string; order: number; type: StepParameterType }>
   templateStepGroup?: { name: string } | null
 }
@@ -94,4 +93,34 @@ export function toStepBlockFormValues(row: StepBlockRow): StepBlockFormValues {
         templateStepId: step.templateStep.id,
       })),
   }
+}
+
+export function getStepBlockNodeOrder(
+  values: StepBlockFormValues | undefined,
+  templateSteps: TemplateStep[],
+): NodeOrderMap {
+  const stepById = new Map(templateSteps.map(step => [step.id, step]))
+
+  return Object.fromEntries(
+    (values?.steps ?? []).flatMap((step, index) => {
+      const templateStep = stepById.get(step.templateStepId)
+      if (!templateStep) {
+        return []
+      }
+
+      return [
+        [
+          `step-block-node-${index}`,
+          {
+            order: index + 1,
+            label: templateStep.name,
+            gherkinStep: getGherkinPreview(templateStep, []),
+            icon: templateStep.icon,
+            parameters: [],
+            templateStepId: templateStep.id,
+          },
+        ],
+      ]
+    }),
+  ) as NodeOrderMap
 }

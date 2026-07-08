@@ -36,6 +36,7 @@ export type NodeFormProps = {
   onLocatorCreated?: (result: InlineLocatorSaveResult) => void
   setShowAddNodeDialog: (show: boolean) => void
   defaultValueInput?: boolean
+  parameterMode?: 'values' | 'hidden'
 }
 
 export function getSelectedTemplateStep(templateSteps: TemplateStep[], templateStepId: string) {
