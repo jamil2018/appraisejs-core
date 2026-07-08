@@ -58,6 +58,7 @@ model TemplateStep {
   parameters           TemplateStepParameter[]
   TemplateTestCaseStep TemplateTestCaseStep[]
   TestCaseStep         TestCaseStep[]
+  StepBlockStep        StepBlockStep[]
 }
 
 model TemplateStepParameter {
@@ -79,6 +80,28 @@ model TemplateStepGroup {
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   templateSteps TemplateStep[]        @relation("TemplateStepGroupSteps")
+}
+
+model StepBlock {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  intent      String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  steps       StepBlockStep[]
+}
+
+model StepBlockStep {
+  id             String       @id @default(uuid())
+  stepBlockId    String
+  templateStepId String
+  order          Int
+  parameterMap   String       @default("{}")
+  stepBlock      StepBlock    @relation(fields: [stepBlockId], references: [id], onDelete: Cascade)
+  templateStep   TemplateStep @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+
+  @@unique([stepBlockId, order])
 }
 
 model TestCase {

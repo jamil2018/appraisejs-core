@@ -57,6 +57,7 @@ import {
   checkValidationDraft,
   createValidationDraft,
   publishValidationDraft,
+  proposeValidationTestShape,
   readValidationContext,
   readValidationDraft,
   resetValidationDraft,
@@ -609,6 +610,8 @@ async function postValidationOperation(request: Request, operation: string[], bo
       const value = z
         .object({
           reusedStepPaths: z.array(z.string().min(1)).default([]),
+          reusedTemplateStepRefs: validationArtifactSchema.shape.reusedTemplateStepRefs.default([]),
+          reusedStepBlockRefs: validationArtifactSchema.shape.reusedStepBlockRefs.default([]),
           newStepPaths: z.array(z.string().min(1)).default([]),
           customStepJustifications: z
             .array(
@@ -626,6 +629,10 @@ async function postValidationOperation(request: Request, operation: string[], bo
     if (action === 'test-cases') {
       const value = z.object({ proposal: validationTestCaseProposalSchema }).parse(body)
       return Response.json(await upsertValidationTestCase(planId, value.proposal))
+    }
+    if (action === 'test-shapes') {
+      const value = z.object({ proposal: validationTestCaseProposalSchema }).parse(body)
+      return Response.json(await proposeValidationTestShape(planId, value.proposal))
     }
   }
   if (operation[3] === 'publish') {

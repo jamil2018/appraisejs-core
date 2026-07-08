@@ -70,6 +70,13 @@ const runtimePreflightSchema = z.object({
   checkedAt: timestampSchema,
   blockers: z.array(validationDraftBlockerSchema),
 })
+const validationReusableRefSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).optional(),
+  groupId: z.string().min(1).optional(),
+  groupName: z.string().min(1).optional(),
+  path: z.string().min(1).optional(),
+})
 const validationAppraiseArtifactsSchema = z.object({
   modules: z
     .array(
@@ -268,7 +275,9 @@ export const validationArtifactSchema = z
             'The AppraiseJS-native suites, test cases, steps, and locators generated for review and later execution.',
           ),
           gherkinPaths: z.array(z.string().min(1)).min(1).describe('Generated or reused Gherkin feature paths.'),
-          stepPaths: z.array(z.string().min(1)).min(1).describe('Generated or reused step definition paths.'),
+          stepPaths: z
+            .array(z.string().min(1))
+            .describe('Custom per-case step definition paths. All-reusable cases may use shared resource refs only.'),
           executable: z
             .object({
               path: z.string().min(1),
@@ -304,6 +313,14 @@ export const validationArtifactSchema = z
       .array(z.string().min(1))
       .optional()
       .describe('Registry/template step paths reused before creating any custom steps.'),
+    reusedTemplateStepRefs: z
+      .array(validationReusableRefSchema)
+      .optional()
+      .describe('Template step resources reused by validation authoring, with generated shared group paths.'),
+    reusedStepBlockRefs: z
+      .array(validationReusableRefSchema)
+      .optional()
+      .describe('Reusable step block resources expanded into validation test steps.'),
     newStepPaths: z.array(z.string().min(1)).optional().describe('New custom step paths created for validation prep.'),
     customStepJustifications: z
       .array(

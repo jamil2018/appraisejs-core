@@ -42,9 +42,12 @@ const baseWorkflowCriticalTools = [
   'validation_draft_read',
   'appraise_resources_list',
   'template_step_search',
+  'template_step_match',
+  'step_block_search',
   'locator_search',
   'validation_node_upsert',
   'validation_test_case_upsert',
+  'validation_test_shape_propose',
   'validation_file_upsert',
   'validation_step_metadata_upsert',
   'validation_draft_check',
@@ -166,6 +169,14 @@ const validationTestCaseProposalInputSchema = z.object({
         intent: z.string().min(1),
         gherkinText: z.string().min(1),
         templateStepRef: z.string().min(1).optional(),
+        stepBlockRef: z.string().min(1).optional(),
+        customStepProposal: z
+          .object({
+            path: z.string().min(1).optional(),
+            missingCapability: z.string().min(1).optional(),
+            whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1).optional(),
+          })
+          .optional(),
         parameters: z
           .array(
             z.object({
@@ -179,6 +190,15 @@ const validationTestCaseProposalInputSchema = z.object({
       }),
     )
     .min(1),
+  stepBlocks: z
+    .array(
+      z.object({
+        blockRef: z.string().min(1).optional(),
+        intent: z.string().min(1),
+        parameters: z.record(z.string(), z.string()).default({}),
+      }),
+    )
+    .default([]),
   gherkinPath: z.string().min(1).optional(),
   stepPath: z.string().min(1).optional(),
   browser: z.string().min(1).optional(),
@@ -2212,6 +2232,60 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     },
   )
   server.registerTool(
+    'template_step_match',
+    {
+      description: 'Rank reusable template steps and step blocks for a behavior intent before proposing custom steps.',
+      inputSchema: { planId: z.string(), intent: z.string().min(1) },
+    },
+    async ({ planId, intent }) => {
+      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+        resources?: {
+          templateSteps?: Array<Record<string, unknown>>
+          stepBlocks?: Array<Record<string, unknown>>
+        }
+      }
+      const tokens = intent
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(token => token.length > 2)
+      const score = (value: unknown) => {
+        const haystack = JSON.stringify(value).toLowerCase()
+        return tokens.reduce((sum, token) => sum + (haystack.includes(token) ? 1 : 0), 0)
+      }
+      const rankedTemplateSteps = (context.resources?.templateSteps ?? [])
+        .map(step => ({ ...step, matchScore: score(step) }))
+        .filter(step => step.matchScore > 0)
+        .sort((left, right) => right.matchScore - left.matchScore)
+      const rankedStepBlocks = (context.resources?.stepBlocks ?? [])
+        .map(block => ({ ...block, matchScore: score(block) }))
+        .filter(block => block.matchScore > 0)
+        .sort((left, right) => right.matchScore - left.matchScore)
+      return text({
+        templateSteps: rankedTemplateSteps,
+        stepBlocks: rankedStepBlocks,
+        nextRecommendedAction:
+          'Use a matching templateStepRef or stepBlockRef in validation_test_shape_propose; propose custom steps only for unresolved capabilities.',
+      })
+    },
+  )
+  server.registerTool(
+    'step_block_search',
+    {
+      description: 'Search reusable step blocks before proposing custom validation step sequences.',
+      inputSchema: { planId: z.string(), query: z.string().min(1) },
+    },
+    async ({ planId, query }) => {
+      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+        resources?: { stepBlocks?: Array<Record<string, unknown>> }
+      }
+      const needle = query.toLowerCase()
+      const matches = (context.resources?.stepBlocks ?? []).filter(block =>
+        JSON.stringify(block).toLowerCase().includes(needle),
+      )
+      return text({ matches, nextRecommendedAction: 'Reuse a matching stepBlockRef when possible.' })
+    },
+  )
+  server.registerTool(
     'locator_search',
     {
       description: 'Search live locators before proposing new locator resources.',
@@ -2258,6 +2332,21 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async ({ planId, proposal }) =>
       text(
         await api.request(`plans/${planId}/validations/draft/test-cases`, {
+          method: 'POST',
+          body: JSON.stringify({ proposal }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_test_shape_propose',
+    {
+      description:
+        'Propose behavior intent, locator hints, reusable step refs, step blocks, and optional custom-step proposals. Appraise resolves reusable resources and updates the validation draft.',
+      inputSchema: { planId: z.string(), proposal: validationTestCaseProposalInputSchema },
+    },
+    async ({ planId, proposal }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/test-shapes`, {
           method: 'POST',
           body: JSON.stringify({ proposal }),
         }),

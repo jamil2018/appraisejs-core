@@ -58,6 +58,10 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   if (!hasTable(databasePath, 'AppraiseProjectIdentity')) {
     await applyMigration(databasePath, '20260609160000_add_coordinator_events_api_mcp')
   }
+
+  if (!hasTable(databasePath, 'StepBlock')) {
+    await applyMigration(databasePath, '20260709090000_add_step_blocks')
+  }
 }
 
 export async function ensureProviderRunTestSchema(databasePath: string) {

@@ -175,7 +175,7 @@ const validationNodeSchema = z.object({
   testCaseIds: z.array(idSchema).min(1),
   appraiseArtifacts: validationAppraiseArtifactsSchema,
   gherkinPaths: z.array(z.string().min(1)).min(1),
-  stepPaths: z.array(z.string().min(1)).min(1),
+  stepPaths: z.array(z.string().min(1)).default([]),
   executable: z.object({
     path: z.string().min(1),
     selector: z.string().min(1).optional(),
@@ -214,6 +214,20 @@ const validationStepProposalParameterSchema = z.object({
   locatorRef: z.string().min(1).optional(),
 })
 
+const validationReusableRefSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).optional(),
+  groupId: z.string().min(1).optional(),
+  groupName: z.string().min(1).optional(),
+  path: z.string().min(1).optional(),
+})
+
+const validationStepBlockProposalSchema = z.object({
+  blockRef: z.string().min(1).optional(),
+  intent: z.string().min(1),
+  parameters: z.record(z.string(), z.string()).default({}),
+})
+
 export const validationTestCaseProposalSchema = z.object({
   title: z.string().min(1),
   behavior: z.string().min(1),
@@ -225,10 +239,19 @@ export const validationTestCaseProposalSchema = z.object({
         intent: z.string().min(1),
         gherkinText: z.string().min(1),
         templateStepRef: z.string().min(1).optional(),
+        stepBlockRef: z.string().min(1).optional(),
+        customStepProposal: z
+          .object({
+            path: z.string().min(1).optional(),
+            missingCapability: z.string().min(1).optional(),
+            whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1).optional(),
+          })
+          .optional(),
         parameters: z.array(validationStepProposalParameterSchema).default([]),
       }),
     )
     .min(1),
+  stepBlocks: z.array(validationStepBlockProposalSchema).default([]),
   gherkinPath: z.string().min(1).optional(),
   stepPath: z.string().min(1).optional(),
   browser: z.string().min(1).optional(),
@@ -282,6 +305,8 @@ export const validationDraftSchema = artifactHeaderSchema
     files: z.array(validationChangedFileSchema),
     manifestPaths: z.array(z.string().min(1)),
     reusedStepPaths: z.array(z.string().min(1)).default([]),
+    reusedTemplateStepRefs: z.array(validationReusableRefSchema).default([]),
+    reusedStepBlockRefs: z.array(validationReusableRefSchema).default([]),
     newStepPaths: z.array(z.string().min(1)).default([]),
     customStepJustifications: z.array(customStepJustificationSchema).default([]),
     runtimeProjections: z.array(runtimeProjectionSchema).default([]),
@@ -369,6 +394,8 @@ export const validationArtifactSchema = artifactHeaderSchema
     validations: validationNodesSchema,
     approvals: z.array(approvalSchema),
     reusedStepPaths: z.array(z.string().min(1)).optional(),
+    reusedTemplateStepRefs: z.array(validationReusableRefSchema).optional(),
+    reusedStepBlockRefs: z.array(validationReusableRefSchema).optional(),
     newStepPaths: z.array(z.string().min(1)).optional(),
     customStepJustifications: z.array(customStepJustificationSchema).optional(),
     runtimeProjections: z.array(runtimeProjectionSchema).optional(),
