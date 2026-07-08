@@ -1,0 +1,584 @@
+approvals: []
+baselineAcknowledgements:
+  - acknowledgedAt: 2026-07-08T17:55:42.761Z
+    acknowledgedBy: Codex
+    attemptId: baseline-fd9c4545-c939-4da5-b448-58cd40cb212c
+    signatureHash: sha256:fd0cb4a77c0979e2842c49d86c72ab9b7a5732e8bb7eef7a563efb39b987a66a
+baselineAttempts:
+  - browser: chromium
+    classification: pre_existing_unrelated_failure
+    completedAt: 2026-07-08T17:49:58.770Z
+    createdAt: 2026-07-08T17:48:56.612Z
+    environment: local
+    evidence:
+      logsUrl: /api/test-runs/2e23546c-26f0-4d7c-aa8f-c6bb07af8095/logs
+      reportUrl: /test-runs/2e23546c-26f0-4d7c-aa8f-c6bb07af8095
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-fd9c4545-c939-4da5-b448-58cd40cb212c
+    signatureHash: sha256:fd0cb4a77c0979e2842c49d86c72ab9b7a5732e8bb7eef7a563efb39b987a66a
+    status: completed
+    testRunId: 2e23546c-26f0-4d7c-aa8f-c6bb07af8095
+    validationId: ideamade-note-workflow
+baselineDecision: accepted
+baseRevision:
+  gitCommit: null
+  reducedAssurance: true
+  snapshotHash: sha256:89ae944aeb0d991ea67a7af48570238feab039b582dbf4437b86980eecf517f9
+classificationOverrides: []
+customStepJustifications:
+  - missingCapability: IdeaMade-specific note workflow steps for restore-by-title/body verification, note selection by title, active note assertion, and confirmed delete flow.
+    path: automation/steps/ideamade-workflow.steps.ts
+    whyLocatorsAndExistingStepsAreInsufficient: The registry has generic click/fill/assert/reload primitives and a prior notepad workflow shape, but no reusable step path for this target workspace's IdeaMade note model or its required test ids. The custom file binds those reviewed locators to executable Playwright/Cucumber behavior for this app.
+files:
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:ff442e2fbbd1f921cd429ddf9878b52bcdca30b5268006adde9dd10b04b54719
+    declared: true
+    patch: |-
+      --- /dev/null
+      +++ automation/features/ideamade-workflow.feature
+      @@ -0,0 +1,18 @@
+      +Feature: IdeaMade note workflow
+      +  Users can write, revisit, and remove idea notes in a focused notepad-style app.
+      +
+      +  Scenario: Complete idea note workflow persists locally
+      +    Given the user opens the IdeaMade app
+      +    Then the idea empty state is visible
+      +    When the user creates a new idea note
+      +    And the user fills in the idea title with value "Weekend market pop-up"
+      +    And the user fills in the idea body with value "A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations."
+      +    Then the idea list should contain the text "Weekend market pop-up"
+      +    When the user reloads the page
+      +    Then the idea note "Weekend market pop-up" is restored with the body text "A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations."
+      +    When the user creates a new idea note
+      +    And the user fills in the idea title with value "Pocket pitch recorder"
+      +    And the user selects the idea note "Weekend market pop-up"
+      +    Then the idea note "Weekend market pop-up" is active
+      +    When the user deletes the idea note "Weekend market pop-up"
+      +    Then the idea list should not contain the text "Weekend market pop-up"
+    path: automation/features/ideamade-workflow.feature
+    rationale: Gherkin validation artifact covering the reviewed IdeaMade note creation, autosave persistence, switching, and deletion workflow.
+    status: added
+  - beforeHash: null
+    classification: test_only
+    contentHash: sha256:78c7fc857bfea57e8b29c5b985ec366865471ed96f4ef8855ae44b8080b3fc7f
+    declared: true
+    patch: |-
+      --- /dev/null
+      +++ automation/steps/ideamade-workflow.steps.ts
+      @@ -0,0 +1,84 @@
+      +import { expect } from "@playwright/test";
+      +import { Given, Then, When } from "@cucumber/cucumber";
+      +
+      +type WorldWithPage = {
+      +  page: import("@playwright/test").Page;
+      +  baseUrl?: string;
+      +};
+      +
+      +const byTestId = (id: string) => `[data-testid="${id}"]`;
+      +
+      +Given("the user opens the IdeaMade app", async function (this: WorldWithPage) {
+      +  await this.page.goto(this.baseUrl ?? "/");
+      +});
+      +
+      +Then("the idea empty state is visible", async function (this: WorldWithPage) {
+      +  await expect(this.page.locator(byTestId("idea-empty-state"))).toBeVisible();
+      +});
+      +
+      +When("the user creates a new idea note", async function (this: WorldWithPage) {
+      +  await this.page.locator(byTestId("new-idea-button")).click();
+      +});
+      +
+      +When(
+      +  "the user fills in the idea title with value {string}",
+      +  async function (this: WorldWithPage, value: string) {
+      +    await this.page.locator(byTestId("idea-title-input")).fill(value);
+      +  },
+      +);
+      +
+      +When(
+      +  "the user fills in the idea body with value {string}",
+      +  async function (this: WorldWithPage, value: string) {
+      +    await this.page.locator(byTestId("idea-body-input")).fill(value);
+      +  },
+      +);
+      +
+      +Then(
+      +  "the idea list should contain the text {string}",
+      +  async function (this: WorldWithPage, value: string) {
+      +    await expect(this.page.locator(byTestId("idea-list"))).toContainText(value);
+      +  },
+      +);
+      +
+      +Then(
+      +  "the idea list should not contain the text {string}",
+      +  async function (this: WorldWithPage, value: string) {
+      +    await expect(this.page.locator(byTestId("idea-list"))).not.toContainText(value);
+      +  },
+      +);
+      +
+      +When("the user reloads the page", async function (this: WorldWithPage) {
+      +  await this.page.reload();
+      +});
+      +
+      +Then(
+      +  "the idea note {string} is restored with the body text {string}",
+      +  async function (this: WorldWithPage, title: string, body: string) {
+      +    await expect(this.page.locator(byTestId("idea-title-input"))).toHaveValue(title);
+      +    await expect(this.page.locator(byTestId("idea-body-input"))).toHaveValue(body);
+      +  },
+      +);
+      +
+      +When(
+      +  "the user selects the idea note {string}",
+      +  async function (this: WorldWithPage, title: string) {
+      +    await this.page.getByRole("button", { name: title }).click();
+      +  },
+      +);
+      +
+      +Then(
+      +  "the idea note {string} is active",
+      +  async function (this: WorldWithPage, title: string) {
+      +    await expect(this.page.locator(byTestId("active-idea-title"))).toContainText(title);
+      +  },
+      +);
+      +
+      +When(
+      +  "the user deletes the idea note {string}",
+      +  async function (this: WorldWithPage, title: string) {
+      +    await this.page.getByRole("button", { name: title }).click();
+      +    await this.page.locator(byTestId("delete-idea-button")).click();
+      +    await this.page.locator(byTestId("confirm-delete-idea-button")).click();
+      +  },
+      +);
+    path: automation/steps/ideamade-workflow.steps.ts
+    rationale: Playwright/Cucumber step definitions that make the IdeaMade reviewed validation scenario executable against the target app.
+    status: added
+implementation:
+  approvedGroupIds:
+    - behavior
+    - foundation
+    - quality
+  checkpoint:
+    queuedFeedbackCount: 0
+    reachedAt: 2026-07-08T18:21:35.139Z
+    taskIds: []
+    type: before_completion
+  commits: []
+  evidenceProtected: true
+  pausedTaskIds: []
+  taskStates:
+    document-management: verified
+    editor-state: verified
+    persistence: verified
+    scaffold-setup: verified
+    validation: verified
+  validationRuns:
+    - assurance: reduced
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-08T18:04:37.652Z
+      environment: local
+      evidence:
+        logsUrl: /api/test-runs/3e6a5168-7486-4372-ba7a-abb6cfb642a4/logs
+        reportUrl: /test-runs/3e6a5168-7486-4372-ba7a-abb6cfb642a4
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/3e6a5168-7486-4372-ba7a-abb6cfb642a4
+        - /api/test-runs/3e6a5168-7486-4372-ba7a-abb6cfb642a4/logs
+      fresh: true
+      id: implementation-validation-ideamade-note-workflow-chromium-local-20260708180422
+      required: true
+      runtimePaths:
+        executablePath: automation/features/ideamade-workflow.feature
+        gherkinPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/features/ideamade-workflow.feature
+        stepPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/steps/ideamade-workflow.steps.ts
+      status: failed
+      tagExpression: "@tc_complete-idea-note-workflow-persists-locally"
+      taskIds:
+        - scaffold-setup
+        - editor-state
+        - document-management
+        - persistence
+        - validation
+      testRunId: 3e6a5168-7486-4372-ba7a-abb6cfb642a4
+      validationId: ideamade-note-workflow
+    - assurance: reduced
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-08T18:06:18.596Z
+      environment: local
+      evidence:
+        logsUrl: /api/test-runs/d7786bf3-5218-4f8b-9c1b-3204a939e623/logs
+        reportUrl: /test-runs/d7786bf3-5218-4f8b-9c1b-3204a939e623
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/d7786bf3-5218-4f8b-9c1b-3204a939e623
+        - /api/test-runs/d7786bf3-5218-4f8b-9c1b-3204a939e623/logs
+      fresh: true
+      id: implementation-validation-ideamade-note-workflow-chromium-local-20260708180604
+      required: true
+      runtimePaths:
+        executablePath: automation/features/ideamade-workflow.feature
+        gherkinPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/features/ideamade-workflow.feature
+        stepPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/steps/ideamade-workflow.steps.ts
+      status: failed
+      tagExpression: "@tc_complete-idea-note-workflow-persists-locally"
+      taskIds:
+        - scaffold-setup
+        - editor-state
+        - document-management
+        - persistence
+        - validation
+      testRunId: d7786bf3-5218-4f8b-9c1b-3204a939e623
+      validationId: ideamade-note-workflow
+    - assurance: reduced
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-08T18:11:52.949Z
+      environment: local
+      evidence:
+        logsUrl: /api/test-runs/8287a54f-921b-4321-87c9-4f3ba8a8a1d2/logs
+        reportUrl: /test-runs/8287a54f-921b-4321-87c9-4f3ba8a8a1d2
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/8287a54f-921b-4321-87c9-4f3ba8a8a1d2
+        - /api/test-runs/8287a54f-921b-4321-87c9-4f3ba8a8a1d2/logs
+      fresh: true
+      id: implementation-validation-ideamade-note-workflow-chromium-local-20260708181037
+      required: true
+      runtimePaths:
+        executablePath: automation/features/ideamade-workflow.feature
+        gherkinPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/features/ideamade-workflow.feature
+        stepPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/steps/ideamade-workflow.steps.ts
+      status: failed
+      tagExpression: "@tc_complete-idea-note-workflow-persists-locally"
+      taskIds:
+        - scaffold-setup
+        - editor-state
+        - document-management
+        - persistence
+        - validation
+      testRunId: 8287a54f-921b-4321-87c9-4f3ba8a8a1d2
+      validationId: ideamade-note-workflow
+    - assurance: reduced
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-08T18:20:09.443Z
+      environment: local
+      evidence:
+        logsUrl: /api/test-runs/4709d1d6-a9f5-4f82-a4f3-054815c2255c/logs
+        reportUrl: /test-runs/4709d1d6-a9f5-4f82-a4f3-054815c2255c
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/4709d1d6-a9f5-4f82-a4f3-054815c2255c
+        - /api/test-runs/4709d1d6-a9f5-4f82-a4f3-054815c2255c/logs
+      failureSignatureHash: sha256:01316b9f704dd64d8dc5b425df48c3b50af5f94040f271039e59f51b81335ea9
+      fresh: true
+      id: implementation-validation-ideamade-note-workflow-chromium-local-20260708181939
+      required: true
+      runtimePaths:
+        executablePath: automation/features/ideamade-workflow.feature
+        gherkinPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/features/ideamade-workflow.feature
+        stepPaths:
+          - /Users/jamil/Personal Projects/ideamade/automation/steps/ideamade-workflow.steps.ts
+      status: failed
+      tagExpression: "@tc_complete-idea-note-workflow-persists-locally"
+      taskIds:
+        - scaffold-setup
+        - editor-state
+        - document-management
+        - persistence
+        - validation
+      testRunId: 4709d1d6-a9f5-4f82-a4f3-054815c2255c
+      validationId: ideamade-note-workflow
+manifestPaths:
+  - automation/features/ideamade-workflow.feature
+  - automation/steps/ideamade-workflow.steps.ts
+newStepPaths:
+  - automation/steps/ideamade-workflow.steps.ts
+planId: pln_01kx1d14trxz912d2jzrc07zve
+reusedStepPaths: []
+reviewSubmittedAt: 2026-07-08T17:44:00.949Z
+revision: 1
+runtimePreflight:
+  blockers: []
+  checkedAt: 2026-07-08T17:48:56.583Z
+  status: passed
+runtimeProjections:
+  - contentHash: sha256:ff442e2fbbd1f921cd429ddf9878b52bcdca30b5268006adde9dd10b04b54719
+    declaredPath: automation/features/ideamade-workflow.feature
+    materialization: generated
+    role: gherkin
+    runtimePath: /Users/jamil/Personal Projects/ideamade/automation/features/ideamade-workflow.feature
+    targetPath: /Users/jamil/Personal Projects/ideamade/automation/features/ideamade-workflow.feature
+  - contentHash: sha256:78c7fc857bfea57e8b29c5b985ec366865471ed96f4ef8855ae44b8080b3fc7f
+    declaredPath: automation/steps/ideamade-workflow.steps.ts
+    materialization: declared
+    role: step
+    runtimePath: /Users/jamil/Personal Projects/ideamade/automation/steps/ideamade-workflow.steps.ts
+    targetPath: /Users/jamil/Personal Projects/ideamade/automation/steps/ideamade-workflow.steps.ts
+validationDecisions:
+  - contentHash: sha256:ce726911e19b47afba711956a0813bb12d6174bddccd29174e93fbd2b0d2554b
+    decidedAt: 2026-07-08T17:43:59.474Z
+    decidedBy: local-user
+    decision: approved
+    validationId: ideamade-note-workflow
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: ideamade-home
+          moduleId: ideamade-notes
+          name: IdeaMade home
+          route: /
+      locators:
+        - id: idea-empty-state
+          locatorGroupId: ideamade-home
+          name: Idea empty state
+          value: '[data-testid="idea-empty-state"]'
+        - id: new-idea-button
+          locatorGroupId: ideamade-home
+          name: New idea button
+          value: '[data-testid="new-idea-button"]'
+        - id: idea-title-input
+          locatorGroupId: ideamade-home
+          name: Idea title input
+          value: '[data-testid="idea-title-input"]'
+        - id: idea-body-input
+          locatorGroupId: ideamade-home
+          name: Idea body input
+          value: '[data-testid="idea-body-input"]'
+        - id: idea-list
+          locatorGroupId: ideamade-home
+          name: Idea list
+          value: '[data-testid="idea-list"]'
+        - id: active-idea-title
+          locatorGroupId: ideamade-home
+          name: Active idea title
+          value: '[data-testid="active-idea-title"]'
+        - id: delete-idea-button
+          locatorGroupId: ideamade-home
+          name: Delete idea button
+          value: '[data-testid="delete-idea-button"]'
+        - id: confirm-delete-idea-button
+          locatorGroupId: ideamade-home
+          name: Confirm delete idea button
+          value: '[data-testid="confirm-delete-idea-button"]'
+      modules:
+        - id: ideamade-notes
+          name: IdeaMade notes
+          parentId: null
+      testCases:
+        - description: Validate that IdeaMade opens to the writing surface, shows an empty state, creates an idea note, autosaves title/body content, restores it after reload, switches between notes, deletes a note, and updates the list.
+          id: complete-idea-note-workflow-persists-locally
+          steps:
+            - gherkinStep: Given the user opens the IdeaMade app
+              id: open-ideamade
+              label: Open IdeaMade
+              order: 0
+              parameters: []
+              templateStepId: fb77d502-3587-4e1e-92ec-1497f98311bc
+              templateStepName: navigate to environment base url
+            - gherkinStep: Then the idea empty state is visible
+              id: empty-state-visible
+              label: Empty state is visible
+              order: 1
+              parameters:
+                - locatorId: idea-empty-state
+                  locatorName: Idea empty state
+                  name: element
+                  type: LOCATOR
+                  value: Idea empty state
+              templateStepId: 61617d12-4463-4084-929f-1c3c01a41a66
+              templateStepName: assert element visible
+            - gherkinStep: When the user creates a new idea note
+              id: create-first-note
+              label: Create a new idea note
+              order: 2
+              parameters:
+                - locatorId: new-idea-button
+                  locatorName: New idea button
+                  name: element
+                  type: LOCATOR
+                  value: New idea button
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+            - gherkinStep: And the user fills in the idea title with value "Weekend market pop-up"
+              id: fill-first-title
+              label: Fill first title
+              order: 3
+              parameters:
+                - locatorId: idea-title-input
+                  locatorName: Idea title input
+                  name: element
+                  type: LOCATOR
+                  value: Idea title input
+                - name: value
+                  type: TEXT
+                  value: Weekend market pop-up
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: And the user fills in the idea body with value "A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations."
+              id: fill-first-body
+              label: Fill first body
+              order: 4
+              parameters:
+                - locatorId: idea-body-input
+                  locatorName: Idea body input
+                  name: element
+                  type: LOCATOR
+                  value: Idea body input
+                - name: value
+                  type: TEXT
+                  value: A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations.
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: Then the idea list should contain the text "Weekend market pop-up"
+              id: list-contains-first-note
+              label: First note appears in list
+              order: 5
+              parameters:
+                - locatorId: idea-list
+                  locatorName: Idea list
+                  name: element
+                  type: LOCATOR
+                  value: Idea list
+                - name: contains
+                  type: BOOLEAN
+                  value: "true"
+                - name: text
+                  type: TEXT
+                  value: Weekend market pop-up
+              templateStepId: e375ded0-5c1a-465e-875e-c0c1e198eafd
+              templateStepName: assert element contains text
+            - gherkinStep: When the user reloads the page
+              id: reload-page
+              label: Reload page
+              order: 6
+              parameters: []
+              templateStepId: cec29b93-dd58-40d6-9fdd-94bd0705ecbe
+              templateStepName: reload
+            - gherkinStep: Then the idea note "Weekend market pop-up" is restored with the body text "A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations."
+              id: restored-after-reload
+              label: First note restored after reload
+              order: 7
+              parameters: []
+            - gherkinStep: When the user creates a new idea note
+              id: create-second-note
+              label: Create another idea note
+              order: 8
+              parameters:
+                - locatorId: new-idea-button
+                  locatorName: New idea button
+                  name: element
+                  type: LOCATOR
+                  value: New idea button
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+            - gherkinStep: And the user fills in the idea title with value "Pocket pitch recorder"
+              id: fill-second-title
+              label: Fill second title
+              order: 9
+              parameters:
+                - locatorId: idea-title-input
+                  locatorName: Idea title input
+                  name: element
+                  type: LOCATOR
+                  value: Idea title input
+                - name: value
+                  type: TEXT
+                  value: Pocket pitch recorder
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: And the user selects the idea note "Weekend market pop-up"
+              id: select-first-note
+              label: Select first note
+              order: 10
+              parameters: []
+            - gherkinStep: Then the idea note "Weekend market pop-up" is active
+              id: first-note-active
+              label: First note is active
+              order: 11
+              parameters:
+                - locatorId: active-idea-title
+                  locatorName: Active idea title
+                  name: element
+                  type: LOCATOR
+                  value: Active idea title
+                - name: contains
+                  type: BOOLEAN
+                  value: "true"
+                - name: text
+                  type: TEXT
+                  value: Weekend market pop-up
+              templateStepId: e375ded0-5c1a-465e-875e-c0c1e198eafd
+              templateStepName: assert element contains text
+            - gherkinStep: When the user deletes the idea note "Weekend market pop-up"
+              id: delete-first-note
+              label: Delete first note
+              order: 12
+              parameters: []
+            - gherkinStep: Then the idea list should not contain the text "Weekend market pop-up"
+              id: list-excludes-deleted-note
+              label: Deleted note leaves list
+              order: 13
+              parameters:
+                - locatorId: idea-list
+                  locatorName: Idea list
+                  name: element
+                  type: LOCATOR
+                  value: Idea list
+                - name: contains
+                  type: BOOLEAN
+                  value: "false"
+                - name: text
+                  type: TEXT
+                  value: Weekend market pop-up
+              templateStepId: e375ded0-5c1a-465e-875e-c0c1e198eafd
+              templateStepName: assert element contains text
+          title: Complete idea note workflow persists locally
+      testSuites:
+        - description: Reviewable coverage for creating, editing, persisting, switching, and deleting notepad-style idea notes.
+          id: ideamade-note-suite
+          moduleId: ideamade-notes
+          name: IdeaMade note workflow
+          testCaseIds:
+            - complete-idea-note-workflow-persists-locally
+    executable:
+      path: automation/features/ideamade-workflow.feature
+      selector: Complete idea note workflow persists locally
+    expectedFailures: []
+    gherkinPaths:
+      - automation/features/ideamade-workflow.feature
+    id: ideamade-note-workflow
+    matrix:
+      - browser: chromium
+        environment: local
+    required: true
+    stepPaths:
+      - automation/steps/ideamade-workflow.steps.ts
+    taskIds:
+      - scaffold-setup
+      - editor-state
+      - document-management
+      - persistence
+      - validation
+    testCaseIds:
+      - complete-idea-note-workflow-persists-locally
+version: "1"

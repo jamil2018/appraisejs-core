@@ -1,0 +1,414 @@
+{
+  "version": "1",
+  "planId": "pln_01kx1d14trxz912d2jzrc07zve",
+  "draftId": "validation-draft-pln-01kx1d14trxz912d2jzrc07zve",
+  "revision": 1,
+  "status": "published",
+  "targetProjectId": "0fc21a19-23a1-4765-97ff-cef55cea30aa",
+  "sourceHash": "sha256:89ae944aeb0d991ea67a7af48570238feab039b582dbf4437b86980eecf517f9",
+  "baseRevision": {
+    "gitCommit": null,
+    "snapshotHash": "sha256:89ae944aeb0d991ea67a7af48570238feab039b582dbf4437b86980eecf517f9",
+    "reducedAssurance": true
+  },
+  "classificationOverrides": [],
+  "validations": [
+    {
+      "id": "ideamade-note-workflow",
+      "taskIds": [
+        "scaffold-setup",
+        "editor-state",
+        "document-management",
+        "persistence",
+        "validation"
+      ],
+      "required": true,
+      "testCaseIds": [
+        "complete-idea-note-workflow-persists-locally"
+      ],
+      "appraiseArtifacts": {
+        "modules": [
+          {
+            "id": "ideamade-notes",
+            "name": "IdeaMade notes",
+            "parentId": null
+          }
+        ],
+        "testSuites": [
+          {
+            "id": "ideamade-note-suite",
+            "name": "IdeaMade note workflow",
+            "description": "Reviewable coverage for creating, editing, persisting, switching, and deleting notepad-style idea notes.",
+            "moduleId": "ideamade-notes",
+            "testCaseIds": [
+              "complete-idea-note-workflow-persists-locally"
+            ]
+          }
+        ],
+        "testCases": [
+          {
+            "id": "complete-idea-note-workflow-persists-locally",
+            "title": "Complete idea note workflow persists locally",
+            "description": "Validate that IdeaMade opens to the writing surface, shows an empty state, creates an idea note, autosaves title/body content, restores it after reload, switches between notes, deletes a note, and updates the list.",
+            "steps": [
+              {
+                "id": "open-ideamade",
+                "order": 0,
+                "label": "Open IdeaMade",
+                "gherkinStep": "Given the user opens the IdeaMade app",
+                "templateStepId": "fb77d502-3587-4e1e-92ec-1497f98311bc",
+                "templateStepName": "navigate to environment base url",
+                "parameters": []
+              },
+              {
+                "id": "empty-state-visible",
+                "order": 1,
+                "label": "Empty state is visible",
+                "gherkinStep": "Then the idea empty state is visible",
+                "templateStepId": "61617d12-4463-4084-929f-1c3c01a41a66",
+                "templateStepName": "assert element visible",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "Idea empty state",
+                    "type": "LOCATOR",
+                    "locatorId": "idea-empty-state",
+                    "locatorName": "Idea empty state"
+                  }
+                ]
+              },
+              {
+                "id": "create-first-note",
+                "order": 2,
+                "label": "Create a new idea note",
+                "gherkinStep": "When the user creates a new idea note",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "New idea button",
+                    "type": "LOCATOR",
+                    "locatorId": "new-idea-button",
+                    "locatorName": "New idea button"
+                  }
+                ]
+              },
+              {
+                "id": "fill-first-title",
+                "order": 3,
+                "label": "Fill first title",
+                "gherkinStep": "And the user fills in the idea title with value \"Weekend market pop-up\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "Idea title input",
+                    "type": "LOCATOR",
+                    "locatorId": "idea-title-input",
+                    "locatorName": "Idea title input"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Weekend market pop-up",
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "fill-first-body",
+                "order": 4,
+                "label": "Fill first body",
+                "gherkinStep": "And the user fills in the idea body with value \"A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations.\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "Idea body input",
+                    "type": "LOCATOR",
+                    "locatorId": "idea-body-input",
+                    "locatorName": "Idea body input"
+                  },
+                  {
+                    "name": "value",
+                    "value": "A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations.",
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "list-contains-first-note",
+                "order": 5,
+                "label": "First note appears in list",
+                "gherkinStep": "Then the idea list should contain the text \"Weekend market pop-up\"",
+                "templateStepId": "e375ded0-5c1a-465e-875e-c0c1e198eafd",
+                "templateStepName": "assert element contains text",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "Idea list",
+                    "type": "LOCATOR",
+                    "locatorId": "idea-list",
+                    "locatorName": "Idea list"
+                  },
+                  {
+                    "name": "contains",
+                    "value": "true",
+                    "type": "BOOLEAN"
+                  },
+                  {
+                    "name": "text",
+                    "value": "Weekend market pop-up",
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "reload-page",
+                "order": 6,
+                "label": "Reload page",
+                "gherkinStep": "When the user reloads the page",
+                "templateStepId": "cec29b93-dd58-40d6-9fdd-94bd0705ecbe",
+                "templateStepName": "reload",
+                "parameters": []
+              },
+              {
+                "id": "restored-after-reload",
+                "order": 7,
+                "label": "First note restored after reload",
+                "gherkinStep": "Then the idea note \"Weekend market pop-up\" is restored with the body text \"A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations.\"",
+                "parameters": []
+              },
+              {
+                "id": "create-second-note",
+                "order": 8,
+                "label": "Create another idea note",
+                "gherkinStep": "When the user creates a new idea note",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "New idea button",
+                    "type": "LOCATOR",
+                    "locatorId": "new-idea-button",
+                    "locatorName": "New idea button"
+                  }
+                ]
+              },
+              {
+                "id": "fill-second-title",
+                "order": 9,
+                "label": "Fill second title",
+                "gherkinStep": "And the user fills in the idea title with value \"Pocket pitch recorder\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "Idea title input",
+                    "type": "LOCATOR",
+                    "locatorId": "idea-title-input",
+                    "locatorName": "Idea title input"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Pocket pitch recorder",
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "select-first-note",
+                "order": 10,
+                "label": "Select first note",
+                "gherkinStep": "And the user selects the idea note \"Weekend market pop-up\"",
+                "parameters": []
+              },
+              {
+                "id": "first-note-active",
+                "order": 11,
+                "label": "First note is active",
+                "gherkinStep": "Then the idea note \"Weekend market pop-up\" is active",
+                "templateStepId": "e375ded0-5c1a-465e-875e-c0c1e198eafd",
+                "templateStepName": "assert element contains text",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "Active idea title",
+                    "type": "LOCATOR",
+                    "locatorId": "active-idea-title",
+                    "locatorName": "Active idea title"
+                  },
+                  {
+                    "name": "contains",
+                    "value": "true",
+                    "type": "BOOLEAN"
+                  },
+                  {
+                    "name": "text",
+                    "value": "Weekend market pop-up",
+                    "type": "TEXT"
+                  }
+                ]
+              },
+              {
+                "id": "delete-first-note",
+                "order": 12,
+                "label": "Delete first note",
+                "gherkinStep": "When the user deletes the idea note \"Weekend market pop-up\"",
+                "parameters": []
+              },
+              {
+                "id": "list-excludes-deleted-note",
+                "order": 13,
+                "label": "Deleted note leaves list",
+                "gherkinStep": "Then the idea list should not contain the text \"Weekend market pop-up\"",
+                "templateStepId": "e375ded0-5c1a-465e-875e-c0c1e198eafd",
+                "templateStepName": "assert element contains text",
+                "parameters": [
+                  {
+                    "name": "element",
+                    "value": "Idea list",
+                    "type": "LOCATOR",
+                    "locatorId": "idea-list",
+                    "locatorName": "Idea list"
+                  },
+                  {
+                    "name": "contains",
+                    "value": "false",
+                    "type": "BOOLEAN"
+                  },
+                  {
+                    "name": "text",
+                    "value": "Weekend market pop-up",
+                    "type": "TEXT"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "locatorGroups": [
+          {
+            "id": "ideamade-home",
+            "name": "IdeaMade home",
+            "route": "/",
+            "moduleId": "ideamade-notes"
+          }
+        ],
+        "locators": [
+          {
+            "id": "idea-empty-state",
+            "name": "Idea empty state",
+            "value": "[data-testid=\"idea-empty-state\"]",
+            "locatorGroupId": "ideamade-home"
+          },
+          {
+            "id": "new-idea-button",
+            "name": "New idea button",
+            "value": "[data-testid=\"new-idea-button\"]",
+            "locatorGroupId": "ideamade-home"
+          },
+          {
+            "id": "idea-title-input",
+            "name": "Idea title input",
+            "value": "[data-testid=\"idea-title-input\"]",
+            "locatorGroupId": "ideamade-home"
+          },
+          {
+            "id": "idea-body-input",
+            "name": "Idea body input",
+            "value": "[data-testid=\"idea-body-input\"]",
+            "locatorGroupId": "ideamade-home"
+          },
+          {
+            "id": "idea-list",
+            "name": "Idea list",
+            "value": "[data-testid=\"idea-list\"]",
+            "locatorGroupId": "ideamade-home"
+          },
+          {
+            "id": "active-idea-title",
+            "name": "Active idea title",
+            "value": "[data-testid=\"active-idea-title\"]",
+            "locatorGroupId": "ideamade-home"
+          },
+          {
+            "id": "delete-idea-button",
+            "name": "Delete idea button",
+            "value": "[data-testid=\"delete-idea-button\"]",
+            "locatorGroupId": "ideamade-home"
+          },
+          {
+            "id": "confirm-delete-idea-button",
+            "name": "Confirm delete idea button",
+            "value": "[data-testid=\"confirm-delete-idea-button\"]",
+            "locatorGroupId": "ideamade-home"
+          }
+        ]
+      },
+      "gherkinPaths": [
+        "automation/features/ideamade-workflow.feature"
+      ],
+      "stepPaths": [
+        "automation/steps/ideamade-workflow.steps.ts"
+      ],
+      "executable": {
+        "path": "automation/features/ideamade-workflow.feature",
+        "selector": "Complete idea note workflow persists locally"
+      },
+      "matrix": [
+        {
+          "browser": "chromium",
+          "environment": "local"
+        }
+      ],
+      "expectedFailures": []
+    }
+  ],
+  "files": [
+    {
+      "path": "automation/features/ideamade-workflow.feature",
+      "classification": "test_only",
+      "rationale": "Gherkin validation artifact covering the reviewed IdeaMade note creation, autosave persistence, switching, and deletion workflow.",
+      "status": "added",
+      "beforeHash": null,
+      "contentHash": "sha256:7f467c3caaadf49b088cf5a3a3a34d56f510bf02ae6b282a8ea0b7690f09332a",
+      "patch": "--- /dev/null\n+++ automation/features/ideamade-workflow.feature\n@@ -0,0 +1,18 @@\n+Feature: IdeaMade note workflow\n+  Users can write, revisit, and remove idea notes in a focused notepad-style app.\n+\n+  Scenario: Complete idea note workflow persists locally\n+    Given the user opens the IdeaMade app\n+    Then the idea empty state is visible\n+    When the user creates a new idea note\n+    And the user fills in the idea title with value \"Weekend market pop-up\"\n+    And the user fills in the idea body with value \"A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations.\"\n+    Then the idea list should contain the text \"Weekend market pop-up\"\n+    When the user reloads the page\n+    Then the idea note \"Weekend market pop-up\" is restored with the body text \"A compact booth concept for handmade notebooks, prompt cards, and quick sketch consultations.\"\n+    When the user creates a new idea note\n+    And the user fills in the idea title with value \"Pocket pitch recorder\"\n+    And the user selects the idea note \"Weekend market pop-up\"\n+    Then the idea note \"Weekend market pop-up\" is active\n+    When the user deletes the idea note \"Weekend market pop-up\"\n+    Then the idea list should not contain the text \"Weekend market pop-up\"",
+      "declared": true
+    },
+    {
+      "path": "automation/steps/ideamade-workflow.steps.ts",
+      "classification": "test_only",
+      "rationale": "Playwright/Cucumber step definitions that make the IdeaMade reviewed validation scenario executable against the target app.",
+      "status": "added",
+      "beforeHash": null,
+      "contentHash": "sha256:78c7fc857bfea57e8b29c5b985ec366865471ed96f4ef8855ae44b8080b3fc7f",
+      "patch": "--- /dev/null\n+++ automation/steps/ideamade-workflow.steps.ts\n@@ -0,0 +1,84 @@\n+import { expect } from \"@playwright/test\";\n+import { Given, Then, When } from \"@cucumber/cucumber\";\n+\n+type WorldWithPage = {\n+  page: import(\"@playwright/test\").Page;\n+  baseUrl?: string;\n+};\n+\n+const byTestId = (id: string) => `[data-testid=\"${id}\"]`;\n+\n+Given(\"the user opens the IdeaMade app\", async function (this: WorldWithPage) {\n+  await this.page.goto(this.baseUrl ?? \"/\");\n+});\n+\n+Then(\"the idea empty state is visible\", async function (this: WorldWithPage) {\n+  await expect(this.page.locator(byTestId(\"idea-empty-state\"))).toBeVisible();\n+});\n+\n+When(\"the user creates a new idea note\", async function (this: WorldWithPage) {\n+  await this.page.locator(byTestId(\"new-idea-button\")).click();\n+});\n+\n+When(\n+  \"the user fills in the idea title with value {string}\",\n+  async function (this: WorldWithPage, value: string) {\n+    await this.page.locator(byTestId(\"idea-title-input\")).fill(value);\n+  },\n+);\n+\n+When(\n+  \"the user fills in the idea body with value {string}\",\n+  async function (this: WorldWithPage, value: string) {\n+    await this.page.locator(byTestId(\"idea-body-input\")).fill(value);\n+  },\n+);\n+\n+Then(\n+  \"the idea list should contain the text {string}\",\n+  async function (this: WorldWithPage, value: string) {\n+    await expect(this.page.locator(byTestId(\"idea-list\"))).toContainText(value);\n+  },\n+);\n+\n+Then(\n+  \"the idea list should not contain the text {string}\",\n+  async function (this: WorldWithPage, value: string) {\n+    await expect(this.page.locator(byTestId(\"idea-list\"))).not.toContainText(value);\n+  },\n+);\n+\n+When(\"the user reloads the page\", async function (this: WorldWithPage) {\n+  await this.page.reload();\n+});\n+\n+Then(\n+  \"the idea note {string} is restored with the body text {string}\",\n+  async function (this: WorldWithPage, title: string, body: string) {\n+    await expect(this.page.locator(byTestId(\"idea-title-input\"))).toHaveValue(title);\n+    await expect(this.page.locator(byTestId(\"idea-body-input\"))).toHaveValue(body);\n+  },\n+);\n+\n+When(\n+  \"the user selects the idea note {string}\",\n+  async function (this: WorldWithPage, title: string) {\n+    await this.page.getByRole(\"button\", { name: title }).click();\n+  },\n+);\n+\n+Then(\n+  \"the idea note {string} is active\",\n+  async function (this: WorldWithPage, title: string) {\n+    await expect(this.page.locator(byTestId(\"active-idea-title\"))).toContainText(title);\n+  },\n+);\n+\n+When(\n+  \"the user deletes the idea note {string}\",\n+  async function (this: WorldWithPage, title: string) {\n+    await this.page.getByRole(\"button\", { name: title }).click();\n+    await this.page.locator(byTestId(\"delete-idea-button\")).click();\n+    await this.page.locator(byTestId(\"confirm-delete-idea-button\")).click();\n+  },\n+);",
+      "declared": true
+    }
+  ],
+  "manifestPaths": [
+    "automation/features/ideamade-workflow.feature",
+    "automation/steps/ideamade-workflow.steps.ts"
+  ],
+  "reusedStepPaths": [],
+  "newStepPaths": [
+    "automation/steps/ideamade-workflow.steps.ts"
+  ],
+  "customStepJustifications": [
+    {
+      "path": "automation/steps/ideamade-workflow.steps.ts",
+      "missingCapability": "IdeaMade-specific note workflow steps for restore-by-title/body verification, note selection by title, active note assertion, and confirmed delete flow.",
+      "whyLocatorsAndExistingStepsAreInsufficient": "The registry has generic click/fill/assert/reload primitives and a prior notepad workflow shape, but no reusable step path for this target workspace's IdeaMade note model or its required test ids. The custom file binds those reviewed locators to executable Playwright/Cucumber behavior for this app."
+    }
+  ],
+  "runtimeProjections": [],
+  "blockers": [],
+  "warnings": [],
+  "createdAt": "2026-07-08T17:40:57.712Z",
+  "updatedAt": "2026-07-08T17:43:30.539Z"
+}

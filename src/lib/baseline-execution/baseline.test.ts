@@ -137,6 +137,13 @@ describe('baseline execution contract', () => {
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
         result: 'failed',
+        failureSignatures: ['The run appears to have used a placeholder or fallback Cucumber binary.'],
+        completedStepIds: [],
+      }).classification,
+    ).toBe('validation_harness_failure')
+    expect(
+      classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
+        result: 'failed',
         failureSignatures: ['Existing search test failed'],
         completedStepIds: ['when-submit'],
       }).classification,
