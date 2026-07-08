@@ -71,28 +71,27 @@ export function getNavigationCommandGroups({
 }: NavigationCommandGroupOptions = {}): NavigationCommandGroup[] {
   return [
     {
-      heading: 'Overview',
+      heading: 'Control',
       items: [
         { href: '/', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/plans', label: 'Plans', icon: Network },
         ...(providerRunsEnabled ? [{ href: '/provider-runs', label: 'Provider Runs', icon: Bot }] : []),
-        { href: '/settings', label: 'Settings', icon: Settings2 },
       ],
     },
     {
-      heading: 'Automate',
+      heading: 'Execution',
       items: [
-        { href: '/test-suites', label: 'Test Suites', icon: TestTubes },
-        { href: '/test-cases', label: 'Test Cases', icon: TestTubeDiagonal },
         { href: '/test-runs', label: 'Test Runs', icon: ListChecks },
         { href: '/reports', label: 'Reports', icon: FileCheck },
+        { href: '/test-suites', label: 'Test Suites', icon: TestTubes },
+        { href: '/test-cases', label: 'Test Cases', icon: TestTubeDiagonal },
         { href: '/test-runs/create', label: 'Create Test Run', icon: ListChecks },
         { href: '/test-suites/create', label: 'Create Test Suite', icon: TestTubes },
         { href: '/test-cases/create', label: 'Create Test Case', icon: TestTubeDiagonal },
       ],
     },
     {
-      heading: 'Template',
+      heading: 'Library',
       items: [
         { href: '/template-steps', label: 'Template Steps', icon: LayoutTemplate },
         { href: '/template-step-groups', label: 'Template Step Groups', icon: Component },
@@ -104,13 +103,14 @@ export function getNavigationCommandGroups({
       ],
     },
     {
-      heading: 'Configuration',
+      heading: 'System',
       items: [
         { href: '/locators', label: 'Locators', icon: Code },
         { href: '/locator-groups', label: 'Locator Groups', icon: Group },
         { href: '/modules', label: 'Modules', icon: Puzzle },
         { href: '/environments', label: 'Environments', icon: Server },
         { href: '/tags', label: 'Tags', icon: Tag },
+        { href: '/settings', label: 'Settings', icon: Settings2 },
       ],
     },
   ]
