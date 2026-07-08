@@ -7,6 +7,7 @@ import {
   getAllTemplateStepsAction,
 } from '@/actions/template-step/template-step-actions'
 import { getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { getAllStepBlocksAction } from '@/actions/step-block/step-block-actions'
 import { createTestCaseAction, getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-group-actions'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
@@ -20,6 +21,7 @@ import {
   getEnvironmentRows,
   getLocatorRows,
   getModuleRows,
+  getFlowStepBlockRows,
   getTagRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
@@ -43,6 +45,7 @@ const CreateTestCase = async () => {
     testCasesResponse,
     moduleListResponse,
     environmentsResponse,
+    stepBlocksResponse,
   ] = await Promise.all([
     getAllTemplateStepParamsAction(),
     getAllTemplateStepsAction(),
@@ -53,6 +56,7 @@ const CreateTestCase = async () => {
     getAllTestCasesAction(),
     getAllModulesAction(),
     getAllEnvironmentsAction(),
+    getAllStepBlocksAction(),
   ])
 
   const loadError =
@@ -64,7 +68,8 @@ const CreateTestCase = async () => {
     tagsResponse.error ||
     testCasesResponse.error ||
     moduleListResponse.error ||
-    environmentsResponse.error
+    environmentsResponse.error ||
+    stepBlocksResponse.error
 
   if (loadError) {
     return <div>Error: {loadError}</div>
@@ -79,6 +84,7 @@ const CreateTestCase = async () => {
   const testCases = getTestCaseRows(testCasesResponse.data)
   const moduleList = getModuleRows(moduleListResponse.data)
   const environments = getEnvironmentRows(environmentsResponse.data)
+  const stepBlocks = getFlowStepBlockRows(stepBlocksResponse.data)
 
   return (
     <div>
@@ -96,6 +102,7 @@ const CreateTestCase = async () => {
         testSuites={testSuites}
         testCases={testCases}
         moduleList={moduleList}
+        stepBlocks={stepBlocks}
         tags={tags}
         onSubmitAction={createTestCaseAction}
         onCreateTestSuiteAction={createTestSuiteAction}

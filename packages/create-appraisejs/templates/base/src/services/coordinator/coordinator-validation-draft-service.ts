@@ -17,6 +17,7 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { ServiceError } from '@/services/shared/errors'
 
 import { publishPreparedValidations } from './coordinator-validation-service'
+import { templateStepGroupPath } from './template-step-group-path'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
 type DraftMutationResult = {
@@ -26,10 +27,41 @@ type DraftMutationResult = {
   warnings: string[]
   nextRecommendedAction: string
 }
+type ValidationStepMetadataInput = Pick<
+  ValidationDraft,
+  'reusedStepPaths' | 'newStepPaths' | 'customStepJustifications'
+> &
+  Partial<Pick<ValidationDraft, 'reusedTemplateStepRefs' | 'reusedStepBlockRefs'>>
 
 const draftDirectory = 'appraise/plans/validation-drafts'
 const idPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const zeroHash = `sha256:${'0'.repeat(64)}`
+
+type ReusableRef = ValidationDraft['reusedTemplateStepRefs'][number]
+type DraftStepProposal = {
+  intent: string
+  gherkinText: string
+  templateStepRef?: string
+  stepBlockRef?: string
+  customStepProposal?: {
+    path?: string
+    missingCapability?: string
+    whyLocatorsAndExistingStepsAreInsufficient?: string
+  }
+  parameters?: Array<{ name: string; value: string; type?: string; locatorRef?: string }>
+}
+type ValidationTestShapeProposal = {
+  title: string
+  behavior: string
+  coveredTaskIds: string[]
+  suiteRef?: string
+  steps: DraftStepProposal[]
+  stepBlocks?: Array<{ blockRef?: string; intent: string; parameters?: Record<string, string> }>
+  gherkinPath?: string
+  stepPath?: string
+  browser?: string
+  environment?: string
+}
 
 function hashContent(content: string) {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
@@ -46,6 +78,35 @@ function slug(input: string, fallback: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
   return value || fallback
+}
+
+function refKey(ref: ReusableRef) {
+  return ref.id
+}
+
+function uniqueRefs(refs: ReusableRef[]) {
+  return Array.from(new Map(refs.map(ref => [refKey(ref), ref])).values()).sort((left, right) =>
+    left.id.localeCompare(right.id),
+  )
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).sort()
+}
+
+function scoreIntent(candidate: string, intent: string) {
+  const haystack = candidate.toLowerCase()
+  const needles = new Set(
+    intent
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(part => part.length > 2),
+  )
+  let score = 0
+  for (const needle of needles) {
+    if (haystack.includes(needle)) score += 1
+  }
+  return score
 }
 
 function ensureId(input: string | undefined, fallback: string) {
@@ -180,6 +241,185 @@ function checkDraft(draft: ValidationDraft): ValidationDraft['blockers'] {
   return blockers
 }
 
+async function readReusableResources(client: PrismaClient) {
+  const [templateSteps, stepBlocks] = await Promise.all([
+    client.templateStep.findMany({
+      select: {
+        id: true,
+        name: true,
+        signature: true,
+        templateStepGroupId: true,
+        templateStepGroup: { select: { id: true, name: true, type: true } },
+      },
+      orderBy: { name: 'asc' },
+    }),
+    client.stepBlock.findMany({
+      select: {
+        id: true,
+        name: true,
+        intent: true,
+        steps: {
+          orderBy: { order: 'asc' },
+          select: {
+            templateStep: {
+              select: {
+                id: true,
+                name: true,
+                signature: true,
+                templateStepGroupId: true,
+                templateStepGroup: { select: { id: true, name: true, type: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    }),
+  ])
+  return { templateSteps, stepBlocks }
+}
+
+type ReusableResources = Awaited<ReturnType<typeof readReusableResources>>
+type ResolvedTemplateStep = ReusableResources['templateSteps'][number]
+type ResolvedStepBlock = ReusableResources['stepBlocks'][number]
+
+function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
+  return {
+    id: step.id,
+    name: step.name,
+    groupId: step.templateStepGroupId,
+    groupName: step.templateStepGroup.name,
+    path: templateStepGroupPath(step.templateStepGroup.name, step.templateStepGroup.type),
+  }
+}
+
+function stepBlockRef(block: ResolvedStepBlock): ReusableRef {
+  return { id: block.id, name: block.name }
+}
+
+function findTemplateStep(resources: ReusableResources, ref: string | undefined, intent: string) {
+  if (ref) {
+    const normalized = ref.toLowerCase()
+    const exact = resources.templateSteps.find(
+      step => step.id === ref || step.name.toLowerCase() === normalized || step.signature.toLowerCase() === normalized,
+    )
+    if (exact) return { step: exact, rewritten: false }
+  }
+  const ranked = resources.templateSteps
+    .map(step => ({ step, score: scoreIntent(`${step.name} ${step.signature}`, intent) }))
+    .filter(match => match.score > 0)
+    .sort((left, right) => right.score - left.score)
+  return ranked[0] ? { step: ranked[0].step, rewritten: !ref } : null
+}
+
+function findStepBlock(resources: ReusableResources, ref: string | undefined, intent: string) {
+  if (ref) {
+    const normalized = ref.toLowerCase()
+    const exact = resources.stepBlocks.find(block => block.id === ref || block.name.toLowerCase() === normalized)
+    if (exact) return { block: exact, rewritten: false }
+  }
+  const ranked = resources.stepBlocks
+    .map(block => ({ block, score: scoreIntent(`${block.name} ${block.intent ?? ''}`, intent) }))
+    .filter(match => match.score > 0)
+    .sort((left, right) => right.score - left.score)
+  return ranked[0] ? { block: ranked[0].block, rewritten: !ref } : null
+}
+
+// fallow-ignore-next-line complexity
+async function resolveValidationTestShape(
+  client: PrismaClient,
+  proposal: ValidationTestShapeProposal,
+): Promise<{
+  steps: DraftStepProposal[]
+  reusedTemplateStepRefs: ReusableRef[]
+  reusedStepBlockRefs: ReusableRef[]
+  reusedStepPaths: string[]
+  newStepPaths: string[]
+  customStepJustifications: ValidationDraft['customStepJustifications']
+  warnings: string[]
+}> {
+  const resources = await readReusableResources(client)
+  const steps: DraftStepProposal[] = []
+  const reusedTemplateStepRefs: ReusableRef[] = []
+  const reusedStepBlockRefs: ReusableRef[] = []
+  const customStepJustifications: ValidationDraft['customStepJustifications'] = []
+  const warnings: string[] = []
+  const newStepPaths: string[] = []
+
+  for (const blockProposal of proposal.stepBlocks ?? []) {
+    const resolvedBlock = findStepBlock(resources, blockProposal.blockRef, blockProposal.intent)
+    if (!resolvedBlock) continue
+    reusedStepBlockRefs.push(stepBlockRef(resolvedBlock.block))
+    if (resolvedBlock.rewritten) {
+      warnings.push(`Reused step block "${resolvedBlock.block.name}" for intent "${blockProposal.intent}".`)
+    }
+    for (const blockStep of resolvedBlock.block.steps) {
+      const stepRef = templateStepRef(blockStep.templateStep)
+      reusedTemplateStepRefs.push(stepRef)
+      steps.push({
+        intent: blockStep.templateStep.name,
+        gherkinText: blockStep.templateStep.signature,
+        templateStepRef: blockStep.templateStep.id,
+        parameters: Object.entries(blockProposal.parameters ?? {}).map(([name, value]) => ({ name, value })),
+      })
+    }
+  }
+
+  for (const step of proposal.steps) {
+    const resolvedBlock = step.stepBlockRef ? findStepBlock(resources, step.stepBlockRef, step.intent) : null
+    if (resolvedBlock) {
+      reusedStepBlockRefs.push(stepBlockRef(resolvedBlock.block))
+      for (const blockStep of resolvedBlock.block.steps) {
+        reusedTemplateStepRefs.push(templateStepRef(blockStep.templateStep))
+        steps.push({
+          intent: blockStep.templateStep.name,
+          gherkinText: blockStep.templateStep.signature,
+          templateStepRef: blockStep.templateStep.id,
+          parameters: step.parameters,
+        })
+      }
+      continue
+    }
+
+    const resolvedStep = findTemplateStep(resources, step.templateStepRef, step.intent)
+    if (resolvedStep) {
+      const ref = templateStepRef(resolvedStep.step)
+      reusedTemplateStepRefs.push(ref)
+      steps.push({ ...step, templateStepRef: resolvedStep.step.id })
+      if (resolvedStep.rewritten || step.customStepProposal) {
+        warnings.push(`Reused template step "${resolvedStep.step.name}" for intent "${step.intent}".`)
+      }
+      continue
+    }
+
+    steps.push(step)
+    if (step.customStepProposal?.path) {
+      newStepPaths.push(step.customStepProposal.path)
+      if (
+        step.customStepProposal.missingCapability &&
+        step.customStepProposal.whyLocatorsAndExistingStepsAreInsufficient
+      ) {
+        customStepJustifications.push({
+          path: step.customStepProposal.path,
+          missingCapability: step.customStepProposal.missingCapability,
+          whyLocatorsAndExistingStepsAreInsufficient:
+            step.customStepProposal.whyLocatorsAndExistingStepsAreInsufficient,
+        })
+      }
+    }
+  }
+
+  return {
+    steps,
+    reusedTemplateStepRefs: uniqueRefs(reusedTemplateStepRefs),
+    reusedStepBlockRefs: uniqueRefs(reusedStepBlockRefs),
+    reusedStepPaths: uniqueStrings(reusedTemplateStepRefs.map(ref => ref.path ?? '')),
+    newStepPaths: uniqueStrings(newStepPaths),
+    customStepJustifications,
+    warnings,
+  }
+}
+
 function toMutationResult(draft: ValidationDraft, nextRecommendedAction: string): DraftMutationResult {
   const blockers = checkDraft(draft)
   return {
@@ -193,30 +433,50 @@ function toMutationResult(draft: ValidationDraft, nextRecommendedAction: string)
 
 export async function readValidationContext(planId: string, options: Options = {}) {
   const { client, plan, projection } = await readPlanContext(planId, options)
-  const [modules, testSuites, testCases, templateSteps, locatorGroups, locators, environments] = await Promise.all([
-    client.module.findMany({ select: { id: true, name: true, parentId: true }, orderBy: { name: 'asc' } }),
-    client.testSuite.findMany({
-      select: { id: true, name: true, description: true, moduleId: true, testCases: { select: { id: true } } },
-      orderBy: { name: 'asc' },
-    }),
-    client.testCase.findMany({ select: { id: true, title: true, description: true }, orderBy: { title: 'asc' } }),
-    client.templateStep.findMany({
-      select: { id: true, name: true, signature: true, type: true, templateStepGroupId: true },
-      orderBy: { name: 'asc' },
-    }),
-    client.locatorGroup.findMany({
-      select: { id: true, name: true, route: true, moduleId: true },
-      orderBy: { name: 'asc' },
-    }),
-    client.locator.findMany({
-      select: { id: true, name: true, value: true, locatorGroupId: true },
-      orderBy: { name: 'asc' },
-    }),
-    client.environment.findMany({
-      select: { id: true, name: true, baseUrl: true, apiBaseUrl: true },
-      orderBy: { name: 'asc' },
-    }),
-  ])
+  const [modules, testSuites, testCases, templateSteps, stepBlocks, locatorGroups, locators, environments] =
+    await Promise.all([
+      client.module.findMany({ select: { id: true, name: true, parentId: true }, orderBy: { name: 'asc' } }),
+      client.testSuite.findMany({
+        select: { id: true, name: true, description: true, moduleId: true, testCases: { select: { id: true } } },
+        orderBy: { name: 'asc' },
+      }),
+      client.testCase.findMany({ select: { id: true, title: true, description: true }, orderBy: { title: 'asc' } }),
+      client.templateStep.findMany({
+        select: { id: true, name: true, signature: true, type: true, templateStepGroupId: true },
+        orderBy: { name: 'asc' },
+      }),
+      client.stepBlock.findMany({
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          intent: true,
+          steps: {
+            orderBy: { order: 'asc' },
+            select: {
+              order: true,
+              parameterMap: true,
+              templateStep: {
+                select: { id: true, name: true, signature: true, type: true, templateStepGroupId: true },
+              },
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      client.locatorGroup.findMany({
+        select: { id: true, name: true, route: true, moduleId: true },
+        orderBy: { name: 'asc' },
+      }),
+      client.locator.findMany({
+        select: { id: true, name: true, value: true, locatorGroupId: true },
+        orderBy: { name: 'asc' },
+      }),
+      client.environment.findMany({
+        select: { id: true, name: true, baseUrl: true, apiBaseUrl: true },
+        orderBy: { name: 'asc' },
+      }),
+    ])
   return {
     plan: {
       planId,
@@ -232,6 +492,7 @@ export async function readValidationContext(planId: string, options: Options = {
       testSuites: testSuites.map(suite => ({ ...suite, testCaseIds: suite.testCases.map(testCase => testCase.id) })),
       testCases,
       templateSteps,
+      stepBlocks,
       locatorGroups,
       locators,
       environments,
@@ -240,6 +501,7 @@ export async function readValidationContext(planId: string, options: Options = {
       'appraise.resource/module-proposal/v1',
       'appraise.resource/environment-proposal/v1',
       'appraise.resource/template-step-proposal/v1',
+      'appraise.resource/step-block-proposal/v1',
       'appraise.resource/locator-group-proposal/v1',
       'appraise.resource/locator-proposal/v1',
       'appraise.validation/test-suite-proposal/v1',
@@ -270,6 +532,8 @@ export async function createValidationDraft(planId: string, options: Options = {
     files: [],
     manifestPaths: [],
     reusedStepPaths: [],
+    reusedTemplateStepRefs: [],
+    reusedStepBlockRefs: [],
     newStepPaths: [],
     customStepJustifications: [],
     runtimeProjections: [],
@@ -322,7 +586,7 @@ export async function upsertValidationFile(
 
 export async function upsertValidationStepMetadata(
   planId: string,
-  metadata: Pick<ValidationDraft, 'reusedStepPaths' | 'newStepPaths' | 'customStepJustifications'>,
+  metadata: ValidationStepMetadataInput,
   options: Options = {},
 ) {
   const draft = await readDraftFile(planId, options)
@@ -330,8 +594,10 @@ export async function upsertValidationStepMetadata(
     {
       ...draft,
       status: 'draft',
-      reusedStepPaths: Array.from(new Set(metadata.reusedStepPaths)).sort(),
-      newStepPaths: Array.from(new Set(metadata.newStepPaths)).sort(),
+      reusedStepPaths: uniqueStrings(metadata.reusedStepPaths),
+      reusedTemplateStepRefs: uniqueRefs(metadata.reusedTemplateStepRefs ?? draft.reusedTemplateStepRefs),
+      reusedStepBlockRefs: uniqueRefs(metadata.reusedStepBlockRefs ?? draft.reusedStepBlockRefs),
+      newStepPaths: uniqueStrings(metadata.newStepPaths),
       customStepJustifications: metadata.customStepJustifications,
     },
     options,
@@ -344,31 +610,19 @@ export async function upsertValidationStepMetadata(
 
 export async function upsertValidationTestCase(
   planId: string,
-  proposal: {
-    title: string
-    behavior: string
-    coveredTaskIds: string[]
-    suiteRef?: string
-    steps: Array<{
-      intent: string
-      gherkinText: string
-      templateStepRef?: string
-      parameters?: Array<{ name: string; value: string; type?: string; locatorRef?: string }>
-    }>
-    gherkinPath?: string
-    stepPath?: string
-    browser?: string
-    environment?: string
-  },
+  proposal: ValidationTestShapeProposal,
   options: Options = {},
 ) {
+  const client = options.client ?? prisma
   const caseId = slug(proposal.title, 'validation-case')
   const suiteId = ensureId(
     proposal.suiteRef ? slug(proposal.suiteRef, 'validation-suite') : undefined,
     'validation-suite',
   )
   const moduleId = 'validation-module'
-  const stepPath = proposal.stepPath ?? `automation/steps/${caseId}.steps.ts`
+  const resolved = await resolveValidationTestShape(client, proposal)
+  const usesOnlyReusableSteps = resolved.steps.length > 0 && resolved.steps.every(step => step.templateStepRef)
+  const stepPath = proposal.stepPath ?? (usesOnlyReusableSteps ? undefined : `automation/steps/${caseId}.steps.ts`)
   const gherkinPath = proposal.gherkinPath ?? `automation/features/${caseId}.feature`
   const node = {
     id: caseId,
@@ -383,11 +637,12 @@ export async function upsertValidationTestCase(
           id: caseId,
           title: proposal.title,
           description: proposal.behavior,
-          steps: proposal.steps.map((step, index) => ({
+          steps: resolved.steps.map((step, index) => ({
             id: `${caseId}-step-${index + 1}`,
             order: index,
             label: step.intent,
             gherkinStep: step.gherkinText,
+            templateStepId: step.templateStepRef,
             templateStepName: step.templateStepRef,
             parameters: (step.parameters ?? []).map(parameter => ({
               name: parameter.name,
@@ -402,17 +657,39 @@ export async function upsertValidationTestCase(
       locators: [],
     },
     gherkinPaths: [gherkinPath],
-    stepPaths: [stepPath],
+    stepPaths: stepPath ? [stepPath] : [],
     executable: { path: gherkinPath, selector: proposal.title },
     matrix: [{ browser: proposal.browser ?? 'chromium', environment: proposal.environment ?? 'local' }],
     expectedFailures: [],
   }
-  const result = await upsertValidationNode(planId, node, options)
-  if (!proposal.steps.some(step => step.templateStepRef)) return result
+  await upsertValidationNode(planId, node, options)
   const draft = await readDraftFile(planId, options)
-  const reusedStepPaths = Array.from(new Set([...draft.reusedStepPaths, stepPath])).sort()
-  const next = await writeDraft({ ...draft, reusedStepPaths }, options)
+  const next = await writeDraft(
+    {
+      ...draft,
+      reusedStepPaths: uniqueStrings([...draft.reusedStepPaths, ...resolved.reusedStepPaths]),
+      reusedTemplateStepRefs: uniqueRefs([...draft.reusedTemplateStepRefs, ...resolved.reusedTemplateStepRefs]),
+      reusedStepBlockRefs: uniqueRefs([...draft.reusedStepBlockRefs, ...resolved.reusedStepBlockRefs]),
+      newStepPaths: uniqueStrings([...draft.newStepPaths, ...resolved.newStepPaths]),
+      customStepJustifications: [
+        ...draft.customStepJustifications,
+        ...resolved.customStepJustifications.filter(
+          justification => !draft.customStepJustifications.some(existing => existing.path === justification.path),
+        ),
+      ],
+      warnings: uniqueStrings([...draft.warnings, ...resolved.warnings]),
+    },
+    options,
+  )
   return toMutationResult(next, 'Call validation_file_upsert for changed files or validation_draft_check.')
+}
+
+export async function proposeValidationTestShape(
+  planId: string,
+  proposal: ValidationTestShapeProposal,
+  options: Options = {},
+) {
+  return upsertValidationTestCase(planId, proposal, options)
 }
 
 export async function checkValidationDraft(planId: string, options: Options = {}) {
@@ -449,6 +726,8 @@ export async function publishValidationDraft(planId: string, draftId: string, op
     validations: draft.validations,
     approvals: [],
     reusedStepPaths: draft.reusedStepPaths,
+    reusedTemplateStepRefs: draft.reusedTemplateStepRefs,
+    reusedStepBlockRefs: draft.reusedStepBlockRefs,
     newStepPaths: draft.newStepPaths,
     customStepJustifications: draft.customStepJustifications,
     runtimeProjections: draft.runtimeProjections,

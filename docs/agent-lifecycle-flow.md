@@ -28,6 +28,14 @@ paths, and `appraise/plans/validations/<plan-id>.validation.yaml`. The AppraiseJ
 future execution surface; Playwright/Gherkin files are runtime evidence derived from them. Agents must call
 `validation_publish` before claiming the user can review validations.
 
+Validation authoring is registry-first. Agents should submit behavior intent, locator hints, reusable
+`templateStepRef` or `stepBlockRef` values, and optional custom-step proposals through
+`validation_test_shape_propose` or the compatible `validation_test_case_upsert` tool. Appraise resolves reusable
+template steps and step blocks, records `reusedTemplateStepRefs` and `reusedStepBlockRefs`, derives legacy
+`reusedStepPaths` from shared template-step group files, and materializes those shared files during runtime projection.
+Do not mark a generated per-case `automation/steps/<case>.steps.ts` path as reused merely because a test case uses a
+template step; only genuinely custom runtime files need `customStepJustifications`.
+
 ## Validation Review
 
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation

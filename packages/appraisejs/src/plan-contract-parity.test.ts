@@ -144,9 +144,9 @@ describe('validation input contract parity', () => {
     [
       {
         ...validValidation,
-        validations: [{ ...validValidation.validations[0], stepPaths: [] }],
+        validations: [{ ...validValidation.validations[0], gherkinPaths: [] }],
       },
-      'validations.0.stepPaths',
+      'validations.0.gherkinPaths',
     ],
     [
       {

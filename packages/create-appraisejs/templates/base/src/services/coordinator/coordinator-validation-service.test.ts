@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, TemplateStepGroupType, TemplateStepIcon, TemplateStepType } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
@@ -261,6 +261,22 @@ describe('validation preparation review gate', () => {
     const planId = 'validation-draft-publish'
     await preparePlanForValidation(planId)
     const created = await createValidationDraft(planId, { projectDirectory: workspace, client })
+    const templateStepGroup = await client.templateStepGroup.create({
+      data: {
+        name: 'Reusable validations',
+        description: 'Shared validation steps.',
+        type: TemplateStepGroupType.VALIDATION,
+      },
+    })
+    const templateStep = await client.templateStep.create({
+      data: {
+        name: 'Run step',
+        signature: 'Given I run the validation step',
+        type: TemplateStepType.ASSERTION,
+        icon: TemplateStepIcon.VALIDATION,
+        templateStepGroupId: templateStepGroup.id,
+      },
+    })
 
     await upsertValidationTestCase(
       planId,
@@ -270,12 +286,11 @@ describe('validation preparation review gate', () => {
         coveredTaskIds: ['first-task'],
         suiteRef: 'Validation suite',
         gherkinPath: 'automation/features/case-one.feature',
-        stepPath: 'automation/steps/actions/case-one.step.ts',
         steps: [
           {
             intent: 'Run validation step',
             gherkinText: 'Given I run the validation step',
-            templateStepRef: 'Run step',
+            templateStepRef: templateStep.id,
           },
         ],
       },
@@ -325,13 +340,27 @@ describe('validation preparation review gate', () => {
       id: 'case-one',
       taskIds: ['first-task'],
       testCaseIds: ['case-one'],
+      stepPaths: [],
     })
+    expect(validationArtifact.reusedStepPaths).toEqual(['automation/steps/validations/reusable_validations.step.ts'])
+    expect(validationArtifact.reusedTemplateStepRefs).toEqual([
+      expect.objectContaining({
+        id: templateStep.id,
+        groupId: templateStepGroup.id,
+        path: 'automation/steps/validations/reusable_validations.step.ts',
+      }),
+    ])
     expect(validationArtifact.runtimePreflight).toMatchObject({ status: 'passed' })
     expect(validationArtifact.runtimeProjections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           role: 'gherkin',
           declaredPath: 'automation/features/case-one.feature',
+          materialization: 'generated',
+        }),
+        expect.objectContaining({
+          role: 'step',
+          declaredPath: 'automation/steps/validations/reusable_validations.step.ts',
           materialization: 'generated',
         }),
       ]),

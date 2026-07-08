@@ -96,8 +96,10 @@ export function getNavigationCommandGroups({
       items: [
         { href: '/template-steps', label: 'Template Steps', icon: LayoutTemplate },
         { href: '/template-step-groups', label: 'Template Step Groups', icon: Component },
+        { href: '/step-blocks', label: 'Step Blocks', icon: Blocks },
         { href: '/template-test-cases', label: 'Template Test Cases', icon: Blocks },
         { href: '/template-steps/create', label: 'Create Template Step', icon: LayoutTemplate },
+        { href: '/step-blocks/create', label: 'Create Step Block', icon: Blocks },
         { href: '/template-test-cases/create', label: 'Create Template Test Case', icon: Blocks },
       ],
     },

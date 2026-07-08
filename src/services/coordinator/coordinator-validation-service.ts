@@ -65,7 +65,10 @@ async function readArtifacts(planId: string, projectDirectory?: string, client: 
 
 function assertCustomStepJustifications(validation: ValidationArtifact) {
   const justifiedPaths = new Set(validation.customStepJustifications?.map(justification => justification.path) ?? [])
-  const reusedPaths = new Set(validation.reusedStepPaths ?? [])
+  const reusedPaths = new Set([
+    ...(validation.reusedStepPaths ?? []),
+    ...(validation.reusedTemplateStepRefs ?? []).map(ref => ref.path).filter((path): path is string => Boolean(path)),
+  ])
   const declaredNewPaths = new Set(validation.newStepPaths ?? [])
   const stepPaths = new Set([
     ...declaredNewPaths,
@@ -105,6 +108,7 @@ export async function publishPreparedValidations(
     projectRoot: artifacts.projectRoot,
     validationFileRoot: artifacts.validationFileRoot,
     targetProject: artifacts.targetProject,
+    client,
     validation,
   })
   assertRuntimePreflightPassed(runtimeValidation)
@@ -140,6 +144,8 @@ export async function publishPreparedValidations(
     changedFileCount: validation.files.length,
     manifestPaths: validation.manifestPaths,
     reusedStepPaths: validation.reusedStepPaths ?? [],
+    reusedTemplateStepRefs: validation.reusedTemplateStepRefs ?? [],
+    reusedStepBlockRefs: validation.reusedStepBlockRefs ?? [],
     newStepPaths: validation.newStepPaths ?? [],
     nextReviewAction:
       'Open the validation review URL, inspect validation nodes and changed-file evidence, then approve or request changes.',

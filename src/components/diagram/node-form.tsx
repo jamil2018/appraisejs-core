@@ -9,7 +9,12 @@ import type { DynamicFormFieldsRef } from './dynamic-parameters'
 import { NodeFormFieldsContent } from './node-form-fields-content'
 import type { NodeFormFieldsProps } from './node-form-fields-props'
 import { handleNodeFormSubmit } from './node-form-submit'
-import { getSelectedTemplateStep, getSelectedTemplateStepParams, type NodeFormProps } from './node-form-helpers'
+import {
+  getGherkinPreview,
+  getSelectedTemplateStep,
+  getSelectedTemplateStepParams,
+  type NodeFormProps,
+} from './node-form-helpers'
 import { getTemplateStepSelectionUpdates } from './node-form-template-step-selection'
 
 function buildFormResetKey(
@@ -39,6 +44,7 @@ function NodeFormFields({
   modules,
   onLocatorCreated,
   defaultValueInput = false,
+  parameterMode = 'values',
 }: NodeFormFieldsProps) {
   const fieldClassName = 'border-border bg-background'
   const dynamicFormRef = useRef<DynamicFormFieldsRef>(null)
@@ -68,10 +74,10 @@ function NodeFormFields({
 
       setSelectedTemplateStep(selection.step)
       setSelectedTemplateStepParams(selection.newParams)
-      setParameters(selection.initialParamsForStep)
-      setGherkinStep(selection.gherkinStep)
+      setParameters(parameterMode === 'hidden' ? [] : selection.initialParamsForStep)
+      setGherkinStep(parameterMode === 'hidden' ? getGherkinPreview(selection.step, []) : selection.gherkinStep)
     },
-    [templateStepParams, templateSteps],
+    [parameterMode, templateStepParams, templateSteps],
   )
 
   return (
@@ -80,8 +86,9 @@ function NodeFormFields({
         handleNodeFormSubmit(event, {
           dynamicFormRef,
           selectedTemplateId,
-          parameters,
+          parameters: parameterMode === 'hidden' ? [] : parameters,
           gherkinStep,
+          parameterMode,
           onSubmitAction,
           setErrors,
         })
@@ -99,6 +106,7 @@ function NodeFormFields({
         modules={modules}
         onLocatorCreated={onLocatorCreated}
         defaultValueInput={defaultValueInput}
+        parameterMode={parameterMode}
         onSubmitAction={onSubmitAction}
         fieldClassName={fieldClassName}
         dynamicFormRef={dynamicFormRef}

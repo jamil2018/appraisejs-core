@@ -8,13 +8,13 @@ import type { FlowBlockBounds } from './flow-block-helpers'
 
 type FlowDiagramBlockOverlaysProps = {
   flowBlockBounds: FlowBlockBounds[]
-  onRenameBlock: (block: FlowBlockBounds) => void
+  onEditBlock: (block: FlowBlockBounds) => void
   onDeleteBlock: (blockId: string) => void
 }
 
 export function FlowDiagramBlockOverlays({
   flowBlockBounds,
-  onRenameBlock,
+  onEditBlock,
   onDeleteBlock,
 }: FlowDiagramBlockOverlaysProps) {
   if (flowBlockBounds.length === 0) {
@@ -42,8 +42,8 @@ export function FlowDiagramBlockOverlays({
               variant="ghost"
               size="icon"
               className="size-5"
-              onClick={() => onRenameBlock(block)}
-              aria-label={`Rename ${block.name}`}
+              onClick={() => onEditBlock(block)}
+              aria-label={`Edit ${block.name}`}
             >
               <Pencil className="size-3" />
             </Button>

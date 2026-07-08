@@ -7,6 +7,7 @@ import { FlowDiagramBlockDialog } from './flow-diagram-block-dialog'
 import { FlowDiagramBlockOverlays } from './flow-diagram-block-overlays'
 import { FlowDiagramGroupingHints } from './flow-diagram-grouping-hints'
 import { FlowDiagramToolbar } from './flow-diagram-toolbar'
+import { FlowDiagramStepBlockSheet } from './flow-diagram-step-block-sheet'
 import NodeForm from './node-form'
 import type { ComponentType, RefObject } from 'react'
 
@@ -47,10 +48,12 @@ export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewPro
           shouldShowSearchSuggestions={model.search.shouldShowSearchSuggestions}
           nodeSearchResults={model.search.nodeSearchResults}
           isGroupingSelectionMode={model.grouping.isGroupingSelectionMode}
+          canAddStepBlock={model.stepBlocks.length > 0}
           onSearchQueryChange={model.search.setSearchQuery}
           onToggleSearch={model.search.toggleSearch}
           onSearchResultSelect={model.search.handleSearchResultClick}
           onToggleGroupingSelectionMode={model.grouping.toggleGroupingSelectionMode}
+          onOpenAddStepBlockDialog={model.openAddStepBlockDialog}
           onOpenAddNodeDialog={model.openAddNodeDialog}
         />
         <div ref={model.flowContainerRef} className="h-full min-h-80 flex-1">
@@ -91,7 +94,7 @@ export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewPro
             />
             <FlowDiagramBlockOverlays
               flowBlockBounds={model.grouping.flowBlockBounds}
-              onRenameBlock={model.grouping.openRenameBlockDialog}
+              onEditBlock={model.openEditStepBlockDialog}
               onDeleteBlock={model.grouping.deleteBlock}
             />
             <Background />
@@ -140,10 +143,39 @@ export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewPro
         setShowAddNodeDialog={model.setShowAddNodeDialog}
         locators={model.mergedLocators}
         defaultValueInput={model.defaultValueInput}
+        parameterMode={model.parameterMode}
         locatorGroups={model.mergedLocatorGroups}
         environments={model.environments}
         modules={model.modules}
         onLocatorCreated={model.handleLocatorCreated}
+      />
+
+      <FlowDiagramStepBlockSheet
+        open={model.showAddStepBlockDialog}
+        mode="add"
+        stepBlocks={model.stepBlocks}
+        locators={model.mergedLocators}
+        locatorGroups={model.mergedLocatorGroups}
+        environments={model.environments}
+        modules={model.modules}
+        onLocatorCreated={model.handleLocatorCreated}
+        onOpenChange={model.setShowAddStepBlockDialog}
+        onSubmit={model.addStepBlock}
+      />
+
+      <FlowDiagramStepBlockSheet
+        open={model.showEditStepBlockDialog}
+        mode="edit"
+        stepBlocks={model.stepBlocks}
+        initialBlockName={model.editStepBlockName}
+        initialSteps={model.editStepBlockSteps}
+        locators={model.mergedLocators}
+        locatorGroups={model.mergedLocatorGroups}
+        environments={model.environments}
+        modules={model.modules}
+        onLocatorCreated={model.handleLocatorCreated}
+        onOpenChange={model.setShowEditStepBlockDialog}
+        onSubmit={model.updateStepBlock}
       />
 
       {model.editNodeData ? (
@@ -162,6 +194,7 @@ export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewPro
           setShowAddNodeDialog={model.setShowEditNodeDialog}
           locators={model.mergedLocators}
           defaultValueInput={model.defaultValueInput}
+          parameterMode={model.parameterMode}
           locatorGroups={model.mergedLocatorGroups}
           environments={model.environments}
           modules={model.modules}

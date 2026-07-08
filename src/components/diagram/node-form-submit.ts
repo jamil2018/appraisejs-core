@@ -10,6 +10,7 @@ type HandleNodeFormSubmitOptions = {
   selectedTemplateId: string
   parameters: NodeFormData['parameters']
   gherkinStep: string
+  parameterMode: 'values' | 'hidden'
   onSubmitAction: (values: NodeFormData) => void
   setErrors: (errors: NodeFormErrors) => void
 }
@@ -17,7 +18,7 @@ type HandleNodeFormSubmitOptions = {
 export function handleNodeFormSubmit(event: React.FormEvent<HTMLFormElement>, options: HandleNodeFormSubmitOptions) {
   event.preventDefault()
 
-  const isDynamicFormValid = options.dynamicFormRef.current?.validate()
+  const isDynamicFormValid = options.parameterMode === 'hidden' || options.dynamicFormRef.current?.validate()
   const formData = new FormData(event.currentTarget)
   const formValues = Object.fromEntries(formData.entries())
   const parsed = validateNodeFormValues(formValues.label, options.selectedTemplateId)

@@ -13,6 +13,7 @@ import { InlineTestSuiteCreationDialog } from './inline-test-suite-creation-dial
 import TestCaseFlow from './test-case-flow'
 import type { TagFormSubmitAction } from '@/app/(base)/tags/tag-form-helpers'
 import type { TestSuiteFormSubmitAction } from '@/app/(base)/test-suites/test-suite-helpers'
+import type { FlowDiagramStepBlock } from '@/components/diagram/flow-diagram-types'
 import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
 import type { TestCasePickerRow } from '@/types/test-case-picker'
 import {
@@ -64,6 +65,7 @@ type TestCaseFormProps = {
   testSuites: TestSuite[]
   testCases: TestCasePickerRow[]
   moduleList: Module[]
+  stepBlocks?: FlowDiagramStepBlock[]
   tags: Tag[]
   onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
   onCreateTestSuiteAction: TestSuiteFormSubmitAction
@@ -79,6 +81,7 @@ type TestCaseFormProps = {
 }
 
 const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
+const EMPTY_STEP_BLOCKS: FlowDiagramStepBlock[] = []
 
 const detailsStepSchema = testCaseSubmitSchema.omit({ steps: true })
 
@@ -269,6 +272,7 @@ type FlowPanelProps = {
   environments: Array<Pick<Environment, 'id' | 'name'>>
   moduleList: Module[]
   flowBlocks: FlowBlock[]
+  stepBlocks: FlowDiagramStepBlock[]
   isFlowImmersive: boolean
   onNodeOrderChange: (nodesOrder: NodeOrderMap) => void
   onFlowBlocksChange: (flowBlocks: FlowBlock[]) => void
@@ -285,6 +289,7 @@ function FlowPanel({
   environments,
   moduleList,
   flowBlocks,
+  stepBlocks,
   isFlowImmersive,
   onNodeOrderChange,
   onFlowBlocksChange,
@@ -331,6 +336,7 @@ function FlowPanel({
                 locatorGroups={locatorGroups}
                 environments={environments}
                 modules={moduleList}
+                stepBlocks={stepBlocks}
                 flowBlocks={flowBlocks}
                 layoutRefreshKey={isFlowImmersive}
                 onFlowBlocksChange={onFlowBlocksChange}
@@ -1155,6 +1161,7 @@ const TestCaseForm = ({
   testSuites,
   testCases,
   moduleList,
+  stepBlocks = EMPTY_STEP_BLOCKS,
   tags,
   id,
   defaultTitle,
@@ -1333,6 +1340,7 @@ const TestCaseForm = ({
     locatorGroups,
     environments,
     moduleList,
+    stepBlocks,
     flowBlocks,
     isFlowImmersive,
     onNodeOrderChange,

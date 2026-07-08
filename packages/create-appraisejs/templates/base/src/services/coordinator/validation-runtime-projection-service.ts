@@ -11,9 +11,12 @@ import {
   type PrismaClient,
 } from '@prisma/client'
 
+import prisma from '@/config/db-config'
 import type { ValidationArtifact } from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { ServiceError } from '@/services/shared/errors'
+
+import { templateStepGroupPath } from './template-step-group-path'
 
 type RuntimeClient = PrismaClient | Prisma.TransactionClient
 type TargetProjectMetadata = {
@@ -27,6 +30,7 @@ type ValidationFileRoot = {
   projectRoot: string
   validationFileRoot: string
   targetProject: TargetProjectMetadata
+  client?: RuntimeClient
 }
 type RuntimeProjection = NonNullable<ValidationArtifact['runtimeProjections']>[number]
 type RuntimePreflight = NonNullable<ValidationArtifact['runtimePreflight']>
@@ -36,6 +40,8 @@ const projectionTag = (planId: string) => `@appraise_plan_${planId}`
 const testCaseTag = (testCaseId: string) => `@tc_${testCaseId}`
 const testSuiteTag = (testSuiteId: string) => `@ts_${testSuiteId}`
 const validationStepGroupName = 'Appraise validation projection'
+const runtimeImport =
+  "import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js';"
 
 function resolveValidationPath(root: string, filePath: string) {
   const absolutePath = path.resolve(root, filePath)
@@ -103,8 +109,13 @@ function featureTextForPath(planId: string, validation: ValidationArtifact, feat
   ].join('\n')
 }
 
+// fallow-ignore-next-line complexity
 function uniqueRuntimeEntries(validation: ValidationArtifact) {
   const entries = new Map<string, RuntimeProjection['role']>()
+  for (const filePath of validation.reusedStepPaths ?? []) entries.set(filePath, 'step')
+  for (const ref of validation.reusedTemplateStepRefs ?? []) {
+    if (ref.path) entries.set(ref.path, 'step')
+  }
   for (const node of validation.validations) {
     for (const filePath of node.gherkinPaths) entries.set(filePath, 'gherkin')
     for (const filePath of node.stepPaths) entries.set(filePath, 'step')
@@ -115,6 +126,48 @@ function uniqueRuntimeEntries(validation: ValidationArtifact) {
   }
   for (const filePath of validation.manifestPaths) entries.set(filePath, entries.get(filePath) ?? 'manifest')
   return [...entries].map(([declaredPath, role]) => ({ declaredPath, role }))
+}
+
+function stripLeadingJSDoc(functionDefinition: string) {
+  return functionDefinition.replace(/^\s*\/\*\*[\s\S]*?\*\/\s*/u, '').trim()
+}
+
+function groupJSDoc(input: { name: string; description?: string | null; type?: string | null }) {
+  return [
+    '/**',
+    ` * @name ${input.name}`,
+    ...(input.description ? [` * @description ${input.description}`] : []),
+    ` * @type ${input.type ?? 'VALIDATION'}`,
+    ' */',
+  ].join('\n')
+}
+
+async function templateStepGroupContentForPath(filePath: string, client: RuntimeClient) {
+  const groups = await client.templateStepGroup.findMany({
+    include: { templateSteps: { orderBy: { createdAt: 'asc' } } },
+    orderBy: { name: 'asc' },
+  })
+  const group = groups.find(item => templateStepGroupPath(item.name, item.type) === filePath)
+  if (!group) return null
+  const definitions = group.templateSteps
+    .map(step => {
+      const functionDefinition = step.functionDefinition?.trim()
+      if (!functionDefinition) return null
+      return [
+        '/**',
+        ` * @name ${step.name}`,
+        ...(step.description ? [` * @description ${step.description}`] : []),
+        ` * @icon ${step.icon}`,
+        ' */',
+        stripLeadingJSDoc(functionDefinition),
+      ].join('\n')
+    })
+    .filter((definition): definition is string => Boolean(definition))
+    .join('\n\n')
+  const body =
+    definitions ||
+    '// This file is generated automatically. Add template steps to this group to generate executable content.'
+  return `${groupJSDoc(group)}\n${runtimeImport}\n\n${body}\n`
 }
 
 function preflightBlocker(
@@ -155,6 +208,10 @@ function buildRuntimePreflight(projections: RuntimeProjection[]): RuntimePreflig
 function declaredValidationPaths(validation: ValidationArtifact) {
   return [
     ...new Set([
+      ...(validation.reusedStepPaths ?? []),
+      ...(validation.reusedTemplateStepRefs ?? [])
+        .map(ref => ref.path)
+        .filter((filePath): filePath is string => Boolean(filePath)),
       ...validation.files.filter(file => file.status !== 'deleted').map(file => file.path),
       ...validation.validations.flatMap(item => [...item.gherkinPaths, ...item.stepPaths, item.executable.path]),
       ...validation.manifestPaths,
@@ -162,6 +219,7 @@ function declaredValidationPaths(validation: ValidationArtifact) {
   ]
 }
 
+// fallow-ignore-next-line complexity
 async function materializeRuntimeEntry(input: {
   entry: { declaredPath: string; role: RuntimeProjection['role'] }
   planId: string
@@ -170,6 +228,7 @@ async function materializeRuntimeEntry(input: {
   runtimeRoot: string
   reusedPaths: Set<string>
   featurePaths: Set<string>
+  client: RuntimeClient
 }) {
   const targetPath = resolveValidationPath(input.validationFileRoot, input.entry.declaredPath)
   const runtimePath = resolveValidationPath(input.runtimeRoot, input.entry.declaredPath)
@@ -185,6 +244,21 @@ async function materializeRuntimeEntry(input: {
       materialization: 'generated',
       content,
     })
+  }
+
+  if (input.entry.role === 'step' && input.reusedPaths.has(input.entry.declaredPath)) {
+    const content = await templateStepGroupContentForPath(input.entry.declaredPath, input.client)
+    if (content !== null) {
+      await writeRuntimeFile(targetPath, content)
+      if (runtimePath !== targetPath) await writeRuntimeFile(runtimePath, content)
+      return runtimeProjection({
+        ...input.entry,
+        targetPath,
+        runtimePath,
+        materialization: 'generated',
+        content,
+      })
+    }
   }
 
   const targetContent = await readFileIfExists(targetPath)
@@ -206,9 +280,15 @@ async function materializeRuntimeEntry(input: {
 
 export async function materializeValidationRuntime(input: ValidationFileRoot & { validation: ValidationArtifact }) {
   const projections: RuntimeProjection[] = []
-  const reusedPaths = new Set(input.validation.reusedStepPaths ?? [])
+  const reusedPaths = new Set([
+    ...(input.validation.reusedStepPaths ?? []),
+    ...(input.validation.reusedTemplateStepRefs ?? [])
+      .map(ref => ref.path)
+      .filter((path): path is string => Boolean(path)),
+  ])
   const featurePaths = new Set(input.validation.validations.flatMap(node => node.gherkinPaths))
   const runtimeRoot = input.targetProject ? input.validationFileRoot : input.projectRoot
+  const client = input.client ?? prisma
 
   for (const entry of uniqueRuntimeEntries(input.validation)) {
     projections.push(
@@ -220,6 +300,7 @@ export async function materializeValidationRuntime(input: ValidationFileRoot & {
         runtimeRoot,
         reusedPaths,
         featurePaths,
+        client,
       }),
     )
   }
