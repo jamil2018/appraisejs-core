@@ -36,7 +36,12 @@ type StepBlockFormProps = {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
+  const message = error instanceof Error ? error.message : String(error)
+  return message === '[object Object]' ? 'Invalid value' : message
+}
+
+function getErrorKey(error: unknown) {
+  return typeof error === 'object' && error !== null ? JSON.stringify(error) : getErrorMessage(error)
 }
 
 function FieldErrors({ errors, isTouched }: { errors: unknown[]; isTouched: boolean }) {
@@ -44,7 +49,7 @@ function FieldErrors({ errors, isTouched }: { errors: unknown[]; isTouched: bool
   return (
     <div className="flex flex-col gap-1" aria-live="polite">
       {errors.map(error => (
-        <ErrorMessage key={getErrorMessage(error)} message={getErrorMessage(error)} visible={true} />
+        <ErrorMessage key={getErrorKey(error)} message={getErrorMessage(error)} visible={true} />
       ))}
     </div>
   )
