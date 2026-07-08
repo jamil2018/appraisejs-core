@@ -3,7 +3,15 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('rounded-xl border bg-card text-card-foreground shadow', className)} {...props} />
+  return (
+    <div
+      className={cn(
+        'rounded-lg border border-white/[0.075] bg-[rgba(18,37,64,0.36)] text-card-foreground shadow-[0_18px_45px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-md',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
 function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {

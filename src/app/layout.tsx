@@ -3,32 +3,8 @@ import { Inter, Inter_Tight } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
-import Logo from '@/components/logo'
-import Link from 'next/link'
-import NavMenuCardDeck from '@/components/navigation/nav-menu-card-deck'
-import NavCommand from '@/components/navigation/nav-command'
-import NavLink from '@/components/navigation/nav-link'
+import AppSidebar from '@/components/navigation/app-sidebar'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
-import {
-  Blocks,
-  Bot,
-  BrickWall,
-  Code,
-  Component,
-  FileCheck,
-  FileSliders,
-  Group,
-  LayoutDashboard,
-  LayoutTemplate,
-  ListChecks,
-  Network,
-  Puzzle,
-  Server,
-  Settings2,
-  Tag,
-  TestTubeDiagonal,
-  TestTubes,
-} from 'lucide-react'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -94,128 +70,19 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${interTight.variable} min-h-screen antialiased`}>
         <ThemeProvider>
-          <div className="mx-auto lg:max-w-screen-xl 2xl:max-w-screen-2xl">
-            <nav className="mb-6 py-2" data-persistent-navigation>
-              <div className="flex items-center gap-1">
-                <div className="-ml-2">
-                  <Link href="/">
-                    <Logo />
-                  </Link>
-                </div>
-                <NavLink href="/" icon={<LayoutDashboard className="size-5 text-primary" />}>
-                  Dashboard
-                </NavLink>
-                <NavLink href="/plans" icon={<Network className="size-5 text-primary" />}>
-                  Plans
-                </NavLink>
-                {providerRunsEnabled ? (
-                  <NavLink href="/provider-runs" icon={<Bot className="size-5 text-primary" />}>
-                    Provider Runs
-                  </NavLink>
-                ) : null}
-                <NavMenuCardDeck
-                  containerButtonText="Automate"
-                  containerButtonIcon={<Bot className="size-5 text-primary" />}
-                  dropdownItems={[
-                    {
-                      text: 'Test Suites',
-                      icon: <TestTubes className="size-6 text-primary" />,
-                      href: '/test-suites',
-                      description: 'Group tests into logical units',
-                    },
-                    {
-                      text: 'Test Cases',
-                      icon: <TestTubeDiagonal className="size-6 text-primary" />,
-                      href: '/test-cases',
-                      description: 'Define test scenarios',
-                    },
-                    {
-                      text: 'Test Runs',
-                      icon: <ListChecks className="size-6 text-primary" />,
-                      href: '/test-runs',
-                      description: 'Execute test scenarios',
-                    },
-                    {
-                      text: 'Reports',
-                      icon: <FileCheck className="size-6 text-primary" />,
-                      href: '/reports',
-                      description: 'Analyze test results',
-                    },
-                  ]}
-                />
-                <NavMenuCardDeck
-                  containerButtonText="Template"
-                  containerButtonIcon={<BrickWall className="size-5 text-primary" />}
-                  dropdownItems={[
-                    {
-                      text: 'Template Steps',
-                      icon: <LayoutTemplate className="size-6 text-primary" />,
-                      href: '/template-steps',
-                      description: 'Define reusable test steps',
-                    },
-                    {
-                      text: 'Template Step Groups',
-                      icon: <Component className="size-6 text-primary" />,
-                      href: '/template-step-groups',
-                      description: 'Organize template steps into logical groups',
-                    },
-                    {
-                      text: 'Step Blocks',
-                      icon: <Blocks className="size-6 text-primary" />,
-                      href: '/step-blocks',
-                      description: 'Compose reusable ordered template-step sequences',
-                    },
-                    {
-                      text: 'Template Test Cases',
-                      icon: <Blocks className="size-6 text-primary" />,
-                      href: '/template-test-cases',
-                      description: 'Define reusable test scenario templates',
-                    },
-                  ]}
-                />
-                <NavMenuCardDeck
-                  containerButtonText="Configuration"
-                  containerButtonIcon={<FileSliders className="size-5 text-primary" />}
-                  dropdownItems={[
-                    {
-                      text: 'Locators',
-                      icon: <Code className="size-6 text-primary" />,
-                      href: '/locators',
-                      description: 'Define reusable locators',
-                    },
-                    {
-                      text: 'Locator Groups',
-                      icon: <Group className="size-6 text-primary" />,
-                      href: '/locator-groups',
-                      description: 'Organize locators into logical groups',
-                    },
-                    {
-                      text: 'Modules',
-                      icon: <Puzzle className="size-6 text-primary" />,
-                      href: '/modules',
-                      description: 'Organize tests into logical units',
-                    },
-                    {
-                      text: 'Environments',
-                      icon: <Server className="size-6 text-primary" />,
-                      href: '/environments',
-                      description: 'Define test environment configurations',
-                    },
-                    {
-                      text: 'Tags',
-                      icon: <Tag className="size-6 text-primary" />,
-                      href: '/tags',
-                      description: 'Define tags for test scenarios and suites',
-                    },
-                  ]}
-                />
-                <NavLink href="/settings" icon={<Settings2 className="size-5 text-primary" />}>
-                  Settings
-                </NavLink>
-                <NavCommand className="ml-auto" providerRunsEnabled={providerRunsEnabled} />
-              </div>
-            </nav>
-            {children}
+          <div className="min-h-screen bg-[#0b0f17] lg:flex">
+            <AppSidebar providerRunsEnabled={providerRunsEnabled} />
+            <main className="relative min-w-0 flex-1 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+              <div
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_5%,rgba(38,83,121,0.22),transparent_25rem),radial-gradient(circle_at_78%_10%,rgba(45,212,191,0.055),transparent_30rem),linear-gradient(135deg,rgba(18,37,64,0.24),rgba(11,15,23,0.78)_42%,rgba(8,11,17,0.92))]"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                aria-hidden="true"
+              />
+              <div className="relative mx-auto max-w-screen-2xl">{children}</div>
+            </main>
             <Toaster />
           </div>
         </ThemeProvider>

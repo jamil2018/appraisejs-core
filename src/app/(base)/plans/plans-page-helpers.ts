@@ -32,29 +32,29 @@ type CardVisualStyle = {
 
 const cardStylesByCategory = {
   attention: {
-    border: 'border-l-destructive',
+    border: 'border-l-destructive/70',
     dot: 'bg-destructive animate-pulse',
-    badge: 'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
+    badge: 'border-destructive/25 bg-destructive/10 text-red-200 hover:bg-destructive/15',
   },
   approved: {
-    border: 'border-l-emerald-500',
-    dot: 'bg-emerald-500',
-    badge: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20',
+    border: 'border-l-emerald-300/70',
+    dot: 'bg-emerald-300',
+    badge: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200 hover:bg-emerald-300/15',
   },
   inProgress: {
-    border: 'border-l-violet-500',
-    dot: 'bg-violet-500 animate-pulse',
-    badge: 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300 hover:bg-violet-500/20',
+    border: 'border-l-violet-300/70',
+    dot: 'bg-violet-300 animate-pulse',
+    badge: 'border-violet-300/25 bg-violet-300/10 text-violet-200 hover:bg-violet-300/15',
   },
   review: {
-    border: 'border-l-amber-500',
-    dot: 'bg-amber-500',
-    badge: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20',
+    border: 'border-l-amber-300/70',
+    dot: 'bg-amber-300',
+    badge: 'border-amber-300/25 bg-amber-300/10 text-amber-200 hover:bg-amber-300/15',
   },
   default: {
-    border: 'border-l-muted-foreground/30',
+    border: 'border-l-white/20',
     dot: 'bg-muted-foreground/50',
-    badge: 'border-muted-foreground/30 bg-muted/10 text-muted-foreground hover:bg-muted/20',
+    badge: 'border-white/15 bg-white/[0.035] text-muted-foreground hover:bg-white/[0.055]',
   },
 } satisfies Record<string, CardVisualStyle>
 

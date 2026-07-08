@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 export default function QuickActionsDrawer() {
   const { push } = useRouter()
   return (
-    <Card id="container" className="h-fit w-fit border-zinc-600/10 bg-zinc-600/10">
+    <Card id="container" className="h-fit w-fit border-white/[0.07] bg-[rgba(18,37,64,0.34)]">
       <CardHeader id="header">
         <CardTitle className="text-primary">Quick Actions</CardTitle>
         <CardDescription>Quickly create new entities to get started</CardDescription>
