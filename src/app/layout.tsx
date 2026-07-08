@@ -70,10 +70,18 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${interTight.variable} min-h-screen antialiased`}>
         <ThemeProvider>
-          <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.08),transparent_32rem),#0b0d12] lg:flex">
+          <div className="min-h-screen bg-[#0b0f17] lg:flex">
             <AppSidebar providerRunsEnabled={providerRunsEnabled} />
-            <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
-              <div className="mx-auto max-w-screen-2xl">{children}</div>
+            <main className="relative min-w-0 flex-1 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+              <div
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_5%,rgba(38,83,121,0.22),transparent_25rem),radial-gradient(circle_at_78%_10%,rgba(45,212,191,0.055),transparent_30rem),linear-gradient(135deg,rgba(18,37,64,0.24),rgba(11,15,23,0.78)_42%,rgba(8,11,17,0.92))]"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                aria-hidden="true"
+              />
+              <div className="relative mx-auto max-w-screen-2xl">{children}</div>
             </main>
             <Toaster />
           </div>
