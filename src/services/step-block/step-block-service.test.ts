@@ -29,7 +29,7 @@ describe('step block service', () => {
     })
   })
 
-  it('creates ordered block steps with normalized parameter maps', async () => {
+  it('creates ordered block steps with empty parameter maps', async () => {
     const createdStepBlock = {
       id: 'block-1',
       name: 'Login block',
@@ -46,10 +46,7 @@ describe('step block service', () => {
       name: ' Login block ',
       description: '',
       intent: ' Log in ',
-      steps: [
-        { templateStepId: 'step-1', parameterMap: '{ "target": "email" }' },
-        { templateStepId: 'step-2', parameterMap: '{}' },
-      ],
+      steps: [{ templateStepId: 'step-1' }, { templateStepId: 'step-2' }],
     })
 
     expect(prisma.stepBlock.create).toHaveBeenCalledWith(
@@ -60,7 +57,7 @@ describe('step block service', () => {
           intent: 'Log in',
           steps: {
             create: [
-              { templateStepId: 'step-1', order: 0, parameterMap: '{"target":"email"}' },
+              { templateStepId: 'step-1', order: 0, parameterMap: '{}' },
               { templateStepId: 'step-2', order: 1, parameterMap: '{}' },
             ],
           },

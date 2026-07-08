@@ -33,7 +33,7 @@ function normalizeStepBlockInput(value: StepBlockFormValues) {
     steps: parsed.steps.map((step, order) => ({
       templateStepId: step.templateStepId,
       order,
-      parameterMap: JSON.stringify(JSON.parse(step.parameterMap)),
+      parameterMap: '{}',
     })),
   }
 }

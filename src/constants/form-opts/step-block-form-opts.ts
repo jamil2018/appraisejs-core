@@ -1,20 +1,7 @@
 import { z } from 'zod'
 
-export const parameterMapSchema = z.string().refine(
-  value => {
-    try {
-      const parsed = JSON.parse(value)
-      return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
-    } catch {
-      return false
-    }
-  },
-  { message: 'Parameter map must be a JSON object' },
-)
-
 const stepBlockStepSchema = z.object({
   templateStepId: z.string().min(1, { message: 'Template step is required' }),
-  parameterMap: parameterMapSchema,
 })
 
 export const stepBlockSchema = z.object({
@@ -31,7 +18,7 @@ export const stepBlockFormOpts = {
     name: '',
     description: '',
     intent: '',
-    steps: [{ templateStepId: '', parameterMap: '{}' }],
+    steps: [{ templateStepId: '' }],
   } satisfies StepBlockFormValues,
   validators: {
     onChange: stepBlockSchema,

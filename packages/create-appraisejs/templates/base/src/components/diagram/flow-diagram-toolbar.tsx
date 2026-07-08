@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, type RefObject } from 'react'
-import { Boxes, MousePointer2, Plus } from 'lucide-react'
+import { Blocks, Boxes, MousePointer2, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
@@ -18,10 +18,12 @@ type FlowDiagramToolbarProps = {
   shouldShowSearchSuggestions: boolean
   nodeSearchResults: FlowNodeSearchResult[]
   isGroupingSelectionMode: boolean
+  canAddStepBlock: boolean
   onSearchQueryChange: (value: string) => void
   onToggleSearch: () => void
   onSearchResultSelect: (nodeId: string) => void
   onToggleGroupingSelectionMode: () => void
+  onOpenAddStepBlockDialog: () => void
   onOpenAddNodeDialog: () => void
 }
 
@@ -59,10 +61,12 @@ export function FlowDiagramToolbar({
   shouldShowSearchSuggestions,
   nodeSearchResults,
   isGroupingSelectionMode,
+  canAddStepBlock,
   onSearchQueryChange,
   onToggleSearch,
   onSearchResultSelect,
   onToggleGroupingSelectionMode,
+  onOpenAddStepBlockDialog,
   onOpenAddNodeDialog,
 }: FlowDiagramToolbarProps) {
   return (
@@ -99,6 +103,26 @@ export function FlowDiagramToolbar({
                 label={isGroupingSelectionMode ? 'Selection mode' : 'Create block'}
                 shortcutKey="B"
               />
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : null}
+      {canAddStepBlock ? (
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={onOpenAddStepBlockDialog}
+                aria-label="Add Step Block"
+              >
+                <Blocks />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <span>Add Step Block</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

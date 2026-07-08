@@ -30,6 +30,7 @@ import {
 import { flowDiagramHandlersRef, flowEdgeTypes, flowNodeTypes } from './flow-diagram-node-types'
 import { useFlowDiagramBlockGrouping } from './use-flow-diagram-block-grouping'
 import { useFlowDiagramSearch } from './use-flow-diagram-search'
+import type { StepBlockEditorStep, StepBlockSubmitValue } from './flow-diagram-step-block-sheet'
 
 function isEditableShortcutTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
@@ -62,6 +63,7 @@ export function useFlowDiagram({
   defaultValueInput = false,
   enableNodeSearch = false,
   enableNodeGrouping = false,
+  stepBlocks = [],
   flowBlocks = EMPTY_FLOW_BLOCKS,
   layoutRefreshKey,
   onFlowBlocksChange,
@@ -75,8 +77,13 @@ export function useFlowDiagram({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [showAddNodeDialog, setShowAddNodeDialog] = useState(false)
   const [showEditNodeDialog, setShowEditNodeDialog] = useState(false)
+  const [showAddStepBlockDialog, setShowAddStepBlockDialog] = useState(false)
+  const [showEditStepBlockDialog, setShowEditStepBlockDialog] = useState(false)
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [editNodeData, setEditNodeData] = useState<NodeFormData | null>(null)
+  const [editStepBlockId, setEditStepBlockId] = useState<string | null>(null)
+  const [editStepBlockName, setEditStepBlockName] = useState('')
+  const [editStepBlockSteps, setEditStepBlockSteps] = useState<StepBlockEditorStep[]>([])
   const [pendingAddSourceNodeId, setPendingAddSourceNodeId] = useState<string | null>(null)
   const isConnectionInProgressRef = useRef(false)
   const [pendingLocators, setPendingLocators] = useState<FlowDiagramProps['locators']>([])
@@ -207,6 +214,124 @@ export function useFlowDiagram({
       setPendingAddSourceNodeId(null)
     },
     [setEdges, setNodes, nodes, edges, pendingAddSourceNodeId, templateSteps, templateStepParams, defaultValueInput],
+  )
+
+  const addStepBlock = useCallback(
+    (value: StepBlockSubmitValue) => {
+      const realNodes = nodes.filter(node => !isAddNodePromptNode(node))
+      const sourceNode = realNodes.at(-1)
+      const newNodes = value.steps.map((step, index) => {
+        const nodeId = crypto.randomUUID()
+        return {
+          id: nodeId,
+          data: buildNodeFormData(step, templateSteps, templateStepParams, defaultValueInput, realNodes.length === 0),
+          position: sourceNode
+            ? { x: sourceNode.position.x + 500 * (index + 1), y: sourceNode.position.y }
+            : { x: index * 500, y: 0 },
+          type: 'optionsHeaderNode',
+        } satisfies Node
+      })
+
+      const newEdges = newNodes.reduce<Edge[]>((blockEdges, node, index) => {
+        const previousNodeId = index === 0 ? sourceNode?.id : newNodes[index - 1]?.id
+        if (previousNodeId) {
+          blockEdges.push({
+            id: `${previousNodeId}-${node.id}`,
+            source: previousNodeId,
+            target: node.id,
+            type: 'buttonEdge',
+          })
+        }
+        return blockEdges
+      }, [])
+
+      setNodes(current => current.filter(node => !isAddNodePromptNode(node)).concat(newNodes))
+      setEdges(current => [...current, ...newEdges])
+      if (newNodes.length >= 2) {
+        onFlowBlocksChange?.([
+          ...flowBlocks,
+          {
+            id: crypto.randomUUID(),
+            name: value.name,
+            nodeIds: newNodes.map(node => node.id),
+          },
+        ])
+      }
+    },
+    [defaultValueInput, flowBlocks, nodes, onFlowBlocksChange, setEdges, setNodes, templateStepParams, templateSteps],
+  )
+
+  const openEditStepBlockDialog = useCallback(
+    (block: { id: string; name: string; nodeIds: string[] }) => {
+      const nodeById = new Map(nodes.map(node => [node.id, node]))
+      const editableSteps = block.nodeIds.flatMap(nodeId => {
+        const node = nodeById.get(nodeId)
+        const editableNodeData = createEditableNodeData(node)
+        const templateStep = templateSteps.find(step => step.id === editableNodeData?.templateStepId)
+        if (!editableNodeData || !templateStep) {
+          return []
+        }
+
+        return [
+          {
+            id: nodeId,
+            templateStep: {
+              ...templateStep,
+              parameters: templateStepParams.filter(parameter => parameter.templateStepId === templateStep.id),
+            },
+            ...editableNodeData,
+          },
+        ]
+      })
+
+      if (editableSteps.length === 0) {
+        return
+      }
+
+      setEditStepBlockId(block.id)
+      setEditStepBlockName(block.name)
+      setEditStepBlockSteps(editableSteps)
+      setShowEditStepBlockDialog(true)
+    },
+    [nodes, templateStepParams, templateSteps],
+  )
+
+  const updateStepBlock = useCallback(
+    (value: StepBlockSubmitValue) => {
+      if (!editStepBlockId) {
+        return
+      }
+
+      const targetBlock = flowBlocks.find(block => block.id === editStepBlockId)
+      if (!targetBlock) {
+        return
+      }
+
+      setNodes(current =>
+        current.map(node => {
+          const stepIndex = targetBlock.nodeIds.indexOf(node.id)
+          const step = value.steps[stepIndex]
+          if (stepIndex === -1 || !step) {
+            return node
+          }
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              ...buildNodeFormData(step, templateSteps, templateStepParams, defaultValueInput, false),
+            },
+          }
+        }),
+      )
+      onFlowBlocksChange?.(
+        flowBlocks.map(block => (block.id === editStepBlockId ? { ...block, name: value.name } : block)),
+      )
+      setEditStepBlockId(null)
+      setEditStepBlockName('')
+      setEditStepBlockSteps([])
+    },
+    [defaultValueInput, editStepBlockId, flowBlocks, onFlowBlocksChange, setNodes, templateStepParams, templateSteps],
   )
 
   const handleEditNodeSubmit = useCallback(
@@ -353,6 +478,10 @@ export function useFlowDiagram({
     setShowAddNodeDialog(true)
   }, [])
 
+  const openAddStepBlockDialog = useCallback(() => {
+    setShowAddStepBlockDialog(true)
+  }, [])
+
   const toggleAddNodeDialog = useCallback(() => {
     setPendingAddSourceNodeId(null)
     setShowAddNodeDialog(current => !current)
@@ -440,6 +569,7 @@ export function useFlowDiagram({
   return {
     enableNodeSearch,
     enableNodeGrouping,
+    stepBlocks,
     defaultValueInput,
     environments,
     modules,
@@ -460,12 +590,22 @@ export function useFlowDiagram({
     isValidConnection,
     layoutRefreshNodeIds,
     openAddNodeDialog,
+    openAddStepBlockDialog,
     addNode,
+    addStepBlock,
+    updateStepBlock,
+    openEditStepBlockDialog,
     handleEditNodeSubmit,
     showAddNodeDialog,
     setShowAddNodeDialog,
     showEditNodeDialog,
     setShowEditNodeDialog,
+    showAddStepBlockDialog,
+    setShowAddStepBlockDialog,
+    showEditStepBlockDialog,
+    setShowEditStepBlockDialog,
+    editStepBlockName,
+    editStepBlockSteps,
     editNodeData,
     memoizedTemplateSteps,
     memoizedTemplateStepParams,

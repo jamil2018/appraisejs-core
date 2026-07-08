@@ -92,7 +92,6 @@ export function toStepBlockFormValues(row: StepBlockRow): StepBlockFormValues {
       .sort((left, right) => left.order - right.order)
       .map(step => ({
         templateStepId: step.templateStep.id,
-        parameterMap: step.parameterMap,
       })),
   }
 }

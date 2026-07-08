@@ -26,11 +26,7 @@ const CreateStepBlock = async () => {
         <HeaderSubtitle>Create a reusable ordered block from existing template steps</HeaderSubtitle>
       </div>
       <StepBlockForm
-        templateSteps={getTemplateStepOptions(resources.templateSteps, resources.templateStepParams)}
-        locators={resources.locators}
-        locatorGroups={resources.locatorGroups}
-        modules={resources.modules}
-        environments={resources.environments}
+        templateSteps={getTemplateStepOptions(resources.templateSteps)}
         successTitle="Step block created"
         successMessage="Step block created successfully"
         onSubmitAction={createStepBlockAction}

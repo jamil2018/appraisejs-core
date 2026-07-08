@@ -12,6 +12,7 @@ import { getAllLocatorGroupsAction } from '@/actions/locator-groups/locator-grou
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import { createTagAction, getAllTagsAction } from '@/actions/tags/tag-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
+import { getAllStepBlocksAction } from '@/actions/step-block/step-block-actions'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { createTestSuiteAction, getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
@@ -26,6 +27,7 @@ import {
   getLocatorGroupRows,
   getLocatorRows,
   getModuleRows,
+  getFlowStepBlockRows,
   getTagRows,
   getTemplateStepParamRows,
   getTemplateStepRows,
@@ -51,6 +53,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     testCasesResponse,
     moduleListResponse,
     environmentsResponse,
+    stepBlocksResponse,
   ] = await Promise.all([
     getTestCaseByIdAction(id),
     getAllTemplateStepParamsAction(),
@@ -62,6 +65,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     getAllTestCasesAction(),
     getAllModulesAction(),
     getAllEnvironmentsAction(),
+    getAllStepBlocksAction(),
   ])
 
   const loadError =
@@ -74,7 +78,8 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     tagsResponse.error ||
     testCasesResponse.error ||
     moduleListResponse.error ||
-    environmentsResponse.error
+    environmentsResponse.error ||
+    stepBlocksResponse.error
 
   if (loadError) {
     return <div>Error: {loadError}</div>
@@ -94,6 +99,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
   const testCases = getTestCaseRows(testCasesResponse.data)
   const moduleList = getModuleRows(moduleListResponse.data)
   const environments = getEnvironmentRows(environmentsResponse.data)
+  const stepBlocks = getFlowStepBlockRows(stepBlocksResponse.data)
 
   return (
     <>
@@ -116,6 +122,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         testSuites={testSuites}
         testCases={testCases}
         moduleList={moduleList}
+        stepBlocks={stepBlocks}
         tags={tags}
         defaultNodesOrder={buildNodeOrderFromTestCaseSteps(testCase.steps)}
         defaultFlowBlocks={buildFlowBlocksFromTestCaseRows(testCase.flowBlocks)}

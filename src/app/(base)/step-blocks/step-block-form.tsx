@@ -4,29 +4,16 @@ import { useForm } from '@tanstack/react-form'
 import { ArrowDown, ArrowUp, PlusCircle, Save, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
-import type {
-  Environment,
-  Locator,
-  LocatorGroup,
-  Module,
-  StepParameterType,
-  TemplateStepParameter,
-} from '@prisma/client'
 
 import ErrorMessage from '@/components/form/error-message'
 import { Button } from '@/components/ui/button'
-import DynamicFormFields from '@/components/diagram/dynamic-parameters'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 import { TanStackForm } from '@/lib/form/tanstack-form'
-import {
-  parameterMapSchema,
-  stepBlockFormOpts,
-  type StepBlockFormValues,
-} from '@/constants/form-opts/step-block-form-opts'
+import { stepBlockFormOpts, type StepBlockFormValues } from '@/constants/form-opts/step-block-form-opts'
 
 import {
   getActionErrorMessage,
@@ -38,21 +25,10 @@ import {
 type StepBlockFormProps = {
   defaultValues?: StepBlockFormValues
   templateSteps: StepBlockTemplateStepOption[]
-  locators: Array<Pick<Locator, 'id' | 'name' | 'locatorGroupId'>>
-  locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
-  environments: Array<Pick<Environment, 'id' | 'name'>>
-  modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
   successTitle: string
   successMessage: string
   id?: string
   onSubmitAction: StepBlockFormSubmitAction
-}
-
-type StepBlockParameterValue = {
-  name: string
-  value: string
-  type: StepParameterType
-  order: number
 }
 
 function getErrorMessage(error: unknown) {
@@ -97,31 +73,6 @@ function LabeledTextControl({ id, label, value, errors, isTouched, multiline, on
   )
 }
 
-function getParameterMapError(value: string) {
-  return parameterMapSchema.safeParse(value).success ? null : 'Parameter map must be a JSON object'
-}
-
-function getParameterMapObject(value: string): Record<string, string> {
-  return parameterMapSchema.safeParse(value).success ? (JSON.parse(value) as Record<string, string>) : {}
-}
-
-function getParameterValuesFromMap(
-  parameterMap: string,
-  templateStep: StepBlockTemplateStepOption | undefined,
-): StepBlockParameterValue[] {
-  const map = getParameterMapObject(parameterMap)
-  return (templateStep?.parameters ?? []).map(parameter => ({
-    name: parameter.name,
-    value: String(map[parameter.name] ?? ''),
-    type: parameter.type,
-    order: parameter.order,
-  }))
-}
-
-function getParameterMapFromValues(values: StepBlockParameterValue[]) {
-  return JSON.stringify(Object.fromEntries(values.map(parameter => [parameter.name, parameter.value])))
-}
-
 function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   const nextIndex = index + direction
   if (nextIndex < 0 || nextIndex >= items.length) return items
@@ -134,83 +85,23 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
 
 type StepBlockStepRowProps = {
   step: StepBlockFormValues['steps'][number]
-  rowId: string
   index: number
   stepCount: number
   templateSteps: StepBlockTemplateStepOption[]
-  locators: StepBlockFormProps['locators']
-  locatorGroups: StepBlockFormProps['locatorGroups']
-  environments: StepBlockFormProps['environments']
-  modules: StepBlockFormProps['modules']
   onChange: (index: number, step: StepBlockFormValues['steps'][number]) => void
   onMove: (index: number, direction: -1 | 1) => void
   onRemove: (index: number) => void
 }
 
-type StepBlockParameterFieldsProps = {
-  step: StepBlockFormValues['steps'][number]
-  rowId: string
-  index: number
-  selectedTemplateStep: StepBlockTemplateStepOption | undefined
-  locators: StepBlockFormProps['locators']
-  locatorGroups: StepBlockFormProps['locatorGroups']
-  environments: StepBlockFormProps['environments']
-  modules: StepBlockFormProps['modules']
-  onChange: (index: number, step: StepBlockFormValues['steps'][number]) => void
-}
-
-function StepBlockParameterFields({
-  step,
-  rowId,
-  index,
-  selectedTemplateStep,
-  locators,
-  locatorGroups,
-  environments,
-  modules,
-  onChange,
-}: StepBlockParameterFieldsProps) {
-  if (!selectedTemplateStep) {
-    return <p className="text-sm text-muted-foreground">Select a template step to map parameters.</p>
-  }
-
-  if (!selectedTemplateStep.parameters?.length) {
-    return <p className="text-sm text-muted-foreground">This template step has no parameters.</p>
-  }
-
-  return (
-    <DynamicFormFields
-      key={`${rowId}-${selectedTemplateStep.id}`}
-      templateStepParams={selectedTemplateStep.parameters as TemplateStepParameter[]}
-      locators={locators}
-      locatorGroups={locatorGroups}
-      environments={environments}
-      modules={modules}
-      initialParameterValues={getParameterValuesFromMap(step.parameterMap, selectedTemplateStep)}
-      onChange={values => {
-        onChange(index, { ...step, parameterMap: getParameterMapFromValues(values) })
-      }}
-    />
-  )
-}
-
 function StepBlockStepRow({
   step,
-  rowId,
   index,
   stepCount,
   templateSteps,
-  locators,
-  locatorGroups,
-  environments,
-  modules,
   onChange,
   onMove,
   onRemove,
 }: StepBlockStepRowProps) {
-  const selectedTemplateStep = templateSteps.find(templateStep => templateStep.id === step.templateStepId)
-  const parameterMapError = getParameterMapError(step.parameterMap)
-
   return (
     <div className="grid gap-3 rounded-md border p-3 md:grid-cols-[1fr_auto]">
       <div className="flex min-w-0 flex-col gap-4">
@@ -219,7 +110,7 @@ function StepBlockStepRow({
           <Select
             value={step.templateStepId}
             onValueChange={value => {
-              onChange(index, { templateStepId: value, parameterMap: '{}' })
+              onChange(index, { templateStepId: value })
             }}
           >
             <SelectTrigger id={`steps-${index}-templateStepId`}>
@@ -235,18 +126,6 @@ function StepBlockStepRow({
           </Select>
           <ErrorMessage message="Template step is required" visible={!step.templateStepId} />
         </div>
-        <StepBlockParameterFields
-          step={step}
-          rowId={rowId}
-          index={index}
-          selectedTemplateStep={selectedTemplateStep}
-          locators={locators}
-          locatorGroups={locatorGroups}
-          environments={environments}
-          modules={modules}
-          onChange={onChange}
-        />
-        <ErrorMessage message={parameterMapError ?? ''} visible={!!parameterMapError} />
       </div>
       <div className="flex items-end gap-2">
         <Button
@@ -287,10 +166,6 @@ function StepBlockStepRow({
 export function StepBlockForm({
   defaultValues,
   templateSteps,
-  locators,
-  locatorGroups,
-  environments,
-  modules,
   successTitle,
   successMessage,
   id,
@@ -369,7 +244,7 @@ export function StepBlockForm({
                   const rowId = `step-row-${nextStepRowId.current}`
                   nextStepRowId.current += 1
                   setStepRowIds(ids => [...ids, rowId])
-                  field.pushValue({ templateStepId: '', parameterMap: '{}' })
+                  field.pushValue({ templateStepId: '' })
                 }}
               >
                 <PlusCircle className="size-4" aria-hidden />
@@ -380,14 +255,9 @@ export function StepBlockForm({
               <StepBlockStepRow
                 key={stepRowIds[index]}
                 step={step}
-                rowId={stepRowIds[index]}
                 index={index}
                 stepCount={field.state.value.length}
                 templateSteps={templateSteps}
-                locators={locators}
-                locatorGroups={locatorGroups}
-                environments={environments}
-                modules={modules}
                 onChange={(stepIndex, nextStep) => field.replaceValue(stepIndex, nextStep)}
                 onMove={(stepIndex, direction) => {
                   setStepRowIds(ids => moveItem(ids, stepIndex, direction))

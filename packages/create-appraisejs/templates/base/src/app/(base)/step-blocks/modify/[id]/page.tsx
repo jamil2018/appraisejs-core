@@ -35,15 +35,11 @@ const ModifyStepBlock = async ({ params }: { params: Promise<{ id: string }> }) 
     <>
       <div className="mb-8">
         <PageHeader>Modify Step Block</PageHeader>
-        <HeaderSubtitle>Update the reusable step sequence and parameter mappings</HeaderSubtitle>
+        <HeaderSubtitle>Update the reusable step sequence</HeaderSubtitle>
       </div>
       <StepBlockForm
         defaultValues={toStepBlockFormValues(stepBlock)}
-        templateSteps={getTemplateStepOptions(resources.templateSteps, resources.templateStepParams)}
-        locators={resources.locators}
-        locatorGroups={resources.locatorGroups}
-        modules={resources.modules}
-        environments={resources.environments}
+        templateSteps={getTemplateStepOptions(resources.templateSteps)}
         successTitle="Step block updated"
         successMessage="Step block updated successfully"
         onSubmitAction={updateStepBlockAction}
