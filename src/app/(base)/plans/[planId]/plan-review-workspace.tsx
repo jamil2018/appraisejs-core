@@ -24,12 +24,10 @@ import {
   Clock,
   Copy,
   Download,
-  ExternalLink,
   FileText,
   Folder,
   GitCompare,
   Hash,
-  Image,
   Keyboard,
   Layers,
   List,
@@ -48,19 +46,16 @@ import {
 import {
   addPlanRemarkAction,
   acceptBaselineAction,
-  acknowledgeBaselineFailureAction,
   approveValidationFileAction,
   approvePlanRevisionAction,
   cancelBaselineExecutionAction,
   decideValidationNodeAction,
-  justifyBaselineRegressionPassAction,
   publishSharedPlanLayoutAction,
   requestPlanChangesAction,
   retargetPlanRemarkAction,
   savePersonalPlanLayoutAction,
   submitValidationFeedbackAction,
   submitValidationReviewAction,
-  transitionPlanRemarkAction,
 } from '@/actions/plan-review/plan-review-actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -70,16 +65,26 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { Kbd } from '@/components/ui/kbd'
 import { Input } from '@/components/ui/input'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
-import { getThreadStatus, isThreadOpen } from '@/services/plan-review/plan-review-helpers'
+import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
 
 import { projectPlanFlow } from './plan-flow-projection'
 import { PlanFlowTaskNode, type PlanFlowTaskNode as PlanFlowTaskNodeType } from './plan-flow-task-node'
+import { BaselineAttemptCard } from './baseline-attempt-card'
+import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 
 type PlanReviewWorkspaceProps = {
@@ -101,33 +106,6 @@ const edgeDash = {
 } as const
 
 const nodeTypes = { planTask: PlanFlowTaskNode }
-
-function getBaselineIcon(status: string, classification?: string) {
-  if (status === 'running' || status === 'scheduled') return Loader2
-  if (
-    status === 'cancelled' ||
-    status === 'interrupted' ||
-    classification === 'invalid_baseline_failure' ||
-    classification === 'validation_harness_failure'
-  )
-    return XCircle
-  if (status === 'completed') return CheckCircle2
-  return Clock
-}
-
-function getBaselineIconClass(status: string, classification?: string): string {
-  if (status === 'running' || status === 'scheduled') return 'animate-spin text-sky-500'
-  if (
-    status === 'cancelled' ||
-    status === 'interrupted' ||
-    classification === 'invalid_baseline_failure' ||
-    classification === 'validation_harness_failure'
-  ) {
-    return 'text-destructive'
-  }
-  if (status === 'completed') return 'text-emerald-500'
-  return 'text-muted-foreground'
-}
 
 function taskRelationshipSummary(taskId: string, semanticFlow: ReturnType<typeof projectPlanFlow>): string {
   const incoming = semanticFlow.edges
@@ -210,12 +188,36 @@ const RELATION_RULES: Record<string, { asSource: RelationBucket; asTarget: Relat
 }
 
 const LIFECYCLE_TONES = {
-  neutral: { classes: 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300', Icon: FileText },
-  pending: { classes: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300', Icon: AlertTriangle },
-  danger: { classes: 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300', Icon: XCircle },
-  success: { classes: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', Icon: CheckCircle2 },
-  running: { classes: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300', Icon: Loader2 },
-  active: { classes: 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300', Icon: Clock },
+  neutral: {
+    classes: 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300',
+    Icon: FileText,
+    dot: 'bg-slate-400',
+  },
+  pending: {
+    classes: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    Icon: AlertTriangle,
+    dot: 'bg-amber-500',
+  },
+  danger: {
+    classes: 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300',
+    Icon: XCircle,
+    dot: 'bg-red-500',
+  },
+  success: {
+    classes: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    Icon: CheckCircle2,
+    dot: 'bg-emerald-500',
+  },
+  running: {
+    classes: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    Icon: Loader2,
+    dot: 'bg-sky-500 animate-pulse',
+  },
+  active: {
+    classes: 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+    Icon: Clock,
+    dot: 'bg-violet-500 animate-pulse',
+  },
 } as const
 
 const LIFECYCLE_TONE_BY_STATE: Record<string, keyof typeof LIFECYCLE_TONES> = {
@@ -247,96 +249,11 @@ function renderLifecycleBadge(lifecycle: string) {
   const spinning = lifecycle === 'baseline_running' || lifecycle === 'validating'
 
   return (
-    <Badge className={cn('gap-1.5 pl-2 pr-2.5 py-0.5 font-medium capitalize', tone.classes)} variant="outline">
+    <Badge className={cn('gap-1.5 py-0.5 pl-2 pr-2.5 font-medium capitalize', tone.classes)} variant="outline">
+      <span className={cn('size-1.5 rounded-full', tone.dot)} />
       <Icon className={cn('size-3.5', spinning && 'animate-spin')} />
       {label}
     </Badge>
-  )
-}
-
-function MarkdownRemark({ content }: { content: string }) {
-  if (!content) return null
-
-  // Split content by code blocks first
-  const parts = content.split(/(```[\s\S]*?```)/g)
-
-  return (
-    <div className="space-y-1.5 text-sm leading-relaxed">
-      {parts.map((part, index) => {
-        if (part.startsWith('```') && part.endsWith('```')) {
-          const code = part.slice(3, -3).trim()
-          return (
-            <pre key={index} className="my-2 overflow-x-auto rounded-md bg-muted p-2.5 font-mono text-xs border">
-              <code>{code}</code>
-            </pre>
-          )
-        }
-
-        // Process inline formatting (bold, italic, inline code, lists)
-        const lines = part.split('\n')
-        const elements: React.ReactNode[] = []
-        let inList = false
-        let listItems: string[] = []
-
-        const flushList = (key: number) => {
-          if (listItems.length > 0) {
-            elements.push(
-              <ul key={`list-${key}`} className="list-disc pl-5 my-1.5 space-y-0.5">
-                {listItems.map((item, i) => (
-                  <li key={i}>{renderInline(item)}</li>
-                ))}
-              </ul>
-            )
-            listItems = []
-          }
-        }
-
-        const renderInline = (text: string) => {
-          // Replace inline code, bold, italic
-          const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g)
-          return tokens.map((token, i) => {
-            if (token.startsWith('`') && token.endsWith('`')) {
-              return (
-                <code key={i} className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs border">
-                  {token.slice(1, -1)}
-                </code>
-              )
-            }
-            if (token.startsWith('**') && token.endsWith('**')) {
-              return <strong key={i} className="font-semibold">{token.slice(2, -2)}</strong>
-            }
-            if (token.startsWith('*') && token.endsWith('*')) {
-              return <em key={i}>{token.slice(1, -1)}</em>
-            }
-            return token
-          })
-        }
-
-        lines.forEach((line, lineIndex) => {
-          const trimmed = line.trim()
-          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-            inList = true
-            listItems.push(trimmed.slice(2))
-          } else {
-            if (inList) {
-              flushList(lineIndex)
-              inList = false
-            }
-            if (trimmed) {
-              elements.push(<p key={lineIndex}>{renderInline(line)}</p>)
-            } else {
-              elements.push(<div key={lineIndex} className="h-2" />)
-            }
-          }
-        })
-
-        if (inList) {
-          flushList(lines.length)
-        }
-
-        return <div key={index}>{elements}</div>
-      })}
-    </div>
   )
 }
 
@@ -407,7 +324,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
   const [regressionJustification, setRegressionJustification] = useState('')
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [isPending, startTransition] = useTransition()
-  const [sidebarTab, setSidebarTab] = useState<'details' | 'remarks' | 'baselines' | 'approval'>('details')
+  const [sidebarTab, setSidebarTab] = useState<'remarks' | 'baselines' | 'approval'>('remarks')
   const [graphSearchQuery, setGraphSearchQuery] = useState('')
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false)
@@ -454,7 +371,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         if (task.description) {
           lines.push(`- **Description:** ${task.description}`)
         }
-        
+
         // Prerequisites
         const prereqs = semanticFlow.edges
           .filter(e => e.target === task.id && e.type === 'depends-on')
@@ -533,21 +450,24 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
     return buckets
   }, [selectedTaskId, semanticFlow.edges, semanticFlow.tasks])
 
-  const focusAndSelectTask = useCallback((taskId: string) => {
-    setSelectedTaskId(taskId)
-    setSidebarTab('details')
-    // If the graph is rendered, center it
-    const node = nodes.find(n => n.id === taskId)
-    if (node && flowInstanceRef.current) {
-      flowInstanceRef.current.fitView({ nodes: [node], duration: 400, padding: 0.3 })
-    }
-  }, [nodes])
+  const focusAndSelectTask = useCallback(
+    (taskId: string) => {
+      setSelectedTaskId(taskId)
+      setSidebarTab('remarks')
+      // If the graph is rendered, center it
+      const node = nodes.find(n => n.id === taskId)
+      if (node && flowInstanceRef.current) {
+        flowInstanceRef.current.fitView({ nodes: [node], duration: 400, padding: 0.3 })
+      }
+    },
+    [nodes],
+  )
 
   const searchResults = useMemo(() => {
     if (!graphSearchQuery.trim()) return []
     const query = graphSearchQuery.toLowerCase()
     return semanticFlow.tasks.filter(
-      task => task.title.toLowerCase().includes(query) || task.id.toLowerCase().includes(query)
+      task => task.title.toLowerCase().includes(query) || task.id.toLowerCase().includes(query),
     )
   }, [graphSearchQuery, semanticFlow.tasks])
 
@@ -655,7 +575,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         currentNodes.map(node => ({
           ...node,
           style: undefined,
-        }))
+        })),
       )
       return
     }
@@ -670,7 +590,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
             transition: 'opacity 0.2s ease-in-out',
           },
         }
-      })
+      }),
     )
   }, [graphSearchQuery, setNodes])
 
@@ -687,7 +607,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         return tasks[nextIndex].id
       })
     },
-    [detail.plan.tasks]
+    [detail.plan.tasks],
   )
 
   const keyActions = useMemo<Record<string, () => void>>(() => {
@@ -728,45 +648,57 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
 
   return (
     <main className="space-y-5 pb-10">
-      <div className="flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
-          <Link href="/plans">
+      {/* Sleek breadcrumb-like top bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/plans" className="flex items-center gap-1 transition-colors hover:text-foreground">
             <ArrowLeft className="size-4" />
-            Back to plans
+            Plans
           </Link>
-        </Button>
+          <span>/</span>
+          <span className="max-w-[200px] truncate font-semibold text-foreground sm:max-w-[400px]">
+            {detail.plan.goal}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {renderLifecycleBadge(detail.plan.lifecycle)}
+          {approved && (
+            <Badge
+              className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
+              variant="outline"
+            >
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              Approved
+            </Badge>
+          )}
+        </div>
       </div>
 
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="max-w-3xl space-y-3">
+        <div className="max-w-4xl space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="gap-1 font-mono text-xs">
               <Hash className="size-3 text-muted-foreground" />
               Rev {detail.plan.revision}
             </Badge>
-            {renderLifecycleBadge(detail.plan.lifecycle)}
             {detail.projection.stale && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertTriangle className="size-3" />
+              <Badge variant="destructive" className="gap-1.5 pl-2">
+                <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
                 Stale
               </Badge>
             )}
             {detail.projection.conflicted && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertTriangle className="size-3" />
+              <Badge variant="destructive" className="gap-1.5 pl-2">
+                <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
                 Conflicted
               </Badge>
             )}
-            {approved && (
-              <Badge className="gap-1 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 border-emerald-500/30 dark:text-emerald-300" variant="outline">
-                <Check className="size-3" />
-                Approved
-              </Badge>
-            )}
           </div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground md:text-4xl">{detail.plan.goal}</h1>
-          <p className="text-base leading-relaxed text-muted-foreground">{detail.plan.description}</p>
-          
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+            {detail.plan.goal}
+          </h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">{detail.plan.description}</p>
+
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-xs text-muted-foreground">
             {detail.plan.implementationGroups.length > 0 && (
               <div className="flex items-center gap-1.5" aria-label="Implementation groups">
@@ -774,7 +706,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                 <span className="font-medium">Groups:</span>
                 <div className="flex flex-wrap gap-1">
                   {detail.plan.implementationGroups.map(group => (
-                    <Badge key={group.id} variant="secondary" className="px-1.5 py-0 text-[10px] font-mono">
+                    <Badge key={group.id} variant="secondary" className="px-1.5 py-0 font-mono text-[10px]">
                       {group.id} ({group.taskIds.length})
                     </Badge>
                   ))}
@@ -785,13 +717,19 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
               <Layers className="size-3.5" />
               <span className="font-mono">{planSlug}</span>
               {planSlug !== detail.plan.planId && (
-                <span className="font-mono text-muted-foreground/70">(ID: {detail.plan.planId})</span>
+                <span className="text-muted-foreground/70 font-mono">(ID: {detail.plan.planId})</span>
               )}
             </div>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2 md:self-start">
-          <Button variant="outline" size="sm" className="h-9" onClick={() => setShortcutsModalOpen(true)} title="Keyboard Shortcuts (?)">
+          <Button
+            variant="outline"
+            size="sm"
+            className="animate-fade-in h-9"
+            onClick={() => setShortcutsModalOpen(true)}
+            title="Keyboard Shortcuts (?)"
+          >
             <Keyboard className="mr-2 size-4" />
             Shortcuts
           </Button>
@@ -807,7 +745,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
       </header>
 
       {detail.projection.stale || detail.projection.conflicted ? (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="rounded-xl">
           <AlertTriangle className="size-4" />
           <AlertTitle>Artifact health requires attention</AlertTitle>
           <AlertDescription>
@@ -816,7 +754,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         </Alert>
       ) : null}
       {message ? (
-        <Alert variant={message.tone === 'error' ? 'destructive' : 'default'}>
+        <Alert variant={message.tone === 'error' ? 'destructive' : 'default'} className="rounded-xl">
           {message.tone === 'error' ? <AlertTriangle className="size-4" /> : <CheckCircle2 className="size-4" />}
           <AlertTitle>{message.tone === 'error' ? 'Action blocked' : 'Action complete'}</AlertTitle>
           <AlertDescription>
@@ -837,7 +775,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         </Alert>
       ) : null}
       {detail.plan.lifecycle === 'draft' ? (
-        <Alert>
+        <Alert className="rounded-xl">
           <FileText className="size-4" />
           <AlertTitle>Draft not submitted for review</AlertTitle>
           <AlertDescription>
@@ -847,7 +785,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         </Alert>
       ) : null}
       {detail.listFallback ? (
-        <Alert>
+        <Alert className="rounded-xl">
           <List className="size-4" />
           <AlertTitle>Graph unavailable, list review enabled</AlertTitle>
           <AlertDescription>
@@ -856,7 +794,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         </Alert>
       ) : null}
       {detail.orphanedThreadIds.length > 0 ? (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="rounded-xl">
           <AlertTriangle className="size-4" />
           <AlertTitle>Removed-node remarks need a decision</AlertTitle>
           <AlertDescription>
@@ -865,32 +803,32 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         </Alert>
       ) : null}
 
-      <div className={cn('grid gap-5', inspectorOpen && 'xl:grid-cols-[minmax(0,1fr)_400px]')}>
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b">
-            <div className="flex items-center justify-between gap-3">
+      <div className={cn('grid gap-5', inspectorOpen && 'xl:grid-cols-[minmax(0,1fr)_420px]')}>
+        <Card className="overflow-hidden rounded-xl border">
+          <CardHeader className="bg-muted/10 border-b">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>Review surface</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg">Review surface</CardTitle>
+                <CardDescription className="text-xs">
                   Steps progress left to right. Tasks in the same stage may proceed in parallel.
                 </CardDescription>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <span className="w-5 border-t-2 border-muted-foreground" /> depends-on
+                  <span className="w-4 border-t-2 border-muted-foreground" /> depends-on
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-5 border-t-2 border-dashed border-destructive" /> blocks
+                  <span className="w-4 border-t-2 border-dashed border-destructive" /> blocks
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-5 border-t-2 border-dotted border-green-500" /> relates-to
+                  <span className="w-4 border-t-2 border-dotted border-green-500" /> relates-to
                 </span>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="border-b px-4 py-3">
+              <div className="bg-muted/5 border-b px-4 py-2">
                 <TabsList aria-label="Plan review representations">
                   <TabsTrigger value="graph" disabled={detail.listFallback}>
                     <Network className="mr-2 size-4" />
@@ -910,7 +848,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   </TabsTrigger>
                 </TabsList>
               </div>
-              <TabsContent value="graph" className="relative m-0 h-[620px]">
+              <TabsContent value="graph" className="bg-muted/5 relative m-0 h-[620px]">
                 {detail.listFallback ? (
                   <div className="flex h-full items-center justify-center p-6 text-center">
                     <div>
@@ -944,76 +882,107 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                       <Controls />
                     </ReactFlow>
 
-                    <div className="absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-background/80 p-1.5 shadow-md backdrop-blur-md">
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          type="text"
-                          placeholder="Search tasks..."
-                          value={graphSearchQuery}
-                          onChange={e => setGraphSearchQuery(e.target.value)}
-                          className="h-8 w-44 pl-8 pr-2 text-xs"
-                        />
-                        {searchResults.length > 0 && (
-                          <div className="absolute left-0 top-full mt-1.5 max-h-48 w-64 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-lg z-20">
-                            {searchResults.map(result => (
-                              <button
-                                key={result.id}
-                                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
-                                onClick={() => {
-                                  focusAndSelectTask(result.id)
-                                  setGraphSearchQuery('')
-                                }}
-                              >
-                                <span className="font-mono text-[10px] opacity-70">#{result.step}</span>
-                                <span className="truncate flex-1">{result.title}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                    {/* Floating Graph Toolbar */}
+                    <TooltipProvider>
+                      <div className="bg-background/90 absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2 rounded-xl border p-2 shadow-lg backdrop-blur-md transition-all">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            type="text"
+                            placeholder="Search tasks..."
+                            value={graphSearchQuery}
+                            onChange={e => setGraphSearchQuery(e.target.value)}
+                            className="h-8 w-44 rounded-lg pl-8 pr-2 text-xs"
+                          />
+                          {searchResults.length > 0 && (
+                            <div className="absolute left-0 top-full z-20 mt-1.5 max-h-48 w-64 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-lg">
+                              {searchResults.map(result => (
+                                <button
+                                  key={result.id}
+                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+                                  onClick={() => {
+                                    focusAndSelectTask(result.id)
+                                    setGraphSearchQuery('')
+                                  }}
+                                >
+                                  <span className="font-mono text-[10px] opacity-70">#{result.step}</span>
+                                  <span className="flex-1 truncate">{result.title}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="h-4 w-px bg-border" />
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              disabled={isPending}
+                              onClick={() =>
+                                run(
+                                  () =>
+                                    savePersonalPlanLayoutAction({
+                                      planId: detail.plan.planId,
+                                      positions: positions(),
+                                    }),
+                                  'Personal layout saved.',
+                                )
+                              }
+                            >
+                              <Save className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Save Personal Layout</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              disabled={isPending}
+                              onClick={() =>
+                                run(
+                                  () =>
+                                    publishSharedPlanLayoutAction({
+                                      planId: detail.plan.planId,
+                                      positions: positions(),
+                                    }),
+                                  'Shared layout written to the Git-tracked sidecar.',
+                                )
+                              }
+                            >
+                              <Share2 className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Publish Shared Layout (Git)</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              type="button"
+                              onClick={resetToFlow}
+                            >
+                              <RefreshCcw className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Reset to Flow Layout</TooltipContent>
+                        </Tooltip>
                       </div>
-
-                      <div className="h-4 w-px bg-border" />
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 px-2 text-xs gap-1"
-                        disabled={isPending}
-                        onClick={() =>
-                          run(
-                            () => savePersonalPlanLayoutAction({ planId: detail.plan.planId, positions: positions() }),
-                            'Personal layout saved.',
-                          )
-                        }
-                      >
-                        <Save className="size-3.5" />
-                        <span className="hidden sm:inline">Save</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 px-2 text-xs gap-1"
-                        disabled={isPending}
-                        onClick={() =>
-                          run(
-                            () => publishSharedPlanLayoutAction({ planId: detail.plan.planId, positions: positions() }),
-                            'Shared layout written to the Git-tracked sidecar.',
-                          )
-                        }
-                      >
-                        <Share2 className="size-3.5" />
-                        <span className="hidden sm:inline">Publish</span>
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1" type="button" onClick={resetToFlow}>
-                        <RefreshCcw className="size-3.5" />
-                        <span className="hidden sm:inline">Reset</span>
-                      </Button>
-                    </div>
+                    </TooltipProvider>
                   </>
                 )}
               </TabsContent>
-              <TabsContent value="list" className="m-0 p-6 space-y-8">
+              <TabsContent value="list" className="m-0 space-y-8 p-6">
                 {tasksByStage.map(([stageNum, stageTasks]) => (
                   <div key={stageNum} className="space-y-4">
                     <div className="flex items-center gap-2 border-b pb-2">
@@ -1021,7 +990,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                       <h3 className="font-heading text-base font-semibold text-foreground">
                         Stage {Number(stageNum) + 1}
                       </h3>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-semibold">
                         {stageTasks.length} task{stageTasks.length > 1 ? 's' : ''}
                       </Badge>
                     </div>
@@ -1033,41 +1002,46 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                           <div
                             key={task.id}
                             className={cn(
-                              "group relative rounded-xl border bg-card p-4 text-left transition-all duration-200 hover:shadow-md hover:border-muted-foreground/30 cursor-pointer",
-                              isSelected ? "border-primary ring-1 ring-primary shadow-sm bg-primary/5" : "border-border"
+                              'hover:border-muted-foreground/30 group relative cursor-pointer rounded-xl border bg-card p-4 text-left transition-all duration-200 hover:shadow-md',
+                              isSelected
+                                ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary'
+                                : 'border-border',
                             )}
                             onClick={() => {
                               setSelectedTaskId(task.id)
-                              setSidebarTab('details')
+                              setSidebarTab('remarks')
                             }}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-muted/50 font-mono text-xs font-semibold">
+                                <span className="bg-muted/50 flex size-6 shrink-0 items-center justify-center rounded-md border font-mono text-xs font-semibold">
                                   {task.step}
                                 </span>
-                                <h4 className="font-heading text-sm font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">
+                                <h4 className="font-heading text-sm font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
                                   {task.title}
                                 </h4>
                               </div>
-                              <Badge variant={task.status === 'blocked' ? 'destructive' : 'outline'} className="text-[10px] px-1.5 py-0">
+                              <Badge
+                                variant={task.status === 'blocked' ? 'destructive' : 'outline'}
+                                className="px-1.5 py-0 text-[10px] font-semibold"
+                              >
                                 {task.status}
                               </Badge>
                             </div>
 
-                            <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                              {task.description}
-                            </p>
+                            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
 
                             <div className="mt-4 space-y-1 border-t pt-3 text-[10px] text-muted-foreground">
                               <div className="flex items-center gap-1">
-                                <span className="font-medium">Relationships:</span>
-                                <span className="truncate max-w-[240px]">{taskRelationshipSummary(task.id, semanticFlow)}</span>
+                                <span className="text-foreground/80 font-semibold">Relationships:</span>
+                                <span className="max-w-[240px] truncate">
+                                  {taskRelationshipSummary(task.id, semanticFlow)}
+                                </span>
                               </div>
                               {task.validationIntent && (
                                 <div className="flex items-center gap-1">
-                                  <span className="font-medium">Validated by:</span>
-                                  <span className="truncate max-w-[240px]">{task.validationIntent}</span>
+                                  <span className="text-foreground/80 font-semibold">Validated by:</span>
+                                  <span className="max-w-[240px] truncate">{task.validationIntent}</span>
                                 </div>
                               )}
                             </div>
@@ -1081,14 +1055,21 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
               <TabsContent value="history" className="m-0 p-5">
                 <div className="space-y-3">
                   {detail.revisions.map((revision, index) => (
-                    <div key={revision.id} className="flex items-center justify-between rounded-lg border p-4">
+                    <div
+                      key={revision.id}
+                      className="hover:bg-muted/10 flex items-center justify-between rounded-xl border p-4 transition-colors"
+                    >
                       <div>
-                        <p className="font-medium">{index === 0 ? 'Current snapshot' : `Earlier snapshot ${index}`}</p>
-                        <p className="mt-1 font-mono text-xs text-muted-foreground">{revision.sourceHash}</p>
+                        <p className="text-sm font-semibold">
+                          {index === 0 ? 'Current snapshot' : `Earlier snapshot ${index}`}
+                        </p>
+                        <p className="text-muted-foreground/80 mt-1 font-mono text-xs">{revision.sourceHash}</p>
                       </div>
                       <div className="text-right text-xs text-muted-foreground">
-                        <p>{revision.createdAt.toLocaleString()}</p>
-                        <p>{revision.reducedAssurance ? 'Filesystem snapshot' : revision.gitCommit?.slice(0, 10)}</p>
+                        <p className="font-medium text-foreground">{revision.createdAt.toLocaleString()}</p>
+                        <p className="text-muted-foreground/80 mt-0.5 font-mono">
+                          {revision.reducedAssurance ? 'Filesystem snapshot' : revision.gitCommit?.slice(0, 10)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -1119,153 +1100,178 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         </Card>
 
         {inspectorOpen ? (
-          <aside className="space-y-5">
-            <Card className="overflow-hidden shadow-sm">
-              <Tabs value={sidebarTab} onValueChange={v => setSidebarTab(v as 'details' | 'remarks' | 'baselines' | 'approval')}>
-                <div className="border-b bg-muted/30 px-3 py-2">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="details" className="text-xs">Details</TabsTrigger>
-                    <TabsTrigger value="remarks" className="text-xs gap-1">
-                      Remarks
+          <aside className="animate-fade-in space-y-5">
+            <Card className="overflow-hidden rounded-xl border shadow-md">
+              <Tabs value={sidebarTab} onValueChange={v => setSidebarTab(v as 'remarks' | 'baselines' | 'approval')}>
+                <div className="bg-muted/40 border-b px-3 py-2">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="remarks" className="gap-1 text-xs font-semibold">
+                      Discussion
                       {openRemarksCount > 0 && (
                         <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
                           {openRemarksCount}
                         </span>
                       )}
                     </TabsTrigger>
-                    <TabsTrigger value="baselines" className="text-xs" disabled={!detail.validation}>Baselines</TabsTrigger>
-                    <TabsTrigger value="approval" className="text-xs">Approval</TabsTrigger>
+                    <TabsTrigger value="baselines" className="text-xs font-semibold" disabled={!detail.validation}>
+                      Baselines
+                    </TabsTrigger>
+                    <TabsTrigger value="approval" className="text-xs font-semibold">
+                      Approval
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 
-                <TabsContent value="details" className="m-0 p-4 space-y-4">
-                  <div>
+                {/* Tab 1: Remarks & Discussion (Consolidated Details, Adding Remark, Threads, Retargeting) */}
+                <TabsContent value="remarks" className="m-0 space-y-4 p-4">
+                  {/* Task / Plan-wide Details Card */}
+                  <div className="bg-muted/35 space-y-2.5 rounded-xl border p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-heading text-lg font-semibold tracking-tight">
+                      <h3 className="font-heading text-sm font-bold tracking-tight text-foreground">
                         {selectedTask ? `Task ${selectedTask.step}: ${selectedTask.title}` : 'Plan-wide details'}
                       </h3>
                       {selectedTask && (
-                        <Badge variant={selectedTask.status === 'blocked' ? 'destructive' : 'outline'}>
+                        <Badge
+                          variant={selectedTask.status === 'blocked' ? 'destructive' : 'outline'}
+                          className="py-0 text-[10px] font-bold capitalize"
+                        >
                           {selectedTask.status}
                         </Badge>
                       )}
                     </div>
-                    <p className="mt-1.5 text-sm text-muted-foreground">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
                       {selectedTask ? selectedTask.description : 'Remarks captured here apply to the plan as a whole.'}
                     </p>
-                  </div>
 
-                  {selectedTask && (
-                    <div className="space-y-3 border-t pt-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase text-muted-foreground">Acceptance criteria</p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    {selectedTask && selectedTask.acceptanceCriteria.length > 0 && (
+                      <div className="border-border/40 space-y-1 border-t pt-2">
+                        <p className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                          Acceptance criteria
+                        </p>
+                        <ul className="list-disc space-y-0.5 pl-4 text-xs leading-normal text-muted-foreground">
                           {selectedTask.acceptanceCriteria.map(criterion => (
                             <li key={criterion}>{criterion}</li>
                           ))}
                         </ul>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {selectedTask && (
-                    <div className="space-y-3 border-t pt-4">
-                      <p className="text-xs font-semibold uppercase text-muted-foreground">Relationships</p>
-                      {taskRelationships.prerequisites.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-muted-foreground">Prerequisites (must complete first):</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {taskRelationships.prerequisites.map(pre => (
-                              <Button
-                                key={pre.id}
-                                variant="secondary"
-                                size="sm"
-                                className="h-6 gap-1 px-2 text-xs font-medium"
-                                onClick={() => focusAndSelectTask(pre.id)}
-                              >
-                                <span className="font-mono text-[10px] opacity-70">#{pre.step}</span>
-                                <span className="truncate max-w-[180px]">{pre.title}</span>
-                              </Button>
-                            ))}
+                    {selectedTask && (
+                      <div className="border-border/40 space-y-1.5 border-t pt-2 text-xs">
+                        <p className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                          Relationships
+                        </p>
+                        {taskRelationships.prerequisites.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground">Prerequisites:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {taskRelationships.prerequisites.map(pre => (
+                                <Button
+                                  key={pre.id}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-5 gap-1 px-1.5 text-[10px] font-medium"
+                                  onClick={() => focusAndSelectTask(pre.id)}
+                                >
+                                  <span className="font-mono opacity-70">#{pre.step}</span>
+                                  <span className="max-w-[120px] truncate">{pre.title}</span>
+                                </Button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {taskRelationships.blocks.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-muted-foreground">Blocks (cannot start until done):</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {taskRelationships.blocks.map(b => (
-                              <Button
-                                key={b.id}
-                                variant="secondary"
-                                size="sm"
-                                className="h-6 gap-1 px-2 text-xs font-medium"
-                                onClick={() => focusAndSelectTask(b.id)}
-                              >
-                                <span className="font-mono text-[10px] opacity-70">#{b.step}</span>
-                                <span className="truncate max-w-[180px]">{b.title}</span>
-                              </Button>
-                            ))}
+                        )}
+                        {taskRelationships.blocks.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground">Blocks:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {taskRelationships.blocks.map(b => (
+                                <Button
+                                  key={b.id}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-5 gap-1 px-1.5 text-[10px] font-medium"
+                                  onClick={() => focusAndSelectTask(b.id)}
+                                >
+                                  <span className="font-mono opacity-70">#{b.step}</span>
+                                  <span className="max-w-[120px] truncate">{b.title}</span>
+                                </Button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {taskRelationships.relatesTo.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-muted-foreground">Relates to:</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {taskRelationships.relatesTo.map(r => (
-                              <Button
-                                key={r.id}
-                                variant="secondary"
-                                size="sm"
-                                className="h-6 gap-1 px-2 text-xs font-medium"
-                                onClick={() => focusAndSelectTask(r.id)}
-                              >
-                                <span className="font-mono text-[10px] opacity-70">#{r.step}</span>
-                                <span className="truncate max-w-[180px]">{r.title}</span>
-                              </Button>
-                            ))}
+                        )}
+                        {taskRelationships.relatesTo.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground">Relates to:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {taskRelationships.relatesTo.map(r => (
+                                <Button
+                                  key={r.id}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-5 gap-1 px-1.5 text-[10px] font-medium"
+                                  onClick={() => focusAndSelectTask(r.id)}
+                                >
+                                  <span className="font-mono opacity-70">#{r.step}</span>
+                                  <span className="max-w-[120px] truncate">{r.title}</span>
+                                </Button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {taskRelationships.prerequisites.length === 0 &&
-                       taskRelationships.blocks.length === 0 &&
-                       taskRelationships.relatesTo.length === 0 && (
-                        <p className="text-xs text-muted-foreground">No displayed relationships.</p>
-                      )}
-                    </div>
-                  )}
+                        )}
+                        {taskRelationships.prerequisites.length === 0 &&
+                          taskRelationships.blocks.length === 0 &&
+                          taskRelationships.relatesTo.length === 0 && (
+                            <p className="text-[10px] italic text-muted-foreground">No displayed relationships.</p>
+                          )}
+                      </div>
+                    )}
+                  </div>
 
-                  <div className="space-y-4 border-t pt-4">
+                  {/* Add Remark Form */}
+                  <div className="space-y-3 border-t pt-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase text-muted-foreground">Add remark</p>
+                      <p className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                        Add Remark
+                      </p>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        className="h-6 px-1.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
                         onClick={() => setSelectedTaskId(selectedTask ? null : (detail.plan.tasks[0]?.id ?? null))}
                       >
-                        <MessageSquare className="mr-1.5 size-3.5" />
-                        {selectedTask ? 'Switch to plan-wide' : 'Switch to task'}
+                        <MessageSquare className="mr-1 size-3" />
+                        {selectedTask ? 'Switch to Plan-wide' : 'Switch to Selected Task'}
                       </Button>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="remark" className="sr-only">Remark body</Label>
+                      <Label htmlFor="remark" className="sr-only">
+                        Remark body
+                      </Label>
                       <Textarea
                         id="remark"
                         value={remarkBody}
                         onChange={event => setRemarkBody(event.target.value)}
-                        placeholder="Describe the change or question... (Supports markdown)"
-                        className="min-h-[90px] text-sm"
+                        placeholder={`Type a comment for ${selectedTask ? `Task ${selectedTask.step}` : 'the Plan'}... (Supports markdown)`}
+                        className="min-h-[85px] rounded-xl text-xs"
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Checkbox id="blocking" checked={blocking} onCheckedChange={value => setBlocking(value === true)} />
-                        <Label htmlFor="blocking" className="text-xs font-medium cursor-pointer">Blocking remark</Label>
+                        <Checkbox
+                          id="blocking"
+                          checked={blocking}
+                          onCheckedChange={value => setBlocking(value === true)}
+                        />
+                        <Label
+                          htmlFor="blocking"
+                          className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground"
+                        >
+                          Blocking remark
+                        </Label>
                       </div>
                       <Button
                         size="sm"
+                        className="h-8 px-3 text-xs font-semibold"
                         disabled={isPending || !remarkBody.trim()}
                         onClick={() =>
                           run(
@@ -1285,87 +1291,54 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                         ) : (
                           <MessageSquare className="mr-1.5 size-3.5" />
                         )}
-                        Add remark
+                        Comment
                       </Button>
                     </div>
                   </div>
-                </TabsContent>
 
-                <TabsContent value="remarks" className="m-0 p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-heading text-base font-semibold">
-                      Remarks for {selectedTask ? `Task ${selectedTask.step}` : 'Plan'}
-                    </h3>
-                    <Badge variant="secondary">{visibleThreads.length} thread(s)</Badge>
-                  </div>
+                  {/* Modernized Remark Threads (Timeline/Chat style) */}
+                  <div className="space-y-3 border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                        Remarks History
+                      </h4>
+                      <Badge variant="secondary" className="px-1 font-mono text-[9px] font-bold">
+                        {visibleThreads.length} Thread{visibleThreads.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
 
-                  <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
-                    {visibleThreads.length === 0 ? (
-                      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                        No remarks for this target.
-                      </div>
-                    ) : (
-                      visibleThreads.map(thread => (
-                        <div key={thread.id} className="rounded-lg border bg-card p-3 shadow-sm space-y-3">
-                          <div className="flex items-center justify-between gap-2 border-b pb-2">
-                            <Badge variant={thread.blocking && isThreadOpen(thread) ? 'destructive' : 'outline'} className="text-[10px] px-1.5 py-0">
-                              {thread.blocking ? 'Blocking' : 'Non-blocking'}
-                            </Badge>
-                            <span className="text-[11px] font-medium capitalize text-muted-foreground">{getThreadStatus(thread)}</span>
-                          </div>
-                          <div className="space-y-3">
-                            {thread.events.map(event => (
-                              <div key={event.id} className="text-sm space-y-1">
-                                <span className="text-[11px] font-semibold uppercase text-muted-foreground/80">{event.action}</span>
-                                {event.body ? (
-                                  <div className="rounded bg-muted/40 p-2 text-muted-foreground border border-muted/30">
-                                    <MarkdownRemark content={event.body} />
-                                  </div>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                          {isThreadOpen(thread) && (
-                            <div className="flex flex-wrap gap-1.5 pt-1 border-t">
-                              {(['resolved', 'dismissed', 'downgraded'] as const).map(action => (
-                                <Button
-                                  key={action}
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-[11px]"
-                                  disabled={isPending}
-                                  onClick={() =>
-                                    run(
-                                      () =>
-                                        transitionPlanRemarkAction({
-                                          planId: detail.plan.planId,
-                                          threadId: thread.id,
-                                          action,
-                                        }),
-                                      `Remark ${action}.`,
-                                    )
-                                  }
-                                >
-                                  {action}
-                                </Button>
-                              ))}
-                            </div>
-                          )}
+                    <div className="after:bg-border/40 relative max-h-[360px] space-y-4 overflow-y-auto pl-4 pr-1 after:absolute after:inset-y-1 after:left-1.5 after:w-0.5">
+                      {visibleThreads.length === 0 ? (
+                        <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
+                          No remarks for this target.
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        visibleThreads.map(thread => (
+                          <PlanRemarkThreadItem
+                            key={thread.id}
+                            thread={thread}
+                            planId={detail.plan.planId}
+                            isPending={isPending}
+                            run={run}
+                          />
+                        ))
+                      )}
+                    </div>
                   </div>
 
+                  {/* Retargeting block */}
                   {detail.orphanedThreadIds.length > 0 && (
-                    <div className="border-t pt-4 space-y-3">
-                      <h4 className="text-xs font-semibold uppercase text-muted-foreground">Retarget removed-node remarks</h4>
+                    <div className="space-y-3 border-t pt-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Retarget removed-node remarks
+                      </h4>
                       <div className="space-y-1.5">
                         {detail.orphanedThreadIds.map(threadId => (
                           <Button
                             key={threadId}
                             variant="outline"
                             size="sm"
-                            className="w-full justify-start text-xs h-8"
+                            className="h-8 w-full justify-start rounded-lg text-xs"
                             disabled={!selectedTaskId || isPending}
                             onClick={() =>
                               run(
@@ -1387,156 +1360,53 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   )}
                 </TabsContent>
 
-                <TabsContent value="baselines" className="m-0 p-4 space-y-4">
+                {/* Tab 2: Baseline & Validation (Baseline execution, runs list, and control) */}
+                <TabsContent value="baselines" className="m-0 space-y-4 p-4">
                   <div>
-                    <h3 className="font-heading text-base font-semibold">Baseline execution</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Required browser and environment combinations must have accepted evidence before implementation.
+                    <h3 className="font-heading text-sm font-bold">Baseline Evidence Execution</h3>
+                    <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
+                      Required browser and environment combinations must have accepted evidence before implementation
+                      begins.
                     </p>
                   </div>
 
                   {detail.validation && (
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                    <div className="max-h-[440px] space-y-3 overflow-y-auto pr-1">
                       {detail.validation.baselineAttempts.length === 0 ? (
-                        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                          No baseline attempts have been submitted.
+                        <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
+                          No baseline attempts have been submitted yet.
                         </div>
                       ) : (
-                        detail.validation.baselineAttempts.map(attempt => {
-                          const BaselineIcon = getBaselineIcon(attempt.status, attempt.classification)
-                          const evidenceLinks = [
-                            { label: 'Logs', href: attempt.evidence.logsUrl, icon: FileText },
-                            { label: 'Report', href: attempt.evidence.reportUrl, icon: ExternalLink },
-                            ...attempt.evidence.traceUrls.map((url, index) => ({
-                              label: `Trace ${index + 1}`,
-                              href: url,
-                              icon: GitCompare,
-                            })),
-                            ...attempt.evidence.screenshotUrls.map((url, index) => ({
-                              label: `Screenshot ${index + 1}`,
-                              href: url,
-                              icon: Image,
-                            })),
-                          ]
-
-                          return (
-                            <div key={attempt.id} className="bg-muted/20 rounded-lg border p-3 text-sm space-y-2">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="flex min-w-0 items-center gap-2 font-medium">
-                                  <BaselineIcon
-                                    className={cn(
-                                      'size-4 shrink-0',
-                                      getBaselineIconClass(attempt.status, attempt.classification),
-                                    )}
-                                  />
-                                  <span className="truncate text-xs">
-                                    {attempt.browser} / {attempt.environment}
-                                  </span>
-                                </span>
-                                <Badge
-                                  variant={
-                                    attempt.classification === 'invalid_baseline_failure' ||
-                                    attempt.classification === 'validation_harness_failure'
-                                      ? 'destructive'
-                                      : 'outline'
-                                  }
-                                  className="text-[10px] px-1.5 py-0"
-                                >
-                                  {attempt.classification?.replaceAll('_', ' ') ?? attempt.status}
-                                </Badge>
-                              </div>
-                              <p className="font-mono text-[10px] text-muted-foreground">
-                                {attempt.validationId.slice(0, 12)}... · run {attempt.testRunId}
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {evidenceLinks.map(link => {
-                                  const EvidenceIcon = link.icon
-                                  return (
-                                    <Button key={`${link.label}-${link.href}`} asChild size="sm" variant="secondary" className="h-6 text-[10px]">
-                                      <a href={link.href}>
-                                        <EvidenceIcon className="mr-1 size-3" />
-                                        {link.label}
-                                      </a>
-                                    </Button>
-                                  )
-                                })}
-                              </div>
-                              {attempt.classification === 'pre_existing_unrelated_failure' && (
-                                <Button
-                                  className="w-full h-7 text-xs"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={isPending}
-                                  onClick={() =>
-                                    run(
-                                      () =>
-                                        acknowledgeBaselineFailureAction({
-                                          planId: detail.plan.planId,
-                                          attemptId: attempt.id,
-                                        }),
-                                      'Unrelated failure acknowledged.',
-                                    )
-                                  }
-                                >
-                                  Acknowledge unchanged failure
-                                </Button>
-                              )}
-                              {attempt.classification === 'validation_harness_failure' && (
-                                <div className="border-destructive/30 bg-destructive/10 rounded-md border p-2 text-[11px] text-destructive">
-                                  Runtime harness wiring failed. Fix step definitions, imports, Cucumber config, or setup, then republish.
-                                </div>
-                              )}
-                              {attempt.classification === 'accepted_regression_pass' &&
-                              !attempt.regressionJustification && (
-                                <div className="space-y-2 pt-1">
-                                  <Textarea
-                                    value={regressionJustification}
-                                    onChange={event => setRegressionJustification(event.target.value)}
-                                    placeholder="Why this passing test still provides required regression coverage"
-                                    className="min-h-[60px] text-xs"
-                                  />
-                                  <Button
-                                    size="sm"
-                                    className="w-full h-7 text-xs"
-                                    variant="outline"
-                                    disabled={isPending || !regressionJustification.trim()}
-                                    onClick={() =>
-                                      run(
-                                        () =>
-                                          justifyBaselineRegressionPassAction({
-                                            planId: detail.plan.planId,
-                                            attemptId: attempt.id,
-                                            justification: regressionJustification,
-                                          }),
-                                        'Regression coverage justified.',
-                                      )
-                                    }
-                                  >
-                                    Save justification
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })
+                        detail.validation.baselineAttempts.map(attempt => (
+                          <BaselineAttemptCard
+                            key={attempt.id}
+                            attempt={attempt}
+                            planId={detail.plan.planId}
+                            isPending={isPending}
+                            run={run}
+                            regressionJustification={regressionJustification}
+                            onRegressionJustificationChange={setRegressionJustification}
+                          />
+                        ))
                       )}
                     </div>
                   )}
 
                   <div className="grid gap-2 border-t pt-4">
                     {['validations_approved', 'baseline_changes_requested'].includes(detail.plan.lifecycle) && (
-                      <p className="rounded-md border bg-muted/10 p-3 text-xs text-muted-foreground">
+                      <p className="bg-muted/20 rounded-xl border p-3 text-xs leading-relaxed text-muted-foreground">
                         Validation review is approved. The connected agent starts required baselines through MCP.
                       </p>
                     )}
                     {detail.plan.lifecycle === 'baseline_running' && (
                       <>
-                        <p className="rounded-md border bg-muted/10 p-3 text-xs text-muted-foreground">
+                        <p className="bg-muted/20 rounded-xl border p-3 text-xs leading-relaxed text-muted-foreground">
                           Baseline runs are active. The connected agent reconciles run evidence through MCP.
                         </p>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-9 rounded-xl font-semibold"
                           disabled={isPending}
                           onClick={() =>
                             run(
@@ -1552,6 +1422,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                     {detail.plan.lifecycle === 'baseline_review' && (
                       <Button
                         size="sm"
+                        className="h-9 rounded-xl font-semibold"
                         disabled={isPending}
                         onClick={() =>
                           run(() => acceptBaselineAction({ planId: detail.plan.planId }), 'Baselines accepted.')
@@ -1561,37 +1432,41 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                       </Button>
                     )}
                     {detail.plan.lifecycle === 'baseline_accepted' && (
-                      <p className="rounded-md border bg-muted/10 p-3 text-xs text-muted-foreground">
+                      <p className="bg-muted/20 rounded-xl border p-3 text-xs leading-relaxed text-muted-foreground">
                         Baseline evidence is accepted. The connected agent unlocks implementation through MCP.
                       </p>
                     )}
                   </div>
                 </TabsContent>
 
-                <TabsContent value="approval" className="m-0 p-4 space-y-4">
+                {/* Tab 3: Approval & Actions (Revision approval, suspicious replacements, and layout settings) */}
+                <TabsContent value="approval" className="m-0 space-y-4 p-4">
                   <div>
-                    <h3 className="font-heading text-base font-semibold">Revision approval</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h3 className="font-heading text-sm font-bold">Revision Approval</h3>
+                    <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
                       Approval binds to revision {detail.plan.revision} and its exact plan hash.
                     </p>
                   </div>
 
                   <div className="space-y-4">
                     {suspiciousReplacement && (
-                      <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5">
                         <Checkbox
                           id="replacement-confirmation"
                           checked={confirmReplacement}
                           onCheckedChange={value => setConfirmReplacement(value === true)}
                           className="mt-0.5"
                         />
-                        <Label htmlFor="replacement-confirmation" className="text-xs leading-4 text-amber-800 dark:text-amber-200 cursor-pointer">
+                        <Label
+                          htmlFor="replacement-confirmation"
+                          className="cursor-pointer text-xs font-medium leading-normal text-amber-800 dark:text-amber-200"
+                        >
                           Confirm that replaced node identities are intentional.
                         </Label>
                       </div>
                     )}
                     <Button
-                      className="w-full h-10"
+                      className="h-10 w-full rounded-xl font-bold"
                       aria-describedby={approvalDisabledReason ? 'approval-disabled-reason' : undefined}
                       disabled={isPending || Boolean(approvalDisabledReason)}
                       onClick={() =>
@@ -1607,16 +1482,19 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                         )
                       }
                     >
-                      <Check className="mr-2 size-4" />
+                      <Check className="mr-2 size-4 stroke-[2.2]" />
                       {approved ? 'Revision approved' : 'Approve exact revision'}
                     </Button>
                     {approvalDisabledReason && (
-                      <p id="approval-disabled-reason" className="text-xs text-muted-foreground text-center">
+                      <p
+                        id="approval-disabled-reason"
+                        className="text-center text-xs leading-normal text-muted-foreground"
+                      >
                         {approvalDisabledReason}
                       </p>
                     )}
                     <Button
-                      className="w-full h-10"
+                      className="h-10 w-full rounded-xl font-bold"
                       variant="outline"
                       aria-describedby={requestChangesDisabledReason ? 'request-changes-disabled-reason' : undefined}
                       disabled={isPending || Boolean(requestChangesDisabledReason)}
@@ -1636,11 +1514,72 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                       Request changes
                     </Button>
                     {requestChangesDisabledReason && (
-                      <p id="request-changes-disabled-reason" className="text-xs text-muted-foreground text-center">
+                      <p
+                        id="request-changes-disabled-reason"
+                        className="text-center text-xs leading-normal text-muted-foreground"
+                      >
                         {requestChangesDisabledReason}
                       </p>
                     )}
                   </div>
+
+                  {/* Layout controls as a distinct section within the same tab */}
+                  {!detail.listFallback && activeTab === 'graph' && (
+                    <div className="mt-2 space-y-3 border-t pt-4">
+                      <div>
+                        <h4 className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                          Graph Layout Options
+                        </h4>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          Adjust nodes on the canvas and save your personal layout or publish it to Git.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1.5 rounded-lg text-xs font-semibold"
+                          disabled={isPending}
+                          onClick={() =>
+                            run(
+                              () =>
+                                savePersonalPlanLayoutAction({ planId: detail.plan.planId, positions: positions() }),
+                              'Personal layout saved.',
+                            )
+                          }
+                        >
+                          <Save className="size-3.5" />
+                          Save Personal
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1.5 rounded-lg text-xs font-semibold"
+                          disabled={isPending}
+                          onClick={() =>
+                            run(
+                              () =>
+                                publishSharedPlanLayoutAction({ planId: detail.plan.planId, positions: positions() }),
+                              'Shared layout written to the Git-tracked sidecar.',
+                            )
+                          }
+                        >
+                          <Share2 className="size-3.5" />
+                          Publish Shared
+                        </Button>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-full gap-1.5 rounded-lg text-xs font-semibold"
+                        type="button"
+                        onClick={resetToFlow}
+                      >
+                        <RefreshCcw className="size-3.5" />
+                        Reset to Flow Layout
+                      </Button>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </Card>
@@ -1655,35 +1594,26 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
               <Keyboard className="size-5 text-primary" />
               Keyboard Shortcuts
             </DialogTitle>
-            <DialogDescription>
-              Use these shortcuts to quickly navigate the workspace.
-            </DialogDescription>
+            <DialogDescription>Use these shortcuts to quickly navigate the workspace.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             {SHORTCUT_SECTIONS.map((section, index) => (
-              <ShortcutSection
-                key={section.title}
-                title={section.title}
-                items={section.items}
-                withBorder={index > 0}
-              />
+              <ShortcutSection key={section.title} title={section.title} items={section.items} withBorder={index > 0} />
             ))}
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+        <DialogContent className="flex max-h-[80vh] max-w-3xl flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="size-5 text-primary" />
               Export Plan as Markdown
             </DialogTitle>
-            <DialogDescription>
-              Copy or download this plan as a formatted Markdown document.
-            </DialogDescription>
+            <DialogDescription>Copy or download this plan as a formatted Markdown document.</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto border rounded-md bg-muted/50 p-4 font-mono text-xs whitespace-pre-wrap select-all">
+          <div className="bg-muted/50 min-h-0 flex-1 select-all overflow-y-auto whitespace-pre-wrap rounded-md border p-4 font-mono text-xs">
             {planMarkdown}
           </div>
           <DialogFooter className="flex gap-2 sm:gap-0">
