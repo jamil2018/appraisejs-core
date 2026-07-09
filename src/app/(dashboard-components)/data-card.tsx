@@ -23,19 +23,19 @@ const ENTITY_THEMES: Record<string, EntityTheme> = {
     Icon: TestTubeDiagonal,
     colorClass: 'text-primary',
     bgClass: 'border-primary/20 bg-primary/[0.04]',
-    hoverClass: 'hover:border-primary/40 hover:bg-primary/[0.08]',
+    hoverClass: 'hover:border-white/[0.15] hover:bg-white/[0.04]',
   },
   'Test Suites': {
     Icon: TestTubes,
     colorClass: 'text-sky-400',
     bgClass: 'border-sky-500/20 bg-sky-500/[0.04]',
-    hoverClass: 'hover:border-sky-500/40 hover:bg-sky-500/[0.08]',
+    hoverClass: 'hover:border-white/[0.15] hover:bg-white/[0.04]',
   },
   'Template Steps': {
     Icon: LayoutTemplate,
     colorClass: 'text-indigo-400',
     bgClass: 'border-indigo-500/20 bg-indigo-500/[0.04]',
-    hoverClass: 'hover:border-indigo-500/40 hover:bg-indigo-500/[0.08]',
+    hoverClass: 'hover:border-white/[0.15] hover:bg-white/[0.04]',
   },
 }
 
@@ -43,7 +43,7 @@ const DEFAULT_THEME: EntityTheme = {
   Icon: HelpCircle,
   colorClass: 'text-zinc-400',
   bgClass: 'border-white/[0.08] bg-white/[0.04]',
-  hoverClass: 'hover:border-white/[0.18] hover:bg-white/[0.08]',
+  hoverClass: 'hover:border-white/[0.15] hover:bg-white/[0.04]',
 }
 
 function DataCardHeader({ title, theme, isEmpty }: { title: string; theme: EntityTheme; isEmpty: boolean }) {
