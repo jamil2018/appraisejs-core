@@ -6,7 +6,7 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'rounded-lg border border-white/[0.075] bg-[rgba(18,37,64,0.36)] text-card-foreground shadow-[0_18px_45px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-md',
+        'rounded-lg border border-white/[0.075] bg-[rgba(18,37,64,0.42)] text-card-foreground shadow-[0_12px_28px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.055)]',
         className,
       )}
       {...props}
