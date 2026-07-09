@@ -21,7 +21,10 @@ function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
 function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
-      className={cn('hover:bg-muted/50 border-b transition-colors data-[state=selected]:bg-muted', className)}
+      className={cn(
+        'border-b border-white/[0.06] transition-colors hover:bg-white/[0.045] data-[state=selected]:bg-white/[0.075]',
+        className,
+      )}
       {...props}
     />
   )

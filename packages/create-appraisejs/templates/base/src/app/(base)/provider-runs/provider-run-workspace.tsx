@@ -290,7 +290,7 @@ export function ProviderRunWorkspace({ runs, adapters, targetProjects, plans }: 
               </div>
             ) : null}
             <Tabs value={targetTab} onValueChange={setTargetTab} className="space-y-3">
-              <div className="rounded-lg border border-zinc-800 bg-[linear-gradient(135deg,rgba(14,165,233,0.08),rgba(245,158,11,0.08)_48%,rgba(39,39,42,0.28))] p-1.5">
+              <div className="rounded-lg border border-white/[0.08] bg-white/[0.035] p-1.5">
                 <TabsList className="grid h-auto w-full grid-cols-2 rounded-md bg-zinc-950/70 p-1">
                   <TabsTrigger
                     value={TARGET_TAB_EXISTING_VALUE}

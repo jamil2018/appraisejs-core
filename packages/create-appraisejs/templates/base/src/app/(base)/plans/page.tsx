@@ -1,13 +1,17 @@
 import type { Metadata } from 'next'
-import { Network } from 'lucide-react'
+import { Suspense } from 'react'
+import { Network, Search } from 'lucide-react'
 
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
-import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
+import { Card, CardContent } from '@/components/ui/card'
 import { listPlans } from '@/services/plan-review/plan-review-service'
 
-import { PlansBrowser, type PlansBrowserPlan } from './plans-browser'
+import { PlanSummaryCard } from './plan-summary-card'
+import { PlansFilterController } from './plans-filter-controller'
+import { computePlanStats, filterPlans, parsePlansListSearchParams, sortPlans } from './plans-page-helpers'
+import { PlansStatsCards } from './plans-stats-cards'
 
 export const metadata: Metadata = {
   title: 'Plans',
@@ -15,26 +19,16 @@ export const metadata: Metadata = {
 }
 
 type PlansPageProps = {
-  searchParams?: Promise<{ query?: string }>
+  searchParams?: Promise<{ query?: string; tab?: string; sort?: string }>
 }
 
 export default async function PlansPage({ searchParams }: PlansPageProps) {
-  const { query = '' } = (await searchParams) ?? {}
+  const resolvedParams = parsePlansListSearchParams((await searchParams) ?? {})
+  const { query, tab, sort } = resolvedParams
+
   const plans = await listPlans()
-  const browserPlans: PlansBrowserPlan[] = plans.map(plan => ({
-    planId: plan.planId,
-    slug: getPlanDisplaySlug(plan),
-    goal: plan.goal,
-    description: plan.description,
-    lifecycle: plan.lifecycle,
-    revision: plan.revision,
-    stale: plan.stale,
-    conflicted: plan.conflicted,
-    taskCount: plan.tasks.length,
-    issueCount: plan.issues.length,
-    updatedAt: plan.updatedAt.toISOString(),
-    updatedAtLabel: plan.updatedAt.toLocaleDateString(),
-  }))
+  const stats = computePlanStats(plans)
+  const sortedPlans = sortPlans(filterPlans(plans, tab, query), sort)
 
   return (
     <main className="space-y-6 pb-10">
@@ -55,7 +49,75 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
         </Badge>
       </header>
 
-      <PlansBrowser plans={browserPlans} initialQuery={query} />
+      <PlansStatsCards {...stats} />
+
+      <PlansFilterSection />
+
+      <PlansResults plans={plans} sortedPlans={sortedPlans} />
     </main>
+  )
+}
+
+function PlansFilterSection() {
+  return (
+    <Suspense fallback={<div className="h-10 w-full animate-pulse rounded-lg bg-muted" />}>
+      <PlansFilterController />
+    </Suspense>
+  )
+}
+
+function PlansResults({
+  plans,
+  sortedPlans,
+}: {
+  plans: Awaited<ReturnType<typeof listPlans>>
+  sortedPlans: Awaited<ReturnType<typeof listPlans>>
+}) {
+  if (plans.length === 0) {
+    return (
+      <EmptyPlansState
+        icon={Network}
+        title="No plans projected"
+        description="Add a canonical plan under appraise/plans and run plan sync to make it available here."
+      />
+    )
+  }
+
+  if (sortedPlans.length === 0) {
+    return (
+      <EmptyPlansState
+        icon={Search}
+        title="No matching plans"
+        description="No plans match your current status filter and search query."
+      />
+    )
+  }
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      {sortedPlans.map(plan => (
+        <PlanSummaryCard key={plan.planId} plan={plan} />
+      ))}
+    </div>
+  )
+}
+
+function EmptyPlansState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Network
+  title: string
+  description: string
+}) {
+  return (
+    <Card className="rounded-xl border-dashed">
+      <CardContent className="flex min-h-64 flex-col items-center justify-center p-6 text-center">
+        <Icon className="mb-4 size-10 text-muted-foreground opacity-60" />
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
   )
 }

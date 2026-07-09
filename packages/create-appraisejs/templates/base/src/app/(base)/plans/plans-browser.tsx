@@ -60,7 +60,7 @@ const lifecycleBadgeClasses: Record<PlanLifecycleState, string> = {
   baseline_review: 'border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300',
   baseline_changes_requested: 'border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-300',
   baseline_accepted: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  in_progress: 'border-violet-500/30 bg-violet-500/15 text-violet-700 dark:text-violet-300',
+  in_progress: 'border-sky-500/30 bg-sky-500/15 text-sky-700 dark:text-sky-300',
   paused: 'border-slate-500/30 bg-slate-500/15 text-slate-700 dark:text-slate-300',
   ready_for_validation: 'border-cyan-500/30 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300',
   validating: 'border-sky-500/30 bg-sky-500/15 text-sky-700 dark:text-sky-300',
@@ -202,7 +202,7 @@ function PlanCard({ plan }: { plan: PlansBrowserPlan }) {
   return (
     <Card
       className={cn(
-        'hover:border-primary/50 group relative flex min-h-[238px] flex-col overflow-hidden rounded-lg border-l-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl',
+        'hover:border-primary/40 group relative flex min-h-[238px] flex-col overflow-hidden rounded-lg border-l-4 shadow-sm transition-colors duration-200 hover:bg-[rgba(22,47,78,0.42)]',
         getCardAccentClass(plan),
       )}
     >
@@ -225,7 +225,7 @@ function PlanCard({ plan }: { plan: PlansBrowserPlan }) {
       <CardContent className="mt-auto pb-6 pr-20">
         <PlanMetadata plan={plan} />
       </CardContent>
-      <span className="border-primary/30 shadow-primary/20 group-hover:shadow-primary/30 pointer-events-none absolute bottom-5 right-5 z-20 flex size-12 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-lg transition-all duration-200 group-hover:scale-105">
+      <span className="border-primary/30 pointer-events-none absolute bottom-5 right-5 z-20 flex size-10 items-center justify-center rounded-md border bg-primary text-primary-foreground transition-colors duration-200">
         <ArrowRight className="size-5 stroke-[2.6]" />
       </span>
     </Card>

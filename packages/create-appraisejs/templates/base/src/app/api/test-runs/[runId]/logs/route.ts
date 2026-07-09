@@ -62,6 +62,87 @@ async function storedLogsResponse(input: {
   )
 }
 
+function sseErrorResponse(status: number, payload: Record<string, unknown>) {
+  const errorStream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder()
+      const message = `event: error\ndata: ${JSON.stringify(payload)}\n\n`
+      controller.enqueue(encoder.encode(message))
+      setTimeout(() => {
+        controller.close()
+      }, 100)
+    },
+  })
+
+  return new Response(errorStream, {
+    status,
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  })
+}
+
+async function readTestRunStatusForLogs(runId: string) {
+  try {
+    const testRun = await prisma.testRun.findUnique({
+      where: { runId },
+      select: { id: true, status: true },
+    })
+
+    if (!testRun) {
+      console.error(`[SSE] Test run not found in database for runId: ${runId}`)
+      return { response: sseErrorResponse(404, { error: 'Test run not found' }) }
+    }
+
+    return { status: testRun.status }
+  } catch (error) {
+    console.error(`[SSE] Database error verifying test run for runId: ${runId}:`, error)
+    return { response: sseErrorResponse(500, { error: 'Internal server error' }) }
+  }
+}
+
+async function waitForRegisteredProcess(runId: string) {
+  let process = processManager.get(runId)
+  const maxWaitTime = 10000
+  const checkInterval = 200
+  let waited = 0
+
+  console.log(`[SSE] Looking for process with runId: ${runId}, current processes: ${processManager.size()}`)
+
+  if (processManager.size() > 0) {
+    const availableProcesses = processManager.getAllTestRunIds()
+    console.log(`[SSE] Available process IDs:`, availableProcesses)
+    console.log(`[SSE] Looking for runId: "${runId}", available:`, availableProcesses.map(id => `"${id}"`).join(', '))
+  } else {
+    console.log(`[SSE] No processes registered yet. ProcessManager size: ${processManager.size()}`)
+  }
+
+  while (!process && waited < maxWaitTime) {
+    await new Promise(resolve => setTimeout(resolve, checkInterval))
+    waited += checkInterval
+    process = processManager.get(runId)
+
+    if (waited % 2000 === 0) {
+      console.log(`[SSE] Still waiting for process ${runId}... (${waited}ms elapsed)`)
+    }
+  }
+
+  if (process) return { process }
+
+  const availableProcesses = processManager.getAllTestRunIds()
+  const errorMessage = `Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}. Available IDs: ${availableProcesses.join(', ') || 'none'}`
+  console.error(`[SSE] ${errorMessage}`)
+
+  return {
+    response: sseErrorResponse(200, {
+      error: 'Test run process not found. The process may not have started yet or may have already completed.',
+      details: `Looking for: ${runId}, Available: ${availableProcesses.join(', ') || 'none'}`,
+    }),
+  }
+}
+
 /**
  * Server-Sent Events (SSE) route handler for streaming test run logs
  *
@@ -80,128 +161,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const mode = parseLogMode(request.nextUrl.searchParams.get('mode'))
   const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit') ?? 50) || 50, 1), 500)
 
-  // Verify test run exists in database and check status
-  // TODO: Add user authentication check here when authentication is implemented
-  // Example: where: { runId, userId: currentUser.id }
-  try {
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId },
-      select: { id: true, status: true }, // Need status to check if completed
-    })
+  const statusResult = await readTestRunStatusForLogs(runId)
+  if ('response' in statusResult) return statusResult.response
 
-    if (!testRun) {
-      console.error(`[SSE] Test run not found in database for runId: ${runId}`)
-      const errorStream = new ReadableStream({
-        start(controller) {
-          const encoder = new TextEncoder()
-          const message = `event: error\ndata: ${JSON.stringify({ error: 'Test run not found' })}\n\n`
-          controller.enqueue(encoder.encode(message))
-          setTimeout(() => {
-            controller.close()
-          }, 100)
-        },
-      })
-
-      return new Response(errorStream, {
-        status: 404,
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache, no-transform',
-          Connection: 'keep-alive',
-        },
-      })
-    }
-
-    if (
-      testRun.status === TestRunStatus.COMPLETED ||
-      testRun.status === TestRunStatus.CANCELLED ||
-      !acceptsEventStream
-    ) {
-      return storedLogsResponse({ runId, status: testRun.status, wantsText, mode, limit })
-    }
-  } catch (error) {
-    console.error(`[SSE] Database error verifying test run for runId: ${runId}:`, error)
-    const errorStream = new ReadableStream({
-      start(controller) {
-        const encoder = new TextEncoder()
-        const message = `event: error\ndata: ${JSON.stringify({ error: 'Internal server error' })}\n\n`
-        controller.enqueue(encoder.encode(message))
-        setTimeout(() => {
-          controller.close()
-        }, 100)
-      },
-    })
-
-    return new Response(errorStream, {
-      status: 500,
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-      },
-    })
+  if (
+    statusResult.status === TestRunStatus.COMPLETED ||
+    statusResult.status === TestRunStatus.CANCELLED ||
+    !acceptsEventStream
+  ) {
+    return storedLogsResponse({ runId, status: statusResult.status, wantsText, mode, limit })
   }
 
-  // Wait for process to be registered (with timeout)
-  // This handles the race condition where the page loads before the process is spawned
-  let process = processManager.get(runId)
-  const maxWaitTime = 10000 // Increase to 10 seconds
-  const checkInterval = 200 // Check every 200ms
-  let waited = 0
-
-  console.log(`[SSE] Looking for process with runId: ${runId}, current processes: ${processManager.size()}`)
-
-  // Log all available process IDs for debugging
-  if (processManager.size() > 0) {
-    const availableProcesses = processManager.getAllTestRunIds()
-    console.log(`[SSE] Available process IDs:`, availableProcesses)
-    console.log(`[SSE] Looking for runId: "${runId}", available:`, availableProcesses.map(id => `"${id}"`).join(', '))
-  } else {
-    console.log(`[SSE] No processes registered yet. ProcessManager size: ${processManager.size()}`)
-  }
-
-  while (!process && waited < maxWaitTime) {
-    await new Promise(resolve => setTimeout(resolve, checkInterval))
-    waited += checkInterval
-    process = processManager.get(runId)
-
-    // Log progress every 2 seconds
-    if (waited % 2000 === 0) {
-      console.log(`[SSE] Still waiting for process ${runId}... (${waited}ms elapsed)`)
-    }
-  }
-
-  if (!process) {
-    const availableProcesses = processManager.getAllTestRunIds()
-    const errorMessage = `Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}. Available IDs: ${availableProcesses.join(', ') || 'none'}`
-    console.error(`[SSE] ${errorMessage}`)
-
-    // Return an SSE stream with an error event instead of JSON response
-    // This allows EventSource to properly handle the error
-    const errorStream = new ReadableStream({
-      start(controller) {
-        const encoder = new TextEncoder()
-        const message = `event: error\ndata: ${JSON.stringify({
-          error: 'Test run process not found. The process may not have started yet or may have already completed.',
-          details: `Looking for: ${runId}, Available: ${availableProcesses.join(', ') || 'none'}`,
-        })}\n\n`
-        controller.enqueue(encoder.encode(message))
-        setTimeout(() => {
-          controller.close()
-        }, 100)
-      },
-    })
-
-    return new Response(errorStream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-      },
-    })
-  }
-
-  // Process found, proceed with SSE connection
+  const processResult = await waitForRegisteredProcess(runId)
+  if ('response' in processResult) return processResult.response
+  const process = processResult.process
 
   // Store cleanup function reference for cancel handler
   let cleanupRef: (() => void) | null = null
