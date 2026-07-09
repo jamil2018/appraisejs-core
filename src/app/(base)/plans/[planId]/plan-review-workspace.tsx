@@ -694,7 +694,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
               </Badge>
             )}
           </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
             {detail.plan.goal}
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">{detail.plan.description}</p>
@@ -889,6 +889,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                           <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             type="text"
+                            aria-label="Search graph tasks"
                             placeholder="Search tasks..."
                             value={graphSearchQuery}
                             onChange={e => setGraphSearchQuery(e.target.value)}
@@ -920,8 +921,9 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              className="size-8 text-muted-foreground hover:bg-muted hover:text-foreground"
                               disabled={isPending}
+                              aria-label="Save layout"
                               onClick={() =>
                                 run(
                                   () =>
@@ -944,8 +946,9 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              className="size-8 text-muted-foreground hover:bg-muted hover:text-foreground"
                               disabled={isPending}
+                              aria-label="Publish shared layout"
                               onClick={() =>
                                 run(
                                   () =>
@@ -968,8 +971,9 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              className="size-8 text-muted-foreground hover:bg-muted hover:text-foreground"
                               type="button"
+                              aria-label="Reset view"
                               onClick={resetToFlow}
                             >
                               <RefreshCcw className="size-4" />
@@ -1000,9 +1004,11 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                         const isSelected = selectedTaskId === task.id
                         return (
                           <div
+                            role="button"
+                            tabIndex={0}
                             key={task.id}
                             className={cn(
-                              'hover:border-muted-foreground/30 group relative cursor-pointer rounded-xl border bg-card p-4 text-left transition-all duration-200 hover:shadow-md',
+                              'hover:border-muted-foreground/30 group relative cursor-pointer rounded-xl border bg-card p-4 text-left transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                               isSelected
                                 ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary'
                                 : 'border-border',
@@ -1011,40 +1017,55 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                               setSelectedTaskId(task.id)
                               setSidebarTab('remarks')
                             }}
+                            onKeyDown={event => {
+                              if (event.key !== 'Enter' && event.key !== ' ') return
+                              event.preventDefault()
+                              setSelectedTaskId(task.id)
+                              setSidebarTab('remarks')
+                            }}
+                            aria-pressed={isSelected}
+                            aria-label={`Select task ${task.step}: ${task.title}`}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2">
+                            <span className="sr-only">Stage {Number(stageNum) + 1}</span>
+                            <span className="flex items-start justify-between gap-2">
+                              <span className="flex items-center gap-2">
                                 <span className="bg-muted/50 flex size-6 shrink-0 items-center justify-center rounded-md border font-mono text-xs font-semibold">
                                   {task.step}
                                 </span>
-                                <h4 className="font-heading text-sm font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                                <span className="font-heading text-sm font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
                                   {task.title}
-                                </h4>
-                              </div>
-                              <Badge
-                                variant={task.status === 'blocked' ? 'destructive' : 'outline'}
-                                className="px-1.5 py-0 text-[10px] font-semibold"
+                                </span>
+                              </span>
+                              <span
+                                className={cn(
+                                  'inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-semibold',
+                                  task.status === 'blocked'
+                                    ? 'border-transparent bg-destructive text-destructive-foreground'
+                                    : 'text-foreground',
+                                )}
                               >
                                 {task.status}
-                              </Badge>
-                            </div>
+                              </span>
+                            </span>
 
-                            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{task.description}</p>
+                            <span className="mt-2 line-clamp-2 block text-xs text-muted-foreground">
+                              {task.description}
+                            </span>
 
-                            <div className="mt-4 space-y-1 border-t pt-3 text-[10px] text-muted-foreground">
-                              <div className="flex items-center gap-1">
+                            <span className="mt-4 block space-y-1 border-t pt-3 text-[10px] text-muted-foreground">
+                              <span className="flex items-center gap-1">
                                 <span className="text-foreground/80 font-semibold">Relationships:</span>
                                 <span className="max-w-[240px] truncate">
                                   {taskRelationshipSummary(task.id, semanticFlow)}
                                 </span>
-                              </div>
+                              </span>
                               {task.validationIntent && (
-                                <div className="flex items-center gap-1">
+                                <span className="flex items-center gap-1">
                                   <span className="text-foreground/80 font-semibold">Validated by:</span>
                                   <span className="max-w-[240px] truncate">{task.validationIntent}</span>
-                                </div>
+                                </span>
                               )}
-                            </div>
+                            </span>
                           </div>
                         )
                       })}
@@ -1127,7 +1148,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   {/* Task / Plan-wide Details Card */}
                   <div className="bg-muted/35 space-y-2.5 rounded-xl border p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-heading text-sm font-bold tracking-tight text-foreground">
+                      <h3 className="font-heading text-sm font-semibold tracking-tight text-foreground">
                         {selectedTask ? `Task ${selectedTask.step}: ${selectedTask.title}` : 'Plan-wide details'}
                       </h3>
                       {selectedTask && (
@@ -1299,7 +1320,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   {/* Modernized Remark Threads (Timeline/Chat style) */}
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                      <h4 className="text-muted-foreground/80 text-[10px] font-semibold uppercase tracking-wider">
                         Remarks History
                       </h4>
                       <Badge variant="secondary" className="px-1 font-mono text-[9px] font-bold">
@@ -1329,7 +1350,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   {/* Retargeting block */}
                   {detail.orphanedThreadIds.length > 0 && (
                     <div className="space-y-3 border-t pt-4">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Retarget removed-node remarks
                       </h4>
                       <div className="space-y-1.5">
@@ -1363,7 +1384,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                 {/* Tab 2: Baseline & Validation (Baseline execution, runs list, and control) */}
                 <TabsContent value="baselines" className="m-0 space-y-4 p-4">
                   <div>
-                    <h3 className="font-heading text-sm font-bold">Baseline Evidence Execution</h3>
+                    <h3 className="font-heading text-sm font-semibold">Baseline Evidence Execution</h3>
                     <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
                       Required browser and environment combinations must have accepted evidence before implementation
                       begins.
@@ -1442,7 +1463,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                 {/* Tab 3: Approval & Actions (Revision approval, suspicious replacements, and layout settings) */}
                 <TabsContent value="approval" className="m-0 space-y-4 p-4">
                   <div>
-                    <h3 className="font-heading text-sm font-bold">Revision Approval</h3>
+                    <h3 className="font-heading text-sm font-semibold">Revision Approval</h3>
                     <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
                       Approval binds to revision {detail.plan.revision} and its exact plan hash.
                     </p>
@@ -1527,7 +1548,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   {!detail.listFallback && activeTab === 'graph' && (
                     <div className="mt-2 space-y-3 border-t pt-4">
                       <div>
-                        <h4 className="text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                        <h4 className="text-muted-foreground/80 text-[10px] font-semibold uppercase tracking-wider">
                           Graph Layout Options
                         </h4>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">

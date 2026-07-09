@@ -330,7 +330,7 @@ function CollapseToggle({ isExpanded, onToggle }: { isExpanded: boolean; onToggl
       type="button"
       variant="ghost"
       size="icon"
-      className="size-7 shrink-0 mt-0.5"
+      className="mt-0.5 size-7 shrink-0"
       onClick={onToggle}
       aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
     >
@@ -370,18 +370,31 @@ function ValidationNodeCard({
   const controlsLocked = isPending || !canDecide
 
   return (
-    <div className={cn(
-      "rounded-lg border p-4 transition-all duration-200 bg-card shadow-sm",
-      isExpanded ? "border-muted-foreground/20" : "hover:border-muted-foreground/20"
-    )}>
+    <div
+      className={cn(
+        'rounded-lg border bg-card p-4 shadow-sm transition-all duration-200',
+        isExpanded ? 'border-muted-foreground/20' : 'hover:border-muted-foreground/20',
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5 min-w-0">
+        <div className="flex min-w-0 items-start gap-2.5">
           <CollapseToggle isExpanded={isExpanded} onToggle={onToggle} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h4 className="font-mono text-sm font-semibold truncate cursor-pointer" onClick={onToggle}>{node.id}</h4>
-              <Badge variant={node.required ? 'destructive' : 'outline'} className="text-[10px] px-1.5 py-0">{node.required ? 'Required' : 'Optional'}</Badge>
-              <Badge variant={decisionVariant(currentDecision?.decision)} className="text-[10px] px-1.5 py-0">
+              <h4 className="truncate font-mono text-sm font-semibold">
+                <button
+                  type="button"
+                  className="truncate rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  onClick={onToggle}
+                  aria-expanded={isExpanded}
+                >
+                  {node.id}
+                </button>
+              </h4>
+              <Badge variant={node.required ? 'destructive' : 'outline'} className="px-1.5 py-0 text-[10px]">
+                {node.required ? 'Required' : 'Optional'}
+              </Badge>
+              <Badge variant={decisionVariant(currentDecision?.decision)} className="px-1.5 py-0 text-[10px]">
                 {currentDecision?.decision ? formatState(currentDecision.decision) : 'No decision'}
               </Badge>
             </div>
@@ -395,6 +408,7 @@ function ValidationNodeCard({
             className="h-7 text-xs"
             disabled={controlsLocked || currentDecision?.decision === 'approved'}
             onClick={() => decide('approved')}
+            aria-label={currentDecision?.decision === 'approved' ? 'Approved evidence' : 'Approve evidence'}
           >
             <Check className="mr-1 size-3" />
             {currentDecision?.decision === 'approved' ? 'Approved' : 'Approve'}
@@ -435,7 +449,7 @@ function ValidationNodeCard({
       </div>
 
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t space-y-4 animate-in fade-in duration-200">
+        <div className="mt-4 space-y-4 border-t pt-4 duration-200 animate-in fade-in">
           <div className="grid gap-3 text-sm md:grid-cols-2">
             <Info label="Task IDs" value={node.taskIds.join(', ')} />
             <Info label="Test cases" value={node.testCaseIds.join(', ')} />
@@ -457,7 +471,9 @@ function ValidationNodeCard({
               label="Expected failures"
               value={
                 node.expectedFailures.length
-                  ? node.expectedFailures.map(item => `${item.browser}/${item.environment}: ${item.signature}`).join(' | ')
+                  ? node.expectedFailures
+                      .map(item => `${item.browser}/${item.environment}: ${item.signature}`)
+                      .join(' | ')
                   : 'None'
               }
             />
@@ -489,8 +505,7 @@ function ValidationNodeList({
 }) {
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({})
 
-  const allExpanded = validation.validations.length > 0 && 
-    validation.validations.every(node => expandedNodes[node.id])
+  const allExpanded = validation.validations.length > 0 && validation.validations.every(node => expandedNodes[node.id])
 
   const toggleAll = () => {
     const nextState: Record<string, boolean> = {}
@@ -513,7 +528,7 @@ function ValidationNodeList({
           className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
           onClick={toggleAll}
         >
-          {allExpanded ? "Collapse all" : "Expand all"}
+          {allExpanded ? 'Collapse all' : 'Expand all'}
         </Button>
       </div>
       <div className="space-y-3">
@@ -569,33 +584,49 @@ function ChangedFileCard({
 }) {
   const requiresApproval = fileNeedsApproval(file)
 
-  let statusBorderClass = "border-slate-200 bg-card"
+  let statusBorderClass = 'border-slate-200 bg-card'
   if (requiresApproval) {
-    statusBorderClass = approved 
-      ? "border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10" 
-      : "border-red-500/30 bg-red-500/5 dark:bg-red-500/10"
+    statusBorderClass = approved
+      ? 'border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10'
+      : 'border-red-500/30 bg-red-500/5 dark:bg-red-500/10'
   }
 
   return (
-    <div className={cn(
-      "rounded-lg border p-4 transition-all duration-200 shadow-sm",
-      statusBorderClass,
-      isExpanded ? "border-muted-foreground/20" : "hover:border-muted-foreground/20"
-    )}>
+    <div
+      className={cn(
+        'rounded-lg border p-4 shadow-sm transition-all duration-200',
+        statusBorderClass,
+        isExpanded ? 'border-muted-foreground/20' : 'hover:border-muted-foreground/20',
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5 min-w-0">
+        <div className="flex min-w-0 items-start gap-2.5">
           <CollapseToggle isExpanded={isExpanded} onToggle={onToggle} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h4 className="break-all font-mono text-sm font-semibold cursor-pointer" onClick={onToggle}>{file.path}</h4>
-              <Badge variant={requiresApproval ? 'destructive' : 'outline'} className="text-[10px] px-1.5 py-0">{formatState(file.classification)}</Badge>
-              <Badge variant={file.declared ? 'secondary' : 'destructive'} className="text-[10px] px-1.5 py-0">
+              <h4 className="break-all font-mono text-sm font-semibold">
+                <button
+                  type="button"
+                  className="rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  onClick={onToggle}
+                  aria-expanded={isExpanded}
+                >
+                  {file.path}
+                </button>
+              </h4>
+              <Badge variant={requiresApproval ? 'destructive' : 'outline'} className="px-1.5 py-0 text-[10px]">
+                {formatState(file.classification)}
+              </Badge>
+              <Badge variant={file.declared ? 'secondary' : 'destructive'} className="px-1.5 py-0 text-[10px]">
                 {file.declared ? 'Declared' : 'Undeclared'}
               </Badge>
-              <Badge variant={inManifest ? 'secondary' : 'destructive'} className="text-[10px] px-1.5 py-0">
+              <Badge variant={inManifest ? 'secondary' : 'destructive'} className="px-1.5 py-0 text-[10px]">
                 {inManifest ? 'In manifest' : 'Manifest mismatch'}
               </Badge>
-              <Badge variant={approved ? 'default' : requiresApproval ? 'destructive' : 'outline'} className="text-[10px] px-1.5 py-0">
+              <Badge
+                variant={approved ? 'default' : requiresApproval ? 'destructive' : 'outline'}
+                className="px-1.5 py-0 text-[10px]"
+              >
                 {requiresApproval ? (approved ? 'Approved' : 'Approval required') : 'No approval required'}
               </Badge>
             </div>
@@ -629,7 +660,7 @@ function ChangedFileCard({
       </div>
 
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t grid gap-3 text-sm md:grid-cols-3 animate-in fade-in duration-200">
+        <div className="mt-4 grid gap-3 border-t pt-4 text-sm duration-200 animate-in fade-in md:grid-cols-3">
           <Info label="Status" value={formatState(file.status)} />
           <Info label="Before hash" value={file.beforeHash ?? 'New file'} />
           <Info label="Current hash" value={file.contentHash ?? hash} />
@@ -660,8 +691,7 @@ function ChangedFileList({
 }) {
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({})
 
-  const allExpanded = validation.files.length > 0 && 
-    validation.files.every(file => expandedFiles[file.path])
+  const allExpanded = validation.files.length > 0 && validation.files.every(file => expandedFiles[file.path])
 
   const toggleAll = () => {
     const nextState: Record<string, boolean> = {}
@@ -684,7 +714,7 @@ function ChangedFileList({
           className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
           onClick={toggleAll}
         >
-          {allExpanded ? "Collapse all" : "Expand all"}
+          {allExpanded ? 'Collapse all' : 'Expand all'}
         </Button>
       </div>
       <div className="space-y-3">
@@ -704,7 +734,7 @@ function ChangedFileList({
               isExpanded={!!expandedFiles[file.path]}
               onToggle={() => setExpandedFiles(prev => ({ ...prev, [file.path]: !prev[file.path] }))}
             />
-          );
+          )
         })}
       </div>
     </section>

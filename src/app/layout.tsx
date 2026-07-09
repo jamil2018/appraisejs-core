@@ -71,8 +71,18 @@ export default function RootLayout({
       <body className={`${inter.variable} ${interTight.variable} min-h-screen antialiased`}>
         <ThemeProvider>
           <div className="min-h-screen bg-[#0b0f17] lg:flex">
+            <a
+              href="#main-content"
+              className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+            >
+              Skip to main content
+            </a>
             <AppSidebar providerRunsEnabled={providerRunsEnabled} />
-            <main className="relative min-w-0 flex-1 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="relative min-w-0 flex-1 scroll-mt-4 overflow-hidden px-4 py-5 focus:outline-none sm:px-6 lg:px-8"
+            >
               <div
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_5%,rgba(38,83,121,0.22),transparent_25rem),radial-gradient(circle_at_78%_10%,rgba(45,212,191,0.055),transparent_30rem),linear-gradient(135deg,rgba(18,37,64,0.24),rgba(11,15,23,0.78)_42%,rgba(8,11,17,0.92))]"
                 aria-hidden="true"
