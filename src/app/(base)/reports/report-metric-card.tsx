@@ -11,26 +11,22 @@ const metricStyles: Record<
   }
 > = {
   'Total Tests': {
-    card: 'bg-gradient-to-br from-card via-card to-primary/5',
-    glow: 'bg-primary/20',
+    card: 'border-l-primary/60',
     dot: 'bg-primary',
     value: 'text-primary',
   },
   Passed: {
-    card: 'bg-gradient-to-br from-card via-card to-primary/10',
-    glow: 'bg-primary/25',
+    card: 'border-l-emerald-400/70',
     dot: 'bg-green-500',
     value: 'text-green-500',
   },
   Failed: {
-    card: 'bg-gradient-to-br from-card via-card to-destructive/10',
-    glow: 'bg-destructive/20',
+    card: 'border-l-destructive/70',
     dot: 'bg-destructive',
     value: 'text-destructive',
   },
   Untested: {
-    card: 'bg-gradient-to-br from-card via-card to-secondary/70',
-    glow: 'bg-muted-foreground/15',
+    card: 'border-l-white/20',
     dot: 'bg-muted-foreground',
     value: 'text-foreground',
   },
@@ -38,8 +34,7 @@ const metricStyles: Record<
 
 const ReportMetricCard = ({ title, value }: { title: string; value: string }) => {
   const styles = metricStyles[title] ?? {
-    card: 'bg-gradient-to-br from-card to-muted/40',
-    glow: 'bg-primary/15',
+    card: 'border-l-primary/60',
     dot: 'bg-primary',
     value: 'text-foreground',
   }
@@ -47,29 +42,19 @@ const ReportMetricCard = ({ title, value }: { title: string; value: string }) =>
   return (
     <Card
       className={cn(
-        'group relative min-w-0 overflow-hidden rounded-2xl border-zinc-500/10 bg-transparent shadow-sm transition-colors',
+        'group min-w-0 overflow-hidden rounded-lg border-l-[3px] border-white/[0.075] bg-[rgba(18,37,64,0.34)] shadow-none transition-colors hover:bg-[rgba(22,47,78,0.42)]',
         styles.card,
       )}
     >
-      <div
-        className={cn(
-          'pointer-events-none absolute -right-10 -top-10 size-28 rounded-full blur-3xl transition-opacity group-hover:opacity-90',
-          styles.glow,
-        )}
-      />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/20" />
-
       <CardHeader className="space-y-3 p-5 pb-3">
         <div className="flex items-center gap-3">
           <span className={cn('h-2.5 w-2.5 rounded-full shadow-sm', styles.dot)} />
-          <CardTitle className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            {title}
-          </CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         </div>
       </CardHeader>
 
       <CardContent className="p-5 pt-0">
-        <div className={cn('text-4xl font-bold tracking-tight sm:text-[2.75rem]', styles.value)}>{value}</div>
+        <div className={cn('text-4xl font-semibold tracking-tight', styles.value)}>{value}</div>
       </CardContent>
     </Card>
   )

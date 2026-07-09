@@ -168,7 +168,7 @@ function baselineCombinationBlockers(
 }
 
 function isBlockingFailure(signature: string): boolean {
-  return /(undefined step|ambiguous step|cannot find module|failed to import|import error|typescript|ts-node|syntaxerror|beforeall|beforeeach|afterall|aftereach|fixture|browser world|world setup|cucumber config|setup|infrastructure|timed? out|timeout)/i.test(
+  return /(undefined step|ambiguous step|cannot find module|failed to import|import error|typescript|ts-node|syntaxerror|beforeall|beforeeach|afterall|aftereach|fixture|browser world|world setup|cucumber config|setup|infrastructure|placeholder|fallback cucumber binary|dependency confusion|local binary|timed? out|timeout)/i.test(
     signature,
   )
 }

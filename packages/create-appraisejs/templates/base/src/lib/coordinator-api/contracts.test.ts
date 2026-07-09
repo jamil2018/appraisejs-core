@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 import { coordinatorError, planLinks, zodCoordinatorError } from './contracts'
 
@@ -29,5 +30,24 @@ describe('coordinator public contracts', () => {
 
   it('returns undefined for unknown internal failures', () => {
     expect(coordinatorError(new Error('private detail'))).toBeUndefined()
+  })
+
+  it('returns migration recovery guidance for Prisma schema drift', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('Missing column', {
+      code: 'P2022',
+      clientVersion: 'test',
+      meta: { modelName: 'TestRun', column: 'main.TestRun.evidenceHealth' },
+    })
+
+    expect(coordinatorError(error)).toEqual({
+      code: 'database-schema-drift',
+      message: 'The Appraise database schema is behind the application code.',
+      recovery: 'Run npm run migrate-db from the Appraise project, then retry the coordinator operation.',
+      details: {
+        prismaCode: 'P2022',
+        column: 'main.TestRun.evidenceHealth',
+        modelName: 'TestRun',
+      },
+    })
   })
 })

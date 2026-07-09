@@ -66,53 +66,98 @@ export type NavigationCommandGroupOptions = {
   providerRunsEnabled?: boolean
 }
 
+export type NavigationSection = {
+  label: string
+  items: NavigationCommandItem[]
+}
+
+function getControlSection(providerRunsEnabled: boolean): NavigationSection {
+  return {
+    label: 'Control',
+    items: [
+      { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/plans', label: 'Plans', icon: Network },
+      ...(providerRunsEnabled ? [{ href: '/provider-runs', label: 'Provider Runs', icon: Bot }] : []),
+    ],
+  }
+}
+
+function getExecutionSection(): NavigationSection {
+  return {
+    label: 'Execution',
+    items: [
+      { href: '/test-runs', label: 'Test Runs', icon: ListChecks },
+      { href: '/reports', label: 'Reports', icon: FileCheck },
+      { href: '/test-suites', label: 'Test Suites', icon: TestTubes },
+      { href: '/test-cases', label: 'Test Cases', icon: TestTubeDiagonal },
+    ],
+  }
+}
+
+function getLibrarySection(): NavigationSection {
+  return {
+    label: 'Library',
+    items: [
+      { href: '/template-steps', label: 'Template Steps', icon: LayoutTemplate },
+      { href: '/template-step-groups', label: 'Step Groups', icon: Component },
+      { href: '/step-blocks', label: 'Step Blocks', icon: Blocks },
+      { href: '/template-test-cases', label: 'Case Templates', icon: Blocks },
+    ],
+  }
+}
+
+function getSystemSection(): NavigationSection {
+  return {
+    label: 'System',
+    items: [
+      { href: '/locators', label: 'Locators', icon: Code },
+      { href: '/locator-groups', label: 'Locator Groups', icon: Group },
+      { href: '/modules', label: 'Modules', icon: Puzzle },
+      { href: '/environments', label: 'Environments', icon: Server },
+      { href: '/tags', label: 'Tags', icon: Tag },
+      { href: '/settings', label: 'Settings', icon: Settings2 },
+    ],
+  }
+}
+
+export function getSidebarNavigationSections({
+  providerRunsEnabled = false,
+}: NavigationCommandGroupOptions = {}): NavigationSection[] {
+  return [getControlSection(providerRunsEnabled), getExecutionSection(), getLibrarySection(), getSystemSection()]
+}
+
 export function getNavigationCommandGroups({
   providerRunsEnabled = false,
 }: NavigationCommandGroupOptions = {}): NavigationCommandGroup[] {
+  const [control, execution, library, system] = getSidebarNavigationSections({ providerRunsEnabled })
+
   return [
+    { heading: control.label, items: control.items },
     {
-      heading: 'Overview',
+      heading: execution.label,
       items: [
-        { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/plans', label: 'Plans', icon: Network },
-        ...(providerRunsEnabled ? [{ href: '/provider-runs', label: 'Provider Runs', icon: Bot }] : []),
-        { href: '/settings', label: 'Settings', icon: Settings2 },
-      ],
-    },
-    {
-      heading: 'Automate',
-      items: [
-        { href: '/test-suites', label: 'Test Suites', icon: TestTubes },
-        { href: '/test-cases', label: 'Test Cases', icon: TestTubeDiagonal },
-        { href: '/test-runs', label: 'Test Runs', icon: ListChecks },
-        { href: '/reports', label: 'Reports', icon: FileCheck },
+        ...execution.items,
         { href: '/test-runs/create', label: 'Create Test Run', icon: ListChecks },
         { href: '/test-suites/create', label: 'Create Test Suite', icon: TestTubes },
         { href: '/test-cases/create', label: 'Create Test Case', icon: TestTubeDiagonal },
       ],
     },
     {
-      heading: 'Template',
+      heading: library.label,
       items: [
-        { href: '/template-steps', label: 'Template Steps', icon: LayoutTemplate },
-        { href: '/template-step-groups', label: 'Template Step Groups', icon: Component },
-        { href: '/step-blocks', label: 'Step Blocks', icon: Blocks },
-        { href: '/template-test-cases', label: 'Template Test Cases', icon: Blocks },
+        ...library.items.map(item =>
+          item.href === '/template-step-groups'
+            ? { ...item, label: 'Template Step Groups' }
+            : item.href === '/template-test-cases'
+              ? { ...item, label: 'Template Test Cases' }
+              : item,
+        ),
         { href: '/template-steps/create', label: 'Create Template Step', icon: LayoutTemplate },
         { href: '/step-blocks/create', label: 'Create Step Block', icon: Blocks },
         { href: '/template-test-cases/create', label: 'Create Template Test Case', icon: Blocks },
       ],
     },
-    {
-      heading: 'Configuration',
-      items: [
-        { href: '/locators', label: 'Locators', icon: Code },
-        { href: '/locator-groups', label: 'Locator Groups', icon: Group },
-        { href: '/modules', label: 'Modules', icon: Puzzle },
-        { href: '/environments', label: 'Environments', icon: Server },
-        { href: '/tags', label: 'Tags', icon: Tag },
-      ],
-    },
+    { heading: system.label, items: system.items },
   ]
 }
 

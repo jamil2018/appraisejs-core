@@ -39,7 +39,7 @@ function SyncRow({
           disabled={disabled}
           aria-label={definition.label}
           onClick={() => onRun(definition.id)}
-          className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none px-3 py-2.5 text-left hover:text-foreground ${color.buttonColor}`}
+          className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-md border px-3 py-2.5 text-left hover:text-foreground ${color.buttonColor}`}
         >
           <div className="flex w-full items-center justify-between gap-3">
             <div className={`${color.iconColor} shrink-0 [&_svg]:!h-5 [&_svg]:!w-5`}>
@@ -99,7 +99,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
                 disabled={isRunning}
                 aria-label="Sync All"
                 onClick={() => runSync(SYNC_ALL_REQUEST_ID)}
-                className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-2xl border-none px-3 py-2.5 text-left hover:text-foreground ${syncAllColor.buttonColor}`}
+                className={`inline-flex h-24 w-44 flex-none flex-col items-start justify-start whitespace-normal rounded-md border px-3 py-2.5 text-left hover:text-foreground ${syncAllColor.buttonColor}`}
               >
                 <div className="flex w-full items-center justify-between gap-3">
                   <div className={`${syncAllColor.iconColor} shrink-0 [&_svg]:!h-5 [&_svg]:!w-5`}>

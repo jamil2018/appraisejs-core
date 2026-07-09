@@ -1,4 +1,4 @@
-export type { TestRunDetailsData, TestRunEvidenceHealth } from './test-run-details-types'
+export type { TestRunDetailsData } from './test-run-details-types'
 export { getTestRunDetailsData, getTraceViewerStatusData } from './test-run-details-guards'
 export {
   getEvidenceHealthMeta,

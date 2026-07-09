@@ -13,49 +13,49 @@ export type PlanFlowTaskNode = Node<{
 
 const statusStyles = {
   blocked: {
-    accent: 'border-l-destructive/80 bg-gradient-to-br from-destructive/10 via-card to-card',
+    accent: 'border-l-destructive/80 bg-card',
     dot: 'bg-destructive animate-pulse',
     badge: 'border-destructive/30 bg-destructive/5 text-destructive font-semibold',
     icon: ShieldAlert,
     iconClass: 'text-destructive',
   },
   completed: {
-    accent: 'border-l-emerald-500 bg-gradient-to-br from-emerald-500/10 via-card to-card',
+    accent: 'border-l-emerald-500 bg-card',
     dot: 'bg-emerald-500',
     badge: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 font-semibold',
     icon: CheckCircle2,
     iconClass: 'text-emerald-500',
   },
   implemented: {
-    accent: 'border-l-emerald-500 bg-gradient-to-br from-emerald-500/10 via-card to-card',
+    accent: 'border-l-emerald-500 bg-card',
     dot: 'bg-emerald-500',
     badge: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 font-semibold',
     icon: CheckCircle2,
     iconClass: 'text-emerald-500',
   },
   verified: {
-    accent: 'border-l-emerald-500 bg-gradient-to-br from-emerald-500/10 via-card to-card',
+    accent: 'border-l-emerald-500 bg-card',
     dot: 'bg-emerald-500',
     badge: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 font-semibold',
     icon: CheckCircle2,
     iconClass: 'text-emerald-500',
   },
   in_progress: {
-    accent: 'border-l-violet-500 bg-gradient-to-br from-violet-500/10 via-card to-card',
-    dot: 'bg-violet-500 animate-pulse',
-    badge: 'border-violet-500/30 bg-violet-500/5 text-violet-700 dark:text-violet-400 font-semibold',
+    accent: 'border-l-sky-500 bg-card',
+    dot: 'bg-sky-500 animate-pulse',
+    badge: 'border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-400 font-semibold',
     icon: Loader2,
-    iconClass: 'animate-spin text-violet-500',
+    iconClass: 'animate-spin text-sky-500',
   },
   running: {
-    accent: 'border-l-violet-500 bg-gradient-to-br from-violet-500/10 via-card to-card',
-    dot: 'bg-violet-500 animate-pulse',
-    badge: 'border-violet-500/30 bg-violet-500/5 text-violet-700 dark:text-violet-400 font-semibold',
+    accent: 'border-l-sky-500 bg-card',
+    dot: 'bg-sky-500 animate-pulse',
+    badge: 'border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-400 font-semibold',
     icon: Loader2,
-    iconClass: 'animate-spin text-violet-500',
+    iconClass: 'animate-spin text-sky-500',
   },
   ready: {
-    accent: 'border-l-slate-400 dark:border-l-slate-600 bg-gradient-to-br from-slate-500/5 via-card to-card',
+    accent: 'border-l-slate-400 bg-card dark:border-l-slate-600',
     dot: 'bg-slate-400 dark:bg-slate-600',
     badge: 'border-slate-500/30 bg-slate-500/5 text-slate-700 dark:text-slate-300 font-semibold',
     icon: Clock,
@@ -74,7 +74,7 @@ export function PlanFlowTaskNode({ data, selected }: NodeProps<PlanFlowTaskNode>
   return (
     <div
       className={cn(
-        'border-border/80 hover:border-primary/30 group relative min-h-[110px] w-[300px] cursor-pointer rounded-xl border border-l-[6px] p-4 text-card-foreground shadow-sm backdrop-blur transition-all duration-300 hover:scale-[1.01] hover:shadow-md',
+        'border-border/80 hover:border-primary/30 group relative min-h-[110px] w-[300px] cursor-pointer rounded-lg border border-l-[6px] p-4 text-card-foreground shadow-sm backdrop-blur transition-all duration-300 hover:scale-[1.01] hover:shadow-md',
         statusStyle.accent,
         selected &&
           'shadow-primary/20 scale-[1.03] border-primary border-l-primary shadow-xl ring-2 ring-primary ring-offset-2 ring-offset-background',

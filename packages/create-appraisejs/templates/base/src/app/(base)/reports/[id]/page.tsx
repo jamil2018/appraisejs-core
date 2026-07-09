@@ -47,7 +47,7 @@ const testRunResultToBadge = (result: TestRunResult) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-2 rounded-xl border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
+          className="flex items-center gap-2 rounded-md border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
         >
           <XCircle className="size-4" />
           FAILED
@@ -102,7 +102,7 @@ const browserEngineToBadge = (browserEngine: BrowserEngine) => {
       return (
         <Badge
           variant="outline"
-          className="flex items-center gap-2 rounded-xl border-purple-700 bg-purple-700/10 py-1 text-sm text-purple-500"
+          className="flex items-center gap-2 rounded-md border-sky-700 bg-sky-700/10 py-1 text-sm text-sky-500"
         >
           {browserIcons[BrowserEngine.WEBKIT]}
           WebKit

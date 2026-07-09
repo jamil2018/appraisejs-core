@@ -84,6 +84,11 @@ body {
   * {
     @apply border-border;
   }
+  :target,
+  :focus {
+    scroll-margin-top: 1rem;
+    scroll-margin-bottom: 1rem;
+  }
   body {
     @apply bg-background text-foreground;
   }

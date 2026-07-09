@@ -14,6 +14,7 @@ import DataCard from './(dashboard-components)/data-card'
 import OngoingTestRunsCard from './(dashboard-components)/ongoing-test-runs-card'
 import { DataCardGrid } from './(dashboard-components)/data-card-grid'
 import { ExecutionHealthPanel } from './(dashboard-components)/execution-health-panel'
+import { LayoutDashboard } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Appraise | Dashboard',
@@ -41,14 +42,23 @@ const Dashboard = async () => {
     testSuiteExecutionResponse.status === 200 ? (testSuiteExecutionResponse.data as TestSuiteExecutionData) : []
 
   return (
-    <div>
-      <div className="mb-8">
-        <PageHeader>Dashboard</PageHeader>
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <PageHeader>
+          <span className="flex items-center gap-3">
+            <LayoutDashboard className="size-7 text-primary sm:size-8" strokeWidth={2.2} />
+            Dashboard
+          </span>
+        </PageHeader>
         <HeaderSubtitle>Check metrics, entity states, execution health, and more</HeaderSubtitle>
       </div>
-      <div className="flex gap-7" id="dashboard-content">
-        <div className="flex flex-col gap-7">
-          <div className="flex gap-7">
+
+      <div
+        className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.72fr)] 2xl:items-stretch"
+        id="dashboard-content"
+      >
+        <div className="grid min-w-0 gap-4">
+          <div className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
             <AppDrawer metrics={metrics} title="Attention Needed" description="Issues that require immediate action" />
             <DataCardGrid>
               <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />
@@ -59,7 +69,7 @@ const Dashboard = async () => {
           </div>
           <QuickActionsDrawer />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 2xl:flex">
           <ExecutionHealthPanel featureData={testSuiteExecutionData} />
         </div>
       </div>

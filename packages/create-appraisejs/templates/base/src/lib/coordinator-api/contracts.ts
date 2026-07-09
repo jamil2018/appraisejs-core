@@ -1,4 +1,5 @@
 import type { ZodError } from 'zod'
+import { Prisma } from '@prisma/client'
 
 import { PLAN_CONTRACT_VERSION, PlanContractError } from '@/lib/plan-contract'
 import { CoordinatorPlanCreatePartialError } from '@/services/coordinator/coordinator-plan-service'
@@ -32,6 +33,18 @@ export function validationReviewLinks(planId: string, baseUrl: string) {
 }
 
 export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | undefined {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+    return {
+      code: 'database-schema-drift',
+      message: 'The Appraise database schema is behind the application code.',
+      recovery: 'Run npm run migrate-db from the Appraise project, then retry the coordinator operation.',
+      details: {
+        prismaCode: error.code,
+        column: error.meta?.column,
+        modelName: error.meta?.modelName,
+      },
+    }
+  }
   if (error instanceof CoordinatorProjectMismatchError) {
     return {
       code: 'project-mismatch',

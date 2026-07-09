@@ -118,6 +118,24 @@ function reconcileScenarioMatches(testRun: TestRunForEvidence, scenarios: Scenar
   }
 }
 
+function classifyExpectedCaseEvidence(
+  testRun: TestRunForEvidence,
+  scenarios: ScenarioForEvidence[],
+  counts: RunEvidenceSummary['counts'],
+) {
+  if (testRun.testCases.length === 0) {
+    return null
+  }
+
+  const scenarioMatchCounts = reconcileScenarioMatches(testRun, scenarios)
+
+  counts.matchedScenarios = scenarioMatchCounts.matchedScenarios
+  counts.unmatchedScenarios = scenarioMatchCounts.unmatchedScenarios
+  counts.unexecutedExpectedTestCases = scenarioMatchCounts.unexecutedExpectedTestCases
+
+  return counts.unmatchedScenarios > 0 || counts.unexecutedExpectedTestCases > 0 ? 'invalid_unmatched_scenarios' : null
+}
+
 async function loadTestRunForEvidence(runId: string, client: EvidenceClient = prisma) {
   return client.testRun.findUnique({
     where: { runId },
@@ -169,17 +187,9 @@ function classifyReportEvidence(testRun: TestRunForEvidence, report: ParsedRepor
     return { evidenceHealth: 'invalid_missing_test_cases' as const, blockers, missingArtifacts, counts }
   }
 
-  if (testRun.testCases.length > 0) {
-    const scenarioMatchCounts = reconcileScenarioMatches(testRun, scenarios)
-
-    counts.matchedScenarios = scenarioMatchCounts.matchedScenarios
-    counts.unmatchedScenarios = scenarioMatchCounts.unmatchedScenarios
-    counts.unexecutedExpectedTestCases = scenarioMatchCounts.unexecutedExpectedTestCases
-
-    if (counts.unmatchedScenarios > 0 || counts.unexecutedExpectedTestCases > 0) {
-      blockers.push('The Cucumber report scenarios do not match the expected test cases for this run.')
-      return { evidenceHealth: 'invalid_unmatched_scenarios' as const, blockers, missingArtifacts, counts }
-    }
+  if (classifyExpectedCaseEvidence(testRun, scenarios, counts)) {
+    blockers.push('The Cucumber report scenarios do not match the expected test cases for this run.')
+    return { evidenceHealth: 'invalid_unmatched_scenarios' as const, blockers, missingArtifacts, counts }
   }
 
   return { evidenceHealth: 'valid' as const, blockers, missingArtifacts, counts }

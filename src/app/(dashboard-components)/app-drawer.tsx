@@ -1,117 +1,90 @@
 'use client'
-import { Button } from '@/components/ui/button'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, AlertTriangle, Clock, XCircle } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Clock, XCircle, CheckCircle2, ArrowRight } from 'lucide-react'
 import { DashboardMetrics } from '@prisma/client'
 import { useRouter } from 'next/navigation'
 
-type AppDrawerItem = {
+type AppDrawerItemConfig = {
   title: string
+  description: string
+  healthyDescription: string
   icon: React.ReactNode
-  color: keyof typeof AppDrawerItemColor
+  color: {
+    border: string
+    hoverBorder: string
+    bg: string
+    hoverBg: string
+    text: string
+    iconColor: string
+    pulse: string
+  }
   count: number
-  onClick?: () => void
+  onClick: () => void
 }
 
-export const AppDrawerItemColor = {
-  red: {
-    buttonColor: 'border-red-300/20 bg-red-400/[0.07] hover:bg-red-400/[0.11]',
-    iconColor: 'text-red-300',
-    badgeColor: 'bg-red-400 text-red-900',
-  },
-  green: {
-    buttonColor: 'border-green-300/20 bg-green-400/[0.07] hover:bg-green-400/[0.11]',
-    iconColor: 'text-green-300',
-    badgeColor: 'bg-green-400 text-green-800',
-  },
-  yellow: {
-    buttonColor: 'border-yellow-300/20 bg-yellow-400/[0.07] hover:bg-yellow-400/[0.11]',
-    iconColor: 'text-yellow-300',
-    badgeColor: 'bg-yellow-400 text-yellow-800',
-  },
-  blue: {
-    buttonColor: 'border-sky-300/20 bg-sky-400/[0.07] hover:bg-sky-400/[0.11]',
-    iconColor: 'text-sky-300',
-    badgeColor: 'bg-blue-400 text-blue-800',
-  },
-  emerald: {
-    buttonColor: 'border-emerald-300/20 bg-emerald-400/[0.07] hover:bg-emerald-400/[0.11]',
-    iconColor: 'text-emerald-300',
-    badgeColor: 'bg-emerald-400 text-emerald-800',
-  },
-  purple: {
-    buttonColor: 'border-purple-300/20 bg-purple-400/[0.07] hover:bg-purple-400/[0.11]',
-    iconColor: 'text-purple-300',
-    badgeColor: 'bg-purple-400 text-purple-800',
-  },
-  pink: {
-    buttonColor: 'border-pink-300/20 bg-pink-400/[0.07] hover:bg-pink-400/[0.11]',
-    iconColor: 'text-pink-300',
-    badgeColor: 'bg-pink-400 text-pink-800',
-  },
-  rose: {
-    buttonColor: 'border-rose-300/20 bg-rose-400/[0.07] hover:bg-rose-400/[0.11]',
-    iconColor: 'text-rose-300',
-    badgeColor: 'bg-rose-400 text-rose-800',
-  },
-  fuchsia: {
-    buttonColor: 'border-fuchsia-300/20 bg-fuchsia-400/[0.07] hover:bg-fuchsia-400/[0.11]',
-    iconColor: 'text-fuchsia-300',
-    badgeColor: 'bg-fuchsia-400 text-fuchsia-800',
-  },
-  violet: {
-    buttonColor: 'border-violet-300/20 bg-violet-400/[0.07] hover:bg-violet-400/[0.11]',
-    iconColor: 'text-violet-300',
-    badgeColor: 'bg-violet-400 text-violet-800',
-  },
-  sky: {
-    buttonColor: 'border-sky-300/20 bg-sky-400/[0.07] hover:bg-sky-400/[0.11]',
-    iconColor: 'text-sky-300',
-    badgeColor: 'bg-sky-400 text-sky-800',
-  },
-  orange: {
-    buttonColor: 'border-orange-300/20 bg-orange-400/[0.07] hover:bg-orange-400/[0.11]',
-    iconColor: 'text-orange-300',
-    badgeColor: 'bg-orange-400 text-orange-800',
-  },
-  gray: {
-    buttonColor: 'border-white/[0.055] bg-white/[0.025] hover:bg-white/[0.04]',
-    iconColor: 'text-muted-foreground',
-    badgeColor: 'bg-zinc-500/80 text-zinc-950',
-  },
-}
+const AppDrawerItem = ({ item }: { item: AppDrawerItemConfig }) => {
+  const isHealthy = item.count === 0
 
-const AppDrawerItem = ({
-  title,
-  icon,
-  colorKey,
-  count,
-  onClick,
-  isActive,
-}: {
-  title: string
-  icon: React.ReactNode
-  colorKey: keyof typeof AppDrawerItemColor
-  count: number
-  isActive?: boolean
-  onClick?: () => void
-}) => {
-  const color = !isActive ? AppDrawerItemColor.gray : AppDrawerItemColor[colorKey]
   return (
-    <Button
-      variant="outline"
-      className={`relative flex min-h-16 w-full flex-col items-center justify-center rounded-md border px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:text-zinc-100 ${color.buttonColor}`}
-      onClick={onClick}
-      disabled={!isActive}
+    <button
+      onClick={item.onClick}
+      aria-label={`${item.title}: ${item.count}. ${isHealthy ? item.healthyDescription : item.description}`}
+      className={`group relative flex min-h-[116px] w-full flex-col justify-between overflow-hidden rounded-lg border p-3 text-left outline-none transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-primary ${
+        isHealthy
+          ? 'border-emerald-500/15 bg-emerald-500/[0.035] hover:border-emerald-500/30 hover:bg-emerald-500/[0.07]'
+          : `${item.color.border} ${item.color.bg} ${item.color.hoverBorder} ${item.color.hoverBg}`
+      }`}
     >
-      <div className={`${color.iconColor} [&_svg]:!h-6 [&_svg]:!w-6`}>{icon}</div>
-      <div className="text-xs font-medium text-zinc-200">{title}</div>
-      <div
-        className={`absolute right-[-8px] top-[-8px] flex size-4 items-center justify-center rounded-full ${color.badgeColor} p-2.5 text-xs`}
-      >
-        {count}
+      <div className="flex w-full items-center justify-between">
+        <div
+          className={`flex size-8 items-center justify-center rounded-md border transition-colors duration-200 ${
+            isHealthy
+              ? 'border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-400 group-hover:border-emerald-500/30 group-hover:bg-emerald-500/[0.1]'
+              : `border-white/[0.08] bg-white/[0.04] ${item.color.iconColor}`
+          }`}
+        >
+          {isHealthy ? <CheckCircle2 className="size-5" /> : item.icon}
+        </div>
+
+        <div className="flex items-center gap-1.5 rounded-full bg-black/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide">
+          {isHealthy ? (
+            <>
+              <span className="size-1.5 rounded-full bg-emerald-400" />
+              <span className="text-emerald-400">Healthy</span>
+            </>
+          ) : (
+            <>
+              <span className="relative flex size-1.5">
+                <span
+                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${item.color.pulse}`}
+                />
+                <span className={`relative inline-flex size-1.5 rounded-full ${item.color.pulse}`} />
+              </span>
+              <span className={`${item.color.text}`}>Action</span>
+            </>
+          )}
+        </div>
       </div>
-    </Button>
+
+      <div className="flex w-full items-end justify-between gap-3">
+        <div className="min-w-0">
+          <span
+            className={`block text-2xl font-bold leading-7 transition-colors duration-200 ${
+              isHealthy ? 'text-emerald-400/90 group-hover:text-emerald-400' : `${item.color.text}`
+            }`}
+          >
+            {item.count}
+          </span>
+          <h4 className="mt-1.5 truncate text-xs font-semibold leading-4 text-zinc-100 transition-colors duration-200 group-hover:text-white">
+            {item.title}
+          </h4>
+        </div>
+        <div className="mb-0.5 shrink-0 text-zinc-500 transition-colors duration-200 group-hover:text-zinc-300">
+          <ArrowRight className="size-4" />
+        </div>
+      </div>
+    </button>
   )
 }
 
@@ -125,11 +98,22 @@ export default function AppDrawer({
   description: string
 }) {
   const { push } = useRouter()
-  const items: AppDrawerItem[] = [
+
+  const items: AppDrawerItemConfig[] = [
     {
       title: 'Failed Runs',
-      icon: <XCircle className="size-4" />,
-      color: 'orange',
+      description: 'Recent failures',
+      healthyDescription: 'No recent failures',
+      icon: <XCircle className="size-5" />,
+      color: {
+        border: 'border-rose-500/25',
+        hoverBorder: 'hover:border-rose-500/45',
+        bg: 'bg-gradient-to-br from-rose-500/[0.06] to-rose-500/[0.02]',
+        hoverBg: 'hover:from-rose-500/[0.12] hover:to-rose-500/[0.04]',
+        text: 'text-rose-400',
+        iconColor: 'text-rose-400',
+        pulse: 'bg-rose-500',
+      },
       count: metrics?.failedRecentRunsCount ?? 0,
       onClick: () => {
         push('/test-runs?filter=recentFailed')
@@ -137,8 +121,18 @@ export default function AppDrawer({
     },
     {
       title: 'Failing Tests',
-      icon: <AlertCircle className="size-4" />,
-      color: 'rose',
+      description: 'Repeated failures',
+      healthyDescription: 'No failing tests',
+      icon: <AlertCircle className="size-5" />,
+      color: {
+        border: 'border-red-500/25',
+        hoverBorder: 'hover:border-red-500/45',
+        bg: 'bg-gradient-to-br from-red-500/[0.06] to-red-500/[0.02]',
+        hoverBg: 'hover:from-red-500/[0.12] hover:to-red-500/[0.04]',
+        text: 'text-red-400',
+        iconColor: 'text-red-400',
+        pulse: 'bg-red-500',
+      },
       count: metrics?.repeatedlyFailingTestsCount ?? 0,
       onClick: () => {
         push('/reports/test-cases?filter=repeatedlyFailing')
@@ -146,8 +140,18 @@ export default function AppDrawer({
     },
     {
       title: 'Flaky Tests',
-      icon: <AlertTriangle className="size-4" />,
-      color: 'yellow',
+      description: 'Inconsistent outcomes',
+      healthyDescription: 'No flaky tests',
+      icon: <AlertTriangle className="size-5" />,
+      color: {
+        border: 'border-amber-500/25',
+        hoverBorder: 'hover:border-amber-500/45',
+        bg: 'bg-gradient-to-br from-amber-500/[0.06] to-amber-500/[0.02]',
+        hoverBg: 'hover:from-amber-500/[0.12] hover:to-amber-500/[0.04]',
+        text: 'text-amber-400',
+        iconColor: 'text-amber-400',
+        pulse: 'bg-amber-400',
+      },
       count: metrics?.flakyTestsCount ?? 0,
       onClick: () => {
         push('/reports/test-cases?filter=flaky')
@@ -155,8 +159,18 @@ export default function AppDrawer({
     },
     {
       title: 'Unexecuted Suites',
-      icon: <Clock className="size-4" />,
-      color: 'blue',
+      description: 'Needs execution',
+      healthyDescription: 'All suites current',
+      icon: <Clock className="size-5" />,
+      color: {
+        border: 'border-sky-500/25',
+        hoverBorder: 'hover:border-sky-500/45',
+        bg: 'bg-gradient-to-br from-sky-500/[0.06] to-sky-500/[0.02]',
+        hoverBg: 'hover:from-sky-500/[0.12] hover:to-sky-500/[0.04]',
+        text: 'text-sky-400',
+        iconColor: 'text-sky-400',
+        pulse: 'bg-sky-400',
+      },
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
       onClick: () => {
         push('/reports/test-suites?filter=notExecutedRecently')
@@ -165,23 +179,15 @@ export default function AppDrawer({
   ]
 
   return (
-    <Card id="container" className="w-fit border-white/[0.07] bg-[rgba(18,37,64,0.34)]">
-      <CardHeader id="header">
-        <CardTitle className="text-primary">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card id="container" className="relative overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+      <CardHeader id="header" className="relative px-4 pb-3 pt-4">
+        <CardTitle className="text-base font-semibold text-white">{title}</CardTitle>
+        <CardDescription className="text-xs leading-5 text-zinc-400">{description}</CardDescription>
       </CardHeader>
-      <CardContent id="content">
-        <div className="grid grid-cols-2 gap-4 gap-y-6">
+      <CardContent id="content" className="relative px-4 pb-4 pt-0">
+        <div className="grid grid-cols-1 gap-3 sm:auto-rows-[116px] sm:grid-cols-2">
           {items.map(item => (
-            <AppDrawerItem
-              key={item.title}
-              title={item.title}
-              icon={item.icon}
-              colorKey={item.color}
-              count={item.count}
-              onClick={item.onClick}
-              isActive={item.count > 0 ? true : false}
-            />
+            <AppDrawerItem key={item.title} item={item} />
           ))}
         </div>
       </CardContent>

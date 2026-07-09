@@ -176,7 +176,7 @@ export const testRunTableCols: ColumnDef<
       const browserEngineColorMap = {
         [BrowserEngine.CHROMIUM]: 'bg-blue-500 text-white',
         [BrowserEngine.FIREFOX]: 'bg-red-500 text-white',
-        [BrowserEngine.WEBKIT]: 'bg-purple-500 text-white',
+        [BrowserEngine.WEBKIT]: 'bg-sky-500 text-white',
       }
       return (
         <Badge className={`${browserEngineColorMap[browserEngine]} w-fit`}>
