@@ -18,9 +18,12 @@ export const AddNodePromptNode = memo(function AddNodePromptNode({
   onOpenAddNode,
 }: AddNodePromptNodeComponentProps) {
   return (
-    <BaseNode selected={selected} className="border-muted-foreground/50 bg-muted/30 max-w-80 border-dashed px-4 py-3">
-      <p className="mb-3 text-sm text-muted-foreground">No steps yet. Add your first node to build the flow.</p>
-      <Button type="button" className={cn('nodrag w-full')} variant="outline" onClick={onOpenAddNode}>
+    <BaseNode
+      selected={selected}
+      className="max-w-64 border-dashed border-white/[0.18] bg-[rgba(18,37,64,0.72)] px-3 py-2.5 shadow-sm"
+    >
+      <p className="mb-2 text-xs text-muted-foreground">No steps yet. Add your first node to build the flow.</p>
+      <Button type="button" className={cn('nodrag h-8 w-full text-xs')} variant="outline" onClick={onOpenAddNode}>
         Add node
       </Button>
     </BaseNode>

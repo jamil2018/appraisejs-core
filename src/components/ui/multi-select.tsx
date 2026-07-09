@@ -71,7 +71,7 @@ export function MultiSelect({
           aria-label={label}
           tabIndex={0}
           className={cn(
-            'flex min-h-10 w-full flex-wrap items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+            'bg-background/55 flex min-h-9 w-full flex-wrap items-center justify-between rounded-md border border-white/[0.12] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ring-offset-background transition-colors hover:border-white/[0.18] focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
             className,
           )}
           onKeyDown={event => {
@@ -108,7 +108,10 @@ export function MultiSelect({
           <ChevronDown className={cn('size-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] border-white/[0.12] bg-[rgba(16,30,50,0.98)] p-0 shadow-xl backdrop-blur-xl"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
           <CommandList id={listboxId} role="listbox" aria-multiselectable="true">

@@ -301,7 +301,7 @@ function FlowPanel({
         layout
         layoutId="test-case-flow-panel"
         className={cn(
-          'flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-zinc-700 text-card-foreground shadow-sm will-change-transform',
+          'flex min-h-0 w-full flex-col overflow-hidden rounded-md border border-white/[0.1] bg-[rgba(18,37,64,0.28)] text-card-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] will-change-transform',
           className,
         )}
         transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
@@ -1359,9 +1359,7 @@ const TestCaseForm = ({
     },
     flow: {
       isFlowImmersive,
-      flowPanel: (
-        <FlowPanel {...flowPanelProps} className="relative h-[max(22rem,calc(100dvh-12rem))] bg-zinc-500/10" />
-      ),
+      flowPanel: <FlowPanel {...flowPanelProps} className="relative h-[max(22rem,calc(100dvh-12rem))]" />,
       immersiveFlowPanel: <FlowPanel {...flowPanelProps} className="h-full bg-background" />,
       scenarioPreview,
     },

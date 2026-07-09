@@ -1,11 +1,11 @@
 import PageHeader from '@/components/typography/page-header'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { BrowserEngine, TestRunResult, TestRunStatus } from '@prisma/client'
 import { Calendar, ChartLine, CheckCircle, Clock, Info, XCircle } from 'lucide-react'
 import { Metadata } from 'next'
 import ReportMetricCard from '../report-metric-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DurationChart, FeatureChart, OverviewChart } from '../report-charts'
 import ReportViewTable from '../report-view-table'
@@ -34,124 +34,37 @@ export const metadata: Metadata = {
 const testRunResultToBadge = (result: TestRunResult) => {
   switch (result) {
     case TestRunResult.PASSED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
-        >
-          <CheckCircle className="size-4" />
-          PASSED
-        </Badge>
-      )
+      return <StatusBadge label="Passed" tone="success" icon={<CheckCircle />} className="text-sm" />
     case TestRunResult.FAILED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-md border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
-        >
-          <XCircle className="size-4" />
-          FAILED
-        </Badge>
-      )
+      return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} className="text-sm" />
     case TestRunResult.CANCELLED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/35 py-1 text-sm text-zinc-300"
-        >
-          <XCircle className="size-4" />
-          CANCELLED
-        </Badge>
-      )
+      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} className="text-sm" />
     default:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
-        >
-          <Clock className="size-4" />
-          UNKNOWN
-        </Badge>
-      )
+      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} className="text-sm" />
   }
 }
 
 const browserEngineToBadge = (browserEngine: BrowserEngine) => {
   switch (browserEngine) {
     case BrowserEngine.CHROMIUM:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-blue-700 bg-blue-700/10 py-1 text-sm text-blue-500"
-        >
-          {browserIcons[BrowserEngine.CHROMIUM]}
-          Chromium
-        </Badge>
-      )
+      return <StatusBadge label="Chromium" tone="info" icon={browserIcons[BrowserEngine.CHROMIUM]} />
     case BrowserEngine.FIREFOX:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-red-700 bg-red-700/10 py-1 text-sm text-red-500"
-        >
-          {browserIcons[BrowserEngine.FIREFOX]}
-          Firefox
-        </Badge>
-      )
+      return <StatusBadge label="Firefox" tone="danger" icon={browserIcons[BrowserEngine.FIREFOX]} />
     case BrowserEngine.WEBKIT:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-md border-sky-700 bg-sky-700/10 py-1 text-sm text-sky-500"
-        >
-          {browserIcons[BrowserEngine.WEBKIT]}
-          WebKit
-        </Badge>
-      )
+      return <StatusBadge label="WebKit" tone="info" icon={browserIcons[BrowserEngine.WEBKIT]} />
     default:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
-        >
-          Unknown
-        </Badge>
-      )
+      return <StatusBadge label="Unknown browser" tone="neutral" />
   }
 }
 
 const testRunStatusToBadge = (status: TestRunStatus) => {
   switch (status) {
     case TestRunStatus.COMPLETED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-green-700 bg-green-700/10 py-1 text-sm text-green-500"
-        >
-          <CheckCircle className="size-4" />
-          Completed
-        </Badge>
-      )
+      return <StatusBadge label="Completed" tone="success" icon={<CheckCircle />} />
     case TestRunStatus.CANCELLED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
-        >
-          <XCircle className="size-4" />
-          Cancelled
-        </Badge>
-      )
+      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} />
     default:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-2 rounded-xl border-zinc-700 bg-zinc-700/10 py-1 text-sm text-zinc-500"
-        >
-          <Clock className="size-4" />
-          Unknown
-        </Badge>
-      )
+      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} />
   }
 }
 
@@ -186,7 +99,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             <span>{report.testRun.name}</span>
           </div>
         </PageHeader>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           {testRun.completedAt && (
             <div className="flex items-center gap-1 text-sm text-zinc-400">
               <Calendar className="size-4" />
@@ -208,51 +121,51 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
         <ReportMetricCard title="Untested" value={untestedTests.toString()} />
       </div>
       <Separator className="my-4 bg-muted" />
-      <div className="flex gap-6">
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-zinc-500/10 shadow-none">
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Card className="min-w-0 border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <Info className="size-6" />
               <CardTitle className="text-lg font-semibold">Configuration</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden text-zinc-200">
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span>Environment Name</span>
-              <span className="font-medium">{testRun.environment.name}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span>Environment Base URL</span>
-              <span className="font-medium">{testRun.environment.baseUrl}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span>Environment API Base URL</span>
-              <span className="font-medium">{testRun.environment.apiBaseUrl || '-'}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span>Test Workers Count</span>
-              <span className="font-medium">{testRun.testWorkersCount || 1}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span>Browser Engine</span>
-              <span className="font-medium">{browserEngineToBadge(testRun.browserEngine)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span>Test Run Status</span>
-              <span className="font-medium">{testRunStatusToBadge(testRun.status)}</span>
-            </div>
+          <CardContent>
+            <dl className="space-y-3 text-sm text-muted-foreground">
+              {[
+                ['Environment Name', testRun.environment.name],
+                ['Environment Base URL', testRun.environment.baseUrl],
+                ['Environment API Base URL', testRun.environment.apiBaseUrl || '-'],
+                ['Test Workers Count', testRun.testWorkersCount || 1],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="grid gap-1 border-b border-white/[0.06] pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3"
+                >
+                  <dt>{label}</dt>
+                  <dd className="min-w-0 break-words font-medium text-foreground">{value}</dd>
+                </div>
+              ))}
+              <div className="grid gap-1 border-b border-white/[0.06] pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3">
+                <dt>Browser Engine</dt>
+                <dd>{browserEngineToBadge(testRun.browserEngine)}</dd>
+              </div>
+              <div className="grid gap-1 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3">
+                <dt>Test Run Status</dt>
+                <dd>{testRunStatusToBadge(testRun.status)}</dd>
+              </div>
+            </dl>
           </CardContent>
         </Card>
-        <Card className="flex h-[420px] min-w-0 flex-1 flex-col border-none bg-zinc-500/10 shadow-none">
+        <Card className="flex min-w-0 flex-col border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <ChartLine className="size-6" />
               <CardTitle className="text-lg font-semibold">Visualizations</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col overflow-hidden">
+          <CardContent className="flex min-h-[20rem] flex-1 flex-col overflow-hidden">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <TabsList className="mx-auto w-fit flex-shrink-0 bg-zinc-500/15 p-2">
+              <TabsList className="grid w-full grid-cols-3 bg-white/[0.055] p-1">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="feature">Feature</TabsTrigger>
                 <TabsTrigger value="duration">Duration</TabsTrigger>

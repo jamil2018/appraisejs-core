@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: oklch(0.2077 0.0398 265.7549);
@@ -40,7 +36,7 @@ body {
     --sidebar-accent-foreground: oklch(0.7118 0.0129 286.0665);
     --sidebar-border: oklch(0.4461 0.0263 256.8018);
     --sidebar-ring: oklch(0.7729 0.1535 163.2231);
-    --font-sans: DM Sans, sans-serif;
+    --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
     --font-serif: Lora, serif;
     --font-mono: IBM Plex Mono, monospace;
     --radius: 0.5rem;
@@ -65,7 +61,7 @@ body {
   }
 
   .theme {
-    --font-sans: DM Sans, sans-serif;
+    --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
     --font-mono: IBM Plex Mono, monospace;
     --font-serif: Lora, serif;
     --radius: 0.5rem;
@@ -76,6 +72,7 @@ body {
     --tracking-widest: calc(var(--tracking-normal) + 0.1em);
   }
   body {
+    font-family: var(--font-inter), Arial, Helvetica, sans-serif;
     letter-spacing: var(--tracking-normal);
   }
 }

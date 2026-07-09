@@ -4,8 +4,13 @@ import { cn } from '@/lib/utils'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
-    <div className="relative w-full overflow-auto">
-      <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
+    <div
+      className="relative w-full overflow-x-auto overscroll-x-contain"
+      tabIndex={0}
+      role="region"
+      aria-label="Scrollable data table"
+    >
+      <table className={cn('w-full min-w-[42rem] caption-bottom text-sm', className)} {...props} />
     </div>
   )
 }

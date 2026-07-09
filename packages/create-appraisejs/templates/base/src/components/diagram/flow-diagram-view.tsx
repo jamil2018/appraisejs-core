@@ -38,7 +38,10 @@ type FlowDiagramViewProps = {
 export function FlowDiagramView({ model, FlowLayoutRefresh }: FlowDiagramViewProps) {
   return (
     <>
-      <div className="relative flex h-full min-h-0 w-full flex-col" onPointerDown={model.search.handleFlowPointerDown}>
+      <div
+        className="relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md bg-[radial-gradient(circle_at_18%_8%,rgba(38,83,121,0.22),transparent_24rem),rgba(8,13,22,0.32)]"
+        onPointerDown={model.search.handleFlowPointerDown}
+      >
         <FlowDiagramToolbar
           enableNodeSearch={model.enableNodeSearch}
           enableNodeGrouping={model.enableNodeGrouping}

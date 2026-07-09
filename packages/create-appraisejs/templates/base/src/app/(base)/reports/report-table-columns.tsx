@@ -6,6 +6,7 @@ import { ColumnDef } from '@tanstack/react-table'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { CheckCircle, Clock, XCircle, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { formatDuration } from './report-detail-helpers'
@@ -14,59 +15,24 @@ import type { ReportWithRelations } from '@/types/report'
 const testRunStatusToBadge = (status: TestRunStatus) => {
   switch (status) {
     case TestRunStatus.COMPLETED:
-      return (
-        <Badge className="bg-primary">
-          <CheckCircle className="mr-1 size-4" />
-          Completed
-        </Badge>
-      )
+      return <StatusBadge label="Completed" tone="success" icon={<CheckCircle />} />
     case TestRunStatus.CANCELLED:
-      return (
-        <Badge className="bg-pink-500 text-white">
-          <XCircle className="mr-1 size-4" />
-          Cancelled
-        </Badge>
-      )
+      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} />
     default:
-      return (
-        <Badge className="bg-zinc-500 text-white">
-          <Clock className="mr-1 size-4" />
-          Unknown
-        </Badge>
-      )
+      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} />
   }
 }
 
 const testRunResultToBadge = (result: TestRunResult) => {
   switch (result) {
     case TestRunResult.PASSED:
-      return (
-        <Badge className="bg-primary">
-          <CheckCircle className="mr-1 size-4" />
-          Passed
-        </Badge>
-      )
+      return <StatusBadge label="Passed" tone="success" icon={<CheckCircle />} />
     case TestRunResult.FAILED:
-      return (
-        <Badge className="bg-pink-500 text-white">
-          <XCircle className="mr-1 size-4" />
-          Failed
-        </Badge>
-      )
+      return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} />
     case TestRunResult.CANCELLED:
-      return (
-        <Badge className="bg-zinc-500 text-white">
-          <XCircle className="mr-1 size-4" />
-          Cancelled
-        </Badge>
-      )
+      return <StatusBadge label="Cancelled" tone="neutral" icon={<XCircle />} />
     default:
-      return (
-        <Badge className="bg-zinc-500 text-white">
-          <Clock className="mr-1 size-4" />
-          Unknown
-        </Badge>
-      )
+      return <StatusBadge label="Unknown" tone="neutral" icon={<Clock />} />
   }
 }
 

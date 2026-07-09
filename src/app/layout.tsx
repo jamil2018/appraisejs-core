@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import AppSidebar from '@/components/navigation/app-sidebar'
+import MobileNavigation from '@/components/navigation/mobile-navigation'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 
 const inter = Inter({
@@ -78,10 +79,13 @@ export default function RootLayout({
               Skip to main content
             </a>
             <AppSidebar providerRunsEnabled={providerRunsEnabled} />
+            <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
+              <MobileNavigation providerRunsEnabled={providerRunsEnabled} />
+            </div>
             <main
               id="main-content"
               tabIndex={-1}
-              className="relative min-w-0 flex-1 scroll-mt-4 overflow-hidden px-4 py-5 focus:outline-none sm:px-6 lg:px-8"
+              className="relative min-w-0 flex-1 scroll-mt-4 overflow-hidden px-4 pb-5 pt-16 focus:outline-none sm:px-6 sm:pt-16 lg:px-8 lg:py-5"
             >
               <div
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_5%,rgba(38,83,121,0.22),transparent_25rem),radial-gradient(circle_at_78%_10%,rgba(45,212,191,0.055),transparent_30rem),linear-gradient(135deg,rgba(18,37,64,0.24),rgba(11,15,23,0.78)_42%,rgba(8,11,17,0.92))]"

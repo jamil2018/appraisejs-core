@@ -70,7 +70,7 @@ export function FlowDiagramToolbar({
   onOpenAddNodeDialog,
 }: FlowDiagramToolbarProps) {
   return (
-    <div className="absolute right-4 top-4 z-20 flex items-start gap-2">
+    <div className="absolute right-2 top-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap justify-end gap-1.5 sm:right-3 sm:top-3">
       {enableNodeSearch ? (
         <FlowDiagramNodeSearch
           isSearchOpen={isSearchOpen}
@@ -92,6 +92,7 @@ export function FlowDiagramToolbar({
                 type="button"
                 variant={isGroupingSelectionMode ? 'default' : 'outline'}
                 size="icon"
+                className="bg-background/80 size-8"
                 onClick={onToggleGroupingSelectionMode}
                 aria-label={isGroupingSelectionMode ? 'Exit block selection mode' : 'Select nodes for block'}
               >
@@ -115,6 +116,7 @@ export function FlowDiagramToolbar({
                 type="button"
                 variant="outline"
                 size="icon"
+                className="bg-background/80 size-8"
                 onClick={onOpenAddStepBlockDialog}
                 aria-label="Add Step Block"
               >
@@ -130,7 +132,14 @@ export function FlowDiagramToolbar({
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button type="button" variant="outline" size="icon" onClick={onOpenAddNodeDialog} aria-label="Add Node">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="bg-background/80 size-8"
+              onClick={onOpenAddNodeDialog}
+              aria-label="Add Node"
+            >
               <Plus />
             </Button>
           </TooltipTrigger>
