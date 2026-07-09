@@ -14,6 +14,7 @@ import DataCard from './(dashboard-components)/data-card'
 import OngoingTestRunsCard from './(dashboard-components)/ongoing-test-runs-card'
 import { DataCardGrid } from './(dashboard-components)/data-card-grid'
 import { ExecutionHealthPanel } from './(dashboard-components)/execution-health-panel'
+import { LayoutDashboard } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Appraise | Dashboard',
@@ -41,14 +42,20 @@ const Dashboard = async () => {
     testSuiteExecutionResponse.status === 200 ? (testSuiteExecutionResponse.data as TestSuiteExecutionData) : []
 
   return (
-    <div className="space-y-6">
-      <div>
-        <PageHeader>Dashboard</PageHeader>
+    <div className="space-y-8">
+      <div className="mb-8">
+        <PageHeader>
+          <span className="flex items-center">
+            <LayoutDashboard className="mr-3 size-8 text-primary" strokeWidth={2.2} />
+            Dashboard
+          </span>
+        </PageHeader>
         <HeaderSubtitle>Check metrics, entity states, execution health, and more</HeaderSubtitle>
       </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]" id="dashboard-content">
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]" id="dashboard-content">
         <div className="grid gap-6">
-          <div className="grid gap-6 lg:grid-cols-[minmax(20rem,0.85fr)_minmax(20rem,1fr)]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(20rem,0.95fr)_minmax(20rem,1fr)]">
             <AppDrawer metrics={metrics} title="Attention Needed" description="Issues that require immediate action" />
             <DataCardGrid>
               <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />

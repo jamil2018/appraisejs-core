@@ -1,34 +1,114 @@
 'use client'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card'
-import { ExternalLink } from 'lucide-react'
+
+import { CardTitle } from '@/components/ui/card'
+import { ArrowRight, TestTubeDiagonal, TestTubes, LayoutTemplate, HelpCircle, type LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-export default function DataCard({ title, value, link }: { title: string; value: number; link: string }) {
-  const { push } = useRouter()
+import { cn } from '@/lib/utils'
+
+interface DataCardProps {
+  title: string
+  value: number
+  link: string
+}
+
+type EntityTheme = {
+  Icon: LucideIcon
+  colorClass: string
+  bgClass: string
+  hoverClass: string
+}
+
+const ENTITY_THEMES: Record<string, EntityTheme> = {
+  'Test Cases': {
+    Icon: TestTubeDiagonal,
+    colorClass: 'text-primary',
+    bgClass: 'border-primary/20 bg-primary/[0.04]',
+    hoverClass: 'hover:border-primary/40 hover:bg-primary/[0.08]',
+  },
+  'Test Suites': {
+    Icon: TestTubes,
+    colorClass: 'text-sky-400',
+    bgClass: 'border-sky-500/20 bg-sky-500/[0.04]',
+    hoverClass: 'hover:border-sky-500/40 hover:bg-sky-500/[0.08]',
+  },
+  'Template Steps': {
+    Icon: LayoutTemplate,
+    colorClass: 'text-indigo-400',
+    bgClass: 'border-indigo-500/20 bg-indigo-500/[0.04]',
+    hoverClass: 'hover:border-indigo-500/40 hover:bg-indigo-500/[0.08]',
+  },
+}
+
+const DEFAULT_THEME: EntityTheme = {
+  Icon: HelpCircle,
+  colorClass: 'text-zinc-400',
+  bgClass: 'border-white/[0.08] bg-white/[0.04]',
+  hoverClass: 'hover:border-white/[0.18] hover:bg-white/[0.08]',
+}
+
+function DataCardHeader({ title, theme, isEmpty }: { title: string; theme: EntityTheme; isEmpty: boolean }) {
+  const { Icon } = theme
+
   return (
-    <Card className="min-w-0 border-white/[0.07] bg-white/[0.025] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <CardHeader className="flex flex-row items-center justify-between gap-3 p-3 pb-2">
-        <CardTitle className={`text-xs font-medium ${value > 0 ? 'text-foreground' : 'text-zinc-400'}`}>
-          {title}
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="hover:bg-primary/10 border-white/[0.08] bg-white/[0.035] text-primary hover:text-primary"
-            disabled={value === 0}
-            aria-label={`Open ${title}`}
-            onClick={() => push(link)}
-            size="icon"
-          >
-            <ExternalLink className="size-4" />
-          </Button>
+    <div className="flex w-full items-center justify-between gap-2">
+      <CardTitle
+        className={cn(
+          'text-xs font-semibold uppercase tracking-wide',
+          isEmpty ? 'text-zinc-500' : 'text-zinc-300 group-hover:text-white'
+        )}
+      >
+        {title}
+      </CardTitle>
+      <div
+        className={cn(
+          'flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors duration-300',
+          isEmpty ? 'border-white/[0.05] bg-white/[0.02] text-zinc-600' : `${theme.bgClass} ${theme.colorClass}`
+        )}
+      >
+        <Icon className="size-5" />
+      </div>
+    </div>
+  )
+}
+
+function DataCardValue({ value, theme, isEmpty }: { value: number; theme: EntityTheme; isEmpty: boolean }) {
+  return (
+    <div className="mt-5 flex w-full items-baseline justify-between">
+      <span
+        className={cn(
+          'text-3xl font-extrabold tracking-tight transition-all duration-300',
+          isEmpty ? 'text-zinc-600' : `${theme.colorClass} origin-left group-hover:scale-[1.02]`
+        )}
+      >
+        {value}
+      </span>
+      {!isEmpty && (
+        <div className="text-zinc-500 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-zinc-300">
+          <ArrowRight className="size-4" />
         </div>
-      </CardHeader>
-      <CardContent className="px-3 pb-3 pt-0">
-        <div className={`text-3xl font-semibold tracking-tight ${value > 0 ? 'text-primary' : 'text-zinc-400'}`}>
-          {value}
-        </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
+  )
+}
+
+export default function DataCard({ title, value, link }: DataCardProps) {
+  const { push } = useRouter()
+  const isEmpty = value === 0
+  const theme = ENTITY_THEMES[title] ?? DEFAULT_THEME
+
+  return (
+    <button
+      onClick={() => !isEmpty && push(link)}
+      disabled={isEmpty}
+      className={cn(
+        'group relative flex w-full flex-col justify-between overflow-hidden rounded-xl border p-[18px] text-left transition-all duration-300 outline-none focus-visible:ring-1 focus-visible:ring-primary',
+        isEmpty
+          ? 'cursor-not-allowed border-white/[0.05] bg-white/[0.015] opacity-50'
+          : `cursor-pointer border-white/[0.07] bg-white/[0.03] hover:shadow-[0_4px_20px_rgba(0,0,0,0.18)] ${theme.hoverClass}`
+      )}
+    >
+      <DataCardHeader title={title} theme={theme} isEmpty={isEmpty} />
+      <DataCardValue value={value} theme={theme} isEmpty={isEmpty} />
+    </button>
   )
 }
