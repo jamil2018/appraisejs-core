@@ -1,7 +1,6 @@
 # Repo-local Codex configuration for AppraiseJS.
 # Keep project workflow instructions in AGENTS.md; keep runtime defaults here.
 
-model = "gpt-5.5"
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 
