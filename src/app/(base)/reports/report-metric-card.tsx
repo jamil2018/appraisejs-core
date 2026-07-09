@@ -5,7 +5,6 @@ const metricStyles: Record<
   string,
   {
     card: string
-    glow: string
     dot: string
     value: string
   }
