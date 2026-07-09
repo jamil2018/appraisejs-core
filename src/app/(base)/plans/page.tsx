@@ -31,12 +31,12 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
   const sortedPlans = sortPlans(filterPlans(plans, tab, query), sort)
 
   return (
-    <main className="space-y-6 pb-10">
-      <header className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row">
-        <div>
+    <main className="space-y-5 pb-10">
+      <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start">
+        <div className="space-y-2">
           <PageHeader>
-            <span className="flex items-center">
-              <Network className="mr-2 size-8" />
+            <span className="flex items-center gap-3">
+              <Network className="size-7 text-primary sm:size-8" strokeWidth={2.2} />
               Implementation Plans
             </span>
           </PageHeader>
@@ -44,7 +44,10 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
             Inspect canonical plan structure, leave remarks, and approve an exact revision.
           </HeaderSubtitle>
         </div>
-        <Badge variant="outline" className="sm:mt-2">
+        <Badge
+          variant="outline"
+          className="mt-1 border-white/[0.1] bg-white/[0.035] px-3 py-1 text-xs font-semibold text-zinc-200 shadow-none"
+        >
           {plans.length} plans
         </Badge>
       </header>
@@ -94,11 +97,11 @@ function PlansResults({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <section className="grid gap-4 xl:grid-cols-2" aria-label="Plans">
       {sortedPlans.map(plan => (
         <PlanSummaryCard key={plan.planId} plan={plan} />
       ))}
-    </div>
+    </section>
   )
 }
 
@@ -112,11 +115,13 @@ function EmptyPlansState({
   description: string
 }) {
   return (
-    <Card className="rounded-xl border-dashed">
+    <Card className="border-dashed border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
       <CardContent className="flex min-h-64 flex-col items-center justify-center p-6 text-center">
-        <Icon className="mb-4 size-10 text-muted-foreground opacity-60" />
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="mt-2 max-w-md text-sm text-muted-foreground">{description}</p>
+        <span className="mb-4 flex size-12 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-zinc-500">
+          <Icon className="size-6" />
+        </span>
+        <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
+        <p className="mt-2 max-w-md text-sm leading-6 text-zinc-500">{description}</p>
       </CardContent>
     </Card>
   )

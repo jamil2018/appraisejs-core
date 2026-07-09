@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Clock, Network } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 type PlansStatsCardsProps = {
   totalActive: number
@@ -73,19 +74,26 @@ function StatCard({
 }) {
   return (
     <Card
-      className={`rounded-lg border border-l-[3px] border-white/[0.075] bg-[rgba(18,37,64,0.34)] ${accentClassName ?? 'border-l-primary/60'}`}
+      className={cn(
+        'min-h-[132px] border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none',
+        accentClassName ?? 'border-l-primary/60',
+        'border-l-[3px]',
+      )}
     >
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 pb-2 pt-4">
+        <CardTitle className="pt-0.5 text-xs font-semibold uppercase leading-4 text-zinc-300">{title}</CardTitle>
         <span
-          className={`flex size-8 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.035] ${iconClassName}`}
+          className={cn(
+            'flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.04]',
+            iconClassName,
+          )}
         >
           <Icon className="size-4 stroke-[2.2]" />
         </span>
       </CardHeader>
-      <CardContent>
-        <div className={`text-2xl font-bold ${valueClassName ?? ''}`}>{value}</div>
-        <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
+      <CardContent className="px-4 pb-4 pt-0">
+        <div className={cn('text-3xl font-bold leading-9 text-white', valueClassName)}>{value}</div>
+        <p className="mt-1 text-xs leading-5 text-zinc-500">{caption}</p>
       </CardContent>
     </Card>
   )
