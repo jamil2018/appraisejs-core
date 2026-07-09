@@ -112,4 +112,18 @@ describe('DataTable', () => {
 
     expect(screen.getByText('No results.')).toBeInTheDocument()
   })
+
+  it('contains wide table content in a keyboard-focusable scroll region', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[]}
+        filterColumn="name"
+        filterPlaceholder="Search names"
+        showSelectedRows={false}
+      />,
+    )
+
+    expect(screen.getByRole('region', { name: 'Scrollable data table' })).toHaveAttribute('tabindex', '0')
+  })
 })

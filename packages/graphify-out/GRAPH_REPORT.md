@@ -1,15 +1,15 @@
-# Graph Report - packages  (2026-07-08)
+# Graph Report - packages  (2026-07-10)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 744 nodes · 1125 edges · 80 communities (75 shown, 5 thin omitted)
+- 745 nodes · 1122 edges · 80 communities (75 shown, 5 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `49ef38d0`
+- Built from commit: `4f7522de`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,8 +63,8 @@
 6. `TemplateId` - 13 edges
 7. `createBaseTemplate()` - 12 edges
 8. `main()` - 12 edges
-9. `createCoordinatorClient()` - 9 edges
-10. `LocatorCache` - 9 edges
+9. `LocatorCache` - 9 edges
+10. `compilerOptions` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `bootstrap()` --calls--> `Config`  [INFERRED]
@@ -73,10 +73,10 @@
   appraisejs/src/cli.ts → appraisejs/src/coordinator-client.ts
 - `workspace()` --calls--> `deriveProjectIdentity()`  [EXTRACTED]
   appraisejs/src/coordinator-client.test.ts → appraisejs/src/project-identity.ts
-- `toolError()` --calls--> `coordinatorRequestErrorEnvelope()`  [EXTRACTED]
-  appraisejs/src/mcp.ts → appraisejs/src/coordinator-client.ts
-- `createCoordinatorApiClient()` --calls--> `createCoordinatorClient()`  [EXTRACTED]
-  appraisejs/src/mcp.ts → appraisejs/src/coordinator-client.ts
+- `main()` --calls--> `getTemplateDefinitions()`  [EXTRACTED]
+  create-appraisejs/scripts/prepare-template.ts → create-appraisejs/src/template-catalog.ts
+- `CliOptions` --references--> `TemplateId`  [EXTRACTED]
+  create-appraisejs/src/cli-args.ts → create-appraisejs/src/template-catalog.ts
 
 ## Import Cycles
 - None detected.
@@ -85,15 +85,15 @@
 
 ### Community 0 - "Create Cli"
 Cohesion: 0.05
-Nodes (64): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+56 more)
+Nodes (63): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+55 more)
 
 ### Community 1 - "Create Scripts Prepare"
 Cohesion: 0.05
-Nodes (64): baseTemplateDir, cleanupTempWorkspace(), composedVerifyDir, composeTemplateForVerification(), computeTemplateInputHash(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyFallbackSeedDatabase() (+56 more)
+Nodes (65): baseTemplateDir, cleanupTempWorkspace(), composedVerifyDir, composeTemplateForVerification(), computeTemplateInputHash(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyFallbackSeedDatabase() (+57 more)
 
 ### Community 2 - "Mcp Server"
 Cohesion: 0.05
-Nodes (44): agentGuide, AppraiseHttpMcpOptions, approvalPendingResponse(), baseWorkflowCriticalTools, baseWorkflowResourceUris, BriefPlanTask, CoordinatorToolEvent, createAppraiseMcpServer() (+36 more)
+Nodes (45): agentGuide, AppraiseHttpMcpOptions, approvalPendingResponse(), baseWorkflowCriticalTools, baseWorkflowResourceUris, BriefPlanTask, CoordinatorToolEvent, createAppraiseMcpServer() (+37 more)
 
 ### Community 3 - "Locator Picker Companion"
 Cohesion: 0.08
@@ -101,7 +101,7 @@ Nodes (34): CliOptions, main(), BrowserLaunchCandidate, LocatorPickerCompanion, 
 
 ### Community 4 - "Cli Commands"
 Cohesion: 0.06
-Nodes (36): program, agent, expectedAgentCapabilities, onlineClient(), OnlineOptions, packageRoot, plan, printErrorJson() (+28 more)
+Nodes (35): program, agent, expectedAgentCapabilities, onlineClient(), OnlineOptions, packageRoot, plan, printErrorJson() (+27 more)
 
 ### Community 5 - "Author Bin Bugs"
 Cohesion: 0.04
@@ -220,7 +220,7 @@ Cohesion: 0.67
 Nodes (3): plan_review_loop, plan_review_ready Evidence, plan_wait_for_review
 
 ## Knowledge Gaps
-- **277 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+272 more)
+- **278 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+273 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -232,12 +232,12 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `bootstrap()` connect `Cucumber Runtime Cli` to `Create Cli`?**
   _High betweenness centrality (0.043) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `description` to the rest of the system?**
-  _277 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _278 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Create Cli` be split into smaller, more focused modules?**
-  _Cohesion score 0.05025394279604384 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05088919288645691 - nodes in this community are weakly interconnected._
 - **Should `Create Scripts Prepare` be split into smaller, more focused modules?**
-  _Cohesion score 0.05442428730099963 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05369369369369369 - nodes in this community are weakly interconnected._
 - **Should `Mcp Server` be split into smaller, more focused modules?**
-  _Cohesion score 0.05389610389610389 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05202661826981246 - nodes in this community are weakly interconnected._
 - **Should `Locator Picker Companion` be split into smaller, more focused modules?**
   _Cohesion score 0.07896575821104122 - nodes in this community are weakly interconnected._

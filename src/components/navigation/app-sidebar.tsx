@@ -50,7 +50,7 @@ export default function AppSidebar({ providerRunsEnabled = false }: AppSidebarPr
 
   return (
     <aside
-      className="sticky top-0 z-40 flex w-full shrink-0 flex-col border-b border-white/[0.08] bg-white/[0.015] lg:h-screen lg:max-h-screen lg:w-[15.75rem] lg:border-b-0 lg:border-r lg:border-white/[0.08]"
+      className="sticky top-0 z-40 hidden h-screen max-h-screen w-[15.75rem] shrink-0 flex-col border-r border-white/[0.08] bg-white/[0.015] lg:flex"
       data-persistent-navigation
       style={{
         background:

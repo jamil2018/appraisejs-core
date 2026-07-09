@@ -173,7 +173,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="mb-10 rounded-lg border border-white/[0.075] bg-[rgba(18,37,64,0.32)] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
       <div className="flex justify-end">
-        <div className="mb-4 flex gap-2">
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
           {createLink && (
             <Button variant="default" size="icon" aria-label="Create item" asChild>
               <Link href={createLink}>
@@ -243,9 +243,9 @@ export function DataTable<TData, TValue>({
           )}
         </div>
       </div>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <Search className="mr-2 size-6" />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center">
+          <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
           <Input
             placeholder={filterPlaceholder}
             value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}

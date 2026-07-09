@@ -106,8 +106,8 @@ export const TestSuiteForm = ({
     </p>
   )
   return (
-    <div className="flex justify-between gap-20 overflow-x-hidden">
-      <Card className="w-2/3 border-zinc-700 bg-zinc-500/10">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <Card className="min-w-0 border-white/[0.1] bg-[rgba(18,37,64,0.32)]">
         <CardHeader>
           <CardTitle className="text-xl font-bold text-primary">Test Suite Details</CardTitle>
           <CardDescription>Enter the details for your test suite</CardDescription>
@@ -238,8 +238,8 @@ export const TestSuiteForm = ({
           </TanStackForm>
         </CardContent>
       </Card>
-      <div className="lg:w-1/3">
-        <Card className="border-zinc-700 bg-zinc-500/10">
+      <aside className="xl:sticky xl:top-5">
+        <Card className="border-white/[0.1] bg-[rgba(18,37,64,0.24)]">
           <CardHeader className="mb-2">
             <CardTitle className="flex items-center gap-2 text-xl text-primary">
               <Info className="size-5" />
@@ -260,7 +260,7 @@ export const TestSuiteForm = ({
             ))}
           </CardContent>
         </Card>
-      </div>
+      </aside>
     </div>
   )
 }

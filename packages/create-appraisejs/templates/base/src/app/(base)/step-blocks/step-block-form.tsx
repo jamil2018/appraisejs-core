@@ -158,7 +158,7 @@ type StepBlockFlowGraphProps = {
 
 function StepBlockFlowGraph({ nodesOrder, templateSteps, onNodeOrderChange }: StepBlockFlowGraphProps) {
   return (
-    <div className="h-[560px] overflow-hidden rounded-xl border border-zinc-700 bg-zinc-500/10">
+    <div className="h-[max(22rem,calc(100dvh-18rem))] min-h-[22rem] overflow-hidden rounded-md border border-white/[0.1] bg-[rgba(18,37,64,0.28)]">
       <FlowDiagram
         nodeOrder={nodesOrder}
         templateStepParams={EMPTY_TEMPLATE_STEP_PARAMS}

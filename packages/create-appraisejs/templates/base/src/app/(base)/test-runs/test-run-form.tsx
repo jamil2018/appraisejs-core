@@ -128,8 +128,8 @@ const TestRunForm = ({
 
   return (
     <TanStackForm onSubmit={() => form.handleSubmit()}>
-      <div className="flex justify-between gap-5 overflow-x-hidden">
-        <div className="lg:w-1/2">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0">
           <Card className="mb-4 h-fit">
             <CardHeader>
               <CardTitle>Filter Tests</CardTitle>
@@ -310,8 +310,8 @@ const TestRunForm = ({
             </CardContent>
           </Card>
         </div>
-        <div className="lg:w-3/7">
-          <Card className="border-zinc-700 bg-zinc-500/10">
+        <aside className="xl:sticky xl:top-5">
+          <Card className="border-white/[0.1] bg-[rgba(18,37,64,0.24)]">
             <CardHeader className="mb-2">
               <CardTitle className="flex items-center gap-2 text-xl text-primary">
                 <Info className="size-5" />
@@ -332,7 +332,7 @@ const TestRunForm = ({
               ))}
             </CardContent>
           </Card>
-        </div>
+        </aside>
       </div>
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (

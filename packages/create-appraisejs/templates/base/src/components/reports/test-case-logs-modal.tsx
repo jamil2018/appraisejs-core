@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Separator } from '@/components/ui/separator'
 import { StepStatus, ReportScenario } from '@prisma/client'
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
@@ -44,44 +45,13 @@ interface TestCaseLogsModalProps {
 const stepStatusToBadge = (status: StepStatus) => {
   switch (status) {
     case StepStatus.PASSED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-1 rounded-xl border-green-700 bg-green-700/10 py-0.5 text-xs text-green-500"
-        >
-          <CheckCircle className="size-3" />
-          PASSED
-        </Badge>
-      )
+      return <StatusBadge label="Passed" tone="success" icon={<CheckCircle />} />
     case StepStatus.FAILED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-1 rounded-xl border-red-700 bg-red-700/10 py-0.5 text-xs text-red-500"
-        >
-          <XCircle className="size-3" />
-          FAILED
-        </Badge>
-      )
+      return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} />
     case StepStatus.SKIPPED:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-1 rounded-xl border-zinc-700 bg-zinc-700/10 py-0.5 text-xs text-zinc-500"
-        >
-          <Clock className="size-3" />
-          SKIPPED
-        </Badge>
-      )
+      return <StatusBadge label="Skipped" tone="warning" icon={<Clock />} />
     default:
-      return (
-        <Badge
-          variant="outline"
-          className="flex items-center gap-1 rounded-xl border-zinc-700 bg-zinc-700/10 py-0.5 text-xs text-zinc-500"
-        >
-          {status}
-        </Badge>
-      )
+      return <StatusBadge label={status} tone="neutral" />
   }
 }
 

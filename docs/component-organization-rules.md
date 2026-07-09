@@ -35,3 +35,30 @@ These rules are the working baseline for Appraise UI refactors.
 - Effects have one responsibility and clean up after themselves.
 - Derived data stays derived instead of being copied into mirrored state.
 - Icon-only actions expose accessible labels.
+
+## Visual Language Contract
+
+Dashboard, Implementation Plans, and the desktop sidebar are the visual references for operational AppraiseJS work.
+Route work should preserve their dark navy depth, restrained translucent surfaces, compact density, subtle white
+borders, `0.5rem` control radius, and emerald primary action language. Do not mechanically replace route styles or
+turn dense tables into card feeds at small widths.
+
+- Use Inter through the root layout as the authoritative sans stack. Keep typography compact and semantic rather than
+  using route-local font families or heading-like labels for ordinary content.
+- Keep `lg` and wider navigation as the desktop sidebar. Below `lg`, use the mobile navigation shell so content starts
+  in the first viewport; Sheet/Dialog controls must retain native focus trapping, Escape dismissal, and trigger focus
+  restoration.
+- For data tables, preserve table semantics and use a contained, keyboard-focusable horizontal scroll surface with a
+  stable minimum width. Toolbars and pagination may wrap; the page itself must not gain horizontal overflow.
+- Compose forms as responsive content-and-guidance grids. Use full-width primary cards with a deliberate max-width or
+  grid track, and keep optional guidance secondary or below the primary task on narrow screens. Do not use
+  `overflow-x-hidden` to conceal a form layout problem.
+- Selects, multi-selects, Browse controls, and popovers should share compact control height, quiet borders, muted
+  placeholders, visible focus rings, and translucent bordered overlay surfaces. Selected values must wrap safely
+  without forcing unexpected page overflow.
+- Status labels must remain readable without color alone. Use the shared semantic status treatment for equivalent
+  success, failure, warning, informational, and neutral states; keep domain-specific mapping close to the feature.
+- Graph hosts should use the same bordered navy canvas family, compact empty prompt, responsive minimum height, and
+  labelled icon controls. Route-specific graph sizing is acceptable only when the workflow requires it.
+- Shared primitives should be changed only with representative route checks. For visual changes, capture the
+  Dashboard, Plans, sidebar, a dense table, a form, and the changed interactive state before and after the change.

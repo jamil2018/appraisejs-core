@@ -1,7 +1,6 @@
 'use client'
 
 import { RefreshCw } from 'lucide-react'
-import { AppDrawerItemColor } from '@/app/(dashboard-components)/app-drawer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -12,7 +11,7 @@ import {
   syncScriptDefinitions,
 } from '@/lib/sync/sync-registry'
 import type { SyncPendingCounts } from '@/lib/sync/sync-pending-counts'
-import { getSyncTooltipCopy, syncPanelInfo, syncPresentation } from './settings-sync-panel-helpers'
+import { getSyncTooltipCopy, syncPanelInfo, syncPresentation, syncTileColors } from './settings-sync-panel-helpers'
 import { useSettingsSync } from './use-settings-sync'
 
 function SyncRow({
@@ -29,7 +28,7 @@ function SyncRow({
   onRun: (requestId: SyncRequestId) => void
 }) {
   const { icon, colorKey } = syncPresentation[definition.id]
-  const color = AppDrawerItemColor[colorKey]
+  const color = syncTileColors[colorKey]
 
   return (
     <Tooltip>
@@ -75,7 +74,7 @@ export function SettingsSyncPanel({ pendingCounts }: { pendingCounts: SyncPendin
   } = useSettingsSync({
     initialPendingCounts: pendingCounts,
   })
-  const syncAllColor = AppDrawerItemColor.emerald
+  const syncAllColor = syncTileColors.emerald
 
   return (
     <TooltipProvider>
