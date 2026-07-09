@@ -50,22 +50,22 @@ function DataCardHeader({ title, theme, isEmpty }: { title: string; theme: Entit
   const { Icon } = theme
 
   return (
-    <div className="flex w-full items-center justify-between gap-2">
+    <div className="flex w-full items-start justify-between gap-3">
       <CardTitle
         className={cn(
-          'text-xs font-semibold uppercase tracking-wide',
-          isEmpty ? 'text-zinc-500' : 'text-zinc-300 group-hover:text-white'
+          'pt-0.5 text-xs font-semibold uppercase leading-4 tracking-wide',
+          isEmpty ? 'text-zinc-500' : 'text-zinc-300 group-hover:text-white',
         )}
       >
         {title}
       </CardTitle>
       <div
         className={cn(
-          'flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors duration-300',
-          isEmpty ? 'border-white/[0.05] bg-white/[0.02] text-zinc-600' : `${theme.bgClass} ${theme.colorClass}`
+          'flex size-8 shrink-0 items-center justify-center rounded-md border transition-colors duration-200',
+          isEmpty ? 'border-white/[0.05] bg-white/[0.02] text-zinc-600' : `${theme.bgClass} ${theme.colorClass}`,
         )}
       >
-        <Icon className="size-5" />
+        <Icon className="size-4" />
       </div>
     </div>
   )
@@ -73,17 +73,17 @@ function DataCardHeader({ title, theme, isEmpty }: { title: string; theme: Entit
 
 function DataCardValue({ value, theme, isEmpty }: { value: number; theme: EntityTheme; isEmpty: boolean }) {
   return (
-    <div className="mt-5 flex w-full items-baseline justify-between">
+    <div className="mt-4 flex w-full items-baseline justify-between">
       <span
         className={cn(
-          'text-3xl font-extrabold tracking-tight transition-all duration-300',
-          isEmpty ? 'text-zinc-600' : `${theme.colorClass} origin-left group-hover:scale-[1.02]`
+          'text-2xl font-bold leading-7 transition-colors duration-200',
+          isEmpty ? 'text-zinc-600' : theme.colorClass,
         )}
       >
         {value}
       </span>
       {!isEmpty && (
-        <div className="text-zinc-500 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-zinc-300">
+        <div className="text-zinc-500 transition-colors duration-200 group-hover:text-zinc-300">
           <ArrowRight className="size-4" />
         </div>
       )}
@@ -101,10 +101,10 @@ export default function DataCard({ title, value, link }: DataCardProps) {
       onClick={() => !isEmpty && push(link)}
       disabled={isEmpty}
       className={cn(
-        'group relative flex w-full flex-col justify-between overflow-hidden rounded-xl border p-[18px] text-left transition-all duration-300 outline-none focus-visible:ring-1 focus-visible:ring-primary',
+        'group relative flex min-h-[116px] w-full flex-col justify-between overflow-hidden rounded-lg border p-3 text-left outline-none transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-primary',
         isEmpty
           ? 'cursor-not-allowed border-white/[0.05] bg-white/[0.015] opacity-50'
-          : `cursor-pointer border-white/[0.07] bg-white/[0.03] hover:shadow-[0_4px_20px_rgba(0,0,0,0.18)] ${theme.hoverClass}`
+          : `cursor-pointer border-white/[0.07] bg-white/[0.03] ${theme.hoverClass}`,
       )}
     >
       <DataCardHeader title={title} theme={theme} isEmpty={isEmpty} />

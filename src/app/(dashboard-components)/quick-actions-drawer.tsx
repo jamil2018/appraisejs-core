@@ -94,43 +94,36 @@ const quickActions = [
 export default function QuickActionsDrawer() {
   const { push } = useRouter()
   return (
-    <Card id="container" className="relative overflow-hidden border-white/[0.08] bg-gradient-to-b from-[rgba(24,45,75,0.35)] to-[rgba(12,20,35,0.45)] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent pointer-events-none" />
-      <CardHeader id="header" className="relative pb-5">
-        <CardTitle className="text-lg font-bold text-white tracking-tight">Quick Actions</CardTitle>
-        <CardDescription className="text-zinc-400 text-xs leading-relaxed">
+    <Card id="container" className="relative overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none">
+      <CardHeader id="header" className="relative px-4 pb-3 pt-4">
+        <CardTitle className="text-base font-semibold text-white">Quick Actions</CardTitle>
+        <CardDescription className="text-xs leading-5 text-zinc-400">
           Instantly create workspace assets or execute runs
         </CardDescription>
       </CardHeader>
-      <CardContent id="content" className="relative pt-0">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <CardContent id="content" className="relative px-4 pb-4 pt-0">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {quickActions.map(({ label, description, href, icon: Icon, theme }) => (
             <button
               key={href}
               onClick={() => push(href)}
-              className={`group flex flex-col justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] p-4.5 text-left transition-all duration-300 outline-none hover:border-white/[0.15] hover:bg-white/[0.04] focus-visible:ring-1 focus-visible:ring-primary ${theme.hoverGlow}`}
+              className="group flex min-h-[84px] items-start gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-left outline-none transition-colors duration-200 hover:border-white/[0.15] hover:bg-white/[0.04] focus-visible:ring-1 focus-visible:ring-primary"
             >
-              {/* Top row: Icon box & Mini action marker */}
-              <div className="flex w-full items-center justify-between">
-                <div
-                  className={`flex size-9 items-center justify-center rounded-lg border transition-all duration-300 ${theme.border} ${theme.bg} ${theme.text} ${theme.hoverBorder} ${theme.hoverBg}`}
-                >
-                  <Icon className="size-5" />
-                </div>
-                <div className="flex size-5 items-center justify-center rounded-full bg-white/[0.03] border border-white/[0.06] text-zinc-500 opacity-60 transition-all duration-300 group-hover:scale-110 group-hover:opacity-100 group-hover:bg-primary/10 group-hover:border-primary/30 group-hover:text-primary">
-                  <Plus className="size-3" />
-                </div>
+              <div
+                className={`flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors duration-200 ${theme.border} ${theme.bg} ${theme.text} ${theme.hoverBorder} ${theme.hoverBg}`}
+              >
+                <Icon className="size-5" />
               </div>
 
-              {/* Bottom row: Text & Meta info */}
-              <div className="mt-5 space-y-1">
+              <div className="min-w-0 flex-1 space-y-1">
                 <span className="block text-sm font-semibold text-zinc-100 transition-colors duration-300 group-hover:text-white">
                   {label}
                 </span>
-                <span className="block text-[11px] leading-relaxed text-zinc-400/80 line-clamp-2 transition-colors duration-300 group-hover:text-zinc-300">
+                <span className="line-clamp-2 block text-xs leading-4 text-zinc-400/80 transition-colors duration-200 group-hover:text-zinc-300">
                   {description}
                 </span>
               </div>
+              <Plus className="mt-0.5 size-4 shrink-0 text-zinc-500 transition-colors duration-200 group-hover:text-primary" />
             </button>
           ))}
         </div>

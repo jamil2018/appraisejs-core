@@ -48,50 +48,38 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
       acc.total += suite.total
       return acc
     },
-    { passed: 0, failed: 0, cancelled: 0, unknown: 0, total: 0 }
+    { passed: 0, failed: 0, cancelled: 0, unknown: 0, total: 0 },
   )
 
   const successRate = totals.total > 0 ? Math.round((totals.passed / totals.total) * 100) : 0
   const hasData = featureData.length > 0
 
   return (
-    <Card className="relative overflow-hidden border-white/[0.08] bg-gradient-to-b from-[rgba(24,45,75,0.35)] to-[rgba(12,20,35,0.45)] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-md size-full flex flex-col">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent pointer-events-none" />
-      <CardHeader className="relative pb-5">
-        <CardTitle className="text-lg font-bold text-white tracking-tight">Execution Health</CardTitle>
-        <CardDescription className="text-zinc-400 text-xs leading-relaxed">
+    <Card className="relative flex size-full min-h-[320px] flex-col overflow-hidden border-white/[0.08] bg-[rgba(18,37,64,0.42)] shadow-none 2xl:min-h-[calc(100vh-8.75rem)]">
+      <CardHeader className="relative px-4 pb-3 pt-4">
+        <CardTitle className="text-base font-semibold text-white">Execution Health</CardTitle>
+        <CardDescription className="text-xs leading-5 text-zinc-400">
           Pass/fail counts by test suite across last 10 completed runs
         </CardDescription>
       </CardHeader>
-      <CardContent className="relative flex-1 flex flex-col pt-0">
+      <CardContent className="relative flex flex-1 flex-col px-4 pb-4 pt-0">
         {hasData ? (
-          <div className="space-y-6 flex-1 flex flex-col justify-between">
-            {/* Aggregate Quality Metric Card */}
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4.5">
+          <div className="flex flex-1 flex-col justify-between space-y-5">
+            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                     Average Success Rate
                   </span>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-extrabold text-white tracking-tight">
-                      {successRate}%
-                    </span>
-                    <span className="text-xs text-emerald-400/90 font-medium">overall</span>
+                    <span className="text-3xl font-bold text-white">{successRate}%</span>
+                    <span className="text-xs font-medium text-emerald-400/90">overall</span>
                   </div>
                 </div>
 
-                {/* Micro donut/percentage gauge or visual indicator */}
                 <div className="relative flex items-center justify-center">
                   <svg className="size-14 -rotate-90">
-                    <circle
-                      cx="28"
-                      cy="28"
-                      r="22"
-                      className="stroke-white/[0.04]"
-                      strokeWidth="4"
-                      fill="transparent"
-                    />
+                    <circle cx="28" cy="28" r="22" className="stroke-white/[0.04]" strokeWidth="4" fill="transparent" />
                     <circle
                       cx="28"
                       cy="28"
@@ -108,12 +96,17 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
                 </div>
               </div>
 
-              {/* Status Breakdown Bar */}
               <div className="mt-4 space-y-2">
                 <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-white/[0.04]">
-                  <div className="bg-emerald-400 animate-pulse [animation-duration:3s]" style={{ width: `${(totals.passed / totals.total) * 100}%` }} />
+                  <div
+                    className="animate-pulse bg-emerald-400 [animation-duration:3s]"
+                    style={{ width: `${(totals.passed / totals.total) * 100}%` }}
+                  />
                   <div className="bg-rose-500" style={{ width: `${(totals.failed / totals.total) * 100}%` }} />
-                  <div className="bg-zinc-500" style={{ width: `${((totals.cancelled + totals.unknown) / totals.total) * 100}%` }} />
+                  <div
+                    className="bg-zinc-500"
+                    style={{ width: `${((totals.cancelled + totals.unknown) / totals.total) * 100}%` }}
+                  />
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-1 text-[11px] text-zinc-400">
@@ -129,23 +122,20 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
                     <PlayCircle className="size-3 text-zinc-500" />
                     <span>{totals.cancelled + totals.unknown} Other</span>
                   </div>
-                  <span className="text-zinc-500 text-[10px] ml-auto">
-                    {totals.total} scenarios total
-                  </span>
+                  <span className="ml-auto text-[10px] text-zinc-500">{totals.total} scenarios total</span>
                 </div>
               </div>
             </div>
 
-            {/* Custom chart visualization */}
-            <div className="flex-1 flex flex-col justify-center">
+            <div className="flex flex-1 flex-col justify-center">
               <FeatureChart config={resultByTestSuiteBarChartConfig} data={featureData} />
             </div>
           </div>
         ) : (
-          <div className="flex h-[320px] flex-col items-center justify-center text-center rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] p-6">
-            <PlayCircle className="size-10 text-zinc-600 mb-3 animate-pulse" />
+          <div className="flex min-h-[250px] flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.08] bg-white/[0.01] p-6 text-center">
+            <PlayCircle className="mb-3 size-10 text-zinc-600" />
             <p className="text-sm font-semibold text-zinc-300">No execution data available</p>
-            <p className="text-xs text-zinc-500 max-w-[240px] mt-1">
+            <p className="mt-1 max-w-[240px] text-xs leading-5 text-zinc-500">
               Execute test suites in the dashboard to populate performance metrics.
             </p>
           </div>
