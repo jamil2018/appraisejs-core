@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 
 const PageHeader = ({ className, children }: { className?: string; children: React.ReactNode }) => {
-  return <div className={cn('text-4xl font-bold text-primary', className)}>{children}</div>
+  return <h1 className={cn('text-3xl font-semibold text-foreground sm:text-4xl', className)}>{children}</h1>
 }
 
 export default PageHeader

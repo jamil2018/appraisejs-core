@@ -214,9 +214,9 @@ const LIFECYCLE_TONES = {
     dot: 'bg-sky-500 animate-pulse',
   },
   active: {
-    classes: 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+    classes: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
     Icon: Clock,
-    dot: 'bg-violet-500 animate-pulse',
+    dot: 'bg-sky-500 animate-pulse',
   },
 } as const
 

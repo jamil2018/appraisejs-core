@@ -42,9 +42,9 @@ const cardStylesByCategory = {
     badge: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200 hover:bg-emerald-300/15',
   },
   inProgress: {
-    border: 'border-l-violet-300/70',
-    dot: 'bg-violet-300 animate-pulse',
-    badge: 'border-violet-300/25 bg-violet-300/10 text-violet-200 hover:bg-violet-300/15',
+    border: 'border-l-sky-300/70',
+    dot: 'bg-sky-300 animate-pulse',
+    badge: 'border-sky-300/25 bg-sky-300/10 text-sky-200 hover:bg-sky-300/15',
   },
   review: {
     border: 'border-l-amber-300/70',

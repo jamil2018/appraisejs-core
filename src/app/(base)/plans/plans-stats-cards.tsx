@@ -46,9 +46,9 @@ export function PlansStatsCards({
         value={totalInProgress}
         caption="Active baseline or coding phase"
         icon={Clock}
-        accentClassName="border-l-violet-300/70"
-        valueClassName="text-violet-300"
-        iconClassName="text-violet-300"
+        accentClassName="border-l-sky-300/70"
+        valueClassName="text-sky-300"
+        iconClassName="text-sky-300"
       />
     </div>
   )

@@ -40,9 +40,9 @@ export const AppDrawerItemColor = {
     badgeColor: 'bg-emerald-400 text-emerald-800',
   },
   purple: {
-    buttonColor: 'border-purple-300/20 bg-purple-400/[0.07] hover:bg-purple-400/[0.11]',
-    iconColor: 'text-purple-300',
-    badgeColor: 'bg-purple-400 text-purple-800',
+    buttonColor: 'border-cyan-300/20 bg-cyan-400/[0.07] hover:bg-cyan-400/[0.11]',
+    iconColor: 'text-cyan-300',
+    badgeColor: 'bg-cyan-400 text-cyan-950',
   },
   pink: {
     buttonColor: 'border-pink-300/20 bg-pink-400/[0.07] hover:bg-pink-400/[0.11]',
@@ -60,9 +60,9 @@ export const AppDrawerItemColor = {
     badgeColor: 'bg-fuchsia-400 text-fuchsia-800',
   },
   violet: {
-    buttonColor: 'border-violet-300/20 bg-violet-400/[0.07] hover:bg-violet-400/[0.11]',
-    iconColor: 'text-violet-300',
-    badgeColor: 'bg-violet-400 text-violet-800',
+    buttonColor: 'border-teal-300/20 bg-teal-400/[0.07] hover:bg-teal-400/[0.11]',
+    iconColor: 'text-teal-300',
+    badgeColor: 'bg-teal-400 text-teal-950',
   },
   sky: {
     buttonColor: 'border-sky-300/20 bg-sky-400/[0.07] hover:bg-sky-400/[0.11]',
@@ -165,13 +165,13 @@ export default function AppDrawer({
   ]
 
   return (
-    <Card id="container" className="w-fit border-white/[0.07] bg-[rgba(18,37,64,0.34)]">
+    <Card id="container" className="w-full border-white/[0.07] bg-[rgba(18,37,64,0.34)]">
       <CardHeader id="header">
         <CardTitle className="text-primary">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent id="content">
-        <div className="grid grid-cols-2 gap-4 gap-y-6">
+        <div className="grid grid-cols-2 gap-4">
           {items.map(item => (
             <AppDrawerItem
               key={item.title}
