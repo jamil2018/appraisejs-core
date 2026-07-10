@@ -24,9 +24,9 @@ test.describe('Smoke @smoke', () => {
   test('dashboard renders seeded entity metrics', async ({ page }) => {
     await page.goto('/')
     await expectPageHeading(page, 'Dashboard')
-    await expect(page.getByText('Test Cases')).toBeVisible()
-    await expect(page.getByText('Test Suites')).toBeVisible()
-    await expect(page.getByText('Template Steps')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Test Cases' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Test Suites' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Template Steps' })).toBeVisible()
     await expect(page.getByText('Attention Needed')).toBeVisible()
   })
 

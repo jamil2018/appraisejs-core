@@ -4,11 +4,5 @@
     "apiBaseUrl": "http://127.0.0.1:3200/api",
     "email": "tester",
     "password": "secret"
-  },
-  "local": {
-    "baseUrl": "http://127.0.0.1:5173",
-    "apiBaseUrl": "",
-    "email": "",
-    "password": ""
   }
 }

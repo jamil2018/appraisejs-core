@@ -1,0 +1,12 @@
+fileApprovals: []
+planApprovals:
+  - approvedAt: 2026-07-10T12:24:02.622Z
+    approvedBy: local-user
+    contentHash: sha256:cd553affe4d1c456ebfa8e5ee87f05467e4e3b12160bf094cf4e5ca76d74ed4e
+    id: approval-a91f9543-9089-4dea-a8a3-b619b4c82809
+    relevantHashes:
+      plan: sha256:cd553affe4d1c456ebfa8e5ee87f05467e4e3b12160bf094cf4e5ca76d74ed4e
+    revision: 1
+planId: pln_01kx5zqbjzrxr32m3a056sq8da
+threads: []
+version: "1"

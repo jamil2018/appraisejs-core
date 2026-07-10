@@ -1,0 +1,651 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "evidence_integrity_recovery_flow",
+        "label": "Evidence Integrity And Recovery Flow",
+        "nodes": [
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_tag_selector_alignment",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_evidence_preserving_classification",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_baseline_retry",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_changes_requested"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md"
+      },
+      {
+        "id": "deterministic_runtime_packet_flow",
+        "label": "Deterministic Runtime Packet Flow",
+        "nodes": [
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_appraise_owned_execution_packet",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_single_cucumber_instance",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_execution_packet_review"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md"
+      },
+      {
+        "id": "efficient_validation_authoring_flow",
+        "label": "Efficient Validation Authoring Flow",
+        "nodes": [
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_confidence_bound_reuse_matching",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_draft_repair_tools",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_compact_draft_responses",
+          "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_server_side_resource_filtering"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "Executable Plan Builder Lifecycle",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Summary",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A fresh external workspace should progress from a natural-language brief through reviewed planning, validation, baseline, implementation, managed final validation, and completion.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_executable_plan_builder_lifecycle",
+      "community": 4,
+      "norm_label": "executable plan builder lifecycle"
+    },
+    {
+      "label": "Motivation Quotes Runtime Audit",
+      "file_type": "document",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Audit Evidence",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_audit_evidence",
+      "community": 2,
+      "norm_label": "motivation quotes runtime audit"
+    },
+    {
+      "label": "Invalid Missing Report Evidence",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Audit Evidence > Attempt 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_invalid_missing_report",
+      "community": 2,
+      "norm_label": "invalid missing report evidence"
+    },
+    {
+      "label": "Invalid Empty Run Evidence",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Audit Evidence > Attempt 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_invalid_empty_run",
+      "community": 2,
+      "norm_label": "invalid empty run evidence"
+    },
+    {
+      "label": "Generated Tag And Selector Alignment",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Defects > P0: Generated Feature Tags Do Not Match Baseline Selection",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Generated scenarios omitted the suite tag required by the partial-suite baseline expression, allowing Cucumber to exit successfully while selecting zero scenarios.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_tag_selector_alignment",
+      "community": 2,
+      "norm_label": "generated tag and selector alignment"
+    },
+    {
+      "label": "Evidence Preserving Baseline Classification",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Evidence-Preserving Baseline Classification",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Durable evidence health is the authoritative trust verdict and must be carried directly into classification rather than converted to text and guessed from regular expressions.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_evidence_preserving_classification",
+      "community": 1,
+      "norm_label": "evidence preserving baseline classification"
+    },
+    {
+      "label": "Validation Harness Failure Classification",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Evidence-Preserving Baseline Classification",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_harness_failure",
+      "community": 1,
+      "norm_label": "validation harness failure classification"
+    },
+    {
+      "label": "Hash Bound Baseline Retry",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Baseline Repair And Retry",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Invalid baseline evidence needs an Appraise-owned recovery transition that preserves historical attempts, reopens affected validation, and requires exact re-review.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_baseline_retry",
+      "community": 1,
+      "norm_label": "hash bound baseline retry"
+    },
+    {
+      "label": "Validation Changes Requested State",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Baseline Repair And Retry",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_changes_requested",
+      "community": 1,
+      "norm_label": "validation changes requested state"
+    },
+    {
+      "label": "Appraise Owned Execution Packet",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 4: Choose One Runtime Ownership Model",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A deterministic Appraise-owned binary and runtime cache avoids target dependency installation, source-checkout path leakage, placeholder execution, and duplicate Cucumber instances.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_appraise_owned_execution_packet",
+      "community": 0,
+      "norm_label": "appraise owned execution packet"
+    },
+    {
+      "label": "Single Cucumber Instance",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 4: Choose One Runtime Ownership Model",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_single_cucumber_instance",
+      "community": 0,
+      "norm_label": "single cucumber instance"
+    },
+    {
+      "label": "Exact Managed Command Preflight",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 5: Run Exact-Command Preflight",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Preflight must exercise the same binary, working directory, config, imports, TypeScript loader, environment, selector, report path, and expected rows used by managed execution.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight",
+      "community": 0,
+      "norm_label": "exact managed command preflight"
+    },
+    {
+      "label": "Environment Identity Normalization",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 9: Normalize Environment Identity Early",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_environment_identity_normalization",
+      "community": 0,
+      "norm_label": "environment identity normalization"
+    },
+    {
+      "label": "Lifecycle And Domain Requirement Separation",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 6: Separate Lifecycle Language From Domain Requirements",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Lifecycle phrases such as complete the flow must not be interpreted as domain CRUD requirements such as completing and reactivating records.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_lifecycle_domain_separation",
+      "community": 5,
+      "norm_label": "lifecycle and domain requirement separation"
+    },
+    {
+      "label": "Confidence Bound Reuse Matching",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 7: Make Reuse Matching Confidence-Bound",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Automatic intent rewrites require a minimum score, safe margin, and capability-compatible terms; low-confidence candidates should remain suggestions.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_confidence_bound_reuse_matching",
+      "community": 3,
+      "norm_label": "confidence bound reuse matching"
+    },
+    {
+      "label": "Hash Bound Draft Repair Tools",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Explicit Draft Repair Tools",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_draft_repair_tools",
+      "community": 3,
+      "norm_label": "hash bound draft repair tools"
+    },
+    {
+      "label": "Compact Draft Mutation Responses",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Compact Draft Responses",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Normal mutation response volume should be proportional to changed state rather than repeatedly serializing the full draft and rendered artifact.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_compact_draft_responses",
+      "community": 3,
+      "norm_label": "compact draft mutation responses"
+    },
+    {
+      "label": "Server Side Resource Filtering And Context Receipts",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 11: Filter Resources Server-Side And Cache Context Receipts",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_server_side_resource_filtering",
+      "community": 3,
+      "norm_label": "server side resource filtering and context receipts"
+    },
+    {
+      "label": "Managed Test Run Diagnosis",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 12: Improve Managed Diagnosis",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_managed_diagnosis",
+      "community": 1,
+      "norm_label": "managed test run diagnosis"
+    },
+    {
+      "label": "Runtime Preparation Proposal",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 13: Add Appraise-Owned Runtime Preparation Proposal",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_runtime_preparation_proposal",
+      "community": 0,
+      "norm_label": "runtime preparation proposal"
+    },
+    {
+      "label": "Execution Packet Review Panel",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 14: Show The Exact Execution Packet In Review",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_execution_packet_review",
+      "community": 0,
+      "norm_label": "execution packet review panel"
+    },
+    {
+      "label": "One Click Repair And Rerun",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 15: Add One-Click Repair And Rerun",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_one_click_repair_rerun",
+      "community": 1,
+      "norm_label": "one click repair and rerun"
+    },
+    {
+      "label": "Fresh Machine End To End Acceptance",
+      "file_type": "rationale",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Final Checkpoint: Release Acceptance",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Release acceptance requires a new empty target to complete every Appraise-owned gate without manually patching generated artifacts, database rows, or lifecycle state.",
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_fresh_machine_e2e_acceptance",
+      "community": 4,
+      "norm_label": "fresh machine end to end acceptance"
+    },
+    {
+      "label": "Managed TestRun Evidence",
+      "file_type": "concept",
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Assumptions",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_managed_test_run_evidence",
+      "community": 4,
+      "norm_label": "managed testrun evidence"
+    }
+  ],
+  "links": [
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Final Checkpoint: Release Acceptance",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_fresh_machine_e2e_acceptance",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_executable_plan_builder_lifecycle"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Audit Evidence > Attempt 3",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_audit_evidence",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_invalid_empty_run"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Audit Evidence > Attempt 1",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_audit_evidence",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_invalid_missing_report"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 2: Classify Durable Evidence Health Directly",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_invalid_missing_report",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_harness_failure"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Defects > P0: Generated Feature Tags Do Not Match Baseline Selection",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_invalid_empty_run",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_tag_selector_alignment"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 2: Classify Durable Evidence Health Directly",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_invalid_empty_run",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_harness_failure"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 5: Run Exact-Command Preflight",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_tag_selector_alignment"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 3: Add Hash-Bound Baseline Repair",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_baseline_retry",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_evidence_preserving_classification"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Evidence-Preserving Baseline Classification",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_evidence_preserving_classification",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_harness_failure"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 12: Improve Managed Diagnosis",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_managed_diagnosis",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_evidence_preserving_classification"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Public Contract Changes > Baseline Repair And Retry",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_baseline_retry",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_changes_requested"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 15: Add One-Click Repair And Rerun",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_one_click_repair_rerun",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_baseline_retry"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 4: Choose One Runtime Ownership Model",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_appraise_owned_execution_packet",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_single_cucumber_instance"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 5: Run Exact-Command Preflight",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_appraise_owned_execution_packet"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 13: Add Appraise-Owned Runtime Preparation Proposal",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_runtime_preparation_proposal",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_appraise_owned_execution_packet"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 9: Normalize Environment Identity Early",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_environment_identity_normalization",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 14: Show The Exact Execution Packet In Review",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_execution_packet_review",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 12: Improve Managed Diagnosis",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_managed_diagnosis",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 8: Add Draft Delete, Reset, And Atomic Patch",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_draft_repair_tools",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_confidence_bound_reuse_matching"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 10: Return Draft Deltas By Default",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_compact_draft_responses",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_draft_repair_tools"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 11: Filter Resources Server-Side And Cache Context Receipts",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_server_side_resource_filtering",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_compact_draft_responses"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Implementation Plan > Task 15: Add One-Click Repair And Rerun",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_one_click_repair_rerun",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_managed_diagnosis"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md",
+      "source_location": "Final Checkpoint: Release Acceptance",
+      "weight": 1.0,
+      "source": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_fresh_machine_e2e_acceptance",
+      "target": "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_managed_test_run_evidence"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "evidence_integrity_recovery_flow",
+      "label": "Evidence Integrity And Recovery Flow",
+      "nodes": [
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_tag_selector_alignment",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_evidence_preserving_classification",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_baseline_retry",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_validation_changes_requested"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md"
+    },
+    {
+      "id": "deterministic_runtime_packet_flow",
+      "label": "Deterministic Runtime Packet Flow",
+      "nodes": [
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_appraise_owned_execution_packet",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_single_cucumber_instance",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_exact_command_preflight",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_execution_packet_review"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md"
+    },
+    {
+      "id": "efficient_validation_authoring_flow",
+      "label": "Efficient Validation Authoring Flow",
+      "nodes": [
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_confidence_bound_reuse_matching",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_draft_repair_tools",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_compact_draft_responses",
+        "bug_fixes_26_plan_builder_end_to_end_runtime_recovery_and_efficiency_server_side_resource_filtering"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "26-plan-builder-end-to-end-runtime-recovery-and-efficiency.md"
+    }
+  ],
+  "built_at_commit": "9ce4415f7ecc80c69086febc3f42e45ab3a5c393"
+}

@@ -1,0 +1,133 @@
+description: Create a dependency-light Vite and vanilla TypeScript web app backed by a local curated quote set. It must render a quote and author immediately, rotate deterministically to a different quote, copy the displayed quote with accessible status feedback, remain responsive, and pass unit, build, and Appraise-managed browser validation.
+edges:
+  - from: app-foundation
+    to: quote-experience
+    type: blocks
+  - from: quote-experience
+    to: copy-interaction
+    type: blocks
+  - from: quote-experience
+    to: responsive-accessible-ui
+    type: blocks
+  - from: copy-interaction
+    to: browser-validation
+    type: blocks
+  - from: responsive-accessible-ui
+    to: browser-validation
+    type: blocks
+goal: Build a simple motivation quotes app
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - app-foundation
+  - id: product
+    taskIds:
+      - quote-experience
+      - copy-interaction
+      - responsive-accessible-ui
+  - id: quality
+    taskIds:
+      - browser-validation
+lifecycle: baseline_review
+planId: pln_01kx5z29gjpae9ecpsftd4ftha
+requirementAssessment:
+  domainCandidates:
+    - confidence: 1
+      domain: motivation-quotes
+      evidence:
+        - The brief explicitly requests a simple motivation quotes web app with a local quote set.
+  requirements:
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: quote-experience
+        - surface: validationIntent
+          taskId: browser-validation
+      id: quotes-display
+      kind: functional
+      text: Show a curated motivational quote and author on initial load.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: quote-experience
+        - surface: acceptanceCriteria
+          taskId: browser-validation
+      id: next-quote
+      kind: functional
+      text: A New quote control changes to a different local quote deterministically.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: copy-interaction
+        - surface: acceptanceCriteria
+          taskId: browser-validation
+      id: copy-feedback
+      kind: functional
+      text: Copy quote provides visible accessible success feedback.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: responsive-accessible-ui
+        - surface: validationIntent
+          taskId: browser-validation
+      id: accessibility
+      kind: quality
+      text: The app supports keyboard and screen-reader interaction.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: responsive-accessible-ui
+        - surface: acceptanceCriteria
+          taskId: browser-validation
+      id: responsive
+      kind: quality
+      text: The layout remains usable on mobile and desktop.
+    - coveredBy:
+        - surface: description
+          taskId: browser-validation
+        - surface: validationIntent
+          taskId: browser-validation
+      id: testing
+      kind: validation
+      text: Automated unit, build, and Appraise-managed browser validation are required.
+  selectedDomain: motivation-quotes
+  uncoveredRequirementIds: []
+  warnings: []
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The app starts through a documented Vite dev command.
+      - The production build completes successfully.
+      - The project has only the dependencies needed for the small static experience.
+    description: Create the minimal package, Vite, TypeScript, HTML, and source structure without a backend or unnecessary runtime dependencies.
+    id: app-foundation
+    title: Create the Vite TypeScript foundation
+    validationIntent: Install dependencies, run focused unit tests, and run the production build.
+  - acceptanceCriteria:
+      - A non-empty motivational quote and author are visible on initial load.
+      - Activating New quote replaces both quote and author with a different entry.
+      - Quote rotation uses the local set and requires no network or backend.
+    description: Add a local curated quote set and render the current quote and author on first paint. Advance through the set deterministically with a New quote button so browser tests are stable.
+    id: quote-experience
+    title: Implement deterministic quote display and rotation
+    validationIntent: Unit-test quote rotation and validate initial/next quote behavior in the browser.
+  - acceptanceCriteria:
+      - Activating Copy quote writes the displayed quote and author to the clipboard.
+      - Successful copy produces visible feedback.
+      - The status feedback is announced without stealing focus and failure is handled clearly.
+    description: Copy the current quote and author to the clipboard and expose success or failure feedback in a screen-reader-announced status region.
+    id: copy-interaction
+    title: Add copy interaction with accessible feedback
+    validationIntent: Exercise the copy action in a browser context with clipboard permission and assert the visible live-region feedback.
+  - acceptanceCriteria:
+      - All controls are reachable and operable by keyboard.
+      - Semantic headings, quote markup, button names, and a live status region support assistive technology.
+      - The quote card and controls remain readable and usable at narrow and wide viewports.
+    description: Style a focused single-card experience with semantic content, clear focus states, sufficient contrast, and mobile-to-desktop responsiveness.
+    id: responsive-accessible-ui
+    title: Create a responsive accessible interface
+    validationIntent: Run browser assertions for accessible roles/names, keyboard activation, focus visibility, and narrow viewport layout.
+  - acceptanceCriteria:
+      - Appraise-managed browser validation covers initial quote, next quote, copy feedback, keyboard operation, and a narrow viewport.
+      - Browser checks are deterministic and do not depend on a network quote API.
+      - Unit tests and production build pass after implementation.
+    description: Create Appraise-native executable validation artifacts for the initial quote, deterministic next quote, copy feedback, accessibility, and responsive layout; also retain unit and production-build checks.
+    id: browser-validation
+    title: Create and run deterministic automated validation
+    validationIntent: Run the approved Appraise-managed Cucumber/Playwright validation against the target and reconcile its TestRun evidence before completion.
+version: "1"
