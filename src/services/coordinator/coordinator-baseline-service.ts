@@ -86,6 +86,7 @@ export async function readStoredJsonReport(reportPath: string | null | undefined
     : null
 }
 
+// fallow-ignore-next-line code-duplication -- mirrors validation artifact loading so both gates use identical roots.
 async function readBaselineArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
   const projectRoot = await findProjectRoot(projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
@@ -310,7 +311,14 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
     run.status === TestRunStatus.QUEUED ||
     run.status === TestRunStatus.CANCELLING
   ) {
-    return { status: 'running' as const, result: 'interrupted' as const, failureSignatures: [], completedStepIds: [] }
+    return {
+      status: 'running' as const,
+      result: 'interrupted' as const,
+      evidenceHealth: 'infrastructure_failure' as const,
+      blockers: [],
+      failureSignatures: [],
+      completedStepIds: [],
+    }
   }
   const logs = await getTestRunLogsService(testRunId).catch(() => [])
   const logFailureSignatures = logs
@@ -330,6 +338,8 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
   }
   return {
     status: 'completed' as const,
+    evidenceHealth: evidenceSummary.evidenceHealth,
+    blockers: evidenceSummary.blockers,
     result:
       run.result === TestRunResult.PASSED
         ? ('passed' as const)
@@ -343,7 +353,7 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
 }
 
 function invalidBaselineEvidence(input: {
-  evidenceHealth: string
+  evidenceHealth: BaselineEvidence['evidenceHealth']
   blockers: string[]
   logFailureSignatures: string[]
   completedStepIds: string[]
@@ -354,6 +364,8 @@ function invalidBaselineEvidence(input: {
   return {
     status: 'completed' as const,
     result: 'failed' as const,
+    evidenceHealth: input.evidenceHealth,
+    blockers: input.blockers,
     failureSignatures:
       input.evidenceHealth === 'infrastructure_failure'
         ? [...evidenceFailureSignatures, ...input.logFailureSignatures]
@@ -537,6 +549,75 @@ export async function justifyBaselineRegressionPass(
     ),
   }
   await writeBaselineArtifacts(artifacts, artifacts.plan, validation, client)
+}
+
+export async function retryBaselineAfterRepair(
+  input: { planId: string; reason: string; expectedValidationHash: string },
+  options: BaselineOptions = {},
+) {
+  if (!input.reason.trim()) throw new ServiceError('A baseline repair reason is required.', 'VALIDATION')
+  const client = options.client ?? prisma
+  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
+  if (artifacts.validationStored.hash !== input.expectedValidationHash) {
+    throw new ServiceError(
+      'The validation artifact changed before baseline repair could be requested.',
+      'CONFLICT',
+      undefined,
+      {
+        expectedValidationHash: input.expectedValidationHash,
+        currentValidationHash: artifacts.validationStored.hash,
+        nextRecommendedAction: 'Read the current validation artifact and retry with its exact hash.',
+      },
+    )
+  }
+  const activeAttempts = artifacts.validation.baselineAttempts.filter(attempt =>
+    ['scheduled', 'running', 'interrupted'].includes(attempt.status),
+  )
+  if (activeAttempts.length > 0) {
+    throw new ServiceError(
+      'Active baseline runs must finish or be cancelled before validation repair.',
+      'CONFLICT',
+      undefined,
+      {
+        activeAttemptIds: activeAttempts.map(attempt => attempt.id),
+        nextRecommendedAction: 'Cancel or reconcile active baseline runs, then retry baseline repair.',
+      },
+    )
+  }
+  if (artifacts.plan.lifecycle === 'validation_changes_requested') {
+    return { plan: artifacts.plan, validation: artifacts.validation }
+  }
+  if (artifacts.plan.lifecycle !== 'baseline_review') {
+    throw new ServiceError('Only baseline review evidence can be returned for validation repair.', 'CONFLICT')
+  }
+  const hasInvalidEvidence = artifacts.validation.baselineAttempts.some(
+    attempt =>
+      attempt.status === 'completed' &&
+      ['validation_harness_failure', 'invalid_baseline_failure'].includes(attempt.classification ?? ''),
+  )
+  if (!hasInvalidEvidence) {
+    throw new ServiceError('Baseline repair is only available when current evidence is invalid.', 'CONFLICT')
+  }
+  const plan = { ...artifacts.plan, lifecycle: 'validation_changes_requested' as const }
+  const validation = {
+    ...artifacts.validation,
+    approvals: [],
+    validationDecisions: [],
+    runtimeProjections: undefined,
+    runtimePreflight: undefined,
+    reviewSubmittedAt: undefined,
+    baselineDecision: 'changes-requested' as const,
+  }
+  await writeBaselineArtifacts(artifacts, plan, validation, client)
+  await appendPlanEvent(
+    {
+      planId: input.planId,
+      type: 'validation_changes_requested',
+      payload: { scope: 'test_artifact', reason: input.reason.trim(), preservedBaselineAttempts: true },
+    },
+    client,
+  )
+  return { plan, validation }
 }
 
 export async function acceptBaseline(planId: string, options: BaselineOptions = {}) {

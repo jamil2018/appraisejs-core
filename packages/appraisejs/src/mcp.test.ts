@@ -182,6 +182,19 @@ describe('MCP approval wait helpers', () => {
   })
 })
 
+describe('plan requirement extraction', () => {
+  it('ignores lifecycle completion prose while preserving explicit record completion', () => {
+    const lifecycleOnly = assessPlanRequirements(
+      'Build a motivation quotes app, run final validation, and complete the flow.',
+      [],
+    )
+    expect(lifecycleOnly.requirements.map(requirement => requirement.id)).not.toContain('completion')
+
+    const todoCompletion = assessPlanRequirements('Build a todo app where users complete and reactivate tasks.', [])
+    expect(todoCompletion.requirements.map(requirement => requirement.id)).toContain('completion')
+  })
+})
+
 describe('MCP agent workflow guidance', () => {
   it('describes setup, planning, and standby without collapsing Appraise gates', () => {
     expect(agentGuide.setup.preferredCommand).toBe('appraisejs agent setup')

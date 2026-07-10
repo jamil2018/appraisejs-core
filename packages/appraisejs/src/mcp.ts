@@ -41,15 +41,18 @@ const baseWorkflowCriticalTools = [
   'validation_context_read',
   'validation_draft_create',
   'validation_draft_read',
+  'validation_draft_reset',
   'appraise_resources_list',
   'template_step_search',
   'template_step_match',
   'step_block_search',
   'locator_search',
   'validation_node_upsert',
+  'validation_node_delete',
   'validation_test_case_upsert',
   'validation_test_shape_propose',
   'validation_file_upsert',
+  'validation_file_delete',
   'validation_step_metadata_upsert',
   'validation_draft_check',
   'validation_draft_publish',
@@ -63,6 +66,7 @@ const baseWorkflowCriticalTools = [
   'baseline_start',
   'baseline_reconcile',
   'baseline_cancel',
+  'baseline_retry',
   'baseline_failure_acknowledge',
   'baseline_regression_justify',
   'baseline_accept',
@@ -2279,9 +2283,21 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Read live Appraise validation-preparation context: current plan tasks, target project metadata, reusable modules, suites, cases, template steps, locators, and environments.',
-      inputSchema: { planId: z.string() },
+      inputSchema: {
+        planId: z.string(),
+        resourceTypes: z.array(z.string()).optional(),
+        query: z.string().optional(),
+        limit: z.number().int().positive().max(200).default(50),
+        sinceHash: z.string().optional(),
+      },
     },
-    async ({ planId }) => text(await api.request(`plans/${planId}/validations/context`)),
+    async ({ planId, resourceTypes, query, limit, sinceHash }) => {
+      const params = new URLSearchParams({ limit: String(limit) })
+      if (resourceTypes?.length) params.set('resourceTypes', resourceTypes.join(','))
+      if (query) params.set('query', query)
+      if (sinceHash) params.set('sinceHash', sinceHash)
+      return text(await api.request(`plans/${planId}/validations/context?${params}`))
+    },
   )
   server.registerTool(
     'validation_draft_create',
@@ -2301,9 +2317,24 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'validation_draft_read',
     {
       description: 'Read the current Appraise-owned validation draft and structured blockers.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: z.enum(['summary', 'delta', 'full']).default('summary') },
     },
-    async ({ planId }) => text(await api.request(`plans/${planId}/validations/draft`)),
+    async ({ planId, responseMode }) =>
+      text(await api.request(`plans/${planId}/validations/draft?responseMode=${responseMode}`)),
+  )
+  server.registerTool(
+    'validation_draft_reset',
+    {
+      description: 'Reset the active validation draft using its exact current hash.',
+      inputSchema: { planId: z.string(), expectedDraftHash: z.string().startsWith('sha256:') },
+    },
+    async ({ planId, expectedDraftHash }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/reset`, {
+          method: 'POST',
+          body: JSON.stringify({ expectedDraftHash }),
+        }),
+      ),
   )
   server.registerTool(
     'appraise_resources_list',
@@ -2327,13 +2358,12 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: { planId: z.string(), query: z.string().min(1) },
     },
     async ({ planId, query }) => {
-      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+      const context = (await api.request(
+        `plans/${planId}/validations/context?resourceTypes=templateSteps&query=${encodeURIComponent(query)}&limit=25`,
+      )) as {
         resources?: { templateSteps?: Array<Record<string, unknown>> }
       }
-      const needle = query.toLowerCase()
-      const matches = (context.resources?.templateSteps ?? []).filter(step =>
-        JSON.stringify(step).toLowerCase().includes(needle),
-      )
+      const matches = context.resources?.templateSteps ?? []
       return text({ matches, nextRecommendedAction: 'Reuse a matching templateStepRef when possible.' })
     },
   )
@@ -2344,7 +2374,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: { planId: z.string(), intent: z.string().min(1) },
     },
     async ({ planId, intent }) => {
-      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+      const context = (await api.request(
+        `plans/${planId}/validations/context?resourceTypes=templateSteps,stepBlocks&query=${encodeURIComponent(intent)}&limit=50`,
+      )) as {
         resources?: {
           templateSteps?: Array<Record<string, unknown>>
           stepBlocks?: Array<Record<string, unknown>>
@@ -2381,13 +2413,12 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: { planId: z.string(), query: z.string().min(1) },
     },
     async ({ planId, query }) => {
-      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+      const context = (await api.request(
+        `plans/${planId}/validations/context?resourceTypes=stepBlocks&query=${encodeURIComponent(query)}&limit=25`,
+      )) as {
         resources?: { stepBlocks?: Array<Record<string, unknown>> }
       }
-      const needle = query.toLowerCase()
-      const matches = (context.resources?.stepBlocks ?? []).filter(block =>
-        JSON.stringify(block).toLowerCase().includes(needle),
-      )
+      const matches = context.resources?.stepBlocks ?? []
       return text({ matches, nextRecommendedAction: 'Reuse a matching stepBlockRef when possible.' })
     },
   )
@@ -2398,17 +2429,14 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: { planId: z.string(), query: z.string().min(1) },
     },
     async ({ planId, query }) => {
-      const context = (await api.request(`plans/${planId}/validations/context`)) as {
+      const context = (await api.request(
+        `plans/${planId}/validations/context?resourceTypes=locators,locatorGroups&query=${encodeURIComponent(query)}&limit=25`,
+      )) as {
         resources?: { locators?: Array<Record<string, unknown>>; locatorGroups?: Array<Record<string, unknown>> }
       }
-      const needle = query.toLowerCase()
       return text({
-        locators: (context.resources?.locators ?? []).filter(locator =>
-          JSON.stringify(locator).toLowerCase().includes(needle),
-        ),
-        locatorGroups: (context.resources?.locatorGroups ?? []).filter(group =>
-          JSON.stringify(group).toLowerCase().includes(needle),
-        ),
+        locators: context.resources?.locators ?? [],
+        locatorGroups: context.resources?.locatorGroups ?? [],
         nextRecommendedAction: 'Reuse a matching locatorRef or locatorGroupRef when possible.',
       })
     },
@@ -2425,6 +2453,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         await api.request(`plans/${planId}/validations/draft/nodes`, {
           method: 'POST',
           body: JSON.stringify({ node }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_node_delete',
+    {
+      description: 'Delete one erroneous validation node using the exact current draft hash.',
+      inputSchema: { planId: z.string(), nodeId: z.string(), expectedDraftHash: z.string().startsWith('sha256:') },
+    },
+    async ({ planId, nodeId, expectedDraftHash }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/nodes/${nodeId}/delete`, {
+          method: 'POST',
+          body: JSON.stringify({ expectedDraftHash }),
         }),
       ),
   )
@@ -2469,6 +2511,24 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         await api.request(`plans/${planId}/validations/draft/files`, {
           method: 'POST',
           body: JSON.stringify({ file }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_file_delete',
+    {
+      description: 'Delete one erroneous changed-file entry using the exact current draft hash.',
+      inputSchema: {
+        planId: z.string(),
+        path: z.string().min(1),
+        expectedDraftHash: z.string().startsWith('sha256:'),
+      },
+    },
+    async ({ planId, path, expectedDraftHash }) =>
+      text(
+        await api.request(`plans/${planId}/validations/draft/files/delete`, {
+          method: 'POST',
+          body: JSON.stringify({ path, expectedDraftHash }),
         }),
       ),
   )
@@ -2744,6 +2804,31 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           result: await api.request(`plans/${planId}/baseline/cancel`, { method: 'POST', body: '{}' }),
           nextRecommendedAction: 'Revise validation or baseline setup, then call baseline_start again when ready.',
           nextRequiredAgentBehavior: 'revise_baseline_or_validation',
+        }),
+      ),
+  )
+  server.registerTool(
+    'baseline_retry',
+    {
+      description:
+        'Return invalid baseline evidence to validation repair while preserving historical attempts and requiring a fresh exact review.',
+      inputSchema: {
+        planId: z.string(),
+        reason: z.string().trim().min(1),
+        expectedValidationHash: z.string().startsWith('sha256:'),
+      },
+    },
+    async ({ planId, reason, expectedValidationHash }) =>
+      text(
+        lifecycleToolPayload({
+          planId,
+          result: await api.request(`plans/${planId}/baseline/retry`, {
+            method: 'POST',
+            body: JSON.stringify({ reason, expectedValidationHash }),
+          }),
+          nextRecommendedAction: 'Repair the validation draft and submit it for a fresh exact review.',
+          nextRequiredAgentBehavior: 'revise_validation_artifacts',
+          nextAllowedAction: { tool: 'validation_draft_read' },
         }),
       ),
   )

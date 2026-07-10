@@ -52,6 +52,7 @@ import {
   decideValidationNodeAction,
   publishSharedPlanLayoutAction,
   requestPlanChangesAction,
+  retryBaselineAfterRepairAction,
   retargetPlanRemarkAction,
   savePersonalPlanLayoutAction,
   submitValidationFeedbackAction,
@@ -495,6 +496,9 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
     approval => approval.revision === detail.plan.revision && approval.relevantHashes.plan,
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
+  const hasInvalidBaselineEvidence = detail.validation?.baselineAttempts.some(attempt =>
+    ['validation_harness_failure', 'invalid_baseline_failure'].includes(attempt.classification ?? ''),
+  )
   const reviewUnavailableReason = getReviewUnavailableReason(detail.plan.lifecycle)
   const approvalDisabledReason = approved
     ? 'This exact revision has already been approved.'
@@ -1485,16 +1489,37 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                       </>
                     )}
                     {detail.plan.lifecycle === 'baseline_review' && (
-                      <Button
-                        size="sm"
-                        className="h-9 rounded-xl font-semibold"
-                        disabled={isPending}
-                        onClick={() =>
-                          run(() => acceptBaselineAction({ planId: detail.plan.planId }), 'Baselines accepted.')
-                        }
-                      >
-                        Accept complete baseline
-                      </Button>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 rounded-xl font-semibold"
+                          disabled={isPending || !detail.validationContentHash}
+                          onClick={() =>
+                            run(
+                              () =>
+                                retryBaselineAfterRepairAction({
+                                  planId: detail.plan.planId,
+                                  reason: 'Baseline evidence is invalid and requires validation runtime repair.',
+                                  expectedValidationHash: detail.validationContentHash,
+                                }),
+                              'Validation reopened for baseline repair.',
+                            )
+                          }
+                        >
+                          Repair validation and rerun baseline
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-9 rounded-xl font-semibold"
+                          disabled={isPending || hasInvalidBaselineEvidence}
+                          onClick={() =>
+                            run(() => acceptBaselineAction({ planId: detail.plan.planId }), 'Baselines accepted.')
+                          }
+                        >
+                          Accept complete baseline
+                        </Button>
+                      </div>
                     )}
                     {detail.plan.lifecycle === 'baseline_accepted' && (
                       <p className="bg-muted/20 rounded-xl border p-3 text-xs leading-relaxed text-muted-foreground">

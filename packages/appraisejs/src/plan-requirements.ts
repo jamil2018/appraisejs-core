@@ -178,12 +178,26 @@ const domainDefinitions: Array<{
 ]
 
 export function analyzeBrief(projectBrief: string) {
+  const lifecycleNeutralBrief = projectBrief.replace(
+    /\b(?:complete|completed|completion)\s+(?:the\s+)?(?:flow|run|review|lifecycle|validation|process)\b/gi,
+    '',
+  )
+  const recordCompletionIntent =
+    /\b(?:complete|completed|reactivate|toggle)\s+(?:a\s+|the\s+)?(?:records?|items?|todos?|tasks?|reminders?)\b|\b(?:records?|items?|todos?|tasks?|reminders?)\s+(?:as\s+)?(?:complete|completed|active)\b/i.test(
+      lifecycleNeutralBrief,
+    )
   const requirements = requirementDefinitions
-    .filter(definition => definition.pattern.test(projectBrief))
+    .filter(definition => {
+      if (definition.id === 'completion') return recordCompletionIntent
+      if (definition.id === 'filtering') {
+        return /\bfilter(?:ing|ed|s)?\b/i.test(lifecycleNeutralBrief)
+      }
+      return definition.pattern.test(lifecycleNeutralBrief)
+    })
     .map(({ id, text, kind, coveragePatterns }) => ({ id, text, kind, terms: coveragePatterns.map(String) }))
   const domainCandidates = domainDefinitions
     .map(definition => {
-      const matches = definition.signals.filter(signal => signal.pattern.test(projectBrief))
+      const matches = definition.signals.filter(signal => signal.pattern.test(lifecycleNeutralBrief))
       const score = matches.reduce((total, signal) => total + signal.weight, 0)
       return {
         domain: definition.domain,

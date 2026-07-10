@@ -279,6 +279,24 @@ const runtimePreflightSchema = z.object({
   status: z.enum(['passed', 'blocked']),
   checkedAt: timestampSchema,
   blockers: z.array(validationDraftBlockerSchema),
+  runtimePreparation: z
+    .object({ owner: z.literal('appraise'), binary: z.string().min(1), targetFilesChanged: z.boolean() })
+    .optional(),
+  executionPackets: z
+    .array(
+      z.object({
+        validationId: idSchema,
+        browser: z.string().min(1),
+        environment: z.string().min(1),
+        targetRoot: z.string().min(1),
+        featurePaths: z.array(z.string().min(1)),
+        importPaths: z.array(z.string().min(1)),
+        tagExpression: z.string().min(1),
+        expectedScenarioCount: z.number().int().positive(),
+        reportPath: z.string().min(1),
+      }),
+    )
+    .optional(),
 })
 
 const validationChangedFileSchema = z.object({

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 
 import type { ValidationArtifact } from '@/lib/plan-contract'
+import type { TestRunEvidenceHealthValue } from '@/services/test-run/run-evidence-summary-service'
 
 export type BaselineClassification =
   | 'expected_behavioral_failure'
@@ -11,6 +12,8 @@ export type BaselineClassification =
 
 export type BaselineEvidence = {
   result: 'passed' | 'failed' | 'cancelled' | 'interrupted'
+  evidenceHealth?: TestRunEvidenceHealthValue
+  blockers?: string[]
   failureSignatures: string[]
   completedStepIds: string[]
 }
@@ -74,6 +77,17 @@ export function classifyBaselineResult(
     .filter(item => item.browser === combination.browser && item.environment === combination.environment)
     .sort((left, right) => left.order - right.order)
   const signatureHash = hashFailureSignatures(evidence.failureSignatures)
+
+  if (evidence.evidenceHealth && evidence.evidenceHealth !== 'valid') {
+    return {
+      classification: 'validation_harness_failure',
+      signatureHash,
+      reason:
+        evidence.evidenceHealth === 'infrastructure_failure'
+          ? 'Managed baseline infrastructure failed and the validation runtime must be repaired before retrying.'
+          : `Managed baseline evidence is not trustworthy (${evidence.evidenceHealth}) and the validation runtime must be repaired before retrying.`,
+    }
+  }
 
   if (evidence.result === 'passed') {
     return {

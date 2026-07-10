@@ -178,15 +178,18 @@ Tools:
 - `validation_context_read`
 - `validation_draft_create`
 - `validation_draft_read`
+- `validation_draft_reset`
 - `appraise_resources_list`
 - `template_step_search`
 - `template_step_match`
 - `step_block_search`
 - `locator_search`
 - `validation_node_upsert`
+- `validation_node_delete`
 - `validation_test_case_upsert`
 - `validation_test_shape_propose`
 - `validation_file_upsert`
+- `validation_file_delete`
 - `validation_step_metadata_upsert`
 - `validation_draft_check`
 - `validation_draft_publish`
@@ -199,9 +202,23 @@ Tools:
 - `baseline_start`
 - `baseline_reconcile`
 - `baseline_cancel`
+- `baseline_retry`
 - `baseline_failure_acknowledge`
 - `baseline_regression_justify`
 - `baseline_accept`
+
+Validation draft mutations return compact hashes, changed paths, counts, blockers, warnings, and the next action by
+default. Use `validation_draft_read({ responseMode: 'full' })` only when the complete draft is required. Delete and
+reset operations require the exact current `draftHash`.
+
+`baseline_retry` requires `reason` and `expectedValidationHash`. It is the supported recovery from invalid
+baseline-review evidence: historical attempts remain immutable and validation approvals/runtime projections are
+invalidated for fresh review.
+
+`validation_context_read` accepts `resourceTypes`, `query`, `limit`, and `sinceHash`. Search tools use these bounded
+server-side filters instead of fetching the full context; unchanged scoped reads return `notModified` with the same
+`contextHash`.
+
 - `implementation_start`
 - `implementation_checkpoint`
 - `implementation_task_update`

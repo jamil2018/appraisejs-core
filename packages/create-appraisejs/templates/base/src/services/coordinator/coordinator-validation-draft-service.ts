@@ -20,13 +20,20 @@ import { publishPreparedValidations } from './coordinator-validation-service'
 import { templateStepGroupPath } from './template-step-group-path'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
+type ResponseMode = 'summary' | 'delta' | 'full'
 type DraftMutationResult = {
   accepted: boolean
-  draft: ValidationDraft
+  planId: string
+  draftId: string
+  draftHash: string
+  changedPaths: string[]
+  counts: { validations: number; files: number; blockers: number; warnings: number }
+  draft?: ValidationDraft
   blockers: ValidationDraft['blockers']
   warnings: string[]
   nextRecommendedAction: string
 }
+type FullDraftMutationResult = DraftMutationResult & { draft: ValidationDraft }
 type ValidationStepMetadataInput = Pick<
   ValidationDraft,
   'reusedStepPaths' | 'newStepPaths' | 'customStepJustifications'
@@ -95,24 +102,63 @@ function uniqueStrings(values: string[]) {
 }
 
 function scoreIntent(candidate: string, intent: string) {
-  const haystack = candidate.toLowerCase()
-  const needles = new Set(
-    intent
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter(part => part.length > 2),
-  )
-  let score = 0
-  for (const needle of needles) {
-    if (haystack.includes(needle)) score += 1
+  const ignored = new Set(['and', 'the', 'then', 'when', 'with', 'from', 'into', 'that', 'this', 'step', 'user'])
+  const tokens = (value: string) =>
+    new Set(
+      value
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(part => part.length > 2 && !ignored.has(part)),
+    )
+  const candidateTokens = tokens(candidate)
+  const intentTokens = tokens(intent)
+  const matchedTerms = [...intentTokens].filter(token => candidateTokens.has(token))
+  return {
+    score: matchedTerms.length,
+    confidence: intentTokens.size === 0 ? 0 : matchedTerms.length / intentTokens.size,
+    matchedTerms,
   }
-  return score
+}
+
+function selectConfidentMatch<T>(ranked: Array<{ value: T; match: ReturnType<typeof scoreIntent> }>) {
+  const candidates = ranked
+    .filter(candidate => candidate.match.score >= 2 && candidate.match.confidence >= 0.5)
+    .sort((left, right) => right.match.score - left.match.score)
+  const [best, runnerUp] = candidates
+  if (!best || (runnerUp && best.match.score - runnerUp.match.score < 1)) return null
+  return best
 }
 
 function ensureId(input: string | undefined, fallback: string) {
   const id = input?.trim() ? input.trim() : fallback
   if (!idPattern.test(id)) throw new ServiceError(`Invalid draft resource ID "${id}".`, 'VALIDATION')
   return id
+}
+
+async function normalizeValidationEnvironments(node: ValidationDraft['validations'][number], client: PrismaClient) {
+  const refs = uniqueStrings(node.matrix.map(entry => entry.environment))
+  const environments = await client.environment.findMany({
+    where: { OR: [{ id: { in: refs } }, { name: { in: refs } }] },
+    select: { id: true, name: true },
+  })
+  const canonicalNames = new Map(
+    environments.flatMap(environment => [
+      [environment.id, environment.name],
+      [environment.name, environment.name],
+    ]),
+  )
+  const unknown = refs.filter(ref => !canonicalNames.has(ref))
+  if (unknown.length > 0) {
+    throw new ServiceError(`Unknown validation environments: ${unknown.join(', ')}.`, 'VALIDATION', undefined, {
+      blockerType: 'missing_environment',
+      missingEnvironments: unknown,
+      nextRecommendedAction: 'Read validation context and use a known environment id or name.',
+    })
+  }
+  return {
+    ...node,
+    matrix: node.matrix.map(entry => ({ ...entry, environment: canonicalNames.get(entry.environment)! })),
+  }
 }
 
 async function readPlanContext(planId: string, options: Options = {}) {
@@ -303,26 +349,30 @@ function findTemplateStep(resources: ReusableResources, ref: string | undefined,
     const exact = resources.templateSteps.find(
       step => step.id === ref || step.name.toLowerCase() === normalized || step.signature.toLowerCase() === normalized,
     )
-    if (exact) return { step: exact, rewritten: false }
+    if (exact) return { step: exact, rewritten: false, score: Number.POSITIVE_INFINITY, matchedTerms: ['exact-ref'] }
   }
-  const ranked = resources.templateSteps
-    .map(step => ({ step, score: scoreIntent(`${step.name} ${step.signature}`, intent) }))
-    .filter(match => match.score > 0)
-    .sort((left, right) => right.score - left.score)
-  return ranked[0] ? { step: ranked[0].step, rewritten: !ref } : null
+  const best = selectConfidentMatch(
+    resources.templateSteps.map(step => ({
+      value: step,
+      match: scoreIntent(`${step.name} ${step.signature}`, intent),
+    })),
+  )
+  return best ? { step: best.value, rewritten: !ref, ...best.match } : null
 }
 
 function findStepBlock(resources: ReusableResources, ref: string | undefined, intent: string) {
   if (ref) {
     const normalized = ref.toLowerCase()
     const exact = resources.stepBlocks.find(block => block.id === ref || block.name.toLowerCase() === normalized)
-    if (exact) return { block: exact, rewritten: false }
+    if (exact) return { block: exact, rewritten: false, score: Number.POSITIVE_INFINITY, matchedTerms: ['exact-ref'] }
   }
-  const ranked = resources.stepBlocks
-    .map(block => ({ block, score: scoreIntent(`${block.name} ${block.intent ?? ''}`, intent) }))
-    .filter(match => match.score > 0)
-    .sort((left, right) => right.score - left.score)
-  return ranked[0] ? { block: ranked[0].block, rewritten: !ref } : null
+  const best = selectConfidentMatch(
+    resources.stepBlocks.map(block => ({
+      value: block,
+      match: scoreIntent(`${block.name} ${block.intent ?? ''}`, intent),
+    })),
+  )
+  return best ? { block: best.value, rewritten: !ref, ...best.match } : null
 }
 
 // fallow-ignore-next-line complexity
@@ -351,7 +401,9 @@ async function resolveValidationTestShape(
     if (!resolvedBlock) continue
     reusedStepBlockRefs.push(stepBlockRef(resolvedBlock.block))
     if (resolvedBlock.rewritten) {
-      warnings.push(`Reused step block "${resolvedBlock.block.name}" for intent "${blockProposal.intent}".`)
+      warnings.push(
+        `Reused step block "${resolvedBlock.block.name}" for intent "${blockProposal.intent}" (score ${resolvedBlock.score}; matched: ${resolvedBlock.matchedTerms.join(', ')}).`,
+      )
     }
     for (const blockStep of resolvedBlock.block.steps) {
       const stepRef = templateStepRef(blockStep.templateStep)
@@ -387,7 +439,9 @@ async function resolveValidationTestShape(
       reusedTemplateStepRefs.push(ref)
       steps.push({ ...step, templateStepRef: resolvedStep.step.id })
       if (resolvedStep.rewritten || step.customStepProposal) {
-        warnings.push(`Reused template step "${resolvedStep.step.name}" for intent "${step.intent}".`)
+        warnings.push(
+          `Reused template step "${resolvedStep.step.name}" for intent "${step.intent}" (score ${resolvedStep.score}; matched: ${resolvedStep.matchedTerms.join(', ')}).`,
+        )
       }
       continue
     }
@@ -420,18 +474,63 @@ async function resolveValidationTestShape(
   }
 }
 
-function toMutationResult(draft: ValidationDraft, nextRecommendedAction: string): DraftMutationResult {
+function toMutationResult(
+  draft: ValidationDraft,
+  nextRecommendedAction: string,
+  responseMode: 'full',
+  changedPaths?: string[],
+): FullDraftMutationResult
+function toMutationResult(
+  draft: ValidationDraft,
+  nextRecommendedAction: string,
+  responseMode?: Exclude<ResponseMode, 'full'>,
+  changedPaths?: string[],
+): DraftMutationResult
+function toMutationResult(
+  draft: ValidationDraft,
+  nextRecommendedAction: string,
+  responseMode: ResponseMode = 'summary',
+  changedPaths: string[] = [],
+): DraftMutationResult {
   const blockers = checkDraft(draft)
   return {
     accepted: true,
-    draft: { ...draft, blockers },
+    planId: draft.planId,
+    draftId: draft.draftId,
+    draftHash: hashContent(JSON.stringify(draft)),
+    changedPaths,
+    counts: {
+      validations: draft.validations.length,
+      files: draft.files.length,
+      blockers: blockers.length,
+      warnings: draft.warnings.length,
+    },
+    ...(responseMode === 'full' ? { draft: { ...draft, blockers } } : {}),
     blockers,
     warnings: draft.warnings,
     nextRecommendedAction,
   }
 }
 
-export async function readValidationContext(planId: string, options: Options = {}) {
+type ValidationResourceType =
+  | 'modules'
+  | 'testSuites'
+  | 'testCases'
+  | 'templateSteps'
+  | 'stepBlocks'
+  | 'locatorGroups'
+  | 'locators'
+  | 'environments'
+
+export async function readValidationContext(
+  planId: string,
+  options: Options & {
+    resourceTypes?: ValidationResourceType[]
+    query?: string
+    limit?: number
+    sinceHash?: string
+  } = {},
+) {
   const { client, plan, projection } = await readPlanContext(planId, options)
   const [modules, testSuites, testCases, templateSteps, stepBlocks, locatorGroups, locators, environments] =
     await Promise.all([
@@ -477,6 +576,31 @@ export async function readValidationContext(planId: string, options: Options = {
         orderBy: { name: 'asc' },
       }),
     ])
+  const allResources = {
+    modules,
+    testSuites: testSuites.map(suite => ({ ...suite, testCaseIds: suite.testCases.map(testCase => testCase.id) })),
+    testCases,
+    templateSteps,
+    stepBlocks,
+    locatorGroups,
+    locators,
+    environments,
+  }
+  const selectedTypes = options.resourceTypes ?? (Object.keys(allResources) as ValidationResourceType[])
+  const query = options.query?.trim().toLowerCase()
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 200)
+  const resources = Object.fromEntries(
+    selectedTypes.map(resourceType => [
+      resourceType,
+      allResources[resourceType]
+        .filter(resource => !query || JSON.stringify(resource).toLowerCase().includes(query))
+        .slice(0, limit),
+    ]),
+  )
+  const contextHash = hashContent(JSON.stringify({ planId, sourceHash: projection?.sourceHash, resources }))
+  if (options.sinceHash === contextHash) {
+    return { plan: { planId, revision: plan.revision, lifecycle: plan.lifecycle }, contextHash, notModified: true }
+  }
   return {
     plan: {
       planId,
@@ -487,16 +611,8 @@ export async function readValidationContext(planId: string, options: Options = {
       projectedTasks: projection?.tasks ?? [],
     },
     targetProject: projection?.targetProject ?? null,
-    resources: {
-      modules,
-      testSuites: testSuites.map(suite => ({ ...suite, testCaseIds: suite.testCases.map(testCase => testCase.id) })),
-      testCases,
-      templateSteps,
-      stepBlocks,
-      locatorGroups,
-      locators,
-      environments,
-    },
+    contextHash,
+    resources,
     proposalSchemas: [
       'appraise.resource/module-proposal/v1',
       'appraise.resource/environment-proposal/v1',
@@ -545,18 +661,66 @@ export async function createValidationDraft(planId: string, options: Options = {
   return toMutationResult(
     await writeDraft(draft, options),
     'Call validation_context_read, then add draft nodes and files.',
+    'full',
   )
 }
 
-export async function readValidationDraft(planId: string, options: Options = {}) {
+export async function readValidationDraft(planId: string, options: Options & { responseMode?: ResponseMode } = {}) {
   const draft = await readDraftFile(planId, options)
-  return toMutationResult(draft, 'Continue mutating the draft or call validation_draft_check.')
+  const nextAction = 'Continue mutating the draft or call validation_draft_check.'
+  return options.responseMode === 'full'
+    ? toMutationResult(draft, nextAction, 'full')
+    : toMutationResult(draft, nextAction, options.responseMode ?? 'summary')
 }
 
-export async function resetValidationDraft(planId: string, options: Options = {}) {
+function assertExpectedDraftHash(draft: ValidationDraft, expectedDraftHash?: string) {
+  const currentDraftHash = hashContent(JSON.stringify(draft))
+  if (expectedDraftHash && expectedDraftHash !== currentDraftHash) {
+    throw new ServiceError('The validation draft changed before this mutation.', 'CONFLICT', undefined, {
+      expectedDraftHash,
+      currentDraftHash,
+      nextRecommendedAction: 'Read the current draft summary and retry with its exact draftHash.',
+    })
+  }
+}
+
+export async function resetValidationDraft(planId: string, expectedDraftHash?: string, options: Options = {}) {
+  const draft = await readDraftFile(planId, options)
+  assertExpectedDraftHash(draft, expectedDraftHash)
   const file = await resolveDraftFile(planId, options.projectDirectory)
   await fs.rm(file, { force: true })
   return createValidationDraft(planId, options)
+}
+
+export async function deleteValidationNode(
+  planId: string,
+  nodeId: string,
+  expectedDraftHash: string,
+  options: Options = {},
+) {
+  const draft = await readDraftFile(planId, options)
+  assertExpectedDraftHash(draft, expectedDraftHash)
+  const validations = draft.validations.filter(node => node.id !== nodeId)
+  if (validations.length === draft.validations.length) throw new ServiceError('Validation node not found.', 'NOT_FOUND')
+  const next = await writeDraft({ ...draft, status: 'draft', validations }, options)
+  return toMutationResult(next, 'Call validation_draft_check before publishing.', 'delta', [`validations.${nodeId}`])
+}
+
+export async function deleteValidationFile(
+  planId: string,
+  filePath: string,
+  expectedDraftHash: string,
+  options: Options = {},
+) {
+  const draft = await readDraftFile(planId, options)
+  assertExpectedDraftHash(draft, expectedDraftHash)
+  const files = draft.files.filter(file => file.path !== filePath)
+  if (files.length === draft.files.length) throw new ServiceError('Validation file not found.', 'NOT_FOUND')
+  const next = await writeDraft(
+    { ...draft, status: 'draft', files, manifestPaths: draft.manifestPaths.filter(path => path !== filePath) },
+    options,
+  )
+  return toMutationResult(next, 'Call validation_draft_check before publishing.', 'delta', [`files.${filePath}`])
 }
 
 export async function upsertValidationNode(
@@ -565,10 +729,13 @@ export async function upsertValidationNode(
   options: Options = {},
 ) {
   const draft = await readDraftFile(planId, options)
-  const nextNodes = draft.validations.filter(item => item.id !== node.id)
-  nextNodes.push(node)
+  const normalizedNode = await normalizeValidationEnvironments(node, options.client ?? prisma)
+  const nextNodes = draft.validations.filter(item => item.id !== normalizedNode.id)
+  nextNodes.push(normalizedNode)
   const next = await writeDraft({ ...draft, status: 'draft', validations: nextNodes }, options)
-  return toMutationResult(next, 'Call validation_file_upsert for changed files or validation_draft_check.')
+  return toMutationResult(next, 'Call validation_file_upsert for changed files or validation_draft_check.', 'delta', [
+    `validations.${normalizedNode.id}`,
+  ])
 }
 
 export async function upsertValidationFile(
@@ -581,7 +748,7 @@ export async function upsertValidationFile(
   files.push(file)
   const manifestPaths = Array.from(new Set([...draft.manifestPaths, file.path])).sort()
   const next = await writeDraft({ ...draft, status: 'draft', files, manifestPaths }, options)
-  return toMutationResult(next, 'Call validation_draft_check before publishing.')
+  return toMutationResult(next, 'Call validation_draft_check before publishing.', 'delta', [`files.${file.path}`])
 }
 
 export async function upsertValidationStepMetadata(
@@ -702,6 +869,7 @@ export async function checkValidationDraft(planId: string, options: Options = {}
     blockers.length === 0
       ? 'Call validation_draft_publish.'
       : 'Resolve blockers, then call validation_draft_check again.',
+    'full',
   )
 }
 

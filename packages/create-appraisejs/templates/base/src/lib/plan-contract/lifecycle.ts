@@ -40,7 +40,7 @@ export const PLAN_LIFECYCLE_TRANSITIONS: Readonly<Record<PlanLifecycleState, rea
   validation_changes_requested: ['preparing_validations', 'awaiting_validation_review', 'cancelled'],
   validations_approved: ['baseline_running', 'validation_changes_requested', 'changes_requested', 'cancelled'],
   baseline_running: ['baseline_review', 'baseline_changes_requested', 'cancelled'],
-  baseline_review: ['baseline_changes_requested', 'baseline_accepted', 'cancelled'],
+  baseline_review: ['validation_changes_requested', 'baseline_changes_requested', 'baseline_accepted', 'cancelled'],
   baseline_changes_requested: ['preparing_validations', 'baseline_running', 'cancelled'],
   baseline_accepted: ['in_progress', 'validation_changes_requested', 'cancelled'],
   in_progress: ['paused', 'changes_requested', 'ready_for_validation', 'cancelled'],
