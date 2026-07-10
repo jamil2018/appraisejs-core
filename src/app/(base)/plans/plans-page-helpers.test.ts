@@ -42,6 +42,12 @@ describe('plans-page-helpers', () => {
     expect(filterPlans(plans, 'all', 'running').map(plan => plan.planId)).toEqual(['running'])
   })
 
+  it('filters plans by the canonical plan ID', () => {
+    const plan = makePlan({ planId: 'pln_01canonical', lifecycle: 'draft', slug: 'friendly-slug' })
+
+    expect(filterPlans([plan], 'all', 'pln_01canonical')).toEqual([plan])
+  })
+
   it('sorts plans by selected comparator', () => {
     const byGoal = sortPlans(plans, 'goal').map(plan => plan.planId)
     expect(byGoal).toEqual(['approved', 'done', 'draft', 'review', 'running'])

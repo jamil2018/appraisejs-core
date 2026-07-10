@@ -214,6 +214,14 @@ Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" |
 "full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,
 blockers, and next action are insufficient.
 
+`planning_session_create` extracts explicit brief requirements before it creates a durable plan. Its response includes
+`requirementAssessment` with scored domain candidates, task-surface coverage, and warnings. When any explicit
+requirement is uncovered, it returns `status: "coverage_review_required"` with a candidate plan instead of creating a
+review-ready revision. The initial plan-review handoff contains the complete URL/hash/cursor evidence once per
+revision. A later `plan_review_loop` or approval wait with no new events returns `status: "pending_unchanged"` and
+only the plan ID, cursors, recommended wait, and next action; `handoffMarkdown` is never duplicated under a second
+field.
+
 Run evidence tools:
 
 - `test_run_preflight` checks required target, environment, plan/validation binding, and runtime projection inputs

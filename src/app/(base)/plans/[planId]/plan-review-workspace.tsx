@@ -267,6 +267,10 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
     legacyPlanId: detail.projection.legacyPlanId,
   })
   const semanticFlow = useMemo(() => projectPlanFlow(detail.graph), [detail.graph])
+  const uncoveredRequirementIds = useMemo(
+    () => new Set(detail.plan.requirementAssessment?.uncoveredRequirementIds ?? []),
+    [detail.plan.requirementAssessment?.uncoveredRequirementIds],
+  )
   const openRemarksByTask = useMemo(() => {
     const counts = new Map<string, number>()
     for (const thread of detail.review?.threads ?? []) {
@@ -799,6 +803,46 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
           <AlertTitle>Removed-node remarks need a decision</AlertTitle>
           <AlertDescription>
             {detail.orphanedThreadIds.length} open remark(s) target nodes no longer present in this revision.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {detail.plan.requirementAssessment ? (
+        <Alert
+          className={cn(
+            'rounded-xl',
+            detail.plan.requirementAssessment.uncoveredRequirementIds.length > 0 &&
+              'border-amber-500/50 bg-amber-500/10',
+          )}
+          role="status"
+        >
+          <AlertTriangle className="size-4" />
+          <AlertTitle>
+            Requirement coverage:{' '}
+            {detail.plan.requirementAssessment.requirements.length -
+              detail.plan.requirementAssessment.uncoveredRequirementIds.length}
+            /{detail.plan.requirementAssessment.requirements.length}
+          </AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>
+              Selected domain: {detail.plan.requirementAssessment.selectedDomain ?? 'needs review'}. Candidates:{' '}
+              {detail.plan.requirementAssessment.domainCandidates.map(candidate => candidate.domain).join(', ') ||
+                'none'}
+              .
+            </p>
+            {detail.plan.requirementAssessment.uncoveredRequirementIds.length > 0 ? (
+              <p>
+                Uncovered requirements:{' '}
+                {detail.plan.requirementAssessment.requirements
+                  .filter(requirement => uncoveredRequirementIds.has(requirement.id))
+                  .map(requirement => requirement.text)
+                  .join(', ')}
+                .
+              </p>
+            ) : (
+              <p>
+                Every explicit requirement is mapped to a task description, acceptance criterion, or validation intent.
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       ) : null}

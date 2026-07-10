@@ -112,7 +112,7 @@ describe('local executor adapter', () => {
     )
     expect(mockSpawnTask).toHaveBeenCalledWith(
       'npx',
-      ['cucumber-js', '--config', '/target/app/automation/reports/run-2/cucumber.run-2.mjs'],
+      ['cucumber-js', '--config', 'automation/reports/run-2/cucumber.run-2.mjs'],
       expect.objectContaining({ cwd: '/target/app' }),
     )
   })

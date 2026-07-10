@@ -181,6 +181,8 @@ try {
     'project_add',
     'project_diagnostic',
     'project_list',
+    'step_block_search',
+    'template_step_match',
     'template_step_search',
     'test_run',
     'test_run_diagnose',
@@ -201,6 +203,7 @@ try {
     'validation_review_submit',
     'validation_step_metadata_upsert',
     'validation_test_case_upsert',
+    'validation_test_shape_propose',
   ]
   assert(
     toolNames.length === expectedTools.length,
@@ -373,7 +376,7 @@ try {
   )
 
   const pendingApproval = await callTool('plan_wait_for_approval', { planId, afterSequence: ready.eventSequence })
-  assert(pendingApproval.status === 'pending', 'Default approval wait did not return compact pending standby.')
+  assert(pendingApproval.status === 'pending_unchanged', 'Default approval wait did not return an unchanged delta.')
   assert(
     pendingApproval.nextRequiredAgentBehavior === 'standby_for_appraise_review',
     'Pending approval response did not preserve standby behavior.',
@@ -386,16 +389,10 @@ try {
     typeof pendingApproval.currentAfterSequence === 'number',
     'Pending approval response did not include currentAfterSequence.',
   )
-  assert(
-    String(pendingApproval.reviewGatePause).includes('Do not implement'),
-    'Pending approval response did not include explicit review-gate pause guidance.',
-  )
-  assert(
-    String(pendingApproval.cursorGuidance).includes('afterSequence is exclusive'),
-    'Pending approval response did not include exclusive cursor guidance.',
-  )
+  assert(JSON.stringify(pendingApproval).length < 1_000, 'Unchanged approval delta exceeded 1,000 characters.')
+  assert(!('handoffMarkdown' in pendingApproval), 'Unchanged approval delta repeated the complete handoff.')
   const loopPending = await callTool('plan_review_loop', { planId, afterSequence: ready.eventSequence, timeoutMs: 1 })
-  assert(loopPending.status === 'pending', 'Review loop did not return compact pending standby on timeout.')
+  assert(loopPending.status === 'pending_unchanged', 'Review loop did not return an unchanged delta on timeout.')
   assert(
     loopPending.nextRequiredAgentBehavior === 'standby_for_appraise_review',
     'Review loop timeout did not preserve standby behavior.',

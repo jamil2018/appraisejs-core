@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@locator-picker-companion': path.resolve(__dirname, './packages/locator-picker-companion/src'),
     },
   },
   test: {

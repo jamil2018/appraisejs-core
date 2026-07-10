@@ -136,6 +136,8 @@ export async function createTestSuite(
       .getByRole('checkbox')
       .click()
     await page.getByRole('button', { name: /^Save$/ }).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
+    await expect(page.getByText('Selected test case(s)')).toBeVisible()
   }
   await page.getByRole('button', { name: /^Save$/ }).click()
   await expect(page).toHaveURL(/\/test-suites$/)

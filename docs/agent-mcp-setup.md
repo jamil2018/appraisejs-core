@@ -89,10 +89,11 @@ native MCP registration.
 
 Agents should prefer `plan_review_loop` when it is available. Otherwise, after `plan_review_ready`, agents must call
 `plan_wait_for_approval` and keep an active bounded wait or poll loop by default. Compact continuation state is only a
-long-review or host-limit fallback. No wait call before complete URL handoff. Before entering or continuing standby,
-agents must present the complete direct browser URL, `appraise://` URL, plan ID, goal, description, revision,
-lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait call. Pending review or
-pending approval is not completion.
+long-review or host-limit fallback. No wait call before the complete URL handoff for the current revision. Before
+entering initial standby, agents must present the complete direct browser URL, `appraise://` URL, plan ID, goal,
+description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait
+call. Later unchanged waits use the compact `pending_unchanged` cursor, timing, and next-action delta without
+repeating the brief or rendered handoff. Pending review or pending approval is not completion.
 
 After `validation_preparation_started`, agents must create AppraiseJS-native validation artifacts and call
 `validation_publish` before entering validation review standby. The publish response should include the direct
