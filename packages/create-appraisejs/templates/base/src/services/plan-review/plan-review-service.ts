@@ -49,6 +49,7 @@ export type PlanReviewDetail = {
   contentHash: string
   review?: ReviewArtifact
   validation?: ValidationArtifact
+  validationContentHash?: string
   validationReview?: {
     nodeHashes: Record<string, string>
     fileHashes: Record<string, string>
@@ -278,6 +279,7 @@ export async function getPlanReviewDetail(
     contentHash: planArtifact.hash,
     review,
     validation,
+    validationContentHash: validation ? hashContent(serializeYamlArtifact('validation', validation)) : undefined,
     validationReview,
     graph,
     projection,

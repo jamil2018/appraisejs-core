@@ -27,8 +27,9 @@ stored back into database/report models after execution. Runtime artifacts live 
 
 1. Actions validate user input and call the test run service.
 2. The service resolves selected tags or suites into an executable tag expression and linked test cases.
-3. `local-executor-adapter.ts` prepares the automation workspace, sets runtime environment variables, and spawns
-   `npx cucumber-js`.
+3. `local-executor-adapter.ts` prepares the automation workspace, sets runtime environment variables, and starts the
+   Appraise-owned `@cucumber/cucumber` binary directly with Node. Target workspaces never resolve an unpinned
+   `npx cucumber-js` fallback.
 4. `process-manager.ts` tracks active processes for status, logs, and cancellation.
 5. Cucumber writes JSON reports under `automation/reports/<runId>/cucumber.json`.
 6. Logs are persisted and the raw process status is recorded as completed.
@@ -60,6 +61,10 @@ Baseline and implementation validation gates must consume `evidenceHealth`. `Tes
 trusted when evidence health is `valid`; invalid or infrastructure evidence stays reduced assurance and blocks normal
 lifecycle progression.
 
+Projected baseline scenarios carry plan, validation, suite, and case identifier tags. Partial-suite selection uses the
+same `@ts_<suiteId> and @tc_<caseId>` identifiers; a zero-scenario report is invalid evidence, never a passing or
+unrelated product result.
+
 ## Runtime Environment
 
 The local executor sets these important environment variables for child Cucumber runs:
@@ -70,6 +75,8 @@ The local executor sets these important environment variables for child Cucumber
 - `REPORT_PATH`: run-specific report file path.
 - `REPORT_FORMAT`: Cucumber JSON format pointing at `REPORT_PATH`.
 - `TEST_RUN_ID`: current test run id.
+- `APPRAISE_CUCUMBER_BINARY`: exact Appraise-owned Cucumber binary used by the managed run.
+- `TS_NODE_COMPILER_OPTIONS`: managed TypeScript settings, including DOM libraries needed by browser steps.
 - `APPRAISE_TARGET_ROOT`, `APPRAISE_PLAN_ID`, and `APPRAISE_VALIDATION_ID`: plan-bound execution context when provided
   by lifecycle tools.
 

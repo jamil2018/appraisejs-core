@@ -52,6 +52,11 @@ Baseline execution evidence must be visible and accepted before implementation s
 that unlocks task implementation. File hash drift or stale validation evidence should block progression until rerun or
 explicitly resolved.
 
+Invalid baseline evidence is repairable without accepting or deleting history. `baseline_retry` is hash-bound to the
+current validation artifact, rejects active runs, preserves prior attempts and TestRun links, and returns
+`baseline_review` to `validation_changes_requested` for a fresh exact review. The UI exposes the same operation as
+"Repair validation and rerun baseline" and disables baseline acceptance while invalid evidence is present.
+
 Normal baseline execution is agent-owned through MCP: after `validations_approved`, the connected agent calls
 `baseline_start` and continues with `baseline_reconcile` until baseline review is ready. The Appraise UI should present
 read-only guidance for those mechanical transitions rather than competing buttons. Human/Appraise UI ownership remains

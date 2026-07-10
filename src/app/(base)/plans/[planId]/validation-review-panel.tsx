@@ -178,6 +178,32 @@ function RuntimePreflightSummary({ validation }: { validation: ValidationArtifac
           ))}
         </ul>
       ) : null}
+      {preflight.runtimePreparation ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Runtime owner: <span className="font-medium text-foreground">Appraise</span> · Binary:{' '}
+          <span className="font-mono">{preflight.runtimePreparation.binary}</span>
+        </p>
+      ) : null}
+      {preflight.executionPackets?.length ? (
+        <details className="mt-3 rounded-md border p-3 text-xs">
+          <summary className="cursor-pointer font-medium">Exact managed execution packets</summary>
+          <div className="mt-3 space-y-3">
+            {preflight.executionPackets.map(packet => (
+              <div key={`${packet.validationId}:${packet.browser}:${packet.environment}`} className="grid gap-1">
+                <span className="font-medium">
+                  {packet.validationId} · {packet.browser} · {packet.environment}
+                </span>
+                <span>Target: {packet.targetRoot}</span>
+                <span>Features: {packet.featurePaths.join(', ')}</span>
+                <span>Support/imports: {packet.importPaths.join(', ') || 'Appraise runtime only'}</span>
+                <span>Tags: {packet.tagExpression}</span>
+                <span>Expected scenarios: {packet.expectedScenarioCount}</span>
+                <span>Report: {packet.reportPath}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
   )
 }

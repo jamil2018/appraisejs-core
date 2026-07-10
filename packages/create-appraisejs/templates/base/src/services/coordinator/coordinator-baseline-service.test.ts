@@ -24,6 +24,7 @@ import {
   acknowledgeBaselineFailure,
   justifyBaselineRegressionPass,
   reconcileBaselineExecution,
+  retryBaselineAfterRepair,
   startBaselineExecution,
   startImplementation,
 } from './coordinator-baseline-service'
@@ -96,7 +97,7 @@ function generatedFeatureContent(planId: string) {
     `@appraise_plan_${planId}`,
     'Feature: case-one',
     '',
-    '  @appraise_validation_required-check @tc_case-one',
+    '  @appraise_validation_required-check @ts_baseline-suite @tc_case-one',
     '  Scenario: Baseline case-one',
     '    Given I run the baseline step',
     '',
@@ -417,6 +418,65 @@ describe('baseline execution and implementation gate', () => {
       code: 'CONFLICT',
       message: expect.stringContaining('Validation files changed after approval or baseline execution'),
     })
+  })
+
+  // fallow-ignore-next-line code-duplication
+  it('reopens invalid baseline review with an exact validation hash and preserves attempts', async () => {
+    const planId = 'baseline-repair'
+    await writeArtifacts(planId)
+    await startBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
+    })
+    await reconcileBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      loadEvidence: async () => ({
+        status: 'completed',
+        result: 'failed',
+        failureSignatures: ['Existing product failure'],
+        completedStepIds: ['first-task'],
+      }),
+    })
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+    const current = parseYamlArtifact('validation', stored.content) as ValidationArtifact
+    current.baselineAttempts[0] = {
+      ...current.baselineAttempts[0],
+      classification: 'validation_harness_failure',
+    }
+    const repairedStored = await repository.compareAndWrite(
+      'validation',
+      planId,
+      stored.hash,
+      serializeYamlArtifact('validation', current),
+    )
+
+    await expect(
+      retryBaselineAfterRepair(
+        {
+          planId,
+          reason: 'The generated selector matched zero scenarios.',
+          expectedValidationHash: repairedStored.hash,
+        },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'validation_changes_requested' },
+      validation: {
+        baselineDecision: 'changes-requested',
+        baselineAttempts: expect.arrayContaining([
+          expect.objectContaining({ testRunId: 'run-chromium-local', classification: 'validation_harness_failure' }),
+        ]),
+      },
+    })
+    await expect(readPlanEvents({ planId, afterSequence: 2 }, client)).resolves.toEqual([
+      expect.objectContaining({
+        type: 'validation_changes_requested',
+        payload: expect.objectContaining({ preservedBaselineAttempts: true }),
+      }),
+    ])
   })
 
   it('checks validation files against a bound target project and reports structured drift', async () => {

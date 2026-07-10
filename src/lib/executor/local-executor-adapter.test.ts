@@ -55,6 +55,9 @@ describe('local executor adapter', () => {
         id: 'env-1',
         name: 'local',
         baseUrl: 'http://localhost',
+        apiBaseUrl: null,
+        username: null,
+        password: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -68,14 +71,15 @@ describe('local executor adapter', () => {
     expect(mockEnsureAutomationWorkspaceReady).not.toHaveBeenCalled()
     expect(mockMkdir).toHaveBeenCalledWith('/target/app/automation/reports/run-1', { recursive: true })
     expect(mockSpawnTask).toHaveBeenCalledWith(
-      'npx',
-      ['cucumber-js', '-t', '@smoke', '--parallel', '2'],
+      process.execPath,
+      [expect.stringContaining('@cucumber/cucumber/bin/cucumber.js'), '-t', '@smoke', '--parallel', '2'],
       expect.objectContaining({
         cwd: '/target/app',
         env: expect.objectContaining({
           REPORT_PATH: '/target/app/automation/reports/run-1/cucumber.json',
           REPORT_FORMAT: 'json:automation/reports/run-1/cucumber.json',
           TEST_RUN_ID: 'run-1',
+          APPRAISE_CUCUMBER_BINARY: expect.stringContaining('@cucumber/cucumber/bin/cucumber.js'),
         }),
       }),
     )
@@ -89,6 +93,9 @@ describe('local executor adapter', () => {
         id: 'env-1',
         name: 'local',
         baseUrl: 'http://localhost',
+        apiBaseUrl: null,
+        username: null,
+        password: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -111,8 +118,12 @@ describe('local executor adapter', () => {
       expect.stringContaining('/hub/packages/cucumber-runtime/src/world.ts'),
     )
     expect(mockSpawnTask).toHaveBeenCalledWith(
-      'npx',
-      ['cucumber-js', '--config', 'automation/reports/run-2/cucumber.run-2.mjs'],
+      process.execPath,
+      [
+        expect.stringContaining('@cucumber/cucumber/bin/cucumber.js'),
+        '--config',
+        'automation/reports/run-2/cucumber.run-2.mjs',
+      ],
       expect.objectContaining({ cwd: '/target/app' }),
     )
   })

@@ -279,6 +279,24 @@ const runtimePreflightSchema = z.object({
   status: z.enum(['passed', 'blocked']),
   checkedAt: timestampSchema,
   blockers: z.array(validationDraftBlockerSchema),
+  runtimePreparation: z
+    .object({ owner: z.literal('appraise'), binary: z.string().min(1), targetFilesChanged: z.boolean() })
+    .optional(),
+  executionPackets: z
+    .array(
+      z.object({
+        validationId: idSchema,
+        browser: z.string().min(1),
+        environment: z.string().min(1),
+        targetRoot: z.string().min(1),
+        featurePaths: z.array(z.string().min(1)),
+        importPaths: z.array(z.string().min(1)),
+        tagExpression: z.string().min(1),
+        expectedScenarioCount: z.number().int().positive(),
+        reportPath: z.string().min(1),
+      }),
+    )
+    .optional(),
 })
 
 const validationChangedFileSchema = z.object({
@@ -324,6 +342,29 @@ export const planArtifactSchema = artifactHeaderSchema
     lifecycle: lifecycleSchema,
     goal: z.string().min(1).max(80),
     description: z.string().min(1),
+    requirementAssessment: z
+      .object({
+        domainCandidates: z.array(
+          z.object({ domain: z.string().min(1), confidence: z.number().min(0).max(1), evidence: z.array(z.string()) }),
+        ),
+        selectedDomain: z.string().min(1).optional(),
+        requirements: z.array(
+          z.object({
+            id: z.string().min(1),
+            text: z.string().min(1),
+            kind: z.enum(['functional', 'data', 'quality', 'validation', 'constraint']),
+            coveredBy: z.array(
+              z.object({
+                taskId: idSchema,
+                surface: z.enum(['description', 'acceptanceCriteria', 'validationIntent']),
+              }),
+            ),
+          }),
+        ),
+        uncoveredRequirementIds: z.array(z.string().min(1)),
+        warnings: z.array(z.object({ code: z.string().min(1), message: z.string().min(1) })),
+      })
+      .optional(),
     tasks: z
       .array(
         z.object({

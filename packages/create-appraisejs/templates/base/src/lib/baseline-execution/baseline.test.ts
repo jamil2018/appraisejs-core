@@ -150,6 +150,26 @@ describe('baseline execution contract', () => {
     ).toBe('pre_existing_unrelated_failure')
   })
 
+  it.each([
+    'invalid_empty_run',
+    'invalid_missing_test_cases',
+    'invalid_missing_report',
+    'invalid_placeholder_binary',
+    'invalid_unmatched_scenarios',
+    'invalid_stale_runtime',
+    'infrastructure_failure',
+  ] as const)('classifies durable %s evidence health without reparsing blocker text', evidenceHealth => {
+    expect(
+      classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
+        result: 'failed',
+        evidenceHealth,
+        blockers: ['A deliberately non-matching blocker message.'],
+        failureSignatures: ['A deliberately non-matching blocker message.'],
+        completedStepIds: ['when-submit'],
+      }).classification,
+    ).toBe('validation_harness_failure')
+  })
+
   it('requires every combination plus regression justification and current-signature acknowledgement', () => {
     const attempts: ValidationArtifact['baselineAttempts'] = [
       {

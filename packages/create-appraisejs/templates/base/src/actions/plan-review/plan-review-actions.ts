@@ -20,6 +20,7 @@ import {
   acknowledgeBaselineFailure,
   cancelBaselineExecution,
   justifyBaselineRegressionPass,
+  retryBaselineAfterRepair,
 } from '@/services/coordinator/coordinator-baseline-service'
 import {
   approveCurrentValidationFile,
@@ -123,6 +124,18 @@ export async function publishSharedPlanLayoutAction(input: unknown): Promise<Act
 export async function cancelBaselineExecutionAction(input: unknown): Promise<ActionResponse> {
   return runAction(input, z.object({ planId: planIdSchema }), value =>
     cancelBaselineExecution(value.planId).then(() => undefined),
+  )
+}
+
+export async function retryBaselineAfterRepairAction(input: unknown): Promise<ActionResponse> {
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
+      reason: z.string().trim().min(1),
+      expectedValidationHash: z.string().startsWith('sha256:'),
+    }),
+    value => retryBaselineAfterRepair(value).then(() => undefined),
   )
 }
 

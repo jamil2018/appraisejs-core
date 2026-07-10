@@ -33,6 +33,7 @@ import {
   createValidationDraft,
   publishValidationDraft,
   readValidationContext,
+  readValidationDraft,
   upsertValidationFile,
   upsertValidationStepMetadata,
   upsertValidationTestCase,
@@ -391,7 +392,15 @@ describe('validation preparation review gate', () => {
       { projectDirectory: workspace, client },
     )
 
-    expect(result.draft).toMatchObject({
+    expect(result).toMatchObject({
+      accepted: true,
+      draftHash: expect.stringMatching(/^sha256:/),
+      changedPaths: [],
+      counts: expect.objectContaining({ validations: 0 }),
+    })
+    expect(result).not.toHaveProperty('draft')
+    const current = await readValidationDraft(planId, { projectDirectory: workspace, client, responseMode: 'full' })
+    expect(current.draft).toMatchObject({
       reusedStepPaths: ['automation/steps/actions/case-one.step.ts'],
       newStepPaths: ['automation/steps/actions/todo-only.step.ts'],
       customStepJustifications: [expect.objectContaining({ path: 'automation/steps/actions/todo-only.step.ts' })],

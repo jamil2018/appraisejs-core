@@ -56,6 +56,8 @@ import {
 import {
   checkValidationDraft,
   createValidationDraft,
+  deleteValidationFile,
+  deleteValidationNode,
   publishValidationDraft,
   proposeValidationTestShape,
   readValidationContext,
@@ -84,6 +86,7 @@ import {
   cancelBaselineExecution,
   justifyBaselineRegressionPass,
   reconcileBaselineExecution,
+  retryBaselineAfterRepair,
   startBaselineExecution,
   startImplementation,
 } from '@/services/coordinator/coordinator-baseline-service'
@@ -230,6 +233,42 @@ async function getTestRunEvidence(operation: string[]) {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
+// fallow-ignore-next-line complexity
+async function getValidations(request: Request, operation: string[]) {
+  const planId = routePlanIdSchema.parse(operation[1])
+  if (operation[3] === 'context') {
+    const url = new URL(request.url)
+    const resourceTypes = url.searchParams.get('resourceTypes')?.split(',').filter(Boolean) as
+      | Array<
+          | 'modules'
+          | 'testSuites'
+          | 'testCases'
+          | 'templateSteps'
+          | 'stepBlocks'
+          | 'locatorGroups'
+          | 'locators'
+          | 'environments'
+        >
+      | undefined
+    return Response.json(
+      await readValidationContext(planId, {
+        resourceTypes,
+        query: url.searchParams.get('query') ?? undefined,
+        limit: z.coerce.number().int().positive().max(200).catch(50).parse(url.searchParams.get('limit')),
+        sinceHash: url.searchParams.get('sinceHash') ?? undefined,
+      }),
+    )
+  }
+  if (operation[3] === 'draft') {
+    const responseMode = z
+      .enum(['summary', 'delta', 'full'])
+      .catch('summary')
+      .parse(new URL(request.url).searchParams.get('responseMode'))
+    return Response.json(await readValidationDraft(planId, { responseMode }))
+  }
+  throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+}
+
 // Request routing branches stay in this thin HTTP adapter.
 // fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]) {
@@ -251,12 +290,7 @@ async function dispatchGet(request: Request, operation: string[]) {
     plan: () => getPlan(request, operation),
     events: () => getEvents(request, operation),
     review: () => getReview(request, operation),
-    validations: async () => {
-      const planId = routePlanIdSchema.parse(operation[1])
-      if (operation[3] === 'context') return Response.json(await readValidationContext(planId))
-      if (operation[3] === 'draft') return Response.json(await readValidationDraft(planId))
-      throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
-    },
+    validations: () => getValidations(request, operation),
     completion: async () => Response.json(await reviewImplementationCompletion(routePlanIdSchema.parse(operation[1]))),
   }
   const handler = handlers[operation[2] ?? 'plan']
@@ -354,6 +388,12 @@ async function postBaselineOperation(operation: string[], body: unknown) {
   if (action === 'start') return Response.json(await startBaselineExecution(planId))
   if (action === 'reconcile') return Response.json(await reconcileBaselineExecution(planId))
   if (action === 'cancel') return Response.json(await cancelBaselineExecution(planId))
+  if (action === 'retry') {
+    const value = z
+      .object({ reason: z.string().trim().min(1), expectedValidationHash: z.string().startsWith('sha256:') })
+      .parse(body)
+    return Response.json(await retryBaselineAfterRepair({ planId, ...value }))
+  }
   if (action === 'accept') return Response.json(await acceptBaseline(planId))
   if (action === 'failures' && operation[5] === 'acknowledge') {
     const value = z.object({ acknowledgedBy: z.string().min(1) }).parse(body)
@@ -590,7 +630,10 @@ async function postValidationOperation(request: Request, operation: string[], bo
   if (operation[3] === 'draft') {
     const action = operation[4]
     if (action === 'create') return Response.json(await createValidationDraft(planId), { status: 201 })
-    if (action === 'reset') return Response.json(await resetValidationDraft(planId))
+    if (action === 'reset') {
+      const value = z.object({ expectedDraftHash: z.string().startsWith('sha256:') }).parse(body)
+      return Response.json(await resetValidationDraft(planId, value.expectedDraftHash))
+    }
     if (action === 'check') return Response.json(await checkValidationDraft(planId))
     if (action === 'publish') {
       const value = z.object({ draftId: idSchema }).parse(body)
@@ -599,10 +642,20 @@ async function postValidationOperation(request: Request, operation: string[], bo
       )
     }
     if (action === 'nodes') {
+      if (operation[5] === 'delete') {
+        const value = z.object({ expectedDraftHash: z.string().startsWith('sha256:') }).parse(body)
+        return Response.json(await deleteValidationNode(planId, idSchema.parse(operation[4]), value.expectedDraftHash))
+      }
       const value = z.object({ node: validationNodeSchema }).parse(body)
       return Response.json(await upsertValidationNode(planId, value.node as ValidationDraft['validations'][number]))
     }
     if (action === 'files') {
+      if (operation[4] === 'delete') {
+        const value = z
+          .object({ path: z.string().min(1), expectedDraftHash: z.string().startsWith('sha256:') })
+          .parse(body)
+        return Response.json(await deleteValidationFile(planId, value.path, value.expectedDraftHash))
+      }
       const value = z.object({ file: validationFileSchema }).parse(body)
       return Response.json(await upsertValidationFile(planId, value.file as ValidationDraft['files'][number]))
     }

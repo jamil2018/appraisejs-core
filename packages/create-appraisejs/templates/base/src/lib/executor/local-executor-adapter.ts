@@ -10,6 +10,13 @@ import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-work
 import type { ExecutorAdapter, TestRunExecutionRequest, TestRunExecutionResult } from './types'
 import { processManager } from '@/lib/test-run/process-manager'
 import { promises as fs } from 'fs'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+
+function resolveAppraiseCucumberBinary() {
+  return path.resolve(dirname(require.resolve('@cucumber/cucumber')), '../bin/cucumber.js')
+}
 
 function mapBrowserEngineToName(
   browserEngine: TestRunExecutionRequest['browserEngine'],
@@ -71,7 +78,7 @@ async function writeExactCucumberConfig(input: {
 }
 
 async function buildCucumberArgs(config: TestRunExecutionRequest, reportPath: string, projectRoot?: string) {
-  const cucumberArgs: string[] = ['cucumber-js']
+  const cucumberArgs: string[] = []
 
   if (config.featurePaths?.length || config.importPaths?.length) {
     const configPath = await writeExactCucumberConfig({
@@ -82,7 +89,7 @@ async function buildCucumberArgs(config: TestRunExecutionRequest, reportPath: st
       importPaths: config.importPaths ?? [],
       supportPaths: config.supportPaths,
     })
-    cucumberArgs.push('--config', configPath)
+    cucumberArgs.push('--config', normalizeConfigPath(configPath, projectRoot))
   }
 
   if (config.tagExpression) cucumberArgs.push('-t', config.tagExpression)
@@ -109,11 +116,17 @@ class LocalExecutorAdapter implements ExecutorAdapter {
       REPORT_PATH: reportPath,
       REPORT_FORMAT: buildJsonReportFormat(reportPath, projectRoot),
       TEST_RUN_ID: testRunId,
+      APPRAISE_CUCUMBER_BINARY: resolveAppraiseCucumberBinary(),
+      TS_NODE_COMPILER_OPTIONS: JSON.stringify({
+        lib: ['ES2022', 'DOM'],
+        module: 'NodeNext',
+        moduleResolution: 'NodeNext',
+      }),
     }
 
     const cucumberArgs = await buildCucumberArgs(config, reportPath, projectRoot)
 
-    const spawnedProcess = await spawnTask('npx', cucumberArgs, {
+    const spawnedProcess = await spawnTask(process.execPath, [resolveAppraiseCucumberBinary(), ...cucumberArgs], {
       streamLogs: true,
       prefixLogs: true,
       logPrefix: `test-run-${testRunId}`,

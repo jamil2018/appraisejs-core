@@ -40,8 +40,10 @@ const projectionTag = (planId: string) => `@appraise_plan_${planId}`
 const testCaseTag = (testCaseId: string) => `@tc_${testCaseId}`
 const testSuiteTag = (testSuiteId: string) => `@ts_${testSuiteId}`
 const validationStepGroupName = 'Appraise validation projection'
-const runtimeImport =
-  "import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js';"
+function runtimeImport(projectRoot: string) {
+  const runtimePath = path.join(projectRoot, 'packages/cucumber-runtime/dist/index.js').replace(/\\/g, '/')
+  return `import { When, Then, CustomWorld, expect, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '${runtimePath}';\nimport type { SelectorName } from '${runtimePath}';`
+}
 
 function resolveValidationPath(root: string, filePath: string) {
   const absolutePath = path.resolve(root, filePath)
@@ -92,19 +94,52 @@ function runtimeProjection(input: {
   }
 }
 
-function featureTextForPath(planId: string, validation: ValidationArtifact, featurePath: string) {
+function suiteIdByTestCase(validation: ValidationArtifact) {
+  const suiteByCase = new Map<string, string>()
+  for (const node of validation.validations) {
+    for (const suite of node.appraiseArtifacts.testSuites) {
+      for (const testCaseId of suite.testCaseIds) {
+        const existingSuiteId = suiteByCase.get(testCaseId)
+        if (existingSuiteId && existingSuiteId !== suite.id) {
+          throw new ServiceError(
+            `Projected test case "${testCaseId}" belongs to multiple suites.`,
+            'VALIDATION',
+            undefined,
+            { blockerType: 'projection_conflict', entityType: 'TestCase', entityId: testCaseId },
+          )
+        }
+        suiteByCase.set(testCaseId, suite.id)
+      }
+    }
+  }
+  return suiteByCase
+}
+
+export function featureTextForPath(planId: string, validation: ValidationArtifact, featurePath: string) {
   const nodes = validation.validations.filter(node => node.gherkinPaths.includes(featurePath))
+  const suiteByCase = suiteIdByTestCase(validation)
   return [
-    `@appraise_plan_${planId}`,
+    projectionTag(planId),
     `Feature: ${path.basename(featurePath, path.extname(featurePath))}`,
     '',
     ...nodes.flatMap(node =>
-      node.appraiseArtifacts.testCases.flatMap(testCase => [
-        `  @appraise_validation_${node.id} @tc_${testCase.id}`,
-        `  Scenario: ${testCase.title}`,
-        ...testCase.steps.sort((left, right) => left.order - right.order).map(step => `    ${step.gherkinStep}`),
-        '',
-      ]),
+      node.appraiseArtifacts.testCases.flatMap(testCase => {
+        const suiteId = suiteByCase.get(testCase.id)
+        if (!suiteId) {
+          throw new ServiceError(
+            `Projected test case "${testCase.id}" is not assigned to a suite.`,
+            'VALIDATION',
+            undefined,
+            { blockerType: 'projection_conflict', entityType: 'TestCase', entityId: testCase.id },
+          )
+        }
+        return [
+          `  @appraise_validation_${node.id} ${testSuiteTag(suiteId)} ${testCaseTag(testCase.id)}`,
+          `  Scenario: ${testCase.title}`,
+          ...testCase.steps.sort((left, right) => left.order - right.order).map(step => `    ${step.gherkinStep}`),
+          '',
+        ]
+      }),
     ),
   ].join('\n')
 }
@@ -142,7 +177,7 @@ function groupJSDoc(input: { name: string; description?: string | null; type?: s
   ].join('\n')
 }
 
-async function templateStepGroupContentForPath(filePath: string, client: RuntimeClient) {
+async function templateStepGroupContentForPath(filePath: string, projectRoot: string, client: RuntimeClient) {
   const groups = await client.templateStepGroup.findMany({
     include: { templateSteps: { orderBy: { createdAt: 'asc' } } },
     orderBy: { name: 'asc' },
@@ -167,7 +202,7 @@ async function templateStepGroupContentForPath(filePath: string, client: Runtime
   const body =
     definitions ||
     '// This file is generated automatically. Add template steps to this group to generate executable content.'
-  return `${groupJSDoc(group)}\n${runtimeImport}\n\n${body}\n`
+  return `${groupJSDoc(group)}\n${runtimeImport(projectRoot)}\n\n${body}\n`
 }
 
 function preflightBlocker(
@@ -186,7 +221,12 @@ function preflightBlocker(
   }
 }
 
-function buildRuntimePreflight(projections: RuntimeProjection[]): RuntimePreflight {
+function buildRuntimePreflight(
+  projections: RuntimeProjection[],
+  validation: ValidationArtifact,
+  targetRoot: string,
+  projectRoot: string,
+): RuntimePreflight {
   const blockers = projections.flatMap(projection => {
     if (projection.contentHash) return []
     return [
@@ -202,6 +242,32 @@ function buildRuntimePreflight(projections: RuntimeProjection[]): RuntimePreflig
     status: blockers.length > 0 ? 'blocked' : 'passed',
     checkedAt: new Date().toISOString(),
     blockers,
+    runtimePreparation: {
+      owner: 'appraise',
+      binary: path.join(projectRoot, 'node_modules/@cucumber/cucumber/bin/cucumber.js'),
+      targetFilesChanged: projections.some(projection => projection.materialization === 'generated'),
+    },
+    executionPackets: validation.validations.flatMap(node => {
+      const suiteByCase = suiteIdByTestCase(validation)
+      const tags = node.testCaseIds.map(testCaseId => {
+        const suiteId = suiteByCase.get(testCaseId)
+        if (!suiteId)
+          throw new ServiceError(`Projected test case "${testCaseId}" is not assigned to a suite.`, 'VALIDATION')
+        return `(${testSuiteTag(suiteId)} and ${testCaseTag(testCaseId)})`
+      })
+      const runtimePaths = new Map(projections.map(projection => [projection.declaredPath, projection.runtimePath]))
+      return node.matrix.map(matrix => ({
+        validationId: node.id,
+        browser: matrix.browser,
+        environment: matrix.environment,
+        targetRoot,
+        featurePaths: node.gherkinPaths.map(filePath => runtimePaths.get(filePath) ?? filePath),
+        importPaths: node.stepPaths.map(filePath => runtimePaths.get(filePath) ?? filePath),
+        tagExpression: tags.join(' or '),
+        expectedScenarioCount: node.testCaseIds.length,
+        reportPath: path.join(targetRoot, 'automation/reports/<runId>/cucumber.json'),
+      }))
+    }),
   }
 }
 
@@ -229,6 +295,7 @@ async function materializeRuntimeEntry(input: {
   reusedPaths: Set<string>
   featurePaths: Set<string>
   client: RuntimeClient
+  projectRoot: string
 }) {
   const targetPath = resolveValidationPath(input.validationFileRoot, input.entry.declaredPath)
   const runtimePath = resolveValidationPath(input.runtimeRoot, input.entry.declaredPath)
@@ -247,7 +314,7 @@ async function materializeRuntimeEntry(input: {
   }
 
   if (input.entry.role === 'step' && input.reusedPaths.has(input.entry.declaredPath)) {
-    const content = await templateStepGroupContentForPath(input.entry.declaredPath, input.client)
+    const content = await templateStepGroupContentForPath(input.entry.declaredPath, input.projectRoot, input.client)
     if (content !== null) {
       await writeRuntimeFile(targetPath, content)
       if (runtimePath !== targetPath) await writeRuntimeFile(runtimePath, content)
@@ -301,11 +368,17 @@ export async function materializeValidationRuntime(input: ValidationFileRoot & {
         reusedPaths,
         featurePaths,
         client,
+        projectRoot: input.projectRoot,
       }),
     )
   }
 
-  const runtimePreflight = buildRuntimePreflight(projections)
+  const runtimePreflight = buildRuntimePreflight(
+    projections,
+    input.validation,
+    input.validationFileRoot,
+    input.projectRoot,
+  )
   return { ...input.validation, runtimeProjections: projections, runtimePreflight }
 }
 
