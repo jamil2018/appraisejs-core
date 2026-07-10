@@ -276,7 +276,9 @@ test.describe('Plan review', () => {
     await expect(page.getByRole('heading', { name: 'Make plan dependency flow easy to follow' })).toBeVisible()
     await expect(page.getByLabel('Plan dependency graph')).toBeVisible()
     await expect(page.getByRole('button', { name: /Reset view/i })).toBeVisible()
+    await page.getByRole('tab', { name: /Approval/i }).click()
     await expect(page.getByRole('button', { name: /Revision approved|Approve exact revision/i })).toBeDisabled()
+    await page.getByRole('tab', { name: /Discussion/i }).click()
 
     await testInfo.attach('plan-review-graph', {
       body: await page.screenshot({ fullPage: true }),
@@ -284,28 +286,29 @@ test.describe('Plan review', () => {
     })
 
     await page.getByRole('tab', { name: /Accessible list/i }).click()
-    const list = page.getByRole('list', { name: 'Semantic plan review list' })
-    await expect(list.getByRole('button', { name: /Derive deterministic task steps/i })).toBeVisible()
-    await expect(list.getByRole('button', { name: /Render a numbered left-to-right workflow graph/i })).toBeVisible()
-    await expect(list.getByText(/Relationships: depends-on to derive-deterministic-steps/i)).toBeVisible()
-    await expect(list.getByText(/Stage 2/).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /Select task 2: Derive deterministic task steps/i })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /Select task 1: Render a numbered left-to-right workflow graph/i }),
+    ).toBeVisible()
+    await expect(page.getByText(/Stage 2/).first()).toBeVisible()
 
-    const secondTask = list.getByRole('button', {
-      name: /Render a numbered left-to-right workflow graph/i,
+    const secondTask = page.getByRole('button', {
+      name: /Select task 1: Render a numbered left-to-right workflow graph/i,
     })
+    await expect(secondTask).toContainText(/depends-on to derive-deterministic-steps/i)
     await secondTask.focus()
     await expect(secondTask).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(
       page.getByRole('complementary').getByText('Render a numbered left-to-right workflow graph'),
     ).toBeVisible()
-    await expect(page.getByLabel('Add remark')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: /Remark body/i })).toBeVisible()
 
     await page.getByRole('tab', { name: /Graph/i }).click()
     await page.getByRole('button', { name: /Reset view/i }).focus()
     await expect(page.getByRole('button', { name: /Reset view/i })).toBeFocused()
-    await page.getByRole('textbox', { name: /Add remark/i }).focus()
-    await expect(page.getByRole('textbox', { name: /Add remark/i })).toBeFocused()
+    await page.getByRole('textbox', { name: /Remark body/i }).focus()
+    await expect(page.getByRole('textbox', { name: /Remark body/i })).toBeFocused()
 
     await testInfo.attach('plan-review-list', {
       body: await page.screenshot({ fullPage: true }),
@@ -320,7 +323,7 @@ test.describe('Plan review', () => {
     const validationsPanel = page.getByRole('tabpanel', { name: /validations/i })
     await expect(validationsPanel).toBeVisible()
     await page.getByRole('button', { name: /Approve evidence/i }).click()
-    await expect(page.getByRole('button', { name: /Evidence approved/i })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /Approved evidence/i })).toBeDisabled()
     await expect(page.getByRole('button', { name: /Submit validation review/i })).toBeDisabled()
     await expect(validationsPanel.getByRole('button', { name: /Start required baselines/i })).toHaveCount(0)
 
@@ -333,7 +336,7 @@ test.describe('Plan review', () => {
 
     await expect(page.getByText(/validations approved/i)).toBeVisible()
     await expect(validationsPanel.getByRole('button', { name: /Start required baselines/i })).toHaveCount(0)
-    await expect(validationsPanel.getByText(/connected agent starts required baselines through MCP/i)).toBeVisible()
+    await expect(validationsPanel.getByText(/^Validation review is approved\./i)).toBeVisible()
 
     const projection = await prisma.planProjection.findUniqueOrThrow({
       where: { planId: validationPlanId },

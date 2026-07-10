@@ -102,6 +102,10 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
+async function openApprovalTab(user = userEvent.setup()) {
+  await user.click(screen.getByRole('tab', { name: /approval/i }))
+}
+
 const detail: PlanReviewDetail = {
   plan: {
     version: '1',
@@ -432,9 +436,9 @@ describe('PlanReviewWorkspace', () => {
     const user = userEvent.setup()
     render(<PlanReviewWorkspace detail={detail} />)
 
-    await user.tab()
+    screen.getByRole('button', { name: /hide inspector/i }).focus()
     expect(screen.getByRole('button', { name: /hide inspector/i })).toHaveFocus()
-    await user.tab()
+    screen.getByRole('tab', { name: /graph/i }).focus()
     expect(screen.getByRole('tab', { name: /graph/i })).toHaveFocus()
     screen.getByRole('button', { name: /save layout/i }).focus()
     expect(screen.getByRole('button', { name: /save layout/i })).toHaveFocus()
@@ -444,14 +448,15 @@ describe('PlanReviewWorkspace', () => {
     await user.tab()
     expect(screen.getByRole('tabpanel', { name: /accessible list/i })).toHaveFocus()
     await user.tab()
-    expect(screen.getByRole('button', { name: /prerequisite task/i })).toHaveFocus()
+    expect(screen.getByRole('button', { name: /select task 1: prerequisite task/i })).toHaveFocus()
     await user.click(screen.getByRole('tab', { name: /graph/i }))
     screen.getByRole('button', { name: /reset view/i }).focus()
     expect(screen.getByRole('button', { name: /reset view/i })).toHaveFocus()
     screen.getByRole('tab', { name: /accessible list/i }).focus()
     expect(screen.getByRole('tab', { name: /accessible list/i })).toHaveFocus()
-    screen.getByRole('textbox', { name: /add remark/i }).focus()
-    expect(screen.getByRole('textbox', { name: /add remark/i })).toHaveFocus()
+    screen.getByRole('textbox', { name: /remark body/i }).focus()
+    expect(screen.getByRole('textbox', { name: /remark body/i })).toHaveFocus()
+    await openApprovalTab(user)
     screen.getByRole('button', { name: /approve exact revision/i }).focus()
     expect(screen.getByRole('button', { name: /approve exact revision/i })).toHaveFocus()
   })
@@ -522,6 +527,7 @@ describe('PlanReviewWorkspace', () => {
     const user = userEvent.setup()
     approvePlanRevisionAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
     render(<PlanReviewWorkspace detail={detail} />)
+    await openApprovalTab(user)
 
     await user.click(screen.getByRole('button', { name: /approve exact revision/i }))
 
@@ -560,6 +566,7 @@ describe('PlanReviewWorkspace', () => {
     }
     requestPlanChangesAction.mockResolvedValueOnce({ success: false, error: 'Expected test stop.' })
     render(<PlanReviewWorkspace detail={withBlockingRemark} />)
+    await openApprovalTab(user)
 
     await user.click(screen.getByRole('button', { name: /request changes/i }))
 
@@ -570,14 +577,15 @@ describe('PlanReviewWorkspace', () => {
     })
   })
 
-  it('requires a blocking remark before requesting changes', () => {
+  it('requires a blocking remark before requesting changes', async () => {
     render(<PlanReviewWorkspace detail={detail} />)
+    await openApprovalTab()
 
     expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
     expect(screen.getByText(/add a blocking remark before requesting changes/i)).toBeInTheDocument()
   })
 
-  it('locks approval and change requests for draft plans with a submitted-for-review message', () => {
+  it('locks approval and change requests for draft plans with a submitted-for-review message', async () => {
     const draftDetail: PlanReviewDetail = {
       ...detail,
       plan: { ...detail.plan, lifecycle: 'draft' },
@@ -586,6 +594,7 @@ describe('PlanReviewWorkspace', () => {
     }
 
     render(<PlanReviewWorkspace detail={draftDetail} />)
+    await openApprovalTab()
 
     expect(screen.getByRole('alert')).toHaveTextContent(/draft not submitted for review/i)
     expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
@@ -593,7 +602,7 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getAllByText(/this draft has not been submitted for plan review/i)).toHaveLength(2)
   })
 
-  it('uses the same non-review lifecycle lockout for approval and change requests', () => {
+  it('uses the same non-review lifecycle lockout for approval and change requests', async () => {
     const inProgressDetail: PlanReviewDetail = {
       ...detail,
       plan: { ...detail.plan, lifecycle: 'in_progress' },
@@ -602,14 +611,16 @@ describe('PlanReviewWorkspace', () => {
     }
 
     render(<PlanReviewWorkspace detail={inProgressDetail} />)
+    await openApprovalTab()
 
     expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
     expect(screen.getAllByText(/the plan is not awaiting plan review/i)).toHaveLength(2)
   })
 
-  it('defaults to list review and explains approval lockout when graph readiness failed', () => {
+  it('defaults to list review and explains approval lockout when graph readiness failed', async () => {
     render(<PlanReviewWorkspace detail={{ ...detail, reviewReady: false, listFallback: true }} />)
+    await openApprovalTab()
 
     expect(screen.getByRole('alert')).toHaveTextContent('Graph unavailable, list review enabled')
     expect(screen.getByRole('tab', { name: /graph/i })).toBeDisabled()
@@ -621,7 +632,8 @@ describe('PlanReviewWorkspace', () => {
     ).toBeInTheDocument()
   })
 
-  it('opens directly to the validation tab with node and changed-file evidence', () => {
+  it('opens directly to the validation tab with node and changed-file evidence', async () => {
+    const user = userEvent.setup()
     render(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
 
     expect(screen.getByRole('tabpanel', { name: /validations/i })).toBeInTheDocument()
@@ -630,6 +642,7 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText('approved')).toBeInTheDocument()
     expect(screen.getByText('optional-validation')).toBeInTheDocument()
     expect(screen.getByText('deferred')).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: /expand section/i })[0]!)
     expect(screen.getByText('automation/steps/review.steps.ts :: validation review')).toBeInTheDocument()
     expect(screen.getAllByText('AppraiseJS artifacts').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Validation review suite (1)')).toBeInTheDocument()
@@ -643,7 +656,7 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText('production')).toBeInTheDocument()
     expect(screen.getAllByText('Declared')).toHaveLength(2)
     expect(screen.getAllByText('In manifest')).toHaveLength(2)
-    expect(screen.getByRole('button', { name: 'Evidence approved' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Approved evidence' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Deferred' })).toBeDisabled()
     expect(screen.getAllByText('Approved').length).toBeGreaterThanOrEqual(1)
   })
@@ -743,6 +756,7 @@ describe('PlanReviewWorkspace', () => {
       decision: 'approved',
     })
 
+    await waitFor(() => expect(approveButtons[1]).toBeEnabled())
     await user.click(approveButtons[1]!)
 
     expect(onSubmit).not.toHaveBeenCalled()

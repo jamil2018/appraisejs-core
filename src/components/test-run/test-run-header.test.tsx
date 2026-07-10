@@ -28,6 +28,7 @@ function createTestRun(overrides?: Partial<TestRunDetailsData>): TestRunDetailsD
     completedAt: null,
     status: TestRunStatus.RUNNING,
     result: TestRunResult.PENDING,
+    evidenceHealth: 'valid',
     updatedAt: new Date('2024-01-01T00:00:00.000Z'),
     environmentId: 'env-1',
     testWorkersCount: 2,
