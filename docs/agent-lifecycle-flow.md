@@ -13,9 +13,10 @@ Agents should use `plan_review_loop` when it is available, because it keeps revi
 change requests, and cancellation inside one Appraise-owned loop. Without that tool, agents should actively continue
 with bounded `plan_wait_for_review` and `plan_wait_for_approval` waits. Compact continuation state is a fallback for
 long reviews or host limits, not the default result after publishing links. No wait call before complete URL handoff:
-every standby handoff should present the complete direct browser URL, `appraise://` URL, plan ID, goal, description,
-revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait call before the
-agent waits again. Pending review or pending approval is not completion.
+the initial handoff for each revision must present the direct browser URL, `appraise://` URL, plan ID, goal,
+description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait
+call. Later waits with no new events return `pending_unchanged` with only the cursor, timing, and next action; they do
+not repeat the brief or handoff. Pending review or pending approval is not completion.
 
 ## Approval And Validation Preparation
 

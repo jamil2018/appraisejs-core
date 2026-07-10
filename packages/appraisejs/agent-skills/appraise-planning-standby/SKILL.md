@@ -26,10 +26,11 @@ Appraise, build this project using Appraise, or generate a plan and show it in A
 8. After review readiness, call `plan_wait_for_approval` with an active bounded wait or poll loop by default, then
    enter standby. Pending approval is not completion.
 9. If approval is still pending after a bounded wait, use the returned `nextAfterSequence` for the next bounded wait.
-   Return compact continuation state only as a long-review or host-limit fallback. No wait call before complete URL
-   handoff: before entering or continuing standby, present the complete direct browser URL, `appraise://` URL, plan ID,
-   goal, description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended
-   wait call so a later turn can resume the same wait.
+   Return compact continuation state only as a long-review or host-limit fallback. No wait call before the complete
+   URL handoff for the current revision: before entering initial standby, present the complete direct browser URL,
+   `appraise://` URL, plan ID, goal, description, revision, lifecycle, content hash, `currentAfterSequence`,
+   `nextAfterSequence`, and recommended wait call so a later turn can resume the same wait. Later unchanged waits use
+   the compact `pending_unchanged` cursor, timing, and next-action delta without repeating the brief or full handoff.
 10. On `approved`, call `plan_start`; acknowledge only after `validation_preparation_started`. Before publishing
     validations, read `appraise://workflow/validation-preparation` and use the `validation_publish` input schema for
     the required artifact shape instead of inspecting AppraiseJS source files.

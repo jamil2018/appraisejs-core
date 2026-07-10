@@ -141,18 +141,20 @@ After each subagent reports standby evidence, the coordinator independently veri
    approval.
 5. The approval wait returned approval, requested changes, cancellation, or compact pending standby state only for a
    long-review or host-limit fallback.
-6. The subagent did not report pending review or pending approval as completion.
-7. The subagent did not start validation preparation or implementation before Appraise approval.
-8. If the validation fixture is used, the coordinator approves the plan through Appraise, waits for
+6. The complete URL/hash/cursor handoff appeared once for each revision; unchanged waits returned only the compact
+   `pending_unchanged` delta and did not restate the brief or rendered handoff.
+7. The subagent did not report pending review or pending approval as completion.
+8. The subagent did not start validation preparation or implementation before Appraise approval.
+9. If the validation fixture is used, the coordinator approves the plan through Appraise, waits for
    `validation_preparation_started`, observes a `validation_publish` call, verifies `validation_review_ready`, and
    records the direct validation review URL.
-9. The validation artifact includes validation nodes, executable metadata, browser/environment matrix, expected
-   failures, changed-file evidence, manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`.
-10. The subagent follows the registry-first policy: existing registry/template steps are reused for common web
+10. The validation artifact includes validation nodes, executable metadata, browser/environment matrix, expected
+    failures, changed-file evidence, manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`.
+11. The subagent follows the registry-first policy: existing registry/template steps are reused for common web
     workflows, the todo fixture creates zero custom step definitions, and any custom step includes a gap justification
     naming the missing reusable capability and why locators plus existing steps were insufficient.
-11. Local worktree changes are limited to expected audit artifacts.
-12. Audit-generated plan YAML files are removed after evidence capture unless the user explicitly wants them committed.
+12. Local worktree changes are limited to expected audit artifacts.
+13. Audit-generated plan YAML files are removed after evidence capture unless the user explicitly wants them committed.
 
 ## Scoring
 

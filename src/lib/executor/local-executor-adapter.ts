@@ -82,7 +82,7 @@ async function buildCucumberArgs(config: TestRunExecutionRequest, reportPath: st
       importPaths: config.importPaths ?? [],
       supportPaths: config.supportPaths,
     })
-    cucumberArgs.push('--config', configPath)
+    cucumberArgs.push('--config', normalizeConfigPath(configPath, projectRoot))
   }
 
   if (config.tagExpression) cucumberArgs.push('-t', config.tagExpression)

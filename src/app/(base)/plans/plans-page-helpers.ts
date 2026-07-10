@@ -109,7 +109,13 @@ function matchesPlanTab(lifecycle: string, tab: string) {
 function matchesPlanQuery(plan: ListedPlan, query: string) {
   if (!query) return true
   const normalizedQuery = query.toLowerCase()
-  const searchableValues = [getPlanDisplaySlug(plan), plan.goal, plan.description, plan.lifecycle.replaceAll('_', ' ')]
+  const searchableValues = [
+    plan.planId,
+    getPlanDisplaySlug(plan),
+    plan.goal,
+    plan.description,
+    plan.lifecycle.replaceAll('_', ' '),
+  ]
   return searchableValues.some(value => value.toLowerCase().includes(normalizedQuery))
 }
 

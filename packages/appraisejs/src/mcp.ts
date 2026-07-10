@@ -14,6 +14,7 @@ import {
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { planArtifactSchema, planCreateInputSchema, validationArtifactSchema } from './plan-file.js'
+import { analyzeBrief, assessPlanRequirements } from './plan-requirements.js'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version?: string }
@@ -263,6 +264,19 @@ function applyResponseMode(value: unknown, responseMode: z.infer<typeof response
     reportUrl: payload.reportUrl,
     logsUrl: payload.logsUrl,
     nextAllowedAction: payload.nextAllowedAction,
+  }
+}
+
+function summarizeDiagnostic(value: Awaited<ReturnType<typeof diagnoseProject>>) {
+  return {
+    ok: value.ok,
+    project: value.project,
+    hubProject: value.hubProject,
+    contractVersion: value.contractVersion,
+    checks: value.checks.map(check => ({ id: check.id, status: check.status, code: check.code })),
+    warnings: value.warnings,
+    recoveryActions: value.recoveryActions,
+    links: value.links,
   }
 }
 
@@ -601,6 +615,7 @@ function structuredBriefPlan(tasks: BriefPlanTask[]): StructuredBriefPlan {
 
 function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPlan | undefined {
   const brief = projectBrief.toLowerCase()
+  const briefAnalysis = analyzeBrief(projectBrief)
   const isAppBrief = includesAny(brief, [
     /\bapp(?:lication)?\b/,
     /\bfrontend\b/,
@@ -656,6 +671,7 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
   ])
   const asksForCompletion = includesAny(brief, [/\bcomplete\b/, /\bcompleted\b/, /\bdone\b/, /\btoggle\b/])
   const isTodoBrief = includesAny(brief, [/\btodo(?:s)?\b/, /\btask(?:s)?\b/, /\bchecklist\b/])
+  const isReminderBrief = briefAnalysis.selectedDomain === 'reminder'
   const isApiInformationBrief = includesAny(brief, [
     /\bweather\b/,
     /\bforecast\b/,
@@ -664,7 +680,7 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
     /\blookup\b/,
     /\bcurrent conditions?\b/,
   ])
-  const isEditorBrief = includesAny(brief, [/\bnotes?\b/, /\bdocument\b/, /\beditor\b/, /\bmarkdown\b/, /\bwrite\b/])
+  const isEditorBrief = briefAnalysis.selectedDomain === 'editor'
   const isDashboardBrief = includesAny(brief, [
     /\bdashboard\b/,
     /\bmetrics?\b/,
@@ -673,6 +689,56 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
     /\bsort(?:ing)?\b/,
     /\breport(?:ing)?\b/,
   ])
+
+  if (isReminderBrief) {
+    return structuredBriefPlan([
+      setupTask,
+      {
+        id: 'reminder-model-ui',
+        title: 'Model reminders and build the primary list',
+        description:
+          'Define reminders with a title, optional notes, due date and time, and an active or completed state in a clear list and input flow.',
+        acceptanceCriteria: [
+          'Users can enter a reminder title, optional notes, and due date/time.',
+          'The primary UI includes accessible empty, active, and completed reminder states.',
+        ],
+        validationIntent: 'Test reminder creation and field validation with focused UI coverage.',
+      },
+      {
+        id: 'reminder-crud-completion',
+        title: 'Implement reminder CRUD and completion',
+        description:
+          'Implement create, edit, delete, complete, and reactivate behavior with predictable accessible controls.',
+        acceptanceCriteria: [
+          'Users can create, edit, and delete reminders without losing unrelated records.',
+          'Users can complete and reactivate a reminder with the updated state reflected immediately.',
+        ],
+        validationIntent: 'Test create, edit, delete, completion, and reactivation workflows.',
+      },
+      {
+        id: 'reminder-filtering-persistence',
+        title: 'Filter and persist reminders',
+        description:
+          'Provide active and completed reminder filters and persist reminder data so it restores after reload.',
+        acceptanceCriteria: [
+          'Users can filter active and completed reminders.',
+          'Persisted reminders, including notes, due date/time, and completion state, restore on reload.',
+        ],
+        validationIntent: 'Test filters and persistence recovery with deterministic saved-data evidence.',
+      },
+      {
+        id: 'reminder-quality-validation',
+        title: 'Validate accessible responsive reminder workflows',
+        description:
+          'Validate the reminder workflow across responsive layouts with keyboard focus management and screen-reader announcements.',
+        acceptanceCriteria: [
+          'Responsive layouts preserve reminder creation, filters, and status controls on small screens.',
+          'Accessible controls expose labels, focus management, and screen-reader status announcements.',
+        ],
+        validationIntent: 'Run responsive and accessibility tests for the complete reminder workflow.',
+      },
+    ])
+  }
 
   if (isTodoBrief && (asksForCrud || asksForCompletion || asksForPersistence)) {
     const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
@@ -963,21 +1029,23 @@ export function createPlanFromBrief(input: {
     .filter(Boolean)
     .join('\n\n')
   const structuredPlan = createStructuredTasksFromBrief(input.projectBrief)
+  const tasks = structuredPlan?.tasks ?? [
+    {
+      id: 'plan-from-brief',
+      title: 'Plan from brief',
+      description: input.projectBrief,
+      acceptanceCriteria: ['The Appraise review surface shows the proposed plan for human review.'],
+      validationIntent: 'Wait for AppraiseJS plan review readiness before any implementation starts.',
+    },
+  ]
   return {
     version: '1',
     revision: 1,
     lifecycle: 'draft',
     goal: title || 'AppraiseJS planning session',
     description: context,
-    tasks: structuredPlan?.tasks ?? [
-      {
-        id: 'plan-from-brief',
-        title: 'Plan from brief',
-        description: input.projectBrief,
-        acceptanceCriteria: ['The Appraise review surface shows the proposed plan for human review.'],
-        validationIntent: 'Wait for AppraiseJS plan review readiness before any implementation starts.',
-      },
-    ],
+    requirementAssessment: assessPlanRequirements(input.projectBrief, tasks),
+    tasks,
     edges: structuredPlan?.edges ?? [],
     implementationGroups: structuredPlan?.implementationGroups ?? [],
   }
@@ -1112,7 +1180,6 @@ function standbyPresentation(input: {
     browserUrl,
     appraiseUrl,
     handoffMarkdown,
-    requiredUserFacingMessage: handoffMarkdown,
     goal: input.current.plan.goal,
     description: input.current.plan.description,
     revision: input.current.plan.revision,
@@ -1161,6 +1228,20 @@ export function approvalPendingResponse(input: {
     mode: 'long_poll',
     timeoutMs,
     afterSequence: nextAfterSequence,
+  }
+  if (input.afterSequence > 0 && input.events.length === 0) {
+    return {
+      status: 'pending_unchanged',
+      terminal: false,
+      mustContinue: true,
+      planId: input.planId,
+      currentAfterSequence: input.afterSequence,
+      nextAfterSequence,
+      recommendedWait,
+      nextRecommendedAction:
+        'Remain in Appraise review-gate standby and call the recommended wait tool with nextAfterSequence.',
+      nextRequiredAgentBehavior: 'standby_for_appraise_review',
+    }
   }
   return {
     status: 'pending',
@@ -1270,6 +1351,20 @@ export function reviewReadyPendingResponse(input: {
     mode: 'long_poll',
     timeoutMs,
     afterSequence: nextAfterSequence,
+  }
+  if (input.afterSequence > 0 && input.events.length === 0) {
+    return {
+      status: 'pending_unchanged',
+      phase: 'review_ready',
+      terminal: false,
+      mustContinue: true,
+      planId: input.planId,
+      currentAfterSequence: input.afterSequence,
+      nextAfterSequence,
+      recommendedWait,
+      nextRecommendedAction: 'Continue waiting for durable review readiness through the recommended wait tool.',
+      nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
+    }
   }
   return {
     status: 'pending',
@@ -1716,10 +1811,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           const targetProject = (targetProjectResult as { targetProject?: { id?: string } }).targetProject
           target = targetProject?.id ?? input.targetWorkspacePath
         }
+        const candidatePlan = createPlanFromBrief(input)
+        const requirementAssessment = assessPlanRequirements(input.projectBrief, candidatePlan.tasks)
+        if (requirementAssessment.uncoveredRequirementIds.length) {
+          return text({
+            status: 'coverage_review_required',
+            candidatePlan,
+            requirementAssessment,
+            nextRecommendedAction:
+              'Review the uncovered explicit requirements, revise the brief or task shape, then rerun planning_session_create before Appraise publishes a review-ready revision.',
+            nextRequiredAgentBehavior: 'resolve_uncovered_plan_requirements',
+          })
+        }
         const created = (
-          target
-            ? await api.createPlanForTarget(createPlanFromBrief(input), target)
-            : await api.createPlan(createPlanFromBrief(input))
+          target ? await api.createPlanForTarget(candidatePlan, target) : await api.createPlan(candidatePlan)
         ) as PlanSnapshot & {
           planId?: string
           eventSequence?: number
@@ -1756,7 +1861,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           }
         }
         return text({
-          diagnostic,
+          diagnostic: summarizeDiagnostic(diagnostic),
+          requirementAssessment,
           targetProject: targetProjectResult,
           created,
           reviewReady,

@@ -324,6 +324,29 @@ export const planArtifactSchema = artifactHeaderSchema
     lifecycle: lifecycleSchema,
     goal: z.string().min(1).max(80),
     description: z.string().min(1),
+    requirementAssessment: z
+      .object({
+        domainCandidates: z.array(
+          z.object({ domain: z.string().min(1), confidence: z.number().min(0).max(1), evidence: z.array(z.string()) }),
+        ),
+        selectedDomain: z.string().min(1).optional(),
+        requirements: z.array(
+          z.object({
+            id: z.string().min(1),
+            text: z.string().min(1),
+            kind: z.enum(['functional', 'data', 'quality', 'validation', 'constraint']),
+            coveredBy: z.array(
+              z.object({
+                taskId: idSchema,
+                surface: z.enum(['description', 'acceptanceCriteria', 'validationIntent']),
+              }),
+            ),
+          }),
+        ),
+        uncoveredRequirementIds: z.array(z.string().min(1)),
+        warnings: z.array(z.object({ code: z.string().min(1), message: z.string().min(1) })),
+      })
+      .optional(),
     tasks: z
       .array(
         z.object({

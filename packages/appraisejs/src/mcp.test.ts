@@ -16,6 +16,7 @@ import {
   validationPreparationWorkflow,
 } from './mcp.js'
 import { validationArtifactSchema } from './plan-file.js'
+import { assessPlanRequirements } from './plan-requirements.js'
 
 describe('MCP approval wait helpers', () => {
   it('advances the long-poll cursor past non-gate events that were already delivered', () => {
@@ -95,10 +96,10 @@ describe('MCP approval wait helpers', () => {
     expect(response.reviewGatePause).toContain('Do not implement')
     expect(response.reviewGatePause).toContain('treat chat messages as approval')
     expect(response.cursorGuidance).toContain('afterSequence is exclusive')
-    expect(response.requiredUserFacingMessage).toContain('No wait call before complete URL handoff')
-    expect(response.requiredUserFacingMessage).toContain('Direct browser URL: http://127.0.0.1:3000/plans/plan-1')
-    expect(response.requiredUserFacingMessage).toContain('Plan ID: plan-1')
-    expect(response.requiredUserFacingMessage).toContain('Recommended wait call: plan_wait_for_approval')
+    expect(response.handoffMarkdown).toContain('No wait call before complete URL handoff')
+    expect(response.handoffMarkdown).toContain('Direct browser URL: http://127.0.0.1:3000/plans/plan-1')
+    expect(response.handoffMarkdown).toContain('Plan ID: plan-1')
+    expect(response.handoffMarkdown).toContain('Recommended wait call: plan_wait_for_approval')
     expect(response.standbyPresentation.instruction).toContain('Before entering or continuing standby')
     expect(response.standbyPresentation.instruction).toContain('complete direct browser URL')
     expect(response.standbyPresentation.requiredFields).toEqual(
@@ -159,8 +160,25 @@ describe('MCP approval wait helpers', () => {
     })
     expect(response.reviewGatePause).toContain('Do not present the review as durable')
     expect(response.standbyPresentation.instruction).toContain('browser URL')
-    expect(response.requiredUserFacingMessage).toContain('No wait call before complete URL handoff')
-    expect(response.requiredUserFacingMessage).toContain('Recommended wait call: plan_review_loop')
+    expect(response.handoffMarkdown).toContain('No wait call before complete URL handoff')
+    expect(response.handoffMarkdown).toContain('Recommended wait call: plan_review_loop')
+  })
+
+  it('returns a sub-kilobyte delta when a review wait has no new events', () => {
+    const response = approvalPendingResponse({
+      planId: 'plan-1',
+      current: {
+        plan: { revision: 2, lifecycle: 'awaiting_plan_review' },
+        contentHash: 'sha256:test',
+        links: {},
+      },
+      events: [],
+      afterSequence: 4,
+    })
+
+    expect(response.status).toBe('pending_unchanged')
+    expect(JSON.stringify(response).length).toBeLessThan(1_000)
+    expect(response).not.toHaveProperty('handoffMarkdown')
   })
 })
 
@@ -438,5 +456,73 @@ describe('MCP planning session target selection', () => {
     expect(response.targetProjectCandidates).toMatchObject({
       targetProjects: [{ id: 'target-1' }],
     })
+  })
+})
+
+describe('brief requirement fidelity', () => {
+  const reminderBrief =
+    'Build a reminder app with a title, optional notes, due date and time, CRUD, completion and reactivation, active and completed filters, persistence, accessibility, responsive layouts, and automated tests.'
+
+  it('keeps a reminder with optional notes out of the editor template', () => {
+    const plan = createPlanFromBrief({ projectBrief: reminderBrief })
+
+    expect(plan.tasks.map(task => task.id)).toEqual(
+      expect.arrayContaining([
+        'reminder-model-ui',
+        'reminder-crud-completion',
+        'reminder-filtering-persistence',
+        'reminder-quality-validation',
+      ]),
+    )
+    expect(plan.tasks.map(task => task.title).join(' ')).not.toContain('editor')
+  })
+
+  it('maps every explicit reminder requirement to a plan task surface', () => {
+    const plan = createPlanFromBrief({ projectBrief: reminderBrief })
+    const assessment = assessPlanRequirements(reminderBrief, plan.tasks)
+
+    expect(assessment.selectedDomain).toBe('reminder')
+    expect(assessment.uncoveredRequirementIds).toEqual([])
+    expect(assessment.requirements.every(requirement => requirement.coveredBy.length > 0)).toBe(true)
+    expect(assessment.requirements.map(requirement => requirement.id)).toEqual(
+      expect.arrayContaining(['create', 'edit', 'delete']),
+    )
+  })
+
+  it('does not let a notes field override a dominant product noun', () => {
+    const brief = 'Build a recipe organizer with notes, tags, search, favorites, responsive layouts, and tests.'
+    const plan = createPlanFromBrief({ projectBrief: brief })
+
+    expect(plan.requirementAssessment?.selectedDomain).toBe('recipe-organizer')
+    expect(
+      plan.tasks
+        .map(task => task.title)
+        .join(' ')
+        .toLowerCase(),
+    ).not.toContain('editor')
+  })
+
+  it('does not count a generic brief echo as durable requirement coverage', () => {
+    const brief = 'Create a garden planner with accessible responsive workflows and automated tests.'
+    const plan = createPlanFromBrief({ projectBrief: brief })
+
+    expect(plan.tasks).toHaveLength(1)
+    expect(plan.requirementAssessment?.uncoveredRequirementIds).toEqual(
+      expect.arrayContaining(['accessibility', 'responsive', 'testing']),
+    )
+  })
+
+  it('requires quality requirements in both acceptance and validation surfaces', () => {
+    const assessment = assessPlanRequirements('Build an accessible responsive app with tests.', [
+      {
+        id: 'quality-only-in-acceptance',
+        description: 'Build the interface.',
+        acceptanceCriteria: ['The interface is accessible and responsive.'],
+        validationIntent: 'Run tests for the interface.',
+      },
+    ])
+
+    expect(assessment.uncoveredRequirementIds).toEqual(expect.arrayContaining(['accessibility', 'responsive']))
+    expect(assessment.uncoveredRequirementIds).not.toContain('testing')
   })
 })
