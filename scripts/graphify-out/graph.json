@@ -3612,116 +3612,6 @@
       "id": "validate_prisma_migrations_migrationsroot"
     },
     {
-      "label": "run-graphify.mjs",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "run-graphify.mjs",
-      "community_name": "Community 13",
-      "id": "run_graphify"
-    },
-    {
-      "label": "args",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L6",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "args",
-      "community_name": "Community 13",
-      "id": "run_graphify_args"
-    },
-    {
-      "label": "graphifyCommand",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L7",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "graphifycommand",
-      "community_name": "Community 13",
-      "id": "run_graphify_graphifycommand"
-    },
-    {
-      "label": "graphifyMcpCommand",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "graphifymcpcommand",
-      "community_name": "Community 13",
-      "id": "run_graphify_graphifymcpcommand"
-    },
-    {
-      "label": "versionCheck",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L15",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "versioncheck",
-      "community_name": "Community 13",
-      "id": "run_graphify_versioncheck"
-    },
-    {
-      "label": "result",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L54",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "result",
-      "community_name": "Community 13",
-      "id": "run_graphify_result"
-    },
-    {
-      "label": "runCommand()",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L57",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "runcommand()",
-      "community_name": "Community 13",
-      "id": "run_graphify_runcommand"
-    },
-    {
-      "label": "resolveCommand()",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L76",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "resolvecommand()",
-      "community_name": "Community 13",
-      "id": "run_graphify_resolvecommand"
-    },
-    {
-      "label": "resolveCommandFromPath()",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L83",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "resolvecommandfrompath()",
-      "community_name": "Community 13",
-      "id": "run_graphify_resolvecommandfrompath"
-    },
-    {
-      "label": "resolveCommandFromUvToolPath()",
-      "file_type": "code",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L91",
-      "_origin": "ast",
-      "community": 13,
-      "norm_label": "resolvecommandfromuvtoolpath()",
-      "community_name": "Community 13",
-      "id": "run_graphify_resolvecommandfromuvtoolpath"
-    },
-    {
       "label": "update-graphify-graphs.mjs",
       "file_type": "code",
       "source_file": "update-graphify-graphs.mjs",
@@ -4325,6 +4215,116 @@
       "norm_label": "failures",
       "community_name": "Community 7",
       "id": "check_agent_harness_failures"
+    },
+    {
+      "label": "run-graphify.mjs",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "run-graphify.mjs",
+      "community_name": "Community 13",
+      "id": "run_graphify"
+    },
+    {
+      "label": "args",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "args",
+      "community_name": "Community 13",
+      "id": "run_graphify_args"
+    },
+    {
+      "label": "graphifyCommand",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "graphifycommand",
+      "community_name": "Community 13",
+      "id": "run_graphify_graphifycommand"
+    },
+    {
+      "label": "graphifyMcpCommand",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "graphifymcpcommand",
+      "community_name": "Community 13",
+      "id": "run_graphify_graphifymcpcommand"
+    },
+    {
+      "label": "versionCheck",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L15",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "versioncheck",
+      "community_name": "Community 13",
+      "id": "run_graphify_versioncheck"
+    },
+    {
+      "label": "result",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L60",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "result",
+      "community_name": "Community 13",
+      "id": "run_graphify_result"
+    },
+    {
+      "label": "runCommand()",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L63",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "runcommand()",
+      "community_name": "Community 13",
+      "id": "run_graphify_runcommand"
+    },
+    {
+      "label": "resolveCommand()",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L82",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "resolvecommand()",
+      "community_name": "Community 13",
+      "id": "run_graphify_resolvecommand"
+    },
+    {
+      "label": "resolveCommandFromPath()",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L89",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "resolvecommandfrompath()",
+      "community_name": "Community 13",
+      "id": "run_graphify_resolvecommandfrompath"
+    },
+    {
+      "label": "resolveCommandFromUvToolPath()",
+      "file_type": "code",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L97",
+      "_origin": "ast",
+      "community": 13,
+      "norm_label": "resolvecommandfromuvtoolpath()",
+      "community_name": "Community 13",
+      "id": "run_graphify_resolvecommandfromuvtoolpath"
     }
   ],
   "links": [
@@ -10600,118 +10600,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_args"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_graphifycommand"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_graphifymcpcommand"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L76",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_resolvecommand"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L83",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_resolvecommandfrompath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L91",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_resolvecommandfromuvtoolpath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L54",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_result"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L57",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_runcommand"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify",
-      "target": "run_graphify_versioncheck"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L77",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify_resolvecommand",
-      "target": "run_graphify_resolvecommandfrompath"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "run-graphify.mjs",
-      "source_location": "L80",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "run_graphify_resolvecommand",
-      "target": "run_graphify_resolvecommandfromuvtoolpath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L44",
       "weight": 1.0,
@@ -11364,8 +11252,120 @@
       "confidence_score": 1.0,
       "source": "check_agent_harness_checkrootrelativereferences",
       "target": "check_agent_harness_linefor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_args"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_graphifycommand"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_graphifymcpcommand"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L82",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_resolvecommand"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L89",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_resolvecommandfrompath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L97",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_resolvecommandfromuvtoolpath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L60",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_result"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_runcommand"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify",
+      "target": "run_graphify_versioncheck"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L83",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify_resolvecommand",
+      "target": "run_graphify_resolvecommandfrompath"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "run-graphify.mjs",
+      "source_location": "L86",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "run_graphify_resolvecommand",
+      "target": "run_graphify_resolvecommandfromuvtoolpath"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "49ef38d05c0850978e11e256e23d50a931aa6b64"
+  "built_at_commit": "469a2cbe31b260ea4195ff0573414bcfc40167ed"
 }

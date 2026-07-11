@@ -1,4 +1,4 @@
-# Graph Report - scripts  (2026-07-08)
+# Graph Report - scripts  (2026-07-11)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `49ef38d0`
+- Built from commit: `469a2cbe`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

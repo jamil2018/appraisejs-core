@@ -85,36 +85,42 @@ read `plan_review_read` before revising.
 
 All routes are under `/api/internal/coordinator`.
 
-| Method | Path                                                      | Purpose                                                  |
-| ------ | --------------------------------------------------------- | -------------------------------------------------------- |
-| `POST` | `/register`                                               | Acquire, reconnect, or take over a coordinator lease     |
-| `POST` | `/heartbeat`                                              | Renew a coordinator lease                                |
-| `POST` | `/plans`                                                  | Create a structured plan                                 |
-| `GET`  | `/plans/:planId`                                          | Read the plan and exact content hash                     |
-| `GET`  | `/plans/:planId/review`                                   | Read review hash, remarks, links, and recovery guidance  |
-| `PUT`  | `/plans/:planId`                                          | Submit a higher revision with an expected hash           |
-| `POST` | `/plans/:planId/start`                                    | Start validation preparation after plan approval         |
-| `POST` | `/plans/:planId/tasks/:taskId`                            | Publish a task progress event                            |
-| `GET`  | `/plans/:planId/events`                                   | Read events; `after` and `wait=true` are supported       |
-| `POST` | `/plans/:planId/events/ack`                               | Acknowledge one sequence                                 |
-| `POST` | `/plans/:planId/validations/publish`                      | Persist validation artifacts and enter validation review |
-| `POST` | `/plans/:planId/validations/feedback`                     | Route validation feedback to validation or plan review   |
-| `POST` | `/plans/:planId/baseline/start`                           | Agent-owned start of required baseline execution         |
-| `POST` | `/plans/:planId/baseline/reconcile`                       | Agent-owned baseline evidence reconciliation             |
-| `POST` | `/plans/:planId/baseline/cancel`                          | Cancel active baseline runs                              |
-| `POST` | `/plans/:planId/baseline/failures/:attemptId/acknowledge` | Acknowledge unrelated baseline failure evidence          |
-| `POST` | `/plans/:planId/baseline/regressions/:attemptId/justify`  | Justify accepted regression-pass evidence                |
-| `POST` | `/plans/:planId/baseline/accept`                          | Accept complete baseline evidence                        |
-| `POST` | `/plans/:planId/implementation/start`                     | Agent-owned implementation unlock after baseline         |
-| `POST` | `/plans/:planId/implementation/checkpoint`                | Poll a named implementation checkpoint                   |
-| `POST` | `/plans/:planId/implementation/tasks/:taskId`             | Transition a task state                                  |
-| `POST` | `/plans/:planId/implementation/feedback`                  | Analyze or apply confirmed blocking feedback             |
-| `POST` | `/plans/:planId/implementation/control`                   | Pause, resume, or cancel implementation                  |
-| `POST` | `/plans/:planId/implementation/validations`               | Record exceptional manual reduced-assurance evidence     |
-| `POST` | `/plans/:planId/implementation/validations/start`         | Create managed implementation validation run intents     |
-| `POST` | `/plans/:planId/implementation/validations/reconcile`     | Reconcile managed implementation validations from runs   |
-| `GET`  | `/plans/:planId/completion`                               | Read the final completion review                         |
-| `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                       |
+| Method | Path                                                      | Purpose                                                             |
+| ------ | --------------------------------------------------------- | ------------------------------------------------------------------- |
+| `POST` | `/register`                                               | Acquire, reconnect, or take over a coordinator lease                |
+| `GET`  | `/actions/categories`                                     | List progressive action category summaries                          |
+| `GET`  | `/actions`                                                | List bounded, deterministically filtered actions                    |
+| `GET`  | `/actions/read`                                           | Read exact versioned action descriptors                             |
+| `GET`  | `/locator-graph`                                          | Query the bounded read-only locator graph                           |
+| `GET`  | `/locator-graph/visual`                                   | Read the human projection of the locator graph                      |
+| `POST` | `/heartbeat`                                              | Renew a coordinator lease                                           |
+| `POST` | `/plans`                                                  | Create a structured plan                                            |
+| `GET`  | `/plans/:planId`                                          | Read the plan and exact content hash                                |
+| `GET`  | `/plans/:planId/review`                                   | Read review hash, remarks, links, and recovery guidance             |
+| `PUT`  | `/plans/:planId`                                          | Submit a higher revision with an expected hash                      |
+| `POST` | `/plans/:planId/start`                                    | Start validation preparation after plan approval                    |
+| `POST` | `/plans/:planId/tasks/:taskId`                            | Publish a task progress event                                       |
+| `GET`  | `/plans/:planId/events`                                   | Read events; `after` and `wait=true` are supported                  |
+| `POST` | `/plans/:planId/events/ack`                               | Acknowledge one sequence                                            |
+| `POST` | `/plans/:planId/validations/publish`                      | Persist validation artifacts and enter validation review            |
+| `POST` | `/plans/:planId/validations/feedback`                     | Route validation feedback to validation or plan review              |
+| `POST` | `/plans/:planId/baseline/start`                           | Agent-owned start of required baseline execution                    |
+| `POST` | `/plans/:planId/baseline/reconcile`                       | Agent-owned baseline evidence reconciliation                        |
+| `POST` | `/plans/:planId/baseline/cancel`                          | Cancel active baseline runs                                         |
+| `POST` | `/plans/:planId/baseline/failures/:attemptId/acknowledge` | Acknowledge unrelated baseline failure evidence                     |
+| `POST` | `/plans/:planId/baseline/regressions/:attemptId/justify`  | Justify accepted regression-pass evidence                           |
+| `POST` | `/plans/:planId/baseline/accept`                          | Accept complete baseline evidence                                   |
+| `POST` | `/plans/:planId/implementation/start`                     | Agent-owned implementation unlock after baseline                    |
+| `POST` | `/plans/:planId/implementation/checkpoint`                | Poll a named implementation checkpoint                              |
+| `POST` | `/plans/:planId/implementation/tasks/:taskId`             | Transition a task state                                             |
+| `POST` | `/plans/:planId/implementation/feedback`                  | Analyze or apply confirmed blocking feedback                        |
+| `POST` | `/plans/:planId/implementation/control`                   | Pause, resume, or cancel implementation                             |
+| `POST` | `/plans/:planId/implementation/validations`               | Record exceptional manual reduced-assurance evidence                |
+| `POST` | `/plans/:planId/implementation/validations/start`         | Create managed implementation validation run intents                |
+| `POST` | `/plans/:planId/implementation/validations/reconcile`     | Reconcile managed implementation validations from runs              |
+| `GET`  | `/plans/:planId/completion`                               | Read the final completion review                                    |
+| `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                                  |
+| `POST` | `/delegated/validation-ast-submissions`                   | Verify authorization and store a non-compiling AST inbox submission |
 
 The create response includes coordinator ownership metadata and the stable review URL only after
 `plan_review_ready` is durably appended.
@@ -145,6 +151,14 @@ appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
 
 Resources:
 
+- `appraise://actions/catalog`
+- `appraise://actions/category/{categoryId}`
+- `appraise://contracts/action-catalog`
+- `appraise://contracts/locator-graph`
+- `appraise://contracts/validation-ast`
+- `appraise://contracts/delegated-authorization`
+- `appraise://locator-graph/visual`
+
 - `appraise://project`
 - `appraise://target-projects`
 - `appraise://agent-guide`
@@ -155,6 +169,12 @@ Resources:
 
 Tools:
 
+- `delegated_validation_ast_submit`
+
+- `action_categories_list`
+- `actions_list`
+- `actions_read`
+- `locator_graph_query`
 - `coordinator_register`
 - `coordinator_heartbeat`
 - `project_diagnostic`

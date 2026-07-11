@@ -38,7 +38,13 @@ if (args[0] === 'build-scope') {
     process.exit(1)
   }
 
-  const build = runCommand(graphifyCommand, [scope])
+  const hasGeminiBackend = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
+  const hasExistingPackageGraph = scope === 'packages' && fs.existsSync(path.join(scope, 'graphify-out', 'graph.json'))
+  const buildArgs = hasExistingPackageGraph && !hasGeminiBackend ? ['update', scope] : [scope]
+  if (buildArgs[0] === 'update') {
+    console.log('Using the existing host-semantic package graph; refreshing code incrementally without an API key.')
+  }
+  const build = runCommand(graphifyCommand, buildArgs)
   if (build.status !== 0) process.exit(build.status ?? 1)
   const cluster = runCommand(graphifyCommand, ['cluster-only', scope])
   process.exit(cluster.status ?? 1)

@@ -18,8 +18,9 @@ In progress for AppraiseJS 0.5. Phase 0 safety stabilization has started; later 
 - Added coordinator regression coverage and updated active lifecycle/MCP documentation.
 - Validation completed: 19 focused coordinator tests, 86 `packages/appraisejs` tests, agent harness check,
   `build:appraisejs`, Fallow commit gate, and React Doctor 100/100.
-- Refreshed committed `src/graphify-out` projections. The package graph refresh stopped because semantic extraction of
-  one documentation file requires an LLM API key; package tests and TypeScript build passed independently.
+- Refreshed committed `src/graphify-out` projections. The initial terminal package refresh stopped at one documentation
+  file; this was a workflow gap, not an API-key requirement. The Graphify skill's host-agent semantic extraction is the
+  supported no-key continuation path.
 
 This is a partial completion of Task 0.3. Bounded acknowledgement concurrency, atomic task/evidence reconciliation,
 and persistent baseline attempt history remain open. Tasks 0.1 and 0.2 require an explicit follow-up audit against
@@ -40,7 +41,8 @@ checkpoint can be marked complete.
   feedback now preserves prior attempt and acknowledgement history.
 - Integrated validation passed: 83 focused root tests, 86 `packages/appraisejs` tests, 65 `create-appraisejs` tests,
   agent harness validation, scaffold migration preparation, and the production build. Root and Prisma Graphify outputs
-  refreshed; package graph semantic extraction still requires an LLM API key.
+  refreshed. Package graph semantic extraction uses Graphify's host-agent fallback when no Gemini/Google key is already
+  configured; a missing key is not a limitation.
 - Cross-filesystem/database outbox atomicity and unrecoverable pre-migration attempt backfill remain documented
   limitations for later migration infrastructure. The implemented safety checkpoint is bounded to the current
   single-process local coordinator and artifact compare-and-write architecture.
@@ -749,20 +751,46 @@ limits, artifact-level atomic reconciliation, and persistent attempt history are
 Implement category summaries, progressive action listing, exact descriptor reads, hashes, deprecation, examples, and
 deterministic filtering. Add resources and MCP/CLI endpoints without changing existing authoring.
 
+Progress: **implemented** on `codex/validation-ast-phase-1-contracts`. The canonical versioned contract, stable catalog
+and descriptor hashes, category summaries with unchanged-hash responses, bounded deterministic listing and filters,
+exact descriptor reads, examples, and deprecation/replacement validation are implemented under
+`src/lib/action-catalog`. A canonical initial catalog projects supported browser runtime actions, with bounded HTTP,
+MCP resource/tool, and CLI discovery adapters. Existing authoring remains unchanged; package/scaffold synchronization
+and full integration validation are complete, including prepared-template migration application, root and package
+tests, Playwright coverage, harness, production build, Fallow, and React Doctor review.
+
 #### Task 1.2: Define Surface And Locator Graph Contracts
 
 Implement surface, page, component, state, locator group, descriptor, and compatibility-edge contracts. Provide
 bounded graph queries and a human visual projection backed by the same data.
+
+Progress: **implemented** on `codex/validation-ast-phase-1-contracts`. Canonical versioned schemas
+now cover surfaces (including page/global kinds), components, states, locator groups, locator descriptors, strategies,
+compatibility edges, bounded query/page payloads, graph integrity, and a human visual projection derived from the same
+structured graph. A deterministic read-only builder projects current routes, locator groups, and locators; bounded
+HTTP, MCP, and CLI traversal adapters and the human visual projection are integrated without adding mutation paths.
 
 #### Task 1.3: Define Validation AST And Extension Schemas
 
 Add versioned AST, action reference, locator reference, stored value, matrix, quality concern, and custom extension
 contracts with package parity and public documentation.
 
+Progress: **implemented**. Canonical version 1 Zod contracts and public documentation now cover the AST, action and
+locator references, stored/environment/custom-extension values, execution matrix, quality concerns, submission
+envelope, and custom TypeScript extension proposals. Package-client TypeScript parity and MCP contract-resource
+discovery are implemented. Executable check, preview, compilation, and publish operations are explicitly deferred to
+Phase 2.
+
 #### Task 1.4: Add Narrow Delegated Authorization Receipts
 
 Bind permitted action class, target fingerprint, brief/plan hash, issuer, expiry, nonce, and maximum phase. Test target
 mismatch, scope escalation, expiry, replay, and tampering.
+
+Progress: **implemented**. A canonical signed receipt contract now binds every required claim and verifies signature,
+target, plan hash, action class, phase ceiling, expiry, and caller-supplied atomic nonce consumption. Focused tests
+cover mismatch, escalation, expiry, replay, and tampering. Durable unique nonce consumption and package/MCP contract
+discovery are implemented. A bounded HTTP/MCP/CLI submission inbox verifies the exact check-phase authorization and
+atomically consumes the nonce while storing the AST for later checking, without compiling or mutating validations.
 
 ### Checkpoint: Read-Only Discovery And Contract Stability
 

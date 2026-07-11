@@ -5,6 +5,14 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
+import {
+  ACTION_CATALOG_CONTRACT_VERSION,
+  DELEGATED_AUTHORIZATION_VERSION,
+  LOCATOR_GRAPH_CONTRACT_VERSION,
+  VALIDATION_AST_SCHEMA_VERSION,
+  type DelegatedAuthorizationReceipt,
+  type ValidationAstSubmission,
+} from './phase1-contracts.js'
 
 import {
   CoordinatorRequestError,
@@ -27,6 +35,9 @@ function providerNativeRunsEnabled() {
 }
 
 const baseWorkflowCriticalTools = [
+  'action_categories_list',
+  'actions_list',
+  'actions_read',
   'project_diagnostic',
   'project_add',
   'project_list',
@@ -81,6 +92,7 @@ const baseWorkflowCriticalTools = [
   'implementation_control',
   'implementation_completion_review',
   'implementation_complete',
+  'delegated_validation_ast_submit',
   'test_run_read',
   'test_run_diagnose',
 ] as const
@@ -113,8 +125,18 @@ const baseWorkflowResourceUris = [
   'appraise://resources/environments',
 ] as const
 const providerNativeWorkflowResourceUris = ['appraise://providers', 'appraise://provider-runs'] as const
+const phase1ContractResourceUris = [
+  'appraise://actions/catalog',
+  'appraise://actions/category/{categoryId}',
+  'appraise://locator-graph/visual',
+  'appraise://contracts/action-catalog',
+  'appraise://contracts/locator-graph',
+  'appraise://contracts/validation-ast',
+  'appraise://contracts/delegated-authorization',
+] as const
 const workflowResourceUris = [
   ...baseWorkflowResourceUris,
+  ...phase1ContractResourceUris,
   ...(providerNativeRunsEnabled() ? providerNativeWorkflowResourceUris : []),
 ] as const
 
@@ -1432,6 +1454,43 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   const server = new McpServer({ name: 'appraisejs', version: '0.5.0' })
   const readSnapshot = (planId: string) => api.request(`plans/${planId}`) as Promise<PlanSnapshot>
 
+  const phase1Contracts = [
+    {
+      name: 'action-catalog-contract',
+      uri: phase1ContractResourceUris[0],
+      title: 'Versioned action catalog contract',
+      value: { version: ACTION_CATALOG_CONTRACT_VERSION, operations: ['categories', 'list', 'read'] },
+    },
+    {
+      name: 'locator-graph-contract',
+      uri: phase1ContractResourceUris[1],
+      title: 'Surface and locator graph contract',
+      value: { version: LOCATOR_GRAPH_CONTRACT_VERSION, boundedQueries: true, visualProjection: true },
+    },
+    {
+      name: 'validation-ast-contract',
+      uri: phase1ContractResourceUris[2],
+      title: 'Agent-authored validation AST contract',
+      value: { version: VALIDATION_AST_SCHEMA_VERSION, phases: ['check', 'preview', 'publish'] },
+    },
+    {
+      name: 'delegated-authorization-contract',
+      uri: phase1ContractResourceUris[3],
+      title: 'Delegated authorization receipt contract',
+      value: { version: DELEGATED_AUTHORIZATION_VERSION, replayProtection: 'durable-nonce' },
+    },
+  ] as const
+  for (const contract of phase1Contracts) {
+    server.registerResource(
+      contract.name,
+      contract.uri,
+      { title: contract.title, mimeType: 'application/json' },
+      async uri => ({
+        contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(contract.value) }],
+      }),
+    )
+  }
+
   server.registerResource(
     'project',
     'appraise://project',
@@ -1459,6 +1518,46 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         },
       ],
     }),
+  )
+  server.registerResource(
+    'locator-graph-visual',
+    'appraise://locator-graph/visual',
+    { title: 'Human locator graph projection', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        { uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await api.readLocatorGraphVisual()) },
+      ],
+    }),
+  )
+  server.registerTool(
+    'locator_graph_query',
+    {
+      description: 'Query a bounded locator graph path from a surface, group, or locator node.',
+      inputSchema: {
+        fromId: z.string().min(1),
+        relation: z.string().optional(),
+        toType: z.string().optional(),
+        cursor: z.string().optional(),
+        limit: z.number().int().positive().max(100).optional(),
+        depth: z.number().int().positive().max(4).optional(),
+      },
+    },
+    async input => text(await api.queryLocatorGraph(input)),
+  )
+  server.registerTool(
+    'delegated_validation_ast_submit',
+    {
+      description:
+        'Submit a receipt-authorized Validation AST envelope for later Phase 2 checking; does not compile or publish.',
+      inputSchema: { submission: z.unknown(), receipt: z.unknown() },
+    },
+    async ({ submission, receipt }) =>
+      text(
+        await api.submitDelegatedValidationAst(
+          submission as ValidationAstSubmission,
+          receipt as DelegatedAuthorizationReceipt,
+        ),
+      ),
   )
   if (providerNativeRunsEnabled()) {
     server.registerResource(
@@ -1496,6 +1595,30 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     { title: 'AppraiseJS agent workflow guide', mimeType: 'application/json' },
     async uri => ({
       contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(agentGuide) }],
+    }),
+  )
+  server.registerResource(
+    'action-catalog',
+    'appraise://actions/catalog',
+    { title: 'AppraiseJS action catalog categories', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        { uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await api.listActionCategories()) },
+      ],
+    }),
+  )
+  server.registerResource(
+    'action-category',
+    new ResourceTemplate('appraise://actions/category/{categoryId}', { list: undefined }),
+    { title: 'AppraiseJS action category', mimeType: 'application/json' },
+    async (uri, variables) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(await api.listActions({ categoryId: String(variables.categoryId), limit: 50 })),
+        },
+      ],
     }),
   )
   server.registerResource(
@@ -3195,6 +3318,44 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           body: JSON.stringify(body),
         }),
       ),
+  )
+  server.registerTool(
+    'action_categories_list',
+    {
+      description: 'List bounded action category summaries; known catalog hashes return unchanged.',
+      inputSchema: { parentCategoryId: z.string().optional(), knownCatalogHash: z.string().optional() },
+    },
+    async input => text(await api.listActionCategories(input.parentCategoryId, input.knownCatalogHash)),
+  )
+  server.registerTool(
+    'actions_list',
+    {
+      description: 'List deterministic bounded action summaries using exact filters.',
+      inputSchema: {
+        categoryId: z.string().optional(),
+        capability: z.string().optional(),
+        inputType: z.string().optional(),
+        runtime: z.enum(['browser', 'api', 'node', 'database']).optional(),
+        deprecated: z.boolean().optional(),
+        idPrefix: z.string().optional(),
+        cursor: z.number().int().nonnegative().optional(),
+        limit: z.number().int().min(1).max(100).optional(),
+      },
+    },
+    async input => text(await api.listActions(input)),
+  )
+  server.registerTool(
+    'actions_read',
+    {
+      description: 'Read exact versioned action descriptors for selected references.',
+      inputSchema: {
+        actionRefs: z
+          .array(z.object({ id: z.string(), version: z.string().optional() }))
+          .min(1)
+          .max(50),
+      },
+    },
+    async ({ actionRefs }) => text(await api.readActions(actionRefs)),
   )
   server.registerTool(
     'coordinator_register',

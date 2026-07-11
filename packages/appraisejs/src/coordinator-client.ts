@@ -1,6 +1,7 @@
 import path from 'node:path'
 
 import { ensureLocalProjectIdentity } from './project-identity.js'
+import type { DelegatedAuthorizationReceipt, ValidationAstSubmission } from './phase1-contracts.js'
 
 export type CoordinatorOptions = {
   cwd: string
@@ -111,6 +112,19 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     options: { ...options, cwd: local.details.canonicalProjectPath },
     request,
     diagnose: () => request('diagnostic'),
+    listActionCategories: (parentCategoryId?: string, knownCatalogHash?: string) => {
+      const query = new URLSearchParams()
+      if (parentCategoryId) query.set('parentCategoryId', parentCategoryId)
+      if (knownCatalogHash) query.set('knownCatalogHash', knownCatalogHash)
+      return request(`actions/categories?${query}`)
+    },
+    listActions: (input: Record<string, string | number | boolean | undefined> = {}) => {
+      const query = new URLSearchParams()
+      for (const [key, value] of Object.entries(input)) if (value !== undefined) query.set(key, String(value))
+      return request(`actions?${query}`)
+    },
+    readActions: (refs: Array<{ id: string; version?: string }>) =>
+      request(`actions/read?refs=${encodeURIComponent(JSON.stringify(refs))}`),
     readPlan: (planId: string) => request(`plans/${planId}`),
     revisePlan: (planId: string, body: { expectedHash: string; plan: unknown }) =>
       request(`plans/${planId}`, { method: 'PUT', body: JSON.stringify(body) }),
@@ -152,6 +166,14 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     addTargetProject: (projectPath: string, displayName?: string) =>
       post('target-projects', { path: projectPath, ...(displayName ? { displayName } : {}) }),
     listTargetProjects: () => request('target-projects'),
+    queryLocatorGraph: (query: Record<string, string | number | undefined>) => {
+      const parameters = new URLSearchParams()
+      for (const [key, value] of Object.entries(query)) if (value !== undefined) parameters.set(key, String(value))
+      return request(`locator-graph?${parameters}`)
+    },
+    readLocatorGraphVisual: () => request('locator-graph/visual'),
+    submitDelegatedValidationAst: (submission: ValidationAstSubmission, receipt: DelegatedAuthorizationReceipt) =>
+      post('delegated/validation-ast-submissions', { submission, receipt }),
     listProviders: () => request('providers'),
     probeProvider: (providerKey: string) => post(`providers/${providerKey}/probe`, {}),
     updateProvider: (

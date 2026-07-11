@@ -66,6 +66,13 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   if (!hasTable(databasePath, 'BaselineAttempt')) {
     await applyMigration(databasePath, '20260711120000_add_baseline_attempt_history')
   }
+
+  if (!hasTable(databasePath, 'DelegatedAuthorizationNonce')) {
+    await applyMigration(databasePath, '20260711150000_add_delegated_authorization_nonces')
+  }
+  if (!hasTable(databasePath, 'DelegatedValidationAstSubmission')) {
+    await applyMigration(databasePath, '20260711170000_add_delegated_ast_submissions')
+  }
 }
 
 export async function ensureProviderRunTestSchema(databasePath: string) {

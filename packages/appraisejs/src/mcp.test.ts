@@ -341,6 +341,9 @@ describe('MCP capability and recovery metadata', () => {
     expect(mcpCapabilityMetadata.packageVersion).toMatch(/^\d+\.\d+\.\d+/)
     expect(mcpCapabilityMetadata.workflowCriticalTools).toEqual(
       expect.arrayContaining([
+        'action_categories_list',
+        'actions_list',
+        'actions_read',
         'project_diagnostic',
         'planning_session_create',
         'plan_review_loop',
@@ -365,6 +368,8 @@ describe('MCP capability and recovery metadata', () => {
     )
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(
       expect.arrayContaining([
+        'appraise://actions/catalog',
+        'appraise://actions/category/{categoryId}',
         'appraise://project',
         'appraise://workflow/planning',
         'appraise://workflow/validation-preparation',
