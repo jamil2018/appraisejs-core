@@ -14,6 +14,7 @@ import {
 import prisma from '@/config/db-config'
 import type { ValidationArtifact } from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
+import { canonicalTagExpression, canonicalTagName } from '@/lib/tag-filters'
 import { ServiceError } from '@/services/shared/errors'
 
 import { templateStepGroupPath } from './template-step-group-path'
@@ -488,33 +489,40 @@ export async function assertValidationEnvironmentsReady(
 }
 
 async function ensureIdentifierTag(name: string, client: RuntimeClient) {
-  const existing = await client.tag.findFirst({ where: { name, type: TagType.IDENTIFIER } })
+  const canonicalName = canonicalTagName(name)
+  const tagExpression = canonicalTagExpression(name)
+  const existing = await client.tag.findFirst({
+    where: {
+      type: TagType.IDENTIFIER,
+      OR: [{ name: canonicalName }, { name }, { tagExpression }, { tagExpression: canonicalName }],
+    },
+  })
   if (existing) return existing
-  return client.tag.create({ data: { name, tagExpression: name, type: TagType.IDENTIFIER } })
+  return client.tag.create({ data: { name: canonicalName, tagExpression, type: TagType.IDENTIFIER } })
 }
 
-async function assertProjectionOwnedTestCase(id: string, planId: string, client: RuntimeClient) {
+function assertProjectionOwned(existing: { tags: Array<{ name: string }> } | null, entityType: string, id: string) {
+  if (!existing || existing.tags.some(tag => canonicalTagExpression(tag.name).startsWith('@appraise_plan_'))) return
+  throw new ServiceError(
+    `Validation projection conflicts with existing ${entityType.toLowerCase()} "${id}".`,
+    'CONFLICT',
+    undefined,
+    {
+      blockerType: 'projection_conflict',
+      entityType,
+      entityId: id,
+    },
+  )
+}
+
+async function assertProjectionOwnedTestCase(id: string, client: RuntimeClient) {
   const existing = await client.testCase.findUnique({ where: { id }, include: { tags: true } })
-  if (!existing) return
-  if (!existing.tags.some(tag => tag.name.startsWith('@appraise_plan_'))) {
-    throw new ServiceError(`Validation projection conflicts with existing test case "${id}".`, 'CONFLICT', undefined, {
-      blockerType: 'projection_conflict',
-      entityType: 'TestCase',
-      entityId: id,
-    })
-  }
+  assertProjectionOwned(existing, 'TestCase', id)
 }
 
-async function assertProjectionOwnedTestSuite(id: string, planId: string, client: RuntimeClient) {
+async function assertProjectionOwnedTestSuite(id: string, client: RuntimeClient) {
   const existing = await client.testSuite.findUnique({ where: { id }, include: { tags: true } })
-  if (!existing) return
-  if (!existing.tags.some(tag => tag.name.startsWith('@appraise_plan_'))) {
-    throw new ServiceError(`Validation projection conflicts with existing test suite "${id}".`, 'CONFLICT', undefined, {
-      blockerType: 'projection_conflict',
-      entityType: 'TestSuite',
-      entityId: id,
-    })
-  }
+  assertProjectionOwned(existing, 'TestSuite', id)
 }
 
 function assertMatchingEntity(
@@ -667,7 +675,7 @@ async function projectValidationArtifactsInTransaction(
     }
 
     for (const testCase of artifacts.testCases) {
-      await assertProjectionOwnedTestCase(testCase.id, planId, client)
+      await assertProjectionOwnedTestCase(testCase.id, client)
       await client.testCase.upsert({
         where: { id: testCase.id },
         update: {
@@ -713,7 +721,7 @@ async function projectValidationArtifactsInTransaction(
     }
 
     for (const testSuite of artifacts.testSuites) {
-      await assertProjectionOwnedTestSuite(testSuite.id, planId, client)
+      await assertProjectionOwnedTestSuite(testSuite.id, client)
       const suiteIdentifierTag = await ensureIdentifierTag(testSuiteTag(testSuite.id), client)
       await client.testSuite.upsert({
         where: { id: testSuite.id },

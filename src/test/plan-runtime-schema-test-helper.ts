@@ -62,6 +62,10 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   if (!hasTable(databasePath, 'StepBlock')) {
     await applyMigration(databasePath, '20260709090000_add_step_blocks')
   }
+
+  if (!hasTable(databasePath, 'BaselineAttempt')) {
+    await applyMigration(databasePath, '20260711120000_add_baseline_attempt_history')
+  }
 }
 
 export async function ensureProviderRunTestSchema(databasePath: string) {

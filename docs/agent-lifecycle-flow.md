@@ -4,6 +4,10 @@ When multiple delivered events have been handled in sequence, coordinators shoul
 the highest handled sequence. The cumulative operation is idempotent and avoids one request per historical event;
 use single-event acknowledgement when later delivered events must remain pending.
 
+Cumulative acknowledgement is serialized per plan with bounded admission. Completion review returns a receipt whose
+hash includes the latest plan-event sequence. Completion approval must present that exact hash; stale approvals return
+the current hash and receipt so the coordinator can reread and relay a fresh decision.
+
 Agents must use Appraise-owned lifecycle gates. Chat approval can clarify intent, but it does not replace plan,
 validation, baseline, implementation, completion, or cancellation transitions.
 
@@ -81,6 +85,10 @@ Implementation start is also agent-owned: once baseline evidence is accepted, th
 implementation_validation_reconcile -> implementation_completion_review`.
 `implementation_validation_record` is only for exceptional manual evidence and is reduced assurance; required runtime
 validations need fresh managed Appraise `TestRun` evidence with `evidenceHealth: valid` before completion can pass.
+
+`implementation_validation_reconcile` may receive `verifyTaskIds` with an `idempotencyKey`. In that combined mode,
+Appraise reconciles managed runs and verifies only implemented tasks whose required validations have fresh, passing,
+full-assurance evidence in one artifact compare-and-write. Replaying the key does not duplicate state or events.
 
 ## Ownership Matrix
 

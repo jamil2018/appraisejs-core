@@ -27,6 +27,7 @@ export function implementationState(validation: ValidationArtifact): Implementat
       pausedTaskIds: [],
       validationRuns: [],
       commits: [],
+      reconciliationReceipts: [],
       evidenceProtected: true,
     }
   )

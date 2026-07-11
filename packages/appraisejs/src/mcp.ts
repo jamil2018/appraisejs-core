@@ -1943,6 +1943,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         importPaths: z.array(z.string().min(1)).optional(),
         supportPaths: z.array(z.string().min(1)).optional(),
         prepareWorkspace: z.boolean().optional(),
+        expectedTestCases: z
+          .array(z.object({ testCaseId: z.string().min(1), testSuiteId: z.string().min(1) }))
+          .optional(),
         responseMode: responseModeSchema,
       },
     },
@@ -3106,16 +3109,22 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'implementation_validation_reconcile',
     {
-      description: 'Reconcile Appraise-owned implementation validation runs from bound TestRun rows.',
-      inputSchema: { planId: z.string(), runIds: z.array(z.string().min(1)).optional() },
+      description:
+        'Reconcile Appraise-owned validation runs and optionally verify implemented tasks atomically with an idempotency key.',
+      inputSchema: {
+        planId: z.string(),
+        runIds: z.array(z.string().min(1)).optional(),
+        verifyTaskIds: z.array(z.string().min(1)).optional(),
+        idempotencyKey: z.string().min(1).optional(),
+      },
     },
-    async ({ planId, runIds }) =>
+    async ({ planId, runIds, verifyTaskIds, idempotencyKey }) =>
       text(
         lifecycleToolPayload({
           planId,
           result: await api.request(`plans/${planId}/implementation/validations/reconcile`, {
             method: 'POST',
-            body: JSON.stringify({ runIds }),
+            body: JSON.stringify({ runIds, verifyTaskIds, idempotencyKey }),
           }),
           nextRecommendedAction:
             'If readiness is blocked, inspect test_run_diagnose for invalid evidence; otherwise continue toward implementation_completion_review.',

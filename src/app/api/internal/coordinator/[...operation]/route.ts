@@ -364,7 +364,16 @@ async function postImplementationOperation(operation: string[], body: unknown) {
       return Response.json(await startImplementationValidation({ planId, ...value }))
     }
     if (operation[4] === 'reconcile') {
-      const value = z.object({ runIds: z.array(idSchema).optional() }).parse(body)
+      const value = z
+        .object({
+          runIds: z.array(idSchema).optional(),
+          verifyTaskIds: z.array(idSchema).optional(),
+          idempotencyKey: z.string().min(1).optional(),
+        })
+        .refine(input => Boolean(input.verifyTaskIds) === Boolean(input.idempotencyKey), {
+          message: 'verifyTaskIds and idempotencyKey must be provided together.',
+        })
+        .parse(body)
       return Response.json(await reconcileImplementationValidation({ planId, ...value }))
     }
     const value = z
@@ -531,6 +540,16 @@ async function postStandaloneTestRun(body: unknown) {
       importPaths: z.array(z.string().min(1)).optional(),
       supportPaths: z.array(z.string().min(1)).optional(),
       prepareWorkspace: z.boolean().optional(),
+      expectedTestCases: z.array(z.object({ testCaseId: idSchema, testSuiteId: idSchema.nullish() })).optional(),
+    })
+    .superRefine((input, context) => {
+      if (input.planId && input.expectedTestCases?.some(link => !link.testSuiteId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['expectedTestCases'],
+          message: 'Plan-bound expected test cases require a testSuiteId.',
+        })
+      }
     })
     .parse(body)
   return Response.json(await createStandaloneTargetTestRun(value), { status: 201 })

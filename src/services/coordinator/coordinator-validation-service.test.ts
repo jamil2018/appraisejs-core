@@ -763,8 +763,9 @@ describe('validation preparation review gate', () => {
       expect.objectContaining({ validationId: 'unaffected-check' }),
     ])
     expect(reviewAfterFeedback.fileApprovals).toEqual([expect.objectContaining({ path: 'src/secondary-product.ts' })])
-    expect(validationAfterFeedback.baselineAttempts.map(attempt => attempt.id)).toEqual(['attempt-two'])
+    expect(validationAfterFeedback.baselineAttempts.map(attempt => attempt.id)).toEqual(['attempt-one', 'attempt-two'])
     expect(validationAfterFeedback.baselineAcknowledgements.map(acknowledgement => acknowledgement.attemptId)).toEqual([
+      'attempt-one',
       'attempt-two',
     ])
     await expect(readPlanEvents({ planId, afterSequence: 3 }, client)).resolves.toEqual([
@@ -888,8 +889,10 @@ describe('validation preparation review gate', () => {
     })
     expect(reviewAfterFeedback.threads[0]!.events[0]!.body).toContain('requires plan review')
     expect(validationAfterFeedback.validationDecisions).toEqual([])
-    expect(validationAfterFeedback.baselineAttempts).toEqual([])
-    expect(validationAfterFeedback.baselineAcknowledgements).toEqual([])
+    expect(validationAfterFeedback.baselineAttempts.map(attempt => attempt.id)).toEqual(['attempt-one'])
+    expect(validationAfterFeedback.baselineAcknowledgements.map(acknowledgement => acknowledgement.attemptId)).toEqual([
+      'attempt-one',
+    ])
     expect(validationAfterFeedback.baselineDecision).toBe('pending')
     await expect(readPlanEvents({ planId, afterSequence: 3 }, client)).resolves.toEqual([
       expect.objectContaining({

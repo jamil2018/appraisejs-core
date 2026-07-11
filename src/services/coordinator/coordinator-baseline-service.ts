@@ -135,6 +135,90 @@ async function writeBaselineArtifacts(
     )
   }
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
+  await persistBaselineHistory(artifacts, plan, validation, client)
+}
+
+async function persistBaselineHistory(
+  artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
+  plan: PlanArtifact,
+  validation: ValidationArtifact,
+  client: PrismaClient,
+) {
+  const projection = await client.planProjection.findUniqueOrThrow({
+    where: { planId: plan.planId },
+    select: { id: true },
+  })
+  await client.$transaction(async transaction => {
+    const appendAttemptEvent = async (input: {
+      attemptId: string
+      kind: string
+      idempotencyKey: string
+      payloadJson: string
+      createdAt?: Date
+    }) => {
+      const existing = await transaction.baselineAttemptEvent.findUnique({
+        where: {
+          attemptId_idempotencyKey: { attemptId: input.attemptId, idempotencyKey: input.idempotencyKey },
+        },
+      })
+      if (existing) return existing
+      const latest = await transaction.baselineAttemptEvent.findFirst({
+        where: { attemptId: input.attemptId },
+        orderBy: { sequence: 'desc' },
+        select: { sequence: true },
+      })
+      return transaction.baselineAttemptEvent.create({
+        data: { ...input, sequence: (latest?.sequence ?? 0) + 1 },
+      })
+    }
+    for (const attempt of validation.baselineAttempts) {
+      await transaction.baselineAttempt.upsert({
+        where: { id: attempt.id },
+        update: {},
+        create: {
+          id: attempt.id,
+          planProjectionId: projection.id,
+          validationId: attempt.validationId,
+          validationRevision: plan.revision,
+          validationHash: hashFileContent(serializeYamlArtifact('validation', validation)),
+          browser: attempt.browser,
+          environment: attempt.environment,
+          testRunId: attempt.testRunId,
+          evidenceJson: JSON.stringify(attempt.evidence),
+          createdAt: new Date(attempt.createdAt),
+        },
+      })
+      const state = {
+        status: attempt.status,
+        classification: attempt.classification,
+        signatureHash: attempt.signatureHash,
+        completedAt: attempt.completedAt,
+      }
+      await appendAttemptEvent({
+        attemptId: attempt.id,
+        kind: 'state_observed',
+        idempotencyKey: `state:${JSON.stringify(state)}`,
+        payloadJson: JSON.stringify(state),
+      })
+      if (attempt.regressionJustification) {
+        await appendAttemptEvent({
+          attemptId: attempt.id,
+          kind: 'regression_justified',
+          idempotencyKey: `regression_justification:${attempt.regressionJustification}`,
+          payloadJson: JSON.stringify({ justification: attempt.regressionJustification }),
+        })
+      }
+    }
+    for (const acknowledgement of validation.baselineAcknowledgements) {
+      await appendAttemptEvent({
+        attemptId: acknowledgement.attemptId,
+        kind: 'failure_acknowledged',
+        idempotencyKey: `acknowledged:${acknowledgement.signatureHash}`,
+        payloadJson: JSON.stringify(acknowledgement),
+        createdAt: new Date(acknowledgement.acknowledgedAt),
+      })
+    }
+  })
 }
 
 async function assertValidationFilesUnchanged(input: {

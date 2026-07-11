@@ -12,6 +12,7 @@ import { createCoordinatorPlan } from '@/services/coordinator/coordinator-plan-s
 
 import {
   acknowledgePlanEvent,
+  acknowledgePlanEventsThrough,
   appendPlanEvent,
   authenticateProject,
   ensureProjectIdentity,
@@ -20,6 +21,7 @@ import {
   readPlanEvents,
   registerCoordinator,
   waitForPlanEvents,
+  withPlanEventStreamLock,
 } from './coordinator-service'
 
 let workspace: string
@@ -268,6 +270,41 @@ describe('online coordinator plan creation', () => {
 })
 
 describe('durable plan event outbox', () => {
+  it('serializes canonical and legacy aliases on one event-stream lock', async () => {
+    await client.planProjection.update({
+      where: { planId: 'coordinator-plan' },
+      data: { legacyPlanId: 'legacy-coordinator-plan' },
+    })
+    let release!: () => void
+    let entered!: () => void
+    const acquired = new Promise<void>(resolve => {
+      entered = resolve
+    })
+    const held = withPlanEventStreamLock(
+      'coordinator-plan',
+      async () => {
+        entered()
+        await new Promise<void>(resolve => {
+          release = resolve
+        })
+      },
+      client,
+    )
+    await acquired
+    let appended = false
+    const aliasedAppend = appendPlanEvent({ planId: 'legacy-coordinator-plan', type: 'aliased' }, client).then(
+      event => {
+        appended = true
+        return event
+      },
+    )
+    await Promise.resolve()
+    expect(appended).toBe(false)
+    release()
+    await held
+    await expect(aliasedAppend).resolves.toMatchObject({ sequence: 1, type: 'aliased' })
+  })
+
   it('orders and redelivers events until acknowledgement, which is idempotent', async () => {
     await appendPlanEvent({ planId: 'coordinator-plan', type: 'first' }, client)
     await appendPlanEvent({ planId: 'coordinator-plan', type: 'second', payload: { value: 2 } }, client)
@@ -306,6 +343,79 @@ describe('durable plan event outbox', () => {
     ).resolves.toMatchObject({
       lifecycle: 'cancelled',
     })
+  })
+
+  it('acknowledges a cumulative event range idempotently', async () => {
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'first' }, client)
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'second' }, client)
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'third' }, client)
+
+    await expect(
+      acknowledgePlanEventsThrough({ planId: 'coordinator-plan', sequence: 2, coordinatorId: 'agent-one' }, client),
+    ).resolves.toMatchObject({ acknowledgedThroughSequence: 2, acknowledgedCount: 2 })
+    await expect(
+      acknowledgePlanEventsThrough({ planId: 'coordinator-plan', sequence: 2, coordinatorId: 'agent-one' }, client),
+    ).resolves.toMatchObject({ acknowledgedThroughSequence: 2, acknowledgedCount: 0 })
+    await expect(readPlanEvents({ planId: 'coordinator-plan' }, client)).resolves.toMatchObject([
+      { sequence: 3, type: 'third' },
+    ])
+  })
+
+  it('serializes concurrent cumulative acknowledgements per plan while preserving idempotency', async () => {
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'first' }, client)
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'second' }, client)
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'third' }, client)
+
+    const results = await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        acknowledgePlanEventsThrough(
+          { planId: 'coordinator-plan', sequence: 3, coordinatorId: `agent-${index}` },
+          client,
+        ),
+      ),
+    )
+
+    expect(results.reduce((count, result) => count + result.acknowledgedCount, 0)).toBe(3)
+    expect(results.filter(result => result.acknowledgedCount === 0)).toHaveLength(5)
+  })
+
+  it('bounds cumulative acknowledgement waiters without blocking an independent plan', async () => {
+    await client.planProjection.create({
+      data: {
+        planId: 'independent-plan',
+        revision: 1,
+        lifecycle: 'draft',
+        goal: 'Independent acknowledgements',
+        description: 'Verify admission is keyed by plan.',
+        sourceHash: `sha256:${'b'.repeat(64)}`,
+        planPath: 'appraise/plans/independent-plan.yaml',
+        lastValidProjectedAt: new Date(),
+      },
+    })
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'first' }, client)
+    await appendPlanEvent({ planId: 'independent-plan', type: 'first' }, client)
+
+    const saturated = await Promise.allSettled(
+      Array.from({ length: 20 }, (_, index) =>
+        acknowledgePlanEventsThrough(
+          { planId: 'coordinator-plan', sequence: 1, coordinatorId: `agent-${index}` },
+          client,
+        ),
+      ),
+    )
+    await expect(
+      acknowledgePlanEventsThrough(
+        { planId: 'independent-plan', sequence: 1, coordinatorId: 'independent-agent' },
+        client,
+      ),
+    ).resolves.toMatchObject({ acknowledgedCount: 1 })
+
+    expect(saturated.some(result => result.status === 'rejected')).toBe(true)
+    expect(
+      saturated
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .every(result => result.reason instanceof Error && result.reason.message.includes('Too many cumulative')),
+    ).toBe(true)
   })
 
   it('stops long polling when the caller cancels', async () => {

@@ -65,6 +65,14 @@ Projected baseline scenarios carry plan, validation, suite, and case identifier 
 same `@ts_<suiteId> and @tc_<caseId>` identifiers; a zero-scenario report is invalid evidence, never a passing or
 unrelated product result.
 
+Identifier tags are stored canonically with `name` values such as `ts_<suiteId>` or `tc_<caseId>` and expressions with
+one leading `@`. Runtime lookup remains compatible with legacy stored names or expressions that disagree about the
+leading `@`. Plan-bound standalone runs persist exact expected suite/case rows in the same transaction as the TestRun.
+
+Baseline attempts are also persisted as immutable database facts with append-only sequenced state and decision events.
+The validation artifact remains the compatibility projection; validation feedback invalidates decisions without
+deleting prior attempt or acknowledgement history.
+
 ## Runtime Environment
 
 The local executor sets these important environment variables for child Cucumber runs:
