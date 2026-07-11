@@ -523,6 +523,16 @@ export const validationArtifactSchema = artifactHeaderSchema
             createdAt: timestampSchema,
           }),
         ),
+        reconciliationReceipts: z
+          .array(
+            z.object({
+              idempotencyKey: z.string().min(1),
+              runIds: z.array(idSchema),
+              verifiedTaskIds: z.array(idSchema),
+              reconciledAt: timestampSchema,
+            }),
+          )
+          .default([]),
         evidenceProtected: z.boolean(),
       })
       .optional(),

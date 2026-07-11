@@ -26,7 +26,12 @@ import { ServiceError } from '@/services/shared/errors'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
 import { summarizeRunEvidence, type TestRunEvidenceHealthValue } from '@/services/test-run/run-evidence-summary-service'
 
-import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
+import {
+  appendPlanEvent,
+  assertPlanNotCancelled,
+  readLatestPlanEventSequence,
+  withPlanEventStreamLock,
+} from './coordinator-service'
 import { readStoredJsonReport, runtimePathsForValidation, supportImportPaths } from './coordinator-baseline-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date }
@@ -560,6 +565,13 @@ export async function startImplementationValidation(
       [environment.name, environment],
     ]),
   )
+  const suiteIdByTestCaseId = new Map(
+    artifacts.validation.validations.flatMap(validation =>
+      validation.appraiseArtifacts.testSuites.flatMap(suite =>
+        suite.testCaseIds.map(testCaseId => [testCaseId, suite.id] as const),
+      ),
+    ),
+  )
   const testRunInputs: Array<{
     target: string
     environmentId: string
@@ -574,9 +586,20 @@ export async function startImplementationValidation(
     importPaths: string[]
     supportPaths: string[]
     prepareWorkspace: boolean
+    expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
   }> = []
   const runningRuns = selected.flatMap(validation => {
     const runtimePaths = runtimePathsForValidation(artifacts.validation, validation)
+    const expectedTestCases = validation.testCaseIds.map(testCaseId => {
+      const testSuiteId = suiteIdByTestCaseId.get(testCaseId)
+      if (!testSuiteId) {
+        throw new ServiceError(`Test case "${testCaseId}" is not assigned to a suite.`, 'VALIDATION')
+      }
+      return { testCaseId, testSuiteId }
+    })
+    const tagExpression = expectedTestCases
+      .map(({ testCaseId, testSuiteId }) => `(@ts_${testSuiteId} and @tc_${testCaseId})`)
+      .join(' or ')
     return validation.matrix.map(matrix => {
       const environment = environmentByValue.get(matrix.environment)
       if (!environment) {
@@ -587,7 +610,7 @@ export async function startImplementationValidation(
         target: projection?.targetProject?.canonicalPath ?? artifacts.projectRoot,
         environmentId: environment.id,
         name: `Implementation validation ${input.planId} ${validation.id} ${matrix.browser} ${matrix.environment} ${startedAt}`,
-        tagExpression: validation.testCaseIds.map(testCaseId => `@tc_${testCaseId}`).join(' or '),
+        tagExpression,
         testWorkersCount: 1,
         browserEngine: browserEngine(matrix.browser),
         planId: input.planId,
@@ -597,6 +620,7 @@ export async function startImplementationValidation(
         importPaths: runtimePaths.importPaths,
         supportPaths: supportImportPaths(artifacts.projectRoot),
         prepareWorkspace: false,
+        expectedTestCases,
       })
       return {
         id,
@@ -610,7 +634,7 @@ export async function startImplementationValidation(
         assurance: 'reduced' as const,
         browser: matrix.browser,
         environment: matrix.environment,
-        tagExpression: validation.testCaseIds.map(testCaseId => `@tc_${testCaseId}`).join(' or '),
+        tagExpression,
         runtimePaths: {
           gherkinPaths: runtimePaths.featurePaths,
           stepPaths: runtimePaths.importPaths,
@@ -641,14 +665,91 @@ export async function startImplementationValidation(
   return { plan, validation, runs: runningRuns, testRunInputs }
 }
 
+function assertTaskReconciliationInput(input: { verifyTaskIds?: string[]; idempotencyKey?: string }) {
+  const hasTasks = Boolean(input.verifyTaskIds?.length)
+  const hasKey = Boolean(input.idempotencyKey)
+  if (hasTasks !== hasKey) {
+    throw new ServiceError('Task verification and its idempotency key must be supplied together.', 'VALIDATION')
+  }
+}
+
+function managedRunSatisfiesTask(run: ImplementationValidationRun | undefined) {
+  return Boolean(
+    run?.fresh &&
+      run.status === 'passed' &&
+      run.evidenceSource === 'managed' &&
+      run.assurance === 'full' &&
+      run.testRunId,
+  )
+}
+
+function assertTasksCanBeVerified(input: {
+  plan: PlanArtifact
+  validation: ValidationArtifact
+  implementation: NonNullable<ValidationArtifact['implementation']>
+  updatedRuns: ImplementationValidationRun[]
+  taskIds: string[]
+}) {
+  const knownTaskIds = new Set(input.plan.tasks.map(task => task.id))
+  const unknownTaskIds = input.taskIds.filter(taskId => !knownTaskIds.has(taskId))
+  if (unknownTaskIds.length)
+    throw new ServiceError(`Plan tasks were not found: ${unknownTaskIds.join(', ')}.`, 'NOT_FOUND')
+
+  for (const taskId of input.taskIds) {
+    if (!['implemented', 'verified'].includes(input.implementation.taskStates[taskId] ?? 'pending')) {
+      throw new ServiceError(`Task "${taskId}" must be implemented before evidence can verify it.`, 'CONFLICT')
+    }
+    const unsatisfied = input.validation.validations
+      .filter(validation => validation.required && validation.taskIds.includes(taskId))
+      .map(validation => validation.id)
+      .filter(validationId => {
+        const run = [...input.updatedRuns].reverse().find(candidate => candidate.validationId === validationId)
+        return !managedRunSatisfiesTask(run)
+      })
+    if (unsatisfied.length) {
+      throw new ServiceError(
+        `Task "${taskId}" requires fresh passing managed evidence for: ${unsatisfied.join(', ')}.`,
+        'CONFLICT',
+      )
+    }
+  }
+}
+
+function reconciliationEvent(input: {
+  receipt?: NonNullable<ValidationArtifact['implementation']>['reconciliationReceipts'][number]
+  runIds: string[]
+  blockers: string[]
+  ready: boolean
+}) {
+  if (input.receipt) return { type: 'task_evidence_reconciled', payload: input.receipt }
+  return {
+    type: input.ready ? 'validation_passed' : 'validation_failed',
+    payload: { runIds: input.runIds, blockers: input.blockers },
+  }
+}
+
 export async function reconcileImplementationValidation(
   input: {
     planId: string
     runIds?: string[]
+    verifyTaskIds?: string[]
+    idempotencyKey?: string
   },
   options: Options = {},
 ) {
   const { client, artifacts, implementation } = await implementationContext(input.planId, options)
+  assertTaskReconciliationInput(input)
+  const existingReceipt = implementation.reconciliationReceipts.find(
+    receipt => receipt.idempotencyKey === input.idempotencyKey,
+  )
+  if (existingReceipt) {
+    return {
+      plan: artifacts.plan,
+      validation: artifacts.validation,
+      readiness: canCompleteImplementation(artifacts.plan, artifacts.validation),
+      receipt: existingReceipt,
+    }
+  }
   const selectedRunIds = new Set(input.runIds ?? implementation.validationRuns.map(run => run.id))
   const selectedRuns = implementation.validationRuns.filter(run => selectedRunIds.has(run.id))
   if (selectedRuns.length !== selectedRunIds.size) {
@@ -661,11 +762,34 @@ export async function reconcileImplementationValidation(
     ),
   )
   const updates = new Map(managedUpdates.map(run => [run.id, run]))
+  const updatedRuns = implementation.validationRuns.map(run => updates.get(run.id) ?? run)
+  const verifiedTaskIds = Array.from(new Set(input.verifyTaskIds ?? [])).sort()
+  assertTasksCanBeVerified({
+    plan: artifacts.plan,
+    validation: artifacts.validation,
+    implementation,
+    updatedRuns,
+    taskIds: verifiedTaskIds,
+  })
+  const receipt = input.idempotencyKey
+    ? {
+        idempotencyKey: input.idempotencyKey,
+        runIds: [...updates.keys()].sort(),
+        verifiedTaskIds,
+        reconciledAt: now.toISOString(),
+      }
+    : undefined
   const validation = {
     ...artifacts.validation,
     implementation: {
       ...implementation,
-      validationRuns: implementation.validationRuns.map(run => updates.get(run.id) ?? run),
+      validationRuns: updatedRuns,
+      taskStates: Object.fromEntries(
+        Object.entries(implementation.taskStates).concat(verifiedTaskIds.map(taskId => [taskId, 'verified'])),
+      ),
+      reconciliationReceipts: receipt
+        ? [...implementation.reconciliationReceipts, receipt]
+        : implementation.reconciliationReceipts,
     },
   }
   const readiness = canCompleteImplementation(artifacts.plan, validation)
@@ -674,19 +798,26 @@ export async function reconcileImplementationValidation(
     lifecycle: readiness.ready ? ('validation_passed' as const) : ('failed_validation' as const),
   }
   await writeArtifacts(artifacts, plan, validation, artifacts.review, client)
+  const event = reconciliationEvent({
+    receipt,
+    runIds: [...updates.keys()],
+    blockers: readiness.blockers,
+    ready: readiness.ready,
+  })
   await appendPlanEvent(
     {
       planId: input.planId,
-      type: readiness.ready ? 'validation_passed' : 'validation_failed',
-      payload: { runIds: [...updates.keys()], blockers: readiness.blockers },
+      ...event,
     },
     client,
   )
-  return { plan, validation, readiness }
+  return { plan, validation, readiness, receipt }
 }
 
-export async function reviewImplementationCompletion(planId: string, options: Options = {}) {
-  const artifacts = await readArtifacts(planId, options.projectDirectory)
+async function evaluateImplementationCompletion(
+  artifacts: Awaited<ReturnType<typeof readArtifacts>>,
+  client: PrismaClient,
+) {
   const implementation = implementationState(artifacts.validation)
   const readiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
   const tasks = artifacts.plan.tasks.map(task => ({
@@ -697,7 +828,7 @@ export async function reviewImplementationCompletion(planId: string, options: Op
   const acknowledgedFailures = implementation.validationRuns.filter(
     run => run.failureSignatureHash && run.acknowledgedAt,
   )
-  const evidence = {
+  const receipt = {
     plan: {
       planId: artifacts.plan.planId,
       revision: artifacts.plan.revision,
@@ -719,8 +850,30 @@ export async function reviewImplementationCompletion(planId: string, options: Op
     blockingRemarks: artifacts.review.threads.filter(thread => thread.blocking),
     nonBlockingRemarks: artifacts.review.threads.filter(thread => !thread.blocking),
     finalSignOff: artifacts.review.finalSignOff,
+    eventSequence: await readLatestPlanEventSequence(artifacts.plan.planId, client),
   }
-  return { ...evidence, evidenceHash: completionEvidenceHash(evidence) }
+  return { ...receipt, evidenceHash: completionEvidenceHash(receipt) }
+}
+
+export async function reviewImplementationCompletion(planId: string, options: Options = {}) {
+  const artifacts = await readArtifacts(planId, options.projectDirectory)
+  return evaluateImplementationCompletion(artifacts, options.client ?? prisma)
+}
+
+function staleCompletionReceipt(
+  inputHash: string,
+  currentReceipt: Awaited<ReturnType<typeof evaluateImplementationCompletion>>,
+) {
+  return new ServiceError(
+    'Completion approval must reference the current completion evidence hash.',
+    'CONFLICT',
+    undefined,
+    {
+      staleEvidenceHash: inputHash,
+      currentEvidenceHash: currentReceipt.evidenceHash,
+      currentReceipt,
+    },
+  )
 }
 
 // Completion deliberately keeps all final gates adjacent to the sign-off write.
@@ -730,42 +883,50 @@ export async function approveImplementationCompletion(
   options: Options = {},
 ) {
   const client = options.client ?? prisma
-  const artifacts = await readArtifacts(input.planId, options.projectDirectory)
-  if (artifacts.plan.lifecycle !== 'validation_passed') {
+  let artifacts = await readArtifacts(input.planId, options.projectDirectory)
+  let receipt = await evaluateImplementationCompletion(artifacts, client)
+  if (input.contentHash !== receipt.evidenceHash) throw staleCompletionReceipt(input.contentHash, receipt)
+  if (receipt.plan.lifecycle !== 'validation_passed') {
     throw new ServiceError('Passing validations are required before completion.', 'CONFLICT')
   }
-  const readiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
-  if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
-  const blocking = artifacts.review.threads.filter(thread => thread.blocking)
-  if (blocking.length) throw new ServiceError('Blocking feedback must be resolved before completion.', 'CONFLICT')
-  const currentReview = await reviewImplementationCompletion(input.planId, options)
-  if (input.contentHash !== currentReview.evidenceHash) {
-    throw new ServiceError('Completion approval must reference the current completion evidence hash.', 'CONFLICT')
-  }
-  const review = {
-    ...artifacts.review,
-    finalSignOff: {
-      id: `completion-${input.planId}`,
-      revision: artifacts.plan.revision,
-      contentHash: input.contentHash,
-      relevantHashes: {
-        plan: artifacts.planStored.hash,
-        validation: artifacts.validationStored.hash,
-        review: artifacts.reviewStored.hash,
-      },
-      approvedBy: input.approvedBy,
-      approvedAt: (options.now ?? new Date()).toISOString(),
+  if (!receipt.readiness.ready) throw new ServiceError(receipt.readiness.blockers.join(' '), 'CONFLICT')
+  if (receipt.blockingRemarks.length)
+    throw new ServiceError('Blocking feedback must be resolved before completion.', 'CONFLICT')
+  return withPlanEventStreamLock(
+    input.planId,
+    async () => {
+      // Re-read inside the event-stream critical section. Repository compare-and-write
+      // remains the final artifact CAS for non-event artifact mutations.
+      artifacts = await readArtifacts(input.planId, options.projectDirectory)
+      receipt = await evaluateImplementationCompletion(artifacts, client)
+      if (input.contentHash !== receipt.evidenceHash) throw staleCompletionReceipt(input.contentHash, receipt)
+      const review = {
+        ...artifacts.review,
+        finalSignOff: {
+          id: `completion-${input.planId}`,
+          revision: artifacts.plan.revision,
+          contentHash: input.contentHash,
+          relevantHashes: {
+            plan: artifacts.planStored.hash,
+            validation: artifacts.validationStored.hash,
+            review: artifacts.reviewStored.hash,
+          },
+          approvedBy: input.approvedBy,
+          approvedAt: (options.now ?? new Date()).toISOString(),
+        },
+      }
+      const plan = { ...artifacts.plan, lifecycle: 'completed' as const }
+      const validation = {
+        ...artifacts.validation,
+        implementation: { ...implementationState(artifacts.validation), evidenceProtected: false },
+      }
+      await writeArtifacts(artifacts, plan, validation, review, client)
+      await appendPlanEvent(
+        { planId: input.planId, type: 'plan_completed', payload: { approvedBy: input.approvedBy } },
+        client,
+      )
+      return { plan, review, validation }
     },
-  }
-  const plan = { ...artifacts.plan, lifecycle: 'completed' as const }
-  const validation = {
-    ...artifacts.validation,
-    implementation: { ...implementationState(artifacts.validation), evidenceProtected: false },
-  }
-  await writeArtifacts(artifacts, plan, validation, review, client)
-  await appendPlanEvent(
-    { planId: input.planId, type: 'plan_completed', payload: { approvedBy: input.approvedBy } },
     client,
   )
-  return { plan, review, validation }
 }

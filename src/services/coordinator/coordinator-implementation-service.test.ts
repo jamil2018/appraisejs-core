@@ -15,7 +15,7 @@ import {
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
-import { readPlanEvents } from '@/services/coordinator/coordinator-service'
+import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 
 import {
@@ -219,6 +219,54 @@ afterEach(async () => {
 })
 
 describe('implementation coordinator checkpoints', () => {
+  it('atomically verifies explicit tasks from satisfied managed evidence and replays idempotently', async () => {
+    const planId = 'atomic-task-evidence'
+    await writeArtifacts(planId, undefined, {
+      implementation: {
+        taskStates: { foundation: 'implemented' },
+        approvedGroupIds: ['core', 'documentation'],
+        pausedTaskIds: [],
+        validationRuns: [
+          {
+            id: 'core-run',
+            validationId: 'core-validation',
+            taskIds: ['foundation', 'api'],
+            required: true,
+            status: 'passed',
+            fresh: true,
+            commitHash: 'commit-core',
+            evidenceSource: 'managed',
+            assurance: 'full',
+            testRunId: 'managed-core-run',
+            evidenceUrls: ['/test-runs/managed-core-run'],
+            completedAt: '2026-06-11T00:00:00.000Z',
+          },
+        ],
+        commits: [],
+        reconciliationReceipts: [],
+        evidenceProtected: true,
+      },
+    })
+
+    const first = await reconcileImplementationValidation(
+      { planId, runIds: [], verifyTaskIds: ['foundation'], idempotencyKey: 'verify-foundation-1' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T00:01:00.000Z') },
+    )
+    expect(first).toMatchObject({
+      validation: { implementation: { taskStates: { foundation: 'verified' } } },
+      receipt: { idempotencyKey: 'verify-foundation-1', verifiedTaskIds: ['foundation'] },
+    })
+
+    const replay = await reconcileImplementationValidation(
+      { planId, runIds: [], verifyTaskIds: ['foundation'], idempotencyKey: 'verify-foundation-1' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
+    )
+    expect(replay.receipt).toEqual(first.receipt)
+    await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
+      expect.objectContaining({ type: 'task_evidence_reconciled' }),
+    ])
+  })
+
   it('returns recovery guidance when checkpoint is called before implementation starts', async () => {
     const planId = 'checkpoint-before-implementation'
     await writeArtifacts(planId, { lifecycle: 'baseline_review' }, { baselineDecision: 'pending' })
@@ -274,7 +322,9 @@ describe('implementation coordinator checkpoints', () => {
         },
       ],
     })
-    await expect(reviewImplementationCompletion(planId, { projectDirectory: workspace })).resolves.toMatchObject({
+    await expect(
+      reviewImplementationCompletion(planId, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
       readiness: { ready: false, blockers: expect.arrayContaining([expect.stringContaining('foundation')]) },
       structuredBlockers: expect.arrayContaining([
         expect.objectContaining({
@@ -405,6 +455,8 @@ describe('implementation coordinator checkpoints', () => {
           browserEngine: 'CHROMIUM',
           featurePaths: ['automation/features/core.feature'],
           importPaths: ['automation/steps/core.step.ts'],
+          tagExpression: '(@ts_case-core-suite and @tc_case-core)',
+          expectedTestCases: [{ testCaseId: 'case-core', testSuiteId: 'case-core-suite' }],
         }),
       ],
     })
@@ -535,7 +587,7 @@ describe('implementation coordinator checkpoints', () => {
     }
 
     await writeArtifacts(planId, { lifecycle: 'in_progress' }, { implementation }, { threads: [nonBlockingRemark] })
-    const beforeValidationReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace })
+    const beforeValidationReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace, client })
     expect(beforeValidationReview).toMatchObject({
       readiness: { ready: true },
       optionalFailures: [expect.objectContaining({ id: 'run-optional-final' })],
@@ -559,7 +611,7 @@ describe('implementation coordinator checkpoints', () => {
       { implementation },
       { threads: [nonBlockingRemark] },
     )
-    const completionReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace })
+    const completionReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace, client })
     expect(completionReview.evidenceHash).not.toBe(beforeValidationReview.evidenceHash)
     await expect(
       approveImplementationCompletion(
@@ -571,16 +623,61 @@ describe('implementation coordinator checkpoints', () => {
       message: 'Completion approval must reference the current completion evidence hash.',
     })
 
+    let releaseLock!: () => void
+    let lockAcquired!: () => void
+    const acquired = new Promise<void>(resolve => {
+      lockAcquired = resolve
+    })
+    const held = withPlanEventStreamLock(
+      planId,
+      async () => {
+        lockAcquired()
+        await new Promise<void>(resolve => {
+          releaseLock = resolve
+        })
+      },
+      client,
+    )
+    await acquired
+    const newerEvent = appendPlanEvent(
+      { planId, type: 'implementation_checkpoint_reached', payload: { type: 'before_completion' } },
+      client,
+    )
+    const racedApproval = approveImplementationCompletion(
+      { planId, approvedBy: 'user', contentHash: completionReview.evidenceHash },
+      { projectDirectory: workspace, client },
+    )
+    releaseLock()
+    await held
+    await newerEvent
+    await expect(racedApproval).rejects.toMatchObject({
+      code: 'CONFLICT',
+      details: {
+        staleEvidenceHash: completionReview.evidenceHash,
+        currentEvidenceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        currentReceipt: {
+          eventSequence: 1,
+          evidenceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+          plan: { lifecycle: 'validation_passed' },
+        },
+      },
+    })
+    const currentCompletionReview = await reviewImplementationCompletion(planId, {
+      projectDirectory: workspace,
+      client,
+    })
+    expect(currentCompletionReview.evidenceHash).not.toBe(completionReview.evidenceHash)
+
     await expect(
       approveImplementationCompletion(
-        { planId, approvedBy: 'user', contentHash: completionReview.evidenceHash },
+        { planId, approvedBy: 'user', contentHash: currentCompletionReview.evidenceHash },
         { projectDirectory: workspace, client, now: new Date('2026-06-11T00:06:00.000Z') },
       ),
     ).resolves.toMatchObject({
       plan: { lifecycle: 'completed' },
       review: {
         finalSignOff: {
-          contentHash: completionReview.evidenceHash,
+          contentHash: currentCompletionReview.evidenceHash,
           approvedBy: 'user',
           relevantHashes: {
             plan: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
@@ -592,7 +689,8 @@ describe('implementation coordinator checkpoints', () => {
       validation: { implementation: { evidenceProtected: false } },
     })
     await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
-      expect.objectContaining({ sequence: 1, type: 'plan_completed', payload: { approvedBy: 'user' } }),
+      expect.objectContaining({ sequence: 1, type: 'implementation_checkpoint_reached' }),
+      expect.objectContaining({ sequence: 2, type: 'plan_completed', payload: { approvedBy: 'user' } }),
     ])
   })
 })

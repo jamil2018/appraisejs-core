@@ -26,6 +26,25 @@ and persistent baseline attempt history remain open. Tasks 0.1 and 0.2 require a
 the existing readiness, expected-association, and identifier-normalization implementations before the Phase 0
 checkpoint can be marked complete.
 
+#### 2026-07-11: Phase 0 Safety Checkpoint Completion In Progress
+
+- Branch: `codex/validation-ast-phase-0-completion`
+- Unified completion review and mutation around one event-sequence-bound receipt evaluator with structured stale
+  receipt recovery and plan-scoped event-stream serialization.
+- Added bounded per-plan cumulative acknowledgement admission while preserving cross-plan independence.
+- Made plan-bound standalone TestRuns create exact expected suite/case associations atomically and canonicalized
+  identifier storage with legacy leading-`@` lookup compatibility.
+- Added combined idempotent implementation reconciliation that can update managed evidence and verify eligible tasks
+  in one validation-artifact compare-and-write.
+- Added immutable baseline-attempt facts plus append-only, monotonically sequenced state and decision events. Validation
+  feedback now preserves prior attempt and acknowledgement history.
+- Integrated validation passed: 83 focused root tests, 86 `packages/appraisejs` tests, 65 `create-appraisejs` tests,
+  agent harness validation, scaffold migration preparation, and the production build. Root and Prisma Graphify outputs
+  refreshed; package graph semantic extraction still requires an LLM API key.
+- Cross-filesystem/database outbox atomicity and unrecoverable pre-migration attempt backfill remain documented
+  limitations for later migration infrastructure. The implemented safety checkpoint is bounded to the current
+  single-process local coordinator and artifact compare-and-write architecture.
+
 This document supersedes
 `bug fixes/27-meditation-plan-builder-agent-coordination-observations-and-fix-plan.md` as the implementation authority.
 Plan 27 remains the source audit and regression record. Existing plans 20, 22, 25, and 26 remain useful evidence;
@@ -713,7 +732,8 @@ Add `acknowledgeThroughSequence`, concurrency limits, idempotent commit attachme
 reconciliation, and persistent attempt history.
 
 Progress: **in progress**. PR #195 implements cumulative acknowledgement and idempotent commit attachment. Concurrency
-limits, atomic reconciliation, and persistent attempt history remain.
+limits, artifact-level atomic reconciliation, and persistent attempt history are implemented on
+`codex/validation-ast-phase-0-completion`; integrated validation passed.
 
 ### Checkpoint: Safe Legacy Operation
 

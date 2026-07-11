@@ -325,6 +325,7 @@ model PlanProjection {
   personalLayouts      PlanPersonalLayout[]
   testRuns             TestRun[]
   providerRuns         ProviderWorkflowRun[]
+  baselineAttempts     BaselineAttempt[]
   targetProjectId      String?
   targetProject        TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
 
@@ -333,6 +334,40 @@ model PlanProjection {
   @@index([slug])
   @@index([legacyPlanId])
   @@index([targetProjectId])
+}
+
+model BaselineAttempt {
+  id                 String                 @id
+  planProjectionId   String
+  validationId       String
+  validationRevision Int
+  validationHash     String
+  browser            String
+  environment        String
+  testRunId          String
+  evidenceJson       String
+  createdAt          DateTime
+  recordedAt         DateTime               @default(now())
+  plan               PlanProjection         @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+  events             BaselineAttemptEvent[]
+
+  @@index([planProjectionId, createdAt])
+  @@index([testRunId])
+}
+
+model BaselineAttemptEvent {
+  id             String          @id @default(uuid())
+  attemptId      String
+  kind           String
+  payloadJson    String
+  idempotencyKey String
+  sequence       Int
+  createdAt      DateTime        @default(now())
+  attempt        BaselineAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, idempotencyKey])
+  @@unique([attemptId, sequence])
+  @@index([attemptId, createdAt])
 }
 
 model TargetProject {

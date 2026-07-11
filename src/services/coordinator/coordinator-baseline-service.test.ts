@@ -223,6 +223,51 @@ afterEach(async () => {
 })
 
 describe('baseline execution and implementation gate', () => {
+  it('persists immutable attempt facts and append-only state observations', async () => {
+    const planId = 'baseline-history'
+    await writeArtifacts(planId)
+
+    await startBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      now: new Date('2026-06-10T00:00:00.000Z'),
+      submitRun: async () => ({ testRunId: 'history-run' }),
+    })
+    const stored = await client.baselineAttempt.findFirstOrThrow({
+      where: { plan: { planId } },
+      include: { events: true },
+    })
+    expect(stored).toMatchObject({
+      validationId: 'required-check',
+      validationRevision: 1,
+      testRunId: 'history-run',
+    })
+    const repository = new PlanArtifactRepository(workspace)
+    expect(stored.validationHash).toBe((await repository.read('validation', planId)).hash)
+    expect(stored.events).toHaveLength(1)
+    expect(stored.events[0]!.sequence).toBe(1)
+
+    await reconcileBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      now: new Date('2026-06-10T00:01:00.000Z'),
+      loadEvidence: async () => ({
+        status: 'completed',
+        result: 'failed',
+        failureSignatures: ['expected failure'],
+        completedStepIds: [],
+      }),
+    })
+    const reconciled = await client.baselineAttempt.findUniqueOrThrow({
+      where: { id: stored.id },
+      include: { events: { orderBy: { createdAt: 'asc' } } },
+    })
+    expect(reconciled.createdAt).toEqual(stored.createdAt)
+    expect(reconciled.evidenceJson).toEqual(stored.evidenceJson)
+    expect(reconciled.events.map(event => event.kind)).toEqual(['state_observed', 'state_observed'])
+    expect(reconciled.events.map(event => event.sequence)).toEqual([1, 2])
+  })
+
   it('runs every required baseline combination, records classifications, and unlocks implementation only after acceptance', async () => {
     const planId = 'baseline-gate'
     const submitted: Array<{ browser: string; environment: string; testRunId: string }> = []

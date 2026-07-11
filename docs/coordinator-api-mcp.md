@@ -48,6 +48,7 @@ canonical source path when supplied by the CLI.
 
 Events have a monotonically increasing sequence per plan. Reads and long-poll delivery never acknowledge an event.
 The coordinator acknowledges a sequence explicitly, and repeated acknowledgement is idempotent.
+Cumulative acknowledgement is serialized and bounded per plan; independent plans do not block one another.
 
 Delivery is at least once: an unacknowledged event is returned again. `plan_cancelled` supersedes earlier,
 unacknowledged progression events, marks the projected lifecycle as `cancelled`, and remains terminal after
@@ -273,6 +274,13 @@ implementation_validation_start -> test_run for each returned bound input -> imp
 Required runtime validations pass completion only when a fresh managed Appraise `TestRun` is bound to the
 implementation validation run and has passed. Manual evidence through `implementation_validation_record` is retained as
 explicit reduced-assurance evidence and must not be treated as ordinary managed runtime proof.
+
+Plan-bound standalone `test_run` requests must include exact `expectedTestCases` suite/case associations. They are
+created atomically with the run before scheduling. Implementation reconciliation accepts optional paired
+`verifyTaskIds` and `idempotencyKey` fields for atomic evidence reconciliation and task verification.
+
+Completion receipts include the latest event sequence in their evidence hash. A stale completion mutation responds
+with `staleEvidenceHash`, `currentEvidenceHash`, and `currentReceipt`; callers must obtain a new explicit final sign-off.
 
 The canonical agent path is MCP-first: create or revise plans from the coding agent and let AppraiseJS reflect review,
 validation, and approval state back into the app. Provider-native runs are experimental and disabled by default. When

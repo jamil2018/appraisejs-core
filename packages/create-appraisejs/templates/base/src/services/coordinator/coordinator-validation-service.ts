@@ -219,25 +219,20 @@ function invalidateValidationEvidence(
       ...validation,
       validationDecisions: [],
       reviewSubmittedAt: undefined,
-      baselineAttempts: [],
-      baselineAcknowledgements: [],
+      baselineAttempts: validation.baselineAttempts,
+      baselineAcknowledgements: validation.baselineAcknowledgements,
       baselineDecision: 'pending' as const,
     }
   }
 
   const validationIds = affectedValidationIds(validation, input.target, input.affectedValidationIds)
-  const removedAttemptIds = new Set(
-    validation.baselineAttempts.filter(attempt => validationIds.has(attempt.validationId)).map(attempt => attempt.id),
-  )
   return {
     ...validation,
     validationDecisions: validation.validationDecisions.filter(decision => !validationIds.has(decision.validationId)),
     reviewSubmittedAt: undefined,
-    baselineAttempts: validation.baselineAttempts.filter(attempt => !validationIds.has(attempt.validationId)),
-    baselineAcknowledgements: validation.baselineAcknowledgements.filter(
-      acknowledgement => !removedAttemptIds.has(acknowledgement.attemptId),
-    ),
-    baselineDecision: removedAttemptIds.size > 0 ? ('pending' as const) : validation.baselineDecision,
+    baselineAttempts: validation.baselineAttempts,
+    baselineAcknowledgements: validation.baselineAcknowledgements,
+    baselineDecision: validationIds.size > 0 ? ('pending' as const) : validation.baselineDecision,
   }
 }
 

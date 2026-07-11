@@ -1,5 +1,5 @@
 import { TagType, TestRunTestCaseStatus } from '@prisma/client'
-import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
+import { canonicalTagExpression, getIdentifierTagByPrefix } from '@/lib/tag-filters'
 
 type TagLike = {
   name: string
@@ -29,7 +29,15 @@ type ScenarioMatchInput = {
 }
 
 function normalizeTagExpression(tagExpression: string): string {
-  return tagExpression.startsWith('@') ? tagExpression : `@${tagExpression}`
+  return canonicalTagExpression(tagExpression)
+}
+
+function matchesIdentifier(tags: TagLike[], prefix: 'tc_' | 'ts_', expected: string): boolean {
+  const identifier = getIdentifierTagByPrefix(tags, prefix)
+  return Boolean(
+    identifier &&
+      normalizeTagExpression(identifier.tagExpression || identifier.name) === normalizeTagExpression(expected),
+  )
 }
 
 function consumeCandidate<T extends MatchableRunTestCase>(candidates: T[]): T | undefined {
@@ -60,21 +68,17 @@ export function findMatchingTestRunTestCase<T extends MatchableRunTestCase>(
   const testCaseTitle = extractTestCaseTitleFromScenarioName(scenarioName)
 
   const bySuite = suiteIdentifierTag
-    ? testRunTestCases.filter(testRunTestCase => {
-        const identifierTag = testRunTestCase.testSuite
-          ? getIdentifierTagByPrefix(testRunTestCase.testSuite.tags, 'ts_')
-          : undefined
-
-        return identifierTag?.tagExpression === normalizeTagExpression(suiteIdentifierTag)
-      })
+    ? testRunTestCases.filter(
+        testRunTestCase =>
+          testRunTestCase.testSuite && matchesIdentifier(testRunTestCase.testSuite.tags, 'ts_', suiteIdentifierTag),
+      )
     : []
 
   if (bySuite.length > 0) {
     if (testCaseIdentifierTag) {
-      const bySuiteAndTestCaseIdentifier = bySuite.filter(testRunTestCase => {
-        const identifierTag = getIdentifierTagByPrefix(testRunTestCase.testCase.tags, 'tc_')
-        return identifierTag?.tagExpression === normalizeTagExpression(testCaseIdentifierTag)
-      })
+      const bySuiteAndTestCaseIdentifier = bySuite.filter(testRunTestCase =>
+        matchesIdentifier(testRunTestCase.testCase.tags, 'tc_', testCaseIdentifierTag),
+      )
 
       const matchedBySuiteAndTestCaseIdentifier = consumeCandidate(bySuiteAndTestCaseIdentifier)
       if (matchedBySuiteAndTestCaseIdentifier) {
@@ -94,10 +98,9 @@ export function findMatchingTestRunTestCase<T extends MatchableRunTestCase>(
   }
 
   if (testCaseIdentifierTag) {
-    const byTestCaseIdentifier = testRunTestCases.filter(testRunTestCase => {
-      const identifierTag = getIdentifierTagByPrefix(testRunTestCase.testCase.tags, 'tc_')
-      return identifierTag?.tagExpression === normalizeTagExpression(testCaseIdentifierTag)
-    })
+    const byTestCaseIdentifier = testRunTestCases.filter(testRunTestCase =>
+      matchesIdentifier(testRunTestCase.testCase.tags, 'tc_', testCaseIdentifierTag),
+    )
 
     const matchedByTestCaseIdentifier = consumeCandidate(byTestCaseIdentifier)
     if (matchedByTestCaseIdentifier) {

@@ -74,4 +74,30 @@ describe('findMatchingTestRunTestCase', () => {
 
     expect(match).toBe(pendingCandidate)
   })
+
+  it('matches legacy stored identifiers with leading-at names and expressions without it', () => {
+    const candidate = runTestCase({
+      id: 'legacy',
+      title: 'Legacy checkout',
+      suiteTag: '@ts_checkout',
+      testCaseTag: '@tc_pay',
+    })
+    candidate.testSuite!.tags[0] = {
+      ...candidate.testSuite!.tags[0],
+      name: '@ts_checkout',
+      tagExpression: 'ts_checkout',
+    }
+    candidate.testCase.tags[0] = {
+      ...candidate.testCase.tags[0],
+      name: '@tc_pay',
+      tagExpression: 'tc_pay',
+    }
+
+    expect(
+      findMatchingTestRunTestCase([candidate], {
+        scenarioName: 'Renamed scenario',
+        scenarioTags: ['@ts_checkout', '@tc_pay'],
+      }),
+    ).toBe(candidate)
+  })
 })

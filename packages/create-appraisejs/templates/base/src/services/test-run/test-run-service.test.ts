@@ -420,6 +420,7 @@ describe('createTestRunFromValidatedValue', () => {
     mockTestRunFindFirst.mockResolvedValue(null)
     mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
     mockTestRunCreate.mockResolvedValue({ id: 'db-1', runId: 'run-1' })
+    mockTestCaseFindMany.mockResolvedValue([{ id: 'case-1', TestSuite: [{ id: 'suite-1' }] }])
 
     const result = await createStandaloneTargetTestRun({
       target: 'target-1',
@@ -441,6 +442,7 @@ describe('createTestRunFromValidatedValue', () => {
         result: TestRunResult.PENDING,
         planId: null,
         targetProjectId: 'target-1',
+        testCases: { create: [] },
       },
     })
     expect(mockExecuteTestRun).toHaveBeenCalledWith({
@@ -464,6 +466,92 @@ describe('createTestRunFromValidatedValue', () => {
       evidenceHealth: 'invalid_missing_report',
       nextAllowedAction: { tool: 'test_run_read' },
     })
+  })
+
+  it('atomically creates one exact expected association for a plan-bound standalone run', async () => {
+    mockResolveTargetProject.mockResolvedValue({
+      id: 'target-1',
+      displayName: 'Target App',
+      canonicalPath: '/target/app',
+    })
+    mockTestRunFindFirst.mockResolvedValue(null)
+    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+    mockTestRunCreate.mockResolvedValue({ id: 'db-1', runId: 'run-1' })
+
+    await createStandaloneTargetTestRun({
+      target: 'target-1',
+      environmentId: 'env-1',
+      name: 'Plan validation',
+      planId: 'plan-1',
+      tagExpression: '@ts_suite-1 and @tc_case-1',
+      expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }],
+    })
+
+    expect(mockTestRunCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        planId: 'plan-1',
+        testCases: { create: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }] },
+      }),
+    })
+    expect(mockExecuteTestRun).toHaveBeenCalledWith(
+      expect.objectContaining({ tagExpression: '@ts_suite-1 and @tc_case-1' }),
+    )
+  })
+
+  it('rejects a plan-bound standalone run without expected associations', async () => {
+    mockResolveTargetProject.mockResolvedValue({
+      id: 'target-1',
+      displayName: 'Target App',
+      canonicalPath: '/target/app',
+    })
+    mockTestRunFindFirst.mockResolvedValue(null)
+    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+
+    await expect(
+      createStandaloneTargetTestRun({ target: 'target-1', environmentId: 'env-1', planId: 'plan-1' }),
+    ).rejects.toMatchObject({ message: expect.stringContaining('exact expected test case associations') })
+    expect(mockTestRunCreate).not.toHaveBeenCalled()
+  })
+
+  it('rejects a plan-bound expected case without a suite association', async () => {
+    mockResolveTargetProject.mockResolvedValue({
+      id: 'target-1',
+      displayName: 'Target App',
+      canonicalPath: '/target/app',
+    })
+    mockTestRunFindFirst.mockResolvedValue(null)
+    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+
+    await expect(
+      createStandaloneTargetTestRun({
+        target: 'target-1',
+        environmentId: 'env-1',
+        planId: 'plan-1',
+        expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: null }],
+      }),
+    ).rejects.toMatchObject({ message: expect.stringContaining('require a test suite association') })
+    expect(mockTestRunCreate).not.toHaveBeenCalled()
+  })
+
+  it('rejects an expected case paired with a suite it does not belong to', async () => {
+    mockResolveTargetProject.mockResolvedValue({
+      id: 'target-1',
+      displayName: 'Target App',
+      canonicalPath: '/target/app',
+    })
+    mockTestRunFindFirst.mockResolvedValue(null)
+    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+    mockTestCaseFindMany.mockResolvedValue([{ id: 'case-1', TestSuite: [{ id: 'suite-other' }] }])
+
+    await expect(
+      createStandaloneTargetTestRun({
+        target: 'target-1',
+        environmentId: 'env-1',
+        planId: 'plan-1',
+        expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }],
+      }),
+    ).rejects.toMatchObject({ message: expect.stringContaining('is not associated with test suite') })
+    expect(mockTestRunCreate).not.toHaveBeenCalled()
   })
 })
 

@@ -887,6 +887,38 @@ export type StandaloneTargetTestRunInput = {
   importPaths?: string[]
   supportPaths?: string[]
   prepareWorkspace?: boolean
+  expectedTestCases?: TestRunTestCaseLink[]
+}
+
+async function resolveStandaloneExpectedTestCases(input: StandaloneTargetTestRunInput): Promise<TestRunTestCaseLink[]> {
+  const links = [
+    ...new Map(
+      (input.expectedTestCases ?? []).map(link => [`${link.testSuiteId ?? ''}:${link.testCaseId}`, link]),
+    ).values(),
+  ]
+  if (!input.planId) return links
+  if (links.length === 0) {
+    throw new ServiceError('Plan-bound test runs require exact expected test case associations.', 'VALIDATION', 400)
+  }
+  if (links.some(link => !link.testSuiteId)) {
+    throw new ServiceError('Plan-bound expected test cases require a test suite association.', 'VALIDATION', 400)
+  }
+  const storedTestCases = await prisma.testCase.findMany({
+    where: { id: { in: [...new Set(links.map(link => link.testCaseId))] } },
+    select: { id: true, TestSuite: { select: { id: true } } },
+  })
+  const suitesByCase = new Map(
+    storedTestCases.map(testCase => [testCase.id, new Set(testCase.TestSuite.map(suite => suite.id))]),
+  )
+  const invalid = links.find(link => !suitesByCase.get(link.testCaseId)?.has(link.testSuiteId as string))
+  if (invalid) {
+    throw new ServiceError(
+      `Test case "${invalid.testCaseId}" is not associated with test suite "${invalid.testSuiteId}".`,
+      'VALIDATION',
+      400,
+    )
+  }
+  return links
 }
 
 export async function createStandaloneTargetTestRun(input: StandaloneTargetTestRunInput): Promise<{
@@ -919,6 +951,8 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
     )
   }
 
+  const expectedTestCases = await resolveStandaloneExpectedTestCases(input)
+
   const testRun = await prisma.testRun.create({
     data: {
       name,
@@ -929,6 +963,12 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
       result: TestRunResult.PENDING,
       planId: input.planId ?? null,
       targetProjectId: targetProject.id,
+      testCases: {
+        create: expectedTestCases.map(link => ({
+          testCaseId: link.testCaseId,
+          testSuiteId: link.testSuiteId ?? null,
+        })),
+      },
     },
   })
 
@@ -962,7 +1002,7 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
     testRun,
     environment,
     tagExpression: input.tagExpression ?? '',
-    testRunTestCases: [],
+    testRunTestCases: expectedTestCases,
     value: {
       name,
       environmentId: environment.id,

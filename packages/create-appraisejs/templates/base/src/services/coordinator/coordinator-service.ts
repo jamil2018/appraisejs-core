@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
@@ -12,6 +13,74 @@ import { ServiceError } from '@/services/shared/errors'
 const COORDINATOR_LEASE_MS = 30_000
 export const COORDINATOR_MAX_REQUEST_BYTES = 1_048_576
 const COORDINATOR_LONG_POLL_MS = 25_000
+const ACKNOWLEDGEMENT_MAX_WAITERS_PER_PLAN = 8
+const ACKNOWLEDGEMENT_ADMISSION_TIMEOUT_MS = 1_000
+
+type AcknowledgementAdmission = {
+  waiters: Array<{ resolve: (release: () => void) => void; timeout: ReturnType<typeof setTimeout> }>
+}
+
+const acknowledgementAdmissions = new Map<string, AcknowledgementAdmission>()
+const planEventLocks = new Map<string, Promise<void>>()
+const heldPlanEventLocks = new AsyncLocalStorage<Set<string>>()
+
+export async function withPlanEventStreamLock<T>(
+  planId: string,
+  operation: () => Promise<T>,
+  client: PrismaClient = prisma,
+): Promise<T> {
+  const canonicalPlanId = await resolvePlanReference(planId, client)
+  if (heldPlanEventLocks.getStore()?.has(canonicalPlanId)) return operation()
+  const previous = planEventLocks.get(canonicalPlanId) ?? Promise.resolve()
+  let release!: () => void
+  const current = new Promise<void>(resolve => {
+    release = resolve
+  })
+  const queued = previous.then(() => current)
+  planEventLocks.set(canonicalPlanId, queued)
+  await previous
+  try {
+    const held = new Set(heldPlanEventLocks.getStore() ?? [])
+    held.add(canonicalPlanId)
+    return await heldPlanEventLocks.run(held, operation)
+  } finally {
+    release()
+    if (planEventLocks.get(canonicalPlanId) === queued) planEventLocks.delete(canonicalPlanId)
+  }
+}
+
+function releaseAcknowledgementAdmission(planProjectionId: string) {
+  const admission = acknowledgementAdmissions.get(planProjectionId)
+  const next = admission?.waiters.shift()
+  if (next) {
+    clearTimeout(next.timeout)
+    next.resolve(() => releaseAcknowledgementAdmission(planProjectionId))
+    return
+  }
+  acknowledgementAdmissions.delete(planProjectionId)
+}
+
+async function acquireAcknowledgementAdmission(planProjectionId: string) {
+  const existing = acknowledgementAdmissions.get(planProjectionId)
+  if (!existing) {
+    acknowledgementAdmissions.set(planProjectionId, { waiters: [] })
+    return () => releaseAcknowledgementAdmission(planProjectionId)
+  }
+  if (existing.waiters.length >= ACKNOWLEDGEMENT_MAX_WAITERS_PER_PLAN) {
+    throw new ServiceError('Too many cumulative acknowledgement requests are queued for this plan.', 'CONFLICT')
+  }
+  return new Promise<() => void>((resolve, reject) => {
+    const waiter = {
+      resolve,
+      timeout: setTimeout(() => {
+        const index = existing.waiters.indexOf(waiter)
+        if (index >= 0) existing.waiters.splice(index, 1)
+        reject(new ServiceError('Timed out waiting to acknowledge plan events.', 'CONFLICT'))
+      }, ACKNOWLEDGEMENT_ADMISSION_TIMEOUT_MS),
+    }
+    existing.waiters.push(waiter)
+  })
+}
 
 const RUNTIME_DIRECTORY = '.appraisejs'
 const IDENTITY_FILE = 'coordinator.json'
@@ -216,38 +285,43 @@ export async function appendPlanEvent(
   input: { planId: string; type: string; payload?: unknown },
   client: PrismaClient = prisma,
 ) {
-  return client.$transaction(async transaction => {
-    const projection = await getProjection(transaction as PrismaClient, input.planId)
-    const lastEvent = await transaction.planEvent.findFirst({
-      where: { planProjectionId: projection.id },
-      orderBy: { sequence: 'desc' },
-      select: { sequence: true },
-    })
-    if (input.type === 'plan_review_ready' && projection.lifecycle !== 'awaiting_plan_review') return undefined
-    if (input.type === 'plan_cancelled') {
-      await transaction.planEvent.updateMany({
-        where: {
-          planProjectionId: projection.id,
-          type: { in: PROGRESSION_EVENT_TYPES },
-          acknowledgedAt: null,
-          supersededAt: null,
-        },
-        data: { supersededAt: new Date() },
-      })
-      await transaction.planProjection.update({
-        where: { id: projection.id },
-        data: { lifecycle: 'cancelled' },
-      })
-    }
-    return transaction.planEvent.create({
-      data: {
-        planProjectionId: projection.id,
-        sequence: (lastEvent?.sequence ?? 0) + 1,
-        type: input.type,
-        payloadJson: input.payload === undefined ? null : JSON.stringify(input.payload),
-      },
-    })
-  })
+  return withPlanEventStreamLock(
+    input.planId,
+    () =>
+      client.$transaction(async transaction => {
+        const projection = await getProjection(transaction as PrismaClient, input.planId)
+        const lastEvent = await transaction.planEvent.findFirst({
+          where: { planProjectionId: projection.id },
+          orderBy: { sequence: 'desc' },
+          select: { sequence: true },
+        })
+        if (input.type === 'plan_review_ready' && projection.lifecycle !== 'awaiting_plan_review') return undefined
+        if (input.type === 'plan_cancelled') {
+          await transaction.planEvent.updateMany({
+            where: {
+              planProjectionId: projection.id,
+              type: { in: PROGRESSION_EVENT_TYPES },
+              acknowledgedAt: null,
+              supersededAt: null,
+            },
+            data: { supersededAt: new Date() },
+          })
+          await transaction.planProjection.update({
+            where: { id: projection.id },
+            data: { lifecycle: 'cancelled' },
+          })
+        }
+        return transaction.planEvent.create({
+          data: {
+            planProjectionId: projection.id,
+            sequence: (lastEvent?.sequence ?? 0) + 1,
+            type: input.type,
+            payloadJson: input.payload === undefined ? null : JSON.stringify(input.payload),
+          },
+        })
+      }),
+    client,
+  )
 }
 
 export async function ensurePlanReviewReadyEvent(planId: string, client: PrismaClient = prisma) {
@@ -298,6 +372,16 @@ export async function readPlanEvents(
     supersededAt: event.supersededAt,
     createdAt: event.createdAt,
   }))
+}
+
+export async function readLatestPlanEventSequence(planId: string, client: PrismaClient = prisma): Promise<number> {
+  const projection = await getProjection(client, planId)
+  const event = await client.planEvent.findFirst({
+    where: { planProjectionId: projection.id },
+    orderBy: { sequence: 'desc' },
+    select: { sequence: true },
+  })
+  return event?.sequence ?? 0
 }
 
 export async function assertPlanNotCancelled(planId: string, client: PrismaClient = prisma): Promise<void> {
@@ -355,4 +439,30 @@ export async function acknowledgePlanEvent(
     where: { id: event.id },
     data: { acknowledgedAt: new Date(), acknowledgedBy: input.coordinatorId },
   })
+}
+
+export async function acknowledgePlanEventsThrough(
+  input: { planId: string; sequence: number; coordinatorId: string },
+  client: PrismaClient = prisma,
+) {
+  const projection = await getProjection(client, input.planId)
+  const release = await acquireAcknowledgementAdmission(projection.id)
+  try {
+    const highestEvent = await client.planEvent.findFirst({
+      where: { planProjectionId: projection.id },
+      orderBy: { sequence: 'desc' },
+      select: { sequence: true },
+    })
+    if (!highestEvent || input.sequence > highestEvent.sequence) {
+      throw new ServiceError('Plan event sequence is beyond the current event stream.', 'VALIDATION', 400)
+    }
+    const acknowledgedAt = new Date()
+    const result = await client.planEvent.updateMany({
+      where: { planProjectionId: projection.id, sequence: { lte: input.sequence }, acknowledgedAt: null },
+      data: { acknowledgedAt, acknowledgedBy: input.coordinatorId },
+    })
+    return { acknowledgedThroughSequence: input.sequence, acknowledgedCount: result.count, acknowledgedAt }
+  } finally {
+    release()
+  }
 }

@@ -32,6 +32,7 @@ import {
 } from '@/services/coordinator/coordinator-provider-run-service'
 import {
   acknowledgePlanEvent,
+  acknowledgePlanEventsThrough,
   ensureProjectIdentity,
   ensurePlanReviewReadyEvent,
   heartbeatCoordinator,
@@ -363,7 +364,16 @@ async function postImplementationOperation(operation: string[], body: unknown) {
       return Response.json(await startImplementationValidation({ planId, ...value }))
     }
     if (operation[4] === 'reconcile') {
-      const value = z.object({ runIds: z.array(idSchema).optional() }).parse(body)
+      const value = z
+        .object({
+          runIds: z.array(idSchema).optional(),
+          verifyTaskIds: z.array(idSchema).optional(),
+          idempotencyKey: z.string().min(1).optional(),
+        })
+        .refine(input => Boolean(input.verifyTaskIds) === Boolean(input.idempotencyKey), {
+          message: 'verifyTaskIds and idempotencyKey must be provided together.',
+        })
+        .parse(body)
       return Response.json(await reconcileImplementationValidation({ planId, ...value }))
     }
     const value = z
@@ -530,6 +540,16 @@ async function postStandaloneTestRun(body: unknown) {
       importPaths: z.array(z.string().min(1)).optional(),
       supportPaths: z.array(z.string().min(1)).optional(),
       prepareWorkspace: z.boolean().optional(),
+      expectedTestCases: z.array(z.object({ testCaseId: idSchema, testSuiteId: idSchema.nullish() })).optional(),
+    })
+    .superRefine((input, context) => {
+      if (input.planId && input.expectedTestCases?.some(link => !link.testSuiteId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['expectedTestCases'],
+          message: 'Plan-bound expected test cases require a testSuiteId.',
+        })
+      }
     })
     .parse(body)
   return Response.json(await createStandaloneTargetTestRun(value), { status: 201 })
@@ -619,8 +639,29 @@ async function postTaskUpdate(operation: string[], body: unknown) {
 }
 
 async function postEventAcknowledgement(operation: string[], body: unknown) {
-  const value = z.object({ sequence: z.number().int().positive(), coordinatorId: z.string().min(1) }).parse(body)
-  return Response.json(await acknowledgePlanEvent({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
+  const value = z
+    .object({
+      sequence: z.number().int().positive().optional(),
+      acknowledgeThroughSequence: z.number().int().positive().optional(),
+      coordinatorId: z.string().min(1),
+    })
+    .refine(input => (input.sequence === undefined) !== (input.acknowledgeThroughSequence === undefined), {
+      message: 'Provide exactly one event acknowledgement sequence.',
+    })
+    .parse(body)
+  const planId = routePlanIdSchema.parse(operation[1])
+  if (value.acknowledgeThroughSequence !== undefined) {
+    return Response.json(
+      await acknowledgePlanEventsThrough({
+        planId,
+        sequence: value.acknowledgeThroughSequence,
+        coordinatorId: value.coordinatorId,
+      }),
+    )
+  }
+  return Response.json(
+    await acknowledgePlanEvent({ planId, sequence: value.sequence!, coordinatorId: value.coordinatorId }),
+  )
 }
 
 // Request parsing branches stay in this thin HTTP adapter.
