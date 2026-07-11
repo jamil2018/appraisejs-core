@@ -38,8 +38,9 @@ async function storedLogsResponse(input: {
   wantsText: boolean
   mode: LogMode
   limit: number
+  expectedTargetProjectId?: string
 }) {
-  const allLogs = await getTestRunLogsService(input.runId)
+  const allLogs = await getTestRunLogsService(input.runId, input.expectedTargetProjectId)
   const logs = selectLogs(allLogs, input.mode, input.limit)
   if (input.wantsText) {
     return new Response(logs.map(log => `[${log.type}] ${log.message}`).join('\n'), {
@@ -109,36 +110,18 @@ async function waitForRegisteredProcess(runId: string) {
   const checkInterval = 200
   let waited = 0
 
-  console.log(`[SSE] Looking for process with runId: ${runId}, current processes: ${processManager.size()}`)
-
-  if (processManager.size() > 0) {
-    const availableProcesses = processManager.getAllTestRunIds()
-    console.log(`[SSE] Available process IDs:`, availableProcesses)
-    console.log(`[SSE] Looking for runId: "${runId}", available:`, availableProcesses.map(id => `"${id}"`).join(', '))
-  } else {
-    console.log(`[SSE] No processes registered yet. ProcessManager size: ${processManager.size()}`)
-  }
-
   while (!process && waited < maxWaitTime) {
     await new Promise(resolve => setTimeout(resolve, checkInterval))
     waited += checkInterval
     process = processManager.get(runId)
-
-    if (waited % 2000 === 0) {
-      console.log(`[SSE] Still waiting for process ${runId}... (${waited}ms elapsed)`)
-    }
   }
 
   if (process) return { process }
 
-  const availableProcesses = processManager.getAllTestRunIds()
-  const errorMessage = `Process not found for runId: ${runId} after ${waited}ms. Available processes: ${processManager.size()}. Available IDs: ${availableProcesses.join(', ') || 'none'}`
-  console.error(`[SSE] ${errorMessage}`)
-
   return {
     response: sseErrorResponse(200, {
       error: 'Test run process not found. The process may not have started yet or may have already completed.',
-      details: `Looking for: ${runId}, Available: ${availableProcesses.join(', ') || 'none'}`,
+      details: `No active process is registered for this run after ${waited}ms.`,
     }),
   }
 }
@@ -160,6 +143,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     request.nextUrl.searchParams.get('format') === 'text' || request.headers.get('accept') === 'text/plain'
   const mode = parseLogMode(request.nextUrl.searchParams.get('mode'))
   const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit') ?? 50) || 50, 1), 500)
+  const capsuleOwnership = await prisma.testRun.findUnique({
+    where: { runId },
+    select: { targetProjectId: true, runtimeCapsule: { select: { id: true } } },
+  })
+  const expectedTargetProjectId = request.nextUrl.searchParams.get('targetProjectId') ?? undefined
+  if (
+    capsuleOwnership?.runtimeCapsule &&
+    (!expectedTargetProjectId || capsuleOwnership.targetProjectId !== expectedTargetProjectId)
+  )
+    return Response.json({ error: 'Test run not found.' }, { status: 404 })
 
   const statusResult = await readTestRunStatusForLogs(runId)
   if ('response' in statusResult) return statusResult.response
@@ -169,7 +162,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     statusResult.status === TestRunStatus.CANCELLED ||
     !acceptsEventStream
   ) {
-    return storedLogsResponse({ runId, status: statusResult.status, wantsText, mode, limit })
+    return storedLogsResponse({ runId, status: statusResult.status, wantsText, mode, limit, expectedTargetProjectId })
   }
 
   const processResult = await waitForRegisteredProcess(runId)

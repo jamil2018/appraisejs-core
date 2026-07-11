@@ -3,6 +3,9 @@
 `create-appraisejs` is bundled-only. It ships one full base app template and small flavor overlays inside the package.
 It does not fetch a remote template during normal scaffolding.
 
+Runtime capsule diagnostics are hub-only in Appraise 0.5. Their route, durable attempt schema, and artifact gateway are
+intentionally not synchronized into `create-appraisejs` templates; package CLI/MCP clients connect back to the hub.
+
 ## Current Model
 
 - Base template: `packages/create-appraisejs/templates/base`

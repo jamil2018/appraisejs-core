@@ -42,6 +42,8 @@ const {
   mockGenerateFeature,
   mockResolveTargetProject,
   mockPlanProjectionFindMany,
+  mockArtifactReadBytes,
+  mockSpawnTraceViewerFromSnapshot,
 } = vi.hoisted(() => ({
   mockEnvironmentFindUnique: vi.fn(),
   mockTagFindMany: vi.fn(),
@@ -74,6 +76,8 @@ const {
   mockGenerateFeature: vi.fn(),
   mockResolveTargetProject: vi.fn(),
   mockPlanProjectionFindMany: vi.fn(),
+  mockArtifactReadBytes: vi.fn(),
+  mockSpawnTraceViewerFromSnapshot: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({
@@ -150,6 +154,15 @@ vi.mock('@/lib/test-run/process-manager', () => ({
 vi.mock('@/lib/automation/automation-path-roots', () => ({
   getAutomationReportRunDir: vi.fn((runId: string) => `/artifacts/${runId}`),
   resolveStoredPath: vi.fn((storedPath: string) => `/resolved/${storedPath}`),
+}))
+
+vi.mock('@/services/test-run/test-run-artifact-context', () => ({
+  createTestRunArtifactContext: vi.fn(() => ({ appraiseRoot: '/appraise' })),
+  createTestRunArtifactAccess: vi.fn(() => ({ readBytes: mockArtifactReadBytes })),
+}))
+
+vi.mock('@/services/test-run/trace-viewer-snapshot-service', () => ({
+  spawnTraceViewerFromSnapshot: mockSpawnTraceViewerFromSnapshot,
 }))
 
 vi.mock('fs', () => ({
@@ -389,6 +402,42 @@ describe('createTestRunFromValidatedValue', () => {
 
     await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({ code: 'CONFLICT' })
     expect(mockTestRunCreate).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['legacy authority string', { executionAuthority: 'phase3_capsule' }],
+    [
+      'v1 provenance',
+      { schemaVersion: '1', astHash: `sha256:${'a'.repeat(64)}`, executionAuthority: 'phase3_capsule' },
+    ],
+    [
+      'v2 provenance',
+      {
+        schemaVersion: '2',
+        astHash: `sha256:${'a'.repeat(64)}`,
+        executionAuthority: 'phase3_capsule',
+        publishOperationId: 'operation-one',
+        receiptHash: `sha256:${'b'.repeat(64)}`,
+        runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+      },
+    ],
+  ])('categorically denies generic target-automation execution for %s', async (_label, astProvenance) => {
+    mockRunnableSuite([{ id: 'tc-1', title: 'Login', tag: 'login' }])
+    mockPlanProjectionFindMany.mockResolvedValue([
+      {
+        planId: 'plan-one',
+        validationJson: JSON.stringify({
+          validations: [{ id: 'ast-validation', testCaseIds: ['tc-1'], astProvenance }],
+        }),
+      },
+    ])
+
+    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: expect.stringContaining('exact reviewed runtime capsule'),
+    })
+    expect(mockTestRunCreate).not.toHaveBeenCalled()
+    expect(mockExecuteTestRun).not.toHaveBeenCalled()
   })
 
   it('rejects duplicate run names', async () => {
@@ -869,5 +918,33 @@ describe('trace viewer helpers', () => {
       processName: 'trace-viewer-trtc-1',
     })
     expect(mockSpawnTraceViewer).toHaveBeenCalledWith('trtc-1', '/resolved/trace.zip')
+  })
+
+  it('spawns capsule traces only from a verified private snapshot', async () => {
+    const bytes = Buffer.from('PK capsule trace')
+    mockTestRunFindUnique.mockResolvedValue({
+      runtimeCapsule: { id: 'capsule-1' },
+      testCases: [{ id: 'trtc-1', tracePath: 'managed/trace.zip', testCase: { id: 'tc-1' } }],
+    })
+    mockArtifactReadBytes.mockResolvedValue({ bytes, contentType: 'application/zip' })
+    mockSpawnTraceViewerFromSnapshot.mockImplementation(async (_bytes, spawn) =>
+      spawn('/appraise/tmp/trace-viewers/trace-private/trace.zip'),
+    )
+    mockSpawnTraceViewer.mockResolvedValue({ name: 'trace-viewer-trtc-1' })
+
+    await expect(spawnTraceViewerService('run-1', 'trtc-1')).resolves.toEqual({
+      kind: 'ok',
+      processName: 'trace-viewer-trtc-1',
+    })
+    expect(mockArtifactReadBytes).toHaveBeenCalledWith({
+      runId: 'run-1',
+      kind: 'trace',
+      testCaseId: 'trtc-1',
+      storedPath: 'managed/trace.zip',
+    })
+    expect(mockSpawnTraceViewerFromSnapshot).toHaveBeenCalledWith(bytes, expect.any(Function))
+    expect(mockSpawnTraceViewer).toHaveBeenCalledWith('trtc-1', '/appraise/tmp/trace-viewers/trace-private/trace.zip')
+    expect(mockFsAccess).not.toHaveBeenCalled()
+    expect(mockSpawnTraceViewer).not.toHaveBeenCalledWith('trtc-1', expect.stringContaining('managed/trace.zip'))
   })
 })

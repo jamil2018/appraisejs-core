@@ -79,6 +79,17 @@ pauses affected tasks and dependents until impact is confirmed and applied.
 
 Pause, resume, and cancellation are lifecycle transitions. Cancellation is terminal after acknowledgement.
 
+Reviewed v2 validation nodes execute baseline and implementation from the exact Appraise-owned runtime capsule bound
+to their publish operation. Mixed validation artifacts keep legacy nodes on legacy runtime inputs without copying them
+into capsule requests. Capsule preparation is idempotent by its durable preparation key; concurrent/crash replay reuses
+the queued or running TestRun, while an explicit retry receives the next ordinal. Passing lifecycle evidence requires
+valid managed evidence.
+
+Capsule attempts move through prepared/start/running to a terminal state under owner-token guards. Cancellation before
+or during spawn prevents late registration; cancellation of a running attempt terminates the registered process when
+present and reconciles durable attempt/TestRun state. Missing process registration, blocked preflight, and corrupt
+evidence are recovered through bounded `test_run_diagnose` actions rather than raw process or filesystem inspection.
+
 Implementation start is also agent-owned: once baseline evidence is accepted, the connected agent calls
 `implementation_start` through MCP. Required implementation validations should follow
 `implementation_validation_start -> test_run_preflight -> bound test_run -> test_run_read or test_run_diagnose ->

@@ -266,29 +266,32 @@ model TestRunTestCase {
 }
 
 model TestRun {
-  id               String                @id @default(uuid())
-  name             String                @unique
-  runId            String                @unique @default(uuid())
-  startedAt        DateTime              @default(now())
-  completedAt      DateTime?
-  status           TestRunStatus         @default(QUEUED)
-  result           TestRunResult         @default(PENDING)
-  evidenceHealth   TestRunEvidenceHealth @default(invalid_missing_report)
-  testCases        TestRunTestCase[]
-  updatedAt        DateTime              @updatedAt
-  environment      Environment           @relation(fields: [environmentId], references: [id])
-  environmentId    String
-  tags             Tag[]
-  testWorkersCount Int?                  @default(1)
-  browserEngine    BrowserEngine         @default(CHROMIUM)
-  logs             TestRunLog?
-  logPath          String?
-  reportPath       String?
-  reports          Report[]
-  planId           String?
-  plan             PlanProjection?       @relation(fields: [planId], references: [planId], onDelete: SetNull)
-  targetProjectId  String?
-  targetProject    TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  id                             String                          @id @default(uuid())
+  name                           String
+  preparationKey                 String?                         @unique
+  runId                          String                          @unique @default(uuid())
+  startedAt                      DateTime                        @default(now())
+  completedAt                    DateTime?
+  status                         TestRunStatus                   @default(QUEUED)
+  result                         TestRunResult                   @default(PENDING)
+  evidenceHealth                 TestRunEvidenceHealth           @default(invalid_missing_report)
+  testCases                      TestRunTestCase[]
+  updatedAt                      DateTime                        @updatedAt
+  environment                    Environment                     @relation(fields: [environmentId], references: [id])
+  environmentId                  String
+  tags                           Tag[]
+  testWorkersCount               Int?                            @default(1)
+  browserEngine                  BrowserEngine                   @default(CHROMIUM)
+  logs                           TestRunLog?
+  logPath                        String?
+  reportPath                     String?
+  reports                        Report[]
+  planId                         String?
+  plan                           PlanProjection?                 @relation(fields: [planId], references: [planId], onDelete: SetNull)
+  targetProjectId                String?
+  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  runtimeCapsule                 RuntimeCapsule?
+  runtimeCapsuleExecutionAttempt RuntimeCapsuleExecutionAttempt?
 
   @@index([completedAt])
   @@index([result])
@@ -386,9 +389,123 @@ model TargetProject {
   providerRuns                   ProviderWorkflowRun[]
   testRuns                       TestRun[]
   validationAstPublishOperations ValidationAstPublishOperation[]
+  runtimeCapsules                RuntimeCapsule[]
+  runtimeCapsuleBlobs            RuntimeCapsuleBlob[]
+  runtimeCapsuleLeases           RuntimeCapsuleLease[]
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+model RuntimeCapsule {
+  id               String                          @id @default(uuid())
+  targetProjectId  String
+  testRunId        String                          @unique
+  validationHash   String
+  capsuleHash      String
+  manifestHash     String
+  manifestJson     String
+  storagePath      String
+  integrityState   RuntimeCapsuleIntegrityState    @default(staging)
+  version          Int                             @default(1)
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+  targetProject    TargetProject                   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  testRun          TestRun                         @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+  blobReferences   RuntimeCapsuleBlobReference[]
+  executionAttempt RuntimeCapsuleExecutionAttempt?
+
+  @@unique([targetProjectId, validationHash, testRunId])
+  @@unique([targetProjectId, storagePath])
+  @@index([targetProjectId, validationHash])
+  @@index([integrityState])
+}
+
+model RuntimeCapsuleExecutionAttempt {
+  id                  String                              @id @default(uuid())
+  testRunId           String                              @unique
+  capsuleId           String                              @unique
+  receiptHash         String
+  preflightResultJson String
+  preflightResultHash String
+  preflightCheckedAt  DateTime
+  state               RuntimeCapsuleExecutionAttemptState @default(PREPARED)
+  ownerToken          String
+  version             Int                                 @default(1)
+  startedAt           DateTime?
+  completedAt         DateTime?
+  failure             String?
+  createdAt           DateTime                            @default(now())
+  updatedAt           DateTime                            @updatedAt
+  testRun             TestRun                             @relation(fields: [testRunId], references: [id], onDelete: Restrict)
+  capsule             RuntimeCapsule                      @relation(fields: [capsuleId], references: [id], onDelete: Restrict)
+
+  @@index([state, updatedAt])
+}
+
+enum RuntimeCapsuleExecutionAttemptState {
+  PREPARED
+  STARTING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  INTERRUPTED
+}
+
+model RuntimeCapsuleBlob {
+  id              String                        @id @default(uuid())
+  targetProjectId String
+  contentHash     String
+  size            Int
+  storagePath     String
+  integrityState  RuntimeCapsuleIntegrityState  @default(staging)
+  version         Int                           @default(1)
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+  references      RuntimeCapsuleBlobReference[]
+  targetProject   TargetProject                 @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, contentHash])
+  @@unique([targetProjectId, storagePath])
+  @@index([targetProjectId])
+  @@index([integrityState])
+}
+
+model RuntimeCapsuleBlobReference {
+  id        String             @id @default(uuid())
+  capsuleId String
+  blobId    String
+  filePath  String
+  capsule   RuntimeCapsule     @relation(fields: [capsuleId], references: [id], onDelete: Cascade)
+  blob      RuntimeCapsuleBlob @relation(fields: [blobId], references: [id], onDelete: Restrict)
+
+  @@unique([capsuleId, filePath])
+  @@unique([capsuleId, blobId, filePath])
+  @@index([blobId])
+}
+
+enum RuntimeCapsuleIntegrityState {
+  staging
+  ready
+  missing
+  corrupt
+}
+
+model RuntimeCapsuleLease {
+  id              String        @id @default(uuid())
+  targetProjectId String
+  validationHash  String
+  runId           String
+  ownerToken      String
+  leaseExpiresAt  DateTime
+  version         Int           @default(1)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Cascade)
+
+  @@unique([targetProjectId, validationHash, runId])
+  @@index([leaseExpiresAt])
 }
 
 model ProviderAdapterRegistration {
@@ -623,6 +740,8 @@ model ValidationAstPublishOperation {
   projectionHash           String
   projectionJson           String
   validationProjectionJson String
+  runtimeInputHash         String?
+  runtimeInputJson         String?
   failure                  String?
   createdAt                DateTime                    @default(now())
   updatedAt                DateTime                    @updatedAt

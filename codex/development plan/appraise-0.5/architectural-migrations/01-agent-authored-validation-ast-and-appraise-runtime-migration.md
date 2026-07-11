@@ -2,7 +2,9 @@
 
 ## Status
 
-In progress for AppraiseJS 0.5. Phase 0 safety stabilization has started; later migration phases remain proposed.
+In progress for AppraiseJS 0.5. Phases 0-2 are complete. Phase 3 Tasks 3.1 and 3.2 are complete and approved;
+Tasks 3.3 and 3.4 and the Managed Execution Independence checkpoint are implemented and validated pending user
+approval. Phase 3 is implemented and validated but is not human-approved.
 
 ### Implementation Progress
 
@@ -879,14 +881,17 @@ tests prove assertion-like names, metadata-only concern claims, and millisecond 
 Review decisions and final submission are evidence-bound to the current `review_ready` operation hash and exact
 extension artifact hashes, with immutable operation-linked decision events and stale-binding rejection. Phase 2
 projections are marked `phase2_review_only`; implementation validation and every form, standalone, or plan-bound
-TestRun selection path denies their test cases until Phase 3 grants `phase3_capsule` execution authority.
+TestRun selection denies their test cases from generic target-automation execution. The historical `phase3_capsule`
+string remains parse-only for backward compatibility and never grants authority; Phase 3 execution requires exact v2
+publish-operation provenance and an Appraise-owned runtime capsule.
 
 The final approved-AST submission follows a canonical review-only branch: it advances lifecycle and records
 operation-bound evidence without legacy runtime materialization, generated-file checks, environment preflight, or a
 second projection. Real-SQLite evidence proves the approved meditation revision reaches `validations_approved` with
-no `automation/` runtime output. Baseline and implementation guards reject `phase2_review_only`, while focused tests
-also prove a future `phase3_capsule` authority passes the provenance guard before normal execution gates. Immutable
-decision events use the canonical `(publishOperationId, validationId)` key. Retries read the original event before
+no `automation/` runtime output. Baseline and implementation execution retain `phase2_review_only` provenance and
+gain authority only through the exact reviewed v2 publish operation and its Appraise-owned immutable runtime capsule.
+The legacy `phase3_capsule` value remains parse-only and never grants execution. Immutable decision events use the
+canonical `(publishOperationId, validationId)` key. Retries read the original event before
 artifact writes, preserving reviewer, timestamp, decision, and content hash; final submission compares every field,
 the operation hash, and sorted extension hashes exactly. Real-SQLite evidence retries with a different reviewer,
 proves one identical artifact/event decision, and rejects tampered decision evidence.
@@ -923,22 +928,77 @@ Materialize generated features, bindings, extensions, support, config, expected 
 project-ID/validation-hash/run-ID-specific workspace. Add managed project manifests, database ownership checks,
 filesystem containment guards, independent run locks, and orphan/missing-storage integrity states.
 
+Status: **complete and approved**. Reviewed Phase 2 publications now materialize deterministic feature, executable
+binding, reviewed extension, support, config, and expected-case bytes into project-scoped content-addressed blobs and
+independent immutable run-local copies. Canonical manifests bind exact publication/runtime-input provenance and only
+become ready after database ownership, blob references, blob bytes, run-local bytes, hashes, sizes, and paths verify.
+Anchored containment rejects traversal and symlink ancestors; renewable database leases serialize materialization and
+reassert exact ownership before authority transitions. Managed `project.json` manifests use only immutable project IDs
+for directories while safely refreshing verified display-name and canonical-path metadata.
+
+Focused approval evidence passes 25 runtime-capsule tests across six files, including real SQLite isolation and
+concurrency for duplicate display names, distinct validations, and concurrent runs; missing/corrupt/orphan and
+cross-project ownership checks; blob and sibling-run mutation isolation; lease expiry/takeover; project-manifest
+refresh/integrity; and an executed Cucumber browser step proving the exact frozen selector is used without target
+automation or locator-cache state. At Task 3.1 approval, Task 3.2 predictive preflight and the Phase 3 checkpoint
+remained open; the current task statuses below supersede that historical snapshot.
+
 #### Task 3.2: Execute Predictive Preflight Against The Capsule
 
 Verify physical binary identity, config load, compiler/loader compatibility, one Cucumber instance, tag selection,
 expected cases, writable reports, and expected scenario count with the exact execution receipt.
+
+Status: **complete and approved**. Each immutable capsule now contains a canonical sealed command receipt and runs a
+fail-closed 13-stage predictive preflight under a whole-operation renewable database lease, followed by final capsule
+integrity verification before readiness. Preflight executes without ambient environment inheritance or in-process
+config evaluation and verifies publication ownership, filesystem integrity, Node/Cucumber/Appraise runtime identity,
+one physical Cucumber instance, loader/compiler and frozen declaration authority, exact config and tag selection,
+expected-case evidence, bounded writable outputs, and the real Cucumber dry-run result.
+
+Focused approval evidence passes 36 runtime-capsule tests across ten files, including a real one-case dry run that
+selects and matches exactly one reviewed scenario. At Task 3.2 approval, Tasks 3.3 and 3.4 and the Managed Execution
+Independence checkpoint remained open; the current task statuses below supersede that historical snapshot.
 
 #### Task 3.3: Migrate Baseline And Implementation Validation
 
 Run both lifecycle phases from the same capsule contract. Remove target-local generated runtime dependency
 requirements and preserve structured evidence health and recovery.
 
+Status: **implemented and validated; pending user approval**. Reviewed v2 baseline and implementation validations now
+prepare, preflight, execute, and reconcile from the same sealed Appraise-owned capsule contract, while mixed legacy
+nodes retain their existing runtime path without contaminating capsule inputs. Durable preparation keys converge
+concurrent and crash-replayed requests, deliberate retries receive a new ordinal, and guarded execution attempts make
+cancel, interrupted-process recovery, and terminal replay deterministic.
+
+The literal lifecycle E2E produced exactly one TestRun, one linked expected case, and one report; the run completed
+`PASSED` with `valid` evidence health, its execution attempt completed, and baseline reconciliation classified the
+evidence as `accepted_regression_pass`. The target workspace received no generated automation or runtime files.
+Focused concurrency, duplicate-start, partial-batch cleanup, cancellation-before/during-spawn, missing-process
+recovery, and idempotent terminal-attempt tests provide the surrounding failure-path evidence.
+
 #### Task 3.4: Add Bounded Runtime Diagnostics
 
 Expose sanitized command receipt, resolved identities, blockers, active/running state, and next recovery action without
 returning complete artifacts by default.
 
+Status: **implemented and validated; pending user approval**. Runtime capsule execution attempts now persist the canonical bounded preflight
+result, hash, and check timestamp before spawn, allowing restart-stable diagnostics without process-memory authority.
+The strict diagnostic projection exposes only stable attempt/preflight/evidence blocker codes, fixed recovery actions,
+bounded status and counts, sanitized package identities and immutable hashes, and owned evidence links. It excludes
+raw arguments, environment values, filesystem paths, process identity, owner tokens, failure text, secrets, complete
+receipts/manifests, and artifact contents.
+
+Target-scoped ownership is enforced before diagnostic or artifact reads. A trusted-root gateway verifies immutable
+TestRun, target, capsule, manifest, receipt, and expected-case membership; rejects managed-root, ancestor, and final
+symlinks; applies receipt/hard size and content-type bounds; and returns opaque 404/409 responses. HTTP, coordinator,
+package client, MCP response modes, and CLI human/JSON surfaces share the bounded contract and selected-target scope.
+Real SQLite restart, state, corruption, redaction, same-display-name isolation, and artifact containment tests plus
+focused contract, route, package, MCP, and CLI checks provide validation evidence. Diagnostics remain hub-only in
+Appraise 0.5 and are intentionally not synchronized into `create-appraisejs` templates.
+
 ### Checkpoint: Managed Execution Independence
+
+Status: **implemented and validated; pending user approval**.
 
 - Baseline and implementation validation do not execute repository exports.
 - Two registered targets with identical display names cannot read, overwrite, execute, export, or clean up each
@@ -947,6 +1007,20 @@ returning complete artifacts by default.
 - Webpack, Turbopack, and production server builds resolve one stable Appraise runtime.
 - Every deterministic runtime failure from the meditation audit is caught before execution.
 - One expected case produces one matched full-assurance TestRun.
+
+The literal lifecycle E2E passed with one Appraise-owned capsule, one TestRun, one linked expected case, one report,
+`PASSED` status, `valid` evidence health, a completed execution attempt, and `accepted_regression_pass` baseline
+reconciliation. The target workspace received no generated automation, runtime, or locator-cache files. Security and
+containment validation covered cross-project and same-display-name isolation, traversal and symlink rejection,
+immutable manifest/receipt/expected-case ownership, bounded artifact reads, sanitized diagnostics, cancellation and
+interrupted-process recovery, and deterministic terminal replay.
+
+Final Phase 3 validation passed the production application and package builds, all 38 migrations, 764 root tests, 98
+`packages/appraisejs` tests, and 65 `create-appraisejs` tests. Fallow reported zero introduced dead-code, complexity,
+or duplication findings (`0/0/0`), and React Doctor reported no regression. Graphify refreshed the committed source,
+Prisma, and package graphs to 3,498 nodes/9,106 edges, 928 nodes/2,058 edges, and 781 nodes/1,198 edges respectively,
+with zero dangling endpoints; the source graph retains one inherited self-loop. These results establish the technical
+checkpoint, while explicit user approval remains required before Phase 3 is marked complete and approved.
 
 ### Phase 4: Transactional Repository Export
 

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import path from 'node:path'
 import { BrowserEngine, TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
@@ -24,7 +25,12 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
+import {
+  createTestRunArtifactAccess,
+  createTestRunArtifactContext,
+} from '@/services/test-run/test-run-artifact-context'
 import { summarizeRunEvidence, type TestRunEvidenceHealthValue } from '@/services/test-run/run-evidence-summary-service'
+import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
 import {
   appendPlanEvent,
@@ -34,7 +40,7 @@ import {
 } from './coordinator-service'
 import { readStoredJsonReport, runtimePathsForValidation, supportImportPaths } from './coordinator-baseline-service'
 
-type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date }
+type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date; appraiseRoot?: string }
 
 function completionEvidenceHash(value: unknown) {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
@@ -414,6 +420,44 @@ function implementationValidationRunId(validationId: string, browser: string, en
   return `implementation-validation-${validationId}-${browser}-${environment}-${stamp}`
 }
 
+function preparedImplementationRun(input: {
+  planId: string
+  id: string
+  validation: ValidationArtifact['validations'][number]
+  commitHash: string
+  browser: string
+  environment: string
+  tagExpression: string
+  testRunId?: string
+  runtimePaths?: { featurePaths: string[]; importPaths: string[] }
+}) {
+  return {
+    id: input.id,
+    validationId: input.validation.id,
+    taskIds: input.validation.taskIds,
+    required: input.validation.required,
+    status: 'running' as const,
+    fresh: true,
+    commitHash: input.commitHash,
+    evidenceSource: 'managed' as const,
+    assurance: 'reduced' as const,
+    browser: input.browser,
+    environment: input.environment,
+    tagExpression: input.tagExpression,
+    ...(input.testRunId ? { testRunId: input.testRunId } : {}),
+    ...(input.runtimePaths
+      ? {
+          runtimePaths: {
+            gherkinPaths: input.runtimePaths.featurePaths,
+            stepPaths: input.runtimePaths.importPaths,
+            executablePath: input.validation.executable.path,
+          },
+        }
+      : {}),
+    evidenceUrls: [`/plans/${input.planId}?review=implementation#${input.validation.id}`],
+  }
+}
+
 type ImplementationValidationRun = NonNullable<ValidationArtifact['implementation']>['validationRuns'][number]
 type ManagedTestRunEvidence = {
   runId: string
@@ -453,10 +497,18 @@ function implementationRunStatus(testRun: ManagedTestRunEvidence) {
   return 'failed' as const
 }
 
-async function failureSignatureHashForRun(testRun: ManagedTestRunEvidence) {
-  const report = await readStoredJsonReport(testRun.reportPath)
+async function failureSignatureHashForRun(testRun: ManagedTestRunEvidence, client: PrismaClient, appraiseRoot: string) {
+  const capsule = await client.testRun.findUnique({
+    where: { runId: testRun.runId },
+    select: { runtimeCapsule: { select: { id: true } } },
+  })
+  const report = capsule?.runtimeCapsule
+    ? await createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client)
+        .readText({ runId: testRun.runId, kind: 'report' })
+        .then(JSON.parse)
+    : await readStoredJsonReport(testRun.reportPath)
   const reportEvidence = extractCucumberEvidence(report)
-  const logs = await getTestRunLogsService(testRun.runId).catch(() => [])
+  const logs = await getTestRunLogsService(testRun.runId, undefined, appraiseRoot, client).catch(() => [])
   const failureText = [
     ...reportEvidence.failureSignatures,
     ...logs.filter(log => log.type === 'stderr').map(log => log.message.trim()),
@@ -466,7 +518,12 @@ async function failureSignatureHashForRun(testRun: ManagedTestRunEvidence) {
   return failureText ? completionEvidenceHash(failureText) : undefined
 }
 
-async function loadManagedImplementationRun(run: ImplementationValidationRun, client: PrismaClient, now: Date) {
+async function loadManagedImplementationRun(
+  run: ImplementationValidationRun,
+  client: PrismaClient,
+  now: Date,
+  appraiseRoot: string,
+) {
   if (!run.testRunId) {
     return managedInfrastructureFailure(run, now)
   }
@@ -479,9 +536,9 @@ async function loadManagedImplementationRun(run: ImplementationValidationRun, cl
     return managedInfrastructureFailure(run, now)
   }
 
-  const evidenceSummary = await summarizeRunEvidence(testRun.runId, client)
+  const evidenceSummary = await summarizeRunEvidence(testRun.runId, client, appraiseRoot)
   const status = implementationRunStatus({ ...testRun, evidenceHealth: evidenceSummary.evidenceHealth })
-  const failureSignatureHash = await failureSignatureHashForRun(testRun)
+  const failureSignatureHash = await failureSignatureHashForRun(testRun, client, appraiseRoot)
 
   return {
     ...run,
@@ -535,144 +592,327 @@ export async function recordImplementationValidation(
   return { plan, validation, readiness }
 }
 
+type ImplementationValidation = ValidationArtifact['validations'][number]
+type ImplementationTestRunInput = {
+  target: string
+  environmentId: string
+  name: string
+  tagExpression: string
+  testWorkersCount: number
+  browserEngine: BrowserEngine
+  planId: string
+  validationId: string
+  implementationValidationRunId: string
+  featurePaths: string[]
+  importPaths: string[]
+  supportPaths: string[]
+  prepareWorkspace: boolean
+  expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
+}
+type CapsuleStart = {
+  request: Parameters<RuntimeCapsuleTestRunService['prepare']>[0]
+  testRunDbId: string
+}
+
+function selectImplementationValidations(validation: ValidationArtifact, requestedValidationIds?: string[]) {
+  const requestedIds = new Set(requestedValidationIds ?? validation.validations.map(item => item.id))
+  const selected = validation.validations.filter(item => requestedIds.has(item.id))
+  if (selected.length !== requestedIds.size) {
+    throw new ServiceError('One or more implementation validations were not found.', 'NOT_FOUND')
+  }
+  if (selected.some(item => item.astProvenance?.schemaVersion === '1')) {
+    throw new ServiceError('AST validations require an exact reviewed v2 publication before execution.', 'CONFLICT')
+  }
+  return selected
+}
+
+async function loadImplementationExecutionContext(
+  planId: string,
+  selected: ImplementationValidation[],
+  client: PrismaClient,
+) {
+  const projection = await client.planProjection.findUnique({
+    where: { planId },
+    select: { targetProject: { select: { id: true, canonicalPath: true } } },
+  })
+  const requestedValues = [...new Set(selected.flatMap(item => item.matrix.map(matrix => matrix.environment)))]
+  const environments = await client.environment.findMany({
+    where: { OR: [{ id: { in: requestedValues } }, { name: { in: requestedValues } }] },
+    select: { id: true, name: true },
+  })
+  return {
+    projection,
+    environmentByValue: new Map(
+      environments.flatMap(environment => [
+        [environment.id, environment],
+        [environment.name, environment],
+      ]),
+    ),
+  }
+}
+
+function mapTestCasesToSuites(validation: ValidationArtifact) {
+  return new Map(
+    validation.validations.flatMap(item =>
+      item.appraiseArtifacts.testSuites.flatMap(suite =>
+        suite.testCaseIds.map(testCaseId => [testCaseId, suite.id] as const),
+      ),
+    ),
+  )
+}
+
+function expectedTestCasesForValidation(
+  validation: ImplementationValidation,
+  suiteIdByTestCaseId: Map<string, string>,
+) {
+  return validation.testCaseIds.map(testCaseId => {
+    const testSuiteId = suiteIdByTestCaseId.get(testCaseId)
+    if (!testSuiteId) throw new ServiceError(`Test case "${testCaseId}" is not assigned to a suite.`, 'VALIDATION')
+    return { testCaseId, testSuiteId }
+  })
+}
+
+async function durablePreparationKey(input: { client: PrismaClient; prefix: string }) {
+  const preparations = await input.client.testRun.findMany({
+    where: { preparationKey: { startsWith: input.prefix } },
+    select: { preparationKey: true, status: true },
+    orderBy: { preparationKey: 'asc' },
+  })
+  const reusable = preparations.find(run => run.status === TestRunStatus.QUEUED || run.status === TestRunStatus.RUNNING)
+  const ordinal = reusable ? Number(reusable.preparationKey!.slice(input.prefix.length)) : preparations.length
+  return `${input.prefix}${ordinal}`
+}
+
+async function prepareImplementationMatrixEntry(input: {
+  planId: string
+  commitHash?: string
+  startedAt: string
+  artifacts: Awaited<ReturnType<typeof readArtifacts>>
+  client: PrismaClient
+  projection: Awaited<ReturnType<typeof loadImplementationExecutionContext>>['projection']
+  environmentByValue: Awaited<ReturnType<typeof loadImplementationExecutionContext>>['environmentByValue']
+  validation: ImplementationValidation
+  matrix: ImplementationValidation['matrix'][number]
+  expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
+  tagExpression: string
+  runtimePaths: ReturnType<typeof runtimePathsForValidation> | null
+  capsuleService: RuntimeCapsuleTestRunService
+  capsuleStarts: CapsuleStart[]
+  preparedCapsuleTestRunDbIds: string[]
+  testRunInputs: ImplementationTestRunInput[]
+}) {
+  const environment = input.environmentByValue.get(input.matrix.environment)
+  if (!environment) throw new ServiceError(`Environment "${input.matrix.environment}" was not found.`, 'VALIDATION')
+  const provenance = input.validation.astProvenance
+  const isReviewedAst = provenance?.schemaVersion === '2'
+  const id = implementationValidationRunId(
+    input.validation.id,
+    input.matrix.browser,
+    input.matrix.environment,
+    input.startedAt,
+  )
+  const provenanceIdentity = isReviewedAst
+    ? `${provenance.publishOperationId}:${provenance.runtimeInputHash}`
+    : `legacy:${input.artifacts.validationStored.hash}`
+  const prefix = `implementation:${input.planId}:${input.artifacts.plan.revision}:${provenanceIdentity}:${input.validation.id}:${input.matrix.browser}:${input.matrix.environment}:`
+  const preparationKey = await durablePreparationKey({ client: input.client, prefix })
+  const name = `Implementation validation ${input.planId} ${input.validation.id} ${input.matrix.browser} ${input.matrix.environment}`
+  let testRunId: string | undefined
+  if (isReviewedAst) {
+    const request = {
+      operationId: provenance.publishOperationId,
+      planId: input.planId,
+      validationId: input.validation.id,
+      targetProjectId: input.projection!.targetProject!.id,
+      environmentId: environment.id,
+      name,
+      browserEngine: browserEngine(input.matrix.browser),
+      preparationKey,
+    }
+    const prepared = await input.capsuleService.prepare(request)
+    testRunId = prepared.runId
+    input.capsuleStarts.push({ request, testRunDbId: prepared.id })
+    input.preparedCapsuleTestRunDbIds.push(prepared.id)
+  } else {
+    input.testRunInputs.push({
+      target: input.projection?.targetProject?.canonicalPath ?? input.artifacts.projectRoot,
+      environmentId: environment.id,
+      name,
+      tagExpression: input.tagExpression,
+      testWorkersCount: 1,
+      browserEngine: browserEngine(input.matrix.browser),
+      planId: input.planId,
+      validationId: input.validation.id,
+      implementationValidationRunId: id,
+      featurePaths: input.runtimePaths!.featurePaths,
+      importPaths: input.runtimePaths!.importPaths,
+      supportPaths: supportImportPaths(input.artifacts.projectRoot),
+      prepareWorkspace: false,
+      expectedTestCases: input.expectedTestCases,
+    })
+  }
+  return preparedImplementationRun({
+    id,
+    planId: input.planId,
+    validation: input.validation,
+    commitHash: input.commitHash ?? 'pending',
+    browser: input.matrix.browser,
+    environment: input.matrix.environment,
+    tagExpression: input.tagExpression,
+    testRunId,
+    ...(input.runtimePaths ? { runtimePaths: input.runtimePaths } : {}),
+  })
+}
+
+async function prepareImplementationMatrix(input: {
+  planId: string
+  commitHash?: string
+  startedAt: string
+  artifacts: Awaited<ReturnType<typeof readArtifacts>>
+  selected: ImplementationValidation[]
+  client: PrismaClient
+  preparedCapsuleTestRunDbIds: string[]
+}) {
+  const { projection, environmentByValue } = await loadImplementationExecutionContext(
+    input.planId,
+    input.selected,
+    input.client,
+  )
+  const suiteIdByTestCaseId = mapTestCasesToSuites(input.artifacts.validation)
+  const testRunInputs: ImplementationTestRunInput[] = []
+  const runningRuns: ImplementationValidationRun[] = []
+  const capsuleStarts: CapsuleStart[] = []
+  const preparedCapsuleTestRunDbIds = input.preparedCapsuleTestRunDbIds
+  const capsuleService = new RuntimeCapsuleTestRunService(input.client)
+
+  for (const validation of input.selected) {
+    const isReviewedAst = validation.astProvenance?.schemaVersion === '2'
+    if (isReviewedAst && !projection?.targetProject?.id) {
+      throw new ServiceError('Reviewed AST validation requires an authoritative target project.', 'CONFLICT')
+    }
+    const runtimePaths = isReviewedAst ? null : runtimePathsForValidation(input.artifacts.validation, validation)
+    const expectedTestCases = expectedTestCasesForValidation(validation, suiteIdByTestCaseId)
+    const tagExpression = expectedTestCases
+      .map(({ testCaseId, testSuiteId }) => `(@ts_${testSuiteId} and @tc_${testCaseId})`)
+      .join(' or ')
+    for (const matrix of validation.matrix) {
+      runningRuns.push(
+        await prepareImplementationMatrixEntry({
+          ...input,
+          projection,
+          environmentByValue,
+          validation,
+          matrix,
+          expectedTestCases,
+          tagExpression,
+          runtimePaths,
+          capsuleService,
+          capsuleStarts,
+          preparedCapsuleTestRunDbIds,
+          testRunInputs,
+        }),
+      )
+    }
+  }
+  return { capsuleService, capsuleStarts, preparedCapsuleTestRunDbIds, runningRuns, testRunInputs }
+}
+
+async function cancelPreparedCapsuleRuns(client: PrismaClient, ids: string[]) {
+  if (ids.length === 0) return
+  await client.testRun.updateMany({
+    where: { id: { in: ids }, status: TestRunStatus.QUEUED },
+    data: { status: TestRunStatus.CANCELLED, result: TestRunResult.CANCELLED, completedAt: new Date() },
+  })
+}
+
+async function persistImplementationValidationStart(input: {
+  planId: string
+  client: PrismaClient
+  artifacts: Awaited<ReturnType<typeof readArtifacts>>
+  implementation: NonNullable<ValidationArtifact['implementation']>
+  runningRuns: ImplementationValidationRun[]
+  testRunInputs: ImplementationTestRunInput[]
+}) {
+  const existingIds = new Set(input.runningRuns.map(run => run.id))
+  const validation = {
+    ...input.artifacts.validation,
+    implementation: {
+      ...input.implementation,
+      validationRuns: [
+        ...input.implementation.validationRuns.filter(run => !existingIds.has(run.id)),
+        ...input.runningRuns,
+      ],
+    },
+  }
+  const plan = { ...input.artifacts.plan, lifecycle: 'validating' as const }
+  await writeArtifacts(input.artifacts, plan, validation, input.artifacts.review, input.client)
+  await appendPlanEvent(
+    {
+      planId: input.planId,
+      type: 'implementation_validation_started',
+      payload: { runIds: input.runningRuns.map(run => run.id), testRunInputs: input.testRunInputs },
+    },
+    input.client,
+  )
+  return { plan, validation }
+}
+
+async function startPreparedCapsules(capsuleService: RuntimeCapsuleTestRunService, starts: CapsuleStart[]) {
+  const results = await Promise.allSettled(
+    starts.map(({ request, testRunDbId }) => capsuleService.start({ ...request, testRunDbId })),
+  )
+  return starts.map(({ testRunDbId }, index) => {
+    const result = results[index]!
+    return result.status === 'fulfilled'
+      ? { testRunDbId, status: 'started' as const, attemptId: result.value.attemptId }
+      : {
+          testRunDbId,
+          status: 'infrastructure_failure' as const,
+          code: 'CAPSULE_START_FAILED' as const,
+          message: 'The managed runtime capsule could not start. Inspect bounded run diagnostics before retrying.',
+        }
+  })
+}
+
 export async function startImplementationValidation(
   input: { planId: string; validationIds?: string[]; commitHash?: string },
   options: Options = {},
 ) {
   const { client, artifacts, implementation } = await implementationContext(input.planId, options)
-  const requestedIds = new Set(input.validationIds ?? artifacts.validation.validations.map(validation => validation.id))
-  const selected = artifacts.validation.validations.filter(validation => requestedIds.has(validation.id))
-  if (selected.length !== requestedIds.size) {
-    throw new ServiceError('One or more implementation validations were not found.', 'NOT_FOUND')
-  }
-  if (
-    selected.some(
-      validation => validation.astProvenance && validation.astProvenance.executionAuthority !== 'phase3_capsule',
-    )
-  ) {
-    throw new ServiceError(
-      'AST validations require an authorized Phase 3 runtime capsule before execution.',
-      'CONFLICT',
-    )
-  }
+  const selected = selectImplementationValidations(artifacts.validation, input.validationIds)
   const startedAt = (options.now ?? new Date()).toISOString()
-  const projection = await client.planProjection.findUnique({
-    where: { planId: input.planId },
-    select: {
-      targetProject: { select: { id: true, canonicalPath: true } },
-    },
-  })
-  const requestedEnvironmentValues = [
-    ...new Set(selected.flatMap(validation => validation.matrix.map(item => item.environment))),
-  ]
-  const environments = await client.environment.findMany({
-    where: { OR: [{ id: { in: requestedEnvironmentValues } }, { name: { in: requestedEnvironmentValues } }] },
-    select: { id: true, name: true },
-  })
-  const environmentByValue = new Map(
-    environments.flatMap(environment => [
-      [environment.id, environment],
-      [environment.name, environment],
-    ]),
-  )
-  const suiteIdByTestCaseId = new Map(
-    artifacts.validation.validations.flatMap(validation =>
-      validation.appraiseArtifacts.testSuites.flatMap(suite =>
-        suite.testCaseIds.map(testCaseId => [testCaseId, suite.id] as const),
-      ),
-    ),
-  )
-  const testRunInputs: Array<{
-    target: string
-    environmentId: string
-    name: string
-    tagExpression: string
-    testWorkersCount: number
-    browserEngine: BrowserEngine
-    planId: string
-    validationId: string
-    implementationValidationRunId: string
-    featurePaths: string[]
-    importPaths: string[]
-    supportPaths: string[]
-    prepareWorkspace: boolean
-    expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
-  }> = []
-  const runningRuns = selected.flatMap(validation => {
-    const runtimePaths = runtimePathsForValidation(artifacts.validation, validation)
-    const expectedTestCases = validation.testCaseIds.map(testCaseId => {
-      const testSuiteId = suiteIdByTestCaseId.get(testCaseId)
-      if (!testSuiteId) {
-        throw new ServiceError(`Test case "${testCaseId}" is not assigned to a suite.`, 'VALIDATION')
-      }
-      return { testCaseId, testSuiteId }
-    })
-    const tagExpression = expectedTestCases
-      .map(({ testCaseId, testSuiteId }) => `(@ts_${testSuiteId} and @tc_${testCaseId})`)
-      .join(' or ')
-    return validation.matrix.map(matrix => {
-      const environment = environmentByValue.get(matrix.environment)
-      if (!environment) {
-        throw new ServiceError(`Environment "${matrix.environment}" was not found.`, 'VALIDATION')
-      }
-      const id = implementationValidationRunId(validation.id, matrix.browser, matrix.environment, startedAt)
-      testRunInputs.push({
-        target: projection?.targetProject?.canonicalPath ?? artifacts.projectRoot,
-        environmentId: environment.id,
-        name: `Implementation validation ${input.planId} ${validation.id} ${matrix.browser} ${matrix.environment} ${startedAt}`,
-        tagExpression,
-        testWorkersCount: 1,
-        browserEngine: browserEngine(matrix.browser),
-        planId: input.planId,
-        validationId: validation.id,
-        implementationValidationRunId: id,
-        featurePaths: runtimePaths.featurePaths,
-        importPaths: runtimePaths.importPaths,
-        supportPaths: supportImportPaths(artifacts.projectRoot),
-        prepareWorkspace: false,
-        expectedTestCases,
-      })
-      return {
-        id,
-        validationId: validation.id,
-        taskIds: validation.taskIds,
-        required: validation.required,
-        status: 'running' as const,
-        fresh: true,
-        commitHash: input.commitHash ?? 'pending',
-        evidenceSource: 'managed' as const,
-        assurance: 'reduced' as const,
-        browser: matrix.browser,
-        environment: matrix.environment,
-        tagExpression,
-        runtimePaths: {
-          gherkinPaths: runtimePaths.featurePaths,
-          stepPaths: runtimePaths.importPaths,
-          executablePath: validation.executable.path,
-        },
-        evidenceUrls: [`/plans/${input.planId}?review=implementation#${validation.id}`],
-      }
-    })
-  })
-  const existingIds = new Set(runningRuns.map(run => run.id))
-  const validation = {
-    ...artifacts.validation,
-    implementation: {
-      ...implementation,
-      validationRuns: [...implementation.validationRuns.filter(run => !existingIds.has(run.id)), ...runningRuns],
-    },
-  }
-  const plan = { ...artifacts.plan, lifecycle: 'validating' as const }
-  await writeArtifacts(artifacts, plan, validation, artifacts.review, client)
-  await appendPlanEvent(
-    {
+  const preparedCapsuleTestRunDbIds: string[] = []
+  let prepared
+  try {
+    prepared = await prepareImplementationMatrix({
       planId: input.planId,
-      type: 'implementation_validation_started',
-      payload: { runIds: runningRuns.map(run => run.id), testRunInputs },
-    },
+      commitHash: input.commitHash,
+      startedAt,
+      artifacts,
+      selected,
+      client,
+      preparedCapsuleTestRunDbIds,
+    })
+  } catch (error) {
+    await cancelPreparedCapsuleRuns(client, preparedCapsuleTestRunDbIds)
+    throw error
+  }
+  const { plan, validation } = await persistImplementationValidationStart({
+    planId: input.planId,
     client,
-  )
-  return { plan, validation, runs: runningRuns, testRunInputs }
+    artifacts,
+    implementation,
+    runningRuns: prepared.runningRuns,
+    testRunInputs: prepared.testRunInputs,
+  })
+  const capsuleStartOutcomes = await startPreparedCapsules(prepared.capsuleService, prepared.capsuleStarts)
+  return {
+    plan,
+    validation,
+    runs: prepared.runningRuns,
+    testRunInputs: prepared.testRunInputs,
+    capsuleStartOutcomes,
+  }
 }
 
 function assertTaskReconciliationInput(input: { verifyTaskIds?: string[]; idempotencyKey?: string }) {
@@ -768,7 +1008,14 @@ export async function reconcileImplementationValidation(
   const now = options.now ?? new Date()
   const managedUpdates = await Promise.all(
     selectedRuns.map(run =>
-      run.evidenceSource === 'managed' || run.testRunId ? loadManagedImplementationRun(run, client, now) : run,
+      run.evidenceSource === 'managed' || run.testRunId
+        ? loadManagedImplementationRun(
+            run,
+            client,
+            now,
+            options.appraiseRoot ?? path.join(artifacts.projectRoot, '.appraise'),
+          )
+        : run,
     ),
   )
   const updates = new Map(managedUpdates.map(run => [run.id, run]))

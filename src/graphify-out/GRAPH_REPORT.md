@@ -1,4 +1,4 @@
-# Graph Report - src  (2026-07-11)
+# Graph Report - src  (2026-07-12)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5d57abd4`
+- Built from commit: `0dc6f165`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -485,8 +485,8 @@ Cohesion: 0.12
 Nodes (18): ACTION_CATALOG_CONTRACT_VERSION, ActionCatalogFilter, ActionCategory, actionCategorySchema, ActionDescriptor, ActionDescriptorDefinition, actionDescriptorSchema, actionInputSchema (+10 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.29
-Nodes (11): Dashboard(), getDashboardMetricsAction(), getEntityMetricsAction(), getRunningTestRunsCountAction(), getTestSuiteExecutionDataAction(), getDashboardMetrics(), getEntityMetrics(), getRunningTestRunsCount() (+3 more)
+Cohesion: 0.16
+Nodes (18): Dashboard(), ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance, readProjectDatabaseUrl(), require (+10 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.10
@@ -513,8 +513,8 @@ Cohesion: 0.17
 Nodes (15): testCaseSchema, generateUniqueTestCaseIdentifier(), createTestCaseAction(), deleteTestCaseAction(), getTestCaseByIdAction(), updateTestCaseAction(), createTestCaseFromInput(), deleteTestCasesByIds() (+7 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.15
-Nodes (22): ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance, readProjectDatabaseUrl(), require, testSuiteSchema (+14 more)
+Cohesion: 0.23
+Nodes (15): testSuiteSchema, getIdentifierTagByPrefix(), createTestSuiteIdentifierTag(), ensureTestSuiteIdentifierTags(), getOrCreateTestSuiteIdentifierTagId(), generateUniqueTestSuiteIdentifier(), createTestSuiteAction(), deleteTestSuiteAction() (+7 more)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.14

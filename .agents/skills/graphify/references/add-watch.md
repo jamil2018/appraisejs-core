@@ -27,11 +27,13 @@ except RuntimeError as e:
 Replace `URL` with the actual URL, `AUTHOR` with the user's name if provided, `CONTRIBUTOR` likewise. If the command exits with an error, tell the user what went wrong - do not silently continue. After a successful save, automatically run the `--update` pipeline on `./raw` to merge the new file into the existing graph.
 
 Supported URL types (auto-detected):
+
 - YouTube / any video URL → audio downloaded via yt-dlp, transcribed to `.txt` on next run (requires `pip install 'graphifyy[video]'`)
 - Twitter/X → fetched via oEmbed, saved as `.md` with tweet text and author
 - arXiv → abstract + metadata saved as `.md`
 - PDF → downloaded as `.pdf`
-- Images (.png/.jpg/.webp) → downloaded, Claude vision extracts on next run
+- Images (.png/.jpg/.webp) → downloaded for host-agent semantic extraction on the next update, or optional Gemini
+  extraction when `GEMINI_API_KEY` or `GOOGLE_API_KEY` is already configured
 - Any webpage → converted to markdown via html2text
 
 ---
@@ -47,10 +49,14 @@ $(cat graphify-out/.graphify_python) -m graphify.watch INPUT_PATH --debounce 3
 Replace INPUT_PATH with the folder to watch. Behavior depends on what changed:
 
 - **Code files only (.py, .ts, .go, etc.):** re-runs AST extraction + rebuild + cluster immediately, no LLM needed. `graph.json` and `GRAPH_REPORT.md` are updated automatically.
-- **Docs, papers, or images:** writes a `graphify-out/needs_update` flag and prints a notification to run `/graphify --update` (LLM semantic re-extraction required).
+- **Docs, papers, or images:** writes a `graphify-out/needs_update` flag and prints a notification to run
+  `/graphify --update`. Semantic re-extraction uses the host agent when no Gemini/Google key is configured, so a
+  missing API key never blocks the update.
 
 Debounce (default 3s): waits until file activity stops before triggering, so a wave of parallel agent writes doesn't trigger a rebuild per file.
 
 Press Ctrl+C to stop.
 
-For agentic workflows: run `--watch` in a background terminal. Code changes from agent waves are picked up automatically between waves. If agents are also writing docs or notes, you'll need a manual `/graphify --update` after those waves.
+For agentic workflows: run `--watch` in a background terminal. Code changes from agent waves are picked up
+automatically between waves. If agents are also writing docs or notes, run a manual `/graphify --update` after those
+waves; the host agent handles semantic extraction when Gemini is not configured.

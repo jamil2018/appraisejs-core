@@ -37,7 +37,7 @@ CREATE UNIQUE INDEX "PlanEvent_publishOperationId_type_key" ON "PlanEvent"("publ
   })
 }
 
-export async function ensurePlanProjectionTestSchema(databasePath: string) {
+async function ensurePlanProjectionTestSchema(databasePath: string) {
   if (!hasTable(databasePath, 'PlanProjection')) {
     await applyMigration(databasePath, '20260609002500_add_plan_projection_and_sync')
   }
@@ -92,6 +92,15 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
     await applyMigration(databasePath, '20260711190000_add_validation_ast_publish_journal')
   } else if (!hasColumn(databasePath, 'PlanEvent', 'publishOperationId')) {
     addPublishOperationToPlanEvents(databasePath)
+  }
+  if (!hasTable(databasePath, 'RuntimeCapsule')) {
+    await applyMigration(databasePath, '20260711220000_add_runtime_capsules')
+  }
+  if (!hasColumn(databasePath, 'TestRun', 'preparationKey')) {
+    await applyMigration(databasePath, '20260712020000_add_test_run_preparation_key')
+  }
+  if (!hasTable(databasePath, 'RuntimeCapsuleExecutionAttempt')) {
+    await applyMigration(databasePath, '20260712010000_add_runtime_capsule_execution_attempt')
   }
 }
 

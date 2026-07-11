@@ -1,17 +1,14 @@
 import { promises as fs } from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { serializeYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
-import { ensurePlanProjectionTestSchema } from '@/test/plan-runtime-schema-test-helper'
-import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
+import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtures'
 
 import { syncPlans } from './plan-sync-service'
 
 let workspace: string
-let databasePath: string
 let client: PrismaClient
 
 function plan(planId: string, revision = 1): PlanArtifact {
@@ -42,14 +39,8 @@ async function writePlan(planId: string, source: string) {
   await fs.writeFile(path.join(plansRoot, `${planId}.yaml`), source)
 }
 
-// fallow-ignore-next-line code-duplication -- shared SQLite lifecycle fixture
 beforeEach(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-plan-sync-project-'))
-  databasePath = path.join(workspace, 'sync.db')
-  await fs.writeFile(path.join(workspace, 'package.json'), '{}')
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  await ensurePlanProjectionTestSchema(databasePath)
-  client = sqliteTestClient(databasePath)
+  ;({ workspace, client } = await createPlanRuntimeTestWorkspace('appraise-plan-sync-project-', 'sync.db'))
 })
 
 async function cleanupWorkspace() {

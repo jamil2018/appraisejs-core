@@ -32,6 +32,11 @@ import {
   getTestRunLogsService,
 } from '@/services/test-run/test-run-service'
 import { summarizeRunEvidence } from '@/services/test-run/run-evidence-summary-service'
+import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
+import {
+  createTestRunArtifactAccess,
+  createTestRunArtifactContext,
+} from '@/services/test-run/test-run-artifact-context'
 
 import { appendPlanEvent } from './coordinator-service'
 import {
@@ -50,8 +55,11 @@ type BaselineOptions = {
     validation: ValidationArtifact['validations'][number]
     browser: string
     environment: string
+    preparationKey: string
   }) => Promise<{ testRunId: string }>
   loadEvidence?: (testRunId: string) => Promise<BaselineEvidence & { status: 'running' | 'completed' }>
+  capsuleService?: RuntimeCapsuleTestRunService
+  appraiseRoot?: string
 }
 
 export function supportImportPaths(projectRoot: string) {
@@ -75,6 +83,34 @@ export function runtimePathsForValidation(
     featurePaths: validation.gherkinPaths.map(resolveRuntimePath),
     importPaths: validation.stepPaths.map(resolveRuntimePath),
   }
+}
+
+export function mergeLegacyRuntimeIntoReviewedValidation(
+  reviewed: ValidationArtifact,
+  legacyRuntime: ValidationArtifact,
+): ValidationArtifact {
+  return {
+    ...reviewed,
+    validations: reviewed.validations.map(validation =>
+      validation.astProvenance?.schemaVersion === '2'
+        ? validation
+        : (legacyRuntime.validations.find(runtime => runtime.id === validation.id) ?? validation),
+    ),
+    runtimeProjections: legacyRuntime.runtimeProjections,
+  }
+}
+
+export function baselineCapsulePreparationKey(input: {
+  planId: string
+  revision: number
+  validationId: string
+  browser: string
+  environment: string
+  attemptOrdinal: number
+  publishOperationId: string
+  runtimeInputHash: string
+}) {
+  return `baseline:${input.planId}:${input.revision}:${input.publishOperationId}:${input.runtimeInputHash}:${input.validationId}:${input.browser}:${input.environment}:${input.attemptOrdinal}`
 }
 
 export async function readStoredJsonReport(reportPath: string | null | undefined) {
@@ -299,13 +335,14 @@ async function assertBaselinePreflight(
   planId: string,
   artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
   client: PrismaClient,
+  validation: ValidationArtifact = artifacts.validation,
 ) {
   await assertValidationFilesUnchanged(artifacts)
   const runtimeValidation = await materializeValidationRuntime({
     projectRoot: artifacts.projectRoot,
     validationFileRoot: artifacts.validationFileRoot,
     targetProject: artifacts.targetProject,
-    validation: artifacts.validation,
+    validation,
   })
   assertRuntimePreflightPassed(runtimeValidation)
   await assertProjectedBaselineRecords(planId, runtimeValidation, client, artifacts.targetProject)
@@ -324,6 +361,7 @@ async function baselineTestRunValue(
     validation: ValidationArtifact['validations'][number]
     browser: string
     environment: string
+    preparationKey: string
   },
   client: PrismaClient,
 ): Promise<TestRunFormValue> {
@@ -346,7 +384,7 @@ async function baselineTestRunValue(
   }
 
   return {
-    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment} ${randomUUID()}`,
+    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment}`,
     environmentId: environment.id,
     browserEngine: browserEngine(input.browser),
     testWorkersCount: 1,
@@ -364,6 +402,7 @@ async function submitAppraiseTestRun(
     validation: ValidationArtifact['validations'][number]
     browser: string
     environment: string
+    preparationKey: string
   },
   client: PrismaClient,
 ): Promise<{ testRunId: string }> {
@@ -384,10 +423,45 @@ async function submitAppraiseTestRun(
   return { testRunId: created.runId }
 }
 
-async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
+async function submitCapsuleTestRun(
+  input: {
+    planId: string
+    targetProject: NonNullable<Awaited<ReturnType<typeof readBaselineArtifacts>>['targetProject']>
+    validation: ValidationArtifact['validations'][number]
+    browser: string
+    environment: string
+    preparationKey: string
+  },
+  client: PrismaClient,
+  capsuleService: RuntimeCapsuleTestRunService,
+): Promise<{ testRunId: string; start: () => Promise<unknown> }> {
+  const provenance = input.validation.astProvenance
+  if (provenance?.schemaVersion !== '2')
+    throw new ServiceError('Reviewed AST baseline requires an exact v2 publish operation.', 'CONFLICT')
+  const operationId = provenance.publishOperationId
+  const environment = await client.environment.findUnique({ where: { name: input.environment } })
+  if (!environment) throw new ServiceError(`Environment "${input.environment}" was not found.`, 'VALIDATION')
+  const request = {
+    operationId,
+    planId: input.planId,
+    validationId: input.validation.id,
+    targetProjectId: input.targetProject.id,
+    environmentId: environment.id,
+    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment} ${randomUUID()}`,
+    browserEngine: browserEngine(input.browser),
+    preparationKey: input.preparationKey,
+  }
+  const prepared = await capsuleService.prepare(request)
+  return {
+    testRunId: prepared.runId,
+    start: () => capsuleService.start({ ...request, testRunDbId: prepared.id }),
+  }
+}
+
+async function loadAppraiseEvidence(testRunId: string, client: PrismaClient, appraiseRoot: string) {
   const run = await client.testRun.findUnique({
     where: { runId: testRunId },
-    include: { testCases: true },
+    include: { testCases: true, runtimeCapsule: true },
   })
   if (!run) throw new ServiceError('Baseline test run not found.', 'NOT_FOUND')
   if (
@@ -404,13 +478,17 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
       completedStepIds: [],
     }
   }
-  const logs = await getTestRunLogsService(testRunId).catch(() => [])
+  const logs = await getTestRunLogsService(testRunId, undefined, appraiseRoot, client).catch(() => [])
   const logFailureSignatures = logs
     .filter(log => log.type === 'stderr')
     .map(log => log.message.trim())
     .filter(Boolean)
-  const evidenceSummary = await summarizeRunEvidence(testRunId, client)
-  const report = await readStoredJsonReport(run.reportPath)
+  const evidenceSummary = await summarizeRunEvidence(testRunId, client, appraiseRoot)
+  const report = run.runtimeCapsule
+    ? await createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client)
+        .readText({ runId: testRunId, kind: 'report' })
+        .then(JSON.parse)
+    : await readStoredJsonReport(run.reportPath)
   const reportEvidence = extractCucumberEvidence(report)
   if (evidenceSummary.evidenceHealth !== 'valid') {
     return invalidBaselineEvidence({
@@ -420,20 +498,42 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient) {
       completedStepIds: reportEvidence.completedStepIds,
     })
   }
+  return completedBaselineEvidence(run.result, evidenceSummary, reportEvidence, logFailureSignatures)
+}
+
+function completedBaselineEvidence(
+  result: TestRunResult,
+  evidenceSummary: Awaited<ReturnType<typeof summarizeRunEvidence>>,
+  reportEvidence: ReturnType<typeof extractCucumberEvidence>,
+  logFailureSignatures: string[],
+): BaselineEvidence & { status: 'completed' } {
+  const baselineResult: BaselineEvidence['result'] =
+    result === TestRunResult.PASSED ? 'passed' : result === TestRunResult.CANCELLED ? 'cancelled' : 'failed'
   return {
     status: 'completed' as const,
     evidenceHealth: evidenceSummary.evidenceHealth,
     blockers: evidenceSummary.blockers,
-    result:
-      run.result === TestRunResult.PASSED
-        ? ('passed' as const)
-        : run.result === TestRunResult.CANCELLED
-          ? ('cancelled' as const)
-          : ('failed' as const),
+    result: baselineResult,
     failureSignatures:
       reportEvidence.failureSignatures.length > 0 ? reportEvidence.failureSignatures : logFailureSignatures,
     completedStepIds: reportEvidence.completedStepIds,
   }
+}
+
+async function baselineRuntimeValidation(
+  planId: string,
+  artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
+  client: PrismaClient,
+) {
+  const legacyValidations = artifacts.validation.validations.filter(
+    validation => validation.astProvenance?.schemaVersion !== '2',
+  )
+  if (legacyValidations.length === 0) return artifacts.validation
+  const legacyRuntime = await assertBaselinePreflight(planId, artifacts, client, {
+    ...artifacts.validation,
+    validations: legacyValidations,
+  })
+  return mergeLegacyRuntimeIntoReviewedValidation(artifacts.validation, legacyRuntime)
 }
 
 function invalidBaselineEvidence(input: {
@@ -458,33 +558,86 @@ function invalidBaselineEvidence(input: {
   }
 }
 
-function hasUnauthorizedAstValidation(validation: ValidationArtifact) {
-  return validation.validations.some(
-    item => item.astProvenance && item.astProvenance.executionAuthority !== 'phase3_capsule',
+type BaselineSubmitRun = (
+  input: Parameters<NonNullable<BaselineOptions['submitRun']>>[0],
+) => Promise<{ testRunId: string; start?: () => Promise<unknown> }>
+
+async function prepareBaselineAttempts(input: {
+  planId: string
+  artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>
+  runtimeValidation: ValidationArtifact
+  submitRun: BaselineSubmitRun
+  now: Date
+}) {
+  const active = new Set(
+    input.runtimeValidation.baselineAttempts
+      .filter(attempt => ['scheduled', 'running'].includes(attempt.status))
+      .map(baselineCombinationKey),
   )
+  const attempts = [...input.runtimeValidation.baselineAttempts]
+  const pendingStarts: Array<() => Promise<unknown>> = []
+  for (const combination of requiredBaselineCombinations(input.runtimeValidation)) {
+    if (active.has(baselineCombinationKey(combination))) continue
+    const validation = input.runtimeValidation.validations.find(item => item.id === combination.validationId)!
+    const attemptOrdinal = input.runtimeValidation.baselineAttempts.filter(
+      attempt => baselineCombinationKey(attempt) === baselineCombinationKey(combination),
+    ).length
+    const provenance = validation.astProvenance
+    const preparationKey = baselineCapsulePreparationKey({
+      planId: input.planId,
+      revision: input.artifacts.plan.revision,
+      validationId: combination.validationId,
+      browser: combination.browser,
+      environment: combination.environment,
+      attemptOrdinal,
+      publishOperationId: provenance?.schemaVersion === '2' ? provenance.publishOperationId : 'legacy',
+      runtimeInputHash:
+        provenance?.schemaVersion === '2' ? provenance.runtimeInputHash : input.artifacts.validationStored.hash,
+    })
+    const submitted = await input.submitRun({
+      planId: input.planId,
+      validation,
+      preparationKey,
+      ...combination,
+    })
+    if (submitted.start) pendingStarts.push(submitted.start)
+    attempts.push({
+      id: `baseline-${randomUUID()}`,
+      ...combination,
+      testRunId: submitted.testRunId,
+      status: 'running',
+      evidence: {
+        logsUrl: `/api/test-runs/${submitted.testRunId}/logs`,
+        reportUrl: `/test-runs/${submitted.testRunId}`,
+        traceUrls: [],
+        screenshotUrls: [],
+      },
+      createdAt: input.now.toISOString(),
+    })
+  }
+  return { attempts, pendingStarts }
 }
 
 export async function startBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
-  if (hasUnauthorizedAstValidation(artifacts.validation))
-    throw new ServiceError('Validation AST execution requires a matching Phase 3 runtime capsule.', 'CONFLICT')
   if (artifacts.plan.lifecycle === 'baseline_running') {
     return { plan: artifacts.plan, validation: artifacts.validation }
   }
   if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
   }
-  const runtimeValidation = await assertBaselinePreflight(planId, artifacts, client)
-  const active = new Set(
-    runtimeValidation.baselineAttempts
-      .filter(attempt => ['scheduled', 'running'].includes(attempt.status))
-      .map(baselineCombinationKey),
-  )
+  const runtimeValidation = await baselineRuntimeValidation(planId, artifacts, client)
+  const capsuleService = options.capsuleService ?? new RuntimeCapsuleTestRunService(client)
   const submitRun =
     options.submitRun ??
-    (input =>
-      submitAppraiseTestRun(
+    (async input => {
+      if (input.validation.astProvenance?.schemaVersion === '2') {
+        if (!artifacts.targetProject)
+          throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+        return submitCapsuleTestRun({ targetProject: artifacts.targetProject, ...input }, client, capsuleService)
+      }
+      return submitAppraiseTestRun(
         {
           projectRoot: artifacts.projectRoot,
           targetProject: artifacts.targetProject,
@@ -492,37 +645,39 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
           ...input,
         },
         client,
-      ))
-  const attempts = [...runtimeValidation.baselineAttempts]
-  for (const combination of requiredBaselineCombinations(runtimeValidation)) {
-    if (active.has(baselineCombinationKey(combination))) continue
-    const validation = runtimeValidation.validations.find(item => item.id === combination.validationId)!
-    const { testRunId } = await submitRun({ planId, validation, ...combination })
-    attempts.push({
-      id: `baseline-${randomUUID()}`,
-      ...combination,
-      testRunId,
-      status: 'running',
-      evidence: {
-        logsUrl: `/api/test-runs/${testRunId}/logs`,
-        reportUrl: `/test-runs/${testRunId}`,
-        traceUrls: [],
-        screenshotUrls: [],
-      },
-      createdAt: (options.now ?? new Date()).toISOString(),
+      )
     })
-  }
+  const { attempts, pendingStarts } = await prepareBaselineAttempts({
+    planId,
+    artifacts,
+    runtimeValidation,
+    submitRun,
+    now: options.now ?? new Date(),
+  })
   const plan = { ...artifacts.plan, lifecycle: 'baseline_running' as const }
   const validation = { ...runtimeValidation, baselineAttempts: attempts, baselineDecision: 'pending' as const }
   await writeBaselineArtifacts(artifacts, plan, validation, client)
   await appendPlanEvent({ planId, type: 'baseline_started', payload: { attempts: attempts.length } }, client)
+  const startResults = await Promise.allSettled(pendingStarts.map(start => start()))
+  if (startResults.some(result => result.status === 'rejected'))
+    await appendPlanEvent(
+      {
+        planId,
+        type: 'baseline_run_start_failed',
+        payload: { failures: startResults.filter(result => result.status === 'rejected').length },
+      },
+      client,
+    )
   return { plan, validation }
 }
 
 export async function reconcileBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const { client, artifacts } = await readRunningBaselineArtifacts(planId, options)
   await assertValidationFilesUnchanged(artifacts)
-  const loadEvidence = options.loadEvidence ?? (testRunId => loadAppraiseEvidence(testRunId, client))
+  const loadEvidence =
+    options.loadEvidence ??
+    (testRunId =>
+      loadAppraiseEvidence(testRunId, client, options.appraiseRoot ?? path.join(artifacts.projectRoot, '.appraise')))
   const attempts = await Promise.all(
     artifacts.validation.baselineAttempts.map(async attempt => {
       if (!['scheduled', 'running', 'interrupted'].includes(attempt.status)) return attempt
@@ -579,7 +734,17 @@ export async function cancelBaselineExecution(planId: string, options: BaselineO
   const activeAttempts = artifacts.validation.baselineAttempts.filter(attempt =>
     ['scheduled', 'running'].includes(attempt.status),
   )
-  await Promise.all(activeAttempts.map(attempt => cancelTestRunService(attempt.testRunId)))
+  const capsuleService = options.capsuleService ?? new RuntimeCapsuleTestRunService(client)
+  await Promise.all(
+    activeAttempts.map(async attempt => {
+      const run = await client.testRun.findUnique({
+        where: { runId: attempt.testRunId },
+        select: { id: true, runtimeCapsuleExecutionAttempt: { select: { id: true } } },
+      })
+      if (run?.runtimeCapsuleExecutionAttempt) await capsuleService.cancel(run.id)
+      else await cancelTestRunService(attempt.testRunId)
+    }),
+  )
   const completedAt = (options.now ?? new Date()).toISOString()
   const validation = {
     ...artifacts.validation,
@@ -729,11 +894,6 @@ export async function acceptBaseline(planId: string, options: BaselineOptions = 
 export async function startImplementation(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
-  if (hasUnauthorizedAstValidation(artifacts.validation))
-    throw new ServiceError(
-      'Validation AST implementation execution requires a matching Phase 3 runtime capsule.',
-      'CONFLICT',
-    )
   if (artifacts.plan.lifecycle !== 'baseline_accepted' || artifacts.validation.baselineDecision !== 'accepted') {
     throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
   }

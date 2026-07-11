@@ -279,8 +279,13 @@ Run evidence tools:
   before creating a run.
 - `test_run_read` returns a bounded `RunEvidenceSummary` with `testRunPageId`, `executionRunId`, `planId`,
   `validationId`, `reportUrl`, `logsUrl`, `evidenceHealth`, blockers, counts, and `nextAllowedAction`.
-- `test_run_diagnose` is the recovery path for invalid or suspicious evidence and returns concise root cause,
-  missing artifacts, log excerpt, and next action.
+- `test_run_diagnose` discriminates legacy evidence from managed capsules. Legacy runs return concise root cause,
+  missing artifacts, log excerpt, and next action. Capsule runs return the bounded durable attempt/preflight/evidence
+  DTO with fixed recovery actions and selected-target ownership scope; human CLI and exact JSON/MCP modes share it.
+  Foreign or missing ownership is opaque 404, integrity conflict is opaque 409, and HTTP diagnostics are `no-store`.
+
+The bounded hub route is `GET /api/test-runs/:runId/diagnostics`; it is intentionally outside the coordinator lease
+route table and is hub-only in Appraise 0.5.
 
 `project_diagnostic` and `appraise://project` include capability metadata for stale-server checks: package version,
 MCP surface version, server start time, workflow-critical tool names, workflow resource URIs, and recovery text for

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 import { basicValidationAstSubmission, sqliteTestClient } from '@/test/validation-ast-test-fixtures'
-import { parseYamlArtifact, serializeYamlArtifact } from '@/lib/plan-contract'
+import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
@@ -220,6 +220,11 @@ describe('Validation AST SQLite preview to compile', () => {
       client,
     )
     expect(published).toMatchObject({ phase: 'review_ready', receiptHash: preview.receiptHash })
+    expect(published).toMatchObject({
+      id: preview.canonicalProjection.validationNode.astProvenance?.publishOperationId,
+      runtimeInputHash: preview.canonicalProjection.validationNode.astProvenance?.runtimeInputHash,
+    })
+    expect(contractHash(JSON.parse(published.runtimeInputJson!))).toBe(published.runtimeInputHash)
     expect(await client.validationAstPublishOperation.count({ where: { planId: 'plan-one' } })).toBe(1)
     expect(published.projectionHash).toBe(preview.canonicalProjection.projectionHash)
     expect(published.projectionHash).toBe(
@@ -231,7 +236,7 @@ describe('Validation AST SQLite preview to compile', () => {
 
     const repository = new PlanArtifactRepository(workspace)
     const validationArtifact = await repository.read('validation', 'plan-one')
-    const exactReview = parseYamlArtifact('validation', validationArtifact.content)
+    const exactReview = parseYamlArtifact('validation', validationArtifact.content) as ValidationArtifact
     expect(exactReview.validations).toEqual([preview.canonicalProjection.validationNode])
     expect(validationArtifact.hash).toBe(published.validationHash)
     const reviewReady = await client.planEvent.findUniqueOrThrow({
@@ -297,7 +302,7 @@ describe('Validation AST SQLite preview to compile', () => {
     })
     expect(JSON.parse(decisionEvent.payloadJson!)).toMatchObject(firstDecision)
     const currentValidation = await repository.read('validation', 'plan-one')
-    const mismatchedValidation = parseYamlArtifact('validation', currentValidation.content)
+    const mismatchedValidation = parseYamlArtifact('validation', currentValidation.content) as ValidationArtifact
     mismatchedValidation.validationDecisions[0]!.decidedBy = 'tampered-reviewer'
     const mismatchedStored = await repository.compareAndWrite(
       'validation',
@@ -393,6 +398,8 @@ describe('Validation AST SQLite preview to compile', () => {
     expect(storedValidations[1]).toEqual(first.canonicalProjection.validationNode)
     const second = await previewValidationAstForPlan('plan-two', submission(), client)
     expect(second.entities[0]!.caseId).not.toBe(first.entities[0]!.caseId)
+    expect(second.receiptHash).not.toBe(first.receiptHash)
+    expect(second.publishOperationId).not.toBe(first.publishOperationId)
   })
 
   it('rejects a tampered receipt without entities or events and cannot bypass lifecycle', async () => {

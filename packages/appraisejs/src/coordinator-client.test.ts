@@ -176,6 +176,23 @@ describe('online coordinator client', () => {
     })
   })
 
+  it('scopes TestRun read and diagnose to the selected project fingerprint', async () => {
+    const cwd = await workspace()
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json({ kind: 'legacy', evidence: {} })))
+    vi.stubGlobal('fetch', fetchMock)
+    const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
+    await client.readTestRun('run-one')
+    await client.diagnoseTestRun('run-one')
+    expect(fetchMock.mock.calls.map(call => String(call[0]))).toEqual([
+      'http://localhost:3000/api/internal/coordinator/test-runs/run-one',
+      'http://localhost:3000/api/internal/coordinator/test-runs/run-one/diagnose',
+    ])
+    for (const call of fetchMock.mock.calls) {
+      const headers = call[1]?.headers as Record<string, string>
+      expect(headers['x-appraise-target-project']).toBe(headers['x-appraise-project'])
+    }
+  })
+
   it('preserves project mismatch details separately from wrong-token unauthorized responses', async () => {
     const cwd = await workspace()
     vi.stubGlobal(

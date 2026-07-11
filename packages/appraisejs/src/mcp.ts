@@ -298,6 +298,37 @@ function applyResponseMode(value: unknown, responseMode: z.infer<typeof response
   }
 }
 
+export function applyCapsuleDiagnosticMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
+  if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
+  const diagnostic = value as Record<string, unknown>
+  if (responseMode === 'blockersOnly')
+    return {
+      schemaVersion: diagnostic.schemaVersion,
+      blockers: diagnostic.blockers,
+      nextRecoveryAction: diagnostic.nextRecoveryAction,
+    }
+  if (responseMode === 'evidenceOnly')
+    return { schemaVersion: diagnostic.schemaVersion, run: diagnostic.run, evidence: diagnostic.evidence }
+  if (responseMode === 'linksOnly') {
+    const evidence = diagnostic.evidence as Record<string, unknown> | undefined
+    return {
+      schemaVersion: diagnostic.schemaVersion,
+      runId: (diagnostic.run as Record<string, unknown> | undefined)?.runId,
+      links: evidence?.links,
+      nextRecoveryAction: diagnostic.nextRecoveryAction,
+    }
+  }
+  return {
+    schemaVersion: diagnostic.schemaVersion,
+    run: diagnostic.run,
+    attempt: diagnostic.attempt,
+    preflight: diagnostic.preflight,
+    blockers: diagnostic.blockers,
+    evidence: diagnostic.evidence,
+    nextRecoveryAction: diagnostic.nextRecoveryAction,
+  }
+}
+
 function summarizeDiagnostic(value: Awaited<ReturnType<typeof diagnoseProject>>) {
   return {
     ok: value.ok,
@@ -2139,7 +2170,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     },
     async ({ runId, responseMode }) => {
       try {
-        return text(applyResponseMode(await api.request(`test-runs/${runId}`), responseMode))
+        return text(applyResponseMode(await api.readTestRun(runId), responseMode))
       } catch (error) {
         return toolError(error)
       }
@@ -2153,7 +2184,17 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     },
     async ({ runId, responseMode }) => {
       try {
-        return text(applyResponseMode(await api.request(`test-runs/${runId}/diagnose`), responseMode))
+        const result = (await api.diagnoseTestRun(runId)) as {
+          kind?: string
+          diagnostic?: unknown
+          evidence?: unknown
+        }
+        const exactDto = result.kind === 'capsule' ? result.diagnostic : (result.evidence ?? result)
+        return text(
+          result.kind === 'capsule'
+            ? applyCapsuleDiagnosticMode(exactDto, responseMode)
+            : applyResponseMode(exactDto, responseMode),
+        )
       } catch (error) {
         return toolError(error)
       }
