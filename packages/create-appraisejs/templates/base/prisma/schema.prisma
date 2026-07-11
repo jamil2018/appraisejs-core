@@ -566,6 +566,29 @@ model AppraiseProjectIdentity {
   rotatedAt          DateTime?
 }
 
+model DelegatedAuthorizationNonce {
+  nonce      String   @id
+  issuer     String
+  expiresAt  DateTime
+  consumedAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model DelegatedValidationAstSubmission {
+  id                String   @id @default(uuid())
+  nonce             String   @unique
+  targetFingerprint String
+  planHash          String
+  issuer            String
+  astId             String
+  astJson           String
+  receiptJson       String
+  receivedAt        DateTime @default(now())
+
+  @@index([targetFingerprint, planHash, receivedAt])
+}
+
 model PlanCoordinatorLease {
   id               String         @id @default(uuid())
   planProjectionId String         @unique

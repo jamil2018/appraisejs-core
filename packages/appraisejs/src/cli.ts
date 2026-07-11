@@ -18,6 +18,9 @@ const program = new Command()
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const expectedAgentCapabilities = {
   tools: [
+    'action_categories_list',
+    'actions_list',
+    'actions_read',
     'planning_session_create',
     'plan_review_loop',
     'validation_publish',
@@ -26,12 +29,17 @@ const expectedAgentCapabilities = {
     'baseline_reconcile',
     'baseline_accept',
     'implementation_start',
+    'delegated_validation_ast_submit',
   ],
   resources: [
+    'appraise://actions/catalog',
+    'appraise://actions/category/{categoryId}',
     'appraise://agent-guide',
     'appraise://workflow/planning',
     'appraise://workflow/validation-preparation',
     'appraise://workflow/standby',
+    'appraise://contracts/validation-ast',
+    'appraise://contracts/delegated-authorization',
   ],
 }
 const staleAgentCapabilityRecovery = [
@@ -76,6 +84,33 @@ function addOnlineOptions(command: Command): Command {
 async function onlineClient(options: OnlineOptions) {
   return createCoordinatorClient({ ...options, cwd: path.resolve(options.cwd) })
 }
+
+const locatorGraph = program.command('locator-graph').description('Query the read-only Appraise locator graph')
+addOnlineOptions(
+  locatorGraph
+    .command('query')
+    .requiredOption('--from-id <id>')
+    .option('--relation <relation>')
+    .option('--to-type <type>')
+    .option('--cursor <cursor>')
+    .option('--limit <number>', 'bounded page size', '25')
+    .option('--depth <number>', 'bounded traversal depth', '1')
+    .option('--json'),
+).action(async options =>
+  runCommand(async () => {
+    const client = await onlineClient(options)
+    printJson(
+      await client.queryLocatorGraph({
+        fromId: options.fromId,
+        relation: options.relation,
+        toType: options.toType,
+        cursor: options.cursor,
+        limit: Number(options.limit),
+        depth: Number(options.depth),
+      }),
+    )
+  }, Boolean(options.json)),
+)
 
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2))
@@ -437,6 +472,23 @@ addOnlineOptions(
 const validation = program.command('validation').description('Publish and submit validation review data')
 
 addOnlineOptions(
+  validation
+    .command('submit-delegated-ast')
+    .requiredOption('--submission <path>', 'Validation AST submission JSON')
+    .requiredOption('--receipt <path>', 'delegated authorization receipt JSON')
+    .option('--json', 'print machine-readable JSON', true),
+).action(async (options: OnlineOptions & { submission: string; receipt: string; json: boolean }) => {
+  await runCommand(async () => {
+    const fs = await import('node:fs/promises')
+    const [submission, receipt] = await Promise.all([
+      fs.readFile(path.resolve(options.submission), 'utf8').then(JSON.parse),
+      fs.readFile(path.resolve(options.receipt), 'utf8').then(JSON.parse),
+    ])
+    printJson(await (await onlineClient(options)).submitDelegatedValidationAst(submission, receipt))
+  }, options.json)
+})
+
+addOnlineOptions(
   validation.command('publish').argument('<plan-id>').requiredOption('--file <path>', 'validation artifact JSON file'),
 ).action(async (planId: string, options: OnlineOptions & { file: string }) => {
   const value = JSON.parse(
@@ -454,6 +506,52 @@ addOnlineOptions(
   program.command('completion').argument('<plan-id>').description('Read final completion review'),
 ).action(async (planId: string, options: OnlineOptions) =>
   printJson(await (await onlineClient(options)).completionReview(planId)),
+)
+
+const actions = program.command('actions').description('Discover versioned Appraise runtime actions')
+addOnlineOptions(actions.command('categories').option('--parent <id>').option('--known-hash <hash>')).action(
+  async (options: OnlineOptions & { parent?: string; knownHash?: string }) =>
+    printJson(await (await onlineClient(options)).listActionCategories(options.parent, options.knownHash)),
+)
+addOnlineOptions(
+  actions
+    .command('list')
+    .option('--category <id>')
+    .option('--capability <id>')
+    .option('--input-type <type>')
+    .option('--runtime <runtime>')
+    .option('--deprecated <boolean>')
+    .option('--id-prefix <prefix>')
+    .option('--cursor <number>')
+    .option('--limit <number>'),
+).action(async (options: OnlineOptions & Record<string, string | undefined>) =>
+  printJson(
+    await (
+      await onlineClient(options)
+    ).listActions({
+      categoryId: options.category,
+      capability: options.capability,
+      inputType: options.inputType,
+      runtime: options.runtime,
+      deprecated: options.deprecated,
+      idPrefix: options.idPrefix,
+      cursor: options.cursor,
+      limit: options.limit,
+    }),
+  ),
+)
+addOnlineOptions(actions.command('read').argument('<refs...>', 'action-id@version')).action(
+  async (refs: string[], options: OnlineOptions) =>
+    printJson(
+      await (
+        await onlineClient(options)
+      ).readActions(
+        refs.map(ref => {
+          const [id, version] = ref.split('@')
+          return { id: id!, ...(version ? { version } : {}) }
+        }),
+      ),
+    ),
 )
 
 program

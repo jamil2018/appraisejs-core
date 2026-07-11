@@ -26,10 +26,11 @@ pip install graphifyy
 
 Do not use the unrelated Node package `@sentropic/graphify`.
 
-The committed AppraiseJS graph scopes are code or schema focused and do not require a separate API key. For
-document-heavy semantic extraction, prefer Codex-hosted `$graphify <path>` so the running agent supplies the semantic
-pass. If the terminal CLI must process docs, papers, or images directly, set `GEMINI_API_KEY` or `GOOGLE_API_KEY` and
-install Graphify with the Gemini extra. Do not ask for Anthropic, OpenAI, Moonshot, or DeepSeek keys for this workflow.
+The committed AppraiseJS graphs do not require a separate API key. Code and schema scopes extract deterministically.
+When a scope contains docs, papers, or images and no Gemini/Google key is already configured, invoke the repo Graphify
+skill so Codex dispatches host-agent semantic extraction and merges it with the structural graph. A missing key is not
+a blocker and agents must not ask for one. An existing `GEMINI_API_KEY` or `GOOGLE_API_KEY` is an optional faster
+backend, not a prerequisite. Graphify does not use Anthropic, OpenAI, Moonshot, or DeepSeek keys in this workflow.
 
 ## Project Setup
 
@@ -92,10 +93,13 @@ Good follow-up graph candidates:
   `scripts/graphify-out/graph.html`, and `scripts/graphify-out/GRAPH_REPORT.md`.
 - `packages/` can be refreshed with `npm run graphify:build:packages`; the graph excludes
   `packages/create-appraisejs/templates/`, package docs, package `dist/`, package `node_modules/`, and nested graph
-  outputs.
+  outputs. Package agent-skill Markdown remains graphable. If the terminal builder reports that semantic extraction is
+  needed on the first semantic build, continue with `$graphify packages` and host-agent extraction; do not record a
+  missing API key as a limitation. After that semantic graph exists, the package builder uses Graphify's code-only
+  incremental update when no Gemini/Google key is configured, preserving the host-extracted semantic nodes.
 - `automation/` is a small code-only scope and can be refreshed without semantic extraction.
-- `.agents/`, `codex/`, `appraise/`, and `docs/` are mostly document scopes; use Codex-hosted `$graphify <path>` or a
-  configured semantic backend when those need graphing.
+- `.agents/`, `codex/`, `appraise/`, and `docs/` are mostly document scopes; use Codex-hosted `$graphify <path>` when
+  those need graphing. The host agent is the default semantic backend when Gemini/Google is not already configured.
 - `packages/` should stay out of the default app graph unless package or scaffold behavior is the task.
 
 The automatic refresh policy is intentionally conservative. Agents should treat Graphify generation as safe when all

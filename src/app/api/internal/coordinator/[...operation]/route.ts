@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { defaultActionCatalog } from '@/lib/action-catalog'
+
 import {
   coordinatorContractVersion,
   coordinatorError,
@@ -92,7 +94,9 @@ import {
   startImplementation,
 } from '@/services/coordinator/coordinator-baseline-service'
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
+import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/locator-graph/locator-graph-service'
 import { ServiceError } from '@/services/shared/errors'
+import { submitDelegatedValidationAst } from '@/services/coordinator/delegated-validation-ast-service'
 import {
   createStandaloneTargetTestRun,
   diagnoseTestRunEvidence,
@@ -275,8 +279,79 @@ async function getValidations(request: Request, operation: string[]) {
 async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation[0] === 'test-runs') return getTestRunEvidence(operation)
+  if (operation[0] === 'actions') {
+    const query = new URL(request.url).searchParams
+    if (operation[1] === 'categories') {
+      return Response.json(
+        defaultActionCatalog.listCategories(
+          query.get('parentCategoryId') ?? undefined,
+          query.get('knownCatalogHash') ?? undefined,
+        ),
+      )
+    }
+    if (operation[1] === 'read') {
+      const refs = z
+        .string()
+        .transform((value, context) => {
+          try {
+            return JSON.parse(value) as unknown
+          } catch {
+            context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
+            return z.NEVER
+          }
+        })
+        .pipe(
+          z
+            .array(z.object({ id: z.string(), version: z.string().optional() }))
+            .min(1)
+            .max(50),
+        )
+        .parse(query.get('refs') ?? '[]')
+      return Response.json({
+        catalogHash: defaultActionCatalog.catalogHash,
+        actions: defaultActionCatalog.readActions(refs),
+      })
+    }
+    const filter = {
+      categoryId: query.get('categoryId') ?? undefined,
+      capability: query.get('capability') ?? undefined,
+      inputType: query.get('inputType') ?? undefined,
+      runtime: z
+        .enum(['browser', 'api', 'node', 'database'])
+        .optional()
+        .parse(query.get('runtime') ?? undefined),
+      deprecated: query.has('deprecated')
+        ? z
+            .enum(['true', 'false'])
+            .transform(value => value === 'true')
+            .parse(query.get('deprecated'))
+        : undefined,
+      idPrefix: query.get('idPrefix') ?? undefined,
+    }
+    return Response.json(
+      defaultActionCatalog.listActions(
+        filter,
+        query.has('cursor') ? z.coerce.number().int().nonnegative().parse(query.get('cursor')) : 0,
+        query.has('limit') ? z.coerce.number().int().min(1).max(100).parse(query.get('limit')) : 50,
+      ),
+    )
+  }
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
+  if (operation[0] === 'locator-graph') {
+    if (operation[1] === 'visual') return Response.json(await readLocatorGraphVisualProjection())
+    const url = new URL(request.url)
+    return Response.json(
+      await queryLocatorGraph({
+        fromId: url.searchParams.get('fromId'),
+        relation: url.searchParams.get('relation') ?? undefined,
+        toType: url.searchParams.get('toType') ?? undefined,
+        cursor: url.searchParams.get('cursor') ?? undefined,
+        limit: z.coerce.number().int().positive().max(100).catch(25).parse(url.searchParams.get('limit')),
+        depth: z.coerce.number().int().positive().max(4).catch(1).parse(url.searchParams.get('depth')),
+      }),
+    )
+  }
   if (operation.length === 1 && operation[0] === 'providers') {
     assertProviderNativeRunsEnabled()
     return Response.json({ providers: await listProviderRegistrations() })
@@ -770,6 +845,16 @@ function assertPlanOperation(operation: string[]): void {
 
 // fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'delegated' && operation[1] === 'validation-ast-submissions') {
+    const value = z.object({ submission: z.unknown(), receipt: z.unknown() }).parse(body)
+    return Response.json(
+      await submitDelegatedValidationAst({
+        submission: value.submission,
+        receipt: value.receipt,
+        targetFingerprint: request.headers.get('x-appraise-project') ?? '',
+      }),
+    )
+  }
   if (operation[0] === 'provider-runs') {
     assertProviderNativeRunsEnabled()
     return postProviderRun(operation, body)

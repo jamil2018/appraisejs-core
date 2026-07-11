@@ -26,7 +26,11 @@
     "appraisejs": "./dist/cli.js"
   },
   "exports": {
-    ".": "./dist/cli.js"
+    ".": "./dist/cli.js",
+    "./phase1-contracts": {
+      "types": "./dist/phase1-contracts.d.ts",
+      "import": "./dist/phase1-contracts.js"
+    }
   },
   "files": [
     "dist",
