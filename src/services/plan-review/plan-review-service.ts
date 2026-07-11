@@ -286,23 +286,17 @@ export async function getPlanReviewDetail(
     issues: projection.issues,
     revisions: projection.revisions,
     events: readiness.ready
-      ? projection.events
+      ? projection.events.map(({ type, payloadJson, createdAt }) => ({ type, payloadJson, createdAt }))
       : includePendingReviewReady
         ? [
-            ...projection.events,
+            ...projection.events.map(({ type, payloadJson, createdAt }) => ({ type, payloadJson, createdAt })),
             {
-              id: 'pending-plan-review-ready',
-              planProjectionId: projection.id,
-              sequence: Math.max(0, ...projection.events.map(event => event.sequence)) + 1,
               type: 'plan_review_ready',
               payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
-              acknowledgedAt: null,
-              acknowledgedBy: null,
-              supersededAt: null,
               createdAt: new Date(),
             },
           ]
-        : projection.events,
+        : projection.events.map(({ type, payloadJson, createdAt }) => ({ type, payloadJson, createdAt })),
     personalPositions: parsePositions(projection.personalLayouts[0]?.positionsJson),
     sharedPositions: parsePositions(projection.layoutJson),
     blockingThreadIds: getBlockingThreads(review).map(thread => thread.id),

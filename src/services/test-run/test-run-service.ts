@@ -815,6 +815,29 @@ export type TestRunExecutionOverrides = Pick<
   'projectRoot' | 'featurePaths' | 'importPaths' | 'supportPaths' | 'prepareWorkspace'
 >
 
+async function assertAstExecutionAuthorized(testCaseIds: string[]) {
+  if (testCaseIds.length === 0) return
+  const projections = await prisma.planProjection.findMany({
+    where: { validationJson: { not: null } },
+    select: { planId: true, validationJson: true },
+  })
+  const selected = new Set(testCaseIds)
+  for (const projection of projections) {
+    const validation = JSON.parse(projection.validationJson ?? '{}') as Partial<ValidationArtifact>
+    for (const node of validation.validations ?? [])
+      if (
+        node.testCaseIds.some(testCaseId => selected.has(testCaseId)) &&
+        node.astProvenance &&
+        node.astProvenance.executionAuthority !== 'phase3_capsule'
+      )
+        throw new ServiceError(
+          `AST validation "${node.id}" requires an authorized Phase 3 runtime capsule before execution.`,
+          'CONFLICT',
+          409,
+        )
+  }
+}
+
 export async function createTestRunFromValidatedValue(
   value: TestRunFormValue,
   executionOverrides: TestRunExecutionOverrides = {},
@@ -829,6 +852,7 @@ export async function createTestRunFromValidatedValue(
   }
 
   const { tagExpression, tags, testRunTestCases, environment } = await resolveTagExpressionAndTestCases(value)
+  await assertAstExecutionAuthorized(testRunTestCases.map(item => item.testCaseId))
 
   const testRun = await prisma.testRun.create({
     data: {
@@ -952,6 +976,7 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
   }
 
   const expectedTestCases = await resolveStandaloneExpectedTestCases(input)
+  await assertAstExecutionAuthorized(expectedTestCases.map(item => item.testCaseId))
 
   const testRun = await prisma.testRun.create({
     data: {

@@ -93,6 +93,11 @@ const baseWorkflowCriticalTools = [
   'implementation_completion_review',
   'implementation_complete',
   'delegated_validation_ast_submit',
+  'validation_ast_check',
+  'validation_ast_preview',
+  'validation_ast_compile',
+  'validation_ast_extension_policy',
+  'validation_ast_extension_reviews',
   'test_run_read',
   'test_run_diagnose',
 ] as const
@@ -1545,6 +1550,14 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async input => text(await api.queryLocatorGraph(input)),
   )
   server.registerTool(
+    'validation_ast_extension_reviews',
+    {
+      description: 'Read exact bounded extension reviews and the hash required to bind a review decision.',
+      inputSchema: { planId: z.string(), operationId: z.string().optional() },
+    },
+    async ({ planId, operationId }) => text(await api.readValidationAstExtensionReviews(planId, operationId)),
+  )
+  server.registerTool(
     'delegated_validation_ast_submit',
     {
       description:
@@ -1558,6 +1571,44 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           receipt as DelegatedAuthorizationReceipt,
         ),
       ),
+  )
+  for (const phase of ['check', 'preview'] as const) {
+    server.registerTool(
+      `validation_ast_${phase}`,
+      {
+        description: `${phase} a bounded Validation AST against authoritative plan, catalog, locator, and environment context.`,
+        inputSchema: { planId: z.string(), submission: z.unknown() },
+      },
+      async ({ planId, submission }) =>
+        text(
+          await api[phase === 'check' ? 'checkValidationAst' : 'previewValidationAst'](
+            planId,
+            submission as ValidationAstSubmission,
+          ),
+        ),
+    )
+  }
+  server.registerTool(
+    'validation_ast_extension_policy',
+    {
+      description: 'Read the bounded, versioned custom-extension capability policy for an authoritative target plan.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) => text(await api.readValidationAstExtensionPolicy(planId)),
+  )
+  server.registerTool(
+    'validation_ast_compile',
+    {
+      description:
+        'Project an exactly previewed Validation AST into legacy canonical entities without runtime materialization.',
+      inputSchema: {
+        planId: z.string(),
+        submission: z.unknown(),
+        expectedReceiptHash: z.string().startsWith('sha256:'),
+      },
+    },
+    async ({ planId, submission, expectedReceiptHash }) =>
+      text(await api.compileValidationAst(planId, submission as ValidationAstSubmission, expectedReceiptHash)),
   )
   if (providerNativeRunsEnabled()) {
     server.registerResource(
@@ -2793,6 +2844,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         validationId: z.string(),
         decision: z.enum(['approved', 'rejected', 'deferred']),
         decidedBy: z.string(),
+        operationHash: z.string().startsWith('sha256:').optional(),
+        extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
       },
     },
     async ({ planId, validationId, ...body }) =>
@@ -3066,9 +3119,19 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Explicit user/Appraise decision relay: submit the revision-level validation review after all required decisions are current.',
-      inputSchema: { planId: z.string() },
+      inputSchema: {
+        planId: z.string(),
+        operationHash: z.string().startsWith('sha256:').optional(),
+        extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
+      },
     },
-    async ({ planId }) => text(await api.request(`plans/${planId}/validations/submit`, { method: 'POST', body: '{}' })),
+    async ({ planId, ...binding }) =>
+      text(
+        await api.request(`plans/${planId}/validations/submit`, {
+          method: 'POST',
+          body: JSON.stringify(binding),
+        }),
+      ),
   )
   server.registerTool(
     'plan_events_read',

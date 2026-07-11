@@ -121,6 +121,9 @@ All routes are under `/api/internal/coordinator`.
 | `GET`  | `/plans/:planId/completion`                               | Read the final completion review                                    |
 | `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                                  |
 | `POST` | `/delegated/validation-ast-submissions`                   | Verify authorization and store a non-compiling AST inbox submission |
+| `POST` | `/plans/:planId/validations/ast/check`                    | Check against authoritative target context                          |
+| `POST` | `/plans/:planId/validations/ast/preview`                  | Return bounded preview and exact context receipt                    |
+| `POST` | `/plans/:planId/validations/ast/compile`                  | Project only the exact successful preview into canonical entities   |
 
 The create response includes coordinator ownership metadata and the stable review URL only after
 `plan_review_ready` is durably appended.
@@ -170,6 +173,14 @@ Resources:
 Tools:
 
 - `delegated_validation_ast_submit`
+- `validation_ast_check`
+- `validation_ast_preview`
+- `validation_ast_compile`
+- `validation_ast_extension_policy` returns the bounded versioned target-project capability/import policy and hash;
+  the same discovery operation is available through HTTP, the package client, and `appraisejs validation ast-policy`.
+- `validation_ast_extension_reviews` returns exact stored extension reviews plus the operation hash a decision must
+  bind. The package exports typed review/result contracts and the CLI exposes `appraisejs validation ast-reviews`.
+  Coordinator authentication is project-wide; an active coordinator lease is not required for compile.
 
 - `action_categories_list`
 - `actions_list`
@@ -178,6 +189,7 @@ Tools:
 - `coordinator_register`
 - `coordinator_heartbeat`
 - `project_diagnostic`
+
 - `project_add`
 - `project_list`
 - `planning_session_create`
@@ -273,6 +285,19 @@ Run evidence tools:
 `project_diagnostic` and `appraise://project` include capability metadata for stale-server checks: package version,
 MCP surface version, server start time, workflow-critical tool names, workflow resource URIs, and recovery text for
 missing or stale native MCP capabilities.
+
+### Validation AST recovery
+
+`validation_ast_check` and `validation_ast_preview` are read-only and require the authoritative plan to remain in a
+validation-preparation lifecycle. Preview returns exact `previewHash`, `contextHash`, and `receiptHash` values.
+`validation_ast_compile` accepts only that exact receipt and prepares a durable idempotent publish operation before
+writing artifacts or projecting canonical entities.
+
+Stale plan, target, catalog, locator, environment, extension-policy, preview, projection, or artifact hashes return a
+conflict. Re-read context and preview rather than retrying with an old receipt. A retry with the same exact inputs
+resumes the same operation; changed inputs require a new preview. Recovery advances only through adjacent prepared,
+artifacts-written, projected, and review-ready phases. It never executes generated code or bypasses validation review.
+After `review_ready`, continue through the ordinary Appraise-owned validation review gate.
 
 ## Lifecycle Ownership
 

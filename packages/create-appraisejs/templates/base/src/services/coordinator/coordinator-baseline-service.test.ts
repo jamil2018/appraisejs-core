@@ -17,6 +17,7 @@ import { hashFailureSignatures } from '@/lib/baseline-execution/baseline'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 
 import { projectValidationArtifacts } from './validation-runtime-projection-service'
 import {
@@ -211,10 +212,10 @@ function recordSubmittedRun(
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-baseline-'))
   databasePath = path.join(workspace, 'baseline.db')
-  await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
   await ensurePlanRuntimeSchema()
-  client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  client = sqliteTestClient(databasePath)
+  await fs.writeFile(path.join(workspace, 'package.json'), '{}')
 })
 
 afterEach(async () => {
@@ -272,6 +273,31 @@ describe('baseline execution and implementation gate', () => {
     const planId = 'baseline-gate'
     const submitted: Array<{ browser: string; environment: string; testRunId: string }> = []
     await writeArtifacts(planId)
+
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+    const astValidation = parseYamlArtifact('validation', stored.content)
+    astValidation.validations[0]!.astProvenance = {
+      schemaVersion: '1',
+      astHash: `sha256:${'a'.repeat(64)}`,
+      executionAuthority: 'phase2_review_only',
+    }
+    const phase2Stored = await repository.compareAndWrite(
+      'validation',
+      planId,
+      stored.hash,
+      serializeYamlArtifact('validation', astValidation),
+    )
+    await expect(startBaselineExecution(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    astValidation.validations[0]!.astProvenance.executionAuthority = 'phase3_capsule'
+    await repository.compareAndWrite(
+      'validation',
+      planId,
+      phase2Stored.hash,
+      serializeYamlArtifact('validation', astValidation),
+    )
 
     await expect(startImplementation(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
       code: 'CONFLICT',

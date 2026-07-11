@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { serializeYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
 import { ensurePlanProjectionTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 
 import { syncPlans } from './plan-sync-service'
 
@@ -41,19 +42,22 @@ async function writePlan(planId: string, source: string) {
   await fs.writeFile(path.join(plansRoot, `${planId}.yaml`), source)
 }
 
+// fallow-ignore-next-line code-duplication -- shared SQLite lifecycle fixture
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-plan-sync-project-'))
   databasePath = path.join(workspace, 'sync.db')
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
   await ensurePlanProjectionTestSchema(databasePath)
-  client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  client = sqliteTestClient(databasePath)
 })
 
-afterEach(async () => {
+async function cleanupWorkspace() {
   await client.$disconnect()
   await fs.rm(workspace, { recursive: true, force: true })
-})
+}
+
+afterEach(cleanupWorkspace)
 
 describe('syncPlans', () => {
   it('upserts stable task projections and keeps the last valid view stale after malformed input', async () => {

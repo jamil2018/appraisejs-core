@@ -1,2 +1,7 @@
 export * from './authorization'
+export * from './authoring-profile'
+export * from './compiler'
+export * from './canonical-projection'
+export * from './custom-extension-compiler'
+export * from './extension-policy'
 export * from './schemas'

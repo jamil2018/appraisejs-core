@@ -17,6 +17,7 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 
 import {
   applyBlockingFeedback,
@@ -207,16 +208,20 @@ async function readValidation(planId: string) {
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-implementation-'))
   databasePath = path.join(workspace, 'implementation.db')
-  await fs.writeFile(path.join(workspace, 'package.json'), '{}')
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
+  await Promise.all([
+    fs.writeFile(path.join(workspace, 'package.json'), '{}'),
+    fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath),
+  ])
   await ensurePlanRuntimeSchema()
-  client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  client = sqliteTestClient(databasePath)
 })
 
-afterEach(async () => {
+async function cleanupImplementationWorkspace() {
   await client.$disconnect()
   await fs.rm(workspace, { recursive: true, force: true })
-})
+}
+
+afterEach(cleanupImplementationWorkspace)
 
 describe('implementation coordinator checkpoints', () => {
   it('atomically verifies explicit tasks from satisfied managed evidence and replays idempotently', async () => {
@@ -439,6 +444,34 @@ describe('implementation coordinator checkpoints', () => {
     ).resolves.toMatchObject({
       implementation: { approvedGroupIds: ['core'] },
     })
+
+    const repository = new PlanArtifactRepository(workspace)
+    const storedValidation = await repository.read('validation', planId)
+    const phase2Validation = parseYamlArtifact('validation', storedValidation.content)
+    phase2Validation.validations[0]!.astProvenance = {
+      schemaVersion: '1',
+      astHash: `sha256:${'a'.repeat(64)}`,
+      executionAuthority: 'phase2_review_only',
+    }
+    const phase2Stored = await repository.compareAndWrite(
+      'validation',
+      planId,
+      storedValidation.hash,
+      serializeYamlArtifact('validation', phase2Validation),
+    )
+    await expect(
+      startImplementationValidation(
+        { planId, validationIds: ['core-validation'], commitHash: 'commit-final' },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    phase2Validation.validations[0]!.astProvenance.executionAuthority = 'phase3_capsule'
+    await repository.compareAndWrite(
+      'validation',
+      planId,
+      phase2Stored.hash,
+      serializeYamlArtifact('validation', phase2Validation),
+    )
 
     const started = await startImplementationValidation(
       { planId, validationIds: ['core-validation'], commitHash: 'commit-final' },

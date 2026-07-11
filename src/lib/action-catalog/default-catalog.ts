@@ -19,8 +19,15 @@ const browserAction = (
   action: Pick<
     ActionDescriptorDefinition,
     'id' | 'title' | 'description' | 'categories' | 'inputs' | 'requirements' | 'examples'
-  >,
-): ActionDescriptorDefinition => ({ ...action, version: '1', outputs: [], deprecated: false })
+  > &
+    Partial<Pick<ActionDescriptorDefinition, 'assertionConcerns'>>,
+): ActionDescriptorDefinition => ({
+  ...action,
+  version: '1',
+  outputs: [],
+  assertionConcerns: action.assertionConcerns ?? [],
+  deprecated: false,
+})
 
 const actions: ActionDescriptorDefinition[] = [
   browserAction({
@@ -69,6 +76,34 @@ const actions: ActionDescriptorDefinition[] = [
     examples: [{ description: 'Wait after navigation.', inputs: {} }],
   }),
   browserAction({
+    id: 'browser.waits.duration',
+    title: 'Wait for duration',
+    description: 'Wait for a bounded number of seconds.',
+    categories: ['browser.waits'],
+    inputs: [
+      {
+        ...input('duration', 'number', 'Duration in seconds.'),
+        numeric: { unit: 'seconds', minimum: 0, maximum: 300 },
+      },
+    ],
+    requirements: { runtime: 'browser', capabilities: ['waits'] },
+    examples: [{ description: 'Wait briefly.', inputs: { duration: 1 } }],
+  }),
+  browserAction({
+    id: 'browser.waits.timeout',
+    title: 'Wait with timeout',
+    description: 'Wait using a bounded millisecond timeout.',
+    categories: ['browser.waits'],
+    inputs: [
+      {
+        ...input('timeout', 'number', 'Timeout in milliseconds.'),
+        numeric: { unit: 'milliseconds', minimum: 0, maximum: 300_000 },
+      },
+    ],
+    requirements: { runtime: 'browser', capabilities: ['waits'] },
+    examples: [{ description: 'Wait briefly.', inputs: { timeout: 1_000 } }],
+  }),
+  browserAction({
     id: 'browser.assertions.visible',
     title: 'Assert visible',
     description: 'Assert that a resolved locator is visible.',
@@ -77,6 +112,30 @@ const actions: ActionDescriptorDefinition[] = [
     requirements: { runtime: 'browser', capabilities: ['assertions'] },
     examples: [{ description: 'Verify confirmation.', inputs: { target: 'confirmation' } }],
   }),
+  {
+    ...browserAction({
+      id: 'browser.assertions.accessible',
+      title: 'Assert accessible',
+      description: 'Assert that the resolved target exposes an accessible name and role.',
+      categories: ['browser.assertions'],
+      inputs: [input('target', 'locator', 'Locator reference to inspect.')],
+      requirements: { runtime: 'browser', capabilities: ['assertions'] },
+      examples: [{ description: 'Verify accessible control semantics.', inputs: { target: 'start-button' } }],
+    }),
+    assertionConcerns: ['accessibility'],
+  },
+  {
+    ...browserAction({
+      id: 'browser.assertions.persisted',
+      title: 'Assert persisted result',
+      description: 'Assert that a persisted result is represented by the resolved target.',
+      categories: ['browser.assertions'],
+      inputs: [input('target', 'locator', 'Locator reference containing the persisted result.')],
+      requirements: { runtime: 'browser', capabilities: ['assertions'] },
+      examples: [{ description: 'Verify persisted completion.', inputs: { target: 'completion' } }],
+    }),
+    assertionConcerns: ['persistence'],
+  },
 ]
 
 export const defaultActionCatalog = createActionCatalog({ categories: [...categories], actions })

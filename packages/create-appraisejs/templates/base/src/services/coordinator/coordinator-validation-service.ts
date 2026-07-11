@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import type { PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import {
@@ -25,7 +25,12 @@ import {
   projectValidationArtifacts,
 } from './validation-runtime-projection-service'
 
-type Options = { client?: PrismaClient; projectDirectory?: string }
+type Options = {
+  client?: PrismaClient
+  projectDirectory?: string
+  operationHash?: string
+  extensionArtifactHashes?: string[]
+}
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
 const validationArtifactPath = (planId: string) => `appraise/plans/validations/${planId}.validation.yaml`
 const isAutomationStepPath = (filePath: string) =>
@@ -88,6 +93,14 @@ function assertCustomStepJustifications(validation: ValidationArtifact) {
 }
 
 // Domain rules are tested separately; this coordinates locked writes and durable events.
+function findCurrentAstPublishOperation(planId: string, client: PrismaClient) {
+  return client.validationAstPublishOperation.findFirst({
+    where: { planId, phase: 'review_ready' },
+    orderBy: { createdAt: 'desc' },
+    include: { extensionReviews: true },
+  })
+}
+
 // fallow-ignore-next-line complexity
 export async function publishPreparedValidations(
   planId: string,
@@ -330,30 +343,105 @@ export async function submitValidationFeedback(
   return { plan, review, validation }
 }
 
-// fallow-ignore-next-line complexity
+type ValidationDecision = {
+  validationId: string
+  decision: 'approved' | 'rejected' | 'deferred'
+  contentHash: string
+  decidedBy: string
+  decidedAt: string
+}
+
+async function recordAstValidationDecision(
+  input: { planId: string; operationHash?: string; extensionArtifactHashes?: string[] },
+  operationId: string,
+  decision: ValidationDecision,
+  transaction: Prisma.TransactionClient,
+) {
+  const current = await transaction.validationAstPublishOperation.findUniqueOrThrow({
+    where: { id: operationId },
+    include: { extensionReviews: true },
+  })
+  const expectedHashes = current.extensionReviews.map(item => item.artifactHash).sort()
+  const suppliedHashes = [...(input.extensionArtifactHashes ?? [])].sort()
+  if (
+    current.phase !== 'review_ready' ||
+    current.operationHash !== input.operationHash ||
+    JSON.stringify(expectedHashes) !== JSON.stringify(suppliedHashes)
+  )
+    throw new ServiceError('Validation decision review evidence changed.', 'CONFLICT')
+  const existing = await transaction.planEvent.findUnique({
+    where: {
+      publishOperationId_validationId: { publishOperationId: current.id, validationId: decision.validationId },
+    },
+  })
+  if (existing?.payloadJson) return JSON.parse(existing.payloadJson) as ValidationDecision
+  const plan = await transaction.planProjection.findUniqueOrThrow({ where: { planId: input.planId } })
+  const latest = await transaction.planEvent.findFirst({
+    where: { planProjectionId: plan.id },
+    orderBy: { sequence: 'desc' },
+  })
+  const payload = { ...decision, operationHash: current.operationHash, extensionArtifactHashes: suppliedHashes }
+  await transaction.planEvent.create({
+    data: {
+      planProjectionId: plan.id,
+      publishOperationId: current.id,
+      validationId: decision.validationId,
+      sequence: (latest?.sequence ?? 0) + 1,
+      type: 'validation_node_decided',
+      payloadJson: JSON.stringify(payload),
+    },
+  })
+  return payload
+}
+
 export async function decideValidationNode(
   input: {
     planId: string
     validationId: string
     decision: 'approved' | 'rejected' | 'deferred'
     decidedBy: string
+    operationHash?: string
+    extensionArtifactHashes?: string[]
   },
   options: Options = {},
 ) {
   const artifacts = await readArtifacts(input.planId, options.projectDirectory, options.client ?? prisma)
+  const client = options.client ?? prisma
   if (!artifacts.validation || !artifacts.validationStored)
     throw new ServiceError('Validation artifact not found.', 'NOT_FOUND')
   const node = artifacts.validation.validations.find(validation => validation.id === input.validationId)
   if (!node) throw new ServiceError('Validation node not found.', 'NOT_FOUND')
+  const publishOperation = node.astProvenance ? await findCurrentAstPublishOperation(input.planId, client) : null
+  if (publishOperation) {
+    const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
+    const suppliedExtensions = [...(input.extensionArtifactHashes ?? [])].sort()
+    if (
+      input.operationHash !== publishOperation.operationHash ||
+      JSON.stringify(suppliedExtensions) !== JSON.stringify(expectedExtensions)
+    )
+      throw new ServiceError('Validation decision is not bound to the current AST review evidence.', 'CONFLICT')
+  }
   if (node.required && input.decision !== 'approved') {
     throw new ServiceError('Required validations must be approved or revised.', 'CONFLICT')
   }
-  const decision = {
+  let decision = {
     validationId: node.id,
     decision: input.decision,
     contentHash: validationNodeHash(node),
     decidedBy: input.decidedBy,
     decidedAt: new Date().toISOString(),
+  }
+  if (publishOperation) {
+    const evidence = await client.$transaction(transaction =>
+      recordAstValidationDecision(input, publishOperation.id, decision, transaction),
+    )
+    decision = {
+      validationId: evidence.validationId,
+      decision: evidence.decision,
+      contentHash: evidence.contentHash,
+      decidedBy: evidence.decidedBy,
+      decidedAt: evidence.decidedAt,
+    }
   }
   const next = {
     ...artifacts.validation,
@@ -429,23 +517,70 @@ export async function submitValidationReview(planId: string, options: Options = 
   }
   const readiness = assessValidationReadiness(artifacts.validation, artifacts.review)
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
-  const runtimeValidation = await materializeValidationRuntime({
-    projectRoot: artifacts.projectRoot,
-    validationFileRoot: artifacts.validationFileRoot,
-    targetProject: artifacts.targetProject,
-    validation: artifacts.validation,
-  })
-  assertRuntimePreflightPassed(runtimeValidation)
-  const materializedValidation = await assertValidationFilesMaterialized({
-    projectRoot: artifacts.projectRoot,
-    validationFileRoot: artifacts.validationFileRoot,
-    targetProject: artifacts.targetProject,
-    validation: runtimeValidation,
-  })
-  await assertValidationEnvironmentsReady(materializedValidation, client, artifacts.targetProject)
-  const projection = await projectValidationArtifacts({ planId, validation: materializedValidation }, client)
+  const publishOperation = artifacts.validation.validations.some(validation => validation.astProvenance)
+    ? await findCurrentAstPublishOperation(planId, client)
+    : null
+  if (publishOperation) {
+    const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
+    if (
+      options.operationHash !== publishOperation.operationHash ||
+      JSON.stringify([...(options.extensionArtifactHashes ?? [])].sort()) !== JSON.stringify(expectedExtensions)
+    )
+      throw new ServiceError('Validation review submission is not bound to the current AST evidence.', 'CONFLICT')
+    const decisionEvidence = await client.planEvent.findMany({
+      where: { publishOperationId: publishOperation.id, validationId: { not: null } },
+    })
+    const evidenceByValidation = new Map(
+      decisionEvidence.map(event => [event.validationId!, event.payloadJson ? JSON.parse(event.payloadJson) : null]),
+    )
+    const astValidationIds = new Set(
+      artifacts.validation.validations.filter(validation => validation.astProvenance).map(validation => validation.id),
+    )
+    for (const decision of artifacts.validation.validationDecisions.filter(item =>
+      astValidationIds.has(item.validationId),
+    )) {
+      const evidence = evidenceByValidation.get(decision.validationId)
+      if (
+        !evidence ||
+        evidence.validationId !== decision.validationId ||
+        evidence.decision !== decision.decision ||
+        evidence.contentHash !== decision.contentHash ||
+        evidence.decidedBy !== decision.decidedBy ||
+        evidence.decidedAt !== decision.decidedAt ||
+        evidence.operationHash !== publishOperation.operationHash ||
+        JSON.stringify([...(evidence.extensionArtifactHashes ?? [])].sort()) !== JSON.stringify(expectedExtensions)
+      )
+        throw new ServiceError('Validation review decision does not match immutable AST evidence.', 'CONFLICT')
+    }
+  }
+  let reviewedValidation = artifacts.validation
+  let projection: unknown
+  if (publishOperation) {
+    projection = {
+      operationId: publishOperation.id,
+      operationHash: publishOperation.operationHash,
+      projectionHash: publishOperation.projectionHash,
+      extensionArtifactHashes: publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
+    }
+  } else {
+    const runtimeValidation = await materializeValidationRuntime({
+      projectRoot: artifacts.projectRoot,
+      validationFileRoot: artifacts.validationFileRoot,
+      targetProject: artifacts.targetProject,
+      validation: artifacts.validation,
+    })
+    assertRuntimePreflightPassed(runtimeValidation)
+    reviewedValidation = await assertValidationFilesMaterialized({
+      projectRoot: artifacts.projectRoot,
+      validationFileRoot: artifacts.validationFileRoot,
+      targetProject: artifacts.targetProject,
+      validation: runtimeValidation,
+    })
+    await assertValidationEnvironmentsReady(reviewedValidation, client, artifacts.targetProject)
+    projection = await projectValidationArtifacts({ planId, validation: reviewedValidation }, client)
+  }
 
-  const validation = { ...materializedValidation, reviewSubmittedAt: new Date().toISOString() }
+  const validation = { ...reviewedValidation, reviewSubmittedAt: new Date().toISOString() }
   await artifacts.repository.compareAndWrite(
     'validation',
     planId,

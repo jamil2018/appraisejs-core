@@ -805,22 +805,110 @@ atomically consumes the nonce while storing the AST for later checking, without 
 Validate references, types, state, compatibility, coverage, and runtime requirements. Return exact bounded entity,
 Gherkin, locator, extension, and command-receipt previews.
 
+Progress: **operationally integrated** on `codex/validation-ast-phase-1-contracts`. Canonical read-only check and
+preview functions reuse the Phase 1 AST, action catalog, and locator graph contracts; validate exact plan/task,
+reference, type, state, compatibility, coverage, environment, runtime, and capability requirements; and return bounded
+deterministic entity, action, locator, extension, Gherkin, blocker, warning, hash, and command-receipt previews.
+Authoritative plan-bound target context and bounded HTTP, MCP, CLI, and package-client adapters are integrated. No
+canonical entities or runtime bindings are created by check or preview; those remain Tasks 2.2 and 2.3.
+
 #### Task 2.2: Compile AST Into Existing Canonical Entities
 
 Atomically create current modules, suites, cases, ordered steps, locators, validation nodes, identifiers, and review
 events. Keep legacy UI/read paths working.
+
+Progress: **implemented at the compatibility projection boundary**. A hash-bound compiler maps V1 AST scenarios into
+the existing validation-node/module/suite/case/ordered-step shapes and reuses the legacy projector. Canonical database
+entities, identifier tags, and `validation_ast_compiled` review evidence are written in one Prisma transaction, keeping
+legacy UI/read paths intact. Runtime materialization/publication remains downstream, and custom extensions remain Task
+2.3. Operational compile recomputes the exact successful preview/context receipt and rejects plan, catalog, graph,
+environment, AST, or preview drift before projection while preserving unrelated validation state.
+The final durable CAS runs inside the projection transaction before its first write, and preview/projection reuse the
+same plan-and-target-scoped collision-resistant module, suite, case, step, locator, and Gherkin projection.
+Canonical publication additionally uses a durable prepared-operation journal containing all serialized artifact and
+projection inputs plus immutable extension-review hashes. Repository CAS, projection, and the exactly-once
+validation-review lifecycle/event resume across crashes without entering runtime materialization.
+The operation is anchored by restrictive PlanProjection/TargetProject foreign keys and a target fingerprint snapshot;
+server-derived all-input hashes, payload bounds, adjacent phases, per-phase artifact/context checks, transaction-coupled
+projection advancement, bounded failures, and operation-linked exactly-once events harden concurrent recovery.
+One pure bounded canonical projection now supplies both review and compilation verbatim, including module, suite,
+case, step, template, parameter, locator, matrix, executable/Gherkin path, Gherkin content, and exact projection hash.
+Focused real-SQLite evidence covers preview-to-compile equality, preservation of existing validation state,
+cross-plan ID isolation, receipt tamper rollback with no event/entity writes, and lifecycle-gate enforcement.
+Public compile now prepares exact plan, validation, review, projection, receipt, and extension-review journal payloads
+before projection and resumes by the receipt-derived idempotent operation ID; the immediate projector remains an
+internal primitive rather than the public lifecycle path.
 
 #### Task 2.3: Add Controlled Custom Extension Compilation
 
 Validate imports/capabilities, compile against the Appraise runtime, bind the correct Cucumber instance, and present
 project-scoped extensions for exact review.
 
+Progress: **implemented at the review-only Phase 2 boundary**. The compiler validates proposals against the
+authoritative target project's capability-to-import policy, rejects unknown capabilities, ungranted/static re-export
+modules, dynamic/CommonJS loading, and dangerous globals, performs a strict real TypeScript check, and binds Cucumber
+to the exact Appraise-owned module. Check/preview returns deterministic blockers or an exact project-bound review with
+source/compiled hashes, capability/import manifest, source, compiled source, and Cucumber binding. Canonical compilation
+verifies the reviewed hashes and persists the complete immutable reviews in the same transaction and event as the
+Task 2.2 projection. This remains preview/review-only: execution is intentionally blocked until Phase 3 supplies an
+isolated runtime capsule, and no generated runtime or target-repository files are written.
+
+Security hardening now bounds submission collections, strings, action inputs, and source bytes before compiler work;
+short-circuits policy failures; and type-checks against an allowlist-only virtual declaration host with no target/host
+filesystem resolution. Module re-exports are rejected, identities are unique, and declared/proposed/referenced sets
+must match. The authoritative versioned project policy and hash are receipt-bound and discoverable through HTTP, MCP,
+CLI, and package-client surfaces. Execution is explicitly forbidden in Phase 2; isolation, runtime materialization,
+and execution remain Phase 3 work and do not keep this review-only compilation task open.
+
 #### Task 2.4: Introduce Simple Happy-Path Authoring Profile
 
 Define a profile contract the agent may select when composing the AST: one primary scenario, one environment/browser,
 ordinary bounded waits, essential accessibility/persistence assertions, and advanced timing/matrices opt-in.
 
+Progress: **implemented at the authoring/check boundary**. A selectable version 1 `simple-happy-path` profile requires
+one primary scenario, one environment/browser entry, explicit accessibility and persistence concerns, a `Then`
+assertion, and waits no longer than 30 seconds. Advanced matrices and timing require explicit opt-ins. Profile choice
+and opt-ins are preview/receipt/journal-bound and influence composition validation only; Appraise-owned review gates
+remain unchanged and no Phase 3 execution or materialization is introduced.
+
+The profile resolves registered action descriptors and assertion categories rather than trusting action IDs or concern
+labels. Versioned catalog descriptors identify real accessibility/persistence assertion concerns and numeric input
+units/bounds; timing is normalized from milliseconds or seconds before applying the 30-second cap. Focused bypass
+tests prove assertion-like names, metadata-only concern claims, and millisecond values cannot evade the profile.
+
+Review decisions and final submission are evidence-bound to the current `review_ready` operation hash and exact
+extension artifact hashes, with immutable operation-linked decision events and stale-binding rejection. Phase 2
+projections are marked `phase2_review_only`; implementation validation and every form, standalone, or plan-bound
+TestRun selection path denies their test cases until Phase 3 grants `phase3_capsule` execution authority.
+
+The final approved-AST submission follows a canonical review-only branch: it advances lifecycle and records
+operation-bound evidence without legacy runtime materialization, generated-file checks, environment preflight, or a
+second projection. Real-SQLite evidence proves the approved meditation revision reaches `validations_approved` with
+no `automation/` runtime output. Baseline and implementation guards reject `phase2_review_only`, while focused tests
+also prove a future `phase3_capsule` authority passes the provenance guard before normal execution gates. Immutable
+decision events use the canonical `(publishOperationId, validationId)` key. Retries read the original event before
+artifact writes, preserving reviewer, timestamp, decision, and content hash; final submission compares every field,
+the operation hash, and sorted extension hashes exactly. Real-SQLite evidence retries with a different reviewer,
+proves one identical artifact/event decision, and rejects tampered decision evidence.
+
 ### Checkpoint: New Authoring Path
+
+Status: **complete**. Tasks 2.1-2.4 establish checked, reviewed, recoverable compilation and the simple happy-path
+profile. The real-SQLite acceptance test
+`src/services/coordinator/validation-ast-operation-service.integration.test.ts` now publishes one meditation
+`simple-happy-path` submission through the authoritative action catalog and database-backed locator graph, check,
+preview receipt, one public compile operation, durable journal, canonical projection, and `validation_review_ready`.
+It proves the first review's persisted validation content equals the previewed post-compilation canonical node, the
+artifact and event hashes agree with the single operation and receipt, the profile has one scenario and one
+environment/browser with accessibility, persistence, and an explicit `Then`, and the fixture needs zero controlled
+extensions (therefore no more than one). Focused evidence: the integration file passes 3/3 tests.
+
+Final Phase 2 verification passes 151 root Vitest files (674 tests), 11 `appraisejs` package files (87 tests),
+11 scaffold package files (65 tests), the 4-case scaffold end-to-end suite, and all 38 Playwright cases. Prisma validates
+and applies all 35 migrations to fresh databases; canonical template preparation, root and scaffold production builds,
+ESLint, focused Prettier, diff whitespace, agent harness, Fallow's new-only commit gate, and the React Doctor
+`appraise-0.5` diff scan pass. Graphify refreshed the `src`, Prisma, and package graphs without an API key; endpoint
+integrity is clean, with one inherited normalized-ID self-loop in the source graph recorded for Graphify follow-up.
 
 - The agent composes and publishes the meditation validation through catalogs and one AST operation.
 - Appraise creates canonical entities without direct agent file writes.

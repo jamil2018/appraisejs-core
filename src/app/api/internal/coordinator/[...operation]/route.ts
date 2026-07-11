@@ -98,6 +98,13 @@ import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/
 import { ServiceError } from '@/services/shared/errors'
 import { submitDelegatedValidationAst } from '@/services/coordinator/delegated-validation-ast-service'
 import {
+  checkValidationAstForPlan,
+  compileValidationAstForPlan,
+  previewValidationAstForPlan,
+  readValidationAstExtensionPolicyForPlan,
+  readValidationAstExtensionReviewsForPlan,
+} from '@/services/coordinator/validation-ast-operation-service'
+import {
   createStandaloneTargetTestRun,
   diagnoseTestRunEvidence,
   preflightStandaloneTargetTestRun,
@@ -116,6 +123,10 @@ const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const routePlanIdSchema = planIdSchema
 const validationNodeSchema = z.unknown()
 const validationFileSchema = z.unknown()
+const astReviewBindingSchema = z.object({
+  operationHash: z.string().startsWith('sha256:').optional(),
+  extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
+})
 const reviewTargetSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('plan') }),
   z.object({ type: z.literal('task'), taskId: idSchema }),
@@ -743,6 +754,27 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
 // fallow-ignore-next-line complexity
 async function postValidationOperation(request: Request, operation: string[], body: unknown) {
   const planId = routePlanIdSchema.parse(operation[1])
+  if (operation[3] === 'ast') {
+    if (operation[4] === 'extension-policy') return Response.json(await readValidationAstExtensionPolicyForPlan(planId))
+    if (operation[4] === 'extension-reviews') {
+      const value = z.object({ operationId: z.string().optional() }).parse(body)
+      return Response.json(await readValidationAstExtensionReviewsForPlan(planId, value.operationId))
+    }
+    const value = z
+      .object({ submission: z.unknown(), expectedReceiptHash: z.string().startsWith('sha256:').optional() })
+      .parse(body)
+    if (operation[4] === 'check') return Response.json(await checkValidationAstForPlan(planId, value.submission))
+    if (operation[4] === 'preview') return Response.json(await previewValidationAstForPlan(planId, value.submission))
+    if (operation[4] === 'compile' && value.expectedReceiptHash)
+      return Response.json(
+        await compileValidationAstForPlan({
+          planId,
+          submission: value.submission,
+          expectedReceiptHash: value.expectedReceiptHash,
+        }),
+      )
+    throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+  }
   if (operation[3] === 'draft') {
     const action = operation[4]
     if (action === 'create') return Response.json(await createValidationDraft(planId), { status: 201 })
@@ -823,10 +855,16 @@ async function postValidationOperation(request: Request, operation: string[], bo
       .parse(body)
     return Response.json(await submitValidationFeedback({ planId, ...value }))
   }
-  if (operation[3] === 'submit') return Response.json(await submitValidationReview(planId))
+  if (operation[3] === 'submit') {
+    const binding = astReviewBindingSchema.parse(body)
+    return Response.json(await submitValidationReview(planId, binding))
+  }
   if (operation[3] === 'nodes') {
-    const value = z
-      .object({ decision: z.enum(['approved', 'rejected', 'deferred']), decidedBy: z.string().min(1) })
+    const value = astReviewBindingSchema
+      .extend({
+        decision: z.enum(['approved', 'rejected', 'deferred']),
+        decidedBy: z.string().min(1),
+      })
       .parse(body)
     return Response.json(await decideValidationNode({ planId, validationId: idSchema.parse(operation[4]), ...value }))
   }

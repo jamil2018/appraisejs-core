@@ -180,6 +180,13 @@ const validationNodeSchema = z.object({
     path: z.string().min(1),
     selector: z.string().min(1).optional(),
   }),
+  astProvenance: z
+    .object({
+      schemaVersion: z.literal('1'),
+      astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+      executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+    })
+    .optional(),
   matrix: z
     .array(
       z.object({

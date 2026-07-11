@@ -15,7 +15,8 @@ import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { reviseCoordinatorPlan, startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 import { acknowledgePlanEvent, appendPlanEvent, readPlanEvents } from '@/services/coordinator/coordinator-service'
-import { ensurePlanProjectionTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 
 import {
   addPlanRemark,
@@ -80,9 +81,9 @@ beforeEach(async () => {
   databasePath = path.join(workspace, 'review.db')
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  await ensurePlanProjectionTestSchema(databasePath)
+  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
 
-  client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  client = sqliteTestClient(databasePath)
 })
 
 afterEach(async () => {

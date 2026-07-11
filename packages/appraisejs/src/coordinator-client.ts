@@ -1,7 +1,12 @@
 import path from 'node:path'
 
 import { ensureLocalProjectIdentity } from './project-identity.js'
-import type { DelegatedAuthorizationReceipt, ValidationAstSubmission } from './phase1-contracts.js'
+import type {
+  CustomExtensionPolicy,
+  DelegatedAuthorizationReceipt,
+  ValidationAstExtensionReviewResult,
+  ValidationAstSubmission,
+} from './phase1-contracts.js'
 
 export type CoordinatorOptions = {
   cwd: string
@@ -174,6 +179,18 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     readLocatorGraphVisual: () => request('locator-graph/visual'),
     submitDelegatedValidationAst: (submission: ValidationAstSubmission, receipt: DelegatedAuthorizationReceipt) =>
       post('delegated/validation-ast-submissions', { submission, receipt }),
+    readValidationAstExtensionPolicy: (planId: string) =>
+      post(`plans/${planId}/validations/ast/extension-policy`, {}) as Promise<CustomExtensionPolicy>,
+    readValidationAstExtensionReviews: (planId: string, operationId?: string) =>
+      post(`plans/${planId}/validations/ast/extension-reviews`, {
+        operationId,
+      }) as Promise<ValidationAstExtensionReviewResult>,
+    checkValidationAst: (planId: string, submission: ValidationAstSubmission) =>
+      post(`plans/${planId}/validations/ast/check`, { submission }),
+    previewValidationAst: (planId: string, submission: ValidationAstSubmission) =>
+      post(`plans/${planId}/validations/ast/preview`, { submission }),
+    compileValidationAst: (planId: string, submission: ValidationAstSubmission, expectedReceiptHash: string) =>
+      post(`plans/${planId}/validations/ast/compile`, { submission, expectedReceiptHash }),
     listProviders: () => request('providers'),
     probeProvider: (providerKey: string) => post(`providers/${providerKey}/probe`, {}),
     updateProvider: (
@@ -234,7 +251,8 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     ) => post(`plans/${planId}/validations/draft/step-metadata`, metadata),
     submitValidationFeedback: (planId: string, feedback: unknown) =>
       post(`plans/${planId}/validations/feedback`, feedback),
-    submitValidation: (planId: string) => post(`plans/${planId}/validations/submit`, {}),
+    submitValidation: (planId: string, binding: { operationHash?: string; extensionArtifactHashes?: string[] } = {}) =>
+      post(`plans/${planId}/validations/submit`, binding),
     startBaseline: (planId: string) => post(`plans/${planId}/baseline/start`, {}),
     reconcileBaseline: (planId: string) => post(`plans/${planId}/baseline/reconcile`, {}),
     cancelBaseline: (planId: string) => post(`plans/${planId}/baseline/cancel`, {}),

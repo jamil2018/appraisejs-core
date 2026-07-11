@@ -297,37 +297,38 @@ model TestRun {
 }
 
 model PlanProjection {
-  id                   String                @id @default(uuid())
-  planId               String                @unique
-  slug                 String                @default("")
-  legacyPlanId         String?
-  revision             Int
-  lifecycle            String
-  goal                 String
-  description          String
-  sourceHash           String
-  planPath             String
-  reviewJson           String?
-  validationJson       String?
-  layoutJson           String?
-  stale                Boolean               @default(false)
-  conflicted           Boolean               @default(false)
-  deletedAt            DateTime?
-  lastValidProjectedAt DateTime
-  lastSyncAt           DateTime              @default(now())
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  tasks                PlanTaskProjection[]
-  issues               PlanSyncIssue[]
-  revisions            PlanRevision[]
-  events               PlanEvent[]
-  coordinatorLease     PlanCoordinatorLease?
-  personalLayouts      PlanPersonalLayout[]
-  testRuns             TestRun[]
-  providerRuns         ProviderWorkflowRun[]
-  baselineAttempts     BaselineAttempt[]
-  targetProjectId      String?
-  targetProject        TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  id                             String                          @id @default(uuid())
+  planId                         String                          @unique
+  slug                           String                          @default("")
+  legacyPlanId                   String?
+  revision                       Int
+  lifecycle                      String
+  goal                           String
+  description                    String
+  sourceHash                     String
+  planPath                       String
+  reviewJson                     String?
+  validationJson                 String?
+  layoutJson                     String?
+  stale                          Boolean                         @default(false)
+  conflicted                     Boolean                         @default(false)
+  deletedAt                      DateTime?
+  lastValidProjectedAt           DateTime
+  lastSyncAt                     DateTime                        @default(now())
+  createdAt                      DateTime                        @default(now())
+  updatedAt                      DateTime                        @updatedAt
+  tasks                          PlanTaskProjection[]
+  issues                         PlanSyncIssue[]
+  revisions                      PlanRevision[]
+  events                         PlanEvent[]
+  coordinatorLease               PlanCoordinatorLease?
+  personalLayouts                PlanPersonalLayout[]
+  testRuns                       TestRun[]
+  providerRuns                   ProviderWorkflowRun[]
+  baselineAttempts               BaselineAttempt[]
+  validationAstPublishOperations ValidationAstPublishOperation[]
+  targetProjectId                String?
+  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
 
   @@index([stale])
   @@index([conflicted])
@@ -371,19 +372,20 @@ model BaselineAttemptEvent {
 }
 
 model TargetProject {
-  id              String                @id @default(uuid())
-  canonicalPath   String                @unique
-  displayName     String
-  packageName     String?
-  packageManager  String?
-  packageJson     String?
-  fingerprint     String                @unique
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  lastDetectedAt  DateTime              @default(now())
-  planProjections PlanProjection[]
-  providerRuns    ProviderWorkflowRun[]
-  testRuns        TestRun[]
+  id                             String                          @id @default(uuid())
+  canonicalPath                  String                          @unique
+  displayName                    String
+  packageName                    String?
+  packageManager                 String?
+  packageJson                    String?
+  fingerprint                    String                          @unique
+  createdAt                      DateTime                        @default(now())
+  updatedAt                      DateTime                        @updatedAt
+  lastDetectedAt                 DateTime                        @default(now())
+  planProjections                PlanProjection[]
+  providerRuns                   ProviderWorkflowRun[]
+  testRuns                       TestRun[]
+  validationAstPublishOperations ValidationAstPublishOperation[]
 
   @@index([displayName])
   @@index([fingerprint])
@@ -543,18 +545,23 @@ model PlanRevision {
 }
 
 model PlanEvent {
-  id               String         @id @default(uuid())
-  planProjectionId String
-  sequence         Int
-  type             String
-  payloadJson      String?
-  acknowledgedAt   DateTime?
-  acknowledgedBy   String?
-  supersededAt     DateTime?
-  createdAt        DateTime       @default(now())
-  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+  id                 String                         @id @default(uuid())
+  planProjectionId   String
+  publishOperationId String?
+  validationId       String?
+  sequence           Int
+  type               String
+  payloadJson        String?
+  acknowledgedAt     DateTime?
+  acknowledgedBy     String?
+  supersededAt       DateTime?
+  createdAt          DateTime                       @default(now())
+  plan               PlanProjection                 @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+  publishOperation   ValidationAstPublishOperation? @relation(fields: [publishOperationId], references: [id], onDelete: Restrict)
 
   @@unique([planProjectionId, sequence])
+  @@unique([publishOperationId, type])
+  @@unique([publishOperationId, validationId])
   @@index([planProjectionId, acknowledgedAt, sequence])
 }
 
@@ -587,6 +594,63 @@ model DelegatedValidationAstSubmission {
   receivedAt        DateTime @default(now())
 
   @@index([targetFingerprint, planHash, receivedAt])
+}
+
+model ValidationAstPublishOperation {
+  id                       String                      @id @default(uuid())
+  planId                   String
+  planProjectionId         String
+  targetProjectId          String
+  targetFingerprint        String
+  idempotencyKey           String
+  operationHash            String                      @unique
+  phase                    String                      @default("prepared")
+  expectedPlanHash         String
+  expectedPlanArtifactHash String
+  expectedValidationHash   String?
+  expectedReviewHash       String
+  planHash                 String
+  validationHash           String
+  reviewHash               String
+  planContent              String
+  validationContent        String
+  reviewContent            String
+  astId                    String
+  astHash                  String
+  contextHash              String
+  previewHash              String
+  receiptHash              String
+  projectionHash           String
+  projectionJson           String
+  validationProjectionJson String
+  failure                  String?
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  extensionReviews         ValidationExtensionReview[]
+  events                   PlanEvent[]
+  plan                     PlanProjection              @relation(fields: [planProjectionId], references: [id], onDelete: Restrict)
+  targetProject            TargetProject               @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, idempotencyKey])
+  @@index([phase, updatedAt])
+  @@index([planProjectionId, phase])
+  @@index([targetProjectId, phase])
+}
+
+model ValidationExtensionReview {
+  id           String                        @id @default(uuid())
+  operationId  String
+  extensionId  String
+  version      String
+  sourceHash   String
+  compiledHash String
+  artifactHash String
+  artifactJson String
+  createdAt    DateTime                      @default(now())
+  operation    ValidationAstPublishOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([operationId, extensionId, version])
+  @@index([artifactHash])
 }
 
 model PlanCoordinatorLease {

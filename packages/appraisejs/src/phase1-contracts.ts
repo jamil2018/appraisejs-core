@@ -3,6 +3,29 @@ export const LOCATOR_GRAPH_CONTRACT_VERSION = '1' as const
 export const VALIDATION_AST_SCHEMA_VERSION = '1' as const
 export const DELEGATED_AUTHORIZATION_VERSION = '1' as const
 
+export type ActionAssertionConcern = 'accessibility' | 'persistence'
+export type ActionNumericUnit = 'milliseconds' | 'seconds'
+export type ActionInputDescriptor = {
+  name: string
+  type: string
+  required: boolean
+  description: string
+  constraints?: Record<string, unknown>
+  numeric?: { unit: ActionNumericUnit; minimum?: number; maximum?: number }
+}
+export type ActionDescriptor = {
+  id: string
+  version: string
+  title: string
+  description: string
+  categories: string[]
+  inputs: ActionInputDescriptor[]
+  outputs: Array<{ name: string; type: string; description: string }>
+  requirements: { runtime: 'browser' | 'api' | 'node' | 'database'; capabilities: string[] }
+  assertionConcerns: ActionAssertionConcern[]
+  contentHash: string
+}
+
 export type ValidationAstValue =
   | string
   | number
@@ -50,8 +73,46 @@ export type CustomActionExtensionProposal = {
 
 export type ValidationAstSubmission = {
   expectedPlanHash: string
+  authoringProfile?: {
+    id: 'simple-happy-path'
+    version: '1'
+    advanced?: { matrix?: boolean; timing?: boolean }
+  }
   ast: ValidationAst
   customExtensionProposals: CustomActionExtensionProposal[]
+}
+
+export type CustomExtensionPolicy = {
+  version: '1'
+  projectId: string
+  projectFingerprint: string
+  capabilityImports: Record<string, readonly string[]>
+  compilerVersion: string
+  declarationHash: string
+  contentHash: string
+}
+
+export type CompiledCustomExtensionReview = {
+  schemaVersion: '1'
+  projectId: string
+  projectFingerprint: string
+  extension: Pick<CustomActionExtensionProposal, 'id' | 'version' | 'title' | 'description' | 'inputs' | 'outputs'>
+  requiredCapabilities: string[]
+  imports: Array<{ requested: string; compiled: string }>
+  source: string
+  compiledSource: string
+  sourceHash: string
+  compiledHash: string
+  cucumberModulePath: string
+}
+
+export type ValidationAstExtensionReviewResult = {
+  planId: string
+  operationId: string
+  operationHash: string
+  decisionBindingHash: string
+  receiptHash: string
+  extensions: CompiledCustomExtensionReview[]
 }
 
 export type DelegatedAuthorizationReceipt = {

@@ -30,6 +30,13 @@ function hasColumn(databasePath: string, tableName: string, columnName: string):
   )
 }
 
+function addPublishOperationToPlanEvents(databasePath: string) {
+  execFileSync('sqlite3', [databasePath], {
+    input: `ALTER TABLE "PlanEvent" ADD COLUMN "publishOperationId" TEXT REFERENCES "ValidationAstPublishOperation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE UNIQUE INDEX "PlanEvent_publishOperationId_type_key" ON "PlanEvent"("publishOperationId", "type");`,
+  })
+}
+
 export async function ensurePlanProjectionTestSchema(databasePath: string) {
   if (!hasTable(databasePath, 'PlanProjection')) {
     await applyMigration(databasePath, '20260609002500_add_plan_projection_and_sync')
@@ -45,6 +52,14 @@ export async function ensurePlanProjectionTestSchema(databasePath: string) {
 
   if (!hasColumn(databasePath, 'PlanProjection', 'slug')) {
     await applyMigration(databasePath, '20260628103000_add_plan_slug_legacy_identity')
+  }
+
+  if (
+    hasTable(databasePath, 'ValidationAstPublishOperation') &&
+    hasTable(databasePath, 'PlanEvent') &&
+    !hasColumn(databasePath, 'PlanEvent', 'publishOperationId')
+  ) {
+    addPublishOperationToPlanEvents(databasePath)
   }
 }
 
@@ -72,6 +87,11 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   }
   if (!hasTable(databasePath, 'DelegatedValidationAstSubmission')) {
     await applyMigration(databasePath, '20260711170000_add_delegated_ast_submissions')
+  }
+  if (!hasTable(databasePath, 'ValidationAstPublishOperation')) {
+    await applyMigration(databasePath, '20260711190000_add_validation_ast_publish_journal')
+  } else if (!hasColumn(databasePath, 'PlanEvent', 'publishOperationId')) {
+    addPublishOperationToPlanEvents(databasePath)
   }
 }
 
