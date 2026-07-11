@@ -260,6 +260,20 @@ describe('implementation coordinator checkpoints', () => {
       { planId, taskId: 'foundation', status: 'implemented', commitHash: 'commit-foundation' },
       { projectDirectory: workspace, client, now: new Date('2026-06-11T00:01:00.000Z') },
     )
+    await expect(
+      updateImplementationTask(
+        { planId, taskId: 'foundation', status: 'implemented', commitHash: 'commit-foundation' },
+        { projectDirectory: workspace, client, now: new Date('2026-06-11T00:01:30.000Z') },
+      ),
+    ).resolves.toMatchObject({
+      commits: [
+        {
+          hash: 'commit-foundation',
+          taskIds: ['foundation'],
+          createdAt: '2026-06-11T00:01:00.000Z',
+        },
+      ],
+    })
     await expect(reviewImplementationCompletion(planId, { projectDirectory: workspace })).resolves.toMatchObject({
       readiness: { ready: false, blockers: expect.arrayContaining([expect.stringContaining('foundation')]) },
       structuredBlockers: expect.arrayContaining([

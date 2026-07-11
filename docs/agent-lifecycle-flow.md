@@ -1,5 +1,9 @@
 # Agent Lifecycle Flow
 
+When multiple delivered events have been handled in sequence, coordinators should cumulatively acknowledge through
+the highest handled sequence. The cumulative operation is idempotent and avoids one request per historical event;
+use single-event acknowledgement when later delivered events must remain pending.
+
 Agents must use Appraise-owned lifecycle gates. Chat approval can clarify intent, but it does not replace plan,
 validation, baseline, implementation, completion, or cancellation transitions.
 

@@ -158,6 +158,7 @@ try {
     'planning_session_create',
     'plan_create',
     'plan_event_acknowledge',
+    'plan_events_acknowledge_through',
     'plan_events_read',
     'plan_read',
     'plan_review_loop',

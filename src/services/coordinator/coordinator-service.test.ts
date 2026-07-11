@@ -12,6 +12,7 @@ import { createCoordinatorPlan } from '@/services/coordinator/coordinator-plan-s
 
 import {
   acknowledgePlanEvent,
+  acknowledgePlanEventsThrough,
   appendPlanEvent,
   authenticateProject,
   ensureProjectIdentity,
@@ -306,6 +307,22 @@ describe('durable plan event outbox', () => {
     ).resolves.toMatchObject({
       lifecycle: 'cancelled',
     })
+  })
+
+  it('acknowledges a cumulative event range idempotently', async () => {
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'first' }, client)
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'second' }, client)
+    await appendPlanEvent({ planId: 'coordinator-plan', type: 'third' }, client)
+
+    await expect(
+      acknowledgePlanEventsThrough({ planId: 'coordinator-plan', sequence: 2, coordinatorId: 'agent-one' }, client),
+    ).resolves.toMatchObject({ acknowledgedThroughSequence: 2, acknowledgedCount: 2 })
+    await expect(
+      acknowledgePlanEventsThrough({ planId: 'coordinator-plan', sequence: 2, coordinatorId: 'agent-one' }, client),
+    ).resolves.toMatchObject({ acknowledgedThroughSequence: 2, acknowledgedCount: 0 })
+    await expect(readPlanEvents({ planId: 'coordinator-plan' }, client)).resolves.toMatchObject([
+      { sequence: 3, type: 'third' },
+    ])
   })
 
   it('stops long polling when the caller cancels', async () => {
