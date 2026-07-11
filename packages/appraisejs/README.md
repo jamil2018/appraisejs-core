@@ -14,6 +14,19 @@ Example:
 npx appraisejs@latest add step click/click-element
 ```
 
+## Managed Run Diagnostics
+
+The CLI connects to the Appraise hub and exposes selected-target, bounded diagnostics in human or exact JSON form:
+
+```bash
+appraisejs test-run diagnose --run-id <run-id>
+appraisejs test-run diagnose --run-id <run-id> --json
+```
+
+Managed capsule output contains stable status, blocker, evidence, and recovery fields without raw paths, commands,
+environment values, or artifact contents. Recoverable blocked diagnostics exit with status 2. The diagnostic service
+and schema are hub-only in Appraise 0.5 and are not copied into scaffold templates.
+
 ## Requirements
 
 - Node.js 18+

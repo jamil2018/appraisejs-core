@@ -3,6 +3,16 @@ import type { PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  validateValidationAstRuntimeInput,
+  validationAstPublishOperationId,
+} from './validation-ast-runtime-input-contract'
+
+export {
+  validateValidationAstRuntimeInput,
+  validationAstPublishOperationId,
+  type ValidationAstRuntimeInputV1,
+} from './validation-ast-runtime-input-contract'
 
 const VALIDATION_AST_PUBLISH_PHASES = ['prepared', 'artifacts_written', 'projected', 'review_ready'] as const
 type Phase = (typeof VALIDATION_AST_PUBLISH_PHASES)[number]
@@ -14,6 +24,7 @@ const operationDigest = (value: unknown) =>
   `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const immutableOperationHash = (value: Record<string, unknown>, extensionReviewHashes: string[]) =>
   operationDigest({
+    ...(typeof value.runtimeInputHash === 'string' ? { id: value.id } : {}),
     planId: value.planId,
     planProjectionId: value.planProjectionId,
     targetProjectId: value.targetProjectId,
@@ -37,6 +48,9 @@ const immutableOperationHash = (value: Record<string, unknown>, extensionReviewH
     projectionHash: value.projectionHash,
     projectionJson: value.projectionJson,
     validationProjectionJson: value.validationProjectionJson,
+    ...(typeof value.runtimeInputHash === 'string' && typeof value.runtimeInputJson === 'string'
+      ? { runtimeInputHash: value.runtimeInputHash, runtimeInputJson: value.runtimeInputJson }
+      : {}),
     extensionReviewHashes: [...extensionReviewHashes].sort(),
   })
 
@@ -82,16 +96,32 @@ export function validateStoredValidationAstPublish(
   ] as const)
     if (typeof operation[key] !== 'string' || Buffer.byteLength(operation[key]) > MAX_ARTIFACT_BYTES)
       throw new ServiceError('Stored publish payload is invalid or oversized.', 'CONFLICT')
+  const hasRuntimeInput = operation.runtimeInputJson != null || operation.runtimeInputHash != null
+  if (
+    hasRuntimeInput &&
+    (typeof operation.runtimeInputJson !== 'string' ||
+      Buffer.byteLength(operation.runtimeInputJson) > MAX_ARTIFACT_BYTES ||
+      typeof operation.runtimeInputHash !== 'string')
+  )
+    throw new ServiceError('Stored runtime input payload is invalid or oversized.', 'CONFLICT')
   if (
     digest(operation.planContent as string) !== operation.planHash ||
     digest(operation.validationContent as string) !== operation.validationHash ||
     digest(operation.reviewContent as string) !== operation.reviewHash ||
-    operationDigest(JSON.parse(operation.projectionJson as string)) !== operation.projectionHash
+    operationDigest(JSON.parse(operation.projectionJson as string)) !== operation.projectionHash ||
+    (hasRuntimeInput &&
+      operationDigest(JSON.parse(operation.runtimeInputJson as string)) !== operation.runtimeInputHash)
   )
     throw new ServiceError('Stored publish payload hash mismatch.', 'CONFLICT')
   if (operation.extensionReviews.length > MAX_EXTENSIONS)
     throw new ServiceError('Stored publish has too many extension reviews.', 'CONFLICT')
   operation.extensionReviews.forEach(validateExtensionReview)
+  if (hasRuntimeInput)
+    validateValidationAstRuntimeInput({
+      operation,
+      projectionJson: operation.projectionJson as string,
+      extensionReviews: operation.extensionReviews,
+    })
   if (
     immutableOperationHash(
       operation,
@@ -103,6 +133,7 @@ export function validateStoredValidationAstPublish(
 
 export async function prepareValidationAstPublish(
   input: {
+    id: string
     planId: string
     planProjectionId: string
     targetProjectId: string
@@ -126,6 +157,8 @@ export async function prepareValidationAstPublish(
     projectionHash: string
     projectionJson: string
     validationProjectionJson: string
+    runtimeInputHash: string
+    runtimeInputJson: string
     extensionReviews: Array<{
       extensionId: string
       version: string
@@ -137,12 +170,15 @@ export async function prepareValidationAstPublish(
   },
   client: PrismaClient = prisma,
 ) {
+  if (input.id !== validationAstPublishOperationId(input.receiptHash))
+    throw new ServiceError('Validation AST publish operation id does not match its receipt.', 'VALIDATION')
   for (const content of [
     input.planContent,
     input.validationContent,
     input.reviewContent,
     input.projectionJson,
     input.validationProjectionJson,
+    input.runtimeInputJson,
   ])
     if (Buffer.byteLength(content) > MAX_ARTIFACT_BYTES)
       throw new ServiceError('Publish payload exceeds 1 MiB.', 'VALIDATION')
@@ -152,10 +188,16 @@ export async function prepareValidationAstPublish(
     digest(input.planContent) !== input.planHash ||
     digest(input.validationContent) !== input.validationHash ||
     digest(input.reviewContent) !== input.reviewHash ||
-    operationDigest(JSON.parse(input.projectionJson)) !== input.projectionHash
+    operationDigest(JSON.parse(input.projectionJson)) !== input.projectionHash ||
+    operationDigest(JSON.parse(input.runtimeInputJson)) !== input.runtimeInputHash
   )
     throw new ServiceError('Publish artifact hash does not match its server payload.', 'VALIDATION')
   input.extensionReviews.forEach(validateExtensionReview)
+  validateValidationAstRuntimeInput({
+    operation: input,
+    projectionJson: input.projectionJson,
+    extensionReviews: input.extensionReviews,
+  })
   const operationHash = immutableOperationHash(
     { ...input, expectedValidationHash: input.expectedValidationHash ?? null },
     input.extensionReviews.map(item => item.artifactHash),

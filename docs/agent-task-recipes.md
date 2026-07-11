@@ -81,6 +81,12 @@ Validation: dry-run sync when available, affected sync tests, and review of gene
 Update automation sync or generated-artifact docs when canonical sources, sync commands, or generated output ownership
 changes.
 
+For reviewed runtime capsules, start with `prisma/schema.prisma`, `src/lib/runtime-capsule/`,
+`src/services/test-run/runtime-capsule-test-run-service.ts`, the capsule executor, diagnostics service/routes, and
+`test-run-artifact-access-service.ts`. Validate receipt/materializer/preflight contracts, real-SQLite attempt and
+containment behavior, artifact routes, and package CLI/MCP response modes. Capsule execution must not write or import
+target-repository automation as authority.
+
 ## E2E And Playwright
 
 Read `docs/test-run-runtime.md`, the target spec, and shared helpers before changing assertions or setup. Keep tests

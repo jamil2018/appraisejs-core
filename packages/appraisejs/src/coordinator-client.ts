@@ -117,6 +117,14 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     options: { ...options, cwd: local.details.canonicalProjectPath },
     request,
     diagnose: () => request('diagnostic'),
+    diagnoseTestRun: (runId: string) =>
+      request(`test-runs/${encodeURIComponent(runId)}/diagnose`, {
+        headers: { 'x-appraise-target-project': local.details.projectFingerprint },
+      }),
+    readTestRun: (runId: string) =>
+      request(`test-runs/${encodeURIComponent(runId)}`, {
+        headers: { 'x-appraise-target-project': local.details.projectFingerprint },
+      }),
     listActionCategories: (parentCategoryId?: string, knownCatalogHash?: string) => {
       const query = new URLSearchParams()
       if (parentCategoryId) query.set('parentCategoryId', parentCategoryId)

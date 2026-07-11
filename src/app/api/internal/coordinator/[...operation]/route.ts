@@ -242,10 +242,21 @@ async function getDiagnostic(request: Request) {
   })
 }
 
-async function getTestRunEvidence(operation: string[]) {
+async function resolveEvidenceTarget(request: Request) {
+  const fingerprint = request.headers.get('x-appraise-target-project')
+  if (!fingerprint) throw new ServiceError('Test run not found.', 'NOT_FOUND', 404)
+  const target = await resolveTargetProject(fingerprint).catch(() => null)
+  if (!target) throw new ServiceError('Test run not found.', 'NOT_FOUND', 404)
+  return target
+}
+
+async function getTestRunEvidence(request: Request, operation: string[]) {
   const runId = z.string().uuid().parse(operation[1])
-  if (operation.length === 2) return Response.json(await readTestRunEvidenceSummary(runId))
-  if (operation[2] === 'diagnose') return Response.json(await diagnoseTestRunEvidence(runId))
+  const target = await resolveEvidenceTarget(request)
+  if (operation.length === 2) return Response.json(await readTestRunEvidenceSummary(runId, target.id))
+  if (operation[2] === 'diagnose') {
+    return Response.json(await diagnoseTestRunEvidence(runId, target.id))
+  }
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
@@ -289,7 +300,7 @@ async function getValidations(request: Request, operation: string[]) {
 // fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
-  if (operation[0] === 'test-runs') return getTestRunEvidence(operation)
+  if (operation[0] === 'test-runs') return getTestRunEvidence(request, operation)
   if (operation[0] === 'actions') {
     const query = new URL(request.url).searchParams
     if (operation[1] === 'categories') {

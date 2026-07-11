@@ -1,22 +1,24 @@
 import prisma from '@/config/db-config'
 import { resolveStoredPath } from '@/lib/automation/automation-path-roots'
 import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
-import { parseCucumberReport, type ParsedReport } from '@/lib/test-run/report-parser'
+import { parseCucumberReport, parseCucumberReportText, type ParsedReport } from '@/lib/test-run/report-parser'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  createTestRunArtifactAccess,
+  createTestRunArtifactContext,
+} from '@/services/test-run/test-run-artifact-context'
 import { TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
+import path from 'path'
 
-const TEST_RUN_EVIDENCE_HEALTH_VALUES = [
-  'valid',
-  'invalid_empty_run',
-  'invalid_missing_test_cases',
-  'invalid_missing_report',
-  'invalid_placeholder_binary',
-  'invalid_unmatched_scenarios',
-  'invalid_stale_runtime',
-  'infrastructure_failure',
-] as const
-
-export type TestRunEvidenceHealthValue = (typeof TEST_RUN_EVIDENCE_HEALTH_VALUES)[number]
+export type TestRunEvidenceHealthValue =
+  | 'valid'
+  | 'invalid_empty_run'
+  | 'invalid_missing_test_cases'
+  | 'invalid_missing_report'
+  | 'invalid_placeholder_binary'
+  | 'invalid_unmatched_scenarios'
+  | 'invalid_stale_runtime'
+  | 'infrastructure_failure'
 export type RunEvidenceGrade = 'valid' | 'invalid' | 'infrastructure_failure' | 'pending'
 
 export type RunEvidenceSummary = {
@@ -141,6 +143,7 @@ async function loadTestRunForEvidence(runId: string, client: EvidenceClient = pr
     where: { runId },
     include: {
       targetProject: true,
+      runtimeCapsule: true,
       testCases: {
         include: {
           testCase: {
@@ -240,6 +243,7 @@ function summaryFromClassification(
 export async function summarizeRunEvidence(
   runId: string,
   client: EvidenceClient = prisma,
+  appraiseRoot = path.join(process.cwd(), '.appraise'),
 ): Promise<RunEvidenceSummary> {
   const testRun = await loadTestRunForEvidence(runId, client)
   if (!testRun) {
@@ -275,9 +279,14 @@ export async function summarizeRunEvidence(
   }
 
   try {
-    const report = await parseCucumberReport(
-      resolveStoredPath(testRun.reportPath, testRun.targetProject?.canonicalPath),
-    )
+    const report = testRun.runtimeCapsule
+      ? parseCucumberReportText(
+          await createTestRunArtifactAccess(
+            createTestRunArtifactContext(appraiseRoot),
+            client as PrismaClient,
+          ).readText({ runId, kind: 'report' }),
+        )
+      : await parseCucumberReport(resolveStoredPath(testRun.reportPath, testRun.targetProject?.canonicalPath))
     return summaryFromClassification(testRun, classifyReportEvidence(testRun, report, logExcerpt), logExcerpt)
   } catch (error) {
     missingArtifacts.push(testRun.reportPath)
@@ -300,19 +309,30 @@ export async function summarizeRunEvidence(
 export async function persistRunEvidenceHealth(
   runId: string,
   client: EvidenceClient = prisma,
+  expectedStatus?: TestRunStatus,
+  appraiseRoot?: string,
 ): Promise<RunEvidenceSummary> {
-  const summary = await summarizeRunEvidence(runId, client)
-  await client.testRun.update({
-    where: { runId },
-    data: {
-      evidenceHealth: summary.evidenceHealth,
-    },
-  })
+  const summary = await summarizeRunEvidence(runId, client, appraiseRoot)
+  if (expectedStatus && 'updateMany' in client.testRun) {
+    await client.testRun.updateMany({
+      where: { runId, status: expectedStatus },
+      data: { evidenceHealth: summary.evidenceHealth },
+    })
+  } else {
+    await client.testRun.update({
+      where: { runId },
+      data: { evidenceHealth: summary.evidenceHealth },
+    })
+  }
   return summary
 }
 
-export async function diagnoseRunEvidence(runId: string, client: EvidenceClient = prisma) {
-  const summary = await summarizeRunEvidence(runId, client)
+export async function diagnoseRunEvidence(
+  runId: string,
+  client: EvidenceClient = prisma,
+  appraiseRoot = path.join(process.cwd(), '.appraise'),
+) {
+  const summary = await summarizeRunEvidence(runId, client, appraiseRoot)
   return {
     ...summary,
     rootCause: summary.blockers[0] ?? 'No evidence-health blockers were detected.',

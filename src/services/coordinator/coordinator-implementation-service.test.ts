@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { PrismaClient } from '@prisma/client'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   parseYamlArtifact,
@@ -18,6 +18,7 @@ import { hashFileContent } from '@/lib/validation-review/file-review'
 import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
+import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
 import {
   applyBlockingFeedback,
@@ -160,6 +161,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
       pausedTaskIds: [],
       validationRuns: [],
       commits: [],
+      reconciliationReceipts: [],
       evidenceProtected: true,
     },
     ...overrides,
@@ -217,6 +219,7 @@ beforeEach(async () => {
 })
 
 async function cleanupImplementationWorkspace() {
+  vi.restoreAllMocks()
   await client.$disconnect()
   await fs.rm(workspace, { recursive: true, force: true })
 }
@@ -224,6 +227,270 @@ async function cleanupImplementationWorkspace() {
 afterEach(cleanupImplementationWorkspace)
 
 describe('implementation coordinator checkpoints', () => {
+  async function configureReviewedCapsule(
+    planId: string,
+    targetProjectId: string,
+    provenance: NonNullable<ValidationArtifact['validations'][number]['astProvenance']>,
+  ) {
+    await client.targetProject.create({
+      data: {
+        id: targetProjectId,
+        canonicalPath: workspace,
+        displayName: 'Capsule target',
+        fingerprint: hashFileContent(targetProjectId),
+      },
+    })
+    await client.planProjection.update({ where: { planId }, data: { targetProjectId } })
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+    const artifact = parseYamlArtifact('validation', stored.content) as ValidationArtifact
+    artifact.validations[0]!.astProvenance = provenance
+    await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', artifact))
+  }
+
+  function mockSuccessfulCapsuleStart() {
+    return vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'start').mockImplementation(async input => {
+      const row = await client.testRun.findUniqueOrThrow({ where: { id: input.testRunDbId } })
+      return { testRunId: row.id, runId: row.runId, attemptId: `attempt-${row.id}`, state: 'RUNNING' } as never
+    })
+  }
+
+  it('binds reviewed v2 implementation validation to a capsule TestRun without target automation inputs', async () => {
+    const planId = 'implementation-capsule-run'
+    await writeArtifacts(planId, undefined, {
+      implementation: {
+        taskStates: { foundation: 'verified', api: 'verified', docs: 'verified' },
+        approvedGroupIds: ['core'],
+        pausedTaskIds: [],
+        validationRuns: [],
+        commits: [],
+        reconciliationReceipts: [],
+        evidenceProtected: true,
+      },
+    })
+    await configureReviewedCapsule(planId, 'capsule-target', {
+      schemaVersion: '2',
+      astHash: `sha256:${'a'.repeat(64)}`,
+      executionAuthority: 'phase2_review_only',
+      publishOperationId: 'astpub_reviewed',
+      receiptHash: `sha256:${'b'.repeat(64)}`,
+      runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+    })
+    const prepare = vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare').mockResolvedValue({
+      id: 'test-run-db-id',
+      runId: 'public-run-id',
+    } as never)
+    const start = vi
+      .spyOn(RuntimeCapsuleTestRunService.prototype, 'start')
+      .mockRejectedValue(new Error('spawn /Users/secret/project failed with token=super-secret'))
+
+    const result = await startImplementationValidation(
+      { planId, validationIds: ['core-validation'], commitHash: 'commit' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T00:00:00.000Z') },
+    )
+
+    expect(prepare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationId: 'astpub_reviewed',
+        preparationKey: expect.stringMatching(
+          /^implementation:implementation-capsule-run:1:astpub_reviewed:sha256:[a-f0-9]{64}:core-validation:chromium:local:0$/,
+        ),
+      }),
+    )
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ testRunDbId: 'test-run-db-id' }))
+    expect(result.testRunInputs).toEqual([])
+    expect(result.runs[0]).toMatchObject({ testRunId: 'public-run-id' })
+    expect(result.runs[0]!.runtimePaths).toBeUndefined()
+    expect(result.capsuleStartOutcomes).toEqual([
+      {
+        testRunDbId: 'test-run-db-id',
+        status: 'infrastructure_failure',
+        code: 'CAPSULE_START_FAILED',
+        message: 'The managed runtime capsule could not start. Inspect bounded run diagnostics before retrying.',
+      },
+    ])
+    expect(JSON.stringify(result)).not.toContain('/Users/secret')
+    expect(JSON.stringify(result)).not.toContain('super-secret')
+  })
+
+  async function prepareReviewedAstBatch(planId: string) {
+    await writeArtifacts(planId)
+    await client.targetProject.create({
+      data: {
+        id: `${planId}-target`,
+        canonicalPath: workspace,
+        displayName: 'Capsule batch target',
+        fingerprint: hashFileContent(planId),
+      },
+    })
+    await client.planProjection.update({
+      where: { planId },
+      data: { targetProjectId: `${planId}-target` },
+    })
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+    const artifact = parseYamlArtifact('validation', stored.content) as ValidationArtifact
+    artifact.validations.forEach((item, index) => {
+      item.astProvenance = {
+        schemaVersion: '2',
+        astHash: `sha256:${String(index + 1).repeat(64)}`,
+        executionAuthority: 'phase2_review_only',
+        publishOperationId: `astpub_${item.id}`,
+        receiptHash: `sha256:${String(index + 3).repeat(64)}`,
+        runtimeInputHash: `sha256:${String(index + 5).repeat(64)}`,
+      }
+    })
+    await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', artifact))
+  }
+
+  it('cancels earlier queued capsule rows when a later prepare fails', async () => {
+    const planId = 'implementation-capsule-prepare-cleanup'
+    await prepareReviewedAstBatch(planId)
+    let prepareCount = 0
+    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare').mockImplementation(async input => {
+      prepareCount += 1
+      if (prepareCount === 2) throw new Error('second prepare failed')
+      return client.testRun.create({
+        data: {
+          name: input.name,
+          environmentId: input.environmentId,
+          planId: input.planId,
+          targetProjectId: input.targetProjectId,
+        },
+      }) as never
+    })
+    const start = vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'start')
+
+    await expect(
+      startImplementationValidation(
+        { planId, commitHash: 'commit' },
+        { projectDirectory: workspace, client, now: new Date('2026-06-11T01:00:00.000Z') },
+      ),
+    ).rejects.toThrow('second prepare failed')
+
+    expect(start).not.toHaveBeenCalled()
+    await expect(client.testRun.findMany({ where: { planId } })).resolves.toEqual([
+      expect.objectContaining({ status: 'CANCELLED', result: 'CANCELLED', completedAt: expect.any(Date) }),
+    ])
+  })
+
+  it('preserves every public run identity and reports complete all-settled start outcomes', async () => {
+    const planId = 'implementation-capsule-partial-start'
+    await prepareReviewedAstBatch(planId)
+    const prepared: Array<{ id: string; runId: string }> = []
+    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare').mockImplementation(async input => {
+      const row = await client.testRun.create({
+        data: {
+          name: input.name,
+          environmentId: input.environmentId,
+          planId: input.planId,
+          targetProjectId: input.targetProjectId,
+        },
+      })
+      prepared.push(row)
+      return row as never
+    })
+    let startCount = 0
+    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'start').mockImplementation(async input => {
+      startCount += 1
+      if (startCount === 2) throw new Error('second start failed')
+      const row = await client.testRun.findUniqueOrThrow({ where: { id: input.testRunDbId } })
+      return { testRunId: row.id, runId: row.runId, attemptId: `attempt-${row.id}`, state: 'RUNNING' } as never
+    })
+
+    const result = await startImplementationValidation(
+      { planId, commitHash: 'commit' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T02:00:00.000Z') },
+    )
+
+    expect(result.runs.map(run => run.testRunId)).toEqual(prepared.map(row => row.runId))
+    expect(result.runs.every(run => run.runtimePaths === undefined)).toBe(true)
+    expect(result.testRunInputs).toEqual([])
+    expect(result.capsuleStartOutcomes).toEqual([
+      { testRunDbId: prepared[0]!.id, status: 'started', attemptId: `attempt-${prepared[0]!.id}` },
+      {
+        testRunDbId: prepared[1]!.id,
+        status: 'infrastructure_failure',
+        code: 'CAPSULE_START_FAILED',
+        message: 'The managed runtime capsule could not start. Inspect bounded run diagnostics before retrying.',
+      },
+    ])
+    expect(result.capsuleStartOutcomes).toHaveLength(result.runs.length)
+  })
+
+  it('creates distinct auditable TestRuns for a retry without fabricating runtime paths', async () => {
+    const planId = 'implementation-capsule-retry-identity'
+    await prepareReviewedAstBatch(planId)
+    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare').mockImplementation(
+      async input =>
+        client.testRun.create({
+          data: {
+            name: input.name,
+            environmentId: input.environmentId,
+            planId: input.planId,
+            targetProjectId: input.targetProjectId,
+          },
+        }) as never,
+    )
+    mockSuccessfulCapsuleStart()
+
+    const first = await startImplementationValidation(
+      { planId, commitHash: 'commit-one' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T03:00:00.000Z') },
+    )
+    const second = await startImplementationValidation(
+      { planId, commitHash: 'commit-two' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T03:01:00.000Z') },
+    )
+
+    expect(new Set([...first.runs, ...second.runs].map(run => run.testRunId)).size).toBe(4)
+    await expect(client.testRun.count({ where: { planId } })).resolves.toBe(4)
+    expect([...first.runs, ...second.runs].every(run => run.runtimePaths === undefined)).toBe(true)
+    expect(first.testRunInputs).toEqual([])
+    expect(second.testRunInputs).toEqual([])
+  })
+
+  it('merges reviewed capsule and legacy materialized nodes without cross-contaminating runtime inputs', async () => {
+    const planId = 'implementation-mixed-runtime-batch'
+    await writeArtifacts(planId)
+    await configureReviewedCapsule(planId, `${planId}-target`, {
+      schemaVersion: '2',
+      astHash: `sha256:${'1'.repeat(64)}`,
+      executionAuthority: 'phase2_review_only',
+      publishOperationId: 'astpub_mixed',
+      receiptHash: `sha256:${'2'.repeat(64)}`,
+      runtimeInputHash: `sha256:${'3'.repeat(64)}`,
+    })
+    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare').mockImplementation(async input => {
+      return client.testRun.create({
+        data: {
+          name: input.name,
+          environmentId: input.environmentId,
+          planId: input.planId,
+          targetProjectId: input.targetProjectId,
+        },
+      }) as never
+    })
+    mockSuccessfulCapsuleStart()
+
+    const result = await startImplementationValidation(
+      { planId, commitHash: 'mixed-commit' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T04:00:00.000Z') },
+    )
+
+    expect(result.runs).toHaveLength(2)
+    const capsuleRun = result.runs.find(run => run.validationId === 'core-validation')
+    expect(capsuleRun).toMatchObject({ testRunId: expect.any(String) })
+    expect(capsuleRun).not.toHaveProperty('runtimePaths')
+    expect(result.runs.find(run => run.validationId === 'docs-validation')?.runtimePaths).toMatchObject({
+      gherkinPaths: ['automation/features/docs.feature'],
+      stepPaths: ['automation/steps/docs.step.ts'],
+    })
+    expect(result.testRunInputs).toHaveLength(1)
+    expect(result.testRunInputs[0]).toMatchObject({ validationId: 'docs-validation' })
+    expect(result.capsuleStartOutcomes).toHaveLength(1)
+  })
+
   it('atomically verifies explicit tasks from satisfied managed evidence and replays idempotently', async () => {
     const planId = 'atomic-task-evidence'
     await writeArtifacts(planId, undefined, {
@@ -363,6 +630,8 @@ describe('implementation coordinator checkpoints', () => {
           fresh: true,
           commitHash: 'commit-old',
           evidenceUrls: ['/reports/run-core-old'],
+          evidenceSource: 'managed',
+          assurance: 'full',
           completedAt: '2026-06-11T00:02:00.000Z',
         },
       },
@@ -435,6 +704,7 @@ describe('implementation coordinator checkpoints', () => {
             createdAt: '2026-06-11T00:00:00.000Z',
           },
         ],
+        reconciliationReceipts: [],
         evidenceProtected: true,
       },
     })
@@ -447,7 +717,7 @@ describe('implementation coordinator checkpoints', () => {
 
     const repository = new PlanArtifactRepository(workspace)
     const storedValidation = await repository.read('validation', planId)
-    const phase2Validation = parseYamlArtifact('validation', storedValidation.content)
+    const phase2Validation = parseYamlArtifact('validation', storedValidation.content) as ValidationArtifact
     phase2Validation.validations[0]!.astProvenance = {
       schemaVersion: '1',
       astHash: `sha256:${'a'.repeat(64)}`,
@@ -465,7 +735,7 @@ describe('implementation coordinator checkpoints', () => {
         { projectDirectory: workspace, client },
       ),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
-    phase2Validation.validations[0]!.astProvenance.executionAuthority = 'phase3_capsule'
+    phase2Validation.validations[0]!.astProvenance = undefined
     await repository.compareAndWrite(
       'validation',
       planId,
@@ -602,6 +872,7 @@ describe('implementation coordinator checkpoints', () => {
         },
       ],
       commits: [{ hash: 'commit-final', taskIds: ['foundation', 'api', 'docs'], createdAt: completedAt }],
+      reconciliationReceipts: [],
       evidenceProtected: true,
     } satisfies NonNullable<ValidationArtifact['implementation']>
     const nonBlockingRemark = {

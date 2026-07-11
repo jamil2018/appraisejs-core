@@ -13,6 +13,7 @@ import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
 import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-file.js'
 import { resolvePlanSource } from './plan-source.js'
+import { runTestRunDiagnose } from './test-run-diagnose-cli.js'
 
 const program = new Command()
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -347,6 +348,23 @@ addOnlineOptions(project.command('list').option('--json', 'print machine-readabl
 )
 
 const test = program.command('test').description('Run repo-owned tests from an attached target project')
+const testRun = program.command('test-run').description('Inspect managed Appraise test runs')
+
+addOnlineOptions(
+  testRun
+    .command('diagnose')
+    .requiredOption('--run-id <id>', 'managed TestRun public run id')
+    .option('--json', 'print the exact machine-readable diagnostic DTO', false),
+).action(async (options: OnlineOptions & { runId: string; json: boolean }) => {
+  await runCommand(async () => {
+    const client = await onlineClient(options)
+    const outcome = await runTestRunDiagnose(options, {
+      diagnose: runId => client.diagnoseTestRun(runId) as Promise<Record<string, unknown>>,
+      write: value => console.log(value),
+    })
+    if (outcome.exitCode) process.exitCode = outcome.exitCode
+  }, options.json)
+})
 
 addOnlineOptions(
   test

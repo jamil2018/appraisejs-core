@@ -4,6 +4,9 @@ import archiver from 'archiver'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/automation-path-roots'
+import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
+import { ServiceError } from '@/services/shared/errors'
+import { opaqueArtifactError } from '@/app/api/test-runs/artifact-route-error'
 
 // Ensure this route runs in Node.js runtime (not Edge) for file system access
 export const runtime = 'nodejs'
@@ -11,6 +14,9 @@ export const runtime = 'nodejs'
 type Archive = ReturnType<typeof archiver>
 type ArtifactFile = { absolutePath: string; archivePath: string }
 type DownloadTestRun = NonNullable<Awaited<ReturnType<typeof getDownloadTestRun>>>
+
+const MAX_CAPSULE_ARCHIVE_ENTRIES = 64
+const MAX_CAPSULE_ARCHIVE_BYTES = 256 * 1024 * 1024
 
 async function collectRunArtifactFiles(dir: string, baseDir = dir): Promise<ArtifactFile[]> {
   try {
@@ -63,6 +69,9 @@ async function getDownloadTestRun(runId: string) {
   return prisma.testRun.findUnique({
     where: { runId },
     select: {
+      runId: true,
+      targetProjectId: true,
+      runtimeCapsule: { select: { id: true } },
       logPath: true,
       reportPath: true,
       targetProject: {
@@ -72,6 +81,8 @@ async function getDownloadTestRun(runId: string) {
       },
       testCases: {
         select: {
+          id: true,
+          testCaseId: true,
           tracePath: true,
         },
       },
@@ -176,7 +187,13 @@ async function addLegacyTraceFiles(
   return didAddAnyTraceFile
 }
 
-async function addDownloadArtifacts(archive: Archive, testRun: DownloadTestRun, runArtifactDir: string) {
+async function addDownloadArtifacts(
+  archive: Archive,
+  testRun: DownloadTestRun,
+  runArtifactDir: string,
+  expectedTargetProjectId?: string,
+) {
+  if (testRun.runtimeCapsule) return addCapsuleDownloadArtifacts(archive, testRun, expectedTargetProjectId)
   const runArtifactFiles = await collectRunArtifactFiles(runArtifactDir)
   const archivedPaths = addRunArtifactFiles(archive, runArtifactFiles)
   const didAddReportFile = await addLegacyReportFile(archive, testRun, runArtifactDir, archivedPaths)
@@ -184,6 +201,46 @@ async function addDownloadArtifacts(archive: Archive, testRun: DownloadTestRun, 
   const didAddTraceFile = await addLegacyTraceFiles(archive, testRun, runArtifactDir, archivedPaths)
 
   return runArtifactFiles.length > 0 || didAddReportFile || didAddLogFile || didAddTraceFile
+}
+
+async function addCapsuleDownloadArtifacts(
+  archive: Archive,
+  testRun: DownloadTestRun,
+  expectedTargetProjectId?: string,
+) {
+  const access = new TestRunArtifactAccessService(prisma)
+  let count = 0
+  let totalBytes = 0
+  const append = (bytes: Buffer, archivePath: string) => {
+    if (count + 1 > MAX_CAPSULE_ARCHIVE_ENTRIES || totalBytes + bytes.length > MAX_CAPSULE_ARCHIVE_BYTES)
+      throw new ServiceError('Capsule artifact archive exceeds its aggregate limit.', 'CONFLICT', 409)
+    archive.append(bytes, { name: archivePath })
+    count += 1
+    totalBytes += bytes.length
+  }
+  for (const item of [
+    { kind: 'report' as const, archivePath: 'cucumber.json' },
+    { kind: 'log' as const, archivePath: 'logs/cucumber.log' },
+  ]) {
+    try {
+      const artifact = await access.readBytes({ runId: testRun.runId, kind: item.kind, expectedTargetProjectId })
+      append(artifact.bytes, item.archivePath)
+    } catch (error) {
+      if (!(error instanceof ServiceError) || error.statusCode !== 404) throw error
+    }
+  }
+  for (const testCase of testRun.testCases) {
+    if (!testCase.tracePath) continue
+    const artifact = await access.readBytes({
+      runId: testRun.runId,
+      kind: 'trace',
+      testCaseId: testCase.id,
+      storedPath: testCase.tracePath,
+      expectedTargetProjectId,
+    })
+    append(artifact.bytes, `traces/${testCase.testCaseId}.zip`)
+  }
+  return count > 0
 }
 
 function finalizeArchive(archive: Archive) {
@@ -231,7 +288,7 @@ function createZipDownloadResponse(zipBuffer: Buffer, runId: string) {
  * - Creates a zip file containing all files
  * - Returns the zip file as a downloadable response
  */
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params
 
   try {
@@ -240,10 +297,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (!testRun) {
       return NextResponse.json({ error: 'Test run not found' }, { status: 404 })
     }
+    const expectedTargetProjectId = request.nextUrl.searchParams.get('targetProjectId') ?? undefined
+    if (testRun.runtimeCapsule && testRun.targetProjectId !== expectedTargetProjectId)
+      return NextResponse.json({ error: 'Test run not found' }, { status: 404 })
 
     const archive = createZipArchive()
     const runArtifactDir = getAutomationReportRunDir(runId, testRun.targetProject?.canonicalPath)
-    const hasFiles = await addDownloadArtifacts(archive, testRun, runArtifactDir)
+    const hasFiles = await addDownloadArtifacts(archive, testRun, runArtifactDir, expectedTargetProjectId)
 
     // If no files to add, return an error
     if (!hasFiles) {
@@ -253,13 +313,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const zipBuffer = await finalizeArchive(archive)
     return createZipDownloadResponse(zipBuffer, runId)
   } catch (error) {
-    console.error(`[Download] Error creating zip file for testRunId: ${runId}:`, error)
-    return NextResponse.json(
-      {
-        error: 'Failed to create download file',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 },
-    )
+    return opaqueArtifactError(error)
   }
 }

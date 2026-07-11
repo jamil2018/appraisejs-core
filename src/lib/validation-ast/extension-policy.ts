@@ -41,3 +41,13 @@ export function createCustomExtensionPolicy(input: {
     contentHash: `sha256:${createHash('sha256').update(canonicalContractJson(contract)).digest('hex')}`,
   }
 }
+
+export function assertValidCustomExtensionPolicy(policy: CustomExtensionPolicy): void {
+  const expected = createCustomExtensionPolicy({
+    projectId: policy.projectId,
+    projectFingerprint: policy.projectFingerprint,
+    capabilityImports: policy.capabilityImports,
+  })
+  if (canonicalContractJson(policy) !== canonicalContractJson(expected))
+    throw new Error('Custom extension policy authority is invalid or stale.')
+}

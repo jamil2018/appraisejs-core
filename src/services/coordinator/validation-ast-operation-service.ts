@@ -113,11 +113,78 @@ export async function readValidationAstExtensionReviewsForPlan(
 
 export async function previewValidationAstForPlan(planId: string, submission: unknown, client: PrismaClient = prisma) {
   const context = await loadValidationAstContext(planId, client)
-  const preview = previewValidationAst(submission, context.compilerContext)
+  const preview = bindPublishProvenance(previewValidationAst(submission, context.compilerContext), context)
   return {
     ...preview,
     contextHash: context.contextHash,
-    receiptHash: hash({ previewHash: preview.previewHash, contextHash: context.contextHash }),
+    receiptHash: preview.receiptHash,
+  }
+}
+
+function bindPublishProvenance(
+  preview: ReturnType<typeof previewValidationAst>,
+  context: Awaited<ReturnType<typeof loadValidationAstContext>>,
+) {
+  const receiptHash = hash({ previewHash: preview.previewHash, contextHash: context.contextHash })
+  const publishOperationId = `astpub_${receiptHash.slice('sha256:'.length)}`
+  const runtimeInput = {
+    schemaVersion: '1',
+    targetProjectId: context.plan.targetProject!.id,
+    targetFingerprint: context.plan.targetProject!.fingerprint,
+    astId: preview.canonicalProjection.validationNode.id,
+    astHash: preview.astHash,
+    contextHash: context.contextHash,
+    previewHash: preview.previewHash,
+    receiptHash,
+    compilerReceipt: preview.commandReceipt,
+    extensionPolicy: context.compilerContext.extensionPolicy,
+    actions: preview.actions,
+    locators: preview.locators.map(locator => ({
+      ...locator,
+      binding: preview.canonicalProjection.validationNode.appraiseArtifacts.locators.find(
+        item => item.id === locator.id.replace(/^locator_/, ''),
+      ),
+    })),
+    extensions: preview.customExtensions.map(extension => ({
+      id: extension.extension.id,
+      version: extension.extension.version,
+      sourceHash: extension.sourceHash,
+      compiledHash: extension.compiledHash,
+      artifactHash: hash(extension),
+    })),
+    matrix: preview.canonicalProjection.validationNode.matrix,
+    expected: {
+      scenarios: preview.entities,
+      scenarioCount: preview.entities.length,
+    },
+    gherkinHash: hash(preview.canonicalProjection.gherkin),
+  }
+  const runtimeInputJson = canonicalContractJson(runtimeInput)
+  const runtimeInputHash = hash(runtimeInput)
+  const validationNode = {
+    ...preview.canonicalProjection.validationNode,
+    astProvenance: {
+      schemaVersion: '2' as const,
+      astHash: preview.astHash,
+      executionAuthority: 'phase2_review_only' as const,
+      publishOperationId,
+      receiptHash,
+      runtimeInputHash,
+    },
+  }
+  const canonicalProjection = {
+    validationNode,
+    gherkin: preview.canonicalProjection.gherkin,
+    projectionHash: hash({ validationNode, gherkin: preview.canonicalProjection.gherkin }),
+  }
+  return {
+    ...preview,
+    canonicalProjection,
+    baseProjectionHash: preview.canonicalProjection.projectionHash,
+    receiptHash,
+    publishOperationId,
+    runtimeInputJson,
+    runtimeInputHash,
   }
 }
 
@@ -163,10 +230,10 @@ export async function compileValidationAstForPlan(
 ) {
   const context = await loadValidationAstContext(input.planId, client)
   const checked = checkValidationAst(input.submission, context.compilerContext)
-  const preview = previewValidationAst(input.submission, context.compilerContext)
+  const preview = bindPublishProvenance(previewValidationAst(input.submission, context.compilerContext), context)
   if (!preview.valid)
     throw new ServiceError('Validation AST must pass check and preview before compilation.', 'VALIDATION')
-  const receiptHash = hash({ previewHash: preview.previewHash, contextHash: context.contextHash })
+  const receiptHash = preview.receiptHash
   if (receiptHash !== input.expectedReceiptHash)
     throw new ServiceError('Validation AST preview receipt is stale.', 'CONFLICT')
   const existing = context.plan.validationJson
@@ -195,7 +262,7 @@ export async function compileValidationAstForPlan(
       planId: input.planId,
       ast: checked.submission.ast,
       expectedAstHash: preview.astHash,
-      expectedProjectionHash: preview.canonicalProjection.projectionHash,
+      expectedProjectionHash: preview.baseProjectionHash,
       customExtensionProposals: checked.submission.customExtensionProposals,
       expectedCompiledExtensionHashes: Object.fromEntries(
         preview.customExtensions.map(extension => [
@@ -230,12 +297,23 @@ export async function compileValidationAstForPlan(
   if (planArtifact.lifecycle !== context.plan.lifecycle || planArtifact.revision !== context.plan.revision)
     throw new ServiceError('Plan artifact changed before Validation AST publish preparation.', 'CONFLICT')
   const planContent = serializeYamlArtifact('plan', { ...planArtifact, lifecycle: 'awaiting_validation_review' })
-  const validationContent = serializeYamlArtifact('validation', result.validation)
   const reviewContent = serializeYamlArtifact('review', reviewArtifact)
   const targetProject = context.plan.targetProject
   if (!targetProject) throw new ServiceError('Plan target project is missing.', 'CONFLICT')
+  const { publishOperationId, runtimeInputHash, runtimeInputJson } = preview
+  const validationNode = result.validation.validations.find(validation => validation.id === result.astId)
+  if (!validationNode?.astProvenance)
+    throw new ServiceError('Compiled Validation AST provenance is missing.', 'CONFLICT')
+  validationNode.astProvenance = preview.canonicalProjection.validationNode.astProvenance
+  const projection = {
+    validationNode: preview.canonicalProjection.validationNode,
+    gherkin: preview.canonicalProjection.gherkin,
+  }
+  const projectionHash = preview.canonicalProjection.projectionHash
+  const validationContentWithProvenance = serializeYamlArtifact('validation', result.validation)
   const operation = await prepareValidationAstPublish(
     {
+      id: publishOperationId,
       planId: input.planId,
       planProjectionId: context.plan.id,
       targetProjectId: targetProject.id,
@@ -246,22 +324,21 @@ export async function compileValidationAstForPlan(
       expectedValidationHash: validationStored?.hash,
       expectedReviewHash: reviewStored.hash,
       planHash: hashFileContent(planContent),
-      validationHash: hashFileContent(validationContent),
+      validationHash: hashFileContent(validationContentWithProvenance),
       reviewHash: hashFileContent(reviewContent),
       planContent,
-      validationContent,
+      validationContent: validationContentWithProvenance,
       reviewContent,
       astId: result.astId,
       astHash: result.astHash,
       contextHash: context.contextHash,
       previewHash: preview.previewHash,
       receiptHash,
-      projectionHash: preview.canonicalProjection.projectionHash,
-      projectionJson: JSON.stringify({
-        validationNode: preview.canonicalProjection.validationNode,
-        gherkin: preview.canonicalProjection.gherkin,
-      }),
+      projectionHash,
+      projectionJson: canonicalContractJson(projection),
       validationProjectionJson: JSON.stringify(result.validation),
+      runtimeInputHash,
+      runtimeInputJson,
       extensionReviews: result.compiledExtensions.map(extension => ({
         extensionId: extension.extension.id,
         version: extension.extension.version,

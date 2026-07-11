@@ -31,6 +31,13 @@ Wait/timing actions remain bounded to 30 seconds. Advanced matrices and timing a
 `advanced.matrix` and `advanced.timing` opt-ins. The selected profile and opt-ins are included in the exact preview and
 journal receipt; they guide composition and validation only and do not execute tests or bypass validation review.
 
+All AST text projected into Gherkin is single-line by contract. Feature/suite titles, purpose text, scenario titles and
+descriptions, and step descriptions reject CR/LF, control characters, a leading Gherkin tag, or a leading Gherkin
+section header such as `Feature:`, `Scenario:`, or `Examples:`. Ordinary prose beginning with words such as “When” or
+“Given” remains valid. The stored runtime-input validator independently parses generated Gherkin and requires exactly
+one `Scenario:` line followed only by indented `Given`/`When`/`Then`/`And` step lines, preventing a tampered journal
+snapshot from reintroducing grammar or tag injection after compilation.
+
 Profile enforcement uses resolved, versioned action descriptors rather than action-name patterns. Assertion
 descriptors declare the accessibility or persistence concerns they actually verify, and qualifying concerns must be
 exercised by registered `Then` assertion actions. Numeric inputs declare milliseconds or seconds plus catalog bounds;
@@ -71,9 +78,10 @@ Published extension reviews are available through the authenticated `validation_
 `appraisejs validation ast-reviews`; reads revalidate the complete immutable journal and parse every extension through
 the bounded review schema before returning it. Review decisions and final submission bind the current `review_ready`
 operation hash and exact sorted extension artifact hashes; immutable operation-linked decision events reject stale or
-mismatched evidence. Phase 2 AST projections carry `phase2_review_only` provenance. Baseline, implementation
-validation, form-created runs, and standalone/plan-bound test runs reject those cases until Phase 3 grants
-`phase3_capsule` execution authority.
+mismatched evidence. Reviewed AST projections carry `phase2_review_only` provenance. Generic form-created,
+standalone, and plan-bound target-automation runs always reject those cases. Phase 3 execution is authorized only by
+exact v2 publish-operation provenance through an Appraise-owned runtime capsule. The historical `phase3_capsule`
+value remains parse-only for backward compatibility and is never an execution grant.
 
 Decision evidence is canonical by `(publishOperationId, validationId)`. A retry reads the immutable payload before
 rewriting the artifact, preserving the original reviewer, timestamp, decision, and content hash. Final submission
@@ -134,6 +142,13 @@ expected/current hash, AST/context/preview/receipt identities, and the complete 
 reviews are child records referenced by artifact hash. Recovery resumes `prepared -> artifacts_written -> projected ->
 review_ready`; artifact writes verify CAS or exact desired content, projection is replay-safe, and the lifecycle plus
 `validation_review_ready` event commit exactly once. This journal does not materialize runtime files.
+New publications also store one bounded, canonical `runtimeInputJson` snapshot and its hash. The snapshot preserves the
+exact compiler receipt, selected action and locator descriptor hashes, resolved locator bindings, extension artifact
+references, matrix, expected scenario/case/step identities, and Gherkin hash needed by the Phase 3 capsule generator.
+Validation AST provenance schema version 2 binds the projected node to the exact publish operation, preview receipt,
+and runtime-input hash. Existing schema-version-1 projections and journal rows remain readable, but they cannot supply
+the stronger Phase 3 capsule provenance without an explicit migration/republication path. The runtime-input snapshot is
+compiler provenance, not the executable capsule command receipt; Phase 3 derives and persists that separate receipt.
 The journal is owned by immutable PlanProjection and TargetProject foreign keys and snapshots the target fingerprint.
 Server-side preparation recomputes every content hash and a canonical all-input operation hash, bounds artifacts to
 1 MiB and extension reviews to 25, and permits adjacent phase changes only. Projection and its phase advancement share

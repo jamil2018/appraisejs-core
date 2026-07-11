@@ -181,11 +181,21 @@ const validationNodeSchema = z.object({
     selector: z.string().min(1).optional(),
   }),
   astProvenance: z
-    .object({
-      schemaVersion: z.literal('1'),
-      astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-      executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
-    })
+    .discriminatedUnion('schemaVersion', [
+      z.object({
+        schemaVersion: z.literal('1'),
+        astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+        executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+      }),
+      z.object({
+        schemaVersion: z.literal('2'),
+        astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+        executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+        publishOperationId: z.string().min(1),
+        receiptHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+        runtimeInputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+      }),
+    ])
     .optional(),
   matrix: z
     .array(

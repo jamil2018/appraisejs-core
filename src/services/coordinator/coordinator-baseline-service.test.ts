@@ -18,12 +18,15 @@ import { hashFileContent } from '@/lib/validation-review/file-review'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
+import type { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
 import { projectValidationArtifacts } from './validation-runtime-projection-service'
 import {
   acceptBaseline,
+  baselineCapsulePreparationKey,
   acknowledgeBaselineFailure,
   justifyBaselineRegressionPass,
+  mergeLegacyRuntimeIntoReviewedValidation,
   reconcileBaselineExecution,
   retryBaselineAfterRepair,
   startBaselineExecution,
@@ -224,6 +227,143 @@ afterEach(async () => {
 })
 
 describe('baseline execution and implementation gate', () => {
+  it('keeps a durable batch key stable while separating retries and matrix entries', () => {
+    const base = {
+      planId: 'plan',
+      revision: 1,
+      validationId: 'check',
+      browser: 'chromium',
+      environment: 'local',
+      publishOperationId: 'operation',
+      runtimeInputHash: `sha256:${'a'.repeat(64)}`,
+    }
+    expect(baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 })).toBe(
+      baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 }),
+    )
+    expect(baselineCapsulePreparationKey({ ...base, attemptOrdinal: 1 })).not.toBe(
+      baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 }),
+    )
+    expect(baselineCapsulePreparationKey({ ...base, browser: 'firefox', attemptOrdinal: 0 })).not.toBe(
+      baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 }),
+    )
+    expect(
+      baselineCapsulePreparationKey({ ...base, publishOperationId: 'republished-operation', attemptOrdinal: 0 }),
+    ).not.toBe(baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 }))
+  })
+
+  it('preserves rewritten legacy runtime paths beside an unchanged reviewed v2 capsule node', () => {
+    const reviewed = validation('mixed-runtime')
+    const legacy = reviewed.validations[0]!
+    const capsule = {
+      ...legacy,
+      id: 'capsule-check',
+      astProvenance: {
+        schemaVersion: '2' as const,
+        astHash: `sha256:${'a'.repeat(64)}`,
+        executionAuthority: 'phase2_review_only' as const,
+        publishOperationId: 'operation-one',
+        receiptHash: `sha256:${'b'.repeat(64)}`,
+        runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+      },
+    }
+    const mixed = { ...reviewed, validations: [legacy, capsule] }
+    const rewrittenLegacy = {
+      ...legacy,
+      gherkinPaths: ['/capsules/legacy/runtime.feature'],
+      stepPaths: ['/capsules/legacy/runtime.steps.ts'],
+    }
+    const merged = mergeLegacyRuntimeIntoReviewedValidation(mixed, {
+      ...reviewed,
+      validations: [rewrittenLegacy],
+      runtimeProjections: [
+        {
+          declaredPath: 'automation/features/case-one.feature',
+          targetPath: 'automation/features/case-one.feature',
+          runtimePath: '/capsules/legacy/runtime.feature',
+          contentHash: `sha256:${'d'.repeat(64)}`,
+          role: 'gherkin',
+          materialization: 'copied',
+        },
+      ],
+    })
+
+    expect(merged.validations.find(item => item.id === legacy.id)).toMatchObject({
+      gherkinPaths: ['/capsules/legacy/runtime.feature'],
+      stepPaths: ['/capsules/legacy/runtime.steps.ts'],
+    })
+    expect(merged.validations.find(item => item.id === capsule.id)).toEqual(capsule)
+    expect(merged.runtimeProjections).toEqual(
+      expect.arrayContaining([expect.objectContaining({ runtimePath: '/capsules/legacy/runtime.feature' })]),
+    )
+  })
+
+  it('routes an exact reviewed v2 AST baseline through a prepared capsule TestRun without target automation', async () => {
+    const planId = 'capsule-baseline'
+    await writeArtifacts(planId)
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+    const reviewed = parseYamlArtifact('validation', stored.content) as ValidationArtifact
+    reviewed.validations[0]!.matrix = [{ browser: 'chromium', environment: 'local' }]
+    reviewed.validations[0]!.astProvenance = {
+      schemaVersion: '2',
+      astHash: `sha256:${'a'.repeat(64)}`,
+      executionAuthority: 'phase2_review_only',
+      publishOperationId: 'publish-operation-one',
+      receiptHash: `sha256:${'b'.repeat(64)}`,
+      runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+    }
+    await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', reviewed))
+    const targetProject = await client.targetProject.create({
+      data: {
+        canonicalPath: workspace,
+        displayName: 'Capsule target',
+        fingerprint: `sha256:${'d'.repeat(64)}`,
+      },
+    })
+    await client.planProjection.update({ where: { planId }, data: { targetProjectId: targetProject.id } })
+    await fs.rm(path.join(workspace, 'automation'), { recursive: true, force: true })
+    const calls: Array<{ kind: string; input: Record<string, unknown> }> = []
+    const capsuleService = {
+      prepare: async (input: Record<string, unknown>) => {
+        calls.push({ kind: 'prepare', input })
+        return { id: 'test-run-db-id', runId: 'capsule-public-run' }
+      },
+      start: async (input: Record<string, unknown>) => {
+        calls.push({ kind: 'start', input })
+        return { testRunId: 'test-run-db-id', runId: 'capsule-public-run', attemptId: 'attempt-one' }
+      },
+    } as unknown as RuntimeCapsuleTestRunService
+
+    const result = await startBaselineExecution(planId, { projectDirectory: workspace, client, capsuleService })
+
+    expect(result.validation.baselineAttempts).toEqual([
+      expect.objectContaining({ validationId: 'required-check', testRunId: 'capsule-public-run', status: 'running' }),
+    ])
+    expect(calls).toEqual([
+      expect.objectContaining({
+        kind: 'prepare',
+        input: expect.objectContaining({
+          operationId: 'publish-operation-one',
+          validationId: 'required-check',
+          browserEngine: 'CHROMIUM',
+          preparationKey: expect.stringMatching(
+            /^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:local:0$/,
+          ),
+        }),
+      }),
+      expect.objectContaining({
+        kind: 'start',
+        input: expect.objectContaining({
+          testRunDbId: 'test-run-db-id',
+          operationId: 'publish-operation-one',
+          preparationKey: expect.stringMatching(
+            /^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:local:0$/,
+          ),
+        }),
+      }),
+    ])
+  })
+
   it('persists immutable attempt facts and append-only state observations', async () => {
     const planId = 'baseline-history'
     await writeArtifacts(planId)
@@ -273,31 +413,6 @@ describe('baseline execution and implementation gate', () => {
     const planId = 'baseline-gate'
     const submitted: Array<{ browser: string; environment: string; testRunId: string }> = []
     await writeArtifacts(planId)
-
-    const repository = new PlanArtifactRepository(workspace)
-    const stored = await repository.read('validation', planId)
-    const astValidation = parseYamlArtifact('validation', stored.content)
-    astValidation.validations[0]!.astProvenance = {
-      schemaVersion: '1',
-      astHash: `sha256:${'a'.repeat(64)}`,
-      executionAuthority: 'phase2_review_only',
-    }
-    const phase2Stored = await repository.compareAndWrite(
-      'validation',
-      planId,
-      stored.hash,
-      serializeYamlArtifact('validation', astValidation),
-    )
-    await expect(startBaselineExecution(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
-      code: 'CONFLICT',
-    })
-    astValidation.validations[0]!.astProvenance.executionAuthority = 'phase3_capsule'
-    await repository.compareAndWrite(
-      'validation',
-      planId,
-      phase2Stored.hash,
-      serializeYamlArtifact('validation', astValidation),
-    )
 
     await expect(startImplementation(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
       code: 'CONFLICT',
