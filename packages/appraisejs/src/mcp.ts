@@ -2967,6 +2967,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'plan_events_acknowledge_through',
+    {
+      description: 'Idempotently acknowledge every delivered plan event through a sequence in one bounded update.',
+      inputSchema: { planId: z.string(), acknowledgeThroughSequence: z.number().int().positive() },
+    },
+    async ({ planId, acknowledgeThroughSequence }) =>
+      text(
+        await api.request(`plans/${planId}/events/ack`, {
+          method: 'POST',
+          body: JSON.stringify({ acknowledgeThroughSequence, coordinatorId: options.coordinatorId }),
+        }),
+      ),
+  )
+  server.registerTool(
     'implementation_start',
     {
       description: 'Agent-owned execution tool: start implementation after accepted baseline evidence.',

@@ -356,3 +356,24 @@ export async function acknowledgePlanEvent(
     data: { acknowledgedAt: new Date(), acknowledgedBy: input.coordinatorId },
   })
 }
+
+export async function acknowledgePlanEventsThrough(
+  input: { planId: string; sequence: number; coordinatorId: string },
+  client: PrismaClient = prisma,
+) {
+  const projection = await getProjection(client, input.planId)
+  const highestEvent = await client.planEvent.findFirst({
+    where: { planProjectionId: projection.id },
+    orderBy: { sequence: 'desc' },
+    select: { sequence: true },
+  })
+  if (!highestEvent || input.sequence > highestEvent.sequence) {
+    throw new ServiceError('Plan event sequence is beyond the current event stream.', 'VALIDATION', 400)
+  }
+  const acknowledgedAt = new Date()
+  const result = await client.planEvent.updateMany({
+    where: { planProjectionId: projection.id, sequence: { lte: input.sequence }, acknowledgedAt: null },
+    data: { acknowledgedAt, acknowledgedBy: input.coordinatorId },
+  })
+  return { acknowledgedThroughSequence: input.sequence, acknowledgedCount: result.count, acknowledgedAt }
+}

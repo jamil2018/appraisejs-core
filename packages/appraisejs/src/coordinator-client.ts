@@ -117,6 +117,8 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     readEvents: (planId: string, afterSequence = 0) => request(`plans/${planId}/events?after=${afterSequence}`),
     acknowledgeEvent: (planId: string, sequence: number) =>
       post(`plans/${planId}/events/ack`, { sequence, coordinatorId: options.coordinatorId }),
+    acknowledgeEventsThrough: (planId: string, acknowledgeThroughSequence: number) =>
+      post(`plans/${planId}/events/ack`, { acknowledgeThroughSequence, coordinatorId: options.coordinatorId }),
     register: (planId: string, takeoverApproved = false) =>
       post('register', {
         planId,

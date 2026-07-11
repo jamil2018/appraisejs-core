@@ -257,7 +257,8 @@ export async function updateImplementationTask(
     verified: ['in_progress'],
   }
   const current = implementation.taskStates[input.taskId] ?? 'pending'
-  if (!allowed[current].includes(input.status)) {
+  const commitOnlyReplay = current === input.status && input.status === 'implemented' && Boolean(input.commitHash)
+  if (!commitOnlyReplay && !allowed[current].includes(input.status)) {
     throw new ServiceError(`Cannot transition task from ${current} to ${input.status}.`, 'CONFLICT')
   }
   if (input.status === 'in_progress') {
@@ -271,12 +272,22 @@ export async function updateImplementationTask(
       throw new ServiceError('Task dependencies or implementation-group approval are incomplete.', 'CONFLICT')
     }
   }
+  const existingCommit = input.commitHash
+    ? implementation.commits.find(commit => commit.hash === input.commitHash)
+    : undefined
+  if (commitOnlyReplay && existingCommit?.taskIds.includes(input.taskId)) return implementation
   const commits =
     input.status === 'implemented' && input.commitHash
-      ? [
-          ...implementation.commits,
-          { hash: input.commitHash, taskIds: [input.taskId], createdAt: (options.now ?? new Date()).toISOString() },
-        ]
+      ? existingCommit
+        ? implementation.commits.map(commit =>
+            commit.hash === input.commitHash
+              ? { ...commit, taskIds: Array.from(new Set([...commit.taskIds, input.taskId])).sort() }
+              : commit,
+          )
+        : [
+            ...implementation.commits,
+            { hash: input.commitHash, taskIds: [input.taskId], createdAt: (options.now ?? new Date()).toISOString() },
+          ]
       : implementation.commits
   const validation = {
     ...artifacts.validation,

@@ -32,6 +32,7 @@ import {
 } from '@/services/coordinator/coordinator-provider-run-service'
 import {
   acknowledgePlanEvent,
+  acknowledgePlanEventsThrough,
   ensureProjectIdentity,
   ensurePlanReviewReadyEvent,
   heartbeatCoordinator,
@@ -619,8 +620,29 @@ async function postTaskUpdate(operation: string[], body: unknown) {
 }
 
 async function postEventAcknowledgement(operation: string[], body: unknown) {
-  const value = z.object({ sequence: z.number().int().positive(), coordinatorId: z.string().min(1) }).parse(body)
-  return Response.json(await acknowledgePlanEvent({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
+  const value = z
+    .object({
+      sequence: z.number().int().positive().optional(),
+      acknowledgeThroughSequence: z.number().int().positive().optional(),
+      coordinatorId: z.string().min(1),
+    })
+    .refine(input => (input.sequence === undefined) !== (input.acknowledgeThroughSequence === undefined), {
+      message: 'Provide exactly one event acknowledgement sequence.',
+    })
+    .parse(body)
+  const planId = routePlanIdSchema.parse(operation[1])
+  if (value.acknowledgeThroughSequence !== undefined) {
+    return Response.json(
+      await acknowledgePlanEventsThrough({
+        planId,
+        sequence: value.acknowledgeThroughSequence,
+        coordinatorId: value.coordinatorId,
+      }),
+    )
+  }
+  return Response.json(
+    await acknowledgePlanEvent({ planId, sequence: value.sequence!, coordinatorId: value.coordinatorId }),
+  )
 }
 
 // Request parsing branches stay in this thin HTTP adapter.

@@ -175,6 +175,7 @@ Tools:
 - `plan_task_update`
 - `plan_events_read`
 - `plan_event_acknowledge`
+- `plan_events_acknowledge_through`
 - `validation_context_read`
 - `validation_draft_create`
 - `validation_draft_read`

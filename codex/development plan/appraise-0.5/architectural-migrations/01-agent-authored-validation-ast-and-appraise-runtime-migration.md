@@ -2,7 +2,29 @@
 
 ## Status
 
-Proposed architectural migration for AppraiseJS 0.5.
+In progress for AppraiseJS 0.5. Phase 0 safety stabilization has started; later migration phases remain proposed.
+
+### Implementation Progress
+
+#### 2026-07-11: Phase 0 Event And Commit-Evidence Stabilization
+
+- Branch: `codex/validation-ast-phase-0-safety`
+- Commit: `df6a4ba4`
+- Pull request: [#195](https://github.com/jamil2018/appraisejs-core/pull/195), targeting `appraise-0.5`
+- Added idempotent cumulative plan-event acknowledgement through a delivered sequence across the coordinator service,
+  internal HTTP contract, package client, and MCP tool surface.
+- Made implementation commit-evidence attachment idempotent and independent of a no-op `implemented` task-state
+  transition. Exact replays preserve the original evidence timestamp and do not append duplicate task events.
+- Added coordinator regression coverage and updated active lifecycle/MCP documentation.
+- Validation completed: 19 focused coordinator tests, 86 `packages/appraisejs` tests, agent harness check,
+  `build:appraisejs`, Fallow commit gate, and React Doctor 100/100.
+- Refreshed committed `src/graphify-out` projections. The package graph refresh stopped because semantic extraction of
+  one documentation file requires an LLM API key; package tests and TypeScript build passed independently.
+
+This is a partial completion of Task 0.3. Bounded acknowledgement concurrency, atomic task/evidence reconciliation,
+and persistent baseline attempt history remain open. Tasks 0.1 and 0.2 require an explicit follow-up audit against
+the existing readiness, expected-association, and identifier-normalization implementations before the Phase 0
+checkpoint can be marked complete.
 
 This document supersedes
 `bug fixes/27-meditation-plan-builder-agent-coordination-observations-and-fix-plan.md` as the implementation authority.
@@ -689,6 +711,9 @@ tests. Preserve compatibility for legacy leading-`@` or hashed identifiers durin
 
 Add `acknowledgeThroughSequence`, concurrency limits, idempotent commit attachment, atomic task/evidence
 reconciliation, and persistent attempt history.
+
+Progress: **in progress**. PR #195 implements cumulative acknowledgement and idempotent commit attachment. Concurrency
+limits, atomic reconciliation, and persistent attempt history remain.
 
 ### Checkpoint: Safe Legacy Operation
 
