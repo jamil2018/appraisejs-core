@@ -18,6 +18,7 @@ import { validationNodeHash } from '@/lib/validation-review/approval'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
+import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { approvePlanRevision } from '@/services/plan-review/plan-review-service'
 import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
 
@@ -218,7 +219,7 @@ beforeEach(async () => {
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
   await ensurePlanRuntimeSchema()
-  client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+  client = sqliteTestClient(databasePath)
 })
 
 afterEach(async () => {

@@ -13,6 +13,7 @@ import {
 
 import prisma from '@/config/db-config'
 import type { ValidationArtifact } from '@/lib/plan-contract'
+import type { CompiledCustomExtension } from '@/lib/validation-ast'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { canonicalTagExpression, canonicalTagName } from '@/lib/tag-filters'
 import { ServiceError } from '@/services/shared/errors'
@@ -762,6 +763,101 @@ export async function projectValidationArtifacts(
   client: PrismaClient,
 ) {
   return client.$transaction(tx => projectValidationArtifactsInTransaction(input.planId, input.validation, tx))
+}
+
+type CompiledProjectionInput = {
+  planId: string
+  validation: ValidationArtifact
+  astId: string
+  astHash: string
+  compiledExtensions: CompiledCustomExtension[]
+  assertCurrent?: (transaction: PrismaClient) => Promise<void>
+  publishOperationId?: string
+}
+
+async function assertPublishOperationOwnership(input: CompiledProjectionInput, transaction: RuntimeClient) {
+  if (!input.publishOperationId) return
+  const operation = await transaction.validationAstPublishOperation.findUniqueOrThrow({
+    where: { id: input.publishOperationId },
+    include: { plan: true, targetProject: true },
+  })
+  const matches = [
+    operation.planId === input.planId,
+    operation.plan.sourceHash === operation.expectedPlanHash,
+    operation.targetProject.fingerprint === operation.targetFingerprint,
+  ]
+  if (matches.some(match => !match)) throw new ServiceError('Publish operation ownership context changed.', 'CONFLICT')
+}
+
+async function recordCompiledEvent(
+  input: CompiledProjectionInput,
+  counts: Awaited<ReturnType<typeof projectValidationArtifactsInTransaction>>,
+  plan: { id: string },
+  transaction: RuntimeClient,
+) {
+  const latest = await transaction.planEvent.findFirst({
+    where: { planProjectionId: plan.id },
+    orderBy: { sequence: 'desc' },
+    select: { sequence: true },
+  })
+  const eventData = {
+    planProjectionId: plan.id,
+    publishOperationId: input.publishOperationId,
+    sequence: (latest?.sequence ?? 0) + 1,
+    type: 'validation_ast_compiled',
+    payloadJson: JSON.stringify({
+      operationId: input.publishOperationId,
+      astId: input.astId,
+      astHash: input.astHash,
+      validationIds: input.validation.validations.map(item => item.id),
+      compiledExtensionHashes: input.compiledExtensions.map(item => item.compiledHash),
+      counts,
+    }),
+  }
+  if (input.publishOperationId) {
+    await transaction.planEvent.upsert({
+      where: {
+        publishOperationId_type: { publishOperationId: input.publishOperationId, type: 'validation_ast_compiled' },
+      },
+      update: {},
+      create: eventData,
+    })
+    return
+  }
+  const compiledEvent = await transaction.planEvent.findFirst({
+    where: { planProjectionId: plan.id, type: 'validation_ast_compiled', payloadJson: { contains: input.astHash } },
+  })
+  if (!compiledEvent) await transaction.planEvent.create({ data: eventData })
+}
+
+async function advancePublishProjection(input: CompiledProjectionInput, transaction: RuntimeClient) {
+  if (!input.publishOperationId) return
+  const advanced = await transaction.validationAstPublishOperation.updateMany({
+    where: { id: input.publishOperationId, phase: 'artifacts_written' },
+    data: { phase: 'projected', failure: null },
+  })
+  if (advanced.count !== 1) throw new ServiceError('Publish projection phase is stale.', 'CONFLICT')
+}
+
+async function projectCompiledValidationArtifactsInTransaction(
+  input: CompiledProjectionInput,
+  transaction: Prisma.TransactionClient,
+) {
+  await assertPublishOperationOwnership(input, transaction)
+  await input.assertCurrent?.(transaction as PrismaClient)
+  const counts = await projectValidationArtifactsInTransaction(input.planId, input.validation, transaction)
+  const plan = await transaction.planProjection.findUniqueOrThrow({ where: { planId: input.planId } })
+  await transaction.planProjection.update({
+    where: { id: plan.id },
+    data: { validationJson: JSON.stringify(input.validation) },
+  })
+  await recordCompiledEvent(input, counts, plan, transaction)
+  await advancePublishProjection(input, transaction)
+  return counts
+}
+
+export async function projectCompiledValidationArtifacts(input: CompiledProjectionInput, client: PrismaClient) {
+  return client.$transaction(transaction => projectCompiledValidationArtifactsInTransaction(input, transaction))
 }
 
 export async function assertProjectedBaselineRecords(

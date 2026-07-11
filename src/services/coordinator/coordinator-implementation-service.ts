@@ -545,6 +545,16 @@ export async function startImplementationValidation(
   if (selected.length !== requestedIds.size) {
     throw new ServiceError('One or more implementation validations were not found.', 'NOT_FOUND')
   }
+  if (
+    selected.some(
+      validation => validation.astProvenance && validation.astProvenance.executionAuthority !== 'phase3_capsule',
+    )
+  ) {
+    throw new ServiceError(
+      'AST validations require an authorized Phase 3 runtime capsule before execution.',
+      'CONFLICT',
+    )
+  }
   const startedAt = (options.now ?? new Date()).toISOString()
   const projection = await client.planProjection.findUnique({
     where: { planId: input.planId },

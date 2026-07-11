@@ -41,6 +41,7 @@ const {
   mockFsAccess,
   mockGenerateFeature,
   mockResolveTargetProject,
+  mockPlanProjectionFindMany,
 } = vi.hoisted(() => ({
   mockEnvironmentFindUnique: vi.fn(),
   mockTagFindMany: vi.fn(),
@@ -72,6 +73,7 @@ const {
   mockFsAccess: vi.fn(),
   mockGenerateFeature: vi.fn(),
   mockResolveTargetProject: vi.fn(),
+  mockPlanProjectionFindMany: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({
@@ -94,6 +96,7 @@ vi.mock('@/config/db-config', () => ({
       upsert: mockTestRunLogUpsert,
       findUnique: mockTestRunLogFindUnique,
     },
+    planProjection: { findMany: mockPlanProjectionFindMany },
   },
 }))
 
@@ -189,6 +192,33 @@ const baseValue = testRunSchema.parse({
   testSuites: [{ testSuiteId: 'suite-1', runAll: true, testCaseIds: [] }],
 })
 
+function mockRunnableSuite(testCases: Array<{ id: string; title: string; tag: string }>) {
+  mockTestRunFindFirst.mockResolvedValue(null)
+  mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+  mockTestSuiteFindMany.mockResolvedValue([
+    {
+      id: 'suite-1',
+      name: 'Login Suite',
+      tags: [createIdentifierTag('ts', 'login')],
+      testCases: testCases.map(testCase => ({
+        id: testCase.id,
+        title: testCase.title,
+        tags: [createIdentifierTag('tc', testCase.tag)],
+      })),
+    },
+  ])
+}
+
+function mockStandaloneTarget() {
+  mockResolveTargetProject.mockResolvedValue({
+    id: 'target-1',
+    displayName: 'Target App',
+    canonicalPath: '/target/app',
+  })
+  mockTestRunFindFirst.mockResolvedValue(null)
+  mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+}
+
 describe('buildOrExpression', () => {
   it('returns null for empty input', () => {
     expect(buildOrExpression([])).toBeNull()
@@ -276,6 +306,7 @@ describe('testRunSchema', () => {
 describe('createTestRunFromValidatedValue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockPlanProjectionFindMany.mockResolvedValue([])
     mockCreateTestRunLogger.mockResolvedValue({
       info: vi.fn(),
       error: vi.fn(),
@@ -295,18 +326,9 @@ describe('createTestRunFromValidatedValue', () => {
   })
 
   it('creates a run from suite selection and schedules execution', async () => {
-    mockTestRunFindFirst.mockResolvedValue(null)
-    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
-    mockTestSuiteFindMany.mockResolvedValue([
-      {
-        id: 'suite-1',
-        name: 'Login Suite',
-        tags: [createIdentifierTag('ts', 'login')],
-        testCases: [
-          { id: 'tc-1', title: 'Login', tags: [createIdentifierTag('tc', 'login')] },
-          { id: 'tc-2', title: 'Logout', tags: [createIdentifierTag('tc', 'logout')] },
-        ],
-      },
+    mockRunnableSuite([
+      { id: 'tc-1', title: 'Login', tag: 'login' },
+      { id: 'tc-2', title: 'Logout', tag: 'logout' },
     ])
     mockTestRunCreate.mockResolvedValue({ id: 'db-1', runId: 'run-1' })
 
@@ -345,6 +367,28 @@ describe('createTestRunFromValidatedValue', () => {
       prepareWorkspace: undefined,
     })
     expect(result).toEqual({ runId: 'run-1', id: 'db-1' })
+  })
+
+  // fallow-ignore-next-line code-duplication -- denial setup intentionally mirrors successful selection
+  it('denies a selected Phase 2 AST test case before creating a run', async () => {
+    mockRunnableSuite([{ id: 'tc-1', title: 'Login', tag: 'login' }])
+    mockPlanProjectionFindMany.mockResolvedValue([
+      {
+        planId: 'plan-one',
+        validationJson: JSON.stringify({
+          validations: [
+            {
+              id: 'ast-validation',
+              testCaseIds: ['tc-1'],
+              astProvenance: { executionAuthority: 'phase2_review_only' },
+            },
+          ],
+        }),
+      },
+    ])
+
+    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(mockTestRunCreate).not.toHaveBeenCalled()
   })
 
   it('rejects duplicate run names', async () => {
@@ -498,6 +542,35 @@ describe('createTestRunFromValidatedValue', () => {
     )
   })
 
+  // fallow-ignore-next-line code-duplication -- denial setup intentionally mirrors standalone validation errors
+  it('denies a plan-bound standalone run selecting a Phase 2 AST case', async () => {
+    mockStandaloneTarget()
+    mockTestCaseFindMany.mockResolvedValue([{ id: 'case-1', TestSuite: [{ id: 'suite-1' }] }])
+    mockPlanProjectionFindMany.mockResolvedValue([
+      {
+        planId: 'plan-1',
+        validationJson: JSON.stringify({
+          validations: [
+            {
+              id: 'ast-validation',
+              testCaseIds: ['case-1'],
+              astProvenance: { executionAuthority: 'phase2_review_only' },
+            },
+          ],
+        }),
+      },
+    ])
+    await expect(
+      createStandaloneTargetTestRun({
+        target: 'target-1',
+        environmentId: 'env-1',
+        planId: 'plan-1',
+        expectedTestCases: [{ testCaseId: 'case-1', testSuiteId: 'suite-1' }],
+      }),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(mockTestRunCreate).not.toHaveBeenCalled()
+  })
+
   it('rejects a plan-bound standalone run without expected associations', async () => {
     mockResolveTargetProject.mockResolvedValue({
       id: 'target-1',
@@ -534,13 +607,7 @@ describe('createTestRunFromValidatedValue', () => {
   })
 
   it('rejects an expected case paired with a suite it does not belong to', async () => {
-    mockResolveTargetProject.mockResolvedValue({
-      id: 'target-1',
-      displayName: 'Target App',
-      canonicalPath: '/target/app',
-    })
-    mockTestRunFindFirst.mockResolvedValue(null)
-    mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1', name: 'QA' })
+    mockStandaloneTarget()
     mockTestCaseFindMany.mockResolvedValue([{ id: 'case-1', TestSuite: [{ id: 'suite-other' }] }])
 
     await expect(

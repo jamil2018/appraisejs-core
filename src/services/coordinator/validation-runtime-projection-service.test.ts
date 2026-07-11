@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import type { ValidationArtifact } from '@/lib/plan-contract'
 
-import { featureTextForPath } from './validation-runtime-projection-service'
+import { featureTextForPath, projectCompiledValidationArtifacts } from './validation-runtime-projection-service'
+import type { PrismaClient } from '@prisma/client'
 
 const baseValidation = {
   version: '1',
@@ -71,5 +72,37 @@ describe('validation runtime projection tags', () => {
     expect(() => featureTextForPath(invalid.planId, invalid, 'automation/features/quotes.feature')).toThrow(
       'is not assigned to a suite',
     )
+  })
+
+  it('runs the compilation CAS before any projection write', async () => {
+    let projectionAccessed = false
+    const transaction = new Proxy(
+      {},
+      {
+        get() {
+          projectionAccessed = true
+          throw new Error('projection write accessed')
+        },
+      },
+    )
+    const client = {
+      $transaction: async (operation: (value: unknown) => unknown) => operation(transaction),
+    } as unknown as PrismaClient
+    await expect(
+      projectCompiledValidationArtifacts(
+        {
+          planId: baseValidation.planId,
+          validation: baseValidation,
+          astId: 'ast-one',
+          astHash: `sha256:${'b'.repeat(64)}`,
+          compiledExtensions: [],
+          assertCurrent: async () => {
+            throw new Error('stale context')
+          },
+        },
+        client,
+      ),
+    ).rejects.toThrow('stale context')
+    expect(projectionAccessed).toBe(false)
   })
 })

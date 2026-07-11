@@ -458,9 +458,17 @@ function invalidBaselineEvidence(input: {
   }
 }
 
+function hasUnauthorizedAstValidation(validation: ValidationArtifact) {
+  return validation.validations.some(
+    item => item.astProvenance && item.astProvenance.executionAuthority !== 'phase3_capsule',
+  )
+}
+
 export async function startBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
+  if (hasUnauthorizedAstValidation(artifacts.validation))
+    throw new ServiceError('Validation AST execution requires a matching Phase 3 runtime capsule.', 'CONFLICT')
   if (artifacts.plan.lifecycle === 'baseline_running') {
     return { plan: artifacts.plan, validation: artifacts.validation }
   }
@@ -721,6 +729,11 @@ export async function acceptBaseline(planId: string, options: BaselineOptions = 
 export async function startImplementation(planId: string, options: BaselineOptions = {}) {
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
+  if (hasUnauthorizedAstValidation(artifacts.validation))
+    throw new ServiceError(
+      'Validation AST implementation execution requires a matching Phase 3 runtime capsule.',
+      'CONFLICT',
+    )
   if (artifacts.plan.lifecycle !== 'baseline_accepted' || artifacts.validation.baselineDecision !== 'accepted') {
     throw new ServiceError('Accepted baselines are required before implementation.', 'CONFLICT')
   }

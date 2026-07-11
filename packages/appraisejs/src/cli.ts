@@ -30,6 +30,11 @@ const expectedAgentCapabilities = {
     'baseline_accept',
     'implementation_start',
     'delegated_validation_ast_submit',
+    'validation_ast_check',
+    'validation_ast_preview',
+    'validation_ast_compile',
+    'validation_ast_extension_policy',
+    'validation_ast_extension_reviews',
   ],
   resources: [
     'appraise://actions/catalog',
@@ -500,6 +505,44 @@ addOnlineOptions(
 addOnlineOptions(validation.command('submit').argument('<plan-id>')).action(
   async (planId: string, options: OnlineOptions) =>
     printJson(await (await onlineClient(options)).submitValidation(planId)),
+)
+
+addOnlineOptions(
+  validation
+    .command('ast')
+    .argument('<phase>', 'check, preview, or compile')
+    .argument('<plan-id>')
+    .requiredOption('--submission <path>')
+    .option('--receipt-hash <hash>')
+    .option('--json', 'print machine-readable JSON', true),
+).action(
+  async (
+    phase: string,
+    planId: string,
+    options: OnlineOptions & { submission: string; receiptHash?: string; json: boolean },
+  ) => {
+    await runCommand(async () => {
+      const submission = JSON.parse(
+        await (await import('node:fs/promises')).readFile(path.resolve(options.submission), 'utf8'),
+      )
+      const client = await onlineClient(options)
+      if (phase === 'check') return printJson(await client.checkValidationAst(planId, submission))
+      if (phase === 'preview') return printJson(await client.previewValidationAst(planId, submission))
+      if (phase === 'compile' && options.receiptHash)
+        return printJson(await client.compileValidationAst(planId, submission, options.receiptHash))
+      throw new Error('Compile requires --receipt-hash; phase must be check, preview, or compile.')
+    }, options.json)
+  },
+)
+
+addOnlineOptions(validation.command('ast-policy').argument('<plan-id>')).action(
+  async (planId: string, options: OnlineOptions) =>
+    printJson(await (await onlineClient(options)).readValidationAstExtensionPolicy(planId)),
+)
+
+addOnlineOptions(validation.command('ast-reviews').argument('<plan-id>').option('--operation-id <id>')).action(
+  async (planId: string, options: OnlineOptions & { operationId?: string }) =>
+    printJson(await (await onlineClient(options)).readValidationAstExtensionReviews(planId, options.operationId)),
 )
 
 addOnlineOptions(

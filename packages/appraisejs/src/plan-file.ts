@@ -325,6 +325,14 @@ export const validationArtifactSchema = z
               selector: z.string().min(1).optional(),
             })
             .describe('Runnable command target, usually the feature file plus optional selector.'),
+          astProvenance: z
+            .object({
+              schemaVersion: z.literal('1'),
+              astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+              executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+            })
+            .optional()
+            .describe('AST origin and explicit runtime execution authority.'),
           matrix: z
             .array(
               z.object({

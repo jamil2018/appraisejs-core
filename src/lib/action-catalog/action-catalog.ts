@@ -5,8 +5,11 @@ import { actionIdSchema, actionVersionSchema } from '@/lib/action-contracts'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 
 export const ACTION_CATALOG_CONTRACT_VERSION = '1' as const
-const idSchema = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
+export const actionCategoryIdSchema = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
+const idSchema = actionCategoryIdSchema
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
+export const actionAssertionConcernSchema = z.enum(['accessibility', 'persistence'])
+export const actionNumericUnitSchema = z.enum(['milliseconds', 'seconds'])
 
 export const actionCategorySchema = z.object({
   id: idSchema,
@@ -21,6 +24,13 @@ const actionInputSchema = z.object({
   required: z.boolean(),
   description: z.string().min(1),
   constraints: z.record(z.string(), z.unknown()).optional(),
+  numeric: z
+    .object({
+      unit: actionNumericUnitSchema,
+      minimum: z.number().finite().optional(),
+      maximum: z.number().finite().optional(),
+    })
+    .optional(),
 })
 
 export const actionDescriptorDefinitionSchema = z.object({
@@ -38,6 +48,7 @@ export const actionDescriptorDefinitionSchema = z.object({
   examples: z.array(z.object({ description: z.string().min(1), inputs: z.record(z.string(), z.unknown()) })),
   deprecated: z.boolean(),
   replacementActionId: actionIdSchema.optional(),
+  assertionConcerns: z.array(actionAssertionConcernSchema).default([]),
 })
 
 export const actionDescriptorSchema = actionDescriptorDefinitionSchema.extend({ contentHash: hashSchema })

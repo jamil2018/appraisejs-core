@@ -4,7 +4,9 @@ import {
   authorizeDelegatedReceipt,
   customActionExtensionProposalSchema,
   issueDelegatedAuthorizationReceipt,
+  VALIDATION_AST_LIMITS,
   validationAstSchema,
+  validationAstSubmissionSchema,
 } from './index'
 
 const hash = (character: string) => `sha256:${character.repeat(64)}`
@@ -80,6 +82,37 @@ describe('validation AST contracts', () => {
       validationAstSchema.safeParse({
         ...ast,
         scenarios: [{ ...ast.scenarios[0], steps: [{ ...ast.scenarios[0].steps[0], source: 'raw code' }] }],
+      }).success,
+    ).toBe(false)
+  })
+
+  it('bounds source and rejects duplicate extension identities and declarations', () => {
+    const extension = {
+      schemaVersion: '1',
+      id: 'read-session-timer',
+      version: '1',
+      title: 'Read timer',
+      description: 'Read timer.',
+      reasonExistingActionsAreInsufficient: 'No action exists.',
+      inputs: [],
+      outputs: [],
+      requiredCapabilities: [],
+      implementation: { language: 'typescript', source: 'export const value = true' },
+    }
+    expect(
+      validationAstSubmissionSchema.safeParse({
+        expectedPlanHash: hash('a'),
+        ast,
+        customExtensionProposals: [extension, extension],
+      }).success,
+    ).toBe(false)
+    expect(
+      validationAstSchema.safeParse({ ...ast, customExtensions: ['read-session-timer', 'read-session-timer'] }).success,
+    ).toBe(false)
+    expect(
+      customActionExtensionProposalSchema.safeParse({
+        ...extension,
+        implementation: { language: 'typescript', source: 'x'.repeat(VALIDATION_AST_LIMITS.sourceBytes + 1) },
       }).success,
     ).toBe(false)
   })
