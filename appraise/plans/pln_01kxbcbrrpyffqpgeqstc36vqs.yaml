@@ -1,0 +1,141 @@
+description: Build a small React + TypeScript notes app where users can create, edit, delete, and search notes. Persist notes locally in the browser, display notes ordered by most recently updated first, and provide an accessible responsive user interface. Include automated browser validation covering the complete create/edit/delete/search/persistence/order workflow. This is a fresh empty target workspace.
+edges:
+  - from: scaffold-setup
+    to: notes-crud
+    type: blocks
+  - from: notes-crud
+    to: notes-organization
+    type: blocks
+  - from: notes-organization
+    to: notes-quality
+    type: blocks
+goal: Simple Notes E2E Happy Path
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-setup
+      - notes-crud
+  - id: behavior
+    taskIds:
+      - notes-organization
+  - id: quality
+    taskIds:
+      - notes-quality
+lifecycle: validation_changes_requested
+planId: pln_01kxbcbrrpyffqpgeqstc36vqs
+requirementAssessment:
+  domainCandidates:
+    - confidence: 1
+      domain: notes
+      evidence:
+        - notes product noun
+        - notes noun
+        - notes organization capability
+    - confidence: 0.125
+      domain: editor
+      evidence:
+        - notes field or noun
+  requirements:
+    - coveredBy:
+        - surface: description
+          taskId: scaffold-setup
+        - surface: description
+          taskId: notes-crud
+        - surface: validationIntent
+          taskId: notes-crud
+        - surface: acceptanceCriteria
+          taskId: notes-crud
+      id: create
+      kind: functional
+      text: Create records
+    - coveredBy:
+        - surface: validationIntent
+          taskId: notes-crud
+        - surface: acceptanceCriteria
+          taskId: notes-crud
+      id: edit
+      kind: functional
+      text: Edit records
+    - coveredBy:
+        - surface: validationIntent
+          taskId: notes-crud
+        - surface: acceptanceCriteria
+          taskId: notes-crud
+      id: delete
+      kind: functional
+      text: Delete records
+    - coveredBy:
+        - surface: description
+          taskId: notes-organization
+        - surface: validationIntent
+          taskId: notes-organization
+        - surface: acceptanceCriteria
+          taskId: notes-organization
+        - surface: validationIntent
+          taskId: notes-quality
+      id: persistence
+      kind: functional
+      text: Persistent storage
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: notes-crud
+        - surface: description
+          taskId: notes-quality
+        - surface: validationIntent
+          taskId: notes-quality
+        - surface: acceptanceCriteria
+          taskId: notes-quality
+      id: accessibility
+      kind: quality
+      text: Accessible interaction and screen-reader support
+    - coveredBy:
+        - surface: description
+          taskId: notes-quality
+        - surface: validationIntent
+          taskId: notes-quality
+        - surface: acceptanceCriteria
+          taskId: notes-quality
+      id: responsive
+      kind: quality
+      text: Responsive layout
+    - coveredBy:
+        - surface: validationIntent
+          taskId: notes-quality
+      id: testing
+      kind: validation
+      text: Requested automated validation
+  selectedDomain: notes
+  uncoveredRequirementIds: []
+  warnings: []
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The app starts locally with React and no missing dependency errors.
+      - Base styling, component primitives, and project structure are in place for the planned UI.
+      - Stack assumptions are stated clearly in the review-ready plan.
+    description: Create the React application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief. These defaults are reviewable through Appraise feedback when the brief does not name a stack.
+    id: scaffold-setup
+    title: Scaffold and configure the app shell
+    validationIntent: Run install/build or the closest available scaffold validation for the generated app shell.
+  - acceptanceCriteria:
+      - Users can create, read, edit, and delete notes with accessible labeled controls.
+      - Empty, selected, editing, and destructive-confirmation states are clear.
+    description: Create the notes list and editor flows for adding, reading, editing, and deleting local notes.
+    id: notes-crud
+    title: Build local notes CRUD
+    validationIntent: Exercise create, read, edit, and delete note workflows with focused browser validation.
+  - acceptanceCriteria:
+      - Notes survive reload and retain deterministic ordering.
+      - Search narrows notes by their visible content without losing the selected note unexpectedly.
+    description: Persist notes locally and support the ordering and search behavior requested by the brief.
+    id: notes-organization
+    title: Persist and organize notes
+    validationIntent: Verify persistence, ordering, reload recovery, and search results.
+  - acceptanceCriteria:
+      - Keyboard and screen-reader users can operate note creation, selection, editing, search, and deletion.
+      - The notes workflow remains usable across responsive layouts.
+    description: Cover the complete local notes workflow, responsive behavior, and accessibility states.
+    id: notes-quality
+    title: Validate the notes experience
+    validationIntent: Run focused notes CRUD, persistence, search, accessibility, and responsive tests.
+version: "1"
