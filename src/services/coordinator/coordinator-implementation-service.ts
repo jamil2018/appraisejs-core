@@ -38,7 +38,7 @@ import {
   readLatestPlanEventSequence,
   withPlanEventStreamLock,
 } from './coordinator-service'
-import { readStoredJsonReport, runtimePathsForValidation, supportImportPaths } from './coordinator-baseline-service'
+import { readStoredJsonReport, runtimePathsForValidation } from './coordinator-baseline-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date; appraiseRoot?: string }
 
@@ -620,7 +620,7 @@ function selectImplementationValidations(validation: ValidationArtifact, request
   if (selected.length !== requestedIds.size) {
     throw new ServiceError('One or more implementation validations were not found.', 'NOT_FOUND')
   }
-  if (selected.some(item => item.astProvenance?.schemaVersion === '1')) {
+  if (selected.some(item => item.astProvenance?.schemaVersion !== '2')) {
     throw new ServiceError('AST validations require an exact reviewed v2 publication before execution.', 'CONFLICT')
   }
   return selected
@@ -704,21 +704,20 @@ async function prepareImplementationMatrixEntry(input: {
   const environment = input.environmentByValue.get(input.matrix.environment)
   if (!environment) throw new ServiceError(`Environment "${input.matrix.environment}" was not found.`, 'VALIDATION')
   const provenance = input.validation.astProvenance
-  const isReviewedAst = provenance?.schemaVersion === '2'
+  if (provenance?.schemaVersion !== '2')
+    throw new ServiceError('Managed implementation validation requires exact v2 AST provenance.', 'CONFLICT')
   const id = implementationValidationRunId(
     input.validation.id,
     input.matrix.browser,
     input.matrix.environment,
     input.startedAt,
   )
-  const provenanceIdentity = isReviewedAst
-    ? `${provenance.publishOperationId}:${provenance.runtimeInputHash}`
-    : `legacy:${input.artifacts.validationStored.hash}`
+  const provenanceIdentity = `${provenance.publishOperationId}:${provenance.runtimeInputHash}`
   const prefix = `implementation:${input.planId}:${input.artifacts.plan.revision}:${provenanceIdentity}:${input.validation.id}:${input.matrix.browser}:${input.matrix.environment}:`
   const preparationKey = await durablePreparationKey({ client: input.client, prefix })
   const name = `Implementation validation ${input.planId} ${input.validation.id} ${input.matrix.browser} ${input.matrix.environment}`
   let testRunId: string | undefined
-  if (isReviewedAst) {
+  {
     const request = {
       operationId: provenance.publishOperationId,
       planId: input.planId,
@@ -733,23 +732,6 @@ async function prepareImplementationMatrixEntry(input: {
     testRunId = prepared.runId
     input.capsuleStarts.push({ request, testRunDbId: prepared.id })
     input.preparedCapsuleTestRunDbIds.push(prepared.id)
-  } else {
-    input.testRunInputs.push({
-      target: input.projection?.targetProject?.canonicalPath ?? input.artifacts.projectRoot,
-      environmentId: environment.id,
-      name,
-      tagExpression: input.tagExpression,
-      testWorkersCount: 1,
-      browserEngine: browserEngine(input.matrix.browser),
-      planId: input.planId,
-      validationId: input.validation.id,
-      implementationValidationRunId: id,
-      featurePaths: input.runtimePaths!.featurePaths,
-      importPaths: input.runtimePaths!.importPaths,
-      supportPaths: supportImportPaths(input.artifacts.projectRoot),
-      prepareWorkspace: false,
-      expectedTestCases: input.expectedTestCases,
-    })
   }
   return preparedImplementationRun({
     id,
@@ -760,7 +742,6 @@ async function prepareImplementationMatrixEntry(input: {
     environment: input.matrix.environment,
     tagExpression: input.tagExpression,
     testRunId,
-    ...(input.runtimePaths ? { runtimePaths: input.runtimePaths } : {}),
   })
 }
 
@@ -786,11 +767,10 @@ async function prepareImplementationMatrix(input: {
   const capsuleService = new RuntimeCapsuleTestRunService(input.client)
 
   for (const validation of input.selected) {
-    const isReviewedAst = validation.astProvenance?.schemaVersion === '2'
-    if (isReviewedAst && !projection?.targetProject?.id) {
+    if (!projection?.targetProject?.id) {
       throw new ServiceError('Reviewed AST validation requires an authoritative target project.', 'CONFLICT')
     }
-    const runtimePaths = isReviewedAst ? null : runtimePathsForValidation(input.artifacts.validation, validation)
+    const runtimePaths = null
     const expectedTestCases = expectedTestCasesForValidation(validation, suiteIdByTestCaseId)
     const tagExpression = expectedTestCases
       .map(({ testCaseId, testSuiteId }) => `(@ts_${testSuiteId} and @tc_${testCaseId})`)

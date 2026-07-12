@@ -617,15 +617,15 @@ async function baselineRuntimeValidation(
   artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
   client: PrismaClient,
 ) {
-  const legacyValidations = artifacts.validation.validations.filter(
-    validation => validation.astProvenance?.schemaVersion !== '2',
-  )
-  if (legacyValidations.length === 0) return artifacts.validation
-  const legacyRuntime = await assertBaselinePreflight(planId, artifacts, client, {
-    ...artifacts.validation,
-    validations: legacyValidations,
-  })
-  return mergeLegacyRuntimeIntoReviewedValidation(artifacts.validation, legacyRuntime)
+  void planId
+  void client
+  const invalid = artifacts.validation.validations.filter(validation => validation.astProvenance?.schemaVersion !== '2')
+  if (invalid.length > 0)
+    throw new ServiceError(
+      `Managed baseline requires exact v2 AST provenance for every validation; invalid validations: ${invalid.map(item => item.id).join(', ')}.`,
+      'CONFLICT',
+    )
+  return artifacts.validation
 }
 
 function invalidBaselineEvidence(input: {
@@ -675,6 +675,8 @@ async function prepareBaselineAttempts(input: {
       attempt => baselineCombinationKey(attempt) === baselineCombinationKey(combination),
     ).length
     const provenance = validation.astProvenance
+    if (provenance?.schemaVersion !== '2')
+      throw new ServiceError('Managed baseline requires exact v2 AST provenance.', 'CONFLICT')
     const preparationKey = baselineCapsulePreparationKey({
       planId: input.planId,
       revision: input.artifacts.plan.revision,
@@ -682,9 +684,8 @@ async function prepareBaselineAttempts(input: {
       browser: combination.browser,
       environment: combination.environment,
       attemptOrdinal,
-      publishOperationId: provenance?.schemaVersion === '2' ? provenance.publishOperationId : 'legacy',
-      runtimeInputHash:
-        provenance?.schemaVersion === '2' ? provenance.runtimeInputHash : input.artifacts.validationStored.hash,
+      publishOperationId: provenance.publishOperationId,
+      runtimeInputHash: provenance.runtimeInputHash,
     })
     const submitted = await input.submitRun({
       planId: input.planId,
@@ -725,20 +726,9 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
   const submitRun =
     options.submitRun ??
     (async input => {
-      if (input.validation.astProvenance?.schemaVersion === '2') {
-        if (!artifacts.targetProject)
-          throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
-        return submitCapsuleTestRun({ targetProject: artifacts.targetProject, ...input }, client, capsuleService)
-      }
-      return submitAppraiseTestRun(
-        {
-          projectRoot: artifacts.projectRoot,
-          targetProject: artifacts.targetProject,
-          runtimeValidation,
-          ...input,
-        },
-        client,
-      )
+      if (!artifacts.targetProject)
+        throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+      return submitCapsuleTestRun({ targetProject: artifacts.targetProject, ...input }, client, capsuleService)
     })
   const { attempts, pendingStarts } = await prepareBaselineAttempts({
     planId,

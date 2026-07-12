@@ -19,10 +19,8 @@ import { ServiceError } from '@/services/shared/errors'
 import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
 import {
   assertRuntimePreflightPassed,
-  assertValidationEnvironmentsReady,
   assertValidationFilesMaterialized,
   materializeValidationRuntime,
-  projectValidationArtifacts,
 } from './validation-runtime-projection-service'
 
 type Options = {
@@ -413,8 +411,15 @@ export async function decideValidationNode(
     throw new ServiceError('Validation artifact not found.', 'NOT_FOUND')
   const node = artifacts.validation.validations.find(validation => validation.id === input.validationId)
   if (!node) throw new ServiceError('Validation node not found.', 'NOT_FOUND')
-  const publishOperation = node.astProvenance ? await findCurrentAstPublishOperation(input.planId, client) : null
-  if (publishOperation) {
+  if (node.astProvenance?.schemaVersion !== '2')
+    throw new ServiceError(
+      'Managed validation decisions require an exact reviewed v2 AST publication. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
+      'CONFLICT',
+    )
+  const publishOperation = await findCurrentAstPublishOperation(input.planId, client)
+  if (!publishOperation)
+    throw new ServiceError('The exact reviewed v2 AST publish operation was not found.', 'CONFLICT')
+  {
     const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     const suppliedExtensions = [...(input.extensionArtifactHashes ?? [])].sort()
     if (
@@ -519,10 +524,15 @@ export async function submitValidationReview(planId: string, options: Options = 
   }
   const readiness = assessValidationReadiness(artifacts.validation, artifacts.review)
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
-  const publishOperation = artifacts.validation.validations.some(validation => validation.astProvenance)
-    ? await findCurrentAstPublishOperation(planId, client)
-    : null
-  if (publishOperation) {
+  if (artifacts.validation.validations.some(validation => validation.astProvenance?.schemaVersion !== '2'))
+    throw new ServiceError(
+      'Managed validation review requires exact v2 AST provenance for every validation. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
+      'CONFLICT',
+    )
+  const publishOperation = await findCurrentAstPublishOperation(planId, client)
+  if (!publishOperation)
+    throw new ServiceError('The exact reviewed v2 AST publish operation was not found.', 'CONFLICT')
+  {
     const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     if (
       options.operationHash !== publishOperation.operationHash ||
@@ -555,31 +565,12 @@ export async function submitValidationReview(planId: string, options: Options = 
         throw new ServiceError('Validation review decision does not match immutable AST evidence.', 'CONFLICT')
     }
   }
-  let reviewedValidation = artifacts.validation
-  let projection: unknown
-  if (publishOperation) {
-    projection = {
-      operationId: publishOperation.id,
-      operationHash: publishOperation.operationHash,
-      projectionHash: publishOperation.projectionHash,
-      extensionArtifactHashes: publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
-    }
-  } else {
-    const runtimeValidation = await materializeValidationRuntime({
-      projectRoot: artifacts.projectRoot,
-      validationFileRoot: artifacts.validationFileRoot,
-      targetProject: artifacts.targetProject,
-      validation: artifacts.validation,
-    })
-    assertRuntimePreflightPassed(runtimeValidation)
-    reviewedValidation = await assertValidationFilesMaterialized({
-      projectRoot: artifacts.projectRoot,
-      validationFileRoot: artifacts.validationFileRoot,
-      targetProject: artifacts.targetProject,
-      validation: runtimeValidation,
-    })
-    await assertValidationEnvironmentsReady(reviewedValidation, client, artifacts.targetProject)
-    projection = await projectValidationArtifacts({ planId, validation: reviewedValidation }, client)
+  const reviewedValidation = artifacts.validation
+  const projection = {
+    operationId: publishOperation.id,
+    operationHash: publishOperation.operationHash,
+    projectionHash: publishOperation.projectionHash,
+    extensionArtifactHashes: publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
   }
 
   const validation = { ...reviewedValidation, reviewSubmittedAt: new Date().toISOString() }
