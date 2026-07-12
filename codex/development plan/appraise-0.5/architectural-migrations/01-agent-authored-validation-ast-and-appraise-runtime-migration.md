@@ -2,9 +2,8 @@
 
 ## Status
 
-In progress for AppraiseJS 0.5. Phases 0-2 are complete. Phase 3 Tasks 3.1 and 3.2 are complete and approved;
-Tasks 3.3 and 3.4 and the Managed Execution Independence checkpoint are implemented and validated pending user
-approval. Phase 3 is implemented and validated but is not human-approved.
+In progress for AppraiseJS 0.5. Phases 0-3 are complete and approved. Phase 4 is implemented and validated pending
+human approval.
 
 ### Implementation Progress
 
@@ -1030,17 +1029,32 @@ Create durable jobs from canonical lifecycle events, stage complete revisions, h
 swap within the target project's managed export root, retry safely, and persist project-bound receipts. Reject jobs
 whose project ownership or destination identity has drifted.
 
+Status: **implemented and validated; pending user approval**. Durable project/publication/hash-bound jobs stage a
+complete deterministic reviewed projection and publish it with recoverable directory renames. Successful exact-hash
+receipts are persisted transactionally; retries are idempotent and ownership/path drift fails closed.
+
 #### Task 4.2: Implement External Modification And Conflict Handling
 
 Compare current files with last-exported hashes and never overwrite external changes silently. Add diff and explicit
 resolution actions.
+
+Status: **implemented and validated; pending user approval**. Every prior manifest file is rehashed before replacement.
+External edits or deletions return bounded conflict paths without changing the current export. Explicit conflict
+replacement uses the same staged publication path, and cross-project manifests, traversal, and symlinked parents are
+rejected.
 
 #### Task 4.3: Add Export Policies And Completion Integration
 
 Support disabled, optional, and required policies. Managed evidence remains independent; required policy blocks
 completion only when the exact validation hash lacks a successful receipt.
 
+Status: **implemented and validated; pending user approval**. Export defaults to disabled; disabled and optional jobs
+do not affect completion. A required job adds one completion blocker until its exact validation hash has a successful
+project-bound receipt. Managed baseline and implementation evidence remain capsule-only.
+
 ### Checkpoint: Safe Git Distribution
+
+Status: **implemented and validated; pending user approval**.
 
 - Agent interruption cannot skip or corrupt export.
 - Failed export leaves the previous successful revision intact.

@@ -120,6 +120,10 @@ protected evidence, and a completion review. A passing validation matrix emits `
 complete the plan. Only explicit final user approval writes final sign-off, emits `completed`, and releases evidence
 protection.
 
+Repository export is independently policy-controlled. Disabled and optional exports never block completion. Required
+export blocks only until a project-bound receipt exists for the exact reviewed validation hash; managed TestRun
+evidence never depends on repository export files.
+
 ## Reporting Evidence
 
 Reports should distinguish backend/service approval from browser/UI approval. If a run used API or service calls only,

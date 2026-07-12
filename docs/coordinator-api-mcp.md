@@ -88,6 +88,8 @@ All routes are under `/api/internal/coordinator`.
 | Method | Path                                                      | Purpose                                                             |
 | ------ | --------------------------------------------------------- | ------------------------------------------------------------------- |
 | `POST` | `/register`                                               | Acquire, reconnect, or take over a coordinator lease                |
+| `POST` | `/repository-exports`                                     | Enqueue an exact-publication repository export                      |
+| `POST` | `/repository-exports/<job-id>`                            | Run, retry, or explicitly resolve an export conflict                |
 | `GET`  | `/actions/categories`                                     | List progressive action category summaries                          |
 | `GET`  | `/actions`                                                | List bounded, deterministically filtered actions                    |
 | `GET`  | `/actions/read`                                           | Read exact versioned action descriptors                             |

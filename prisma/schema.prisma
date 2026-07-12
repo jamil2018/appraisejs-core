@@ -392,9 +392,67 @@ model TargetProject {
   runtimeCapsules                RuntimeCapsule[]
   runtimeCapsuleBlobs            RuntimeCapsuleBlob[]
   runtimeCapsuleLeases           RuntimeCapsuleLease[]
+  repositoryExportJobs           RepositoryExportJob[]
+  repositoryExportReceipts       RepositoryExportReceipt[]
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+enum RepositoryExportPolicy {
+  disabled
+  optional
+  required
+}
+
+enum RepositoryExportJobState {
+  queued
+  running
+  conflict
+  succeeded
+  failed
+}
+
+model RepositoryExportJob {
+  id                 String                        @id @default(uuid())
+  targetProjectId    String
+  publishOperationId String
+  validationHash     String
+  destinationPath    String
+  policy             RepositoryExportPolicy        @default(disabled)
+  state              RepositoryExportJobState      @default(queued)
+  attemptCount       Int                           @default(0)
+  idempotencyKey     String                        @unique
+  manifestHash       String?
+  manifestJson       String?
+  conflictJson       String?
+  failureCode        String?
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  completedAt        DateTime?
+  targetProject      TargetProject                 @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  publishOperation   ValidationAstPublishOperation @relation(fields: [publishOperationId], references: [id], onDelete: Restrict)
+  receipt            RepositoryExportReceipt?
+
+  @@unique([targetProjectId, validationHash, destinationPath])
+  @@index([state, updatedAt])
+  @@index([targetProjectId, validationHash])
+}
+
+model RepositoryExportReceipt {
+  id              String              @id @default(uuid())
+  jobId           String              @unique
+  targetProjectId String
+  validationHash  String
+  manifestHash    String
+  destinationPath String
+  receiptJson     String
+  completedAt     DateTime            @default(now())
+  job             RepositoryExportJob @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  targetProject   TargetProject       @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, validationHash, destinationPath])
+  @@index([targetProjectId, validationHash])
 }
 
 model RuntimeCapsule {
@@ -749,6 +807,7 @@ model ValidationAstPublishOperation {
   events                   PlanEvent[]
   plan                     PlanProjection              @relation(fields: [planProjectionId], references: [id], onDelete: Restrict)
   targetProject            TargetProject               @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  repositoryExportJobs     RepositoryExportJob[]
 
   @@unique([planId, idempotencyKey])
   @@index([phase, updatedAt])

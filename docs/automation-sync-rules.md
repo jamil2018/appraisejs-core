@@ -39,6 +39,10 @@ Reviewed v2 runs use Appraise-owned capsule projections under
 database ownership plus the sealed manifest/receipt are authoritative, and agents must not hand-edit or import them.
 Legacy runs continue to use `automation/reports`.
 
+Reviewed publications may also be distributed under `automation/appraise/` through the durable workflow in
+`docs/repository-export-runtime.md`. This is a generated projection: do not edit it as canonical source or use it for
+Appraise-managed execution.
+
 ## Sync Commands
 
 Use `package.json` as the command source of truth. Common sync commands are:
