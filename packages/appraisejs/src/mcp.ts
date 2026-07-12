@@ -50,24 +50,14 @@ const baseWorkflowCriticalTools = [
   'plan_revise',
   'plan_start',
   'validation_context_read',
-  'validation_draft_create',
-  'validation_draft_read',
-  'validation_draft_reset',
   'appraise_resources_list',
   'template_step_search',
   'template_step_match',
   'step_block_search',
   'locator_search',
-  'validation_node_upsert',
-  'validation_node_delete',
-  'validation_test_case_upsert',
-  'validation_test_shape_propose',
-  'validation_file_upsert',
-  'validation_file_delete',
-  'validation_step_metadata_upsert',
-  'validation_draft_check',
-  'validation_draft_publish',
-  'validation_publish',
+  'validation_ast_check',
+  'validation_ast_preview',
+  'validation_ast_compile',
   'validation_review_loop',
   'validation_decide',
   'validation_file_approve',
@@ -467,7 +457,7 @@ export const standbyWorkflow = {
   },
 }
 
-export const validationPreparationWorkflow = {
+const legacyValidationPreparationWorkflow = {
   phase: 'validation_preparation',
   preferredTool: 'validation_draft_publish',
   legacyTool: 'validation_publish',
@@ -639,6 +629,28 @@ export const validationPreparationWorkflow = {
   },
   errorRecovery:
     'If a draft tool returns blockers, correct the named draft path and retry the mutation or validation_draft_check. Use validation_publish only for legacy full-artifact compatibility.',
+}
+void legacyValidationPreparationWorkflow
+
+export const validationPreparationWorkflow = {
+  phase: 'validation_preparation',
+  preferredTool: 'validation_ast_compile',
+  contractResource: 'appraise://contracts/validation-ast',
+  artifactContract: 'appraise.validation-ast/v2',
+  happyPath: [
+    'plan_start',
+    'validation_context_read',
+    'validation_ast_check',
+    'validation_ast_preview',
+    'human review of the exact preview receipt',
+    'validation_ast_compile',
+    'validation_review_loop standby',
+    'capsule-backed baseline and implementation validation',
+  ],
+  ownership:
+    'Appraise owns canonical projection and immutable runtime capsules. Managed validation never uses target automation files as execution authority.',
+  recovery:
+    'Resolve the bounded AST check or preview blocker and retry the same v2 operation. Reconnect the client if removed v1 tools remain visible.',
 }
 
 export const mcpCapabilityMetadata = {
@@ -1731,15 +1743,6 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async input => text(await api.queryLocatorGraph(input)),
   )
   server.registerTool(
-    'legacy_automation_import_preview',
-    {
-      description:
-        'Parse the connected project legacy automation into a non-mutating, source-traceable AST migration proposal. Human review and explicit action/locator mapping remain required before canonical compilation.',
-      inputSchema: {},
-    },
-    async () => text(await api.previewLegacyAutomationImport()),
-  )
-  server.registerTool(
     'validation_ast_extension_reviews',
     {
       description: 'Read exact bounded extension reviews and the hash required to bind a review decision.',
@@ -2676,43 +2679,47 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       return text(await api.request(`plans/${planId}/validations/context?${params}`))
     },
   )
-  server.registerTool(
-    'validation_draft_create',
-    {
-      description:
-        'Create an Appraise-owned validation draft for the current plan revision. Use this before proposing validation nodes, files, suites, cases, steps, locators, or matrices.',
-      inputSchema: { planId: z.string() },
-    },
-    async ({ planId }) =>
-      text(
-        withGuidance(await api.request(`plans/${planId}/validations/draft/create`, { method: 'POST', body: '{}' }), {
-          nextRecommendedAction: 'Call validation_context_read, then mutate the draft with validation_*_upsert tools.',
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_draft_read',
-    {
-      description: 'Read the current Appraise-owned validation draft and structured blockers.',
-      inputSchema: { planId: z.string(), responseMode: z.enum(['summary', 'delta', 'full']).default('summary') },
-    },
-    async ({ planId, responseMode }) =>
-      text(await api.request(`plans/${planId}/validations/draft?responseMode=${responseMode}`)),
-  )
-  server.registerTool(
-    'validation_draft_reset',
-    {
-      description: 'Reset the active validation draft using its exact current hash.',
-      inputSchema: { planId: z.string(), expectedDraftHash: z.string().startsWith('sha256:') },
-    },
-    async ({ planId, expectedDraftHash }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/reset`, {
-          method: 'POST',
-          body: JSON.stringify({ expectedDraftHash }),
-        }),
-      ),
-  )
+  const legacyValidationToolsEnabled = false
+  if (legacyValidationToolsEnabled) {
+    server.registerTool(
+      'validation_draft_create',
+      {
+        description:
+          'Create an Appraise-owned validation draft for the current plan revision. Use this before proposing validation nodes, files, suites, cases, steps, locators, or matrices.',
+        inputSchema: { planId: z.string() },
+      },
+      async ({ planId }) =>
+        text(
+          withGuidance(await api.request(`plans/${planId}/validations/draft/create`, { method: 'POST', body: '{}' }), {
+            nextRecommendedAction:
+              'Call validation_context_read, then mutate the draft with validation_*_upsert tools.',
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_draft_read',
+      {
+        description: 'Read the current Appraise-owned validation draft and structured blockers.',
+        inputSchema: { planId: z.string(), responseMode: z.enum(['summary', 'delta', 'full']).default('summary') },
+      },
+      async ({ planId, responseMode }) =>
+        text(await api.request(`plans/${planId}/validations/draft?responseMode=${responseMode}`)),
+    )
+    server.registerTool(
+      'validation_draft_reset',
+      {
+        description: 'Reset the active validation draft using its exact current hash.',
+        inputSchema: { planId: z.string(), expectedDraftHash: z.string().startsWith('sha256:') },
+      },
+      async ({ planId, expectedDraftHash }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/reset`, {
+            method: 'POST',
+            body: JSON.stringify({ expectedDraftHash }),
+          }),
+        ),
+    )
+  }
   server.registerTool(
     'appraise_resources_list',
     {
@@ -2800,140 +2807,200 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       })
     },
   )
-  server.registerTool(
-    'validation_node_upsert',
-    {
-      description:
-        'Create or update one validation node inside the Appraise-owned draft. Appraise returns canonical draft state and blockers.',
-      inputSchema: { planId: z.string(), node: validationNodeInputSchema },
-    },
-    async ({ planId, node }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/nodes`, {
-          method: 'POST',
-          body: JSON.stringify({ node }),
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_node_delete',
-    {
-      description: 'Delete one erroneous validation node using the exact current draft hash.',
-      inputSchema: { planId: z.string(), nodeId: z.string(), expectedDraftHash: z.string().startsWith('sha256:') },
-    },
-    async ({ planId, nodeId, expectedDraftHash }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/nodes/${nodeId}/delete`, {
-          method: 'POST',
-          body: JSON.stringify({ expectedDraftHash }),
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_test_case_upsert',
-    {
-      description:
-        'Create or update a validation test case from an intent-shaped proposal. Appraise normalizes it into draft suites, cases, steps, matrix, and executable paths.',
-      inputSchema: { planId: z.string(), proposal: validationTestCaseProposalInputSchema },
-    },
-    async ({ planId, proposal }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/test-cases`, {
-          method: 'POST',
-          body: JSON.stringify({ proposal }),
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_test_shape_propose',
-    {
-      description:
-        'Propose behavior intent, locator hints, reusable step refs, step blocks, and optional custom-step proposals. Appraise resolves reusable resources and updates the validation draft.',
-      inputSchema: { planId: z.string(), proposal: validationTestCaseProposalInputSchema },
-    },
-    async ({ planId, proposal }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/test-shapes`, {
-          method: 'POST',
-          body: JSON.stringify({ proposal }),
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_file_upsert',
-    {
-      description: 'Create or update changed-file evidence inside the Appraise-owned validation draft and manifest.',
-      inputSchema: { planId: z.string(), file: validationFileInputSchema },
-    },
-    async ({ planId, file }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/files`, {
-          method: 'POST',
-          body: JSON.stringify({ file }),
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_file_delete',
-    {
-      description: 'Delete one erroneous changed-file entry using the exact current draft hash.',
-      inputSchema: {
-        planId: z.string(),
-        path: z.string().min(1),
-        expectedDraftHash: z.string().startsWith('sha256:'),
+  if (legacyValidationToolsEnabled) {
+    server.registerTool(
+      'validation_node_upsert',
+      {
+        description:
+          'Create or update one validation node inside the Appraise-owned draft. Appraise returns canonical draft state and blockers.',
+        inputSchema: { planId: z.string(), node: validationNodeInputSchema },
       },
-    },
-    async ({ planId, path, expectedDraftHash }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/files/delete`, {
-          method: 'POST',
-          body: JSON.stringify({ path, expectedDraftHash }),
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_step_metadata_upsert',
-    {
-      description:
-        'Create or update validation draft step metadata: reused registry/template step paths, new custom step paths, and required custom-step justifications.',
-      inputSchema: {
-        planId: z.string(),
-        reusedStepPaths: z.array(z.string().min(1)).default([]),
-        newStepPaths: z.array(z.string().min(1)).default([]),
-        customStepJustifications: z.array(customStepJustificationInputSchema).default([]),
+      async ({ planId, node }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/nodes`, {
+            method: 'POST',
+            body: JSON.stringify({ node }),
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_node_delete',
+      {
+        description: 'Delete one erroneous validation node using the exact current draft hash.',
+        inputSchema: { planId: z.string(), nodeId: z.string(), expectedDraftHash: z.string().startsWith('sha256:') },
       },
-    },
-    async ({ planId, ...body }) =>
-      text(
-        await api.request(`plans/${planId}/validations/draft/step-metadata`, {
+      async ({ planId, nodeId, expectedDraftHash }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/nodes/${nodeId}/delete`, {
+            method: 'POST',
+            body: JSON.stringify({ expectedDraftHash }),
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_test_case_upsert',
+      {
+        description:
+          'Create or update a validation test case from an intent-shaped proposal. Appraise normalizes it into draft suites, cases, steps, matrix, and executable paths.',
+        inputSchema: { planId: z.string(), proposal: validationTestCaseProposalInputSchema },
+      },
+      async ({ planId, proposal }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/test-cases`, {
+            method: 'POST',
+            body: JSON.stringify({ proposal }),
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_test_shape_propose',
+      {
+        description:
+          'Propose behavior intent, locator hints, reusable step refs, step blocks, and optional custom-step proposals. Appraise resolves reusable resources and updates the validation draft.',
+        inputSchema: { planId: z.string(), proposal: validationTestCaseProposalInputSchema },
+      },
+      async ({ planId, proposal }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/test-shapes`, {
+            method: 'POST',
+            body: JSON.stringify({ proposal }),
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_file_upsert',
+      {
+        description: 'Create or update changed-file evidence inside the Appraise-owned validation draft and manifest.',
+        inputSchema: { planId: z.string(), file: validationFileInputSchema },
+      },
+      async ({ planId, file }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/files`, {
+            method: 'POST',
+            body: JSON.stringify({ file }),
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_file_delete',
+      {
+        description: 'Delete one erroneous changed-file entry using the exact current draft hash.',
+        inputSchema: {
+          planId: z.string(),
+          path: z.string().min(1),
+          expectedDraftHash: z.string().startsWith('sha256:'),
+        },
+      },
+      async ({ planId, path, expectedDraftHash }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/files/delete`, {
+            method: 'POST',
+            body: JSON.stringify({ path, expectedDraftHash }),
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_step_metadata_upsert',
+      {
+        description:
+          'Create or update validation draft step metadata: reused registry/template step paths, new custom step paths, and required custom-step justifications.',
+        inputSchema: {
+          planId: z.string(),
+          reusedStepPaths: z.array(z.string().min(1)).default([]),
+          newStepPaths: z.array(z.string().min(1)).default([]),
+          customStepJustifications: z.array(customStepJustificationInputSchema).default([]),
+        },
+      },
+      async ({ planId, ...body }) =>
+        text(
+          await api.request(`plans/${planId}/validations/draft/step-metadata`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+        ),
+    )
+    server.registerTool(
+      'validation_draft_check',
+      {
+        description: 'Check the Appraise-owned validation draft for structured blockers before publication.',
+        inputSchema: { planId: z.string() },
+      },
+      async ({ planId }) =>
+        text(await api.request(`plans/${planId}/validations/draft/check`, { method: 'POST', body: '{}' })),
+    )
+    server.registerTool(
+      'validation_draft_publish',
+      {
+        description:
+          'Publish the Appraise-owned validation draft for user review. Appraise renders the validation YAML, emits validation_review_ready, and moves to validation-review standby.',
+        inputSchema: { planId: z.string(), draftId: z.string(), responseMode: responseModeSchema },
+      },
+      async ({ planId, draftId, responseMode }) => {
+        const published = (await api.request(`plans/${planId}/validations/draft/publish`, {
           method: 'POST',
-          body: JSON.stringify(body),
-        }),
-      ),
-  )
-  server.registerTool(
-    'validation_draft_check',
-    {
-      description: 'Check the Appraise-owned validation draft for structured blockers before publication.',
-      inputSchema: { planId: z.string() },
-    },
-    async ({ planId }) =>
-      text(await api.request(`plans/${planId}/validations/draft/check`, { method: 'POST', body: '{}' })),
-  )
-  server.registerTool(
-    'validation_draft_publish',
-    {
-      description:
-        'Publish the Appraise-owned validation draft for user review. Appraise renders the validation YAML, emits validation_review_ready, and moves to validation-review standby.',
-      inputSchema: { planId: z.string(), draftId: z.string(), responseMode: responseModeSchema },
-    },
-    async ({ planId, draftId, responseMode }) => {
-      const published = (await api.request(`plans/${planId}/validations/draft/publish`, {
-        method: 'POST',
-        body: JSON.stringify({ draftId }),
-      })) as {
-        published?: boolean
-        validation?: {
+          body: JSON.stringify({ draftId }),
+        })) as {
+          published?: boolean
+          validation?: {
+            validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
+            lifecycle?: string
+            revision?: number
+            validationArtifactPath?: string
+            validationHash?: string
+            validationCount?: number
+            changedFileCount?: number
+            manifestPaths?: string[]
+          }
+          validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
+          blockers?: unknown[]
+        }
+        const reviewLinks = published.validation?.validationReviewLinks ?? published.validationReviewLinks
+        const result = {
+          published: published.published,
+          planId,
+          lifecycle: published.validation?.lifecycle,
+          revision: published.validation?.revision,
+          validationArtifactPath: published.validation?.validationArtifactPath,
+          validationHash: published.validation?.validationHash,
+          counts: {
+            validations: published.validation?.validationCount ?? 0,
+            changedFiles: published.validation?.changedFileCount ?? 0,
+          },
+          manifestPaths: published.validation?.manifestPaths ?? [],
+          blockers: published.blockers ?? [],
+          browserUrl: reviewLinks?.browser,
+          appraiseUrl: reviewLinks?.appraise ?? `appraise://plans/${planId}`,
+          requiredUserFacingMessage: published.published
+            ? [
+                `Direct validation review URL: ${reviewLinks?.browser ?? reviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
+                `Appraise URL: ${reviewLinks?.appraise ?? `appraise://plans/${planId}`}`,
+                `Plan ID: ${planId}`,
+                `Lifecycle: ${published.validation?.lifecycle ?? 'awaiting_validation_review'}`,
+                `Revision: ${published.validation?.revision ?? '(not returned)'}`,
+                `Validation artifact path: ${published.validation?.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
+                `Validation count: ${published.validation?.validationCount ?? 0}`,
+                `Changed-file count: ${published.validation?.changedFileCount ?? 0}`,
+                `Manifest paths: ${(published.validation?.manifestPaths ?? []).join(', ')}`,
+                'Next review action: open the validation review URL and wait for Appraise validation approval or changes.',
+              ].join('\n')
+            : `Validation draft has blockers: ${JSON.stringify(published.blockers ?? [])}`,
+          nextRequiredAgentBehavior: published.published ? 'standby_for_validation_review' : 'revise_validation_draft',
+        }
+        return text(applyLifecycleResponseMode(responseMode === 'full' ? published : result, responseMode))
+      },
+    )
+    server.registerTool(
+      'validation_publish',
+      {
+        description:
+          'Legacy compatibility path: publish a full generated validation artifact for user review. Prefer validation_draft_create, draft mutation tools, validation_draft_check, and validation_draft_publish for new agents.',
+        inputSchema: { planId: z.string(), validation: validationArtifactSchema, responseMode: responseModeSchema },
+      },
+      async ({ planId, validation, responseMode }) => {
+        const published = (await api.request(`plans/${planId}/validations/publish`, {
+          method: 'POST',
+          body: JSON.stringify({ validation }),
+        })) as {
           validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
           lifecycle?: string
           revision?: number
@@ -2942,117 +3009,59 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           validationCount?: number
           changedFileCount?: number
           manifestPaths?: string[]
+          reusedStepPaths?: string[]
+          newStepPaths?: string[]
         }
-        validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
-        blockers?: unknown[]
-      }
-      const reviewLinks = published.validation?.validationReviewLinks ?? published.validationReviewLinks
-      const result = {
-        published: published.published,
-        planId,
-        lifecycle: published.validation?.lifecycle,
-        revision: published.validation?.revision,
-        validationArtifactPath: published.validation?.validationArtifactPath,
-        validationHash: published.validation?.validationHash,
-        counts: {
-          validations: published.validation?.validationCount ?? 0,
-          changedFiles: published.validation?.changedFileCount ?? 0,
-        },
-        manifestPaths: published.validation?.manifestPaths ?? [],
-        blockers: published.blockers ?? [],
-        browserUrl: reviewLinks?.browser,
-        appraiseUrl: reviewLinks?.appraise ?? `appraise://plans/${planId}`,
-        requiredUserFacingMessage: published.published
-          ? [
-              `Direct validation review URL: ${reviewLinks?.browser ?? reviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
-              `Appraise URL: ${reviewLinks?.appraise ?? `appraise://plans/${planId}`}`,
-              `Plan ID: ${planId}`,
-              `Lifecycle: ${published.validation?.lifecycle ?? 'awaiting_validation_review'}`,
-              `Revision: ${published.validation?.revision ?? '(not returned)'}`,
-              `Validation artifact path: ${published.validation?.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
-              `Validation count: ${published.validation?.validationCount ?? 0}`,
-              `Changed-file count: ${published.validation?.changedFileCount ?? 0}`,
-              `Manifest paths: ${(published.validation?.manifestPaths ?? []).join(', ')}`,
-              'Next review action: open the validation review URL and wait for Appraise validation approval or changes.',
-            ].join('\n')
-          : `Validation draft has blockers: ${JSON.stringify(published.blockers ?? [])}`,
-        nextRequiredAgentBehavior: published.published ? 'standby_for_validation_review' : 'revise_validation_draft',
-      }
-      return text(applyLifecycleResponseMode(responseMode === 'full' ? published : result, responseMode))
-    },
-  )
-  server.registerTool(
-    'validation_publish',
-    {
-      description:
-        'Legacy compatibility path: publish a full generated validation artifact for user review. Prefer validation_draft_create, draft mutation tools, validation_draft_check, and validation_draft_publish for new agents.',
-      inputSchema: { planId: z.string(), validation: validationArtifactSchema, responseMode: responseModeSchema },
-    },
-    async ({ planId, validation, responseMode }) => {
-      const published = (await api.request(`plans/${planId}/validations/publish`, {
-        method: 'POST',
-        body: JSON.stringify({ validation }),
-      })) as {
-        validationReviewLinks?: { browser?: string; appraise?: string; route?: string }
-        lifecycle?: string
-        revision?: number
-        validationArtifactPath?: string
-        validationHash?: string
-        validationCount?: number
-        changedFileCount?: number
-        manifestPaths?: string[]
-        reusedStepPaths?: string[]
-        newStepPaths?: string[]
-      }
-      const result = {
-        ...published,
-        browserUrl: published.validationReviewLinks?.browser,
-        appraiseUrl: published.validationReviewLinks?.appraise ?? `appraise://plans/${planId}`,
-        requiredUserFacingMessage: [
-          `Direct validation review URL: ${published.validationReviewLinks?.browser ?? published.validationReviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
-          `Appraise URL: ${published.validationReviewLinks?.appraise ?? `appraise://plans/${planId}`}`,
-          `Plan ID: ${planId}`,
-          `Lifecycle: ${published.lifecycle ?? 'awaiting_validation_review'}`,
-          `Revision: ${published.revision ?? '(not returned)'}`,
-          `Validation artifact path: ${published.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
-          `Validation count: ${published.validationCount ?? 0}`,
-          `Changed-file count: ${published.changedFileCount ?? 0}`,
-          `Manifest paths: ${(published.manifestPaths ?? []).join(', ')}`,
-          `Reused registry/template step paths: ${(published.reusedStepPaths ?? []).join(', ')}`,
-          `New custom step paths: ${(published.newStepPaths ?? []).join(', ') || '(none)'}`,
-          'Next review action: open the validation review URL and wait for Appraise validation approval or changes.',
-        ].join('\n'),
-        handoffMarkdown: [
-          'Validation artifacts are published and validation_review_ready has been emitted.',
-          `Review: ${published.validationReviewLinks?.browser ?? published.validationReviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
-          `Artifact: ${published.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
-        ].join('\n'),
-        nextRequiredAgentBehavior: 'standby_for_validation_review',
-      }
-      return text(applyLifecycleResponseMode(responseMode === 'full' ? published : result, responseMode))
-    },
-  )
-  server.registerTool(
-    'validation_decide',
-    {
-      description: 'Explicit user/Appraise decision relay: record a hash-bound decision for one validation node.',
-      inputSchema: {
-        planId: z.string(),
-        validationId: z.string(),
-        decision: z.enum(['approved', 'rejected', 'deferred']),
-        decidedBy: z.string(),
-        operationHash: z.string().startsWith('sha256:').optional(),
-        extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
+        const result = {
+          ...published,
+          browserUrl: published.validationReviewLinks?.browser,
+          appraiseUrl: published.validationReviewLinks?.appraise ?? `appraise://plans/${planId}`,
+          requiredUserFacingMessage: [
+            `Direct validation review URL: ${published.validationReviewLinks?.browser ?? published.validationReviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
+            `Appraise URL: ${published.validationReviewLinks?.appraise ?? `appraise://plans/${planId}`}`,
+            `Plan ID: ${planId}`,
+            `Lifecycle: ${published.lifecycle ?? 'awaiting_validation_review'}`,
+            `Revision: ${published.revision ?? '(not returned)'}`,
+            `Validation artifact path: ${published.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
+            `Validation count: ${published.validationCount ?? 0}`,
+            `Changed-file count: ${published.changedFileCount ?? 0}`,
+            `Manifest paths: ${(published.manifestPaths ?? []).join(', ')}`,
+            `Reused registry/template step paths: ${(published.reusedStepPaths ?? []).join(', ')}`,
+            `New custom step paths: ${(published.newStepPaths ?? []).join(', ') || '(none)'}`,
+            'Next review action: open the validation review URL and wait for Appraise validation approval or changes.',
+          ].join('\n'),
+          handoffMarkdown: [
+            'Validation artifacts are published and validation_review_ready has been emitted.',
+            `Review: ${published.validationReviewLinks?.browser ?? published.validationReviewLinks?.route ?? `/plans/${planId}?review=validation`}`,
+            `Artifact: ${published.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
+          ].join('\n'),
+          nextRequiredAgentBehavior: 'standby_for_validation_review',
+        }
+        return text(applyLifecycleResponseMode(responseMode === 'full' ? published : result, responseMode))
       },
-    },
-    async ({ planId, validationId, ...body }) =>
-      text(
-        await api.request(`plans/${planId}/validations/nodes/${validationId}`, {
-          method: 'POST',
-          body: JSON.stringify(body),
-        }),
-      ),
-  )
+    )
+    server.registerTool(
+      'validation_decide',
+      {
+        description: 'Explicit user/Appraise decision relay: record a hash-bound decision for one validation node.',
+        inputSchema: {
+          planId: z.string(),
+          validationId: z.string(),
+          decision: z.enum(['approved', 'rejected', 'deferred']),
+          decidedBy: z.string(),
+          operationHash: z.string().startsWith('sha256:').optional(),
+          extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
+        },
+      },
+      async ({ planId, validationId, ...body }) =>
+        text(
+          await api.request(`plans/${planId}/validations/nodes/${validationId}`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+        ),
+    )
+  }
   server.registerTool(
     'validation_review_loop',
     {

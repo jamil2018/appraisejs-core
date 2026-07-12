@@ -24,7 +24,9 @@ const expectedAgentCapabilities = {
     'actions_read',
     'planning_session_create',
     'plan_review_loop',
-    'validation_publish',
+    'validation_ast_check',
+    'validation_ast_preview',
+    'validation_ast_compile',
     'validation_review_loop',
     'baseline_start',
     'baseline_reconcile',
@@ -36,7 +38,6 @@ const expectedAgentCapabilities = {
     'validation_ast_compile',
     'validation_ast_extension_policy',
     'validation_ast_extension_reviews',
-    'legacy_automation_import_preview',
   ],
   resources: [
     'appraise://actions/catalog',
@@ -510,15 +511,6 @@ addOnlineOptions(
     ])
     printJson(await (await onlineClient(options)).submitDelegatedValidationAst(submission, receipt))
   }, options.json)
-})
-
-addOnlineOptions(
-  validation.command('publish').argument('<plan-id>').requiredOption('--file <path>', 'validation artifact JSON file'),
-).action(async (planId: string, options: OnlineOptions & { file: string }) => {
-  const value = JSON.parse(
-    await (await import('node:fs/promises')).readFile(path.resolve(options.file), 'utf8'),
-  ) as unknown
-  printJson(await (await onlineClient(options)).publishValidation(planId, value))
 })
 
 addOnlineOptions(validation.command('submit').argument('<plan-id>')).action(

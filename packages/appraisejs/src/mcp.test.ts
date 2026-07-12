@@ -468,10 +468,9 @@ describe('MCP capability and recovery metadata', () => {
         'planning_session_create',
         'plan_review_loop',
         'validation_context_read',
-        'validation_draft_create',
-        'validation_step_metadata_upsert',
-        'validation_draft_publish',
-        'validation_publish',
+        'validation_ast_check',
+        'validation_ast_preview',
+        'validation_ast_compile',
         'validation_review_loop',
         'test_run_preflight',
         'test_run_read',
@@ -500,58 +499,20 @@ describe('MCP capability and recovery metadata', () => {
     )
   })
 
-  it('exposes Appraise-owned draft guidance before validation review is published', () => {
+  it('exposes the v2-only AST workflow before validation review is published', () => {
     expect(agentGuide.validationPreparationWorkflow).toBe(validationPreparationWorkflow)
-    expect(validationPreparationWorkflow.preferredTool).toBe('validation_draft_publish')
-    expect(validationPreparationWorkflow.legacyTool).toBe('validation_publish')
-    expect(validationPreparationWorkflow.artifactContract).toBe('appraise.validation/v1')
+    expect(validationPreparationWorkflow.preferredTool).toBe('validation_ast_compile')
+    expect(validationPreparationWorkflow.artifactContract).toBe('appraise.validation-ast/v2')
     expect(validationPreparationWorkflow.happyPath).toEqual(
-      expect.arrayContaining(['validation_context_read', 'validation_draft_create', 'validation_draft_publish']),
+      expect.arrayContaining([
+        'validation_context_read',
+        'validation_ast_check',
+        'validation_ast_preview',
+        'validation_ast_compile',
+      ]),
     )
-    expect(validationPreparationWorkflow.appraiseOwnedDraft).toContain('Agents orchestrate')
-    expect(validationPreparationWorkflow.requiredTopLevelFields).toEqual(
-      expect.arrayContaining(['validations', 'files', 'manifestPaths', 'baselineDecision']),
-    )
-    expect(validationPreparationWorkflow.validationNodeFields).toContain('appraiseArtifacts')
-    expect(validationPreparationWorkflow.appraiseFirst).toContain('AppraiseJS-native authored artifacts first')
-    expect(validationPreparationWorkflow.appraiseArtifactFields).toMatchObject({
-      testSuites: expect.arrayContaining(['id', 'name', 'testCaseIds']),
-      testCases: expect.arrayContaining(['id', 'title', 'steps']),
-      locators: expect.arrayContaining(['id', 'name', 'value']),
-    })
-    expect(validationPreparationWorkflow.initialPublishDefaults).toMatchObject({
-      approvals: [],
-      validationDecisions: [],
-      baselineAttempts: [],
-      baselineAcknowledgements: [],
-      baselineDecision: 'pending',
-    })
-    expect(validationPreparationWorkflow.gitlessTargetEvidence).toMatchObject({
-      valid: true,
-      assurance: 'reduced',
-      recommendedBaseRevision: {
-        gitCommit: null,
-        reducedAssurance: true,
-      },
-    })
-    expect(validationPreparationWorkflow.registryFirst).toContain('customStepJustifications')
-    expect(validationPreparationWorkflow.minimalSkeleton).toMatchObject({
-      version: '1',
-      validations: [
-        expect.objectContaining({
-          appraiseArtifacts: expect.objectContaining({
-            testSuites: expect.any(Array),
-            testCases: expect.any(Array),
-            locators: expect.any(Array),
-          }),
-          gherkinPaths: expect.any(Array),
-          stepPaths: expect.any(Array),
-        }),
-      ],
-      files: [expect.objectContaining({ classification: 'test_only', declared: true })],
-    })
-    expect(validationArtifactSchema.safeParse(validationPreparationWorkflow.minimalSkeleton).success).toBe(true)
-    expect(validationPreparationWorkflow.errorRecovery).toContain('Use validation_publish only for legacy')
+    expect(validationPreparationWorkflow.ownership).toContain('immutable runtime capsules')
+    expect(validationPreparationWorkflow.recovery).not.toContain('validation_publish')
   })
 
   it('keeps standby workflow resource aligned with complete handoff-before-wait guidance', () => {

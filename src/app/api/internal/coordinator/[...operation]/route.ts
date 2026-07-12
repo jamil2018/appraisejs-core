@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 import { defaultActionCatalog } from '@/lib/action-catalog'
-import { previewLegacyAutomationImport } from '@/lib/validation-ast/legacy-import'
 
 import {
   coordinatorContractVersion,
@@ -72,7 +71,6 @@ import {
   proposeValidationTestShape,
   readValidationContext,
   resolveReusableValidationSteps,
-  readValidationDraft,
   resetValidationDraft,
   upsertValidationFile,
   upsertValidationNode,
@@ -304,13 +302,6 @@ async function getValidations(request: Request, operation: string[]) {
         limit: z.coerce.number().int().positive().max(25).catch(5).parse(url.searchParams.get('limit')),
       }),
     )
-  }
-  if (operation[3] === 'draft') {
-    const responseMode = z
-      .enum(['summary', 'delta', 'full'])
-      .catch('summary')
-      .parse(new URL(request.url).searchParams.get('responseMode'))
-    return Response.json(await readValidationDraft(planId, { responseMode }))
   }
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
@@ -805,6 +796,8 @@ async function postValidationOperation(request: Request, operation: string[], bo
       )
     throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   }
+  if (operation[3] === 'draft' || operation[3] === 'publish')
+    throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   if (operation[3] === 'draft') {
     const action = operation[4]
     if (action === 'create') return Response.json(await createValidationDraft(planId), { status: 201 })
@@ -949,11 +942,6 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
       })
       .parse(body)
     return Response.json(evaluateCoordinationSlo(value))
-  }
-  if (operation[0] === 'legacy-automation-imports' && operation[1] === 'preview') {
-    const targetFingerprint = request.headers.get('x-appraise-project') ?? ''
-    const target = await resolveTargetProject(targetFingerprint)
-    return Response.json(await previewLegacyAutomationImport(target.canonicalPath))
   }
   if (operation[0] === 'repository-exports') {
     if (operation.length === 1) {

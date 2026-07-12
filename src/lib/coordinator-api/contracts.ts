@@ -98,8 +98,8 @@ export function zodCoordinatorError(error: ZodError): CoordinatorErrorEnvelope {
     message: path ? `${path}: ${issue?.message ?? 'Invalid request.'}` : (issue?.message ?? 'Invalid request.'),
     ...(path ? { path } : {}),
     recovery: path
-      ? `Fill or correct ${path}, then retry. For validation_publish, read appraise://workflow/validation-preparation and use the minimal skeleton for the next valid value.`
-      : 'Correct the identified field and retry. For validation_publish, read appraise://workflow/validation-preparation and use the minimal skeleton.',
+      ? `Fill or correct ${path}, then retry the bounded v2 AST check or preview operation.`
+      : 'Correct the identified field, then retry validation_ast_check or validation_ast_preview.',
   }
 }
 
