@@ -1,0 +1,427 @@
+import {
+  StepParameterType,
+  TagType,
+  TemplateStepGroupType,
+  TemplateStepIcon,
+  TemplateStepType,
+  type Prisma,
+  type PrismaClient,
+} from '@prisma/client'
+
+import type { ValidationArtifact } from '@/lib/plan-contract'
+import type { CompiledCustomExtension } from '@/lib/validation-ast'
+import { canonicalTagExpression, canonicalTagName } from '@/lib/tag-filters'
+import { ServiceError } from '@/services/shared/errors'
+
+type ProjectionClient = PrismaClient | Prisma.TransactionClient
+type TargetProjectMetadata = {
+  id: string
+  canonicalPath: string
+  displayName: string
+  fingerprint: string
+} | null
+
+const projectionTag = (planId: string) => `@appraise_plan_${planId}`
+const testCaseTag = (testCaseId: string) => `@tc_${testCaseId}`
+const testSuiteTag = (testSuiteId: string) => `@ts_${testSuiteId}`
+const validationStepGroupName = 'Appraise validation projection'
+export async function assertValidationEnvironmentsReady(
+  validation: ValidationArtifact,
+  client: ProjectionClient,
+  targetProject: TargetProjectMetadata,
+) {
+  const requiredNames = [
+    ...new Set(validation.validations.flatMap(item => item.matrix.map(entry => entry.environment))),
+  ]
+  const existing = await client.environment.findMany({
+    where: { name: { in: requiredNames } },
+    select: { name: true },
+  })
+  const found = new Set(existing.map(environment => environment.name))
+  const missingEnvironments = requiredNames.filter(name => !found.has(name))
+  if (missingEnvironments.length > 0) {
+    throw new ServiceError(
+      `Validation environments must exist before approval: ${missingEnvironments.join(', ')}.`,
+      'CONFLICT',
+      undefined,
+      {
+        blockerType: 'missing_environment',
+        missingEnvironments,
+        targetProject,
+        nextRecommendedAction:
+          'Create or confirm the missing environments in Appraise, then resubmit validation review.',
+      },
+    )
+  }
+}
+
+async function ensureIdentifierTag(name: string, client: ProjectionClient) {
+  const canonicalName = canonicalTagName(name)
+  const tagExpression = canonicalTagExpression(name)
+  const existing = await client.tag.findFirst({
+    where: {
+      type: TagType.IDENTIFIER,
+      OR: [{ name: canonicalName }, { name }, { tagExpression }, { tagExpression: canonicalName }],
+    },
+  })
+  if (existing) return existing
+  return client.tag.create({ data: { name: canonicalName, tagExpression, type: TagType.IDENTIFIER } })
+}
+
+function assertProjectionOwned(existing: { tags: Array<{ name: string }> } | null, entityType: string, id: string) {
+  if (!existing || existing.tags.some(tag => canonicalTagExpression(tag.name).startsWith('@appraise_plan_'))) return
+  throw new ServiceError(
+    `Validation projection conflicts with existing ${entityType.toLowerCase()} "${id}".`,
+    'CONFLICT',
+    undefined,
+    {
+      blockerType: 'projection_conflict',
+      entityType,
+      entityId: id,
+    },
+  )
+}
+
+async function assertProjectionOwnedTestCase(id: string, client: ProjectionClient) {
+  const existing = await client.testCase.findUnique({ where: { id }, include: { tags: true } })
+  assertProjectionOwned(existing, 'TestCase', id)
+}
+
+async function assertProjectionOwnedTestSuite(id: string, client: ProjectionClient) {
+  const existing = await client.testSuite.findUnique({ where: { id }, include: { tags: true } })
+  assertProjectionOwned(existing, 'TestSuite', id)
+}
+
+function assertMatchingEntity(
+  existing: Record<string, unknown> | null,
+  expected: Record<string, unknown>,
+  entityType: string,
+  entityId: string,
+) {
+  if (!existing) return
+  for (const [key, value] of Object.entries(expected)) {
+    if (existing[key] !== value) {
+      throw new ServiceError(
+        `Validation projection conflicts with existing ${entityType} "${entityId}".`,
+        'CONFLICT',
+        undefined,
+        {
+          blockerType: 'projection_conflict',
+          entityType,
+          entityId,
+          field: key,
+        },
+      )
+    }
+  }
+}
+
+function parameterType(type: string | undefined) {
+  const normalized = type?.toUpperCase()
+  if (normalized && normalized in StepParameterType) return normalized as StepParameterType
+  return StepParameterType.STRING
+}
+
+async function ensureValidationTemplateStep(
+  step: ValidationArtifact['validations'][number]['appraiseArtifacts']['testCases'][number]['steps'][number],
+  client: ProjectionClient,
+) {
+  if (step.templateStepId) {
+    const existing = await client.templateStep.findUnique({ where: { id: step.templateStepId } })
+    if (existing) return existing
+  }
+  if (step.templateStepName) {
+    const existing = await client.templateStep.findFirst({ where: { name: step.templateStepName } })
+    if (existing) return existing
+  }
+  const group =
+    (await client.templateStepGroup.findFirst({ where: { name: validationStepGroupName } })) ??
+    (await client.templateStepGroup.create({
+      data: {
+        name: validationStepGroupName,
+        description: 'Stable template steps created from approved validation artifacts.',
+        type: TemplateStepGroupType.VALIDATION,
+      },
+    }))
+  const name = step.templateStepName ?? `Validation step ${step.id}`
+  const existing = await client.templateStep.findFirst({ where: { name, templateStepGroupId: group.id } })
+  if (existing) return existing
+  return client.templateStep.create({
+    data: {
+      name,
+      description: 'Created from an approved validation artifact.',
+      signature: step.gherkinStep,
+      type: TemplateStepType.ASSERTION,
+      icon: TemplateStepIcon.VALIDATION,
+      templateStepGroupId: group.id,
+      parameters: {
+        create: step.parameters.map((parameter, order) => ({
+          name: parameter.name,
+          order,
+          type: parameterType(parameter.type),
+        })),
+      },
+    },
+  })
+}
+
+// fallow-ignore-next-line complexity
+async function projectValidationArtifactsInTransaction(
+  planId: string,
+  validation: ValidationArtifact,
+  client: ProjectionClient,
+) {
+  const ownerTag = await ensureIdentifierTag(projectionTag(planId), client)
+  const moduleIds = new Set<string>()
+  const locatorGroupIds = new Set<string>()
+  const locatorIds = new Set<string>()
+
+  for (const validationNode of validation.validations) {
+    const artifacts = validationNode.appraiseArtifacts
+
+    for (const artifactModule of artifacts.modules) {
+      const existing = await client.module.findUnique({ where: { id: artifactModule.id } })
+      assertMatchingEntity(
+        existing,
+        { name: artifactModule.name, parentId: artifactModule.parentId ?? null },
+        'Module',
+        artifactModule.id,
+      )
+      await client.module.upsert({
+        where: { id: artifactModule.id },
+        update: { name: artifactModule.name, parentId: artifactModule.parentId ?? null },
+        create: {
+          id: artifactModule.id,
+          name: artifactModule.name,
+          parentId: artifactModule.parentId ?? null,
+        },
+      })
+      moduleIds.add(artifactModule.id)
+    }
+
+    for (const locatorGroup of artifacts.locatorGroups) {
+      const existing = await client.locatorGroup.findUnique({ where: { id: locatorGroup.id } })
+      assertMatchingEntity(
+        existing,
+        { name: locatorGroup.name, route: locatorGroup.route, moduleId: locatorGroup.moduleId },
+        'LocatorGroup',
+        locatorGroup.id,
+      )
+      await client.locatorGroup.upsert({
+        where: { id: locatorGroup.id },
+        update: { name: locatorGroup.name, route: locatorGroup.route, moduleId: locatorGroup.moduleId },
+        create: {
+          id: locatorGroup.id,
+          name: locatorGroup.name,
+          route: locatorGroup.route,
+          moduleId: locatorGroup.moduleId,
+        },
+      })
+      locatorGroupIds.add(locatorGroup.id)
+    }
+
+    for (const locator of artifacts.locators) {
+      const existing = await client.locator.findUnique({ where: { id: locator.id } })
+      assertMatchingEntity(
+        existing,
+        { name: locator.name, value: locator.value, locatorGroupId: locator.locatorGroupId },
+        'Locator',
+        locator.id,
+      )
+      await client.locator.upsert({
+        where: { id: locator.id },
+        update: { name: locator.name, value: locator.value, locatorGroupId: locator.locatorGroupId },
+        create: {
+          id: locator.id,
+          name: locator.name,
+          value: locator.value,
+          locatorGroupId: locator.locatorGroupId,
+        },
+      })
+      locatorIds.add(locator.id)
+    }
+
+    for (const testCase of artifacts.testCases) {
+      await assertProjectionOwnedTestCase(testCase.id, client)
+      await client.testCase.upsert({
+        where: { id: testCase.id },
+        update: {
+          title: testCase.title,
+          description: testCase.description,
+          tags: {
+            connect: [{ id: ownerTag.id }, { id: (await ensureIdentifierTag(testCaseTag(testCase.id), client)).id }],
+          },
+        },
+        create: {
+          id: testCase.id,
+          title: testCase.title,
+          description: testCase.description,
+          tags: {
+            connect: [{ id: ownerTag.id }, { id: (await ensureIdentifierTag(testCaseTag(testCase.id), client)).id }],
+          },
+        },
+      })
+      await client.testCaseStep.deleteMany({ where: { testCaseId: testCase.id } })
+      for (const step of testCase.steps.sort((left, right) => left.order - right.order)) {
+        const templateStep = await ensureValidationTemplateStep(step, client)
+        await client.testCaseStep.create({
+          data: {
+            id: step.id,
+            testCaseId: testCase.id,
+            order: step.order,
+            gherkinStep: step.gherkinStep,
+            icon: templateStep.icon,
+            label: step.label,
+            templateStepId: templateStep.id,
+            parameters: {
+              create: step.parameters.map((parameter, order) => ({
+                name: parameter.name,
+                value: parameter.value,
+                order,
+                type: parameterType(parameter.type),
+                locatorId: parameter.locatorId ?? null,
+              })),
+            },
+          },
+        })
+      }
+    }
+
+    for (const testSuite of artifacts.testSuites) {
+      await assertProjectionOwnedTestSuite(testSuite.id, client)
+      const suiteIdentifierTag = await ensureIdentifierTag(testSuiteTag(testSuite.id), client)
+      await client.testSuite.upsert({
+        where: { id: testSuite.id },
+        update: {
+          name: testSuite.name,
+          description: testSuite.description ?? null,
+          moduleId: testSuite.moduleId,
+          tags: { connect: [{ id: ownerTag.id }, { id: suiteIdentifierTag.id }] },
+          testCases: { set: testSuite.testCaseIds.map(id => ({ id })) },
+        },
+        create: {
+          id: testSuite.id,
+          name: testSuite.name,
+          description: testSuite.description ?? null,
+          moduleId: testSuite.moduleId,
+          tags: { connect: [{ id: ownerTag.id }, { id: suiteIdentifierTag.id }] },
+          testCases: { connect: testSuite.testCaseIds.map(id => ({ id })) },
+        },
+      })
+    }
+  }
+
+  return {
+    modules: moduleIds.size,
+    locatorGroups: locatorGroupIds.size,
+    locators: locatorIds.size,
+    testSuites: new Set(
+      validation.validations.flatMap(item => item.appraiseArtifacts.testSuites.map(suite => suite.id)),
+    ).size,
+    testCases: new Set(
+      validation.validations.flatMap(item => item.appraiseArtifacts.testCases.map(testCase => testCase.id)),
+    ).size,
+  }
+}
+
+export async function projectValidationArtifacts(
+  input: { planId: string; validation: ValidationArtifact },
+  client: PrismaClient,
+) {
+  return client.$transaction(tx => projectValidationArtifactsInTransaction(input.planId, input.validation, tx))
+}
+
+type CompiledProjectionInput = {
+  planId: string
+  validation: ValidationArtifact
+  astId: string
+  astHash: string
+  compiledExtensions: CompiledCustomExtension[]
+  assertCurrent?: (transaction: PrismaClient) => Promise<void>
+  publishOperationId?: string
+}
+
+async function assertPublishOperationOwnership(input: CompiledProjectionInput, transaction: ProjectionClient) {
+  if (!input.publishOperationId) return
+  const operation = await transaction.validationAstPublishOperation.findUniqueOrThrow({
+    where: { id: input.publishOperationId },
+    include: { plan: true, targetProject: true },
+  })
+  const matches = [
+    operation.planId === input.planId,
+    operation.plan.sourceHash === operation.expectedPlanHash,
+    operation.targetProject.fingerprint === operation.targetFingerprint,
+  ]
+  if (matches.some(match => !match)) throw new ServiceError('Publish operation ownership context changed.', 'CONFLICT')
+}
+
+async function recordCompiledEvent(
+  input: CompiledProjectionInput,
+  counts: Awaited<ReturnType<typeof projectValidationArtifactsInTransaction>>,
+  plan: { id: string },
+  transaction: ProjectionClient,
+) {
+  const latest = await transaction.planEvent.findFirst({
+    where: { planProjectionId: plan.id },
+    orderBy: { sequence: 'desc' },
+    select: { sequence: true },
+  })
+  const eventData = {
+    planProjectionId: plan.id,
+    publishOperationId: input.publishOperationId,
+    sequence: (latest?.sequence ?? 0) + 1,
+    type: 'validation_ast_compiled',
+    payloadJson: JSON.stringify({
+      operationId: input.publishOperationId,
+      astId: input.astId,
+      astHash: input.astHash,
+      validationIds: input.validation.validations.map(item => item.id),
+      compiledExtensionHashes: input.compiledExtensions.map(item => item.compiledHash),
+      counts,
+    }),
+  }
+  if (input.publishOperationId) {
+    await transaction.planEvent.upsert({
+      where: {
+        publishOperationId_type: { publishOperationId: input.publishOperationId, type: 'validation_ast_compiled' },
+      },
+      update: {},
+      create: eventData,
+    })
+    return
+  }
+  const compiledEvent = await transaction.planEvent.findFirst({
+    where: { planProjectionId: plan.id, type: 'validation_ast_compiled', payloadJson: { contains: input.astHash } },
+  })
+  if (!compiledEvent) await transaction.planEvent.create({ data: eventData })
+}
+
+async function advancePublishProjection(input: CompiledProjectionInput, transaction: ProjectionClient) {
+  if (!input.publishOperationId) return
+  const advanced = await transaction.validationAstPublishOperation.updateMany({
+    where: { id: input.publishOperationId, phase: 'artifacts_written' },
+    data: { phase: 'projected', failure: null },
+  })
+  if (advanced.count !== 1) throw new ServiceError('Publish projection phase is stale.', 'CONFLICT')
+}
+
+async function projectCompiledValidationArtifactsInTransaction(
+  input: CompiledProjectionInput,
+  transaction: Prisma.TransactionClient,
+) {
+  await assertPublishOperationOwnership(input, transaction)
+  await input.assertCurrent?.(transaction as PrismaClient)
+  const counts = await projectValidationArtifactsInTransaction(input.planId, input.validation, transaction)
+  const plan = await transaction.planProjection.findUniqueOrThrow({ where: { planId: input.planId } })
+  await transaction.planProjection.update({
+    where: { id: plan.id },
+    data: { validationJson: JSON.stringify(input.validation) },
+  })
+  await recordCompiledEvent(input, counts, plan, transaction)
+  await advancePublishProjection(input, transaction)
+  return counts
+}
+
+export async function projectCompiledValidationArtifacts(input: CompiledProjectionInput, client: PrismaClient) {
+  return client.$transaction(transaction => projectCompiledValidationArtifactsInTransaction(input, transaction))
+}

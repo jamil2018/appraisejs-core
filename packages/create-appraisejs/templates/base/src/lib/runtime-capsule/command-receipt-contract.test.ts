@@ -149,6 +149,23 @@ function receipt() {
 }
 
 describe('capsule command receipt contract', () => {
+  it('rejects unresolved project placeholders before a receipt can be reviewed', () => {
+    const value = receipt()
+    value.runtime.cucumber.binaryRealPath =
+      '/Users/jamil/Personal Projects/appraisejs/[project]/node_modules/@cucumber/cucumber/bin/cucumber.js'
+
+    const result = capsuleCommandReceiptV1Schema.safeParse(value)
+
+    expect(result.success).toBe(false)
+    if (!result.success)
+      expect(result.error.issues).toContainEqual(
+        expect.objectContaining({
+          path: ['runtime', 'cucumber', 'binaryRealPath'],
+          message: expect.stringContaining('unresolved placeholder'),
+        }),
+      )
+  })
+
   it('round-trips canonical bytes and hashes deterministically', () => {
     const value = receipt()
     const canonical = canonicalCapsuleCommandReceipt(value)

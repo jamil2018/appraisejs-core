@@ -13,7 +13,6 @@ import type { PlanReviewDetail } from '@/services/plan-review/plan-review-servic
 type ActionResult = { success?: boolean; error?: string }
 type ValidationArtifact = NonNullable<PlanReviewDetail['validation']>
 type ValidationNode = ValidationArtifact['validations'][number]
-type RuntimeProjection = NonNullable<ValidationArtifact['runtimeProjections']>[number]
 type ValidationAppraiseArtifacts = ValidationNode['appraiseArtifacts']
 type ChangedFile = ValidationArtifact['files'][number]
 type ValidationReviewState = NonNullable<PlanReviewDetail['validationReview']>
@@ -154,81 +153,6 @@ function AppraiseArtifactSummary({ artifacts }: { artifacts?: ValidationAppraise
   )
 }
 
-function RuntimePreflightSummary({ validation }: { validation: ValidationArtifact }) {
-  const preflight = validation.runtimePreflight
-  if (!preflight) return null
-
-  return (
-    <div className="mt-4 rounded-md border p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-sm font-semibold">Runtime preflight</h3>
-        <Badge variant={preflight.status === 'passed' ? 'default' : 'destructive'}>
-          {formatState(preflight.status)}
-        </Badge>
-        <span className="text-xs text-muted-foreground">{preflight.checkedAt}</span>
-      </div>
-      {preflight.blockers.length ? (
-        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-          {preflight.blockers.map(blocker => (
-            <li key={`${blocker.code}:${blocker.path.join('.')}`}>
-              <span className="font-medium text-foreground">{formatState(blocker.code)}:</span> {blocker.message}{' '}
-              {blocker.phrase ? <span className="font-mono text-xs">({blocker.phrase}) </span> : null}
-              <span>{blocker.recovery}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {preflight.runtimePreparation ? (
-        <p className="mt-3 text-xs text-muted-foreground">
-          Runtime owner: <span className="font-medium text-foreground">Appraise</span> · Binary:{' '}
-          <span className="font-mono">{preflight.runtimePreparation.binary}</span>
-        </p>
-      ) : null}
-      {preflight.executionPackets?.length ? (
-        <details className="mt-3 rounded-md border p-3 text-xs">
-          <summary className="cursor-pointer font-medium">Exact managed execution packets</summary>
-          <div className="mt-3 space-y-3">
-            {preflight.executionPackets.map(packet => (
-              <div key={`${packet.validationId}:${packet.browser}:${packet.environment}`} className="grid gap-1">
-                <span className="font-medium">
-                  {packet.validationId} · {packet.browser} · {packet.environment}
-                </span>
-                <span>Target: {packet.targetRoot}</span>
-                <span>Features: {packet.featurePaths.join(', ')}</span>
-                <span>Support/imports: {packet.importPaths.join(', ') || 'Appraise runtime only'}</span>
-                <span>Tags: {packet.tagExpression}</span>
-                <span>Expected scenarios: {packet.expectedScenarioCount}</span>
-                <span>Report: {packet.reportPath}</span>
-              </div>
-            ))}
-          </div>
-        </details>
-      ) : null}
-    </div>
-  )
-}
-
-function RuntimeProjectionRows({ projections, paths }: { projections: RuntimeProjection[]; paths: string[] }) {
-  const rows = projections.filter(projection => paths.includes(projection.declaredPath))
-  if (!rows.length) return null
-
-  return (
-    <div className="mt-4 space-y-2 border-t pt-4">
-      <h5 className="text-sm font-semibold">Runtime projections</h5>
-      <div className="space-y-2">
-        {rows.map(projection => (
-          <div key={`${projection.role}:${projection.declaredPath}`} className="grid gap-2 text-sm md:grid-cols-4">
-            <Info label="Role" value={formatState(projection.role)} />
-            <Info label="Materialization" value={formatState(projection.materialization)} />
-            <Info label="Declared" value={projection.declaredPath} />
-            <Info label="Runtime" value={projection.runtimePath} />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function BaselineLifecycleActions({
   lifecycle,
   isPending,
@@ -322,7 +246,6 @@ function ValidationSummary({
           actions.
         </div>
       ) : null}
-      <RuntimePreflightSummary validation={validation} />
       <div className="mt-4">
         <Button
           type="button"
@@ -368,7 +291,6 @@ function CollapseToggle({ isExpanded, onToggle }: { isExpanded: boolean; onToggl
 // fallow-ignore-next-line complexity
 function ValidationNodeCard({
   node,
-  projections,
   hash,
   currentDecision,
   canDecide,
@@ -380,7 +302,6 @@ function ValidationNodeCard({
   onToggle,
 }: {
   node: ValidationNode
-  projections: RuntimeProjection[]
   hash: string
   currentDecision?: ValidationDecision
   canDecide: boolean
@@ -393,7 +314,8 @@ function ValidationNodeCard({
 }) {
   const decide = (decision: 'approved' | 'rejected' | 'deferred') =>
     run(() => onDecideValidation(node.id, decision), `Validation ${node.id} ${decision}.`)
-  const controlsLocked = isPending || !canDecide
+  const hasExactV2Provenance = node.astProvenance?.schemaVersion === '2'
+  const controlsLocked = isPending || !canDecide || !hasExactV2Provenance
 
   return (
     <div
@@ -422,6 +344,9 @@ function ValidationNodeCard({
               </Badge>
               <Badge variant={decisionVariant(currentDecision?.decision)} className="px-1.5 py-0 text-[10px]">
                 {currentDecision?.decision ? formatState(currentDecision.decision) : 'No decision'}
+              </Badge>
+              <Badge variant={hasExactV2Provenance ? 'default' : 'destructive'} className="px-1.5 py-0 text-[10px]">
+                {hasExactV2Provenance ? 'v2 AST' : 'Invalid provenance'}
               </Badge>
             </div>
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">{hash}</p>
@@ -481,10 +406,14 @@ function ValidationNodeCard({
             <Info label="Test cases" value={node.testCaseIds.join(', ')} />
           </div>
           <AppraiseArtifactSummary artifacts={node.appraiseArtifacts} />
-          <RuntimeProjectionRows
-            projections={projections}
-            paths={[...node.gherkinPaths, ...node.stepPaths, node.executable.path]}
-          />
+          {hasExactV2Provenance ? (
+            <div className="grid gap-3 text-sm md:grid-cols-2">
+              <Info label="Publish operation" value={node.astProvenance.publishOperationId} />
+              <Info label="AST hash" value={node.astProvenance.astHash} />
+              <Info label="Receipt hash" value={node.astProvenance.receiptHash} />
+              <Info label="Runtime input hash" value={node.astProvenance.runtimeInputHash} />
+            </div>
+          ) : null}
           <div className="grid gap-3 text-sm md:grid-cols-2">
             <Info
               label="Executable"
@@ -566,7 +495,6 @@ function ValidationNodeList({
             <ValidationNodeCard
               key={node.id}
               node={node}
-              projections={validation.runtimeProjections ?? []}
               hash={hash}
               currentDecision={currentDecision}
               canDecide={canDecide}

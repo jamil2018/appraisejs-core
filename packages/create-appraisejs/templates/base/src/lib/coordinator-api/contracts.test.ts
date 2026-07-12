@@ -24,7 +24,7 @@ describe('coordinator public contracts', () => {
       code: 'invalid-request',
       message: expect.stringContaining('plan.tasks.0.validationIntent'),
       path: 'plan.tasks.0.validationIntent',
-      recovery: expect.stringContaining('appraise://workflow/validation-preparation'),
+      recovery: expect.stringContaining('v2 AST check or preview'),
     })
   })
 

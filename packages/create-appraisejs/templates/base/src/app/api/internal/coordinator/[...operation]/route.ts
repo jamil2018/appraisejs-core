@@ -1,13 +1,11 @@
 import { z } from 'zod'
 
 import { defaultActionCatalog } from '@/lib/action-catalog'
-import { previewLegacyAutomationImport } from '@/lib/validation-ast/legacy-import'
 
 import {
   coordinatorContractVersion,
   coordinatorError,
   planLinks,
-  validationReviewLinks,
   zodCoordinatorError,
 } from '@/lib/coordinator-api/contracts'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
@@ -18,9 +16,6 @@ import {
   parseYamlArtifact,
   planArtifactSchema,
   planIdSchema,
-  type ValidationDraft,
-  validationArtifactSchema,
-  validationTestCaseProposalSchema,
 } from '@/lib/plan-contract'
 import { createOpaquePlanId } from '@/lib/plans/plan-identity'
 import {
@@ -59,26 +54,13 @@ import {
 import {
   approveValidationFile,
   decideValidationNode,
-  publishPreparedValidations,
   submitValidationFeedback,
   submitValidationReview,
 } from '@/services/coordinator/coordinator-validation-service'
 import {
-  checkValidationDraft,
-  createValidationDraft,
-  deleteValidationFile,
-  deleteValidationNode,
-  publishValidationDraft,
-  proposeValidationTestShape,
   readValidationContext,
   resolveReusableValidationSteps,
-  readValidationDraft,
-  resetValidationDraft,
-  upsertValidationFile,
-  upsertValidationNode,
-  upsertValidationStepMetadata,
-  upsertValidationTestCase,
-} from '@/services/coordinator/coordinator-validation-draft-service'
+} from '@/services/coordinator/validation-authoring-context-service'
 import {
   applyBlockingFeedback,
   approveImplementationGroups,
@@ -130,8 +112,6 @@ export const runtime = 'nodejs'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const routePlanIdSchema = planIdSchema
-const validationNodeSchema = z.unknown()
-const validationFileSchema = z.unknown()
 const astReviewBindingSchema = z.object({
   operationHash: z.string().startsWith('sha256:').optional(),
   extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
@@ -175,11 +155,6 @@ function responseError(error: unknown): Response {
 function withLinks<T extends object>(value: T, planId: string, request: Request) {
   const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
   return { ...value, links: planLinks(planId, baseUrl) }
-}
-
-function withValidationReviewLinks<T extends object>(value: T, planId: string, request: Request) {
-  const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
-  return { ...value, validationReviewLinks: validationReviewLinks(planId, baseUrl) }
 }
 
 function assertProviderNativeRunsEnabled() {
@@ -304,13 +279,6 @@ async function getValidations(request: Request, operation: string[]) {
         limit: z.coerce.number().int().positive().max(25).catch(5).parse(url.searchParams.get('limit')),
       }),
     )
-  }
-  if (operation[3] === 'draft') {
-    const responseMode = z
-      .enum(['summary', 'delta', 'full'])
-      .catch('summary')
-      .parse(new URL(request.url).searchParams.get('responseMode'))
-    return Response.json(await readValidationDraft(planId, { responseMode }))
   }
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
@@ -805,73 +773,8 @@ async function postValidationOperation(request: Request, operation: string[], bo
       )
     throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   }
-  if (operation[3] === 'draft') {
-    const action = operation[4]
-    if (action === 'create') return Response.json(await createValidationDraft(planId), { status: 201 })
-    if (action === 'reset') {
-      const value = z.object({ expectedDraftHash: z.string().startsWith('sha256:') }).parse(body)
-      return Response.json(await resetValidationDraft(planId, value.expectedDraftHash))
-    }
-    if (action === 'check') return Response.json(await checkValidationDraft(planId))
-    if (action === 'publish') {
-      const value = z.object({ draftId: idSchema }).parse(body)
-      return Response.json(
-        withValidationReviewLinks(await publishValidationDraft(planId, value.draftId), planId, request),
-      )
-    }
-    if (action === 'nodes') {
-      if (operation[5] === 'delete') {
-        const value = z.object({ expectedDraftHash: z.string().startsWith('sha256:') }).parse(body)
-        return Response.json(await deleteValidationNode(planId, idSchema.parse(operation[4]), value.expectedDraftHash))
-      }
-      const value = z.object({ node: validationNodeSchema }).parse(body)
-      return Response.json(await upsertValidationNode(planId, value.node as ValidationDraft['validations'][number]))
-    }
-    if (action === 'files') {
-      if (operation[4] === 'delete') {
-        const value = z
-          .object({ path: z.string().min(1), expectedDraftHash: z.string().startsWith('sha256:') })
-          .parse(body)
-        return Response.json(await deleteValidationFile(planId, value.path, value.expectedDraftHash))
-      }
-      const value = z.object({ file: validationFileSchema }).parse(body)
-      return Response.json(await upsertValidationFile(planId, value.file as ValidationDraft['files'][number]))
-    }
-    if (action === 'step-metadata') {
-      const value = z
-        .object({
-          reusedStepPaths: z.array(z.string().min(1)).default([]),
-          reusedTemplateStepRefs: validationArtifactSchema.shape.reusedTemplateStepRefs.default([]),
-          reusedStepBlockRefs: validationArtifactSchema.shape.reusedStepBlockRefs.default([]),
-          newStepPaths: z.array(z.string().min(1)).default([]),
-          customStepJustifications: z
-            .array(
-              z.object({
-                path: z.string().min(1),
-                missingCapability: z.string().min(1),
-                whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
-              }),
-            )
-            .default([]),
-        })
-        .parse(body)
-      return Response.json(await upsertValidationStepMetadata(planId, value))
-    }
-    if (action === 'test-cases') {
-      const value = z.object({ proposal: validationTestCaseProposalSchema }).parse(body)
-      return Response.json(await upsertValidationTestCase(planId, value.proposal))
-    }
-    if (action === 'test-shapes') {
-      const value = z.object({ proposal: validationTestCaseProposalSchema }).parse(body)
-      return Response.json(await proposeValidationTestShape(planId, value.proposal))
-    }
-  }
-  if (operation[3] === 'publish') {
-    const value = z.object({ validation: validationArtifactSchema }).parse(body)
-    return Response.json(
-      withValidationReviewLinks(await publishPreparedValidations(planId, value.validation), planId, request),
-    )
-  }
+  if (operation[3] === 'draft' || operation[3] === 'publish')
+    throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
   if (operation[3] === 'feedback') {
     const value = z
       .object({
@@ -949,11 +852,6 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
       })
       .parse(body)
     return Response.json(evaluateCoordinationSlo(value))
-  }
-  if (operation[0] === 'legacy-automation-imports' && operation[1] === 'preview') {
-    const targetFingerprint = request.headers.get('x-appraise-project') ?? ''
-    const target = await resolveTargetProject(targetFingerprint)
-    return Response.json(await previewLegacyAutomationImport(target.canonicalPath))
   }
   if (operation[0] === 'repository-exports') {
     if (operation.length === 1) {

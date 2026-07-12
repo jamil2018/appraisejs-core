@@ -1160,15 +1160,17 @@ export async function diagnoseTestRunEvidence(
 ) {
   const run = await client.testRun.findUnique({
     where: { runId },
-    select: { runtimeCapsule: { select: { id: true } } },
+    select: { planId: true, runtimeCapsule: { select: { id: true } } },
   })
   await assertExpectedTargetProject(runId, expectedTargetProjectId, client)
+  if (run?.planId && !run.runtimeCapsule)
+    throw new ServiceError('Managed test run is invalid because it has no runtime capsule.', 'CONFLICT')
   return run?.runtimeCapsule
     ? {
         kind: 'capsule' as const,
         diagnostic: await readRuntimeCapsuleDiagnostic({ runId, expectedTargetProjectId }, client, appraiseRoot),
       }
-    : { kind: 'legacy' as const, evidence: await diagnoseRunEvidence(runId, client, appraiseRoot) }
+    : { kind: 'manual' as const, evidence: await diagnoseRunEvidence(runId, client, appraiseRoot) }
 }
 
 export async function preflightStandaloneTargetTestRun(input: Parameters<typeof preflightTestRun>[0]) {
@@ -1196,13 +1198,13 @@ export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
   for (const testRun of testRuns) {
     await fs.rm(getAutomationReportRunDir(testRun.runId), { recursive: true, force: true })
 
-    const legacyArtifactPaths = [
+    const manualArtifactPaths = [
       testRun.logPath,
       testRun.reportPath,
       ...testRun.testCases.map(testCase => testCase.tracePath),
     ].filter((artifactPath): artifactPath is string => Boolean(artifactPath))
 
-    for (const artifactPath of legacyArtifactPaths) {
+    for (const artifactPath of manualArtifactPaths) {
       await fs.rm(resolveStoredPath(artifactPath), { force: true }).catch(() => {})
     }
   }
