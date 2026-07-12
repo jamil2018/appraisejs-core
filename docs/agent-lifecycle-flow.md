@@ -91,6 +91,11 @@ Baseline TestRun display names include the durable attempt ordinal. Replaying an
 reuses its existing TestRun, while a repaired and reapproved validation advances the ordinal and receives a distinct
 name without deleting or renaming historical evidence.
 
+Baseline start responses report whether execution was newly created or idempotently reused, list active attempt and
+canonical TestRun IDs, state whether reconciliation is legal, and provide the exact next allowed action. Legacy name
+conflicts may reuse only a TestRun already bound to the same plan and target project. Unsafe legacy collisions return
+the existing run identity and an Appraise-owned repair action instead of a generic name-validation error.
+
 ## Implementation
 
 Tasks move through `pending`, `in_progress`, `implemented`, and `verified`. Dependencies must be verified before a

@@ -344,6 +344,12 @@ describe('baseline execution and implementation gate', () => {
     expect(result.validation.baselineAttempts).toEqual([
       expect.objectContaining({ validationId: 'required-check', testRunId: 'capsule-public-run', status: 'running' }),
     ])
+    expect(result.baselineExecution).toMatchObject({
+      reused: false,
+      reconcileLegal: true,
+      nextAllowedAction: { tool: 'baseline_reconcile' },
+      attempts: [expect.objectContaining({ testRunId: 'capsule-public-run', status: 'running' })],
+    })
     expect(calls).toEqual([
       expect.objectContaining({
         kind: 'prepare',
@@ -414,6 +420,35 @@ describe('baseline execution and implementation gate', () => {
     expect(reconciled.events.map(event => event.sequence)).toEqual([1, 2])
   })
 
+  it('returns structured recovery metadata for an unsafe legacy TestRun name collision', async () => {
+    const planId = 'baseline-name-conflict'
+    await writeArtifacts(planId)
+    const environment = await client.environment.findUniqueOrThrow({ where: { name: 'local' } })
+    const existing = await client.testRun.create({
+      data: {
+        name: `Baseline ${planId} required-check chromium local attempt 1`,
+        environmentId: environment.id,
+      },
+    })
+
+    await expect(startBaselineExecution(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
+      code: 'CONFLICT',
+      details: {
+        conflictType: 'legacy_baseline_test_run_name',
+        existingTestRun: { testRunId: existing.runId, planId: null, targetProjectId: null },
+        requestedExecution: {
+          planId,
+          validationId: 'required-check',
+          browser: 'chromium',
+          environment: 'local',
+          attemptOrdinal: 0,
+        },
+        reconcileLegal: false,
+        nextAllowedAction: { tool: 'baseline_retry' },
+      },
+    })
+  })
+
   it('runs every required baseline combination, records classifications, and unlocks implementation only after acceptance', async () => {
     const planId = 'baseline-gate'
     const submitted: Array<{ browser: string; environment: string; attemptOrdinal: number; testRunId: string }> = []
@@ -431,7 +466,10 @@ describe('baseline execution and implementation gate', () => {
         now: new Date('2026-06-10T00:00:00.000Z'),
         submitRun: recordSubmittedRun(submitted),
       }),
-    ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'baseline_running' },
+      baselineExecution: { reused: false, reconcileLegal: true },
+    })
 
     expect(submitted).toEqual([
       { browser: 'chromium', environment: 'local', attemptOrdinal: 0, testRunId: 'run-chromium-local-0' },
@@ -449,7 +487,14 @@ describe('baseline execution and implementation gate', () => {
         client,
         submitRun: recordSubmittedRun(submitted, 'unexpected'),
       }),
-    ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'baseline_running' },
+      baselineExecution: {
+        reused: true,
+        reconcileLegal: true,
+        attempts: expect.arrayContaining([expect.objectContaining({ testRunId: 'run-chromium-local-0' })]),
+      },
+    })
     expect(submitted).toEqual([])
     await expect(readPlanEvents({ planId, afterSequence: 0 }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 1, type: 'baseline_started', payload: { attempts: 3 } }),
