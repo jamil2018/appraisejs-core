@@ -149,6 +149,12 @@ function text(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
 }
 
+export function normalizeOptionalRef(value: unknown) {
+  return typeof value === 'string' && value.trim() === '' ? undefined : value
+}
+
+const optionalRefSchema = z.preprocess(normalizeOptionalRef, z.string().min(1).optional())
+
 const validationNodeInputSchema = validationArtifactSchema.shape.validations.element
 const validationFileInputSchema = validationArtifactSchema.shape.files.element
 const customStepJustificationInputSchema = z.object({
@@ -200,8 +206,8 @@ const validationTestCaseProposalInputSchema = z.object({
       z.object({
         intent: z.string().min(1),
         gherkinText: z.string().min(1),
-        templateStepRef: z.string().min(1).optional(),
-        stepBlockRef: z.string().min(1).optional(),
+        templateStepRef: optionalRefSchema,
+        stepBlockRef: optionalRefSchema,
         customStepProposal: z
           .object({
             path: z.string().min(1).optional(),

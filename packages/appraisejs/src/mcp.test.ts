@@ -10,6 +10,7 @@ import {
   latestGateEvent,
   mcpCapabilityMetadata,
   missingCapabilityRecovery,
+  normalizeOptionalRef,
   nextApprovalWaitSequence,
   orderedEventBatch,
   planningSessionTargetRequiredResponse,
@@ -218,6 +219,12 @@ describe('MCP approval wait helpers', () => {
 })
 
 describe('compact lifecycle responses', () => {
+  it('normalizes empty optional validation references without hiding invalid values', () => {
+    expect(normalizeOptionalRef('')).toBeUndefined()
+    expect(normalizeOptionalRef('   ')).toBeUndefined()
+    expect(normalizeOptionalRef('step-block:notes')).toBe('step-block:notes')
+  })
+
   it('returns validation repair after a baseline harness failure transition', () => {
     expect(baselineRecoveryForLifecycle('validation_changes_requested')).toEqual(
       expect.objectContaining({
