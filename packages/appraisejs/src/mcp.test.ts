@@ -229,7 +229,7 @@ describe('compact lifecycle responses', () => {
         hash: `sha256:${'a'.repeat(64)}`,
         blockers: [{ code: 'FILE_MISSING', path: 'automation/steps/notes.steps.ts' }],
         links: { review: '/plans/plan-1' },
-        nextAllowedAction: { tool: 'validation_draft_read' },
+        nextAllowedAction: { tool: 'validation_context_read' },
         result: { repeatedArtifact: 'x'.repeat(20_000) },
       },
       'summary',
@@ -240,7 +240,7 @@ describe('compact lifecycle responses', () => {
     expect(measurement.estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.baselineMutation)
     expect(measurement.duplicationRatio).toBeLessThan(0.5)
     expect(compact).toEqual(
-      expect.objectContaining({ planId: 'plan-1', nextAllowedAction: { tool: 'validation_draft_read' } }),
+      expect.objectContaining({ planId: 'plan-1', nextAllowedAction: { tool: 'validation_context_read' } }),
     )
   })
 
@@ -254,7 +254,7 @@ describe('compact lifecycle responses', () => {
     expect(baselineRecoveryForLifecycle('validation_changes_requested')).toEqual(
       expect.objectContaining({
         nextRequiredAgentBehavior: 'revise_validation_artifacts',
-        nextAllowedAction: { tool: 'validation_draft_read' },
+        nextAllowedAction: { tool: 'validation_context_read' },
       }),
     )
   })

@@ -287,7 +287,7 @@ export type PlanFile = z.infer<typeof planArtifactSchema>
 export const validationArtifactSchema = z
   .object({
     version: z.literal('1').describe('Validation artifact contract version.'),
-    planId: planIdSchema.describe('The same plan ID passed to validation_publish.'),
+    planId: planIdSchema.describe('The same plan ID passed to validation_ast_check and validation_ast_compile.'),
     revision: z.number().int().positive().describe('Plan revision that these validations cover.'),
     baseRevision: z
       .object({

@@ -345,9 +345,9 @@ export function baselineRecoveryForLifecycle(lifecycle: string | undefined) {
   if (lifecycle === 'validation_changes_requested')
     return {
       nextRecommendedAction:
-        'Read validation feedback, repair and publish the validation draft, then return to validation review.',
+        'Read validation feedback, repair the v2 AST, then repeat check, preview, exact review, and compile.',
       nextRequiredAgentBehavior: 'revise_validation_artifacts',
-      nextAllowedAction: { tool: 'validation_draft_read' },
+      nextAllowedAction: { tool: 'validation_context_read' },
     }
   return {
     nextRecommendedAction:
@@ -1562,7 +1562,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'validation_ast_compile',
     {
       description:
-        'Project an exactly previewed Validation AST into legacy canonical entities without runtime materialization.',
+        'Project an exactly previewed Validation AST into canonical entities without runtime materialization.',
       inputSchema: {
         planId: z.string(),
         submission: z.unknown(),
@@ -2684,9 +2684,10 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             method: 'POST',
             body: JSON.stringify({ reason, expectedValidationHash }),
           }),
-          nextRecommendedAction: 'Repair the validation draft and submit it for a fresh exact review.',
+          nextRecommendedAction:
+            'Repair the v2 AST and submit it through check, preview, and compile for fresh review.',
           nextRequiredAgentBehavior: 'revise_validation_artifacts',
-          nextAllowedAction: { tool: 'validation_draft_read' },
+          nextAllowedAction: { tool: 'validation_context_read' },
         }),
       ),
   )

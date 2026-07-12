@@ -38,7 +38,6 @@
     "setup:graphify": "node scripts/setup-graphify.mjs",
     "migrate-db": "npx prisma migrate deploy",
     "validate:migrations": "node scripts/validate-prisma-migrations.mjs",
-    "migration:v1-inventory": "tsx scripts/v1-removal-inventory.ts",
     "generate-db-client": "npx prisma generate",
     "setup": "npm run install-dependencies && npm run setup:git && npm run setup:graphify && npm run setup-env && npm run generate-db-client && npm run migrate-db && npm run install-playwright && npm run sync-all",
     "sync-features": "npx tsx scripts/regenerate-features.ts",

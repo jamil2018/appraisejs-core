@@ -1042,7 +1042,7 @@ async function evaluateImplementationCompletion(
       include: { receipt: true },
     })
   } catch (error) {
-    // A rolling-upgrade or focused legacy fixture without the additive Phase 4
+    // A focused fixture without the additive Phase 4
     // tables has the safe disabled-policy behavior until migrations apply.
     if ((error as { code?: string }).code !== 'P2021') throw error
     exportJob = null

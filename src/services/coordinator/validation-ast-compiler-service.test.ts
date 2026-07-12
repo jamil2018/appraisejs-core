@@ -3,7 +3,6 @@ import { compileCustomExtension, createCustomExtensionPolicy, validationAstHash 
 import {
   compileValidationAstNode,
   compileValidationAstToCanonicalEntities,
-  mergeCompiledValidationNode,
   PROJECT_EXTENSION_CAPABILITY_IMPORTS,
 } from './validation-ast-compiler-service'
 import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
@@ -47,8 +46,8 @@ const ast = {
   ],
 } as const
 
-describe('Validation AST compatibility compiler', () => {
-  it('maps scenarios into legacy modules, suites, cases, ordered steps, identifiers, and validation node shape', () => {
+describe('Validation AST canonical projection compiler', () => {
+  it('maps scenarios into canonical modules, suites, cases, ordered steps, identifiers, and validation node shape', () => {
     const node = compileValidationAstNode(ast, [
       {
         refId: 'loc_start',
@@ -83,15 +82,6 @@ describe('Validation AST compatibility compiler', () => {
         validation: {} as never,
       }),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
-  })
-
-  it('preserves unrelated legacy validation nodes when merging compiled output', () => {
-    const withoutLocator = structuredClone(ast)
-    withoutLocator.scenarios[0].steps[0].action.inputs = {} as never
-    const compiled = compileValidationAstNode(withoutLocator, [], 'plan-one')
-    const legacy = { ...compiled, id: 'legacy-validation', testCaseIds: ['legacy-case'] }
-    const merged = mergeCompiledValidationNode({ validations: [legacy] } as never, compiled)
-    expect(merged.validations.map(item => item.id)).toEqual(['legacy-validation', 'meditation'])
   })
 
   it('binds reviewed extensions to the authoritative target and passes them into the canonical transaction', async () => {

@@ -61,7 +61,7 @@ describe('test-run diagnose CLI presentation', () => {
 
   it('returns exit 2 when blockers exist even without a blocked preflight', async () => {
     const result = await runTestRunDiagnose(
-      { runId: 'legacy-run', json: true },
+      { runId: 'manual-run', json: true },
       {
         diagnose: vi.fn().mockResolvedValue({ evidence: { blockers: [{ code: 'INVALID_EVIDENCE' }] } }),
         write: vi.fn(),

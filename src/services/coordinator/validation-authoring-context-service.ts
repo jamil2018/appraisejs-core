@@ -334,6 +334,6 @@ export async function readValidationContext(
       'appraise.validation/test-case-proposal/v1',
       'appraise.validation/test-step-proposal/v1',
     ],
-    nextRecommendedAction: 'Call validation_draft_create, then mutate the Appraise-owned draft.',
+    nextRecommendedAction: 'Author the v2 AST, then call validation_ast_check and validation_ast_preview.',
   }
 }
