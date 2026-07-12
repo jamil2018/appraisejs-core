@@ -79,7 +79,11 @@ exact Cucumber dry run. The dry run uses the sealed Node/Cucumber argv, capsule 
 timeout/output bounds, and dedicated `reports/preflight.json`; it never inherits ambient process environment or writes
 the final execution report. Bounded reconciliation requires one canonical `@tc_` correlation per expected case, exact
 validation/suite/case tags, no duplicate or undefined/ambiguous scenario, and exact selected counts. Results always
-contain all 13 checks in canonical order with sanitized blockers.
+contain all 13 checks in canonical order with sanitized blockers. A ready result also records a bounded resolved-capsule
+summary: the immutable runtime-input hash, feature and import paths, exact tag expression, browser, environment ID,
+final report path, and selected scenario count. This summary is stored with and hashed as part of the durable preflight
+receipt, so baseline execution and later diagnosis can prove which reviewed runtime capsule passed without exporting
+the full command receipt or any environment values.
 
 `RuntimeCapsuleTestRunService.prepare` uses a unique preparation key to converge concurrent requests and reuse a
 durable queued/running preparation after a crash. The key binds plan revision, publish operation and runtime-input

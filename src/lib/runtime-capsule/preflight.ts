@@ -312,7 +312,17 @@ export class RuntimeCapsulePreflight {
       blockers,
       resolved: {
         ...(receipt
-          ? { nodeVersion: receipt.runtime.node.version, cucumberVersion: receipt.runtime.cucumber.version }
+          ? {
+              runtimeInputHash: receipt.ownership.runtimeInputHash,
+              nodeVersion: receipt.runtime.node.version,
+              cucumberVersion: receipt.runtime.cucumber.version,
+              featurePaths: receipt.command.features.map(file => file.path),
+              importPaths: [...receipt.command.imports, ...receipt.command.support].map(file => file.path),
+              tagExpression: receipt.selection.tagExpression,
+              browser: receipt.selection.browser,
+              environmentId: receipt.selection.environmentId,
+              reportPath: receipt.outputs.report.path,
+            }
           : {}),
         ...(selectedScenarioCount === undefined ? {} : { selectedScenarioCount }),
       },
