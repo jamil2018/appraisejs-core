@@ -8,6 +8,7 @@ import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-sche
 import { seedReviewedCapsuleLifecycleFixture } from '@/test/reviewed-capsule-lifecycle-fixture'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
+import { diagnoseTestRunEvidence, readTestRunEvidenceSummary } from '@/services/test-run/test-run-service'
 import { reconcileBaselineExecution, startBaselineExecution } from './coordinator-baseline-service'
 
 describe('reviewed capsule coordinator lifecycle E2E', () => {
@@ -102,6 +103,35 @@ describe('reviewed capsule coordinator lifecycle E2E', () => {
     await expect(
       client.runtimeCapsuleExecutionAttempt.findFirstOrThrow({ where: { testRun: { runId: publicRunId } } }),
     ).resolves.toMatchObject({ state: 'COMPLETED' })
+    await expect(
+      readTestRunEvidenceSummary(
+        publicRunId,
+        'coordinator-e2e-project',
+        client,
+        path.join(fixture.projectRoot, '.appraise'),
+      ),
+    ).resolves.toMatchObject({
+      executionRunId: publicRunId,
+      reportUrl: `/test-runs/${publicRunId}`,
+      logsUrl: `/api/test-runs/${publicRunId}/logs`,
+      evidenceHealth: 'valid',
+      completed: true,
+    })
+    await expect(
+      diagnoseTestRunEvidence(
+        publicRunId,
+        'coordinator-e2e-project',
+        client,
+        path.join(fixture.projectRoot, '.appraise'),
+      ),
+    ).resolves.toMatchObject({
+      kind: 'capsule',
+      diagnostic: {
+        run: { runId: publicRunId, evidenceHealth: 'valid', active: false },
+        ownership: { targetProjectId: 'coordinator-e2e-project' },
+        attempt: { state: 'COMPLETED', active: false },
+      },
+    })
     await expect(fs.access(path.join(fixture.projectRoot, 'automation'))).rejects.toThrow()
   }, 45_000)
 })

@@ -94,6 +94,12 @@ canonical attempt/TestRun identities, reconciliation legality, and `baseline_rec
 display-name collision is reusable only when the existing TestRun is bound to the same plan and target; otherwise the
 conflict includes the existing run identity and an Appraise-owned repair action.
 
+Lifecycle responses, MCP evidence tools, report pages, log routes, and capsule diagnostics use `TestRun.runId` as the
+canonical public TestRun identity. The database primary key remains internal. A `runId` emitted by baseline or
+implementation start must resolve immediately through `test_run_read` and `test_run_diagnose`, including while the
+run is queued/running and after a harness failure. Owned links must embed that same `runId`; callers must not translate
+between the public run ID and the internal TestRun row ID.
+
 The database lease covers the complete preflight, not only materialization. Ownership is renewed before every check,
 and the final dry-run stage renews, repeats complete repository/blob/run-file integrity, securely revalidates output
 ancestors, renews again, and only then spawns. Controlled mutation therefore blocks without invoking Cucumber. Config
