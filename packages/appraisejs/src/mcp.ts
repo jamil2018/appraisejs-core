@@ -253,6 +253,25 @@ function withGuidance(
 
 const responseModeSchema = z.enum(['summary', 'evidenceOnly', 'blockersOnly', 'linksOnly', 'full']).default('summary')
 
+export const MCP_RESPONSE_TOKEN_BUDGETS = {
+  diagnostic: 1_000,
+  planCreation: 2_000,
+  unchangedWait: 300,
+  validationMutation: 1_500,
+  baselineMutation: 1_500,
+} as const
+
+export function measureMcpResponse(value: unknown) {
+  const json = JSON.stringify(value)
+  const repeatedKeys = [...json.matchAll(/"([^"\\]+)":/g)].map(match => match[1])
+  const uniqueKeys = new Set(repeatedKeys)
+  return {
+    bytes: Buffer.byteLength(json, 'utf8'),
+    estimatedTokens: Math.ceil(Buffer.byteLength(json, 'utf8') / 4),
+    duplicationRatio: repeatedKeys.length === 0 ? 0 : (repeatedKeys.length - uniqueKeys.size) / repeatedKeys.length,
+  }
+}
+
 export function applyResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
   if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
   const payload = value as Record<string, unknown>
