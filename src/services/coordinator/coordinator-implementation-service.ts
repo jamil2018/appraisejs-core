@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import path from 'node:path'
-import { BrowserEngine, TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
+import { BrowserEngine, TestRunResult, TestRunStatus, type Prisma, type PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { extractCucumberEvidence } from '@/lib/baseline-execution/baseline'
@@ -1071,12 +1071,39 @@ export async function reconcileImplementationValidation(
   return { plan, validation, readiness, receipt }
 }
 
+// Completion keeps all independent final gates in one receipt.
+// fallow-ignore-next-line complexity
 async function evaluateImplementationCompletion(
   artifacts: Awaited<ReturnType<typeof readArtifacts>>,
   client: PrismaClient,
 ) {
   const implementation = implementationState(artifacts.validation)
-  const readiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
+  const baseReadiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
+  let exportJob: Prisma.RepositoryExportJobGetPayload<{ include: { receipt: true } }> | null
+  try {
+    exportJob = await client.repositoryExportJob.findFirst({
+      where: { publishOperation: { planId: artifacts.plan.planId }, policy: 'required' },
+      orderBy: { createdAt: 'desc' },
+      include: { receipt: true },
+    })
+  } catch (error) {
+    // A rolling-upgrade or focused legacy fixture without the additive Phase 4
+    // tables has the safe disabled-policy behavior until migrations apply.
+    if ((error as { code?: string }).code !== 'P2021') throw error
+    exportJob = null
+  }
+  const exportBlockers =
+    exportJob &&
+    (!exportJob.receipt ||
+      exportJob.state !== 'succeeded' ||
+      exportJob.receipt.validationHash !== exportJob.validationHash)
+      ? ['Required repository export lacks a successful receipt for the exact validation hash.']
+      : []
+  const readiness = {
+    ...baseReadiness,
+    ready: baseReadiness.ready && exportBlockers.length === 0,
+    blockers: [...baseReadiness.blockers, ...exportBlockers],
+  }
   const tasks = artifacts.plan.tasks.map(task => ({
     taskId: task.id,
     status: implementation.taskStates[task.id] ?? 'pending',
@@ -1101,6 +1128,14 @@ async function evaluateImplementationCompletion(
     tasks,
     commits: implementation.commits,
     validationRuns: implementation.validationRuns,
+    repositoryExport: exportJob
+      ? {
+          policy: exportJob.policy,
+          state: exportJob.state,
+          validationHash: exportJob.validationHash,
+          receiptManifestHash: exportJob.receipt?.manifestHash ?? null,
+        }
+      : { policy: 'disabled', state: 'not_requested' },
     structuredBlockers: completionNextActions(artifacts.plan.planId, readiness.blockers),
     optionalFailures,
     acknowledgedFailures,

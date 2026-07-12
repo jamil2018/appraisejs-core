@@ -96,6 +96,7 @@ import {
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/locator-graph/locator-graph-service'
 import { ServiceError } from '@/services/shared/errors'
+import { enqueueRepositoryExport, runRepositoryExportJob } from '@/services/repository-export/repository-export-service'
 import { submitDelegatedValidationAst } from '@/services/coordinator/delegated-validation-ast-service'
 import {
   checkValidationAstForPlan,
@@ -894,6 +895,24 @@ function assertPlanOperation(operation: string[]): void {
 
 // fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'repository-exports') {
+    if (operation.length === 1) {
+      const value = z
+        .object({
+          publishOperationId: z.string().min(1),
+          policy: z.enum(['disabled', 'optional', 'required']),
+          destinationPath: z.string().min(1).optional(),
+        })
+        .parse(body)
+      return Response.json(await enqueueRepositoryExport(value))
+    }
+    const value = z.object({ allowReplaceConflicts: z.boolean().optional() }).parse(body)
+    return Response.json(
+      await runRepositoryExportJob(z.string().uuid().parse(operation[1]), {
+        allowReplaceConflicts: value.allowReplaceConflicts,
+      }),
+    )
+  }
   if (operation[0] === 'delegated' && operation[1] === 'validation-ast-submissions') {
     const value = z.object({ submission: z.unknown(), receipt: z.unknown() }).parse(body)
     return Response.json(
