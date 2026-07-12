@@ -2611,57 +2611,39 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   server.registerTool(
     'template_step_search',
     {
-      description: 'Search live template steps before proposing custom step definitions.',
-      inputSchema: { planId: z.string(), query: z.string().min(1) },
+      description:
+        'Resolve live template steps with ranked intent and parameter compatibility before proposing custom steps.',
+      inputSchema: {
+        planId: z.string(),
+        query: z.string().min(1),
+        parameterNames: z.array(z.string().min(1)).default([]),
+        limit: z.number().int().positive().max(25).default(5),
+      },
     },
-    async ({ planId, query }) => {
-      const context = (await api.request(
-        `plans/${planId}/validations/context?resourceTypes=templateSteps&query=${encodeURIComponent(query)}&limit=25`,
-      )) as {
-        resources?: { templateSteps?: Array<Record<string, unknown>> }
-      }
-      const matches = context.resources?.templateSteps ?? []
-      return text({ matches, nextRecommendedAction: 'Reuse a matching templateStepRef when possible.' })
-    },
+    async ({ planId, query, parameterNames, limit }) =>
+      text(
+        await api.request(
+          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
+        ),
+      ),
   )
   server.registerTool(
     'template_step_match',
     {
       description: 'Rank reusable template steps and step blocks for a behavior intent before proposing custom steps.',
-      inputSchema: { planId: z.string(), intent: z.string().min(1) },
+      inputSchema: {
+        planId: z.string(),
+        intent: z.string().min(1),
+        parameterNames: z.array(z.string().min(1)).default([]),
+        limit: z.number().int().positive().max(25).default(5),
+      },
     },
-    async ({ planId, intent }) => {
-      const context = (await api.request(
-        `plans/${planId}/validations/context?resourceTypes=templateSteps,stepBlocks&query=${encodeURIComponent(intent)}&limit=50`,
-      )) as {
-        resources?: {
-          templateSteps?: Array<Record<string, unknown>>
-          stepBlocks?: Array<Record<string, unknown>>
-        }
-      }
-      const tokens = intent
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter(token => token.length > 2)
-      const score = (value: unknown) => {
-        const haystack = JSON.stringify(value).toLowerCase()
-        return tokens.reduce((sum, token) => sum + (haystack.includes(token) ? 1 : 0), 0)
-      }
-      const rankedTemplateSteps = (context.resources?.templateSteps ?? [])
-        .map(step => ({ ...step, matchScore: score(step) }))
-        .filter(step => step.matchScore > 0)
-        .sort((left, right) => right.matchScore - left.matchScore)
-      const rankedStepBlocks = (context.resources?.stepBlocks ?? [])
-        .map(block => ({ ...block, matchScore: score(block) }))
-        .filter(block => block.matchScore > 0)
-        .sort((left, right) => right.matchScore - left.matchScore)
-      return text({
-        templateSteps: rankedTemplateSteps,
-        stepBlocks: rankedStepBlocks,
-        nextRecommendedAction:
-          'Use a matching templateStepRef or stepBlockRef in validation_test_shape_propose; propose custom steps only for unresolved capabilities.',
-      })
-    },
+    async ({ planId, intent, parameterNames, limit }) =>
+      text(
+        await api.request(
+          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(intent)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
+        ),
+      ),
   )
   server.registerTool(
     'step_block_search',

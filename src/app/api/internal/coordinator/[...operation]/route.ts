@@ -71,6 +71,7 @@ import {
   publishValidationDraft,
   proposeValidationTestShape,
   readValidationContext,
+  resolveReusableValidationSteps,
   readValidationDraft,
   resetValidationDraft,
   upsertValidationFile,
@@ -291,6 +292,16 @@ async function getValidations(request: Request, operation: string[]) {
         query: url.searchParams.get('query') ?? undefined,
         limit: z.coerce.number().int().positive().max(200).catch(50).parse(url.searchParams.get('limit')),
         sinceHash: url.searchParams.get('sinceHash') ?? undefined,
+      }),
+    )
+  }
+  if (operation[3] === 'resolver') {
+    const url = new URL(request.url)
+    return Response.json(
+      await resolveReusableValidationSteps(planId, {
+        intent: z.string().trim().min(1).parse(url.searchParams.get('intent')),
+        parameterNames: url.searchParams.get('parameterNames')?.split(',').filter(Boolean),
+        limit: z.coerce.number().int().positive().max(25).catch(5).parse(url.searchParams.get('limit')),
       }),
     )
   }

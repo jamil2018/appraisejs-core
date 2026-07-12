@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 783 nodes · 1202 edges · 81 communities (76 shown, 5 thin omitted)
+- 783 nodes · 1202 edges · 82 communities (77 shown, 5 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3fee1768`
+- Built from commit: `5cedf036`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -42,6 +42,7 @@
 - [[_COMMUNITY_Src Locator Util  Src Locator Util Getlocatormapdata|Src Locator Util / Src Locator Util Getlocatormapdata]]
 - [[_COMMUNITY_Src Phase1 Contracts  Src Phase1 Contracts Action Catalog Contract Version|Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version]]
 - [[_COMMUNITY_Locator Picker Companion Src Index Ts Src Index  Src Launcher|Locator Picker Companion Src Index Ts Src Index / Src Launcher]]
+- [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Src Mcp Approvalpendingresponse  Src Mcp Formatreviewhandoff|Src Mcp Approvalpendingresponse / Src Mcp Formatreviewhandoff]]
 - [[_COMMUNITY_Src World  Src World Customworld|Src World / Src World Customworld]]
 - [[_COMMUNITY_Create Appraisejs Package Dependencies  Create Appraisejs Package Dependencies|Create Appraisejs Package Dependencies / Create Appraisejs Package Dependencies ]]
@@ -85,7 +86,7 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (81 total, 5 thin omitted)
+## Communities (82 total, 5 thin omitted)
 
 ### Community 0 - "Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main"
 Cohesion: 0.05
@@ -164,8 +165,8 @@ Cohesion: 0.21
 Nodes (8): approveCurrentPlan(), assert(), callTool(), databasePath, providerNativeRunsEnabled, repoRoot, reviewPathFor(), toolJson()
 
 ### Community 19 - "Src Cache Util / Src Cache Util Locatorcache"
-Cohesion: 0.16
-Nodes (7): LocatorCache, LocatorMapCache, toGlobPath(), getAutomationLocatorMapPath(), getAutomationLocatorsDir(), LocatorCollection, LocatorMap
+Cohesion: 0.25
+Nodes (4): LocatorCache, toGlobPath(), getAutomationLocatorsDir(), LocatorCollection
 
 ### Community 20 - "Src Mcp Agentguide / Src Mcp Latestgateevent"
 Cohesion: 0.18
@@ -198,6 +199,10 @@ Nodes (17): CoordinatorOptions, ACTION_CATALOG_CONTRACT_VERSION, ActionAssertion
 ### Community 27 - "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
 Cohesion: 0.48
 Nodes (5): ensureLocatorPickerCompanionBuilt(), getLatestModifiedTime(), getLocatorPickerCompanionPaths(), pathExists(), resolveLocatorPickerCompanionInvocation()
+
+### Community 28 - "Community 28"
+Cohesion: 0.38
+Nodes (3): LocatorMapCache, getAutomationLocatorMapPath(), LocatorMap
 
 ### Community 29 - "Src Mcp Approvalpendingresponse / Src Mcp Formatreviewhandoff"
 Cohesion: 0.38

@@ -121,13 +121,59 @@ function scoreIntent(candidate: string, intent: string) {
   }
 }
 
-function selectConfidentMatch<T>(ranked: Array<{ value: T; match: ReturnType<typeof scoreIntent> }>) {
-  const candidates = ranked
-    .filter(candidate => candidate.match.score >= 2 && candidate.match.confidence >= 0.5)
-    .sort((left, right) => right.match.score - left.match.score)
-  const [best, runnerUp] = candidates
-  if (!best || (runnerUp && best.match.score - runnerUp.match.score < 1)) return null
-  return best
+function signatureParameters(signature: string) {
+  return Array.from(signature.matchAll(/\{([^}]+)\}/g), match => match[1]!.trim().toLowerCase())
+}
+
+function rankReusableResources(resources: ReusableResources, intent: string, parameterNames: string[] = []) {
+  const requestedParameters = new Set(parameterNames.map(name => name.trim().toLowerCase()).filter(Boolean))
+  const rank = <T extends { id: string; name: string }>(
+    values: T[],
+    searchable: (value: T) => string,
+    parameters: (value: T) => string[],
+  ) =>
+    values
+      .map(value => {
+        const match = scoreIntent(searchable(value), intent)
+        const availableParameters = parameters(value)
+        const namedMatches = [...requestedParameters].filter(name => availableParameters.includes(name)).length
+        const compatibleParameterCount = Math.min(
+          requestedParameters.size,
+          Math.max(namedMatches, availableParameters.length),
+        )
+        const parameterCompatibility =
+          requestedParameters.size === 0 ? 1 : compatibleParameterCount / requestedParameters.size
+        const confidence = Math.min(1, match.confidence * 0.8 + parameterCompatibility * 0.2)
+        return {
+          value,
+          score: match.score + compatibleParameterCount,
+          confidence,
+          matchedTerms: match.matchedTerms,
+          parameterCompatibility,
+          explanation: `Matched ${match.matchedTerms.length} intent term(s); ${compatibleParameterCount}/${requestedParameters.size} requested parameter(s) fit the reusable signature.`,
+        }
+      })
+      .filter(candidate => candidate.score > 0)
+      .sort(
+        (left, right) =>
+          right.score - left.score ||
+          right.confidence - left.confidence ||
+          left.value.name.localeCompare(right.value.name),
+      )
+
+  return {
+    templateSteps: rank(
+      resources.templateSteps,
+      step => `${step.name} ${step.signature}`,
+      step => signatureParameters(step.signature),
+    ),
+    stepBlocks: rank(
+      resources.stepBlocks,
+      block =>
+        `${block.name} ${block.intent ?? ''} ${block.steps.map(step => `${step.templateStep.name} ${step.templateStep.signature}`).join(' ')}`,
+      block => block.steps.flatMap(step => signatureParameters(step.templateStep.signature)),
+    ),
+  }
 }
 
 function ensureId(input: string | undefined, fallback: string) {
@@ -353,13 +399,10 @@ function findTemplateStep(resources: ReusableResources, ref: string | undefined,
     )
     if (exact) return { step: exact, rewritten: false, score: Number.POSITIVE_INFINITY, matchedTerms: ['exact-ref'] }
   }
-  const best = selectConfidentMatch(
-    resources.templateSteps.map(step => ({
-      value: step,
-      match: scoreIntent(`${step.name} ${step.signature}`, intent),
-    })),
+  const best = rankReusableResources(resources, intent).templateSteps.find(
+    candidate => candidate.score >= 2 && candidate.confidence >= 0.5,
   )
-  return best ? { step: best.value, rewritten: !ref, ...best.match } : null
+  return best ? { step: best.value, rewritten: !ref, ...best } : null
 }
 
 function findStepBlock(resources: ReusableResources, ref: string | undefined, intent: string) {
@@ -368,13 +411,54 @@ function findStepBlock(resources: ReusableResources, ref: string | undefined, in
     const exact = resources.stepBlocks.find(block => block.id === ref || block.name.toLowerCase() === normalized)
     if (exact) return { block: exact, rewritten: false, score: Number.POSITIVE_INFINITY, matchedTerms: ['exact-ref'] }
   }
-  const best = selectConfidentMatch(
-    resources.stepBlocks.map(block => ({
-      value: block,
-      match: scoreIntent(`${block.name} ${block.intent ?? ''}`, intent),
-    })),
+  const best = rankReusableResources(resources, intent).stepBlocks.find(
+    candidate => candidate.score >= 2 && candidate.confidence >= 0.5,
   )
-  return best ? { block: best.value, rewritten: !ref, ...best.match } : null
+  return best ? { block: best.value, rewritten: !ref, ...best } : null
+}
+
+export async function resolveReusableValidationSteps(
+  planId: string,
+  input: { intent: string; parameterNames?: string[]; limit?: number },
+  options: Options = {},
+) {
+  const startedAt = Date.now()
+  const { client } = await readPlanContext(planId, options)
+  const resources = await readReusableResources(client)
+  const ranked = rankReusableResources(resources, input.intent, input.parameterNames)
+  const limit = Math.min(Math.max(input.limit ?? 5, 1), 25)
+  const threshold = 0.5
+  const templateSteps = ranked.templateSteps.slice(0, limit).map(({ value, ...match }, index) => ({
+    ...templateStepRef(value),
+    signature: value.signature,
+    rank: index + 1,
+    ...match,
+  }))
+  const stepBlocks = ranked.stepBlocks.slice(0, limit).map(({ value, ...match }, index) => ({
+    ...stepBlockRef(value),
+    rank: index + 1,
+    ...match,
+  }))
+  const selected = [...templateSteps, ...stepBlocks]
+    .filter(candidate => candidate.score >= 2 && candidate.confidence >= threshold)
+    .sort((left, right) => right.score - left.score || right.confidence - left.confidence)[0]
+  return {
+    intent: input.intent,
+    threshold,
+    selected: selected ?? null,
+    alternatives: { templateSteps, stepBlocks },
+    metrics: {
+      resolverCalls: 1,
+      fallbackRequired: !selected,
+      selectedRank: selected?.rank ?? null,
+      candidatesConsidered: resources.templateSteps.length + resources.stepBlocks.length,
+      returnedCandidates: templateSteps.length + stepBlocks.length,
+      durationMs: Date.now() - startedAt,
+    },
+    nextRecommendedAction: selected
+      ? 'Use the selected reusable reference in validation_test_shape_propose.'
+      : 'Review the bounded alternatives, then propose a justified custom step only if none is compatible.',
+  }
 }
 
 // fallow-ignore-next-line complexity

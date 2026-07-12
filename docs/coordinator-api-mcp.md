@@ -241,6 +241,12 @@ Tools:
 - `validation_node_delete`
 - `validation_test_case_upsert`
 - `validation_test_shape_propose`
+
+`template_step_search`, `template_step_match`, and `validation_test_shape_propose` share one server-side ranked
+resolver. It scores semantic intent and parameter compatibility, applies a confidence threshold, returns bounded
+explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
+and response-size-oriented metrics without returning the full validation context.
+
 - `validation_file_upsert`
 - `validation_file_delete`
 - `validation_step_metadata_upsert`
