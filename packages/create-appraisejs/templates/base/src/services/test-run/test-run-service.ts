@@ -1129,29 +1129,46 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
   }
 }
 
-async function assertExpectedTargetProject(runId: string, expectedTargetProjectId?: string) {
+async function assertExpectedTargetProject(
+  runId: string,
+  expectedTargetProjectId?: string,
+  client: PrismaClient = prisma,
+) {
   if (!expectedTargetProjectId) return
-  const owned = await prisma.testRun.findFirst({
+  const owned = await client.testRun.findFirst({
     where: { runId, targetProjectId: expectedTargetProjectId },
     select: { id: true },
   })
   if (!owned) throw new ServiceError('Test run not found.', 'NOT_FOUND', 404)
 }
 
-export async function readTestRunEvidenceSummary(runId: string, expectedTargetProjectId?: string) {
-  await assertExpectedTargetProject(runId, expectedTargetProjectId)
-  return summarizeRunEvidence(runId)
+export async function readTestRunEvidenceSummary(
+  runId: string,
+  expectedTargetProjectId?: string,
+  client: PrismaClient = prisma,
+  appraiseRoot = path.join(process.cwd(), '.appraise'),
+) {
+  await assertExpectedTargetProject(runId, expectedTargetProjectId, client)
+  return summarizeRunEvidence(runId, client, appraiseRoot)
 }
 
-export async function diagnoseTestRunEvidence(runId: string, expectedTargetProjectId?: string) {
-  const run = await prisma.testRun.findUnique({
+export async function diagnoseTestRunEvidence(
+  runId: string,
+  expectedTargetProjectId?: string,
+  client: PrismaClient = prisma,
+  appraiseRoot = path.join(process.cwd(), '.appraise'),
+) {
+  const run = await client.testRun.findUnique({
     where: { runId },
     select: { runtimeCapsule: { select: { id: true } } },
   })
-  await assertExpectedTargetProject(runId, expectedTargetProjectId)
+  await assertExpectedTargetProject(runId, expectedTargetProjectId, client)
   return run?.runtimeCapsule
-    ? { kind: 'capsule' as const, diagnostic: await readRuntimeCapsuleDiagnostic({ runId, expectedTargetProjectId }) }
-    : { kind: 'legacy' as const, evidence: await diagnoseRunEvidence(runId) }
+    ? {
+        kind: 'capsule' as const,
+        diagnostic: await readRuntimeCapsuleDiagnostic({ runId, expectedTargetProjectId }, client, appraiseRoot),
+      }
+    : { kind: 'legacy' as const, evidence: await diagnoseRunEvidence(runId, client, appraiseRoot) }
 }
 
 export async function preflightStandaloneTargetTestRun(input: Parameters<typeof preflightTestRun>[0]) {

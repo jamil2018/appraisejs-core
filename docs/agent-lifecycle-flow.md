@@ -61,6 +61,11 @@ template steps and step blocks, records `reusedTemplateStepRefs` and `reusedStep
 Do not mark a generated per-case `automation/steps/<case>.steps.ts` path as reused merely because a test case uses a
 template step; only genuinely custom runtime files need `customStepJustifications`.
 
+Draft check, publication, and runtime preflight share one locator-binding rule: every locator-bearing parameter must
+resolve to exactly one locator in the projected validation resources, and that locator must belong to a declared
+locator group. Missing, duplicate, stale, or mismatched ID/name bindings block validation review with the validation,
+case, step, requested locator, and a corrective locator lookup action.
+
 ## Validation Review
 
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation

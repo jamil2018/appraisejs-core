@@ -402,6 +402,11 @@ Validation preparation is registry-first. Agents should inspect or use existing 
 workflows before creating custom step definitions. Custom steps must include a gap justification naming the missing
 reusable capability and explaining why locators plus existing registry/template steps are insufficient.
 
+`validation_draft_check`, `validation_draft_publish`, and runtime preflight use the same exact locator-resolution
+validator. Locator-bearing parameters must resolve uniquely by canonical ID or name, ID/name pairs must agree, and
+the resolved locator group must be present in the validation capsule. These failures are blocking and direct the
+coordinator to `locator_search` before review publication.
+
 ## Local Smoke Test
 
 With AppraiseJS running on port 3000:
