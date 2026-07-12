@@ -734,14 +734,8 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
   const asksForCompletion = includesAny(brief, [/\bcomplete\b/, /\bcompleted\b/, /\bdone\b/, /\btoggle\b/])
   const isTodoBrief = includesAny(brief, [/\btodo(?:s)?\b/, /\btask(?:s)?\b/, /\bchecklist\b/])
   const isReminderBrief = briefAnalysis.selectedDomain === 'reminder'
-  const isApiInformationBrief = includesAny(brief, [
-    /\bweather\b/,
-    /\bforecast\b/,
-    /\bapi\b/,
-    /\bsearch\b/,
-    /\blookup\b/,
-    /\bcurrent conditions?\b/,
-  ])
+  const isApiInformationBrief = briefAnalysis.selectedDomain === 'api-information'
+  const isNotesBrief = briefAnalysis.selectedDomain === 'notes'
   const isEditorBrief = briefAnalysis.selectedDomain === 'editor'
   const isDashboardBrief = includesAny(brief, [
     /\bdashboard\b/,
@@ -847,6 +841,42 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
           'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
         ],
         validationIntent: 'Run the focused test suite plus lint/build checks appropriate for the created app.',
+      },
+    ])
+  }
+
+  if (isNotesBrief) {
+    return structuredBriefPlan([
+      setupTask,
+      {
+        id: 'notes-crud',
+        title: 'Build local notes CRUD',
+        description: 'Create the notes list and editor flows for adding, reading, editing, and deleting local notes.',
+        acceptanceCriteria: [
+          'Users can create, read, edit, and delete notes with accessible labeled controls.',
+          'Empty, selected, editing, and destructive-confirmation states are clear.',
+        ],
+        validationIntent: 'Exercise create, read, edit, and delete note workflows with focused browser validation.',
+      },
+      {
+        id: 'notes-organization',
+        title: 'Persist and organize notes',
+        description: 'Persist notes locally and support the ordering and search behavior requested by the brief.',
+        acceptanceCriteria: [
+          'Notes survive reload and retain deterministic ordering.',
+          'Search narrows notes by their visible content without losing the selected note unexpectedly.',
+        ],
+        validationIntent: 'Verify persistence, ordering, reload recovery, and search results.',
+      },
+      {
+        id: 'notes-quality',
+        title: 'Validate the notes experience',
+        description: 'Cover the complete local notes workflow, responsive behavior, and accessibility states.',
+        acceptanceCriteria: [
+          'Keyboard and screen-reader users can operate note creation, selection, editing, search, and deletion.',
+          'The notes workflow remains usable across responsive layouts.',
+        ],
+        validationIntent: 'Run focused notes CRUD, persistence, search, accessibility, and responsive tests.',
       },
     ])
   }

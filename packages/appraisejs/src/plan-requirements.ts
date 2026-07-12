@@ -38,6 +38,7 @@ type RequirementDefinition = {
   kind: PlanRequirementKind
   pattern: RegExp
   coveragePatterns: RegExp[]
+  domains?: string[]
 }
 
 const requirementDefinitions: RequirementDefinition[] = [
@@ -47,6 +48,7 @@ const requirementDefinitions: RequirementDefinition[] = [
     kind: 'data',
     pattern: /\btitle\b/i,
     coveragePatterns: [/\btitle\b/i],
+    domains: ['reminder'],
   },
   {
     id: 'reminder-notes',
@@ -54,6 +56,7 @@ const requirementDefinitions: RequirementDefinition[] = [
     kind: 'data',
     pattern: /\bnotes?\b/i,
     coveragePatterns: [/\bnotes?\b/i],
+    domains: ['reminder'],
   },
   {
     id: 'reminder-due-date-time',
@@ -61,6 +64,7 @@ const requirementDefinitions: RequirementDefinition[] = [
     kind: 'data',
     pattern: /\bdue\s*(?:date|time)|date\s*(?:and|&)\s*time\b/i,
     coveragePatterns: [/\bdue\b/i, /\b(?:date|time)\b/i],
+    domains: ['reminder'],
   },
   {
     id: 'create',
@@ -156,6 +160,15 @@ const domainDefinitions: Array<{
     ],
   },
   {
+    domain: 'notes',
+    signals: [
+      { pattern: /\bnotes?\s+(?:app|application|manager|organizer)\b/i, evidence: 'notes product noun', weight: 7 },
+      { pattern: /\b(?:local|personal)\s+notes?\b/i, evidence: 'local notes product', weight: 6 },
+      { pattern: /\bnotes?\b/i, evidence: 'notes noun', weight: 2 },
+      { pattern: /\b(?:pin|ordering|search)\b/i, evidence: 'notes organization capability', weight: 2 },
+    ],
+  },
+  {
     domain: 'editor',
     signals: [
       { pattern: /\beditor\b/i, evidence: 'editor noun', weight: 6 },
@@ -177,6 +190,31 @@ const domainDefinitions: Array<{
   },
 ]
 
+const NEGATION_WORDS = new Set(['no', 'not', 'never', 'without'])
+
+function withoutNegatedSignals(value: string): string {
+  const tokens = value.match(/[a-z0-9]+(?:['’][a-z0-9]+)?|[^a-z0-9]+/gi) ?? []
+  let wordIndex = 0
+  const words = tokens
+    .map((token, tokenIndex) => {
+      if (!/^[a-z0-9]/i.test(token)) return undefined
+      return { token: token.toLowerCase(), tokenIndex, wordIndex: wordIndex++ }
+    })
+    .filter((word): word is { token: string; tokenIndex: number; wordIndex: number } => Boolean(word))
+  const negatedTokenIndexes = new Set<number>()
+  for (const word of words) {
+    if (!NEGATION_WORDS.has(word.token)) continue
+    for (const candidate of words) {
+      if (candidate.wordIndex > word.wordIndex && candidate.wordIndex <= word.wordIndex + 3) {
+        negatedTokenIndexes.add(candidate.tokenIndex)
+      }
+    }
+  }
+  return tokens
+    .map((token, tokenIndex) => (negatedTokenIndexes.has(tokenIndex) ? ' '.repeat(token.length) : token))
+    .join('')
+}
+
 export function analyzeBrief(projectBrief: string) {
   const lifecycleNeutralBrief = projectBrief.replace(
     /\b(?:complete|completed|completion)\s+(?:the\s+)?(?:flow|run|review|lifecycle|validation|process)\b/gi,
@@ -186,8 +224,19 @@ export function analyzeBrief(projectBrief: string) {
     /\b(?:complete|completed|reactivate|toggle)\s+(?:a\s+|the\s+)?(?:records?|items?|todos?|tasks?|reminders?)\b|\b(?:records?|items?|todos?|tasks?|reminders?)\s+(?:as\s+)?(?:complete|completed|active)\b/i.test(
       lifecycleNeutralBrief,
     )
+  const positiveSignalBrief = withoutNegatedSignals(lifecycleNeutralBrief)
+  const preliminaryDomains = domainDefinitions
+    .map(definition => ({
+      domain: definition.domain,
+      score: definition.signals
+        .filter(signal => signal.pattern.test(positiveSignalBrief))
+        .reduce((total, signal) => total + signal.weight, 0),
+    }))
+    .sort((left, right) => right.score - left.score || left.domain.localeCompare(right.domain))
+  const selectedDomain = preliminaryDomains[0]?.score ? preliminaryDomains[0].domain : undefined
   const requirements = requirementDefinitions
     .filter(definition => {
+      if (definition.domains && (!selectedDomain || !definition.domains.includes(selectedDomain))) return false
       if (definition.id === 'completion') return recordCompletionIntent
       if (definition.id === 'filtering') {
         return /\bfilter(?:ing|ed|s)?\b/i.test(lifecycleNeutralBrief)
@@ -197,7 +246,7 @@ export function analyzeBrief(projectBrief: string) {
     .map(({ id, text, kind, coveragePatterns }) => ({ id, text, kind, terms: coveragePatterns.map(String) }))
   const domainCandidates = domainDefinitions
     .map(definition => {
-      const matches = definition.signals.filter(signal => signal.pattern.test(lifecycleNeutralBrief))
+      const matches = definition.signals.filter(signal => signal.pattern.test(positiveSignalBrief))
       const score = matches.reduce((total, signal) => total + signal.weight, 0)
       return {
         domain: definition.domain,

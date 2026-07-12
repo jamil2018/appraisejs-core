@@ -287,7 +287,10 @@ blockers, and next action are insufficient.
 `planning_session_create` extracts explicit brief requirements before it creates a durable plan. Its response includes
 `requirementAssessment` with scored domain candidates, task-surface coverage, and warnings. When any explicit
 requirement is uncovered, it returns `status: "coverage_review_required"` with a candidate plan instead of creating a
-review-ready revision. The initial plan-review handoff contains the complete URL/hash/cursor evidence once per
+review-ready revision. Domain scoring applies local negation scope, so phrases such as `not an API app` suppress the
+negated API signal, and domain-specific requirement IDs are emitted only for the selected domain. Local notes briefs
+use a first-class CRUD, persistence, ordering, search, accessibility, and validation task shape. The initial
+plan-review handoff contains the complete URL/hash/cursor evidence once per
 revision. A later `plan_review_loop` or approval wait with no new events returns `status: "pending_unchanged"` and
 only the plan ID, cursors, recommended wait, and next action; `handoffMarkdown` is never duplicated under a second
 field.
