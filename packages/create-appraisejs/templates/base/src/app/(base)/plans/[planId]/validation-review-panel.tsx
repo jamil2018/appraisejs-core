@@ -314,7 +314,8 @@ function ValidationNodeCard({
 }) {
   const decide = (decision: 'approved' | 'rejected' | 'deferred') =>
     run(() => onDecideValidation(node.id, decision), `Validation ${node.id} ${decision}.`)
-  const hasExactV2Provenance = node.astProvenance?.schemaVersion === '2'
+  const v2Provenance = node.astProvenance?.schemaVersion === '2' ? node.astProvenance : null
+  const hasExactV2Provenance = v2Provenance !== null
   const controlsLocked = isPending || !canDecide || !hasExactV2Provenance
 
   return (
@@ -408,10 +409,10 @@ function ValidationNodeCard({
           <AppraiseArtifactSummary artifacts={node.appraiseArtifacts} />
           {hasExactV2Provenance ? (
             <div className="grid gap-3 text-sm md:grid-cols-2">
-              <Info label="Publish operation" value={node.astProvenance.publishOperationId} />
-              <Info label="AST hash" value={node.astProvenance.astHash} />
-              <Info label="Receipt hash" value={node.astProvenance.receiptHash} />
-              <Info label="Runtime input hash" value={node.astProvenance.runtimeInputHash} />
+              <Info label="Publish operation" value={v2Provenance.publishOperationId} />
+              <Info label="AST hash" value={v2Provenance.astHash} />
+              <Info label="Receipt hash" value={v2Provenance.receiptHash} />
+              <Info label="Runtime input hash" value={v2Provenance.runtimeInputHash} />
             </div>
           ) : null}
           <div className="grid gap-3 text-sm md:grid-cols-2">

@@ -67,6 +67,97 @@ function findCurrentAstPublishOperation(planId: string, client: PrismaClient) {
   })
 }
 
+const id = (prefix: string) => `${prefix}-${randomUUID()}`
+
+function addValidationFeedbackThread(
+  review: ReviewArtifact,
+  input: {
+    scope: ValidationFeedbackScope
+    target: ReviewArtifact['threads'][number]['target']
+    body: string
+    actor?: string
+  },
+) {
+  review.threads.push({
+    id: id('feedback'),
+    target: input.scope === 'product_scope' ? { type: 'plan' } : input.target,
+    blocking: true,
+    events: [
+      {
+        id: id('event'),
+        action: 'created',
+        actor: input.actor ?? 'local-user',
+        createdAt: new Date().toISOString(),
+        body:
+          input.scope === 'product_scope'
+            ? `Product-scope validation feedback requires plan review: ${input.body.trim()}`
+            : input.body.trim(),
+      },
+    ],
+  })
+}
+
+function affectedValidationIds(
+  validation: ValidationArtifact,
+  target: ReviewArtifact['threads'][number]['target'],
+  explicitIds: string[] = [],
+) {
+  const ids = new Set(explicitIds)
+  if (target.type === 'validation') ids.add(target.validationId)
+  if (target.type === 'file') {
+    for (const node of validation.validations) {
+      if ([...node.gherkinPaths, ...node.stepPaths, node.executable.path].includes(target.path)) ids.add(node.id)
+    }
+  }
+  return ids
+}
+
+function affectedFilePaths(target: ReviewArtifact['threads'][number]['target'], explicitPaths: string[] = []) {
+  const paths = new Set(explicitPaths)
+  if (target.type === 'file') paths.add(target.path)
+  return paths
+}
+
+function invalidateValidationEvidence(
+  validation: ValidationArtifact,
+  input: {
+    scope: ValidationFeedbackScope
+    target: ReviewArtifact['threads'][number]['target']
+    affectedValidationIds?: string[]
+  },
+) {
+  if (input.scope === 'product_scope') {
+    return { ...validation, validationDecisions: [], reviewSubmittedAt: undefined, baselineDecision: 'pending' as const }
+  }
+  const validationIds = affectedValidationIds(validation, input.target, input.affectedValidationIds)
+  return {
+    ...validation,
+    validationDecisions: validation.validationDecisions.filter(decision => !validationIds.has(decision.validationId)),
+    reviewSubmittedAt: undefined,
+    baselineDecision: validationIds.size > 0 ? ('pending' as const) : validation.baselineDecision,
+  }
+}
+
+function invalidateReviewEvidence(
+  review: ReviewArtifact,
+  input: {
+    scope: ValidationFeedbackScope
+    target: ReviewArtifact['threads'][number]['target']
+    affectedFilePaths?: string[]
+    currentPlanRevision: number
+  },
+) {
+  if (input.scope === 'product_scope') {
+    return {
+      ...review,
+      planApprovals: review.planApprovals.filter(approval => approval.revision !== input.currentPlanRevision),
+      fileApprovals: [],
+    }
+  }
+  const filePaths = affectedFilePaths(input.target, input.affectedFilePaths)
+  return { ...review, fileApprovals: review.fileApprovals.filter(approval => !filePaths.has(approval.path)) }
+}
+
 // fallow-ignore-next-line complexity
 export async function submitValidationFeedback(
   input: {

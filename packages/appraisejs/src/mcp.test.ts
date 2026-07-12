@@ -23,7 +23,6 @@ import {
   validationReviewPendingResponse,
   validationPreparationWorkflow,
 } from './mcp.js'
-import { validationArtifactSchema } from './plan-file.js'
 import { assessPlanRequirements } from './plan-requirements.js'
 
 describe('MCP approval wait helpers', () => {
