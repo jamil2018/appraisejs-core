@@ -395,6 +395,52 @@ async function baselineTestRunValue(
   }
 }
 
+async function reuseLegacyBaselineTestRun(
+  input: {
+    planId: string
+    validationId: string
+    browser: string
+    environment: string
+    attemptOrdinal: number
+    targetProjectId: string | null
+    name: string
+  },
+  client: PrismaClient,
+) {
+  const existing = await client.testRun.findFirst({
+    where: { name: input.name },
+    select: { runId: true, planId: true, targetProjectId: true, status: true },
+  })
+  if (!existing) return null
+  if (existing.planId === input.planId && existing.targetProjectId === input.targetProjectId) return existing.runId
+  throw new ServiceError(
+    'A legacy baseline TestRun name is already reserved and cannot be reused safely.',
+    'CONFLICT',
+    409,
+    {
+      conflictType: 'legacy_baseline_test_run_name',
+      existingTestRun: {
+        testRunId: existing.runId,
+        status: existing.status,
+        planId: existing.planId,
+        targetProjectId: existing.targetProjectId,
+      },
+      requestedExecution: {
+        planId: input.planId,
+        validationId: input.validationId,
+        browser: input.browser,
+        environment: input.environment,
+        attemptOrdinal: input.attemptOrdinal,
+      },
+      reconcileLegal: false,
+      nextAllowedAction: {
+        tool: 'baseline_retry',
+        reason: 'Return to validation repair so Appraise can allocate a new exact baseline attempt.',
+      },
+    },
+  )
+}
+
 async function submitAppraiseTestRun(
   input: {
     planId: string
@@ -410,6 +456,19 @@ async function submitAppraiseTestRun(
   client: PrismaClient,
 ): Promise<{ testRunId: string }> {
   const value = await baselineTestRunValue(input, client)
+  const reusedTestRunId = await reuseLegacyBaselineTestRun(
+    {
+      planId: input.planId,
+      validationId: input.validation.id,
+      browser: input.browser,
+      environment: input.environment,
+      attemptOrdinal: input.attemptOrdinal,
+      targetProjectId: input.targetProject?.id ?? null,
+      name: value.name,
+    },
+    client,
+  )
+  if (reusedTestRunId) return { testRunId: reusedTestRunId }
   const runtimePaths = runtimePathsForValidation(input.runtimeValidation, input.validation)
   const executionRoot = input.targetProject?.canonicalPath ?? input.projectRoot
   const created = await createTestRunFromValidatedValue(value, {
@@ -424,6 +483,35 @@ async function submitAppraiseTestRun(
     data: { planId: input.planId, targetProjectId: input.targetProject?.id ?? null },
   })
   return { testRunId: created.runId }
+}
+
+function baselineStartResult(plan: PlanArtifact, validation: ValidationArtifact, reused: boolean) {
+  const activeAttempts = validation.baselineAttempts.filter(attempt =>
+    ['scheduled', 'running', 'interrupted'].includes(attempt.status),
+  )
+  return {
+    plan,
+    validation,
+    baselineExecution: {
+      reused,
+      lifecycle: plan.lifecycle,
+      reconcileLegal: plan.lifecycle === 'baseline_running',
+      attempts: activeAttempts.map(attempt => ({
+        attemptId: attempt.id,
+        testRunId: attempt.testRunId,
+        validationId: attempt.validationId,
+        browser: attempt.browser,
+        environment: attempt.environment,
+        status: attempt.status,
+      })),
+      nextAllowedAction: {
+        tool: 'baseline_reconcile',
+        reason: reused
+          ? 'Reconcile the already active baseline attempt.'
+          : 'Reconcile the newly started baseline attempt.',
+      },
+    },
+  }
 }
 
 async function submitCapsuleTestRun(
@@ -627,7 +715,7 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(planId, options.projectDirectory, client)
   if (artifacts.plan.lifecycle === 'baseline_running') {
-    return { plan: artifacts.plan, validation: artifacts.validation }
+    return baselineStartResult(artifacts.plan, artifacts.validation, true)
   }
   if (!['validations_approved', 'baseline_changes_requested'].includes(artifacts.plan.lifecycle)) {
     throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
@@ -673,7 +761,7 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
       },
       client,
     )
-  return { plan, validation }
+  return baselineStartResult(plan, validation, false)
 }
 
 export async function reconcileBaselineExecution(planId: string, options: BaselineOptions = {}) {

@@ -89,6 +89,11 @@ retry advances the ordinal. `start` persists the exact preflight receipt before 
 attempts are idempotent. Cancellation uses owner-token/state guards before and during spawn, terminates a registered
 process when present, and durably reconciles both attempt and TestRun terminal state.
 
+Baseline start applies the same recovery contract to legacy runs. Replaying an active baseline reports `reused`, the
+canonical attempt/TestRun identities, reconciliation legality, and `baseline_reconcile` as the next action. A legacy
+display-name collision is reusable only when the existing TestRun is bound to the same plan and target; otherwise the
+conflict includes the existing run identity and an Appraise-owned repair action.
+
 The database lease covers the complete preflight, not only materialization. Ownership is renewed before every check,
 and the final dry-run stage renews, repeats complete repository/blob/run-file integrity, securely revalidates output
 ancestors, renews again, and only then spawns. Controlled mutation therefore blocks without invoking Cucumber. Config
