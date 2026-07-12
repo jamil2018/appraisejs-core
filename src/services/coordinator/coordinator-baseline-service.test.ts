@@ -125,6 +125,14 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         gherkinPaths: ['automation/features/case-one.feature'],
         stepPaths: ['automation/steps/actions/case-one.step.ts'],
         executable: { path: 'automation/features/case-one.feature' },
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: `sha256:${'a'.repeat(64)}`,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-required-check',
+          receiptHash: `sha256:${'b'.repeat(64)}`,
+          runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+        },
         matrix: [
           { browser: 'chromium', environment: 'local' },
           { browser: 'firefox', environment: 'local' },

@@ -38,7 +38,7 @@ import {
   readLatestPlanEventSequence,
   withPlanEventStreamLock,
 } from './coordinator-service'
-import { readStoredJsonReport, runtimePathsForValidation } from './coordinator-baseline-service'
+import { readStoredJsonReport } from './coordinator-baseline-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date; appraiseRoot?: string }
 
@@ -593,22 +593,6 @@ export async function recordImplementationValidation(
 }
 
 type ImplementationValidation = ValidationArtifact['validations'][number]
-type ImplementationTestRunInput = {
-  target: string
-  environmentId: string
-  name: string
-  tagExpression: string
-  testWorkersCount: number
-  browserEngine: BrowserEngine
-  planId: string
-  validationId: string
-  implementationValidationRunId: string
-  featurePaths: string[]
-  importPaths: string[]
-  supportPaths: string[]
-  prepareWorkspace: boolean
-  expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
-}
 type CapsuleStart = {
   request: Parameters<RuntimeCapsuleTestRunService['prepare']>[0]
   testRunDbId: string
@@ -695,11 +679,9 @@ async function prepareImplementationMatrixEntry(input: {
   matrix: ImplementationValidation['matrix'][number]
   expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
   tagExpression: string
-  runtimePaths: ReturnType<typeof runtimePathsForValidation> | null
   capsuleService: RuntimeCapsuleTestRunService
   capsuleStarts: CapsuleStart[]
   preparedCapsuleTestRunDbIds: string[]
-  testRunInputs: ImplementationTestRunInput[]
 }) {
   const environment = input.environmentByValue.get(input.matrix.environment)
   if (!environment) throw new ServiceError(`Environment "${input.matrix.environment}" was not found.`, 'VALIDATION')
@@ -760,7 +742,6 @@ async function prepareImplementationMatrix(input: {
     input.client,
   )
   const suiteIdByTestCaseId = mapTestCasesToSuites(input.artifacts.validation)
-  const testRunInputs: ImplementationTestRunInput[] = []
   const runningRuns: ImplementationValidationRun[] = []
   const capsuleStarts: CapsuleStart[] = []
   const preparedCapsuleTestRunDbIds = input.preparedCapsuleTestRunDbIds
@@ -770,7 +751,6 @@ async function prepareImplementationMatrix(input: {
     if (!projection?.targetProject?.id) {
       throw new ServiceError('Reviewed AST validation requires an authoritative target project.', 'CONFLICT')
     }
-    const runtimePaths = null
     const expectedTestCases = expectedTestCasesForValidation(validation, suiteIdByTestCaseId)
     const tagExpression = expectedTestCases
       .map(({ testCaseId, testSuiteId }) => `(@ts_${testSuiteId} and @tc_${testCaseId})`)
@@ -785,16 +765,14 @@ async function prepareImplementationMatrix(input: {
           matrix,
           expectedTestCases,
           tagExpression,
-          runtimePaths,
           capsuleService,
           capsuleStarts,
           preparedCapsuleTestRunDbIds,
-          testRunInputs,
         }),
       )
     }
   }
-  return { capsuleService, capsuleStarts, preparedCapsuleTestRunDbIds, runningRuns, testRunInputs }
+  return { capsuleService, capsuleStarts, preparedCapsuleTestRunDbIds, runningRuns }
 }
 
 async function cancelPreparedCapsuleRuns(client: PrismaClient, ids: string[]) {
@@ -811,7 +789,6 @@ async function persistImplementationValidationStart(input: {
   artifacts: Awaited<ReturnType<typeof readArtifacts>>
   implementation: NonNullable<ValidationArtifact['implementation']>
   runningRuns: ImplementationValidationRun[]
-  testRunInputs: ImplementationTestRunInput[]
 }) {
   const existingIds = new Set(input.runningRuns.map(run => run.id))
   const validation = {
@@ -830,7 +807,7 @@ async function persistImplementationValidationStart(input: {
     {
       planId: input.planId,
       type: 'implementation_validation_started',
-      payload: { runIds: input.runningRuns.map(run => run.id), testRunInputs: input.testRunInputs },
+      payload: { runIds: input.runningRuns.map(run => run.id) },
     },
     input.client,
   )
@@ -883,14 +860,12 @@ export async function startImplementationValidation(
     artifacts,
     implementation,
     runningRuns: prepared.runningRuns,
-    testRunInputs: prepared.testRunInputs,
   })
   const capsuleStartOutcomes = await startPreparedCapsules(prepared.capsuleService, prepared.capsuleStarts)
   return {
     plan,
     validation,
     runs: prepared.runningRuns,
-    testRunInputs: prepared.testRunInputs,
     capsuleStartOutcomes,
   }
 }

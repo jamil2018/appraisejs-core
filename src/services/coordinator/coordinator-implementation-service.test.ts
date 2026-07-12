@@ -132,6 +132,14 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         gherkinPaths: ['automation/features/core.feature'],
         stepPaths: ['automation/steps/core.step.ts'],
         executable: { path: 'automation/features/core.feature' },
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: `sha256:${'a'.repeat(64)}`,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-core-validation',
+          receiptHash: `sha256:${'b'.repeat(64)}`,
+          runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+        },
         matrix: [{ browser: 'chromium', environment: 'local' }],
         expectedFailures: [],
       },
@@ -144,6 +152,14 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         gherkinPaths: ['automation/features/docs.feature'],
         stepPaths: ['automation/steps/docs.step.ts'],
         executable: { path: 'automation/features/docs.feature' },
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: `sha256:${'d'.repeat(64)}`,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-docs-validation',
+          receiptHash: `sha256:${'e'.repeat(64)}`,
+          runtimeInputHash: `sha256:${'f'.repeat(64)}`,
+        },
         matrix: [{ browser: 'chromium', environment: 'local' }],
         expectedFailures: [],
       },
@@ -298,7 +314,7 @@ describe('implementation coordinator checkpoints', () => {
       }),
     )
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ testRunDbId: 'test-run-db-id' }))
-    expect(result.testRunInputs).toEqual([])
+    expect(result).not.toHaveProperty('testRunInputs')
     expect(result.runs[0]).toMatchObject({ testRunId: 'public-run-id' })
     expect(result.runs[0]!.runtimePaths).toBeUndefined()
     expect(result.capsuleStartOutcomes).toEqual([
