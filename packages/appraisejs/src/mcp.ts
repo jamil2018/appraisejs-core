@@ -149,6 +149,12 @@ function text(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
 }
 
+export function normalizeOptionalRef(value: unknown) {
+  return typeof value === 'string' && value.trim() === '' ? undefined : value
+}
+
+const optionalRefSchema = z.preprocess(normalizeOptionalRef, z.string().min(1).optional())
+
 const validationNodeInputSchema = validationArtifactSchema.shape.validations.element
 const validationFileInputSchema = validationArtifactSchema.shape.files.element
 const customStepJustificationInputSchema = z.object({
@@ -200,8 +206,8 @@ const validationTestCaseProposalInputSchema = z.object({
       z.object({
         intent: z.string().min(1),
         gherkinText: z.string().min(1),
-        templateStepRef: z.string().min(1).optional(),
-        stepBlockRef: z.string().min(1).optional(),
+        templateStepRef: optionalRefSchema,
+        stepBlockRef: optionalRefSchema,
         customStepProposal: z
           .object({
             path: z.string().min(1).optional(),
@@ -246,6 +252,25 @@ function withGuidance(
 }
 
 const responseModeSchema = z.enum(['summary', 'evidenceOnly', 'blockersOnly', 'linksOnly', 'full']).default('summary')
+
+export const MCP_RESPONSE_TOKEN_BUDGETS = {
+  diagnostic: 1_000,
+  planCreation: 2_000,
+  unchangedWait: 300,
+  validationMutation: 1_500,
+  baselineMutation: 1_500,
+} as const
+
+export function measureMcpResponse(value: unknown) {
+  const json = JSON.stringify(value)
+  const repeatedKeys = [...json.matchAll(/"([^"\\]+)":/g)].map(match => match[1])
+  const uniqueKeys = new Set(repeatedKeys)
+  return {
+    bytes: Buffer.byteLength(json, 'utf8'),
+    estimatedTokens: Math.ceil(Buffer.byteLength(json, 'utf8') / 4),
+    duplicationRatio: repeatedKeys.length === 0 ? 0 : (repeatedKeys.length - uniqueKeys.size) / repeatedKeys.length,
+  }
+}
 
 export function applyResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
   if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
@@ -372,6 +397,29 @@ export function applyCapsuleDiagnosticMode(value: unknown, responseMode: z.infer
     blockers: diagnostic.blockers,
     evidence: diagnostic.evidence,
     nextRecoveryAction: diagnostic.nextRecoveryAction,
+  }
+}
+
+export function baselineRecoveryForLifecycle(lifecycle: string | undefined) {
+  if (lifecycle === 'baseline_review')
+    return {
+      nextRecommendedAction:
+        'Review baseline evidence, acknowledge or justify allowed results, then call baseline_accept.',
+      nextRequiredAgentBehavior: 'review_and_accept_baseline',
+      nextAllowedAction: { tool: 'baseline_accept' },
+    }
+  if (lifecycle === 'validation_changes_requested')
+    return {
+      nextRecommendedAction:
+        'Read validation feedback, repair and publish the validation draft, then return to validation review.',
+      nextRequiredAgentBehavior: 'revise_validation_artifacts',
+      nextAllowedAction: { tool: 'validation_draft_read' },
+    }
+  return {
+    nextRecommendedAction:
+      'Continue calling baseline_reconcile until baseline review is ready, or cancel if the run should stop.',
+    nextRequiredAgentBehavior: 'reconcile_baseline',
+    nextAllowedAction: { tool: 'baseline_reconcile' },
   }
 }
 
@@ -3105,19 +3153,13 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         result && typeof result === 'object' && 'plan' in result
           ? (result as { plan?: { lifecycle?: string } }).plan?.lifecycle
           : undefined
+      const recovery = baselineRecoveryForLifecycle(lifecycle)
       return text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
             result,
-            nextRecommendedAction:
-              lifecycle === 'baseline_review'
-                ? 'Review baseline evidence, acknowledge or justify allowed results, then call baseline_accept.'
-                : 'Continue calling baseline_reconcile until baseline review is ready, or cancel if the run should stop.',
-            nextRequiredAgentBehavior:
-              lifecycle === 'baseline_review' ? 'review_and_accept_baseline' : 'reconcile_baseline',
-            nextAllowedAction:
-              lifecycle === 'baseline_review' ? { tool: 'baseline_accept' } : { tool: 'baseline_reconcile' },
+            ...recovery,
           }),
           responseMode,
         ),

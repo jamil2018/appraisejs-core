@@ -198,6 +198,17 @@ the next ordinal so the global TestRun name constraint cannot deadlock lifecycle
 
 ## Runtime Environment
 
+The capsule command receipt is the single execution contract for preflight and launch. It seals the exact Node and
+Cucumber binaries, config, capsule-relative working directory, feature/import/support files, environment, selection,
+outputs, and hashes. Absolute runtime paths containing unresolved bracket, mustache, or shell placeholders are rejected
+before materialization or review; paths containing spaces remain valid. A passed preflight is persisted against the
+same capsule and receipt hashes consumed by execution.
+
+Every managed attempt creates its canonical `TestRun.runId` before preflight or process registration. UI details,
+logs, reports, MCP reads, and diagnosis resolve that same public ID, including blocked preflight and spawn failures.
+Diagnosis responses remain bounded and include evidence health, report/log links, the failed capsule component, and one
+legal recovery action.
+
 The local executor sets these important environment variables for child Cucumber runs:
 
 - `ENVIRONMENT`: selected AppraiseJS environment name.

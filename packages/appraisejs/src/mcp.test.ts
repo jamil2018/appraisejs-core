@@ -4,11 +4,15 @@ import {
   agentGuide,
   approvalPendingResponse,
   applyLifecycleResponseMode,
+  baselineRecoveryForLifecycle,
   createAppraiseMcpServer,
   createPlanFromBrief,
   latestGateEvent,
   mcpCapabilityMetadata,
+  MCP_RESPONSE_TOKEN_BUDGETS,
+  measureMcpResponse,
   missingCapabilityRecovery,
+  normalizeOptionalRef,
   nextApprovalWaitSequence,
   orderedEventBatch,
   planningSessionTargetRequiredResponse,
@@ -217,6 +221,44 @@ describe('MCP approval wait helpers', () => {
 })
 
 describe('compact lifecycle responses', () => {
+  it('keeps compact lifecycle mutations inside the validation and baseline budgets', () => {
+    const compact = applyLifecycleResponseMode(
+      {
+        planId: 'plan-1',
+        lifecycle: 'validation_changes_requested',
+        hash: `sha256:${'a'.repeat(64)}`,
+        blockers: [{ code: 'FILE_MISSING', path: 'automation/steps/notes.steps.ts' }],
+        links: { review: '/plans/plan-1' },
+        nextAllowedAction: { tool: 'validation_draft_read' },
+        result: { repeatedArtifact: 'x'.repeat(20_000) },
+      },
+      'summary',
+    )
+    const measurement = measureMcpResponse(compact)
+
+    expect(measurement.estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
+    expect(measurement.estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.baselineMutation)
+    expect(measurement.duplicationRatio).toBeLessThan(0.5)
+    expect(compact).toEqual(
+      expect.objectContaining({ planId: 'plan-1', nextAllowedAction: { tool: 'validation_draft_read' } }),
+    )
+  })
+
+  it('normalizes empty optional validation references without hiding invalid values', () => {
+    expect(normalizeOptionalRef('')).toBeUndefined()
+    expect(normalizeOptionalRef('   ')).toBeUndefined()
+    expect(normalizeOptionalRef('step-block:notes')).toBe('step-block:notes')
+  })
+
+  it('returns validation repair after a baseline harness failure transition', () => {
+    expect(baselineRecoveryForLifecycle('validation_changes_requested')).toEqual(
+      expect.objectContaining({
+        nextRequiredAgentBehavior: 'revise_validation_artifacts',
+        nextAllowedAction: { tool: 'validation_draft_read' },
+      }),
+    )
+  })
+
   const full = {
     plan: {
       planId: 'plan-1',

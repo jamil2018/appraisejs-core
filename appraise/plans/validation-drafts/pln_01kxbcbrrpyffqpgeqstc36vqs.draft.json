@@ -1,0 +1,28 @@
+{
+  "version": "1",
+  "planId": "pln_01kxbcbrrpyffqpgeqstc36vqs",
+  "draftId": "validation-draft-pln-01kxbcbrrpyffqpgeqstc36vqs",
+  "revision": 1,
+  "status": "draft",
+  "targetProjectId": "14399b6b-ceec-45a7-a06f-e867b0b2f666",
+  "sourceHash": "sha256:75eb8eadf665a2e906944996309c58dee8b6f549dfb6896d4c92521dd6ecf7b1",
+  "baseRevision": {
+    "gitCommit": null,
+    "snapshotHash": "sha256:75eb8eadf665a2e906944996309c58dee8b6f549dfb6896d4c92521dd6ecf7b1",
+    "reducedAssurance": true
+  },
+  "classificationOverrides": [],
+  "validations": [],
+  "files": [],
+  "manifestPaths": [],
+  "reusedStepPaths": [],
+  "reusedTemplateStepRefs": [],
+  "reusedStepBlockRefs": [],
+  "newStepPaths": [],
+  "customStepJustifications": [],
+  "runtimeProjections": [],
+  "blockers": [],
+  "warnings": [],
+  "createdAt": "2026-07-12T14:48:30.318Z",
+  "updatedAt": "2026-07-12T14:48:30.319Z"
+}
