@@ -834,9 +834,9 @@ export async function scheduleTestRunCompletion(args: {
       .catch(async error => {
         console.error(`[TestRunService] Error executing test run for testRunId: ${testRun.runId}:`, error)
 
-        logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
-        if (error instanceof Error && error.stack) {
-          logger.error(error.stack)
+        if (!logger.writableEnded) {
+          logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
+          if (error instanceof Error && error.stack) logger.error(error.stack)
         }
 
         await closeLogger(logger).catch(err => {
