@@ -1,0 +1,466 @@
+{
+  "version": "1",
+  "planId": "pln_01kxaw8z2pejj5d3pb6319vptx",
+  "draftId": "validation-draft-pln-01kxaw8z2pejj5d3pb6319vptx",
+  "revision": 1,
+  "status": "published",
+  "targetProjectId": "e0c716c6-80ff-4d8e-bbd4-8b81c65c4c82",
+  "sourceHash": "sha256:9b9cec032f0eb8bc3a65b53a4dedd76572fa736157601fee401c9331cdd1f037",
+  "baseRevision": {
+    "gitCommit": null,
+    "snapshotHash": "sha256:9b9cec032f0eb8bc3a65b53a4dedd76572fa736157601fee401c9331cdd1f037",
+    "reducedAssurance": true
+  },
+  "classificationOverrides": [],
+  "validations": [
+    {
+      "id": "notes-crud-search-persistence-and-confirmed-delete",
+      "taskIds": [
+        "notes-domain",
+        "notes-crud-ui",
+        "notes-search-states",
+        "automated-validation"
+      ],
+      "required": true,
+      "testCaseIds": [
+        "notes-e2e"
+      ],
+      "appraiseArtifacts": {
+        "modules": [
+          {
+            "id": "notes-module",
+            "name": "Simple Notes"
+          }
+        ],
+        "testSuites": [
+          {
+            "id": "notes-suite",
+            "name": "Notes happy path",
+            "description": "Core notes CRUD browser flow",
+            "moduleId": "notes-module",
+            "testCaseIds": [
+              "notes-e2e"
+            ]
+          }
+        ],
+        "testCases": [
+          {
+            "id": "notes-e2e",
+            "title": "Notes CRUD happy path",
+            "description": "Create, edit, search, reload, and confirmed delete.",
+            "steps": [
+              {
+                "id": "notes-e2e-open",
+                "order": 0,
+                "label": "Open the local notes application",
+                "gherkinStep": "Given the user navigates to the base url of the selected environment",
+                "templateStepId": "fb77d502-3587-4e1e-92ec-1497f98311bc",
+                "templateStepName": "navigate to environment base url",
+                "parameters": []
+              },
+              {
+                "id": "notes-e2e-title1",
+                "order": 1,
+                "label": "Enter first title",
+                "gherkinStep": "When the user fills in the \"Note title\" input field with value \"First note\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Note title",
+                    "locatorId": "loc-note-title",
+                    "locatorName": "Note title"
+                  },
+                  {
+                    "name": "value",
+                    "value": "First note"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-body1",
+                "order": 2,
+                "label": "Enter first body",
+                "gherkinStep": "And the user fills in the \"Note body\" input field with value \"Alpha searchable body\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Note body",
+                    "locatorId": "loc-note-body",
+                    "locatorName": "Note body"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Alpha searchable body"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-add1",
+                "order": 3,
+                "label": "Create first note",
+                "gherkinStep": "And the user clicks on the \"Add note\" element",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Add note",
+                    "locatorId": "loc-add-note",
+                    "locatorName": "Add note"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-title2",
+                "order": 4,
+                "label": "Enter second title",
+                "gherkinStep": "And the user fills in the \"Note title\" input field with value \"Second note\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Note title",
+                    "locatorId": "loc-note-title",
+                    "locatorName": "Note title"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Second note"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-add2",
+                "order": 5,
+                "label": "Create second note",
+                "gherkinStep": "And the user clicks on the \"Add note\" element",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Add note",
+                    "locatorId": "loc-add-note",
+                    "locatorName": "Add note"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-visible2",
+                "order": 6,
+                "label": "Verify newest note visible",
+                "gherkinStep": "Then the visibility status of the \"Second note card\" element should be true",
+                "templateStepId": "61617d12-4463-4084-929f-1c3c01a41a66",
+                "templateStepName": "assert element visible",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Second note card",
+                    "locatorId": "loc-second-note",
+                    "locatorName": "Second note card"
+                  },
+                  {
+                    "name": "visible",
+                    "value": "true",
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-edit1",
+                "order": 7,
+                "label": "Edit first note",
+                "gherkinStep": "When the user clicks on the \"Edit First note\" element",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Edit First note",
+                    "locatorId": "loc-edit-first",
+                    "locatorName": "Edit First note"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-titleu",
+                "order": 8,
+                "label": "Replace title",
+                "gherkinStep": "And the user fills in the \"Note title\" input field with value \"First note updated\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Note title",
+                    "locatorId": "loc-note-title",
+                    "locatorName": "Note title"
+                  },
+                  {
+                    "name": "value",
+                    "value": "First note updated"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-save",
+                "order": 9,
+                "label": "Save edit",
+                "gherkinStep": "And the user clicks on the \"Save changes\" element",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Save changes",
+                    "locatorId": "loc-save",
+                    "locatorName": "Save changes"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-search",
+                "order": 10,
+                "label": "Search by body",
+                "gherkinStep": "And the user fills in the \"Search notes\" input field with value \"Alpha searchable\"",
+                "templateStepId": "ec290262-06f8-46cd-aa0b-15d5ccbd8c76",
+                "templateStepName": "fill",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Search notes",
+                    "locatorId": "loc-search",
+                    "locatorName": "Search notes"
+                  },
+                  {
+                    "name": "value",
+                    "value": "Alpha searchable"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-visibleu",
+                "order": 11,
+                "label": "Verify edited result visible",
+                "gherkinStep": "Then the visibility status of the \"First note updated card\" element should be true",
+                "templateStepId": "61617d12-4463-4084-929f-1c3c01a41a66",
+                "templateStepName": "assert element visible",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "First note updated card",
+                    "locatorId": "loc-first-updated",
+                    "locatorName": "First note updated card"
+                  },
+                  {
+                    "name": "visible",
+                    "value": "true",
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-clear",
+                "order": 12,
+                "label": "Clear search",
+                "gherkinStep": "When the user clears the \"Search notes\" field",
+                "templateStepId": "e0eda1c0-6d11-41c9-901f-bf3b57e2481b",
+                "templateStepName": "clear",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Search notes",
+                    "locatorId": "loc-search",
+                    "locatorName": "Search notes"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-reload",
+                "order": 13,
+                "label": "Reload page",
+                "gherkinStep": "And the user reloads the page",
+                "templateStepId": "cec29b93-dd58-40d6-9fdd-94bd0705ecbe",
+                "templateStepName": "reload",
+                "parameters": []
+              },
+              {
+                "id": "notes-e2e-persist",
+                "order": 14,
+                "label": "Verify persistence",
+                "gherkinStep": "Then the visibility status of the \"First note updated card\" element should be true",
+                "templateStepId": "61617d12-4463-4084-929f-1c3c01a41a66",
+                "templateStepName": "assert element visible",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "First note updated card",
+                    "locatorId": "loc-first-updated",
+                    "locatorName": "First note updated card"
+                  },
+                  {
+                    "name": "visible",
+                    "value": "true",
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-delete",
+                "order": 15,
+                "label": "Request delete",
+                "gherkinStep": "When the user clicks on the \"Delete First note updated\" element",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Delete First note updated",
+                    "locatorId": "loc-delete-first",
+                    "locatorName": "Delete First note updated"
+                  }
+                ]
+              },
+              {
+                "id": "notes-e2e-confirm",
+                "order": 16,
+                "label": "Confirm delete",
+                "gherkinStep": "And the user clicks on the \"Confirm delete\" element",
+                "templateStepId": "b7488d02-1a06-40e0-8038-a3ac3f095c06",
+                "templateStepName": "click",
+                "parameters": [
+                  {
+                    "name": "locator",
+                    "value": "Confirm delete",
+                    "locatorId": "loc-confirm-delete",
+                    "locatorName": "Confirm delete"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "locatorGroups": [
+          {
+            "id": "notes-page",
+            "name": "Notes page",
+            "route": "/",
+            "moduleId": "notes-module"
+          }
+        ],
+        "locators": [
+          {
+            "id": "loc-note-title",
+            "name": "Note title",
+            "value": "[data-testid=\"note-title\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-note-body",
+            "name": "Note body",
+            "value": "[data-testid=\"note-body\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-add-note",
+            "name": "Add note",
+            "value": "[data-testid=\"add-note\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-second-note",
+            "name": "Second note card",
+            "value": "[data-testid=\"note-card-Second note\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-edit-first",
+            "name": "Edit First note",
+            "value": "[data-testid=\"edit-note-First note\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-save",
+            "name": "Save changes",
+            "value": "[data-testid=\"save-note\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-search",
+            "name": "Search notes",
+            "value": "[data-testid=\"search-notes\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-first-updated",
+            "name": "First note updated card",
+            "value": "[data-testid=\"note-card-First note updated\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-delete-first",
+            "name": "Delete First note updated",
+            "value": "[data-testid=\"delete-note-First note updated\"]",
+            "locatorGroupId": "notes-page"
+          },
+          {
+            "id": "loc-confirm-delete",
+            "name": "Confirm delete",
+            "value": "[data-testid=\"confirm-delete\"]",
+            "locatorGroupId": "notes-page"
+          }
+        ]
+      },
+      "gherkinPaths": [
+        "automation/features/simple-notes-happy-path.feature"
+      ],
+      "stepPaths": [],
+      "executable": {
+        "path": "automation/features/simple-notes-happy-path.feature",
+        "selector": "Notes CRUD happy path"
+      },
+      "matrix": [
+        {
+          "browser": "chromium",
+          "environment": "local"
+        }
+      ],
+      "expectedFailures": []
+    }
+  ],
+  "files": [
+    {
+      "path": "automation/features/simple-notes-happy-path.feature",
+      "classification": "test_only",
+      "rationale": "Repair the Appraise-native happy-path validation by binding explicit locator resources and aligning the scenario selector.",
+      "status": "modified",
+      "beforeHash": "sha256:43af41e55c75db92d0448bbbb9ff3f3c73753cf71deda40eb48b85832d30e3c0",
+      "contentHash": null,
+      "patch": "*** Begin Patch\n*** Update File: automation/features/simple-notes-happy-path.feature\n@@\n-  Scenario: Create, edit, search, persist, and delete notes\n+  Scenario: Notes CRUD happy path\n*** End Patch",
+      "declared": true
+    }
+  ],
+  "manifestPaths": [
+    "automation/features/simple-notes-happy-path.feature"
+  ],
+  "reusedStepPaths": [
+    "automation/steps/actions/click.step.ts",
+    "automation/steps/actions/input.step.ts",
+    "automation/steps/actions/navigation.step.ts",
+    "automation/steps/validations/visibility_assertion.step.ts"
+  ],
+  "reusedTemplateStepRefs": [],
+  "reusedStepBlockRefs": [],
+  "newStepPaths": [],
+  "customStepJustifications": [],
+  "runtimeProjections": [],
+  "blockers": [],
+  "warnings": [],
+  "createdAt": "2026-07-12T10:04:20.294Z",
+  "updatedAt": "2026-07-12T10:06:18.088Z"
+}

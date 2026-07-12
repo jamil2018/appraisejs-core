@@ -23,6 +23,12 @@ export function resolveMcpConfig(cwd = process.cwd(), env = process.env) {
       command: 'appraisejs',
       args: ['mcp', '--cwd', resolvedProjectPath, '--base-url', baseUrl],
     },
+    codex: {
+      inspectCommand: 'codex mcp get appraisejs',
+      removeCommand: 'codex mcp remove appraisejs',
+      addCommand: `codex mcp add appraisejs --url http://${host}:${port}${endpointPath}`,
+      verifyCommand: 'codex mcp get appraisejs',
+    },
     skillPath: path.join(resolvedProjectPath, '.agents', 'skills', 'appraise-project-from-brief'),
   }
 }

@@ -1,0 +1,375 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts: []
+baselineDecision: pending
+baseRevision:
+  gitCommit: null
+  reducedAssurance: true
+  snapshotHash: sha256:9b9cec032f0eb8bc3a65b53a4dedd76572fa736157601fee401c9331cdd1f037
+classificationOverrides: []
+customStepJustifications: []
+files:
+  - beforeHash: sha256:43af41e55c75db92d0448bbbb9ff3f3c73753cf71deda40eb48b85832d30e3c0
+    classification: test_only
+    contentHash: sha256:55fcd2bee2b214ed02d73bacca4e92ba5eb9d1c59c79ebae7b63175f868ad5d5
+    declared: true
+    patch: |-
+      *** Begin Patch
+      *** Update File: automation/features/simple-notes-happy-path.feature
+      @@
+      -  Scenario: Create, edit, search, persist, and delete notes
+      +  Scenario: Notes CRUD happy path
+      *** End Patch
+    path: automation/features/simple-notes-happy-path.feature
+    rationale: Repair the Appraise-native happy-path validation by binding explicit locator resources and aligning the scenario selector.
+    status: modified
+manifestPaths:
+  - automation/features/simple-notes-happy-path.feature
+newStepPaths: []
+planId: pln_01kxaw8z2pejj5d3pb6319vptx
+reusedStepBlockRefs: []
+reusedStepPaths:
+  - automation/steps/actions/click.step.ts
+  - automation/steps/actions/input.step.ts
+  - automation/steps/actions/navigation.step.ts
+  - automation/steps/validations/visibility_assertion.step.ts
+reusedTemplateStepRefs: []
+reviewSubmittedAt: 2026-07-12T10:07:00.492Z
+revision: 1
+runtimePreflight:
+  blockers: []
+  checkedAt: 2026-07-12T10:07:00.453Z
+  executionPackets:
+    - browser: chromium
+      environment: local
+      expectedScenarioCount: 1
+      featurePaths:
+        - /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/features/simple-notes-happy-path.feature
+      importPaths: []
+      reportPath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/reports/<runId>/cucumber.json
+      tagExpression: (@ts_notes-suite and @tc_notes-e2e)
+      targetRoot: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712
+      validationId: notes-crud-search-persistence-and-confirmed-delete
+  runtimePreparation:
+    binary: /Users/jamil/Personal Projects/appraisejs/node_modules/@cucumber/cucumber/bin/cucumber.js
+    owner: appraise
+    targetFilesChanged: true
+  status: passed
+runtimeProjections:
+  - contentHash: sha256:80e9cd7de943d42a4ea43dab275ab47df447026b2730bc59fedab7a4217eb6aa
+    declaredPath: automation/steps/actions/click.step.ts
+    materialization: generated
+    role: step
+    runtimePath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/actions/click.step.ts
+    targetPath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/actions/click.step.ts
+  - contentHash: sha256:01a3edb4f2c0c4136c60850430bfa813e325e8d98cb25943879d0a193554b8d6
+    declaredPath: automation/steps/actions/input.step.ts
+    materialization: generated
+    role: step
+    runtimePath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/actions/input.step.ts
+    targetPath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/actions/input.step.ts
+  - contentHash: sha256:25888b707c15a9e29f3a96b695d973f53883ada8e242ab3e4f1f6047876b4bd8
+    declaredPath: automation/steps/actions/navigation.step.ts
+    materialization: generated
+    role: step
+    runtimePath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/actions/navigation.step.ts
+    targetPath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/actions/navigation.step.ts
+  - contentHash: sha256:3f8cd626a6ce75b2710d6b1b010f3acef384d1103cb785ecef9376f7e3df2360
+    declaredPath: automation/steps/validations/visibility_assertion.step.ts
+    materialization: generated
+    role: step
+    runtimePath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/validations/visibility_assertion.step.ts
+    targetPath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/steps/validations/visibility_assertion.step.ts
+  - contentHash: sha256:55fcd2bee2b214ed02d73bacca4e92ba5eb9d1c59c79ebae7b63175f868ad5d5
+    declaredPath: automation/features/simple-notes-happy-path.feature
+    materialization: generated
+    role: gherkin
+    runtimePath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/features/simple-notes-happy-path.feature
+    targetPath: /private/tmp/appraisejs-simple-notes-plan-builder-e2e-20260712/automation/features/simple-notes-happy-path.feature
+validationDecisions:
+  - contentHash: sha256:eaa2bf90e46c5e185b2d7e9eb189cdc1d163391a1bce97ec2fde646eaf3851f1
+    decidedAt: 2026-07-12T10:06:52.122Z
+    decidedBy: local-user
+    decision: approved
+    validationId: notes-crud-search-persistence-and-confirmed-delete
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: notes-page
+          moduleId: notes-module
+          name: Notes page
+          route: /
+      locators:
+        - id: loc-note-title
+          locatorGroupId: notes-page
+          name: Note title
+          value: '[data-testid="note-title"]'
+        - id: loc-note-body
+          locatorGroupId: notes-page
+          name: Note body
+          value: '[data-testid="note-body"]'
+        - id: loc-add-note
+          locatorGroupId: notes-page
+          name: Add note
+          value: '[data-testid="add-note"]'
+        - id: loc-second-note
+          locatorGroupId: notes-page
+          name: Second note card
+          value: '[data-testid="note-card-Second note"]'
+        - id: loc-edit-first
+          locatorGroupId: notes-page
+          name: Edit First note
+          value: '[data-testid="edit-note-First note"]'
+        - id: loc-save
+          locatorGroupId: notes-page
+          name: Save changes
+          value: '[data-testid="save-note"]'
+        - id: loc-search
+          locatorGroupId: notes-page
+          name: Search notes
+          value: '[data-testid="search-notes"]'
+        - id: loc-first-updated
+          locatorGroupId: notes-page
+          name: First note updated card
+          value: '[data-testid="note-card-First note updated"]'
+        - id: loc-delete-first
+          locatorGroupId: notes-page
+          name: Delete First note updated
+          value: '[data-testid="delete-note-First note updated"]'
+        - id: loc-confirm-delete
+          locatorGroupId: notes-page
+          name: Confirm delete
+          value: '[data-testid="confirm-delete"]'
+      modules:
+        - id: notes-module
+          name: Simple Notes
+      testCases:
+        - description: Create, edit, search, reload, and confirmed delete.
+          id: notes-e2e
+          steps:
+            - gherkinStep: Given the user navigates to the base url of the selected environment
+              id: notes-e2e-open
+              label: Open the local notes application
+              order: 0
+              parameters: []
+              templateStepId: fb77d502-3587-4e1e-92ec-1497f98311bc
+              templateStepName: navigate to environment base url
+            - gherkinStep: When the user fills in the "Note title" input field with value "First note"
+              id: notes-e2e-title1
+              label: Enter first title
+              order: 1
+              parameters:
+                - locatorId: loc-note-title
+                  locatorName: Note title
+                  name: locator
+                  value: Note title
+                - name: value
+                  value: First note
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: And the user fills in the "Note body" input field with value "Alpha searchable body"
+              id: notes-e2e-body1
+              label: Enter first body
+              order: 2
+              parameters:
+                - locatorId: loc-note-body
+                  locatorName: Note body
+                  name: locator
+                  value: Note body
+                - name: value
+                  value: Alpha searchable body
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: And the user clicks on the "Add note" element
+              id: notes-e2e-add1
+              label: Create first note
+              order: 3
+              parameters:
+                - locatorId: loc-add-note
+                  locatorName: Add note
+                  name: locator
+                  value: Add note
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+            - gherkinStep: And the user fills in the "Note title" input field with value "Second note"
+              id: notes-e2e-title2
+              label: Enter second title
+              order: 4
+              parameters:
+                - locatorId: loc-note-title
+                  locatorName: Note title
+                  name: locator
+                  value: Note title
+                - name: value
+                  value: Second note
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: And the user clicks on the "Add note" element
+              id: notes-e2e-add2
+              label: Create second note
+              order: 5
+              parameters:
+                - locatorId: loc-add-note
+                  locatorName: Add note
+                  name: locator
+                  value: Add note
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+            - gherkinStep: Then the visibility status of the "Second note card" element should be true
+              id: notes-e2e-visible2
+              label: Verify newest note visible
+              order: 6
+              parameters:
+                - locatorId: loc-second-note
+                  locatorName: Second note card
+                  name: locator
+                  value: Second note card
+                - name: visible
+                  type: boolean
+                  value: "true"
+              templateStepId: 61617d12-4463-4084-929f-1c3c01a41a66
+              templateStepName: assert element visible
+            - gherkinStep: When the user clicks on the "Edit First note" element
+              id: notes-e2e-edit1
+              label: Edit first note
+              order: 7
+              parameters:
+                - locatorId: loc-edit-first
+                  locatorName: Edit First note
+                  name: locator
+                  value: Edit First note
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+            - gherkinStep: And the user fills in the "Note title" input field with value "First note updated"
+              id: notes-e2e-titleu
+              label: Replace title
+              order: 8
+              parameters:
+                - locatorId: loc-note-title
+                  locatorName: Note title
+                  name: locator
+                  value: Note title
+                - name: value
+                  value: First note updated
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: And the user clicks on the "Save changes" element
+              id: notes-e2e-save
+              label: Save edit
+              order: 9
+              parameters:
+                - locatorId: loc-save
+                  locatorName: Save changes
+                  name: locator
+                  value: Save changes
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+            - gherkinStep: And the user fills in the "Search notes" input field with value "Alpha searchable"
+              id: notes-e2e-search
+              label: Search by body
+              order: 10
+              parameters:
+                - locatorId: loc-search
+                  locatorName: Search notes
+                  name: locator
+                  value: Search notes
+                - name: value
+                  value: Alpha searchable
+              templateStepId: ec290262-06f8-46cd-aa0b-15d5ccbd8c76
+              templateStepName: fill
+            - gherkinStep: Then the visibility status of the "First note updated card" element should be true
+              id: notes-e2e-visibleu
+              label: Verify edited result visible
+              order: 11
+              parameters:
+                - locatorId: loc-first-updated
+                  locatorName: First note updated card
+                  name: locator
+                  value: First note updated card
+                - name: visible
+                  type: boolean
+                  value: "true"
+              templateStepId: 61617d12-4463-4084-929f-1c3c01a41a66
+              templateStepName: assert element visible
+            - gherkinStep: When the user clears the "Search notes" field
+              id: notes-e2e-clear
+              label: Clear search
+              order: 12
+              parameters:
+                - locatorId: loc-search
+                  locatorName: Search notes
+                  name: locator
+                  value: Search notes
+              templateStepId: e0eda1c0-6d11-41c9-901f-bf3b57e2481b
+              templateStepName: clear
+            - gherkinStep: And the user reloads the page
+              id: notes-e2e-reload
+              label: Reload page
+              order: 13
+              parameters: []
+              templateStepId: cec29b93-dd58-40d6-9fdd-94bd0705ecbe
+              templateStepName: reload
+            - gherkinStep: Then the visibility status of the "First note updated card" element should be true
+              id: notes-e2e-persist
+              label: Verify persistence
+              order: 14
+              parameters:
+                - locatorId: loc-first-updated
+                  locatorName: First note updated card
+                  name: locator
+                  value: First note updated card
+                - name: visible
+                  type: boolean
+                  value: "true"
+              templateStepId: 61617d12-4463-4084-929f-1c3c01a41a66
+              templateStepName: assert element visible
+            - gherkinStep: When the user clicks on the "Delete First note updated" element
+              id: notes-e2e-delete
+              label: Request delete
+              order: 15
+              parameters:
+                - locatorId: loc-delete-first
+                  locatorName: Delete First note updated
+                  name: locator
+                  value: Delete First note updated
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+            - gherkinStep: And the user clicks on the "Confirm delete" element
+              id: notes-e2e-confirm
+              label: Confirm delete
+              order: 16
+              parameters:
+                - locatorId: loc-confirm-delete
+                  locatorName: Confirm delete
+                  name: locator
+                  value: Confirm delete
+              templateStepId: b7488d02-1a06-40e0-8038-a3ac3f095c06
+              templateStepName: click
+          title: Notes CRUD happy path
+      testSuites:
+        - description: Core notes CRUD browser flow
+          id: notes-suite
+          moduleId: notes-module
+          name: Notes happy path
+          testCaseIds:
+            - notes-e2e
+    executable:
+      path: automation/features/simple-notes-happy-path.feature
+      selector: Notes CRUD happy path
+    expectedFailures: []
+    gherkinPaths:
+      - automation/features/simple-notes-happy-path.feature
+    id: notes-crud-search-persistence-and-confirmed-delete
+    matrix:
+      - browser: chromium
+        environment: local
+    required: true
+    stepPaths: []
+    taskIds:
+      - notes-domain
+      - notes-crud-ui
+      - notes-search-states
+      - automated-validation
+    testCaseIds:
+      - notes-e2e
+version: "1"

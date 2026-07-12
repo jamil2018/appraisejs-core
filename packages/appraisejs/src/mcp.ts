@@ -1493,25 +1493,25 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
   const phase1Contracts = [
     {
       name: 'action-catalog-contract',
-      uri: phase1ContractResourceUris[0],
+      uri: 'appraise://contracts/action-catalog',
       title: 'Versioned action catalog contract',
       value: { version: ACTION_CATALOG_CONTRACT_VERSION, operations: ['categories', 'list', 'read'] },
     },
     {
       name: 'locator-graph-contract',
-      uri: phase1ContractResourceUris[1],
+      uri: 'appraise://contracts/locator-graph',
       title: 'Surface and locator graph contract',
       value: { version: LOCATOR_GRAPH_CONTRACT_VERSION, boundedQueries: true, visualProjection: true },
     },
     {
       name: 'validation-ast-contract',
-      uri: phase1ContractResourceUris[2],
+      uri: 'appraise://contracts/validation-ast',
       title: 'Agent-authored validation AST contract',
       value: { version: VALIDATION_AST_SCHEMA_VERSION, phases: ['check', 'preview', 'publish'] },
     },
     {
       name: 'delegated-authorization-contract',
-      uri: phase1ContractResourceUris[3],
+      uri: 'appraise://contracts/delegated-authorization',
       title: 'Delegated authorization receipt contract',
       value: { version: DELEGATED_AUTHORIZATION_VERSION, replayProtection: 'durable-nonce' },
     },

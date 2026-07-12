@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   agentGuide,
   approvalPendingResponse,
+  createAppraiseMcpServer,
   createPlanFromBrief,
   latestGateEvent,
   mcpCapabilityMetadata,
@@ -337,6 +338,12 @@ describe('MCP agent workflow guidance', () => {
 })
 
 describe('MCP capability and recovery metadata', () => {
+  it('registers contract and visual resources at distinct URIs', async () => {
+    await expect(
+      createAppraiseMcpServer({ cwd: process.cwd(), baseUrl: 'http://127.0.0.1:3000' }),
+    ).resolves.toBeDefined()
+  })
+
   it('exposes workflow-critical tools and resources for stale server checks', () => {
     expect(mcpCapabilityMetadata.packageVersion).toMatch(/^\d+\.\d+\.\d+/)
     expect(mcpCapabilityMetadata.workflowCriticalTools).toEqual(

@@ -31,6 +31,22 @@ Print current registration details:
 npm run setup:mcp
 ```
 
+For Codex, that command now prints the exact inspect and refresh commands for the resolved endpoint. The supported
+user flow is:
+
+1. Start AppraiseJS with `npm run dev` (or only the sidecar with `npm run dev:mcp`).
+2. Run `npm run setup:mcp`.
+3. Inspect the active entry with `codex mcp get appraisejs`.
+4. If its URL or transport differs from the printed configuration, run the printed `codex mcp remove appraisejs`
+   and `codex mcp add appraisejs --url <resolved-endpoint>` commands.
+5. Restart or reconnect Codex, then start a new task. MCP capabilities are discovered when a task connects and an
+   already-running task keeps its original tool snapshot.
+6. Verify `codex mcp get appraisejs`, endpoint reachability, `project_diagnostic`, and the expected resources/tools.
+
+Do not repeatedly edit `~/.codex/config.toml` by hand. Use `codex mcp get/add/remove` so Codex owns the config shape.
+Re-register only when the endpoint or transport changes; a server-side tool change normally requires restarting the
+Appraise sidecar and reconnecting Codex, not rewriting an already-correct entry.
+
 Print agent-oriented setup, skill, restart, and standby guidance:
 
 ```bash
