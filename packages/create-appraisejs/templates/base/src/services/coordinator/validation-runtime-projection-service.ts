@@ -19,6 +19,7 @@ import { canonicalTagExpression, canonicalTagName } from '@/lib/tag-filters'
 import { ServiceError } from '@/services/shared/errors'
 
 import { templateStepGroupPath } from './template-step-group-path'
+import { validateValidationLocatorBindings } from './validation-locator-resolution-service'
 
 type RuntimeClient = PrismaClient | Prisma.TransactionClient
 type TargetProjectMetadata = {
@@ -240,6 +241,7 @@ function buildRuntimePreflight(
       ),
     ]
   })
+  blockers.push(...validateValidationLocatorBindings(validation.validations))
   return {
     status: blockers.length > 0 ? 'blocked' : 'passed',
     checkedAt: new Date().toISOString(),

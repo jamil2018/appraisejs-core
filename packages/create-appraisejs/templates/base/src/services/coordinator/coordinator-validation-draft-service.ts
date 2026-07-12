@@ -17,6 +17,7 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { ServiceError } from '@/services/shared/errors'
 
 import { publishPreparedValidations } from './coordinator-validation-service'
+import { validateValidationLocatorBindings } from './validation-locator-resolution-service'
 import { templateStepGroupPath } from './template-step-group-path'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
@@ -279,6 +280,7 @@ function nodeStepPathBlockers(
 
 function checkDraft(draft: ValidationDraft): ValidationDraft['blockers'] {
   const blockers = draftRequiredBlockers(draft)
+  blockers.push(...validateValidationLocatorBindings(draft.validations))
   for (const [index, node] of draft.validations.entries()) {
     const testCaseBlocker = nodeTestCaseBlocker(node, index)
     if (testCaseBlocker) blockers.push(testCaseBlocker)
