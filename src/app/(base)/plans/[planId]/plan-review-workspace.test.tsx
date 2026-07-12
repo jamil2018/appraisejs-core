@@ -286,6 +286,14 @@ const validationDetail: PlanReviewDetail = {
         gherkinPaths: ['automation/features/review.feature'],
         stepPaths: ['automation/steps/review.steps.ts'],
         executable: { path: 'automation/steps/review.steps.ts', selector: 'validation review' },
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: hashA,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-browser-validation',
+          receiptHash: hashB,
+          runtimeInputHash: hashC,
+        },
         matrix: [{ browser: 'chromium', environment: 'local' }],
         expectedFailures: [
           {
@@ -301,6 +309,14 @@ const validationDetail: PlanReviewDetail = {
         id: 'optional-validation',
         taskIds: ['task-two'],
         required: false,
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: hashB,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-optional-validation',
+          receiptHash: hashC,
+          runtimeInputHash: hashA,
+        },
         testCaseIds: ['optional-smoke'],
         appraiseArtifacts: {
           ...appraiseArtifacts,

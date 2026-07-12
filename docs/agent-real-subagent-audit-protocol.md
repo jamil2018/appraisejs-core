@@ -98,23 +98,19 @@ blockedBeforeApproval: true | false
 implementationStartedBeforeApproval: true | false
 validationPreparation:
   reachedValidationPreparationStarted: true | false
-  usedValidationPublish: true | false
+  usedValidationAstCheck: true | false
+  usedValidationAstPreview: true | false
+  usedValidationAstCompile: true | false
   validationReviewReadyEmitted: true | false
   validationReviewBrowserLink: '<http://.../plans/<plan-id>?review=validation>'
   validationReviewAppraiseLink: '<appraise://...>'
-  validationArtifactPath: 'appraise/plans/validations/<plan-id>.validation.yaml'
   validationNodeCount: '<number>'
-  manifestPaths:
-    - '<path>'
-  reusedStepPaths:
-    - '<automation/steps/...>'
-  newCustomStepPaths:
-    - '<automation/steps/...>'
-  customStepGapJustifications:
-    - path: '<automation/steps/...>'
-      missingCapability: '<missing reusable capability>'
-      whyLocatorsAndExistingStepsAreInsufficient: '<reason>'
-  todoCreatesZeroCustomSteps: true | false
+  publishOperationId: '<operation-id>'
+  astHash: '<sha256:...>'
+  previewHash: '<sha256:...>'
+  receiptHash: '<sha256:...>'
+  runtimeInputHash: '<sha256:...>'
+  targetAutomationCreated: true | false
 commandsRun:
   - '<exact command>'
 mcpDiscoveryAttempts:

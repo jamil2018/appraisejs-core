@@ -79,8 +79,8 @@ const requiredTokens = [
       'Use AppraiseJS to plan and prepare validations for a simple todo app',
       'validation_ast_compile',
       'validation_review_ready',
-      'todoCreatesZeroCustomSteps',
-      'customStepGapJustifications',
+      'targetAutomationCreated',
+      'runtimeInputHash',
     ],
   },
   {

@@ -95,11 +95,6 @@ read `plan_review_read` before revising.
 
 ## Internal API
 
-`POST /api/internal/coordinator/legacy-automation-imports/preview` parses the connected target's legacy automation into
-a deterministic, source-traceable proposal. It performs no mutation and always requires human review plus explicit
-catalog/locator resolution before the normal Validation AST compiler can accept a separately authored submission. The
-equivalent MCP tool is `legacy_automation_import_preview`.
-
 All routes are under `/api/internal/coordinator`.
 
 | Method | Path                                                      | Purpose                                                             |
@@ -229,30 +224,17 @@ Tools:
 - `plan_event_acknowledge`
 - `plan_events_acknowledge_through`
 - `validation_context_read`
-- `validation_draft_create`
-- `validation_draft_read`
-- `validation_draft_reset`
 - `appraise_resources_list`
 - `template_step_search`
 - `template_step_match`
 - `step_block_search`
 - `locator_search`
-- `validation_node_upsert`
-- `validation_node_delete`
-- `validation_test_case_upsert`
-- `validation_test_shape_propose`
 
-`template_step_search`, `template_step_match`, and `validation_test_shape_propose` share one server-side ranked
+`template_step_search` and `template_step_match` share one server-side ranked
 resolver. It scores semantic intent and parameter compatibility, applies a confidence threshold, returns bounded
 explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
 and response-size-oriented metrics without returning the full validation context.
 
-- `validation_file_upsert`
-- `validation_file_delete`
-- `validation_step_metadata_upsert`
-- `validation_draft_check`
-- `validation_draft_publish`
-- `validation_publish`
 - `validation_decide`
 - `validation_file_approve`
 - `validation_feedback_submit`
@@ -265,10 +247,6 @@ and response-size-oriented metrics without returning the full validation context
 - `baseline_failure_acknowledge`
 - `baseline_regression_justify`
 - `baseline_accept`
-
-Validation draft mutations return compact hashes, changed paths, counts, blockers, warnings, and the next action by
-default. Use `validation_draft_read({ responseMode: 'full' })` only when the complete draft is required. Delete and
-reset operations require the exact current `draftHash`.
 
 `baseline_retry` requires `reason` and `expectedValidationHash`. It is the supported recovery from invalid
 baseline-review evidence: historical attempts remain immutable and validation approvals/runtime projections are
@@ -390,38 +368,18 @@ Validation review approval emits `validations_approved`, matching the plan lifec
 events may still appear in older streams, so readers should tolerate both names while new writers prefer the plural
 event.
 
-After `validation_preparation_started`, agents must generate AppraiseJS-native `ValidationArtifact` evidence before
-validation review standby. `validation_publish` persists `appraise/plans/validations/<plan-id>.validation.yaml`,
-emits `validation_review_ready`, moves the lifecycle to `awaiting_validation_review`, and returns a validation review
-handoff containing the direct validation review URL, `appraise://` URL, revision, lifecycle, validation artifact path,
-validation count, changed-file count, manifest paths, reused registry/template step paths, new custom step paths, and
-the next review action.
+After `validation_preparation_started`, agents author a v2 Validation AST from exact action and locator catalogs.
+They call `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and
+call `validation_ast_compile`. Compilation creates canonical database entities and a durable publish operation with exact
+AST, preview, receipt, projection, validation, and runtime-input hashes.
 
-The MCP surface must expose the validation artifact contract before an agent calls `validation_publish`. Agents should
-read `appraise://workflow/validation-preparation` and the native `validation_publish` input schema for the required
-`appraise.validation/v1` shape instead of inspecting AppraiseJS source files. The contract includes validation nodes,
-AppraiseJS modules, test suites, test cases, ordered test steps, locator groups, locators, Gherkin paths, step paths,
-executable metadata, browser/environment matrix, expected failures, changed-file evidence, manifest paths, approval
-arrays, baseline arrays, and `baselineDecision`. Initial validation publishes should use empty `approvals`,
-`validationDecisions`, `baselineAttempts`, and `baselineAcknowledgements`, with `baselineDecision: "pending"`.
-AppraiseJS authored artifacts are the primary review and later execution surface; Playwright and generated feature
-files are runtime evidence derived from those artifacts.
-
-Validation preparation is registry-first. Agents should inspect or use existing registry/template steps for common web
-workflows before creating custom step definitions. Custom steps must include a gap justification naming the missing
-reusable capability and explaining why locators plus existing registry/template steps are insufficient.
-
-`validation_draft_check`, `validation_draft_publish`, and runtime preflight use the same exact locator-resolution
-validator. Locator-bearing parameters must resolve uniquely by canonical ID or name, ID/name pairs must agree, and
-the resolved locator group must be present in the validation capsule. These failures are blocking and direct the
-coordinator to `locator_search` before review publication.
+Managed baseline and implementation runs execute only immutable Appraise-owned runtime capsules. Target repository
+files are never managed execution authority; optional repository export is a separate receipt-bound operation.
 
 ## Local Smoke Test
 
-Validation authoring normalizes empty optional reusable references as absent. Accepted custom step paths remain stable
-through proposal, draft nodes, manifests, and justifications. Default context is target-project scoped; shared resources
-are returned only by explicit search and include provenance. Uniquely resolved target locators may be imported directly,
-while ambiguous matches return a bounded choice before draft mutation.
+Validation AST authoring is target-project scoped. Shared resources are returned only by explicit bounded search and
+include provenance. Ambiguous locator or action matches block check/preview until the AST binds exact catalog identities.
 
 Lifecycle and diagnostic tools support `summary`, `blockersOnly`, `evidenceOnly`, and explicit `full` modes. Default
 mutations return lifecycle delta, critical IDs and hashes, counts, links, blockers, cursor state, and exactly one legal
