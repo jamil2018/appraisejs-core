@@ -501,8 +501,15 @@ export const capsulePreflightResultSchema = z
       .max(32),
     resolved: z
       .object({
+        runtimeInputHash: runtimeCapsuleHashSchema.optional(),
         nodeVersion: boundedText.optional(),
         cucumberVersion: boundedText.optional(),
+        featurePaths: z.array(runtimeCapsuleFilePathSchema).max(32).optional(),
+        importPaths: z.array(runtimeCapsuleFilePathSchema).max(128).optional(),
+        tagExpression: tagExpression.optional(),
+        browser: z.enum(['chromium', 'firefox', 'webkit']).optional(),
+        environmentId: runtimeCapsuleSegmentSchema.optional(),
+        reportPath: runtimeCapsuleFilePathSchema.optional(),
         selectedScenarioCount: z.number().int().nonnegative().max(256).optional(),
       })
       .strict(),
