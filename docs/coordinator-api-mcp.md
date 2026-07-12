@@ -241,6 +241,12 @@ Tools:
 - `validation_node_delete`
 - `validation_test_case_upsert`
 - `validation_test_shape_propose`
+
+`template_step_search`, `template_step_match`, and `validation_test_shape_propose` share one server-side ranked
+resolver. It scores semantic intent and parameter compatibility, applies a confidence threshold, returns bounded
+explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
+and response-size-oriented metrics without returning the full validation context.
+
 - `validation_file_upsert`
 - `validation_file_delete`
 - `validation_step_metadata_upsert`
@@ -419,3 +425,7 @@ npm run smoke:coordinator
 ```
 
 The smoke test creates a minimal plan through the authenticated API and waits for its `plan_review_ready` event.
+Validation publication and baseline start/reconcile apply the same contract. Summary responses keep lifecycle deltas,
+canonical artifact hashes and paths, counts, attempt/TestRun identity, blockers, links, and the next legal action ahead of any
+optional artifact body. Cursor reads are ascending, bounded, include the newest delivered event explicitly, and
+unchanged plan or validation waits return only cursor, timing, and next-action deltas.

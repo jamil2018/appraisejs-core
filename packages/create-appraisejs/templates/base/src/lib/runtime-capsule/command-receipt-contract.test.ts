@@ -317,6 +317,21 @@ describe('capsule command receipt contract', () => {
       checkedAt: new Date().toISOString(),
     } as const
     expect(capsulePreflightResultSchema.parse(result)).toBeTruthy()
+    expect(
+      capsulePreflightResultSchema.parse({
+        ...result,
+        resolved: {
+          runtimeInputHash: h('b'),
+          featurePaths: ['features/notes.feature'],
+          importPaths: ['bindings/notes.mjs', 'support/hooks.mjs'],
+          tagExpression: '@tc_notes',
+          browser: 'chromium',
+          environmentId: 'local',
+          reportPath: 'reports/cucumber.json',
+          selectedScenarioCount: 1,
+        },
+      }).resolved,
+    ).toMatchObject({ runtimeInputHash: h('b'), reportPath: 'reports/cucumber.json' })
     expect(capsulePreflightResultSchema.safeParse({ ...result, checks: result.checks.slice(1) }).success).toBe(false)
     expect(
       capsulePreflightResultSchema.safeParse({ ...result, checks: [...result.checks, result.checks[0]] }).success,

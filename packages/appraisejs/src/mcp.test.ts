@@ -3,17 +3,20 @@ import { describe, expect, it } from 'vitest'
 import {
   agentGuide,
   approvalPendingResponse,
+  applyLifecycleResponseMode,
   createAppraiseMcpServer,
   createPlanFromBrief,
   latestGateEvent,
   mcpCapabilityMetadata,
   missingCapabilityRecovery,
   nextApprovalWaitSequence,
+  orderedEventBatch,
   planningSessionTargetRequiredResponse,
   planningWorkflow,
   reviewReadyPendingResponse,
   standbyWorkflow,
   validationGateStatus,
+  validationReviewPendingResponse,
   validationPreparationWorkflow,
 } from './mcp.js'
 import { validationArtifactSchema } from './plan-file.js'
@@ -181,6 +184,63 @@ describe('MCP approval wait helpers', () => {
     expect(JSON.stringify(response).length).toBeLessThan(1_000)
     expect(response).not.toHaveProperty('handoffMarkdown')
   })
+
+  it('returns a sub-kilobyte validation-review delta when no event changed', () => {
+    const response = validationReviewPendingResponse({
+      planId: 'plan-1',
+      current: {
+        plan: { revision: 1, lifecycle: 'awaiting_validation_review' },
+        contentHash: 'sha256:test',
+        links: {},
+      },
+      events: [],
+      afterSequence: 9,
+    })
+    expect(response.status).toBe('pending_unchanged')
+    expect(JSON.stringify(response).length).toBeLessThan(1_000)
+    expect(response).not.toHaveProperty('links')
+  })
+
+  it('orders bounded event batches and projects the newest event', () => {
+    expect(
+      orderedEventBatch(3, [
+        { sequence: 5, type: 'validation_review_ready' },
+        { sequence: 2, type: 'ignored' },
+        { sequence: 4, type: 'validation_changes_requested' },
+      ]),
+    ).toMatchObject({
+      events: [{ sequence: 4 }, { sequence: 5 }],
+      latestEvent: { sequence: 5, type: 'validation_review_ready' },
+      nextAfterSequence: 5,
+    })
+  })
+})
+
+describe('compact lifecycle responses', () => {
+  const full = {
+    plan: {
+      planId: 'plan-1',
+      lifecycle: 'baseline_running',
+      revision: 2,
+      tasks: Array.from({ length: 100 }, (_, id) => ({ id })),
+    },
+    attemptId: 'attempt-2',
+    testRunId: 'run-2',
+    evidenceSummary: { status: 'running' },
+    blockers: [],
+    manifestPaths: ['automation/features/test.feature'],
+    nextRecommendedAction: 'Reconcile.',
+  }
+
+  it.each(['summary', 'evidenceOnly', 'blockersOnly', 'linksOnly'] as const)(
+    'keeps %s actionable and bounded',
+    mode => {
+      const response = applyLifecycleResponseMode(full, mode)
+      expect(JSON.stringify(response).length).toBeLessThan(2_000)
+      expect(response).toHaveProperty('nextRecommendedAction', 'Reconcile.')
+      expect(response).not.toHaveProperty('plan.tasks')
+    },
+  )
 })
 
 describe('plan requirement extraction', () => {

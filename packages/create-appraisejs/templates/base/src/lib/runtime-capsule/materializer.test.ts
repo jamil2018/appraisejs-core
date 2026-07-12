@@ -439,7 +439,16 @@ describe('reviewed runtime capsule materialization integration', () => {
       runId: 'run-one',
     })
     expect(preflight.status, JSON.stringify(preflight)).toBe('ready')
-    expect(preflight.resolved.selectedScenarioCount).toBe(1)
+    expect(preflight.resolved).toMatchObject({
+      runtimeInputHash: firstReceipt.ownership.runtimeInputHash,
+      featurePaths: firstReceipt.command.features.map(file => file.path),
+      importPaths: [...firstReceipt.command.imports, ...firstReceipt.command.support].map(file => file.path),
+      tagExpression: firstReceipt.selection.tagExpression,
+      browser: firstReceipt.selection.browser,
+      environmentId: firstReceipt.selection.environmentId,
+      reportPath: firstReceipt.outputs.report.path,
+      selectedScenarioCount: 1,
+    })
     expect(preflight.blockers).toEqual([])
     expect(preflight.checks).toHaveLength(13)
     expect(preflight.checks.every(check => check.status === 'passed')).toBe(true)

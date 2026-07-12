@@ -427,6 +427,7 @@ describe('validation preparation review gate', () => {
       lifecycle: 'awaiting_validation_review',
       revision: 1,
       validationArtifactPath: `appraise/plans/validations/${planId}.validation.yaml`,
+      validationHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
       validationCount: 1,
       changedFileCount: 2,
       manifestPaths: ['src/product.ts', 'automation/features/case-one.feature'],

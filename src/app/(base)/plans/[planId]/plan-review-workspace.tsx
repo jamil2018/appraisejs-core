@@ -782,6 +782,16 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
           </AlertDescription>
         </Alert>
       ) : null}
+      {isPending ? (
+        <Alert className="rounded-xl" role="status" aria-live="polite">
+          <Clock className="size-4 animate-pulse" />
+          <AlertTitle>Saving review decision</AlertTitle>
+          <AlertDescription>
+            Appraise is recording this decision. Controls remain locked until durable success or a structured error is
+            returned.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {detail.plan.lifecycle === 'draft' ? (
         <Alert className="rounded-xl">
           <FileText className="size-4" />
