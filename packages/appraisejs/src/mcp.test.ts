@@ -194,6 +194,17 @@ describe('plan requirement extraction', () => {
     const todoCompletion = assessPlanRequirements('Build a todo app where users complete and reactivate tasks.', [])
     expect(todoCompletion.requirements.map(requirement => requirement.id)).toContain('completion')
   })
+
+  it('reduces API confidence when API language is negated', () => {
+    const positive = assessPlanRequirements('Build an API app for weather lookup.', [])
+    const negated = assessPlanRequirements('Build a local notes app, not an API app.', [])
+
+    expect(
+      positive.domainCandidates.find(candidate => candidate.domain === 'api-information')?.confidence,
+    ).toBeGreaterThan(0)
+    expect(negated.domainCandidates.find(candidate => candidate.domain === 'api-information')).toBeUndefined()
+    expect(negated.selectedDomain).toBe('notes')
+  })
 })
 
 describe('MCP agent workflow guidance', () => {
@@ -525,6 +536,26 @@ describe('brief requirement fidelity', () => {
         .join(' ')
         .toLowerCase(),
     ).not.toContain('editor')
+  })
+
+  it('creates a local notes plan without API or reminder-domain leakage', () => {
+    const brief =
+      'Build a local notes app, not an API app, with CRUD, persistence, deterministic ordering, search, accessibility, responsive layouts, and tests.'
+    const plan = createPlanFromBrief({ projectBrief: brief })
+    const taskText = plan.tasks.map(task => `${task.title} ${task.description} ${task.validationIntent}`).join(' ')
+
+    expect(plan.requirementAssessment?.selectedDomain).toBe('notes')
+    expect(plan.tasks.map(task => task.id)).toEqual([
+      'scaffold-setup',
+      'notes-crud',
+      'notes-organization',
+      'notes-quality',
+    ])
+    expect(taskText).toMatch(/CRUD|persistence|ordering|search|accessibility/i)
+    expect(taskText).not.toMatch(/API integration|location query|weather results/i)
+    expect(plan.requirementAssessment?.requirements.map(requirement => requirement.id)).not.toEqual(
+      expect.arrayContaining(['reminder-title', 'reminder-notes', 'reminder-due-date-time']),
+    )
   })
 
   it('does not count a generic brief echo as durable requirement coverage', () => {

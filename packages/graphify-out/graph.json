@@ -1778,10 +1778,10 @@
       "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 81,
+      "community": 6,
       "norm_label": "providernativerunsenabled()",
       "id": "src_mcp_providernativerunsenabled",
-      "community_name": "Community 81"
+      "community_name": "Src Mcp / Src Mcp Applyresponsemode"
     },
     {
       "label": "baseWorkflowCriticalTools",
@@ -2075,10 +2075,10 @@
       "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L656",
       "_origin": "ast",
-      "community": 79,
+      "community": 14,
       "norm_label": "structuredbriefplan",
       "id": "src_mcp_structuredbriefplan",
-      "community_name": "Community 79"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "includesAny()",
@@ -2086,10 +2086,10 @@
       "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L662",
       "_origin": "ast",
-      "community": 79,
+      "community": 14,
       "norm_label": "includesany()",
       "id": "src_mcp_includesany",
-      "community_name": "Community 79"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "createStructuredTasksFromBrief()",
@@ -2097,27 +2097,27 @@
       "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L678",
       "_origin": "ast",
-      "community": 79,
+      "community": 14,
       "norm_label": "createstructuredtasksfrombrief()",
       "id": "src_mcp_createstructuredtasksfrombrief",
-      "community_name": "Community 79"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "createPlanFromBrief()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1077",
+      "source_location": "L1107",
       "_origin": "ast",
-      "community": 79,
+      "community": 14,
       "norm_label": "createplanfrombrief()",
       "id": "src_mcp_createplanfrombrief",
-      "community_name": "Community 79"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "toolError()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1116",
+      "source_location": "L1146",
       "_origin": "ast",
       "community": 3,
       "norm_label": "toolerror()",
@@ -2128,7 +2128,7 @@
       "label": "PlanSnapshot",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1131",
+      "source_location": "L1161",
       "_origin": "ast",
       "community": 6,
       "norm_label": "plansnapshot",
@@ -2139,7 +2139,7 @@
       "label": "approvalGateStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1137",
+      "source_location": "L1167",
       "_origin": "ast",
       "community": 6,
       "norm_label": "approvalgatestatus()",
@@ -2150,7 +2150,7 @@
       "label": "approvalGateEventStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1144",
+      "source_location": "L1174",
       "_origin": "ast",
       "community": 6,
       "norm_label": "approvalgateeventstatus()",
@@ -2161,7 +2161,7 @@
       "label": "validationGateStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1151",
+      "source_location": "L1181",
       "_origin": "ast",
       "community": 20,
       "norm_label": "validationgatestatus()",
@@ -2172,7 +2172,7 @@
       "label": "validationGateEventStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1159",
+      "source_location": "L1189",
       "_origin": "ast",
       "community": 6,
       "norm_label": "validationgateeventstatus()",
@@ -2183,7 +2183,7 @@
       "label": "CoordinatorToolEvent",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1166",
+      "source_location": "L1196",
       "_origin": "ast",
       "community": 6,
       "norm_label": "coordinatortoolevent",
@@ -2194,7 +2194,7 @@
       "label": "latestGateEvent()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1170",
+      "source_location": "L1200",
       "_origin": "ast",
       "community": 20,
       "norm_label": "latestgateevent()",
@@ -2205,7 +2205,7 @@
       "label": "RecommendedWait",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1177",
+      "source_location": "L1207",
       "_origin": "ast",
       "community": 6,
       "norm_label": "recommendedwait",
@@ -2216,7 +2216,7 @@
       "label": "linkFromSnapshot()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1184",
+      "source_location": "L1214",
       "_origin": "ast",
       "community": 29,
       "norm_label": "linkfromsnapshot()",
@@ -2227,7 +2227,7 @@
       "label": "formatReviewHandoff()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1190",
+      "source_location": "L1220",
       "_origin": "ast",
       "community": 29,
       "norm_label": "formatreviewhandoff()",
@@ -2238,7 +2238,7 @@
       "label": "standbyPresentation()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1219",
+      "source_location": "L1249",
       "_origin": "ast",
       "community": 29,
       "norm_label": "standbypresentation()",
@@ -2249,7 +2249,7 @@
       "label": "nextApprovalWaitSequence()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1273",
+      "source_location": "L1303",
       "_origin": "ast",
       "community": 29,
       "norm_label": "nextapprovalwaitsequence()",
@@ -2260,7 +2260,7 @@
       "label": "approvalPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1277",
+      "source_location": "L1307",
       "_origin": "ast",
       "community": 29,
       "norm_label": "approvalpendingresponse()",
@@ -2271,7 +2271,7 @@
       "label": "validationReviewPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1338",
+      "source_location": "L1368",
       "_origin": "ast",
       "community": 29,
       "norm_label": "validationreviewpendingresponse()",
@@ -2282,7 +2282,7 @@
       "label": "lifecycleToolPayload()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1379",
+      "source_location": "L1409",
       "_origin": "ast",
       "community": 6,
       "norm_label": "lifecycletoolpayload()",
@@ -2293,7 +2293,7 @@
       "label": "reviewReadyPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1402",
+      "source_location": "L1432",
       "_origin": "ast",
       "community": 29,
       "norm_label": "reviewreadypendingresponse()",
@@ -2304,7 +2304,7 @@
       "label": "waitForEvents()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1462",
+      "source_location": "L1492",
       "_origin": "ast",
       "community": 6,
       "norm_label": "waitforevents()",
@@ -2315,40 +2315,40 @@
       "label": "createCoordinatorApiClient()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1484",
+      "source_location": "L1514",
       "_origin": "ast",
-      "community": 81,
+      "community": 6,
       "norm_label": "createcoordinatorapiclient()",
       "id": "src_mcp_createcoordinatorapiclient",
-      "community_name": "Community 81"
+      "community_name": "Src Mcp / Src Mcp Applyresponsemode"
     },
     {
       "label": "createAppraiseMcpServer()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1488",
+      "source_location": "L1518",
       "_origin": "ast",
-      "community": 81,
+      "community": 6,
       "norm_label": "createappraisemcpserver()",
       "id": "src_mcp_createappraisemcpserver",
-      "community_name": "Community 81"
+      "community_name": "Src Mcp / Src Mcp Applyresponsemode"
     },
     {
       "label": "runAppraiseMcp()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3584",
+      "source_location": "L3614",
       "_origin": "ast",
-      "community": 81,
+      "community": 6,
       "norm_label": "runappraisemcp()",
       "id": "src_mcp_runappraisemcp",
-      "community_name": "Community 81"
+      "community_name": "Src Mcp / Src Mcp Applyresponsemode"
     },
     {
       "label": "AppraiseHttpMcpOptions",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3589",
+      "source_location": "L3619",
       "_origin": "ast",
       "community": 6,
       "norm_label": "appraisehttpmcpoptions",
@@ -2359,7 +2359,7 @@
       "label": "jsonRpcError()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3595",
+      "source_location": "L3625",
       "_origin": "ast",
       "community": 6,
       "norm_label": "jsonrpcerror()",
@@ -2370,7 +2370,7 @@
       "label": "runAppraiseHttpMcp()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3603",
+      "source_location": "L3633",
       "_origin": "ast",
       "community": 3,
       "norm_label": "runappraisehttpmcp()",
@@ -2986,7 +2986,7 @@
       "label": "requirementDefinitions",
       "file_type": "code",
       "source_file": "appraisejs/src/plan-requirements.ts",
-      "source_location": "L43",
+      "source_location": "L44",
       "_origin": "ast",
       "community": 14,
       "norm_label": "requirementdefinitions",
@@ -2997,7 +2997,7 @@
       "label": "domainDefinitions",
       "file_type": "code",
       "source_file": "appraisejs/src/plan-requirements.ts",
-      "source_location": "L130",
+      "source_location": "L134",
       "_origin": "ast",
       "community": 14,
       "norm_label": "domaindefinitions",
@@ -3005,26 +3005,48 @@
       "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
+      "label": "NEGATION_WORDS",
+      "file_type": "code",
+      "source_file": "appraisejs/src/plan-requirements.ts",
+      "source_location": "L193",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "negation_words",
+      "id": "src_plan_requirements_negation_words",
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+    },
+    {
+      "label": "withoutNegatedSignals()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/plan-requirements.ts",
+      "source_location": "L195",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "withoutnegatedsignals()",
+      "id": "src_plan_requirements_withoutnegatedsignals",
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+    },
+    {
       "label": "analyzeBrief()",
       "file_type": "code",
       "source_file": "appraisejs/src/plan-requirements.ts",
-      "source_location": "L180",
+      "source_location": "L218",
       "_origin": "ast",
-      "community": 79,
+      "community": 14,
       "norm_label": "analyzebrief()",
       "id": "src_plan_requirements_analyzebrief",
-      "community_name": "Community 79"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "assessPlanRequirements()",
       "file_type": "code",
       "source_file": "appraisejs/src/plan-requirements.ts",
-      "source_location": "L220",
+      "source_location": "L269",
       "_origin": "ast",
-      "community": 79,
+      "community": 14,
       "norm_label": "assessplanrequirements()",
       "id": "src_plan_requirements_assessplanrequirements",
-      "community_name": "Community 79"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "plan-source.test.ts",
@@ -6046,10 +6068,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 1,
+      "community": 0,
       "norm_label": "gettemplatedefinitions()",
       "id": "src_template_catalog_gettemplatedefinitions",
-      "community_name": "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
+      "community_name": "Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main"
     },
     {
       "label": "isTemplateId()",
@@ -6574,10 +6596,10 @@
       "source_file": "cucumber-runtime/src/cache.util.ts",
       "source_location": "L64",
       "_origin": "ast",
-      "community": 28,
+      "community": 19,
       "norm_label": "locatormapcache",
       "id": "src_cache_util_locatormapcache",
-      "community_name": "Community 28"
+      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
     },
     {
       "label": ".constructor()",
@@ -6585,10 +6607,10 @@
       "source_file": "cucumber-runtime/src/cache.util.ts",
       "source_location": "L68",
       "_origin": "ast",
-      "community": 28,
+      "community": 19,
       "norm_label": ".constructor()",
       "id": "src_cache_util_locatormapcache_constructor",
-      "community_name": "Community 28"
+      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
     },
     {
       "label": ".getInstance()",
@@ -6596,10 +6618,10 @@
       "source_file": "cucumber-runtime/src/cache.util.ts",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 28,
+      "community": 19,
       "norm_label": ".getinstance()",
       "id": "src_cache_util_locatormapcache_getinstance",
-      "community_name": "Community 28"
+      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
     },
     {
       "label": ".get()",
@@ -6607,10 +6629,10 @@
       "source_file": "cucumber-runtime/src/cache.util.ts",
       "source_location": "L79",
       "_origin": "ast",
-      "community": 28,
+      "community": 19,
       "norm_label": ".get()",
       "id": "src_cache_util_locatormapcache_get",
-      "community_name": "Community 28"
+      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
     },
     {
       "label": ".getAll()",
@@ -6618,10 +6640,10 @@
       "source_file": "cucumber-runtime/src/cache.util.ts",
       "source_location": "L90",
       "_origin": "ast",
-      "community": 28,
+      "community": 19,
       "norm_label": ".getall()",
       "id": "src_cache_util_locatormapcache_getall",
-      "community_name": "Community 28"
+      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
     },
     {
       "label": "cli.ts",
@@ -6981,10 +7003,10 @@
       "source_file": "cucumber-runtime/src/paths.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 28,
+      "community": 19,
       "norm_label": "getautomationlocatormappath()",
       "id": "src_paths_getautomationlocatormappath",
-      "community_name": "Community 28"
+      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
     },
     {
       "label": "getAutomationReportsDir()",
@@ -7212,10 +7234,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 28,
+      "community": 19,
       "norm_label": "locatormap",
       "id": "src_types_locatormap",
-      "community_name": "Community 28"
+      "community_name": "Src Cache Util / Src Cache Util Locatorcache"
     },
     {
       "label": "LocatorCollection",
@@ -10606,6 +10628,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "src_mcp_test",
+      "target": "src_mcp_createappraisemcpserver"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_mcp_test",
       "target": "src_mcp_createplanfrombrief"
     },
     {
@@ -12332,6 +12365,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/plan-requirements.ts",
+      "source_location": "L193",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_plan_requirements",
+      "target": "src_plan_requirements_negation_words"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/plan-requirements.ts",
       "source_location": "L3",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12387,6 +12430,27 @@
       "confidence_score": 1.0,
       "source": "src_plan_requirements",
       "target": "src_plan_requirements_tasksurface"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/plan-requirements.ts",
+      "source_location": "L195",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_plan_requirements",
+      "target": "src_plan_requirements_withoutnegatedsignals"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/plan-requirements.ts",
+      "source_location": "L227",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_plan_requirements_analyzebrief",
+      "target": "src_plan_requirements_withoutnegatedsignals"
     },
     {
       "relation": "calls",
@@ -21183,5 +21247,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "48e89a0713b15051bb530302f12e232b4bfb5ab4"
+  "built_at_commit": "3fee1768aff2e81c42846bf5db7df395dccf45d7"
 }
