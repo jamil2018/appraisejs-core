@@ -418,6 +418,17 @@ coordinator to `locator_search` before review publication.
 
 ## Local Smoke Test
 
+Validation authoring normalizes empty optional reusable references as absent. Accepted custom step paths remain stable
+through proposal, draft nodes, manifests, and justifications. Default context is target-project scoped; shared resources
+are returned only by explicit search and include provenance. Uniquely resolved target locators may be imported directly,
+while ambiguous matches return a bounded choice before draft mutation.
+
+Lifecycle and diagnostic tools support `summary`, `blockersOnly`, `evidenceOnly`, and explicit `full` modes. Default
+mutations return lifecycle delta, critical IDs and hashes, counts, links, blockers, cursor state, and exactly one legal
+next action. Contract tests enforce initial ceilings of 1,000 estimated tokens for diagnostics, 2,000 for plan creation,
+300 for unchanged waits, and 1,500 for validation or baseline mutations. Compact modes never omit recovery IDs or
+actions; full artifacts remain behind content-addressed reads.
+
 With AppraiseJS running on port 3000:
 
 ```bash

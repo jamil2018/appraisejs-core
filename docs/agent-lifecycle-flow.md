@@ -133,6 +133,10 @@ full-assurance evidence in one artifact compare-and-write. Replaying the key doe
 
 ## Ownership Matrix
 
+Baseline reconciliation derives `nextAllowedAction` after persisting the final lifecycle transition. A harness failure
+that moves the plan to `validation_changes_requested` directs the agent to read, repair, and republish the validation
+draft; it must never recommend another `baseline_reconcile` call after that transition.
+
 | Surface                                                                        | Normal owner     | Notes                                                           |
 | ------------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------- |
 | Plan approval and change requests                                              | User/Appraise UI | MCP decision tools only relay explicit Appraise/user decisions. |
