@@ -3220,6 +3220,76 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'plan_lifecycle_snapshot',
+    {
+      description: 'Create a content-addressed Appraise-owned lifecycle snapshot for bounded continuation.',
+      inputSchema: { planId: z.string(), archiveThroughSequence: z.number().int().nonnegative().optional() },
+    },
+    async ({ planId, archiveThroughSequence }) =>
+      text(await api.createLifecycleSnapshot(planId, archiveThroughSequence)),
+  )
+  server.registerTool(
+    'plan_continuation_package_create',
+    {
+      description:
+        'Create a durable bounded handoff with Appraise-authored state and an agent-authored semantic narrative.',
+      inputSchema: {
+        planId: z.string(),
+        narrative: z.string().max(8_192),
+        references: z.array(z.string()).max(100).optional(),
+        objectiveReference: z.string().optional(),
+      },
+    },
+    async ({ planId, ...input }) => text(await api.createContinuationPackage(planId, input)),
+  )
+  server.registerTool(
+    'objective_create',
+    {
+      description: 'Create a bounded objective of independently reviewable milestone-scoped plans.',
+      inputSchema: {
+        objectiveId: z.string().optional(),
+        title: z.string().min(1).max(160),
+        milestones: z
+          .array(z.object({ id: z.string(), title: z.string().min(1) }))
+          .min(1)
+          .max(24),
+        plans: z
+          .array(
+            z.object({
+              planId: z.string(),
+              milestoneId: z.string(),
+              dependsOn: z.array(z.string()).optional(),
+              impactedPaths: z.array(z.string()).optional(),
+            }),
+          )
+          .min(1)
+          .max(24),
+      },
+    },
+    async input => text(await api.createObjective(input)),
+  )
+  server.registerTool(
+    'coordination_slo_evaluate',
+    {
+      description: 'Evaluate active Appraise/agent time and coordination budgets separately from human review.',
+      inputSchema: {
+        phases: z.array(
+          z.object({
+            phase: z.string(),
+            activeAppraiseMs: z.number().int().nonnegative(),
+            activeAgentMs: z.number().int().nonnegative(),
+            humanReviewMs: z.number().int().nonnegative(),
+          }),
+        ),
+        responseBytes: z.array(z.number().int().nonnegative()),
+        operations: z.number().int().nonnegative(),
+        retries: z.number().int().nonnegative(),
+        approvals: z.number().int().nonnegative(),
+      },
+    },
+    async input => text(await api.evaluateCoordinationSlo(input)),
+  )
+  server.registerTool(
     'implementation_start',
     {
       description: 'Agent-owned execution tool: start implementation after accepted baseline evidence.',

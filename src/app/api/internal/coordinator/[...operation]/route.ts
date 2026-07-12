@@ -51,6 +51,12 @@ import {
   updateCoordinatorTask,
 } from '@/services/coordinator/coordinator-plan-service'
 import {
+  createContinuationPackage,
+  createLifecycleSnapshot,
+  createObjective,
+  evaluateCoordinationSlo,
+} from '@/services/coordinator/coordinator-scaling-service'
+import {
   approveValidationFile,
   decideValidationNode,
   publishPreparedValidations,
@@ -896,6 +902,43 @@ function assertPlanOperation(operation: string[]): void {
 
 // fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'objectives') {
+    const value = z
+      .object({
+        objectiveId: idSchema.optional(),
+        title: z.string().min(1),
+        milestones: z.array(z.object({ id: idSchema, title: z.string().min(1) })),
+        plans: z.array(
+          z.object({
+            planId: routePlanIdSchema,
+            milestoneId: idSchema,
+            dependsOn: z.array(routePlanIdSchema).optional(),
+            impactedPaths: z.array(z.string().min(1)).optional(),
+          }),
+        ),
+      })
+      .parse(body)
+    return Response.json(await createObjective(value))
+  }
+  if (operation[0] === 'coordination-slo') {
+    const value = z
+      .object({
+        phases: z.array(
+          z.object({
+            phase: z.string().min(1),
+            activeAppraiseMs: z.number().int().nonnegative(),
+            activeAgentMs: z.number().int().nonnegative(),
+            humanReviewMs: z.number().int().nonnegative(),
+          }),
+        ),
+        responseBytes: z.array(z.number().int().nonnegative()),
+        operations: z.number().int().nonnegative(),
+        retries: z.number().int().nonnegative(),
+        approvals: z.number().int().nonnegative(),
+      })
+      .parse(body)
+    return Response.json(evaluateCoordinationSlo(value))
+  }
   if (operation[0] === 'legacy-automation-imports' && operation[1] === 'preview') {
     const targetFingerprint = request.headers.get('x-appraise-project') ?? ''
     const target = await resolveTargetProject(targetFingerprint)
@@ -932,6 +975,24 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
   if (operation[0] === 'provider-runs') {
     assertProviderNativeRunsEnabled()
     return postProviderRun(operation, body)
+  }
+  if (operation[0] === 'plans' && operation[2] === 'snapshot') {
+    const value = z.object({ archiveThroughSequence: z.number().int().nonnegative().optional() }).parse(body)
+    return Response.json(
+      await createLifecycleSnapshot(routePlanIdSchema.parse(operation[1]), {
+        archiveThroughSequence: value.archiveThroughSequence,
+      }),
+    )
+  }
+  if (operation[0] === 'plans' && operation[2] === 'continuation-package') {
+    const value = z
+      .object({
+        narrative: z.string(),
+        references: z.array(z.string().min(1)).optional(),
+        objectiveReference: z.string().min(1).optional(),
+      })
+      .parse(body)
+    return Response.json(await createContinuationPackage({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
   }
   if (operation[0] === 'providers') {
     assertProviderNativeRunsEnabled()

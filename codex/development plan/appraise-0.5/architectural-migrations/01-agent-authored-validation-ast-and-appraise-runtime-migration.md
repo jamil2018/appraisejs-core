@@ -1099,6 +1099,12 @@ Status: **implemented and validated; pending user approval**.
 
 ### Phase 6: Bounded Coordination And Product Scaling
 
+Status: **implemented and validated; pending user approval**. Coordinator HTTP, package-client, and MCP surfaces now
+create bounded content-addressed objectives, Appraise-owned lifecycle snapshots, provenance-preserving continuation
+packages, and coordination SLO evaluations. Plans retain independent lifecycle and lease authority; objective size and
+plan task counts are bounded, impacted-path scopes select downstream regression plans, and human-review time remains
+separate from active Appraise/agent time.
+
 #### Task 6.1: Compact Lifecycle Responses And Event History
 
 Default to delta/evidence modes, content-address unchanged artifacts, add cumulative acknowledgement, snapshot events,

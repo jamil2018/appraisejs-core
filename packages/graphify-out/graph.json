@@ -2337,7 +2337,7 @@
       "label": "runAppraiseMcp()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3514",
+      "source_location": "L3584",
       "_origin": "ast",
       "community": 81,
       "norm_label": "runappraisemcp()",
@@ -2348,7 +2348,7 @@
       "label": "AppraiseHttpMcpOptions",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3519",
+      "source_location": "L3589",
       "_origin": "ast",
       "community": 6,
       "norm_label": "appraisehttpmcpoptions",
@@ -2359,7 +2359,7 @@
       "label": "jsonRpcError()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3525",
+      "source_location": "L3595",
       "_origin": "ast",
       "community": 6,
       "norm_label": "jsonrpcerror()",
@@ -2370,7 +2370,7 @@
       "label": "runAppraiseHttpMcp()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3533",
+      "source_location": "L3603",
       "_origin": "ast",
       "community": 3,
       "norm_label": "runappraisehttpmcp()",
@@ -21183,5 +21183,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "c2306c3c568909c5060fe359d970dbae1b89998d"
+  "built_at_commit": "48e89a0713b15051bb530302f12e232b4bfb5ab4"
 }
