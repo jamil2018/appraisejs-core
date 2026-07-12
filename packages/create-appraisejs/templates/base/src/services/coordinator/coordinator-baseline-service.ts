@@ -434,6 +434,7 @@ async function submitCapsuleTestRun(
     browser: string
     environment: string
     preparationKey: string
+    attemptOrdinal: number
   },
   client: PrismaClient,
   capsuleService: RuntimeCapsuleTestRunService,
