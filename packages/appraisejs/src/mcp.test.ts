@@ -4,6 +4,7 @@ import {
   agentGuide,
   approvalPendingResponse,
   applyLifecycleResponseMode,
+  baselineRecoveryForLifecycle,
   createAppraiseMcpServer,
   createPlanFromBrief,
   latestGateEvent,
@@ -217,6 +218,15 @@ describe('MCP approval wait helpers', () => {
 })
 
 describe('compact lifecycle responses', () => {
+  it('returns validation repair after a baseline harness failure transition', () => {
+    expect(baselineRecoveryForLifecycle('validation_changes_requested')).toEqual(
+      expect.objectContaining({
+        nextRequiredAgentBehavior: 'revise_validation_artifacts',
+        nextAllowedAction: { tool: 'validation_draft_read' },
+      }),
+    )
+  })
+
   const full = {
     plan: {
       planId: 'plan-1',

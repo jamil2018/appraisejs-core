@@ -375,6 +375,29 @@ export function applyCapsuleDiagnosticMode(value: unknown, responseMode: z.infer
   }
 }
 
+export function baselineRecoveryForLifecycle(lifecycle: string | undefined) {
+  if (lifecycle === 'baseline_review')
+    return {
+      nextRecommendedAction:
+        'Review baseline evidence, acknowledge or justify allowed results, then call baseline_accept.',
+      nextRequiredAgentBehavior: 'review_and_accept_baseline',
+      nextAllowedAction: { tool: 'baseline_accept' },
+    }
+  if (lifecycle === 'validation_changes_requested')
+    return {
+      nextRecommendedAction:
+        'Read validation feedback, repair and publish the validation draft, then return to validation review.',
+      nextRequiredAgentBehavior: 'revise_validation_artifacts',
+      nextAllowedAction: { tool: 'validation_draft_read' },
+    }
+  return {
+    nextRecommendedAction:
+      'Continue calling baseline_reconcile until baseline review is ready, or cancel if the run should stop.',
+    nextRequiredAgentBehavior: 'reconcile_baseline',
+    nextAllowedAction: { tool: 'baseline_reconcile' },
+  }
+}
+
 function summarizeDiagnostic(value: Awaited<ReturnType<typeof diagnoseProject>>) {
   return {
     ok: value.ok,
@@ -3105,19 +3128,13 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         result && typeof result === 'object' && 'plan' in result
           ? (result as { plan?: { lifecycle?: string } }).plan?.lifecycle
           : undefined
+      const recovery = baselineRecoveryForLifecycle(lifecycle)
       return text(
         applyLifecycleResponseMode(
           lifecycleToolPayload({
             planId,
             result,
-            nextRecommendedAction:
-              lifecycle === 'baseline_review'
-                ? 'Review baseline evidence, acknowledge or justify allowed results, then call baseline_accept.'
-                : 'Continue calling baseline_reconcile until baseline review is ready, or cancel if the run should stop.',
-            nextRequiredAgentBehavior:
-              lifecycle === 'baseline_review' ? 'review_and_accept_baseline' : 'reconcile_baseline',
-            nextAllowedAction:
-              lifecycle === 'baseline_review' ? { tool: 'baseline_accept' } : { tool: 'baseline_reconcile' },
+            ...recovery,
           }),
           responseMode,
         ),
