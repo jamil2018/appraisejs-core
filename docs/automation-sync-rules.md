@@ -1,5 +1,10 @@
 # Automation Sync Rules
 
+> Phase 5 migration: unmarked legacy automation can be inspected through the non-mutating import preview described in
+> `docs/legacy-automation-migration.md`. Direct mutation and bidirectional import of directories containing
+> `.appraise-generated.json` are blocked. Reviewed Validation AST state and immutable runtime capsules remain
+> authoritative for new managed workflows.
+
 This document helps agents work safely with AppraiseJS automation artifacts. It is routing guidance, not a complete
 feature specification.
 

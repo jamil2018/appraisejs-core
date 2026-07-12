@@ -26,3 +26,8 @@ by another target project cannot be reused.
 
 The default destination is `automation/appraise/`. Its deterministic files and `.appraise-export.json` are generated
 distribution projections, not canonical authoring state or managed runtime authority.
+
+Phase 5 exports also include `.appraise-generated.json`. This strict ownership marker identifies the exact reviewed
+Validation AST publication and lists reviewed authored-extension paths. Legacy-compatible consumers may execute the
+exported feature/config/binding layout, but must not edit it as canonical source. Bidirectional sync rejects marked
+directories; replacement and conflict resolution stay within the durable export workflow.

@@ -1067,16 +1067,31 @@ Status: **implemented and validated; pending user approval**.
 Import current feature, step, locator, and metadata files into a proposed AST with unresolved mappings and warnings.
 Require human review before canonical conversion.
 
+Status: **implemented and validated; pending user approval**. The connected target can preview a bounded,
+deterministic, non-mutating migration proposal through coordinator HTTP or MCP. Features, step definitions, locators,
+metadata warnings, project-relative source paths, sizes, and hashes remain traceable; action and locator mappings stay
+explicitly unresolved and cannot bypass normal AST review/compilation.
+
 #### Task 5.2: Add Legacy Compatibility Export
 
 Generate legacy-compatible artifacts from canonical AST revisions for existing CI and users during the transition.
+
+Status: **implemented and validated; pending user approval**. Reviewed canonical publications export their executable
+feature, binding, extension, support, config, and expected-case projection with a strict project/publication/hash-bound
+ownership marker. Reviewed authored extensions remain explicit and are listed in that marker.
 
 #### Task 5.3: Deprecate Direct Generated Artifact Mutation
 
 Warn on generated-file writes, document ownership markers, retain explicit authored extensions, and gradually retire
 per-file canonical mutation and bidirectional generated-file synchronization.
 
+Status: **implemented and validated; pending user approval**. Marked generated projections declare replacement through
+Appraise export only. Legacy bidirectional sync rejects marked directories, while unmarked legacy projects remain
+available for non-mutating preview and the documented 0.5 coexistence window.
+
 ### Checkpoint: Migration Compatibility
+
+Status: **implemented and validated; pending user approval**.
 
 - Existing projects can preview migration without mutation.
 - Imported validations retain traceability to original files.

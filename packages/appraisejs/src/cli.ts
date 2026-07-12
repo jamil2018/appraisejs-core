@@ -36,6 +36,7 @@ const expectedAgentCapabilities = {
     'validation_ast_compile',
     'validation_ast_extension_policy',
     'validation_ast_extension_reviews',
+    'legacy_automation_import_preview',
   ],
   resources: [
     'appraise://actions/catalog',

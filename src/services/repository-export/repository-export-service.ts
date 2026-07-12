@@ -3,6 +3,7 @@ import path from 'node:path'
 import type { PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { GENERATED_AUTOMATION_MARKER } from '@/lib/automation/generated-ownership'
 import { validationArtifactSchema } from '@/lib/plan-contract'
 import {
   hashRepositoryExportBytes,
@@ -72,7 +73,21 @@ function buildExport(operation: Awaited<ReturnType<typeof loadExportOperation>>)
     runtimeInput,
     extensionArtifacts: operation.extensionReviews.map(item => JSON.parse(item.artifactJson)),
   })
-  const files = built.files.map(file => ({ path: file.path, bytes: file.bytes }))
+  const authoredExtensionPaths = built.files.filter(file => file.role === 'extension').map(file => file.path)
+  const ownership = {
+    schemaVersion: '1',
+    owner: 'appraise',
+    authority: 'reviewed-validation-ast',
+    mutationPolicy: 'replace-through-appraise-export-only',
+    projectId: operation.targetProjectId,
+    validationHash: operation.validationHash,
+    publishOperationId: operation.id,
+    authoredExtensionPaths,
+  }
+  const files = [
+    ...built.files.map(file => ({ path: file.path, bytes: file.bytes })),
+    { path: GENERATED_AUTOMATION_MARKER, bytes: Buffer.from(`${canonicalContractJson(ownership)}\n`) },
+  ].sort((left, right) => left.path.localeCompare(right.path))
   const manifest = {
     schemaVersion: '1' as const,
     projectId: operation.targetProjectId,

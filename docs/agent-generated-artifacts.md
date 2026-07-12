@@ -1,5 +1,9 @@
 # Agent Generated Artifacts
 
+Repository compatibility exports contain `.appraise-generated.json`. The marker binds the exact target project,
+validation hash, publication, and reviewed custom-extension paths and declares that replacement must occur through
+Appraise export. See `docs/legacy-automation-migration.md`.
+
 This map separates canonical source from generated, sync-managed, or runtime-only output.
 
 | Surface                                                                | Status                                   | Agent rule                                                                                                                                     |
