@@ -146,6 +146,25 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       post(`plans/${planId}/events/ack`, { sequence, coordinatorId: options.coordinatorId }),
     acknowledgeEventsThrough: (planId: string, acknowledgeThroughSequence: number) =>
       post(`plans/${planId}/events/ack`, { acknowledgeThroughSequence, coordinatorId: options.coordinatorId }),
+    createLifecycleSnapshot: (planId: string, archiveThroughSequence?: number) =>
+      post(`plans/${planId}/snapshot`, { archiveThroughSequence }),
+    createContinuationPackage: (
+      planId: string,
+      input: { narrative: string; references?: string[]; objectiveReference?: string },
+    ) => post(`plans/${planId}/continuation-package`, input),
+    createObjective: (input: {
+      objectiveId?: string
+      title: string
+      milestones: Array<{ id: string; title: string }>
+      plans: Array<{ planId: string; milestoneId: string; dependsOn?: string[]; impactedPaths?: string[] }>
+    }) => post('objectives', input),
+    evaluateCoordinationSlo: (input: {
+      phases: Array<{ phase: string; activeAppraiseMs: number; activeAgentMs: number; humanReviewMs: number }>
+      responseBytes: number[]
+      operations: number
+      retries: number
+      approvals: number
+    }) => post('coordination-slo', input),
     register: (planId: string, takeoverApproved = false) =>
       post('register', {
         planId,

@@ -42,6 +42,18 @@ canonical source path when supplied by the CLI.
 - Reconnect requires the same coordinator ID and current connection ID.
 - A different identity is rejected while the lease is active unless the user has approved takeover.
 - An expired lease may be acquired without takeover approval.
+- Objective plans retain independent plan-scoped leases and lifecycle completion. Objective dependencies are bounded
+  coordination metadata, not cross-plan mutation authority.
+
+Phase 6 coordination operations are available through coordinator HTTP, the package client, and MCP:
+
+- `POST /objectives` / `objective_create` creates a content-addressed objective with milestones, plan dependencies,
+  plan-size enforcement, and impacted-path scopes.
+- `POST /plans/:planId/snapshot` / `plan_lifecycle_snapshot` creates an Appraise-owned state snapshot by event sequence.
+- `POST /plans/:planId/continuation-package` / `plan_continuation_package_create` combines that authoritative snapshot
+  with a bounded agent narrative and provenance.
+- `POST /coordination-slo` / `coordination_slo_evaluate` evaluates response, retry, approval, operation, and active-time
+  budgets while excluding genuine human-review time.
 - A heartbeat after expiry fails; the coordinator must register again.
 
 ## Durable Events

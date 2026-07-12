@@ -11,6 +11,18 @@ the current hash and receipt so the coordinator can reread and relay a fresh dec
 Agents must use Appraise-owned lifecycle gates. Chat approval can clarify intent, but it does not replace plan,
 validation, baseline, implementation, completion, or cancellation transitions.
 
+## Bounded Objectives And Handoffs
+
+Large work is segmented into objectives, milestones, and independently reviewable plans. A plan may contain at most
+12 tasks and an objective at most 24 plans. Each plan retains its own lifecycle and coordinator lease; dependency
+relationships do not let one plan approve, complete, or mutate another. Impacted-path scopes select focused regression
+plans and include downstream dependants.
+
+Use `plan_lifecycle_snapshot` to create content-addressed Appraise-owned state before a long handoff. Use
+`plan_continuation_package_create` to attach a bounded agent narrative and validated references to that snapshot.
+Continuation packages never replace lifecycle events or approval receipts. Coordination SLO evidence records active
+Appraise time, active agent time, and human-review time separately.
+
 ## Plan Review
 
 Create or update plans through the Appraise plan surface. Wait for `plan_review_ready`, then use the review URL or

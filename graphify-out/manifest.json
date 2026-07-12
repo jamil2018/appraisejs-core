@@ -4550,7 +4550,7 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/cli.ts": {
-    "mtime": 1783844994.3896701,
+    "mtime": 1783845777.3333418,
     "ast_hash": "304629e86227905a371ca28e24e722eb",
     "semantic_hash": ""
   },
@@ -4560,8 +4560,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/coordinator-client.ts": {
-    "mtime": 1783844994.1061497,
-    "ast_hash": "6c07eb13c8612e6c0788418d58fa89c8",
+    "mtime": 1783845918.313448,
+    "ast_hash": "a07b63ccda1b7ac3fee019826ed96063",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/diagnostics.test.ts": {
@@ -4590,8 +4590,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp.ts": {
-    "mtime": 1783844994.2479548,
-    "ast_hash": "0074358895a19019505309428024316e",
+    "mtime": 1783846030.6316624,
+    "ast_hash": "0ec4fee57e6591770366dae65e3ce8fa",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/plan-contract-parity.test.ts": {
