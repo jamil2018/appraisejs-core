@@ -56,6 +56,7 @@ type BaselineOptions = {
     browser: string
     environment: string
     preparationKey: string
+    attemptOrdinal: number
   }) => Promise<{ testRunId: string }>
   loadEvidence?: (testRunId: string) => Promise<BaselineEvidence & { status: 'running' | 'completed' }>
   capsuleService?: RuntimeCapsuleTestRunService
@@ -362,6 +363,7 @@ async function baselineTestRunValue(
     browser: string
     environment: string
     preparationKey: string
+    attemptOrdinal: number
   },
   client: PrismaClient,
 ): Promise<TestRunFormValue> {
@@ -384,7 +386,7 @@ async function baselineTestRunValue(
   }
 
   return {
-    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment}`,
+    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment} attempt ${input.attemptOrdinal + 1}`,
     environmentId: environment.id,
     browserEngine: browserEngine(input.browser),
     testWorkersCount: 1,
@@ -403,6 +405,7 @@ async function submitAppraiseTestRun(
     browser: string
     environment: string
     preparationKey: string
+    attemptOrdinal: number
   },
   client: PrismaClient,
 ): Promise<{ testRunId: string }> {
@@ -431,6 +434,7 @@ async function submitCapsuleTestRun(
     browser: string
     environment: string
     preparationKey: string
+    attemptOrdinal: number
   },
   client: PrismaClient,
   capsuleService: RuntimeCapsuleTestRunService,
@@ -447,7 +451,7 @@ async function submitCapsuleTestRun(
     validationId: input.validation.id,
     targetProjectId: input.targetProject.id,
     environmentId: environment.id,
-    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment} ${randomUUID()}`,
+    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment} attempt ${input.attemptOrdinal + 1}`,
     browserEngine: browserEngine(input.browser),
     preparationKey: input.preparationKey,
   }
@@ -598,6 +602,7 @@ async function prepareBaselineAttempts(input: {
       planId: input.planId,
       validation,
       preparationKey,
+      attemptOrdinal,
       ...combination,
     })
     if (submitted.start) pendingStarts.push(submitted.start)

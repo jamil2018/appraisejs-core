@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { defaultActionCatalog } from '@/lib/action-catalog'
+import { previewLegacyAutomationImport } from '@/lib/validation-ast/legacy-import'
 
 import {
   coordinatorContractVersion,
@@ -50,6 +51,12 @@ import {
   updateCoordinatorTask,
 } from '@/services/coordinator/coordinator-plan-service'
 import {
+  createContinuationPackage,
+  createLifecycleSnapshot,
+  createObjective,
+  evaluateCoordinationSlo,
+} from '@/services/coordinator/coordinator-scaling-service'
+import {
   approveValidationFile,
   decideValidationNode,
   publishPreparedValidations,
@@ -96,6 +103,7 @@ import {
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/locator-graph/locator-graph-service'
 import { ServiceError } from '@/services/shared/errors'
+import { enqueueRepositoryExport, runRepositoryExportJob } from '@/services/repository-export/repository-export-service'
 import { submitDelegatedValidationAst } from '@/services/coordinator/delegated-validation-ast-service'
 import {
   checkValidationAstForPlan,
@@ -242,10 +250,21 @@ async function getDiagnostic(request: Request) {
   })
 }
 
-async function getTestRunEvidence(operation: string[]) {
+async function resolveEvidenceTarget(request: Request) {
+  const fingerprint = request.headers.get('x-appraise-target-project')
+  if (!fingerprint) throw new ServiceError('Test run not found.', 'NOT_FOUND', 404)
+  const target = await resolveTargetProject(fingerprint).catch(() => null)
+  if (!target) throw new ServiceError('Test run not found.', 'NOT_FOUND', 404)
+  return target
+}
+
+async function getTestRunEvidence(request: Request, operation: string[]) {
   const runId = z.string().uuid().parse(operation[1])
-  if (operation.length === 2) return Response.json(await readTestRunEvidenceSummary(runId))
-  if (operation[2] === 'diagnose') return Response.json(await diagnoseTestRunEvidence(runId))
+  const target = await resolveEvidenceTarget(request)
+  if (operation.length === 2) return Response.json(await readTestRunEvidenceSummary(runId, target.id))
+  if (operation[2] === 'diagnose') {
+    return Response.json(await diagnoseTestRunEvidence(runId, target.id))
+  }
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
@@ -289,7 +308,7 @@ async function getValidations(request: Request, operation: string[]) {
 // fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]) {
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
-  if (operation[0] === 'test-runs') return getTestRunEvidence(operation)
+  if (operation[0] === 'test-runs') return getTestRunEvidence(request, operation)
   if (operation[0] === 'actions') {
     const query = new URL(request.url).searchParams
     if (operation[1] === 'categories') {
@@ -883,6 +902,66 @@ function assertPlanOperation(operation: string[]): void {
 
 // fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'objectives') {
+    const value = z
+      .object({
+        objectiveId: idSchema.optional(),
+        title: z.string().min(1),
+        milestones: z.array(z.object({ id: idSchema, title: z.string().min(1) })),
+        plans: z.array(
+          z.object({
+            planId: routePlanIdSchema,
+            milestoneId: idSchema,
+            dependsOn: z.array(routePlanIdSchema).optional(),
+            impactedPaths: z.array(z.string().min(1)).optional(),
+          }),
+        ),
+      })
+      .parse(body)
+    return Response.json(await createObjective(value))
+  }
+  if (operation[0] === 'coordination-slo') {
+    const value = z
+      .object({
+        phases: z.array(
+          z.object({
+            phase: z.string().min(1),
+            activeAppraiseMs: z.number().int().nonnegative(),
+            activeAgentMs: z.number().int().nonnegative(),
+            humanReviewMs: z.number().int().nonnegative(),
+          }),
+        ),
+        responseBytes: z.array(z.number().int().nonnegative()),
+        operations: z.number().int().nonnegative(),
+        retries: z.number().int().nonnegative(),
+        approvals: z.number().int().nonnegative(),
+      })
+      .parse(body)
+    return Response.json(evaluateCoordinationSlo(value))
+  }
+  if (operation[0] === 'legacy-automation-imports' && operation[1] === 'preview') {
+    const targetFingerprint = request.headers.get('x-appraise-project') ?? ''
+    const target = await resolveTargetProject(targetFingerprint)
+    return Response.json(await previewLegacyAutomationImport(target.canonicalPath))
+  }
+  if (operation[0] === 'repository-exports') {
+    if (operation.length === 1) {
+      const value = z
+        .object({
+          publishOperationId: z.string().min(1),
+          policy: z.enum(['disabled', 'optional', 'required']),
+          destinationPath: z.string().min(1).optional(),
+        })
+        .parse(body)
+      return Response.json(await enqueueRepositoryExport(value))
+    }
+    const value = z.object({ allowReplaceConflicts: z.boolean().optional() }).parse(body)
+    return Response.json(
+      await runRepositoryExportJob(z.string().uuid().parse(operation[1]), {
+        allowReplaceConflicts: value.allowReplaceConflicts,
+      }),
+    )
+  }
   if (operation[0] === 'delegated' && operation[1] === 'validation-ast-submissions') {
     const value = z.object({ submission: z.unknown(), receipt: z.unknown() }).parse(body)
     return Response.json(
@@ -896,6 +975,24 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
   if (operation[0] === 'provider-runs') {
     assertProviderNativeRunsEnabled()
     return postProviderRun(operation, body)
+  }
+  if (operation[0] === 'plans' && operation[2] === 'snapshot') {
+    const value = z.object({ archiveThroughSequence: z.number().int().nonnegative().optional() }).parse(body)
+    return Response.json(
+      await createLifecycleSnapshot(routePlanIdSchema.parse(operation[1]), {
+        archiveThroughSequence: value.archiveThroughSequence,
+      }),
+    )
+  }
+  if (operation[0] === 'plans' && operation[2] === 'continuation-package') {
+    const value = z
+      .object({
+        narrative: z.string(),
+        references: z.array(z.string().min(1)).optional(),
+        objectiveReference: z.string().min(1).optional(),
+      })
+      .parse(body)
+    return Response.json(await createContinuationPackage({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
   }
   if (operation[0] === 'providers') {
     assertProviderNativeRunsEnabled()

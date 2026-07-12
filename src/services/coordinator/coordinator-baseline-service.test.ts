@@ -202,12 +202,17 @@ async function readValidation(planId: string) {
 }
 
 function recordSubmittedRun(
-  submitted: Array<{ browser: string; environment: string; testRunId: string }>,
+  submitted: Array<{ browser: string; environment: string; attemptOrdinal: number; testRunId: string }>,
   prefix = 'run',
 ) {
-  return async (input: { browser: string; environment: string }) => {
-    const testRunId = `${prefix}-${input.browser}-${input.environment}`
-    submitted.push({ browser: input.browser, environment: input.environment, testRunId })
+  return async (input: { browser: string; environment: string; attemptOrdinal: number }) => {
+    const testRunId = `${prefix}-${input.browser}-${input.environment}-${input.attemptOrdinal}`
+    submitted.push({
+      browser: input.browser,
+      environment: input.environment,
+      attemptOrdinal: input.attemptOrdinal,
+      testRunId,
+    })
     return { testRunId }
   }
 }
@@ -411,7 +416,7 @@ describe('baseline execution and implementation gate', () => {
 
   it('runs every required baseline combination, records classifications, and unlocks implementation only after acceptance', async () => {
     const planId = 'baseline-gate'
-    const submitted: Array<{ browser: string; environment: string; testRunId: string }> = []
+    const submitted: Array<{ browser: string; environment: string; attemptOrdinal: number; testRunId: string }> = []
     await writeArtifacts(planId)
 
     await expect(startImplementation(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
@@ -429,9 +434,9 @@ describe('baseline execution and implementation gate', () => {
     ).resolves.toMatchObject({ plan: { lifecycle: 'baseline_running' } })
 
     expect(submitted).toEqual([
-      { browser: 'chromium', environment: 'local', testRunId: 'run-chromium-local' },
-      { browser: 'firefox', environment: 'local', testRunId: 'run-firefox-local' },
-      { browser: 'webkit', environment: 'staging', testRunId: 'run-webkit-staging' },
+      { browser: 'chromium', environment: 'local', attemptOrdinal: 0, testRunId: 'run-chromium-local-0' },
+      { browser: 'firefox', environment: 'local', attemptOrdinal: 0, testRunId: 'run-firefox-local-0' },
+      { browser: 'webkit', environment: 'staging', attemptOrdinal: 0, testRunId: 'run-webkit-staging-0' },
     ])
     await expect(readPlanEvents({ planId, afterSequence: 0 }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 1, type: 'baseline_started', payload: { attempts: 3 } }),
@@ -455,7 +460,7 @@ describe('baseline execution and implementation gate', () => {
       client,
       now: new Date('2026-06-10T00:02:00.000Z'),
       loadEvidence: async testRunId => {
-        if (testRunId === 'run-chromium-local') {
+        if (testRunId === 'run-chromium-local-0') {
           return {
             status: 'completed',
             result: 'failed',
@@ -463,7 +468,7 @@ describe('baseline execution and implementation gate', () => {
             completedStepIds: ['first-task'],
           }
         }
-        if (testRunId === 'run-firefox-local') {
+        if (testRunId === 'run-firefox-local-0') {
           return {
             status: 'completed',
             result: 'failed',
@@ -487,8 +492,8 @@ describe('baseline execution and implementation gate', () => {
         environment: 'local',
         classification: 'expected_behavioral_failure',
         evidence: {
-          logsUrl: '/api/test-runs/run-chromium-local/logs',
-          reportUrl: '/test-runs/run-chromium-local',
+          logsUrl: '/api/test-runs/run-chromium-local-0/logs',
+          reportUrl: '/test-runs/run-chromium-local-0',
           traceUrls: [],
           screenshotUrls: [],
         },

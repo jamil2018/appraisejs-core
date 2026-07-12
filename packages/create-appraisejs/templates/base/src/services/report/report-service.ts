@@ -1,11 +1,12 @@
 import prisma from '@/config/db-config'
 import {
   parseCucumberReport,
+  parseCucumberReportText,
   getStepStatusEnum,
   getStepKeywordEnum,
   type ParsedReport,
 } from '@/lib/test-run/report-parser'
-import type { Prisma } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 import { existsSync } from 'fs'
 import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
 import { resolveStoredPath, toProjectRelativePath } from '@/lib/automation/automation-path-roots'
@@ -13,6 +14,10 @@ import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
 import { ServiceError } from '@/services/shared/errors'
 import type { ReportDetailWithRelations, ReportWithRelations } from '@/types/report'
+import {
+  createTestRunArtifactAccess,
+  createTestRunArtifactContext,
+} from '@/services/test-run/test-run-artifact-context'
 
 export type StoreReportOutcome =
   | { success: true; reportId: string }
@@ -21,6 +26,7 @@ export type StoreReportOutcome =
 type ReportStorageTestRun = Prisma.TestRunGetPayload<{
   include: {
     targetProject: true
+    runtimeCapsule: true
     testCases: {
       include: {
         testCase: {
@@ -145,11 +151,12 @@ export async function getReportByIdOrThrow(reportId: string): Promise<ReportDeta
   return report as ReportDetailWithRelations
 }
 
-async function getReportStorageTestRun(testRunId: string) {
-  return prisma.testRun.findUnique({
+async function getReportStorageTestRun(testRunId: string, client: PrismaClient = prisma) {
+  return client.testRun.findUnique({
     where: { runId: testRunId },
     include: {
       targetProject: true,
+      runtimeCapsule: true,
       testCases: {
         include: {
           testCase: {
@@ -168,8 +175,8 @@ async function getReportStorageTestRun(testRunId: string) {
   })
 }
 
-async function createReportShell(testRun: ReportStorageTestRun, reportPath: string) {
-  return prisma.report.create({
+async function createReportShell(testRun: ReportStorageTestRun, reportPath: string, client: PrismaClient = prisma) {
+  return client.report.create({
     data: {
       name: `Test Run Report - ${testRun.name}`,
       description: `Report for test run: ${testRun.name}`,
@@ -179,8 +186,8 @@ async function createReportShell(testRun: ReportStorageTestRun, reportPath: stri
   })
 }
 
-async function createReportFeature(reportId: string, feature: ParsedReportFeature) {
-  const reportFeature = await prisma.reportFeature.create({
+async function createReportFeature(reportId: string, feature: ParsedReportFeature, client: PrismaClient = prisma) {
+  const reportFeature = await client.reportFeature.create({
     data: {
       reportId,
       name: feature.name,
@@ -192,7 +199,7 @@ async function createReportFeature(reportId: string, feature: ParsedReportFeatur
   })
 
   for (const tag of feature.tags) {
-    await prisma.reportFeatureTag.create({
+    await client.reportFeatureTag.create({
       data: {
         reportFeatureId: reportFeature.id,
         tagName: tag.name,
@@ -204,8 +211,12 @@ async function createReportFeature(reportId: string, feature: ParsedReportFeatur
   return reportFeature
 }
 
-async function createReportScenario(reportFeatureId: string, scenario: ParsedReportScenario) {
-  const reportScenario = await prisma.reportScenario.create({
+async function createReportScenario(
+  reportFeatureId: string,
+  scenario: ParsedReportScenario,
+  client: PrismaClient = prisma,
+) {
+  const reportScenario = await client.reportScenario.create({
     data: {
       reportFeatureId,
       name: scenario.name,
@@ -218,7 +229,7 @@ async function createReportScenario(reportFeatureId: string, scenario: ParsedRep
   })
 
   for (const tag of scenario.tags) {
-    await prisma.reportScenarioTag.create({
+    await client.reportScenarioTag.create({
       data: {
         reportScenarioId: reportScenario.id,
         tagName: tag.name,
@@ -234,9 +245,10 @@ async function createReportScenarioExecutionRows(
   reportScenarioId: string,
   scenario: ParsedReportScenario,
   projectRoot?: string,
+  client: PrismaClient = prisma,
 ) {
   for (const step of scenario.steps) {
-    await prisma.reportStep.create({
+    await client.reportStep.create({
       data: {
         reportScenarioId,
         keyword: getStepKeywordEnum(step.keyword),
@@ -255,7 +267,7 @@ async function createReportScenarioExecutionRows(
   }
 
   for (const hook of scenario.hooks) {
-    await prisma.reportHook.create({
+    await client.reportHook.create({
       data: {
         reportScenarioId,
         keyword: getStepKeywordEnum(hook.keyword),
@@ -282,6 +294,7 @@ async function linkReportScenarioToTestCase(
   scenario: ParsedReportScenario,
   testRun: ReportStorageTestRun,
   executedTestCases: ExecutedTestCaseSets,
+  client: PrismaClient = prisma,
 ) {
   const matchedTestCase = findMatchingTestRunTestCase(testRun.testCases, {
     scenarioName: scenario.name,
@@ -298,7 +311,7 @@ async function linkReportScenarioToTestCase(
     executedTestCases.legacyTestCaseIds.add(matchedTestCase.testCaseId)
   }
 
-  await prisma.reportTestCase.create({
+  await client.reportTestCase.create({
     data: {
       reportId,
       testCaseId: matchedTestCase.testCaseId,
@@ -309,31 +322,36 @@ async function linkReportScenarioToTestCase(
   })
 }
 
-async function createParsedReportGraph(reportId: string, parsedReport: ParsedReport, testRun: ReportStorageTestRun) {
+async function createParsedReportGraph(
+  reportId: string,
+  parsedReport: ParsedReport,
+  testRun: ReportStorageTestRun,
+  client: PrismaClient = prisma,
+) {
   const executedTestCases: ExecutedTestCaseSets = {
     suiteIds: new Set<string>(),
     legacyTestCaseIds: new Set<string>(),
   }
 
   for (const feature of parsedReport.features) {
-    const reportFeature = await createReportFeature(reportId, feature)
+    const reportFeature = await createReportFeature(reportId, feature, client)
 
     for (const scenario of feature.scenarios) {
-      const reportScenario = await createReportScenario(reportFeature.id, scenario)
-      await createReportScenarioExecutionRows(reportScenario.id, scenario, testRun.targetProject?.canonicalPath)
-      await linkReportScenarioToTestCase(reportId, reportScenario.id, scenario, testRun, executedTestCases)
+      const reportScenario = await createReportScenario(reportFeature.id, scenario, client)
+      await createReportScenarioExecutionRows(reportScenario.id, scenario, testRun.targetProject?.canonicalPath, client)
+      await linkReportScenarioToTestCase(reportId, reportScenario.id, scenario, testRun, executedTestCases, client)
     }
   }
 
   return executedTestCases
 }
 
-async function getLegacySuiteIds(testCaseIds: Set<string>) {
+async function getLegacySuiteIds(testCaseIds: Set<string>, client: PrismaClient = prisma) {
   if (testCaseIds.size === 0) {
     return []
   }
 
-  const legacyTestCases = await prisma.testCase.findMany({
+  const legacyTestCases = await client.testCase.findMany({
     where: {
       id: {
         in: Array.from(testCaseIds),
@@ -347,25 +365,17 @@ async function getLegacySuiteIds(testCaseIds: Set<string>) {
   return legacyTestCases.flatMap(testCase => testCase.TestSuite.map(testSuite => testSuite.id))
 }
 
-async function updateExecutedSuiteMetrics(testRun: ReportStorageTestRun, executedTestCases: ExecutedTestCaseSets) {
+async function updateExecutedSuiteMetrics(
+  testRun: ReportStorageTestRun,
+  executedTestCases: ExecutedTestCaseSets,
+  client: PrismaClient = prisma,
+) {
   if (executedTestCases.suiteIds.size === 0 && executedTestCases.legacyTestCaseIds.size === 0) {
     return
   }
 
   try {
-    const executedAt = testRun.completedAt || testRun.startedAt || new Date()
-    const allSuiteIds = new Set(executedTestCases.suiteIds)
-    const legacySuiteIds = await getLegacySuiteIds(executedTestCases.legacyTestCaseIds)
-
-    legacySuiteIds.forEach(suiteId => allSuiteIds.add(suiteId))
-
-    for (const suiteId of allSuiteIds) {
-      await updateTestSuiteMetrics(suiteId, executedAt)
-    }
-
-    if (allSuiteIds.size > 0) {
-      console.log(`[ReportService] Updated test suite metrics for ${allSuiteIds.size} executed suite(s)`)
-    }
+    await updateExecutedSuiteMetricsOwned(testRun, executedTestCases, client)
   } catch (error) {
     console.error(
       `[ReportService] Error updating test suite metrics after storing report: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -373,12 +383,34 @@ async function updateExecutedSuiteMetrics(testRun: ReportStorageTestRun, execute
   }
 }
 
+async function updateExecutedSuiteMetricsOwned(
+  testRun: ReportStorageTestRun,
+  executedTestCases: ExecutedTestCaseSets,
+  client: PrismaClient,
+) {
+  const executedAt = testRun.completedAt || testRun.startedAt || new Date()
+  const allSuiteIds = new Set(executedTestCases.suiteIds)
+  const legacySuiteIds = await getLegacySuiteIds(executedTestCases.legacyTestCaseIds, client)
+
+  legacySuiteIds.forEach(suiteId => allSuiteIds.add(suiteId))
+
+  if (client === prisma) for (const suiteId of allSuiteIds) await updateTestSuiteMetrics(suiteId, executedAt)
+
+  if (allSuiteIds.size > 0)
+    console.log(`[ReportService] Updated test suite metrics for ${allSuiteIds.size} executed suite(s)`)
+}
+
 /**
  * Persists a cucumber.json report and linked graph into the database.
  */
-export async function storeReportFromFileService(testRunId: string, reportPath: string): Promise<StoreReportOutcome> {
+export async function storeReportFromFileService(
+  testRunId: string,
+  reportPath: string,
+  client: PrismaClient = prisma,
+  appraiseRoot?: string,
+): Promise<StoreReportOutcome> {
   try {
-    const testRun = await getReportStorageTestRun(testRunId)
+    const testRun = await getReportStorageTestRun(testRunId, client)
 
     if (!testRun) {
       return {
@@ -388,9 +420,15 @@ export async function storeReportFromFileService(testRunId: string, reportPath: 
       }
     }
 
+    const managedReportText = testRun.runtimeCapsule
+      ? await createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client).readText({
+          runId: testRunId,
+          kind: 'report',
+        })
+      : null
     const resolvedReportPath = resolveStoredPath(reportPath, testRun.targetProject?.canonicalPath)
 
-    if (!existsSync(resolvedReportPath)) {
+    if (!testRun.runtimeCapsule && !existsSync(resolvedReportPath)) {
       console.warn(`[ReportService] Report file not found at ${reportPath} for testRunId: ${testRunId}`)
       return {
         success: false,
@@ -399,10 +437,12 @@ export async function storeReportFromFileService(testRunId: string, reportPath: 
       }
     }
 
-    const parsedReport = await parseCucumberReport(resolvedReportPath)
-    const report = await createReportShell(testRun, reportPath)
-    const executedTestCases = await createParsedReportGraph(report.id, parsedReport, testRun)
-    await updateExecutedSuiteMetrics(testRun, executedTestCases)
+    const parsedReport = managedReportText
+      ? parseCucumberReportText(managedReportText)
+      : await parseCucumberReport(resolvedReportPath)
+    const report = await createReportShell(testRun, reportPath, client)
+    const executedTestCases = await createParsedReportGraph(report.id, parsedReport, testRun, client)
+    await updateExecutedSuiteMetrics(testRun, executedTestCases, client)
 
     return { success: true, reportId: report.id }
   } catch (error) {

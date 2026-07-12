@@ -1,5 +1,4 @@
 import { promises as fs } from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 
 import { PrismaClient } from '@prisma/client'
@@ -15,8 +14,7 @@ import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { reviseCoordinatorPlan, startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 import { acknowledgePlanEvent, appendPlanEvent, readPlanEvents } from '@/services/coordinator/coordinator-service'
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
-import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
+import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtures'
 
 import {
   addPlanRemark,
@@ -29,7 +27,6 @@ import {
 } from './plan-review-service'
 
 let workspace: string
-let databasePath: string
 let client: PrismaClient
 
 function plan(planId: string, lifecycle: PlanLifecycleState = 'awaiting_plan_review'): PlanArtifact {
@@ -77,13 +74,7 @@ async function readReview(planId: string) {
 }
 
 beforeEach(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-plan-review-'))
-  databasePath = path.join(workspace, 'review.db')
-  await fs.writeFile(path.join(workspace, 'package.json'), '{}')
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
-
-  client = sqliteTestClient(databasePath)
+  ;({ workspace, client } = await createPlanRuntimeTestWorkspace('appraise-plan-review-', 'review.db'))
 })
 
 afterEach(async () => {

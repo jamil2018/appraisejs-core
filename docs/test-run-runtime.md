@@ -177,6 +177,10 @@ Baseline attempts are also persisted as immutable database facts with append-onl
 The validation artifact remains the compatibility projection; validation feedback invalidates decisions without
 deleting prior attempt or acknowledgement history.
 
+Baseline preparation keys are the execution identity; display names are deterministic labels that include the
+one-based attempt number. Exact replays converge on the existing preparation, and retries after validation repair use
+the next ordinal so the global TestRun name constraint cannot deadlock lifecycle recovery.
+
 ## Runtime Environment
 
 The local executor sets these important environment variables for child Cucumber runs:

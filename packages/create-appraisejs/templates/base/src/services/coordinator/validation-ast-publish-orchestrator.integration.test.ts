@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 
 import { PrismaClient } from '@prisma/client'
@@ -9,10 +8,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { serializeYamlArtifact } from '@/lib/plan-contract'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
-import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
+import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
+import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtures'
 
-import { prepareValidationAstPublish } from './validation-ast-publish-journal-service'
+import { prepareValidationAstPublish, validationAstPublishOperationId } from './validation-ast-publish-journal-service'
 import { resumeValidationAstPublish } from './validation-ast-publish-orchestrator'
 
 const digest = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
@@ -40,14 +39,9 @@ const validation = {
   baselineDecision: 'pending',
 } as const
 
-// fallow-ignore-next-line code-duplication -- isolated real-SQLite harness
 beforeEach(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-journal-integration-'))
+  ;({ workspace, client } = await createPlanRuntimeTestWorkspace('appraise-journal-integration-', 'appraise.db'))
   await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"journal-test"}')
-  const databasePath = path.join(workspace, 'appraise.db')
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
-  client = sqliteTestClient(databasePath)
   const target = await client.targetProject.create({
     data: {
       canonicalPath: workspace,
@@ -96,9 +90,60 @@ async function prepare(key: string) {
   })
   const validationContent = serializeYamlArtifact('validation', validation)
   const reviewContent = oldReview.content
-  const canonicalProjection = { validationNode: null, gherkin: [] }
+  const receiptHash = digest(`receipt-${key}`)
+  const action = { id: 'browser.navigation.goto', version: '1', contentHash: digest('action') }
+  const canonicalProjection = {
+    validationNode: {
+      id: 'journal-ast',
+      matrix: [{ browser: 'chromium', environment: 'local' }],
+      testCaseIds: ['case-one'],
+      appraiseArtifacts: {
+        locators: [],
+        testCases: [
+          { id: 'case-one', steps: [{ id: 'step-one', templateStepName: `${action.id}@${action.version}` }] },
+        ],
+      },
+    },
+    gherkin: ['Scenario: one'],
+  }
+  const compilerReceipt = {
+    schemaVersion: '1' as const,
+    catalogHash: digest('catalog'),
+    locatorGraphHash: digest('locators'),
+    environments: ['local'],
+    browsers: ['chromium'],
+    runtimes: ['browser'],
+  }
+  const runtimeInput = {
+    schemaVersion: '1' as const,
+    targetProjectId,
+    targetFingerprint: `sha256:${'b'.repeat(64)}`,
+    astId: 'journal-ast',
+    astHash: `sha256:${'c'.repeat(64)}`,
+    contextHash: `sha256:${'d'.repeat(64)}`,
+    previewHash: `sha256:${'e'.repeat(64)}`,
+    receiptHash,
+    compilerReceipt: { ...compilerReceipt, contentHash: contractDigest(compilerReceipt) },
+    extensionPolicy: structuredClone(
+      createCustomExtensionPolicy({
+        projectId: targetProjectId,
+        projectFingerprint: `sha256:${'b'.repeat(64)}`,
+        capabilityImports: {},
+      }),
+    ),
+    actions: [action],
+    locators: [],
+    extensions: [],
+    matrix: canonicalProjection.validationNode.matrix,
+    expected: {
+      scenarios: [{ scenarioId: 'scenario-one', caseId: 'case-one', stepIds: ['step-one'] }],
+      scenarioCount: 1,
+    },
+    gherkinHash: contractDigest(canonicalProjection.gherkin),
+  }
   return prepareValidationAstPublish(
     {
+      id: validationAstPublishOperationId(receiptHash),
       planId: 'journal-plan',
       planProjectionId,
       targetProjectId,
@@ -117,10 +162,12 @@ async function prepare(key: string) {
       astHash: `sha256:${'c'.repeat(64)}`,
       contextHash: `sha256:${'d'.repeat(64)}`,
       previewHash: `sha256:${'e'.repeat(64)}`,
-      receiptHash: `sha256:${'f'.repeat(64)}`,
+      receiptHash,
       projectionHash: contractDigest(canonicalProjection),
       projectionJson: JSON.stringify(canonicalProjection),
       validationProjectionJson: JSON.stringify(validation),
+      runtimeInputHash: contractDigest(runtimeInput),
+      runtimeInputJson: canonicalContractJson(runtimeInput),
       extensionReviews: [],
     },
     client,
@@ -141,6 +188,18 @@ describe('Validation AST publish journal with real SQLite', () => {
     const [first, second] = await Promise.all([prepare('same-key'), prepare('same-key')])
     expect(second.id).toBe(first.id)
     expect(await client.validationAstPublishOperation.count()).toBe(1)
+  })
+
+  it('keeps distinct publication identities and runtime inputs from cross-binding', async () => {
+    const first = await prepare('first-publication')
+    const second = await prepare('second-publication')
+    expect(second.id).not.toBe(first.id)
+    expect(second.runtimeInputHash).not.toBe(first.runtimeInputHash)
+    await expect(
+      updateOperation(second.id, { runtimeInputHash: `sha256:${'7'.repeat(64)}` }).then(() =>
+        resumeValidationAstPublish(second.id, { client, projectDirectory: workspace }),
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
   it('recovers every commit boundary idempotently without duplicate lifecycle events', async () => {

@@ -252,8 +252,18 @@ function separateErrorMessageAndTrace(errorMessage: string | undefined): {
  */
 export async function parseCucumberReport(reportPath: string): Promise<ParsedReport> {
   try {
-    // Read the report file
-    const fileContent = await readFile(reportPath, 'utf-8')
+    return parseCucumberReportText(await readFile(reportPath, 'utf-8'), reportPath)
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith(`Failed to parse cucumber report at ${reportPath}:`))
+      throw error
+    throw new Error(
+      `Failed to parse cucumber report at ${reportPath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
+  }
+}
+
+export function parseCucumberReportText(fileContent: string, source = 'managed artifact'): ParsedReport {
+  try {
     const cucumberData: CucumberJsonFeature[] = JSON.parse(fileContent)
 
     // Parse features
@@ -331,9 +341,9 @@ export async function parseCucumberReport(reportPath: string): Promise<ParsedRep
     return { features }
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to parse cucumber report at ${reportPath}: ${error.message}`)
+      throw new Error(`Failed to parse cucumber report at ${source}: ${error.message}`)
     }
-    throw new Error(`Failed to parse cucumber report at ${reportPath}: Unknown error`)
+    throw new Error(`Failed to parse cucumber report at ${source}: Unknown error`)
   }
 }
 

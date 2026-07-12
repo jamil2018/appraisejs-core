@@ -6,6 +6,7 @@ import { locatorCatalogReferenceSchema } from '@/lib/catalog-contracts'
 
 import { actionReferenceIdentitySchema } from '@/lib/action-contracts'
 import { validationAstAuthoringProfileSchema } from './authoring-profile'
+import { gherkinSafeSingleLineSchema } from './gherkin-safety'
 
 export const VALIDATION_AST_LIMITS = {
   idCharacters: 80,
@@ -28,6 +29,7 @@ const idSchema = z
 const versionSchema = z.string().regex(/^\d+(?:\.\d+){0,2}$/)
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const textSchema = z.string().min(1).max(VALIDATION_AST_LIMITS.textCharacters)
+const gherkinTextSchema = gherkinSafeSingleLineSchema(VALIDATION_AST_LIMITS.textCharacters)
 
 export const locatorReferenceSchema = locatorCatalogReferenceSchema.extend({ ref: z.literal('locator') })
 
@@ -61,7 +63,7 @@ export const validationAstStepSchema = z
   .object({
     id: idSchema,
     keyword: z.enum(['Given', 'When', 'Then', 'And']),
-    description: textSchema,
+    description: gherkinTextSchema,
     action: actionReferenceSchema,
     store: z.object({ output: idSchema, as: idSchema }).optional(),
   })
@@ -71,8 +73,8 @@ export const validationAstSchema = z
   .object({
     schemaVersion: z.literal(VALIDATION_AST_SCHEMA_VERSION),
     id: idSchema,
-    title: z.string().min(1).max(120),
-    purpose: textSchema,
+    title: gherkinSafeSingleLineSchema(120),
+    purpose: gherkinTextSchema,
     coversTaskIds: z.array(idSchema).min(1).max(VALIDATION_AST_LIMITS.taskIds),
     matrix: z.array(validationMatrixEntrySchema).min(1).max(VALIDATION_AST_LIMITS.matrixEntries),
     scenarios: z
@@ -80,8 +82,8 @@ export const validationAstSchema = z
         z
           .object({
             id: idSchema,
-            title: textSchema,
-            description: textSchema.optional(),
+            title: gherkinTextSchema,
+            description: gherkinTextSchema.optional(),
             steps: z.array(validationAstStepSchema).min(1).max(VALIDATION_AST_LIMITS.stepsPerScenario),
           })
           .strict(),

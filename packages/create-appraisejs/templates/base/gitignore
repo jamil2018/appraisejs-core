@@ -70,5 +70,7 @@ graphify-out/manifest.json
 **/graphify-out/manifest.json
 **/graphify-out/.graphify_labels.json
 **/graphify-out/.graphify_analysis.json
+# Graphify pre-rebuild safety snapshots (canonical outputs are versioned above)
+**/graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
 !prisma/dev.db
 !automation/config/environments/environments.json
