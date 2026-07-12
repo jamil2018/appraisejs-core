@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 
 import type { Prisma, PrismaClient } from '@prisma/client'
 
@@ -17,13 +17,6 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
-import {
-  assertRuntimePreflightPassed,
-  assertValidationEnvironmentsReady,
-  assertValidationFilesMaterialized,
-  materializeValidationRuntime,
-  projectValidationArtifacts,
-} from './validation-runtime-projection-service'
 
 type Options = {
   client?: PrismaClient
@@ -32,10 +25,6 @@ type Options = {
   extensionArtifactHashes?: string[]
 }
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
-const validationArtifactPath = (planId: string) => `appraise/plans/validations/${planId}.validation.yaml`
-const artifactHash = (content: string) => `sha256:${createHash('sha256').update(content).digest('hex')}`
-const isAutomationStepPath = (filePath: string) =>
-  filePath.startsWith('automation/steps/') && /\.(?:step|steps)\.ts$/.test(filePath)
 
 async function readArtifacts(planId: string, projectDirectory?: string, client: PrismaClient = prisma) {
   const projectRoot = await findProjectRoot(projectDirectory)
@@ -69,30 +58,6 @@ async function readArtifacts(planId: string, projectDirectory?: string, client: 
   }
 }
 
-function assertCustomStepJustifications(validation: ValidationArtifact) {
-  const justifiedPaths = new Set(validation.customStepJustifications?.map(justification => justification.path) ?? [])
-  const reusedPaths = new Set([
-    ...(validation.reusedStepPaths ?? []),
-    ...(validation.reusedTemplateStepRefs ?? []).map(ref => ref.path).filter((path): path is string => Boolean(path)),
-  ])
-  const declaredNewPaths = new Set(validation.newStepPaths ?? [])
-  const stepPaths = new Set([
-    ...declaredNewPaths,
-    ...validation.validations.flatMap(item => item.stepPaths),
-    ...validation.manifestPaths,
-    ...validation.files.map(file => file.path),
-  ])
-  for (const stepPath of stepPaths) {
-    if (!isAutomationStepPath(stepPath) || reusedPaths.has(stepPath)) continue
-    if (!justifiedPaths.has(stepPath)) {
-      throw new ServiceError(
-        `Custom step ${stepPath} requires a registry/template-step reuse gap justification.`,
-        'VALIDATION',
-      )
-    }
-  }
-}
-
 // Domain rules are tested separately; this coordinates locked writes and durable events.
 function findCurrentAstPublishOperation(planId: string, client: PrismaClient) {
   return client.validationAstPublishOperation.findFirst({
@@ -102,74 +67,7 @@ function findCurrentAstPublishOperation(planId: string, client: PrismaClient) {
   })
 }
 
-// fallow-ignore-next-line complexity
-export async function publishPreparedValidations(
-  planId: string,
-  validation: ValidationArtifact,
-  options: Options = {},
-) {
-  const client = options.client ?? prisma
-  await assertPlanNotCancelled(planId, client)
-  const artifacts = await readArtifacts(planId, options.projectDirectory, client)
-  if (!['preparing_validations', 'validation_changes_requested'].includes(artifacts.plan.lifecycle)) {
-    throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
-  }
-  if (validation.planId !== planId || validation.revision !== artifacts.plan.revision) {
-    throw new ServiceError('Validation artifact does not match the current plan revision.', 'VALIDATION')
-  }
-  assertCustomStepJustifications(validation)
-  const runtimeValidation = await materializeValidationRuntime({
-    projectRoot: artifacts.projectRoot,
-    validationFileRoot: artifacts.validationFileRoot,
-    targetProject: artifacts.targetProject,
-    client,
-    validation,
-  })
-  assertRuntimePreflightPassed(runtimeValidation)
-  const materializedValidation = await assertValidationFilesMaterialized({
-    projectRoot: artifacts.projectRoot,
-    validationFileRoot: artifacts.validationFileRoot,
-    targetProject: artifacts.targetProject,
-    validation: runtimeValidation,
-    verifyHashes: false,
-  })
-  const content = serializeYamlArtifact('validation', materializedValidation)
-  if (artifacts.validationStored) {
-    await artifacts.repository.compareAndWrite('validation', planId, artifacts.validationStored.hash, content)
-  } else {
-    await artifacts.repository.create('validation', planId, content)
-  }
-  const nextPlan = { ...artifacts.plan, lifecycle: 'awaiting_validation_review' as const }
-  await artifacts.repository.compareAndWrite(
-    'plan',
-    planId,
-    artifacts.planStored.hash,
-    serializeYamlArtifact('plan', nextPlan),
-  )
-  await syncPlans({ projectDirectory: artifacts.projectRoot, client })
-  await appendPlanEvent({ planId, type: 'validation_review_ready', payload: { revision: validation.revision } }, client)
-  return {
-    validation: materializedValidation,
-    validationHash: artifactHash(content),
-    reviewUrl: `/plans/${planId}?review=validation`,
-    lifecycle: nextPlan.lifecycle,
-    revision: nextPlan.revision,
-    validationArtifactPath: validationArtifactPath(planId),
-    validationCount: validation.validations.length,
-    changedFileCount: validation.files.length,
-    manifestPaths: validation.manifestPaths,
-    reusedStepPaths: validation.reusedStepPaths ?? [],
-    reusedTemplateStepRefs: validation.reusedTemplateStepRefs ?? [],
-    reusedStepBlockRefs: validation.reusedStepBlockRefs ?? [],
-    newStepPaths: validation.newStepPaths ?? [],
-    nextReviewAction:
-      'Open the validation review URL, inspect validation nodes and changed-file evidence, then approve or request changes.',
-  }
-}
-
-function id(prefix: string): string {
-  return `${prefix}-${randomUUID()}`
-}
+const id = (prefix: string) => `${prefix}-${randomUUID()}`
 
 function addValidationFeedbackThread(
   review: ReviewArtifact,
@@ -208,8 +106,7 @@ function affectedValidationIds(
   if (target.type === 'validation') ids.add(target.validationId)
   if (target.type === 'file') {
     for (const node of validation.validations) {
-      const paths = [...node.gherkinPaths, ...node.stepPaths, node.executable.path]
-      if (paths.includes(target.path)) ids.add(node.id)
+      if ([...node.gherkinPaths, ...node.stepPaths, node.executable.path].includes(target.path)) ids.add(node.id)
     }
   }
   return ids
@@ -230,23 +127,13 @@ function invalidateValidationEvidence(
   },
 ) {
   if (input.scope === 'product_scope') {
-    return {
-      ...validation,
-      validationDecisions: [],
-      reviewSubmittedAt: undefined,
-      baselineAttempts: validation.baselineAttempts,
-      baselineAcknowledgements: validation.baselineAcknowledgements,
-      baselineDecision: 'pending' as const,
-    }
+    return { ...validation, validationDecisions: [], reviewSubmittedAt: undefined, baselineDecision: 'pending' as const }
   }
-
   const validationIds = affectedValidationIds(validation, input.target, input.affectedValidationIds)
   return {
     ...validation,
     validationDecisions: validation.validationDecisions.filter(decision => !validationIds.has(decision.validationId)),
     reviewSubmittedAt: undefined,
-    baselineAttempts: validation.baselineAttempts,
-    baselineAcknowledgements: validation.baselineAcknowledgements,
     baselineDecision: validationIds.size > 0 ? ('pending' as const) : validation.baselineDecision,
   }
 }
@@ -267,12 +154,8 @@ function invalidateReviewEvidence(
       fileApprovals: [],
     }
   }
-
   const filePaths = affectedFilePaths(input.target, input.affectedFilePaths)
-  return {
-    ...review,
-    fileApprovals: review.fileApprovals.filter(approval => !filePaths.has(approval.path)),
-  }
+  return { ...review, fileApprovals: review.fileApprovals.filter(approval => !filePaths.has(approval.path)) }
 }
 
 // fallow-ignore-next-line complexity
@@ -413,8 +296,15 @@ export async function decideValidationNode(
     throw new ServiceError('Validation artifact not found.', 'NOT_FOUND')
   const node = artifacts.validation.validations.find(validation => validation.id === input.validationId)
   if (!node) throw new ServiceError('Validation node not found.', 'NOT_FOUND')
-  const publishOperation = node.astProvenance ? await findCurrentAstPublishOperation(input.planId, client) : null
-  if (publishOperation) {
+  if (node.astProvenance?.schemaVersion !== '2')
+    throw new ServiceError(
+      'Managed validation decisions require an exact reviewed v2 AST publication. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
+      'CONFLICT',
+    )
+  const publishOperation = await findCurrentAstPublishOperation(input.planId, client)
+  if (!publishOperation)
+    throw new ServiceError('The exact reviewed v2 AST publish operation was not found.', 'CONFLICT')
+  {
     const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     const suppliedExtensions = [...(input.extensionArtifactHashes ?? [])].sort()
     if (
@@ -519,10 +409,15 @@ export async function submitValidationReview(planId: string, options: Options = 
   }
   const readiness = assessValidationReadiness(artifacts.validation, artifacts.review)
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
-  const publishOperation = artifacts.validation.validations.some(validation => validation.astProvenance)
-    ? await findCurrentAstPublishOperation(planId, client)
-    : null
-  if (publishOperation) {
+  if (artifacts.validation.validations.some(validation => validation.astProvenance?.schemaVersion !== '2'))
+    throw new ServiceError(
+      'Managed validation review requires exact v2 AST provenance for every validation. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
+      'CONFLICT',
+    )
+  const publishOperation = await findCurrentAstPublishOperation(planId, client)
+  if (!publishOperation)
+    throw new ServiceError('The exact reviewed v2 AST publish operation was not found.', 'CONFLICT')
+  {
     const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     if (
       options.operationHash !== publishOperation.operationHash ||
@@ -555,31 +450,12 @@ export async function submitValidationReview(planId: string, options: Options = 
         throw new ServiceError('Validation review decision does not match immutable AST evidence.', 'CONFLICT')
     }
   }
-  let reviewedValidation = artifacts.validation
-  let projection: unknown
-  if (publishOperation) {
-    projection = {
-      operationId: publishOperation.id,
-      operationHash: publishOperation.operationHash,
-      projectionHash: publishOperation.projectionHash,
-      extensionArtifactHashes: publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
-    }
-  } else {
-    const runtimeValidation = await materializeValidationRuntime({
-      projectRoot: artifacts.projectRoot,
-      validationFileRoot: artifacts.validationFileRoot,
-      targetProject: artifacts.targetProject,
-      validation: artifacts.validation,
-    })
-    assertRuntimePreflightPassed(runtimeValidation)
-    reviewedValidation = await assertValidationFilesMaterialized({
-      projectRoot: artifacts.projectRoot,
-      validationFileRoot: artifacts.validationFileRoot,
-      targetProject: artifacts.targetProject,
-      validation: runtimeValidation,
-    })
-    await assertValidationEnvironmentsReady(reviewedValidation, client, artifacts.targetProject)
-    projection = await projectValidationArtifacts({ planId, validation: reviewedValidation }, client)
+  const reviewedValidation = artifacts.validation
+  const projection = {
+    operationId: publishOperation.id,
+    operationHash: publishOperation.operationHash,
+    projectionHash: publishOperation.projectionHash,
+    extensionArtifactHashes: publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
   }
 
   const validation = { ...reviewedValidation, reviewSubmittedAt: new Date().toISOString() }

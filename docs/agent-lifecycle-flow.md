@@ -40,26 +40,15 @@ not repeat the brief or handoff. Pending review or pending approval is not compl
 
 ## Approval And Validation Preparation
 
-Legacy automation migration begins with `legacy_automation_import_preview`. The preview is not a lifecycle approval,
-canonical validation, or executable artifact. It preserves file provenance and unresolved mappings without mutation;
-the agent must author a resolved Validation AST and pass the normal check, preview, human review, and compile gates.
-
 `plan_approved` permits starting validation preparation. A coordinator should acknowledge the approval only after the
-transition it permits succeeds. `validation_preparation_started` marks the validation file generation phase.
-Validation preparation must create AppraiseJS-native review artifacts before standby: `ValidationArtifact`, validation
-nodes, modules, test suites, test cases, ordered steps, locator groups, locators, `automation/features`,
-`automation/steps`, executable metadata, browser/environment matrix, expected failures, changed-file evidence, manifest
-paths, and `appraise/plans/validations/<plan-id>.validation.yaml`. The AppraiseJS artifacts are the primary review and
-future execution surface; Playwright/Gherkin files are runtime evidence derived from them. Agents must call
-`validation_publish` before claiming the user can review validations.
+transition it permits succeeds. `validation_preparation_started` permits v2 AST authoring. Agents call
+`validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and call
+`validation_ast_compile`. Compilation projects canonical entities and creates the durable v2 publication operation.
+Managed execution uses only the exact Appraise-owned immutable runtime capsule; it never writes or executes target
+`automation/` files.
 
-Validation authoring is registry-first. Agents should submit behavior intent, locator hints, reusable
-`templateStepRef` or `stepBlockRef` values, and optional custom-step proposals through
-`validation_test_shape_propose` or the compatible `validation_test_case_upsert` tool. Appraise resolves reusable
-template steps and step blocks, records `reusedTemplateStepRefs` and `reusedStepBlockRefs`, derives legacy
-`reusedStepPaths` from shared template-step group files, and materializes those shared files during runtime projection.
-Do not mark a generated per-case `automation/steps/<case>.steps.ts` path as reused merely because a test case uses a
-template step; only genuinely custom runtime files need `customStepJustifications`.
+Validation authoring is registry-first through the v2 action catalog and locator graph. Extensions require exact
+review evidence; target file paths are never managed execution authority.
 
 Draft check, publication, and runtime preflight share one locator-binding rule: every locator-bearing parameter must
 resolve to exactly one locator in the projected validation resources, and that locator must belong to a declared

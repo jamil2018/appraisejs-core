@@ -204,7 +204,6 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       return request(`locator-graph?${parameters}`)
     },
     readLocatorGraphVisual: () => request('locator-graph/visual'),
-    previewLegacyAutomationImport: () => post('legacy-automation-imports/preview', {}),
     submitDelegatedValidationAst: (submission: ValidationAstSubmission, receipt: DelegatedAuthorizationReceipt) =>
       post('delegated/validation-ast-submissions', { submission, receipt }),
     readValidationAstExtensionPolicy: (planId: string) =>
@@ -271,12 +270,6 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       expectedTestCases?: Array<{ testCaseId: string; testSuiteId?: string | null }>
     }) => post('test-runs', input),
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
-    publishValidation: (planId: string, validation: unknown) =>
-      post(`plans/${planId}/validations/publish`, { validation }),
-    upsertValidationStepMetadata: (
-      planId: string,
-      metadata: { reusedStepPaths?: string[]; newStepPaths?: string[]; customStepJustifications?: unknown[] },
-    ) => post(`plans/${planId}/validations/draft/step-metadata`, metadata),
     submitValidationFeedback: (planId: string, feedback: unknown) =>
       post(`plans/${planId}/validations/feedback`, feedback),
     submitValidation: (planId: string, binding: { operationHash?: string; extensionArtifactHashes?: string[] } = {}) =>

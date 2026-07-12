@@ -23,6 +23,10 @@ const absolutePath = z
     value => value.startsWith('/') && path.posix.normalize(value) === value && !value.includes('//'),
     'must be a normalized absolute POSIX path',
   )
+  .refine(value => !/\[[^/\]]+\]|\{\{[^/}]+\}\}|\$\{[^/}]+\}/.test(value), {
+    message:
+      'contains an unresolved placeholder; resolve the path from the registered target or Appraise hub before sealing the runtime capsule',
+  })
 const envKey = z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/)
 const tagExpression = z
   .string()

@@ -26,9 +26,17 @@ function currentFileApproval(review: ReviewArtifact, file: ValidationArtifact['f
   )
 }
 
+function provenanceBlocker(node: ValidationArtifact['validations'][number]): string | null {
+  return node.astProvenance?.schemaVersion === '2'
+    ? null
+    : `Managed validation ${node.id} is missing exact v2 AST provenance.`
+}
+
 export function assessValidationReadiness(validation: ValidationArtifact, review: ReviewArtifact): ValidationReadiness {
   const decisions = new Map(validation.validationDecisions.map(decision => [decision.validationId, decision]))
   const validationBlockers = validation.validations.flatMap(node => {
+    const provenanceError = provenanceBlocker(node)
+    if (provenanceError) return [provenanceError]
     const decision = decisions.get(node.id)
     const currentDecision = decision?.contentHash === validationNodeHash(node) ? decision : undefined
     if (node.required && currentDecision?.decision !== 'approved') {

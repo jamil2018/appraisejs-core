@@ -98,23 +98,19 @@ blockedBeforeApproval: true | false
 implementationStartedBeforeApproval: true | false
 validationPreparation:
   reachedValidationPreparationStarted: true | false
-  usedValidationPublish: true | false
+  usedValidationAstCheck: true | false
+  usedValidationAstPreview: true | false
+  usedValidationAstCompile: true | false
   validationReviewReadyEmitted: true | false
   validationReviewBrowserLink: '<http://.../plans/<plan-id>?review=validation>'
   validationReviewAppraiseLink: '<appraise://...>'
-  validationArtifactPath: 'appraise/plans/validations/<plan-id>.validation.yaml'
   validationNodeCount: '<number>'
-  manifestPaths:
-    - '<path>'
-  reusedStepPaths:
-    - '<automation/steps/...>'
-  newCustomStepPaths:
-    - '<automation/steps/...>'
-  customStepGapJustifications:
-    - path: '<automation/steps/...>'
-      missingCapability: '<missing reusable capability>'
-      whyLocatorsAndExistingStepsAreInsufficient: '<reason>'
-  todoCreatesZeroCustomSteps: true | false
+  publishOperationId: '<operation-id>'
+  astHash: '<sha256:...>'
+  previewHash: '<sha256:...>'
+  receiptHash: '<sha256:...>'
+  runtimeInputHash: '<sha256:...>'
+  targetAutomationCreated: true | false
 commandsRun:
   - '<exact command>'
 mcpDiscoveryAttempts:
@@ -146,10 +142,10 @@ After each subagent reports standby evidence, the coordinator independently veri
 7. The subagent did not report pending review or pending approval as completion.
 8. The subagent did not start validation preparation or implementation before Appraise approval.
 9. If the validation fixture is used, the coordinator approves the plan through Appraise, waits for
-   `validation_preparation_started`, observes a `validation_publish` call, verifies `validation_review_ready`, and
+   `validation_preparation_started`, observes `validation_ast_check`, `validation_ast_preview`, and
+   `validation_ast_compile`, verifies `validation_review_ready`, and
    records the direct validation review URL.
-10. The validation artifact includes validation nodes, executable metadata, browser/environment matrix, expected
-    failures, changed-file evidence, manifest paths, and `appraise/plans/validations/<plan-id>.validation.yaml`.
+10. The validation publication includes exact v2 AST, preview, receipt, projection, and runtime-input hashes.
 11. The subagent follows the registry-first policy: existing registry/template steps are reused for common web
     workflows, the todo fixture creates zero custom step definitions, and any custom step includes a gap justification
     naming the missing reusable capability and why locators plus existing steps were insufficient.
@@ -168,7 +164,7 @@ manual resource discovery, or raw HTTP JSON-RPC troubleshooting.
 
 `fail`: The agent cannot create a plan, treats chat approval as Appraise lifecycle approval, implements before
 approval, reports completion while review or approval is pending, writes generic tests without an Appraise validation
-artifact, skips `validation_publish`, enters validation approval wait before artifacts are visible, creates
+artifact, skips `validation_ast_compile`, enters validation approval wait before artifacts are visible, creates
 todo-specific custom steps without registry gap justification, or cannot produce durable review-ready evidence.
 
 Record product feedback from partial or fail runs as follow-up issues. Do not frame those findings as agent prompt

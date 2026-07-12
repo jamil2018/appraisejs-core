@@ -132,6 +132,14 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         gherkinPaths: ['automation/features/core.feature'],
         stepPaths: ['automation/steps/core.step.ts'],
         executable: { path: 'automation/features/core.feature' },
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: `sha256:${'a'.repeat(64)}`,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-core-validation',
+          receiptHash: `sha256:${'b'.repeat(64)}`,
+          runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+        },
         matrix: [{ browser: 'chromium', environment: 'local' }],
         expectedFailures: [],
       },
@@ -144,6 +152,14 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         gherkinPaths: ['automation/features/docs.feature'],
         stepPaths: ['automation/steps/docs.step.ts'],
         executable: { path: 'automation/features/docs.feature' },
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: `sha256:${'d'.repeat(64)}`,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-docs-validation',
+          receiptHash: `sha256:${'e'.repeat(64)}`,
+          runtimeInputHash: `sha256:${'f'.repeat(64)}`,
+        },
         matrix: [{ browser: 'chromium', environment: 'local' }],
         expectedFailures: [],
       },
@@ -298,7 +314,7 @@ describe('implementation coordinator checkpoints', () => {
       }),
     )
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ testRunDbId: 'test-run-db-id' }))
-    expect(result.testRunInputs).toEqual([])
+    expect(result).not.toHaveProperty('testRunInputs')
     expect(result.runs[0]).toMatchObject({ testRunId: 'public-run-id' })
     expect(result.runs[0]!.runtimePaths).toBeUndefined()
     expect(result.capsuleStartOutcomes).toEqual([
@@ -405,7 +421,7 @@ describe('implementation coordinator checkpoints', () => {
 
     expect(result.runs.map(run => run.testRunId)).toEqual(prepared.map(row => row.runId))
     expect(result.runs.every(run => run.runtimePaths === undefined)).toBe(true)
-    expect(result.testRunInputs).toEqual([])
+    expect(result.testRunInputs).toBeUndefined()
     expect(result.capsuleStartOutcomes).toEqual([
       { testRunDbId: prepared[0]!.id, status: 'started', attemptId: `attempt-${prepared[0]!.id}` },
       {
@@ -446,49 +462,8 @@ describe('implementation coordinator checkpoints', () => {
     expect(new Set([...first.runs, ...second.runs].map(run => run.testRunId)).size).toBe(4)
     await expect(client.testRun.count({ where: { planId } })).resolves.toBe(4)
     expect([...first.runs, ...second.runs].every(run => run.runtimePaths === undefined)).toBe(true)
-    expect(first.testRunInputs).toEqual([])
-    expect(second.testRunInputs).toEqual([])
-  })
-
-  it('merges reviewed capsule and legacy materialized nodes without cross-contaminating runtime inputs', async () => {
-    const planId = 'implementation-mixed-runtime-batch'
-    await writeArtifacts(planId)
-    await configureReviewedCapsule(planId, `${planId}-target`, {
-      schemaVersion: '2',
-      astHash: `sha256:${'1'.repeat(64)}`,
-      executionAuthority: 'phase2_review_only',
-      publishOperationId: 'astpub_mixed',
-      receiptHash: `sha256:${'2'.repeat(64)}`,
-      runtimeInputHash: `sha256:${'3'.repeat(64)}`,
-    })
-    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare').mockImplementation(async input => {
-      return client.testRun.create({
-        data: {
-          name: input.name,
-          environmentId: input.environmentId,
-          planId: input.planId,
-          targetProjectId: input.targetProjectId,
-        },
-      }) as never
-    })
-    mockSuccessfulCapsuleStart()
-
-    const result = await startImplementationValidation(
-      { planId, commitHash: 'mixed-commit' },
-      { projectDirectory: workspace, client, now: new Date('2026-06-11T04:00:00.000Z') },
-    )
-
-    expect(result.runs).toHaveLength(2)
-    const capsuleRun = result.runs.find(run => run.validationId === 'core-validation')
-    expect(capsuleRun).toMatchObject({ testRunId: expect.any(String) })
-    expect(capsuleRun).not.toHaveProperty('runtimePaths')
-    expect(result.runs.find(run => run.validationId === 'docs-validation')?.runtimePaths).toMatchObject({
-      gherkinPaths: ['automation/features/docs.feature'],
-      stepPaths: ['automation/steps/docs.step.ts'],
-    })
-    expect(result.testRunInputs).toHaveLength(1)
-    expect(result.testRunInputs[0]).toMatchObject({ validationId: 'docs-validation' })
-    expect(result.capsuleStartOutcomes).toHaveLength(1)
+    expect(first.testRunInputs).toBeUndefined()
+    expect(second.testRunInputs).toBeUndefined()
   })
 
   it('atomically verifies explicit tasks from satisfied managed evidence and replays idempotently', async () => {
@@ -723,25 +698,29 @@ describe('implementation coordinator checkpoints', () => {
       astHash: `sha256:${'a'.repeat(64)}`,
       executionAuthority: 'phase2_review_only',
     }
-    const phase2Stored = await repository.compareAndWrite(
-      'validation',
-      planId,
-      storedValidation.hash,
-      serializeYamlArtifact('validation', phase2Validation),
+    expect(() => serializeYamlArtifact('validation', phase2Validation)).toThrow(
+      'Managed validation requires exact v2 AST provenance.',
     )
-    await expect(
-      startImplementationValidation(
-        { planId, validationIds: ['core-validation'], commitHash: 'commit-final' },
-        { projectDirectory: workspace, client },
-      ),
-    ).rejects.toMatchObject({ code: 'CONFLICT' })
-    phase2Validation.validations[0]!.astProvenance = undefined
-    await repository.compareAndWrite(
-      'validation',
-      planId,
-      phase2Stored.hash,
-      serializeYamlArtifact('validation', phase2Validation),
-    )
+
+    await configureReviewedCapsule(planId, `${planId}-target`, {
+      schemaVersion: '2',
+      astHash: `sha256:${'a'.repeat(64)}`,
+      executionAuthority: 'phase3_capsule',
+      publishOperationId: 'publish-core-validation',
+      receiptHash: `sha256:${'b'.repeat(64)}`,
+      runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+    })
+    vi.spyOn(RuntimeCapsuleTestRunService.prototype, 'prepare').mockImplementation(async input => {
+      return client.testRun.create({
+        data: {
+          name: input.name,
+          environmentId: input.environmentId,
+          planId: input.planId,
+          targetProjectId: input.targetProjectId,
+        },
+      }) as never
+    })
+    mockSuccessfulCapsuleStart()
 
     const started = await startImplementationValidation(
       { planId, validationIds: ['core-validation'], commitHash: 'commit-final' },
@@ -750,19 +729,8 @@ describe('implementation coordinator checkpoints', () => {
     expect(started).toMatchObject({
       plan: { lifecycle: 'validating' },
       runs: [expect.objectContaining({ validationId: 'core-validation', status: 'running' })],
-      testRunInputs: [
-        expect.objectContaining({
-          planId,
-          validationId: 'core-validation',
-          implementationValidationRunId: expect.stringContaining('implementation-validation-core-validation'),
-          browserEngine: 'CHROMIUM',
-          featurePaths: ['automation/features/core.feature'],
-          importPaths: ['automation/steps/core.step.ts'],
-          tagExpression: '(@ts_case-core-suite and @tc_case-core)',
-          expectedTestCases: [{ testCaseId: 'case-core', testSuiteId: 'case-core-suite' }],
-        }),
-      ],
     })
+    expect(started.testRunInputs).toBeUndefined()
 
     const run = started.runs[0]!
     await expect(

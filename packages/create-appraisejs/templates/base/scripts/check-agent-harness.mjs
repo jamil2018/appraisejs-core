@@ -68,18 +68,19 @@ const requiredTokens = [
     file: 'docs/agent-lifecycle-flow.md',
     tokens: [
       'No wait call before complete URL handoff',
-      'validation_publish',
-      'appraise/plans/validations/<plan-id>.validation.yaml',
+      'validation_ast_check',
+      'validation_ast_preview',
+      'validation_ast_compile',
     ],
   },
   {
     file: 'docs/agent-real-subagent-audit-protocol.md',
     tokens: [
       'Use AppraiseJS to plan and prepare validations for a simple todo app',
-      'validation_publish',
+      'validation_ast_compile',
       'validation_review_ready',
-      'todoCreatesZeroCustomSteps',
-      'customStepGapJustifications',
+      'targetAutomationCreated',
+      'runtimeInputHash',
     ],
   },
   {
@@ -92,14 +93,7 @@ const requiredTokens = [
   },
   {
     file: '.agents/skills/appraise-validation-preparation/SKILL.md',
-    tokens: [
-      'ValidationArtifact',
-      'automation/features',
-      'automation/steps',
-      'registry/template steps',
-      'gap justification',
-      'validation_publish',
-    ],
+    tokens: ['validation_ast_check', 'validation_ast_preview', 'validation_ast_compile', 'runtime capsule'],
   },
 ]
 

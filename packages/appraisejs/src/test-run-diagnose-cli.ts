@@ -50,7 +50,7 @@ export async function runTestRunDiagnose(
   if (options.json) {
     dependencies.write(JSON.stringify(diagnostic, null, 2))
   } else {
-    dependencies.write(`Run ${options.runId}: ${result.kind === 'capsule' ? 'capsule' : 'legacy'}`)
+    dependencies.write(`Run ${options.runId}: ${result.kind === 'capsule' ? 'capsule' : 'manual'}`)
     dependencies.write(`Status: ${blocked ? 'blocked' : 'ready'}`)
     const action = (diagnostic.nextRecoveryAction ?? diagnostic.nextAction) as Record<string, unknown> | undefined
     dependencies.write(`Next: ${boundedText(action?.code ?? action?.tool, 'inspect diagnostic JSON')}`)

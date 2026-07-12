@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { CompiledCustomExtension } from '@/lib/validation-ast'
 
-import { projectCompiledValidationArtifacts } from './validation-runtime-projection-service'
+import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
 
 describe('compiled validation extension persistence', () => {
   it('appends the exact reviewed extension in the same transaction as canonical projection', async () => {

@@ -1,7 +1,13 @@
-import type { ValidationArtifact, ValidationDraft } from '@/lib/plan-contract'
+import type { ValidationArtifact } from '@/lib/plan-contract'
 
-type ValidationNode = ValidationArtifact['validations'][number] | ValidationDraft['validations'][number]
-export type LocatorResolutionBlocker = ValidationDraft['blockers'][number]
+type ValidationNode = ValidationArtifact['validations'][number]
+export type LocatorResolutionBlocker = {
+  code: string
+  path: Array<string | number>
+  phrase?: string
+  message: string
+  recovery: string
+}
 type Locator = ValidationNode['appraiseArtifacts']['locators'][number]
 type StepParameter = ValidationNode['appraiseArtifacts']['testCases'][number]['steps'][number]['parameters'][number]
 type LocatorIndex = { byId: Map<string, Locator>; byName: Map<string, Locator[]>; groupIds: Set<string> }

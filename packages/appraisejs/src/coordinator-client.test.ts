@@ -178,7 +178,7 @@ describe('online coordinator client', () => {
 
   it('scopes TestRun read and diagnose to the selected project fingerprint', async () => {
     const cwd = await workspace()
-    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json({ kind: 'legacy', evidence: {} })))
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json({ kind: 'manual', evidence: {} })))
     vi.stubGlobal('fetch', fetchMock)
     const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
     await client.readTestRun('run-one')

@@ -38,7 +38,7 @@ import {
   readLatestPlanEventSequence,
   withPlanEventStreamLock,
 } from './coordinator-service'
-import { readStoredJsonReport, runtimePathsForValidation, supportImportPaths } from './coordinator-baseline-service'
+import { readStoredJsonReport } from './coordinator-baseline-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date; appraiseRoot?: string }
 
@@ -593,22 +593,6 @@ export async function recordImplementationValidation(
 }
 
 type ImplementationValidation = ValidationArtifact['validations'][number]
-type ImplementationTestRunInput = {
-  target: string
-  environmentId: string
-  name: string
-  tagExpression: string
-  testWorkersCount: number
-  browserEngine: BrowserEngine
-  planId: string
-  validationId: string
-  implementationValidationRunId: string
-  featurePaths: string[]
-  importPaths: string[]
-  supportPaths: string[]
-  prepareWorkspace: boolean
-  expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
-}
 type CapsuleStart = {
   request: Parameters<RuntimeCapsuleTestRunService['prepare']>[0]
   testRunDbId: string
@@ -620,7 +604,7 @@ function selectImplementationValidations(validation: ValidationArtifact, request
   if (selected.length !== requestedIds.size) {
     throw new ServiceError('One or more implementation validations were not found.', 'NOT_FOUND')
   }
-  if (selected.some(item => item.astProvenance?.schemaVersion === '1')) {
+  if (selected.some(item => item.astProvenance?.schemaVersion !== '2')) {
     throw new ServiceError('AST validations require an exact reviewed v2 publication before execution.', 'CONFLICT')
   }
   return selected
@@ -695,30 +679,27 @@ async function prepareImplementationMatrixEntry(input: {
   matrix: ImplementationValidation['matrix'][number]
   expectedTestCases: Array<{ testCaseId: string; testSuiteId: string }>
   tagExpression: string
-  runtimePaths: ReturnType<typeof runtimePathsForValidation> | null
   capsuleService: RuntimeCapsuleTestRunService
   capsuleStarts: CapsuleStart[]
   preparedCapsuleTestRunDbIds: string[]
-  testRunInputs: ImplementationTestRunInput[]
 }) {
   const environment = input.environmentByValue.get(input.matrix.environment)
   if (!environment) throw new ServiceError(`Environment "${input.matrix.environment}" was not found.`, 'VALIDATION')
   const provenance = input.validation.astProvenance
-  const isReviewedAst = provenance?.schemaVersion === '2'
+  if (provenance?.schemaVersion !== '2')
+    throw new ServiceError('Managed implementation validation requires exact v2 AST provenance.', 'CONFLICT')
   const id = implementationValidationRunId(
     input.validation.id,
     input.matrix.browser,
     input.matrix.environment,
     input.startedAt,
   )
-  const provenanceIdentity = isReviewedAst
-    ? `${provenance.publishOperationId}:${provenance.runtimeInputHash}`
-    : `legacy:${input.artifacts.validationStored.hash}`
+  const provenanceIdentity = `${provenance.publishOperationId}:${provenance.runtimeInputHash}`
   const prefix = `implementation:${input.planId}:${input.artifacts.plan.revision}:${provenanceIdentity}:${input.validation.id}:${input.matrix.browser}:${input.matrix.environment}:`
   const preparationKey = await durablePreparationKey({ client: input.client, prefix })
   const name = `Implementation validation ${input.planId} ${input.validation.id} ${input.matrix.browser} ${input.matrix.environment}`
   let testRunId: string | undefined
-  if (isReviewedAst) {
+  {
     const request = {
       operationId: provenance.publishOperationId,
       planId: input.planId,
@@ -733,23 +714,6 @@ async function prepareImplementationMatrixEntry(input: {
     testRunId = prepared.runId
     input.capsuleStarts.push({ request, testRunDbId: prepared.id })
     input.preparedCapsuleTestRunDbIds.push(prepared.id)
-  } else {
-    input.testRunInputs.push({
-      target: input.projection?.targetProject?.canonicalPath ?? input.artifacts.projectRoot,
-      environmentId: environment.id,
-      name,
-      tagExpression: input.tagExpression,
-      testWorkersCount: 1,
-      browserEngine: browserEngine(input.matrix.browser),
-      planId: input.planId,
-      validationId: input.validation.id,
-      implementationValidationRunId: id,
-      featurePaths: input.runtimePaths!.featurePaths,
-      importPaths: input.runtimePaths!.importPaths,
-      supportPaths: supportImportPaths(input.artifacts.projectRoot),
-      prepareWorkspace: false,
-      expectedTestCases: input.expectedTestCases,
-    })
   }
   return preparedImplementationRun({
     id,
@@ -760,7 +724,6 @@ async function prepareImplementationMatrixEntry(input: {
     environment: input.matrix.environment,
     tagExpression: input.tagExpression,
     testRunId,
-    ...(input.runtimePaths ? { runtimePaths: input.runtimePaths } : {}),
   })
 }
 
@@ -779,18 +742,15 @@ async function prepareImplementationMatrix(input: {
     input.client,
   )
   const suiteIdByTestCaseId = mapTestCasesToSuites(input.artifacts.validation)
-  const testRunInputs: ImplementationTestRunInput[] = []
   const runningRuns: ImplementationValidationRun[] = []
   const capsuleStarts: CapsuleStart[] = []
   const preparedCapsuleTestRunDbIds = input.preparedCapsuleTestRunDbIds
   const capsuleService = new RuntimeCapsuleTestRunService(input.client)
 
   for (const validation of input.selected) {
-    const isReviewedAst = validation.astProvenance?.schemaVersion === '2'
-    if (isReviewedAst && !projection?.targetProject?.id) {
+    if (!projection?.targetProject?.id) {
       throw new ServiceError('Reviewed AST validation requires an authoritative target project.', 'CONFLICT')
     }
-    const runtimePaths = isReviewedAst ? null : runtimePathsForValidation(input.artifacts.validation, validation)
     const expectedTestCases = expectedTestCasesForValidation(validation, suiteIdByTestCaseId)
     const tagExpression = expectedTestCases
       .map(({ testCaseId, testSuiteId }) => `(@ts_${testSuiteId} and @tc_${testCaseId})`)
@@ -805,16 +765,14 @@ async function prepareImplementationMatrix(input: {
           matrix,
           expectedTestCases,
           tagExpression,
-          runtimePaths,
           capsuleService,
           capsuleStarts,
           preparedCapsuleTestRunDbIds,
-          testRunInputs,
         }),
       )
     }
   }
-  return { capsuleService, capsuleStarts, preparedCapsuleTestRunDbIds, runningRuns, testRunInputs }
+  return { capsuleService, capsuleStarts, preparedCapsuleTestRunDbIds, runningRuns }
 }
 
 async function cancelPreparedCapsuleRuns(client: PrismaClient, ids: string[]) {
@@ -831,7 +789,6 @@ async function persistImplementationValidationStart(input: {
   artifacts: Awaited<ReturnType<typeof readArtifacts>>
   implementation: NonNullable<ValidationArtifact['implementation']>
   runningRuns: ImplementationValidationRun[]
-  testRunInputs: ImplementationTestRunInput[]
 }) {
   const existingIds = new Set(input.runningRuns.map(run => run.id))
   const validation = {
@@ -850,7 +807,7 @@ async function persistImplementationValidationStart(input: {
     {
       planId: input.planId,
       type: 'implementation_validation_started',
-      payload: { runIds: input.runningRuns.map(run => run.id), testRunInputs: input.testRunInputs },
+      payload: { runIds: input.runningRuns.map(run => run.id) },
     },
     input.client,
   )
@@ -903,14 +860,12 @@ export async function startImplementationValidation(
     artifacts,
     implementation,
     runningRuns: prepared.runningRuns,
-    testRunInputs: prepared.testRunInputs,
   })
   const capsuleStartOutcomes = await startPreparedCapsules(prepared.capsuleService, prepared.capsuleStarts)
   return {
     plan,
     validation,
     runs: prepared.runningRuns,
-    testRunInputs: prepared.testRunInputs,
     capsuleStartOutcomes,
   }
 }
@@ -1087,7 +1042,7 @@ async function evaluateImplementationCompletion(
       include: { receipt: true },
     })
   } catch (error) {
-    // A rolling-upgrade or focused legacy fixture without the additive Phase 4
+    // A focused fixture without the additive Phase 4
     // tables has the safe disabled-policy behavior until migrations apply.
     if ((error as { code?: string }).code !== 'P2021') throw error
     exportJob = null

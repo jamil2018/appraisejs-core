@@ -20,13 +20,12 @@ import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-sche
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import type { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
-import { projectValidationArtifacts } from './validation-runtime-projection-service'
+import { projectValidationArtifacts } from './validation-canonical-projection-service'
 import {
   acceptBaseline,
   baselineCapsulePreparationKey,
   acknowledgeBaselineFailure,
   justifyBaselineRegressionPass,
-  mergeLegacyRuntimeIntoReviewedValidation,
   reconcileBaselineExecution,
   retryBaselineAfterRepair,
   startBaselineExecution,
@@ -125,6 +124,14 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         gherkinPaths: ['automation/features/case-one.feature'],
         stepPaths: ['automation/steps/actions/case-one.step.ts'],
         executable: { path: 'automation/features/case-one.feature' },
+        astProvenance: {
+          schemaVersion: '2',
+          astHash: `sha256:${'a'.repeat(64)}`,
+          executionAuthority: 'phase3_capsule',
+          publishOperationId: 'publish-required-check',
+          receiptHash: `sha256:${'b'.repeat(64)}`,
+          runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+        },
         matrix: [
           { browser: 'chromium', environment: 'local' },
           { browser: 'firefox', environment: 'local' },
@@ -256,52 +263,6 @@ describe('baseline execution and implementation gate', () => {
     ).not.toBe(baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 }))
   })
 
-  it('preserves rewritten legacy runtime paths beside an unchanged reviewed v2 capsule node', () => {
-    const reviewed = validation('mixed-runtime')
-    const legacy = reviewed.validations[0]!
-    const capsule = {
-      ...legacy,
-      id: 'capsule-check',
-      astProvenance: {
-        schemaVersion: '2' as const,
-        astHash: `sha256:${'a'.repeat(64)}`,
-        executionAuthority: 'phase2_review_only' as const,
-        publishOperationId: 'operation-one',
-        receiptHash: `sha256:${'b'.repeat(64)}`,
-        runtimeInputHash: `sha256:${'c'.repeat(64)}`,
-      },
-    }
-    const mixed = { ...reviewed, validations: [legacy, capsule] }
-    const rewrittenLegacy = {
-      ...legacy,
-      gherkinPaths: ['/capsules/legacy/runtime.feature'],
-      stepPaths: ['/capsules/legacy/runtime.steps.ts'],
-    }
-    const merged = mergeLegacyRuntimeIntoReviewedValidation(mixed, {
-      ...reviewed,
-      validations: [rewrittenLegacy],
-      runtimeProjections: [
-        {
-          declaredPath: 'automation/features/case-one.feature',
-          targetPath: 'automation/features/case-one.feature',
-          runtimePath: '/capsules/legacy/runtime.feature',
-          contentHash: `sha256:${'d'.repeat(64)}`,
-          role: 'gherkin',
-          materialization: 'copied',
-        },
-      ],
-    })
-
-    expect(merged.validations.find(item => item.id === legacy.id)).toMatchObject({
-      gherkinPaths: ['/capsules/legacy/runtime.feature'],
-      stepPaths: ['/capsules/legacy/runtime.steps.ts'],
-    })
-    expect(merged.validations.find(item => item.id === capsule.id)).toEqual(capsule)
-    expect(merged.runtimeProjections).toEqual(
-      expect.arrayContaining([expect.objectContaining({ runtimePath: '/capsules/legacy/runtime.feature' })]),
-    )
-  })
-
   it('routes an exact reviewed v2 AST baseline through a prepared capsule TestRun without target automation', async () => {
     const planId = 'capsule-baseline'
     await writeArtifacts(planId)
@@ -418,35 +379,6 @@ describe('baseline execution and implementation gate', () => {
     expect(reconciled.evidenceJson).toEqual(stored.evidenceJson)
     expect(reconciled.events.map(event => event.kind)).toEqual(['state_observed', 'state_observed'])
     expect(reconciled.events.map(event => event.sequence)).toEqual([1, 2])
-  })
-
-  it('returns structured recovery metadata for an unsafe legacy TestRun name collision', async () => {
-    const planId = 'baseline-name-conflict'
-    await writeArtifacts(planId)
-    const environment = await client.environment.findUniqueOrThrow({ where: { name: 'local' } })
-    const existing = await client.testRun.create({
-      data: {
-        name: `Baseline ${planId} required-check chromium local attempt 1`,
-        environmentId: environment.id,
-      },
-    })
-
-    await expect(startBaselineExecution(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
-      code: 'CONFLICT',
-      details: {
-        conflictType: 'legacy_baseline_test_run_name',
-        existingTestRun: { testRunId: existing.runId, planId: null, targetProjectId: null },
-        requestedExecution: {
-          planId,
-          validationId: 'required-check',
-          browser: 'chromium',
-          environment: 'local',
-          attemptOrdinal: 0,
-        },
-        reconcileLegal: false,
-        nextAllowedAction: { tool: 'baseline_retry' },
-      },
-    })
   })
 
   it('runs every required baseline combination, records classifications, and unlocks implementation only after acceptance', async () => {
@@ -750,47 +682,7 @@ describe('baseline execution and implementation gate', () => {
     await expect(fs.readFile(path.join(workspace, 'automation', 'features', 'case-one.feature'), 'utf8')).resolves.toBe(
       'Feature: hub drift\n',
     )
-    await expect(readValidation(planId)).resolves.toMatchObject({
-      runtimeProjections: expect.arrayContaining([
-        expect.objectContaining({
-          declaredPath: 'automation/features/case-one.feature',
-          runtimePath: path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
-        }),
-        expect.objectContaining({
-          declaredPath: 'automation/steps/actions/case-one.step.ts',
-          runtimePath: path.join(targetWorkspace, 'automation', 'steps', 'actions', 'case-one.step.ts'),
-        }),
-      ]),
-    })
-
-    const driftPlanId = 'target-bound-drift'
-    await writeArtifacts(driftPlanId)
-    await client.planProjection.update({ where: { planId: driftPlanId }, data: { targetProjectId: targetProject.id } })
-    await fs.writeFile(
-      path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
-      'Feature: target drift\n',
-    )
-
-    await expect(
-      startBaselineExecution(driftPlanId, {
-        projectDirectory: workspace,
-        client,
-        submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
-      }),
-    ).rejects.toMatchObject({
-      code: 'CONFLICT',
-      details: {
-        changedFiles: [
-          expect.objectContaining({
-            path: 'automation/features/case-one.feature',
-            resolvedAbsolutePath: path.join(targetWorkspace, 'automation', 'features', 'case-one.feature'),
-            expectedHash: hashFileContent(generatedFeatureContent(driftPlanId)),
-            currentHash: hashFileContent('Feature: target drift\n'),
-          }),
-        ],
-        targetProject: expect.objectContaining({ id: targetProject.id, canonicalPath: targetWorkspace }),
-      },
-    })
+    await expect(readValidation(planId)).resolves.not.toHaveProperty('runtimeProjections')
 
     await fs.rm(targetWorkspace, { recursive: true, force: true })
   })

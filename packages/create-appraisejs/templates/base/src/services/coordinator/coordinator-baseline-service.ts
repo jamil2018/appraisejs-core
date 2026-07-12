@@ -5,7 +5,6 @@ import path from 'node:path'
 import { BrowserEngine, TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
-import type { TestRun as TestRunFormValue } from '@/constants/form-opts/test-run-form-opts'
 import {
   assessBaselineAcceptance,
   baselineCombinationKey,
@@ -26,11 +25,7 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { ServiceError } from '@/services/shared/errors'
-import {
-  cancelTestRunService,
-  createTestRunFromValidatedValue,
-  getTestRunLogsService,
-} from '@/services/test-run/test-run-service'
+import { getTestRunLogsService } from '@/services/test-run/test-run-service'
 import { summarizeRunEvidence } from '@/services/test-run/run-evidence-summary-service'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import {
@@ -39,12 +34,7 @@ import {
 } from '@/services/test-run/test-run-artifact-context'
 
 import { appendPlanEvent } from './coordinator-service'
-import {
-  assertProjectedBaselineRecords,
-  assertRuntimePreflightPassed,
-  assertValidationEnvironmentsReady,
-  materializeValidationRuntime,
-} from './validation-runtime-projection-service'
+import { assertValidationEnvironmentsReady } from './validation-canonical-projection-service'
 
 type BaselineOptions = {
   client?: PrismaClient
@@ -61,44 +51,6 @@ type BaselineOptions = {
   loadEvidence?: (testRunId: string) => Promise<BaselineEvidence & { status: 'running' | 'completed' }>
   capsuleService?: RuntimeCapsuleTestRunService
   appraiseRoot?: string
-}
-
-export function supportImportPaths(projectRoot: string) {
-  return [
-    path.join(projectRoot, 'packages/cucumber-runtime/src/parameter-types.ts'),
-    path.join(projectRoot, 'packages/cucumber-runtime/src/hooks.ts'),
-    path.join(projectRoot, 'packages/cucumber-runtime/src/world.ts'),
-  ]
-}
-
-export function runtimePathsForValidation(
-  runtimeValidation: ValidationArtifact,
-  validation: ValidationArtifact['validations'][number],
-) {
-  const projectionsByDeclaredPath = new Map(
-    (runtimeValidation.runtimeProjections ?? []).map(projection => [projection.declaredPath, projection]),
-  )
-  const resolveRuntimePath = (declaredPath: string) =>
-    projectionsByDeclaredPath.get(declaredPath)?.runtimePath ?? declaredPath
-  return {
-    featurePaths: validation.gherkinPaths.map(resolveRuntimePath),
-    importPaths: validation.stepPaths.map(resolveRuntimePath),
-  }
-}
-
-export function mergeLegacyRuntimeIntoReviewedValidation(
-  reviewed: ValidationArtifact,
-  legacyRuntime: ValidationArtifact,
-): ValidationArtifact {
-  return {
-    ...reviewed,
-    validations: reviewed.validations.map(validation =>
-      validation.astProvenance?.schemaVersion === '2'
-        ? validation
-        : (legacyRuntime.validations.find(runtime => runtime.id === validation.id) ?? validation),
-    ),
-    runtimeProjections: legacyRuntime.runtimeProjections,
-  }
 }
 
 export function baselineCapsulePreparationKey(input: {
@@ -332,157 +284,10 @@ async function assertBaselineReady(
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
 }
 
-async function assertBaselinePreflight(
-  planId: string,
-  artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
-  client: PrismaClient,
-  validation: ValidationArtifact = artifacts.validation,
-) {
-  await assertValidationFilesUnchanged(artifacts)
-  const runtimeValidation = await materializeValidationRuntime({
-    projectRoot: artifacts.projectRoot,
-    validationFileRoot: artifacts.validationFileRoot,
-    targetProject: artifacts.targetProject,
-    validation,
-  })
-  assertRuntimePreflightPassed(runtimeValidation)
-  await assertProjectedBaselineRecords(planId, runtimeValidation, client, artifacts.targetProject)
-  return runtimeValidation
-}
-
 function browserEngine(browser: string): BrowserEngine {
   const value = browser.toUpperCase()
   if (value === 'CHROMIUM' || value === 'FIREFOX' || value === 'WEBKIT') return value as BrowserEngine
   throw new ServiceError(`Unsupported baseline browser "${browser}".`, 'VALIDATION')
-}
-
-async function baselineTestRunValue(
-  input: {
-    planId: string
-    validation: ValidationArtifact['validations'][number]
-    browser: string
-    environment: string
-    preparationKey: string
-    attemptOrdinal: number
-  },
-  client: PrismaClient,
-): Promise<TestRunFormValue> {
-  const environment = await client.environment.findUnique({ where: { name: input.environment } })
-  if (!environment) throw new ServiceError(`Environment "${input.environment}" was not found.`, 'VALIDATION')
-
-  const testCases = await client.testCase.findMany({
-    where: { id: { in: input.validation.testCaseIds } },
-    select: { id: true, TestSuite: { select: { id: true } } },
-  })
-  if (testCases.length !== input.validation.testCaseIds.length) {
-    throw new ServiceError('One or more baseline test cases were not found.', 'VALIDATION')
-  }
-
-  const suites = new Map<string, string[]>()
-  for (const testCase of testCases) {
-    const suiteId = testCase.TestSuite[0]?.id
-    if (!suiteId) throw new ServiceError(`Test case "${testCase.id}" is not assigned to a suite.`, 'VALIDATION')
-    suites.set(suiteId, [...(suites.get(suiteId) ?? []), testCase.id])
-  }
-
-  return {
-    name: `Baseline ${input.planId} ${input.validation.id} ${input.browser} ${input.environment} attempt ${input.attemptOrdinal + 1}`,
-    environmentId: environment.id,
-    browserEngine: browserEngine(input.browser),
-    testWorkersCount: 1,
-    tags: [],
-    testSuites: [...suites].map(([testSuiteId, testCaseIds]) => ({ testSuiteId, runAll: false, testCaseIds })),
-  }
-}
-
-async function reuseLegacyBaselineTestRun(
-  input: {
-    planId: string
-    validationId: string
-    browser: string
-    environment: string
-    attemptOrdinal: number
-    targetProjectId: string | null
-    name: string
-  },
-  client: PrismaClient,
-) {
-  const existing = await client.testRun.findFirst({
-    where: { name: input.name },
-    select: { runId: true, planId: true, targetProjectId: true, status: true },
-  })
-  if (!existing) return null
-  if (existing.planId === input.planId && existing.targetProjectId === input.targetProjectId) return existing.runId
-  throw new ServiceError(
-    'A legacy baseline TestRun name is already reserved and cannot be reused safely.',
-    'CONFLICT',
-    409,
-    {
-      conflictType: 'legacy_baseline_test_run_name',
-      existingTestRun: {
-        testRunId: existing.runId,
-        status: existing.status,
-        planId: existing.planId,
-        targetProjectId: existing.targetProjectId,
-      },
-      requestedExecution: {
-        planId: input.planId,
-        validationId: input.validationId,
-        browser: input.browser,
-        environment: input.environment,
-        attemptOrdinal: input.attemptOrdinal,
-      },
-      reconcileLegal: false,
-      nextAllowedAction: {
-        tool: 'baseline_retry',
-        reason: 'Return to validation repair so Appraise can allocate a new exact baseline attempt.',
-      },
-    },
-  )
-}
-
-async function submitAppraiseTestRun(
-  input: {
-    planId: string
-    projectRoot: string
-    targetProject: Awaited<ReturnType<typeof readBaselineArtifacts>>['targetProject']
-    runtimeValidation: ValidationArtifact
-    validation: ValidationArtifact['validations'][number]
-    browser: string
-    environment: string
-    preparationKey: string
-    attemptOrdinal: number
-  },
-  client: PrismaClient,
-): Promise<{ testRunId: string }> {
-  const value = await baselineTestRunValue(input, client)
-  const reusedTestRunId = await reuseLegacyBaselineTestRun(
-    {
-      planId: input.planId,
-      validationId: input.validation.id,
-      browser: input.browser,
-      environment: input.environment,
-      attemptOrdinal: input.attemptOrdinal,
-      targetProjectId: input.targetProject?.id ?? null,
-      name: value.name,
-    },
-    client,
-  )
-  if (reusedTestRunId) return { testRunId: reusedTestRunId }
-  const runtimePaths = runtimePathsForValidation(input.runtimeValidation, input.validation)
-  const executionRoot = input.targetProject?.canonicalPath ?? input.projectRoot
-  const created = await createTestRunFromValidatedValue(value, {
-    projectRoot: executionRoot,
-    featurePaths: runtimePaths.featurePaths,
-    importPaths: runtimePaths.importPaths,
-    supportPaths: supportImportPaths(input.projectRoot),
-    prepareWorkspace: false,
-  })
-  await client.testRun.update({
-    where: { id: created.id },
-    data: { planId: input.planId, targetProjectId: input.targetProject?.id ?? null },
-  })
-  return { testRunId: created.runId }
 }
 
 function baselineStartResult(plan: PlanArtifact, validation: ValidationArtifact, reused: boolean) {
@@ -617,15 +422,15 @@ async function baselineRuntimeValidation(
   artifacts: Awaited<ReturnType<typeof readBaselineArtifacts>>,
   client: PrismaClient,
 ) {
-  const legacyValidations = artifacts.validation.validations.filter(
-    validation => validation.astProvenance?.schemaVersion !== '2',
-  )
-  if (legacyValidations.length === 0) return artifacts.validation
-  const legacyRuntime = await assertBaselinePreflight(planId, artifacts, client, {
-    ...artifacts.validation,
-    validations: legacyValidations,
-  })
-  return mergeLegacyRuntimeIntoReviewedValidation(artifacts.validation, legacyRuntime)
+  void planId
+  void client
+  const invalid = artifacts.validation.validations.filter(validation => validation.astProvenance?.schemaVersion !== '2')
+  if (invalid.length > 0)
+    throw new ServiceError(
+      `Managed baseline requires exact v2 AST provenance for every validation; invalid validations: ${invalid.map(item => item.id).join(', ')}.`,
+      'CONFLICT',
+    )
+  return artifacts.validation
 }
 
 function invalidBaselineEvidence(input: {
@@ -675,6 +480,8 @@ async function prepareBaselineAttempts(input: {
       attempt => baselineCombinationKey(attempt) === baselineCombinationKey(combination),
     ).length
     const provenance = validation.astProvenance
+    if (provenance?.schemaVersion !== '2')
+      throw new ServiceError('Managed baseline requires exact v2 AST provenance.', 'CONFLICT')
     const preparationKey = baselineCapsulePreparationKey({
       planId: input.planId,
       revision: input.artifacts.plan.revision,
@@ -682,9 +489,8 @@ async function prepareBaselineAttempts(input: {
       browser: combination.browser,
       environment: combination.environment,
       attemptOrdinal,
-      publishOperationId: provenance?.schemaVersion === '2' ? provenance.publishOperationId : 'legacy',
-      runtimeInputHash:
-        provenance?.schemaVersion === '2' ? provenance.runtimeInputHash : input.artifacts.validationStored.hash,
+      publishOperationId: provenance.publishOperationId,
+      runtimeInputHash: provenance.runtimeInputHash,
     })
     const submitted = await input.submitRun({
       planId: input.planId,
@@ -725,20 +531,9 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
   const submitRun =
     options.submitRun ??
     (async input => {
-      if (input.validation.astProvenance?.schemaVersion === '2') {
-        if (!artifacts.targetProject)
-          throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
-        return submitCapsuleTestRun({ targetProject: artifacts.targetProject, ...input }, client, capsuleService)
-      }
-      return submitAppraiseTestRun(
-        {
-          projectRoot: artifacts.projectRoot,
-          targetProject: artifacts.targetProject,
-          runtimeValidation,
-          ...input,
-        },
-        client,
-      )
+      if (!artifacts.targetProject)
+        throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+      return submitCapsuleTestRun({ targetProject: artifacts.targetProject, ...input }, client, capsuleService)
     })
   const { attempts, pendingStarts } = await prepareBaselineAttempts({
     planId,
@@ -834,8 +629,9 @@ export async function cancelBaselineExecution(planId: string, options: BaselineO
         where: { runId: attempt.testRunId },
         select: { id: true, runtimeCapsuleExecutionAttempt: { select: { id: true } } },
       })
-      if (run?.runtimeCapsuleExecutionAttempt) await capsuleService.cancel(run.id)
-      else await cancelTestRunService(attempt.testRunId)
+      if (!run?.runtimeCapsuleExecutionAttempt)
+        throw new ServiceError('Managed baseline cancellation requires a capsule execution attempt.', 'CONFLICT')
+      await capsuleService.cancel(run.id)
     }),
   )
   const completedAt = (options.now ?? new Date()).toISOString()

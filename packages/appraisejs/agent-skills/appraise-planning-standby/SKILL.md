@@ -32,7 +32,8 @@ Appraise, build this project using Appraise, or generate a plan and show it in A
    `nextAfterSequence`, and recommended wait call so a later turn can resume the same wait. Later unchanged waits use
    the compact `pending_unchanged` cursor, timing, and next-action delta without repeating the brief or full handoff.
 10. On `approved`, call `plan_start`; acknowledge only after `validation_preparation_started`. Before publishing
-    validations, read `appraise://workflow/validation-preparation` and use the `validation_publish` input schema for
+    validations, read `appraise://workflow/validation-preparation` and use `validation_ast_check`,
+    `validation_ast_preview`, and `validation_ast_compile` with the exact reviewed receipt before
     the required artifact shape instead of inspecting AppraiseJS source files.
 11. On `changes_requested`, call `plan_review_read`, revise against the expected hash, and return to standby.
 12. On `cancelled`, acknowledge the cancellation event and stop.

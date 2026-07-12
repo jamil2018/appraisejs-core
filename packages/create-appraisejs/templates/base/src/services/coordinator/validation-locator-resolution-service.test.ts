@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ValidationDraft } from '@/lib/plan-contract'
+import type { ValidationArtifact } from '@/lib/plan-contract'
 
 import { validateValidationLocatorBindings } from './validation-locator-resolution-service'
 
-function validationNode(): ValidationDraft['validations'][number] {
+function validationNode(): ValidationArtifact['validations'][number] {
   return {
     id: 'notes-flow',
     taskIds: ['notes-task'],
@@ -35,6 +35,14 @@ function validationNode(): ValidationDraft['validations'][number] {
     gherkinPaths: ['automation/features/notes.feature'],
     stepPaths: [],
     executable: { path: 'automation/features/notes.feature' },
+    astProvenance: {
+      schemaVersion: '2',
+      astHash: `sha256:${'a'.repeat(64)}`,
+      executionAuthority: 'phase3_capsule',
+      publishOperationId: 'publish-notes',
+      receiptHash: `sha256:${'b'.repeat(64)}`,
+      runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+    },
     matrix: [{ browser: 'chromium', environment: 'local' }],
     expectedFailures: [],
   }
