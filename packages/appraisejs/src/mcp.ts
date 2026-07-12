@@ -1581,6 +1581,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async input => text(await api.queryLocatorGraph(input)),
   )
   server.registerTool(
+    'legacy_automation_import_preview',
+    {
+      description:
+        'Parse the connected project legacy automation into a non-mutating, source-traceable AST migration proposal. Human review and explicit action/locator mapping remain required before canonical compilation.',
+      inputSchema: {},
+    },
+    async () => text(await api.previewLegacyAutomationImport()),
+  )
+  server.registerTool(
     'validation_ast_extension_reviews',
     {
       description: 'Read exact bounded extension reviews and the hash required to bind a review decision.',

@@ -83,6 +83,11 @@ read `plan_review_read` before revising.
 
 ## Internal API
 
+`POST /api/internal/coordinator/legacy-automation-imports/preview` parses the connected target's legacy automation into
+a deterministic, source-traceable proposal. It performs no mutation and always requires human review plus explicit
+catalog/locator resolution before the normal Validation AST compiler can accept a separately authored submission. The
+equivalent MCP tool is `legacy_automation_import_preview`.
+
 All routes are under `/api/internal/coordinator`.
 
 | Method | Path                                                      | Purpose                                                             |

@@ -28,6 +28,10 @@ not repeat the brief or handoff. Pending review or pending approval is not compl
 
 ## Approval And Validation Preparation
 
+Legacy automation migration begins with `legacy_automation_import_preview`. The preview is not a lifecycle approval,
+canonical validation, or executable artifact. It preserves file provenance and unresolved mappings without mutation;
+the agent must author a resolved Validation AST and pass the normal check, preview, human review, and compile gates.
+
 `plan_approved` permits starting validation preparation. A coordinator should acknowledge the approval only after the
 transition it permits succeeds. `validation_preparation_started` marks the validation file generation phase.
 Validation preparation must create AppraiseJS-native review artifacts before standby: `ValidationArtifact`, validation

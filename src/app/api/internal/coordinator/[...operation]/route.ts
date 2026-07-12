@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { defaultActionCatalog } from '@/lib/action-catalog'
+import { previewLegacyAutomationImport } from '@/lib/validation-ast/legacy-import'
 
 import {
   coordinatorContractVersion,
@@ -895,6 +896,11 @@ function assertPlanOperation(operation: string[]): void {
 
 // fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'legacy-automation-imports' && operation[1] === 'preview') {
+    const targetFingerprint = request.headers.get('x-appraise-project') ?? ''
+    const target = await resolveTargetProject(targetFingerprint)
+    return Response.json(await previewLegacyAutomationImport(target.canonicalPath))
+  }
   if (operation[0] === 'repository-exports') {
     if (operation.length === 1) {
       const value = z

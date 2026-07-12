@@ -185,6 +185,7 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       return request(`locator-graph?${parameters}`)
     },
     readLocatorGraphVisual: () => request('locator-graph/visual'),
+    previewLegacyAutomationImport: () => post('legacy-automation-imports/preview', {}),
     submitDelegatedValidationAst: (submission: ValidationAstSubmission, receipt: DelegatedAuthorizationReceipt) =>
       post('delegated/validation-ast-submissions', { submission, receipt }),
     readValidationAstExtensionPolicy: (planId: string) =>
