@@ -218,17 +218,21 @@ const validationNodeSchema = z.object({
 
 const validationNodesSchema = z.array(validationNodeSchema).transform(items => uniqueIds(items, 'validations'))
 
+const managedValidationNodesSchema = validationNodesSchema.superRefine((items, context) => {
+  items.forEach((item, index) => {
+    if (item.astProvenance?.schemaVersion !== '2')
+      context.addIssue({
+        code: 'custom',
+        path: [index, 'astProvenance'],
+        message: 'Managed validation requires exact v2 AST provenance.',
+      })
+  })
+})
+
 const customStepJustificationSchema = z.object({
   path: z.string().min(1),
   missingCapability: z.string().min(1),
   whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1),
-})
-
-const validationStepProposalParameterSchema = z.object({
-  name: z.string().min(1),
-  value: z.string(),
-  type: z.string().min(1).optional(),
-  locatorRef: z.string().min(1).optional(),
 })
 
 const validationReusableRefSchema = z.object({
@@ -237,42 +241,6 @@ const validationReusableRefSchema = z.object({
   groupId: z.string().min(1).optional(),
   groupName: z.string().min(1).optional(),
   path: z.string().min(1).optional(),
-})
-
-const validationStepBlockProposalSchema = z.object({
-  blockRef: z.string().min(1).optional(),
-  intent: z.string().min(1),
-  parameters: z.record(z.string(), z.string()).default({}),
-})
-
-export const validationTestCaseProposalSchema = z.object({
-  title: z.string().min(1),
-  behavior: z.string().min(1),
-  coveredTaskIds: z.array(idSchema).min(1),
-  suiteRef: z.string().min(1).optional(),
-  steps: z
-    .array(
-      z.object({
-        intent: z.string().min(1),
-        gherkinText: z.string().min(1),
-        templateStepRef: z.string().min(1).optional(),
-        stepBlockRef: z.string().min(1).optional(),
-        customStepProposal: z
-          .object({
-            path: z.string().min(1).optional(),
-            missingCapability: z.string().min(1).optional(),
-            whyLocatorsAndExistingStepsAreInsufficient: z.string().min(1).optional(),
-          })
-          .optional(),
-        parameters: z.array(validationStepProposalParameterSchema).default([]),
-      }),
-    )
-    .min(1),
-  stepBlocks: z.array(validationStepBlockProposalSchema).default([]),
-  gherkinPath: z.string().min(1).optional(),
-  stepPath: z.string().min(1).optional(),
-  browser: z.string().min(1).optional(),
-  environment: z.string().min(1).optional(),
 })
 
 const validationDraftBlockerSchema = z.object({
@@ -326,32 +294,6 @@ const validationChangedFileSchema = z.object({
   patch: z.string(),
   declared: z.boolean(),
 })
-
-export const validationDraftSchema = artifactHeaderSchema
-  .extend({
-    draftId: idSchema,
-    revision: z.number().int().positive(),
-    status: z.enum(['draft', 'ready_for_review', 'published', 'changes_requested', 'discarded']),
-    targetProjectId: z.string().min(1).nullable(),
-    sourceHash: hashSchema,
-    baseRevision: validationBaseRevisionSchema,
-    classificationOverrides: z.array(validationClassificationOverrideSchema).default([]),
-    validations: validationNodesSchema,
-    files: z.array(validationChangedFileSchema),
-    manifestPaths: z.array(z.string().min(1)),
-    reusedStepPaths: z.array(z.string().min(1)).default([]),
-    reusedTemplateStepRefs: z.array(validationReusableRefSchema).default([]),
-    reusedStepBlockRefs: z.array(validationReusableRefSchema).default([]),
-    newStepPaths: z.array(z.string().min(1)).default([]),
-    customStepJustifications: z.array(customStepJustificationSchema).default([]),
-    runtimeProjections: z.array(runtimeProjectionSchema).default([]),
-    runtimePreflight: runtimePreflightSchema.optional(),
-    blockers: z.array(validationDraftBlockerSchema).default([]),
-    warnings: z.array(z.string().min(1)).default([]),
-    createdAt: timestampSchema,
-    updatedAt: timestampSchema,
-  })
-  .strict()
 
 export const planArtifactSchema = artifactHeaderSchema
   .extend({
@@ -449,7 +391,7 @@ export const validationArtifactSchema = artifactHeaderSchema
     revision: z.number().int().positive(),
     baseRevision: validationBaseRevisionSchema,
     classificationOverrides: z.array(validationClassificationOverrideSchema).default([]),
-    validations: validationNodesSchema,
+    validations: managedValidationNodesSchema,
     approvals: z.array(approvalSchema),
     reusedStepPaths: z.array(z.string().min(1)).optional(),
     reusedTemplateStepRefs: z.array(validationReusableRefSchema).optional(),
@@ -579,5 +521,4 @@ export type ArtifactKind = keyof typeof artifactSchemas
 export type PlanArtifact = z.infer<typeof planArtifactSchema>
 export type ReviewArtifact = z.infer<typeof reviewArtifactSchema>
 export type ValidationArtifact = z.infer<typeof validationArtifactSchema>
-export type ValidationDraft = z.infer<typeof validationDraftSchema>
 export type LayoutArtifact = z.infer<typeof layoutArtifactSchema>
