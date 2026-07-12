@@ -56,7 +56,7 @@ describe('test run logs route', () => {
       params: Promise.resolve({ runId: 'run-1' }),
     })
 
-    const body = await response.json()
+    const body = await response!.json()
     expect(body.mode).toBe('errorsOnly')
     expect(body.totalLogEntries).toBe(4)
     expect(body.logs).toEqual([expect.objectContaining({ type: 'stderr', message: 'Error: failed step' })])
@@ -67,7 +67,7 @@ describe('test run logs route', () => {
       params: Promise.resolve({ runId: 'run-1' }),
     })
 
-    const body = await response.json()
+    const body = await response!.json()
     expect(body.logs.map((log: { message: string }) => log.message)).toEqual(['Error: failed step', 'after'])
   })
 
@@ -77,6 +77,6 @@ describe('test run logs route', () => {
       { params: Promise.resolve({ runId: 'run-1' }) },
     )
 
-    await expect(response.text()).resolves.toContain('[stderr] Error: failed step')
+    await expect(response!.text()).resolves.toContain('[stderr] Error: failed step')
   })
 })

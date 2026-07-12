@@ -16,6 +16,12 @@ describe('MCP setup config', () => {
       command: 'appraisejs',
       args: ['mcp', '--cwd', '/tmp/appraise-hub', '--base-url', 'http://127.0.0.1:3998'],
     })
+    expect(config.codex).toEqual({
+      inspectCommand: 'codex mcp get appraisejs',
+      removeCommand: 'codex mcp remove appraisejs',
+      addCommand: 'codex mcp add appraisejs --url http://127.0.0.1:3999/custom-mcp',
+      verifyCommand: 'codex mcp get appraisejs',
+    })
     expect(config.skillPath).toBe('/tmp/appraise-hub/.agents/skills/appraise-project-from-brief')
   })
 })

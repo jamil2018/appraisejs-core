@@ -4,14 +4,18 @@ import { promises as fs } from 'fs'
 import { getAutomationRunLogPath, toProjectRelativePath } from '@/lib/automation/automation-path-roots'
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 
-async function ensureLogsDirectory(testRunId: string): Promise<void> {
+async function ensureLogsDirectory(testRunId: string, explicitPath?: string): Promise<void> {
+  if (explicitPath) {
+    await fs.mkdir(path.dirname(explicitPath), { recursive: true })
+    return
+  }
   await ensureAutomationWorkspaceReady()
   await fs.mkdir(path.dirname(getAutomationRunLogPath(testRunId)), { recursive: true })
 }
 
-export async function createTestRunLogger(testRunId: string): Promise<winston.Logger> {
-  await ensureLogsDirectory(testRunId)
-  const logFilePath = getAutomationRunLogPath(testRunId)
+export async function createTestRunLogger(testRunId: string, explicitPath?: string): Promise<winston.Logger> {
+  await ensureLogsDirectory(testRunId, explicitPath)
+  const logFilePath = explicitPath ?? getAutomationRunLogPath(testRunId)
 
   const logFormat = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),

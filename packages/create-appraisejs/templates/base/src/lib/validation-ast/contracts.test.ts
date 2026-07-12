@@ -71,19 +71,48 @@ describe('validation AST contracts', () => {
   })
 
   it('rejects unknown versions, duplicate step ids, and raw executable action fields', () => {
+    const withSteps = (steps: Array<(typeof ast.scenarios)[number]['steps'][number]>) => ({
+      ...ast,
+      scenarios: [{ ...ast.scenarios[0], steps }],
+    })
     expect(validationAstSchema.safeParse({ ...ast, schemaVersion: '2' }).success).toBe(false)
     expect(
-      validationAstSchema.safeParse({
-        ...ast,
-        scenarios: [{ ...ast.scenarios[0], steps: [ast.scenarios[0].steps[0], ast.scenarios[0].steps[0]] }],
-      }).success,
+      validationAstSchema.safeParse(withSteps([ast.scenarios[0].steps[0], ast.scenarios[0].steps[0]])).success,
     ).toBe(false)
     expect(
-      validationAstSchema.safeParse({
-        ...ast,
-        scenarios: [{ ...ast.scenarios[0], steps: [{ ...ast.scenarios[0].steps[0], source: 'raw code' }] }],
-      }).success,
+      validationAstSchema.safeParse(withSteps([{ ...ast.scenarios[0].steps[0], source: 'raw code' }])).success,
     ).toBe(false)
+  })
+
+  it('rejects multiline, tag, and grammar injection in every Gherkin-authored field', () => {
+    for (const injected of ['safe\nScenario: injected', '@injected', 'Scenario: injected', 'Feature: injected']) {
+      expect(validationAstSchema.safeParse({ ...ast, title: injected }).success).toBe(false)
+      expect(validationAstSchema.safeParse({ ...ast, purpose: injected }).success).toBe(false)
+      expect(
+        validationAstSchema.safeParse({
+          ...ast,
+          scenarios: [{ ...ast.scenarios[0], title: injected }],
+        }).success,
+      ).toBe(false)
+      expect(
+        validationAstSchema.safeParse({
+          ...ast,
+          scenarios: [{ ...ast.scenarios[0], description: injected }],
+        }).success,
+      ).toBe(false)
+      expect(
+        validationAstSchema.safeParse({
+          ...ast,
+          scenarios: [
+            {
+              ...ast.scenarios[0],
+              steps: [{ ...ast.scenarios[0].steps[0], description: injected }],
+            },
+          ],
+        }).success,
+      ).toBe(false)
+    }
+    expect(validationAstSchema.safeParse({ ...ast, title: 'When persistence matters' }).success).toBe(true)
   })
 
   it('bounds source and rejects duplicate extension identities and declarations', () => {

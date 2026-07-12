@@ -87,6 +87,10 @@ read-only guidance for those mechanical transitions rather than competing button
 with baseline decisions and interrupts: cancelling active baseline runs, acknowledging unrelated failures, justifying
 accepted regression-pass evidence, and accepting complete baseline evidence.
 
+Baseline TestRun display names include the durable attempt ordinal. Replaying an active content-bound preparation
+reuses its existing TestRun, while a repaired and reapproved validation advances the ordinal and receives a distinct
+name without deleting or renaming historical evidence.
+
 ## Implementation
 
 Tasks move through `pending`, `in_progress`, `implemented`, and `verified`. Dependencies must be verified before a

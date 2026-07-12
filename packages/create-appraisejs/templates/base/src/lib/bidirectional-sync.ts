@@ -5,6 +5,7 @@ import { mergeScenariosWithExistingTestSuites } from './database-sync'
 import { generateFeatureFile } from './feature-file-generator'
 import prisma from '@/config/db-config'
 import { Module, TestSuite } from '@prisma/client'
+import { readGeneratedAutomationOwnership } from '@/lib/automation/generated-ownership'
 
 // Type for TestSuite with included module relation
 type TestSuiteWithModule = TestSuite & {
@@ -51,6 +52,14 @@ export async function performBidirectionalSync(featuresBaseDir: string): Promise
 
   try {
     console.log('🔄 Starting bidirectional sync between database and feature files...')
+
+    const ownership = await readGeneratedAutomationOwnership(join(featuresBaseDir, '..'))
+    if (ownership) {
+      throw new Error(
+        `Direct mutation of Appraise-generated automation is deprecated and blocked for ${ownership.validationHash}. ` +
+          'Create a reviewed Validation AST revision and replace it through repository export instead.',
+      )
+    }
 
     // Step 1: Sync from filesystem to database (FS -> DB)
     console.log('📁 Scanning feature files from filesystem...')
