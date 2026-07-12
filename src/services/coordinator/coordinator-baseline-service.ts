@@ -34,7 +34,7 @@ import {
 } from '@/services/test-run/test-run-artifact-context'
 
 import { appendPlanEvent } from './coordinator-service'
-import { assertValidationEnvironmentsReady } from './validation-runtime-projection-service'
+import { assertValidationEnvironmentsReady } from './validation-canonical-projection-service'
 
 type BaselineOptions = {
   client?: PrismaClient

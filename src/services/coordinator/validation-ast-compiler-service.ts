@@ -14,7 +14,7 @@ import {
 } from '@/lib/validation-ast'
 import { ServiceError } from '@/services/shared/errors'
 import { validationAstExtensionReferences } from '@/lib/validation-ast/extension-references'
-import { projectCompiledValidationArtifacts } from './validation-runtime-projection-service'
+import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
 
 export const PROJECT_EXTENSION_CAPABILITY_IMPORTS = {
   browser: ['@playwright/test'],

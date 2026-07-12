@@ -4,7 +4,7 @@ import { validationArtifactSchema } from '@/lib/plan-contract'
 import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import type { CompiledCustomExtension } from '@/lib/validation-ast'
 import { ServiceError } from '@/services/shared/errors'
-import { projectCompiledValidationArtifacts } from './validation-runtime-projection-service'
+import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
 import {
   advanceValidationAstPublish,
   validateStoredValidationAstPublish,

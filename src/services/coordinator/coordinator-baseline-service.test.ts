@@ -20,7 +20,7 @@ import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-sche
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import type { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
-import { projectValidationArtifacts } from './validation-runtime-projection-service'
+import { projectValidationArtifacts } from './validation-canonical-projection-service'
 import {
   acceptBaseline,
   baselineCapsulePreparationKey,

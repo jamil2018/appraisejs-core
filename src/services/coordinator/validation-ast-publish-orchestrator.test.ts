@@ -7,9 +7,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { resumeValidationAstPublish } from './validation-ast-publish-orchestrator'
-import { projectCompiledValidationArtifacts } from './validation-runtime-projection-service'
+import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
 
-vi.mock('./validation-runtime-projection-service', () => ({ projectCompiledValidationArtifacts: vi.fn() }))
+vi.mock('./validation-canonical-projection-service', () => ({ projectCompiledValidationArtifacts: vi.fn() }))
 const hash = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
 let workspace = ''
 afterEach(async () => fs.rm(workspace, { recursive: true, force: true }))

@@ -6,9 +6,9 @@ import {
   mergeCompiledValidationNode,
   PROJECT_EXTENSION_CAPABILITY_IMPORTS,
 } from './validation-ast-compiler-service'
-import { projectCompiledValidationArtifacts } from './validation-runtime-projection-service'
+import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
 
-vi.mock('./validation-runtime-projection-service', () => ({
+vi.mock('./validation-canonical-projection-service', () => ({
   projectCompiledValidationArtifacts: vi.fn().mockResolvedValue({ testCases: 1 }),
 }))
 
