@@ -425,3 +425,7 @@ npm run smoke:coordinator
 ```
 
 The smoke test creates a minimal plan through the authenticated API and waits for its `plan_review_ready` event.
+Validation publication and baseline start/reconcile apply the same contract. Summary responses keep lifecycle deltas,
+canonical artifact hashes and paths, counts, attempt/TestRun identity, blockers, links, and the next legal action ahead of any
+optional artifact body. Cursor reads are ascending, bounded, include the newest delivered event explicitly, and
+unchanged plan or validation waits return only cursor, timing, and next-action deltas.

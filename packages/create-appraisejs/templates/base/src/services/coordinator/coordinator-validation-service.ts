@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import type { Prisma, PrismaClient } from '@prisma/client'
 
@@ -33,6 +33,7 @@ type Options = {
 }
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
 const validationArtifactPath = (planId: string) => `appraise/plans/validations/${planId}.validation.yaml`
+const artifactHash = (content: string) => `sha256:${createHash('sha256').update(content).digest('hex')}`
 const isAutomationStepPath = (filePath: string) =>
   filePath.startsWith('automation/steps/') && /\.(?:step|steps)\.ts$/.test(filePath)
 
@@ -149,6 +150,7 @@ export async function publishPreparedValidations(
   await appendPlanEvent({ planId, type: 'validation_review_ready', payload: { revision: validation.revision } }, client)
   return {
     validation: materializedValidation,
+    validationHash: artifactHash(content),
     reviewUrl: `/plans/${planId}?review=validation`,
     lifecycle: nextPlan.lifecycle,
     revision: nextPlan.revision,

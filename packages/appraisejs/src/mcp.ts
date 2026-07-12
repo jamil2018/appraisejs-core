@@ -247,7 +247,7 @@ function withGuidance(
 
 const responseModeSchema = z.enum(['summary', 'evidenceOnly', 'blockersOnly', 'linksOnly', 'full']).default('summary')
 
-function applyResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
+export function applyResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
   if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
   const payload = value as Record<string, unknown>
   if (responseMode === 'linksOnly') {
@@ -295,6 +295,52 @@ function applyResponseMode(value: unknown, responseMode: z.infer<typeof response
     reportUrl: payload.reportUrl,
     logsUrl: payload.logsUrl,
     nextAllowedAction: payload.nextAllowedAction,
+  }
+}
+
+export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
+  if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
+  const payload = value as Record<string, unknown>
+  const plan = payload.plan && typeof payload.plan === 'object' ? (payload.plan as Record<string, unknown>) : undefined
+  const common = {
+    planId: payload.planId ?? plan?.planId,
+    lifecycle: payload.lifecycle ?? plan?.lifecycle,
+    revision: payload.revision ?? plan?.revision,
+    contentHash: payload.contentHash ?? payload.validationHash,
+    nextAllowedAction: payload.nextAllowedAction,
+    nextRecommendedAction: payload.nextRecommendedAction,
+    nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
+  }
+  if (responseMode === 'linksOnly')
+    return { ...common, links: payload.links, browserUrl: payload.browserUrl, appraiseUrl: payload.appraiseUrl }
+  if (responseMode === 'blockersOnly') return { ...common, blockers: payload.blockers, warnings: payload.warnings }
+  if (responseMode === 'evidenceOnly') {
+    return {
+      ...common,
+      attemptId: payload.attemptId,
+      testRunId: payload.testRunId,
+      testRunIds: payload.testRunIds,
+      evidence: payload.evidence ?? payload.evidenceSummary,
+      counts: payload.counts,
+      manifestPaths: payload.manifestPaths,
+    }
+  }
+  return {
+    ...common,
+    published: payload.published,
+    attemptId: payload.attemptId,
+    testRunId: payload.testRunId,
+    testRunIds: payload.testRunIds,
+    reused: payload.reused,
+    evidence: payload.evidenceSummary ?? payload.evidence,
+    counts: payload.counts,
+    blockers: payload.blockers,
+    warnings: payload.warnings,
+    manifestPaths: payload.manifestPaths,
+    validationArtifactPath: payload.validationArtifactPath,
+    links: payload.links,
+    browserUrl: payload.browserUrl,
+    appraiseUrl: payload.appraiseUrl,
   }
 }
 
@@ -1382,6 +1428,20 @@ export function validationReviewPendingResponse(input: {
   }
   const browserUrl = linkFromSnapshot(input.current.links, 'browser')
   const appraiseUrl = linkFromSnapshot(input.current.links, 'appraise') ?? `appraise://plans/${input.planId}`
+  if (input.afterSequence > 0 && input.events.length === 0) {
+    return {
+      status: 'pending_unchanged',
+      phase: 'validation_review',
+      terminal: false,
+      mustContinue: true,
+      planId: input.planId,
+      currentAfterSequence: input.afterSequence,
+      nextAfterSequence,
+      recommendedWait,
+      nextRecommendedAction: 'Continue validation-review standby with nextAfterSequence.',
+      nextRequiredAgentBehavior: 'standby_for_validation_review',
+    }
+  }
   return {
     status: 'pending',
     phase: 'validation_review',
@@ -1403,6 +1463,18 @@ export function validationReviewPendingResponse(input: {
     nextRecommendedAction:
       'Remain in validation-review standby until Appraise emits validations_approved, validation_changes_requested, or cancellation.',
     nextRequiredAgentBehavior: 'standby_for_validation_review',
+  }
+}
+
+export function orderedEventBatch(afterSequence: number, events: CoordinatorToolEvent[]) {
+  const orderedEvents = [...events]
+    .filter(event => event.sequence > afterSequence)
+    .sort((left, right) => left.sequence - right.sequence)
+  return {
+    events: orderedEvents,
+    latestEvent: orderedEvents.at(-1) ?? null,
+    currentAfterSequence: afterSequence,
+    nextAfterSequence: nextApprovalWaitSequence(afterSequence, orderedEvents),
   }
 }
 
@@ -2805,9 +2877,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Publish the Appraise-owned validation draft for user review. Appraise renders the validation YAML, emits validation_review_ready, and moves to validation-review standby.',
-      inputSchema: { planId: z.string(), draftId: z.string() },
+      inputSchema: { planId: z.string(), draftId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId, draftId }) => {
+    async ({ planId, draftId, responseMode }) => {
       const published = (await api.request(`plans/${planId}/validations/draft/publish`, {
         method: 'POST',
         body: JSON.stringify({ draftId }),
@@ -2818,6 +2890,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           lifecycle?: string
           revision?: number
           validationArtifactPath?: string
+          validationHash?: string
           validationCount?: number
           changedFileCount?: number
           manifestPaths?: string[]
@@ -2826,8 +2899,19 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         blockers?: unknown[]
       }
       const reviewLinks = published.validation?.validationReviewLinks ?? published.validationReviewLinks
-      return text({
-        ...published,
+      const result = {
+        published: published.published,
+        planId,
+        lifecycle: published.validation?.lifecycle,
+        revision: published.validation?.revision,
+        validationArtifactPath: published.validation?.validationArtifactPath,
+        validationHash: published.validation?.validationHash,
+        counts: {
+          validations: published.validation?.validationCount ?? 0,
+          changedFiles: published.validation?.changedFileCount ?? 0,
+        },
+        manifestPaths: published.validation?.manifestPaths ?? [],
+        blockers: published.blockers ?? [],
         browserUrl: reviewLinks?.browser,
         appraiseUrl: reviewLinks?.appraise ?? `appraise://plans/${planId}`,
         requiredUserFacingMessage: published.published
@@ -2845,7 +2929,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             ].join('\n')
           : `Validation draft has blockers: ${JSON.stringify(published.blockers ?? [])}`,
         nextRequiredAgentBehavior: published.published ? 'standby_for_validation_review' : 'revise_validation_draft',
-      })
+      }
+      return text(applyLifecycleResponseMode(responseMode === 'full' ? published : result, responseMode))
     },
   )
   server.registerTool(
@@ -2853,9 +2938,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Legacy compatibility path: publish a full generated validation artifact for user review. Prefer validation_draft_create, draft mutation tools, validation_draft_check, and validation_draft_publish for new agents.',
-      inputSchema: { planId: z.string(), validation: validationArtifactSchema },
+      inputSchema: { planId: z.string(), validation: validationArtifactSchema, responseMode: responseModeSchema },
     },
-    async ({ planId, validation }) => {
+    async ({ planId, validation, responseMode }) => {
       const published = (await api.request(`plans/${planId}/validations/publish`, {
         method: 'POST',
         body: JSON.stringify({ validation }),
@@ -2864,13 +2949,14 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         lifecycle?: string
         revision?: number
         validationArtifactPath?: string
+        validationHash?: string
         validationCount?: number
         changedFileCount?: number
         manifestPaths?: string[]
         reusedStepPaths?: string[]
         newStepPaths?: string[]
       }
-      return text({
+      const result = {
         ...published,
         browserUrl: published.validationReviewLinks?.browser,
         appraiseUrl: published.validationReviewLinks?.appraise ?? `appraise://plans/${planId}`,
@@ -2894,7 +2980,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           `Artifact: ${published.validationArtifactPath ?? `appraise/plans/validations/${planId}.validation.yaml`}`,
         ].join('\n'),
         nextRequiredAgentBehavior: 'standby_for_validation_review',
-      })
+      }
+      return text(applyLifecycleResponseMode(responseMode === 'full' ? published : result, responseMode))
     },
   )
   server.registerTool(
@@ -2990,44 +3077,50 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'baseline_start',
     {
       description: 'Agent-owned execution tool: start required baseline executions after validation review approval.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId }) =>
+    async ({ planId, responseMode }) =>
       text(
-        lifecycleToolPayload({
-          planId,
-          result: await api.request(`plans/${planId}/baseline/start`, { method: 'POST', body: '{}' }),
-          nextRecommendedAction: 'Call baseline_reconcile until baseline evidence enters review.',
-          nextRequiredAgentBehavior: 'reconcile_baseline',
-          nextAllowedAction: { tool: 'baseline_reconcile' },
-        }),
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/baseline/start`, { method: 'POST', body: '{}' }),
+            nextRecommendedAction: 'Call baseline_reconcile until baseline evidence enters review.',
+            nextRequiredAgentBehavior: 'reconcile_baseline',
+            nextAllowedAction: { tool: 'baseline_reconcile' },
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
     'baseline_reconcile',
     {
       description: 'Agent-owned execution tool: refresh baseline evidence and detect when review is ready.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId }) => {
+    async ({ planId, responseMode }) => {
       const result = await api.request(`plans/${planId}/baseline/reconcile`, { method: 'POST', body: '{}' })
       const lifecycle =
         result && typeof result === 'object' && 'plan' in result
           ? (result as { plan?: { lifecycle?: string } }).plan?.lifecycle
           : undefined
       return text(
-        lifecycleToolPayload({
-          planId,
-          result,
-          nextRecommendedAction:
-            lifecycle === 'baseline_review'
-              ? 'Review baseline evidence, acknowledge or justify allowed results, then call baseline_accept.'
-              : 'Continue calling baseline_reconcile until baseline review is ready, or cancel if the run should stop.',
-          nextRequiredAgentBehavior:
-            lifecycle === 'baseline_review' ? 'review_and_accept_baseline' : 'reconcile_baseline',
-          nextAllowedAction:
-            lifecycle === 'baseline_review' ? { tool: 'baseline_accept' } : { tool: 'baseline_reconcile' },
-        }),
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result,
+            nextRecommendedAction:
+              lifecycle === 'baseline_review'
+                ? 'Review baseline evidence, acknowledge or justify allowed results, then call baseline_accept.'
+                : 'Continue calling baseline_reconcile until baseline review is ready, or cancel if the run should stop.',
+            nextRequiredAgentBehavior:
+              lifecycle === 'baseline_review' ? 'review_and_accept_baseline' : 'reconcile_baseline',
+            nextAllowedAction:
+              lifecycle === 'baseline_review' ? { tool: 'baseline_accept' } : { tool: 'baseline_reconcile' },
+          }),
+          responseMode,
+        ),
       )
     },
   )
@@ -3199,9 +3292,18 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'plan_events_read',
     {
       description: 'Read unacknowledged plan events without acknowledging them.',
-      inputSchema: { planId: z.string(), afterSequence: z.number().int().nonnegative().default(0) },
+      inputSchema: {
+        planId: z.string(),
+        afterSequence: z.number().int().nonnegative().default(0),
+        limit: z.number().int().positive().max(100).default(100),
+      },
     },
-    async ({ planId, afterSequence }) => text(await api.request(`plans/${planId}/events?after=${afterSequence}`)),
+    async ({ planId, afterSequence, limit }) => {
+      const result = (await api.request(`plans/${planId}/events?after=${afterSequence}&limit=${limit}`)) as {
+        events?: CoordinatorToolEvent[]
+      }
+      return text({ planId, ...orderedEventBatch(afterSequence, result.events ?? []) })
+    },
   )
   server.registerTool(
     'plan_event_acknowledge',
