@@ -115,7 +115,7 @@ describe('baseline execution contract', () => {
         failureSignatures: ['Then checkout succeeds: expected enabled to be true'],
         completedStepIds: ['given-cart', 'when-submit'],
       }).classification,
-    ).toBe('expected_behavioral_failure')
+    ).toBe('expected_product_failure')
 
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
@@ -123,7 +123,7 @@ describe('baseline execution contract', () => {
         failureSignatures: ['Then checkout succeeds: expected enabled to be true'],
         completedStepIds: ['given-cart'],
       }).classification,
-    ).toBe('invalid_baseline_failure')
+    ).toBe('authoring_failure')
   })
 
   it('blocks harness failures and classifies unmatched failures as unrelated', () => {
@@ -133,21 +133,21 @@ describe('baseline execution contract', () => {
         failureSignatures: ['BeforeAll timed out after 30000ms'],
         completedStepIds: [],
       }).classification,
-    ).toBe('validation_harness_failure')
+    ).toBe('authoring_failure')
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
         result: 'failed',
         failureSignatures: ['The run appears to have used a placeholder or fallback Cucumber binary.'],
         completedStepIds: [],
       }).classification,
-    ).toBe('validation_harness_failure')
+    ).toBe('authoring_failure')
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
         result: 'failed',
         failureSignatures: ['Existing search test failed'],
         completedStepIds: ['when-submit'],
       }).classification,
-    ).toBe('pre_existing_unrelated_failure')
+    ).toBe('unrelated_existing_failure')
   })
 
   it.each([
@@ -167,7 +167,7 @@ describe('baseline execution contract', () => {
         failureSignatures: ['A deliberately non-matching blocker message.'],
         completedStepIds: ['when-submit'],
       }).classification,
-    ).toBe('validation_harness_failure')
+    ).toBe(evidenceHealth === 'infrastructure_failure' ? 'infrastructure_failure' : 'authoring_failure')
   })
 
   it('requires every combination plus regression justification and current-signature acknowledgement', () => {
@@ -179,7 +179,7 @@ describe('baseline execution contract', () => {
         environment: 'local',
         testRunId: 'run-one',
         status: 'completed',
-        classification: 'pre_existing_unrelated_failure',
+        classification: 'unrelated_existing_failure',
         signatureHash: hashFailureSignatures(['Existing search test failed']),
         evidence: {
           logsUrl: '/api/test-runs/run-one/logs',
@@ -197,7 +197,7 @@ describe('baseline execution contract', () => {
         environment: 'local',
         testRunId: 'run-two',
         status: 'completed',
-        classification: 'accepted_regression_pass',
+        classification: 'unexpected_pass',
         signatureHash: hashFailureSignatures([]),
         evidence: {
           logsUrl: '/api/test-runs/run-two/logs',

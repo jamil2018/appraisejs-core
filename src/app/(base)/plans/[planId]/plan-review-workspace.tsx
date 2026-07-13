@@ -496,8 +496,8 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
     approval => approval.revision === detail.plan.revision && approval.relevantHashes.plan,
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
-  const hasInvalidBaselineEvidence = detail.validation?.baselineAttempts.some(attempt =>
-    ['validation_harness_failure', 'invalid_baseline_failure'].includes(attempt.classification ?? ''),
+  const hasInvalidBaselineEvidence = detail.validation?.baselineAttempts.some(
+    attempt => attempt.classification === 'authoring_failure',
   )
   const reviewUnavailableReason = getReviewUnavailableReason(detail.plan.lifecycle)
   const approvalDisabledReason = approved

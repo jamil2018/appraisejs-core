@@ -427,11 +427,11 @@ export const validationArtifactSchema = z
           status: z.enum(['scheduled', 'running', 'completed', 'cancelled', 'interrupted']),
           classification: z
             .enum([
-              'expected_behavioral_failure',
-              'accepted_regression_pass',
-              'pre_existing_unrelated_failure',
-              'invalid_baseline_failure',
-              'validation_harness_failure',
+              'expected_product_failure',
+              'unexpected_pass',
+              'unrelated_existing_failure',
+              'authoring_failure',
+              'infrastructure_failure',
             ])
             .optional(),
           signatureHash: hashSchema.optional(),
