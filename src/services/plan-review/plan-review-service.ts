@@ -65,6 +65,7 @@ export type PlanReviewDetail = {
     operationHash?: string
     extensionArtifactHashes: string[]
   }
+  validationIntegrity: Awaited<ReturnType<typeof auditManagedValidationIntegrity>>
   completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>
   projection: {
