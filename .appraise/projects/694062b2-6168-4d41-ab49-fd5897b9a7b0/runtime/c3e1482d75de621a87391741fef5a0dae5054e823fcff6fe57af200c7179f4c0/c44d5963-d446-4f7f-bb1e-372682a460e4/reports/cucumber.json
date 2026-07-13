@@ -1,0 +1,112 @@
+[
+  {
+    "description": "",
+    "elements": [
+      {
+        "description": "",
+        "id": "notes-app-readiness;load-and-reload-the-notes-app",
+        "keyword": "Scenario",
+        "line": 4,
+        "name": "Load and reload the notes app",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 42079125
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 5,
+            "name": "the user opens the notes app",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "failed",
+              "duration": 59414207,
+              "error_message": "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:5173/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:5173/\", waiting until \"load\"\u001b[22m\n\n    at dispatch (/Users/jamil/Personal Projects/appraisejs/.appraise/projects/694062b2-6168-4d41-ab49-fd5897b9a7b0/runtime/c3e1482d75de621a87391741fef5a0dae5054e823fcff6fe57af200c7179f4c0/c44d5963-d446-4f7f-bb1e-372682a460e4/bindings/notes-app-readiness.mjs:21:24)\n    at CustomWorld.<anonymous> (/Users/jamil/Personal Projects/appraisejs/.appraise/projects/694062b2-6168-4d41-ab49-fd5897b9a7b0/runtime/c3e1482d75de621a87391741fef5a0dae5054e823fcff6fe57af200c7179f4c0/c44d5963-d446-4f7f-bb1e-372682a460e4/bindings/notes-app-readiness.mjs:43:83)"
+            },
+            "embeddings": [
+              {
+                "data": "eyJzY3JlZW5zaG90UGF0aCI6InJlcG9ydHMvc2NyZWVuc2hvdHMvZDFhZDc3MDEtYzc4Yi00ZmE2LTlmYTQtMmMzM2IwYzRkNmIyLnBuZyJ9",
+                "mime_type": "application/vnd.appraisejs.report-step-screenshot+json"
+              }
+            ]
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 6,
+            "name": "the page becomes ready",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 7,
+            "name": "the user reloads the notes app",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 8,
+            "name": "the page becomes ready again",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 10217416
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@appraise_validation_notes-app-readiness",
+            "line": 3
+          },
+          {
+            "name": "@ts_ast-09a7ff6bbaef-suite",
+            "line": 3
+          },
+          {
+            "name": "@tc_ast-09a7ff6bbaef-load-notes-app",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "notes-app-readiness",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "Notes app readiness",
+    "tags": [],
+    "uri": "features/notes-app-readiness.feature"
+  }
+]

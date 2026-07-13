@@ -1,0 +1,221 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - link "Skip to main content" [ref=f2e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=f2e4]:
+      - link "AppraiseJS dashboard" [ref=f2e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f2e7]:
+          - img "AppraiseJS" [ref=f2e8]
+          - generic [ref=f2e9]:
+            - generic [ref=f2e10]: Appraise
+            - generic [ref=f2e11]: JS
+      - button "Open Command Palette" [ref=f2e13] [cursor=pointer]:
+        - generic [ref=f2e14]: Search
+        - generic [ref=f2e15]: K
+      - navigation "Primary navigation" [ref=f2e17]:
+        - generic [ref=f2e18]:
+          - generic [ref=f2e19]:
+            - heading "Control" [level=2] [ref=f2e20]
+            - generic [ref=f2e21]:
+              - link "Dashboard" [ref=f2e22] [cursor=pointer]:
+                - /url: /
+              - link "Plans" [ref=f2e29] [cursor=pointer]:
+                - /url: /plans
+          - generic [ref=f2e37]:
+            - heading "Execution" [level=2] [ref=f2e38]
+            - generic [ref=f2e39]:
+              - link "Test Runs" [ref=f2e40] [cursor=pointer]:
+                - /url: /test-runs
+              - link "Reports" [ref=f2e45] [cursor=pointer]:
+                - /url: /reports
+              - link "Test Suites" [ref=f2e51] [cursor=pointer]:
+                - /url: /test-suites
+              - link "Test Cases" [ref=f2e56] [cursor=pointer]:
+                - /url: /test-cases
+          - generic [ref=f2e61]:
+            - heading "Library" [level=2] [ref=f2e62]
+            - generic [ref=f2e63]:
+              - link "Template Steps" [ref=f2e64] [cursor=pointer]:
+                - /url: /template-steps
+              - link "Step Groups" [ref=f2e70] [cursor=pointer]:
+                - /url: /template-step-groups
+              - link "Step Blocks" [ref=f2e77] [cursor=pointer]:
+                - /url: /step-blocks
+              - link "Case Templates" [ref=f2e82] [cursor=pointer]:
+                - /url: /template-test-cases
+          - generic [ref=f2e87]:
+            - heading "System" [level=2] [ref=f2e88]
+            - generic [ref=f2e89]:
+              - link "Locators" [ref=f2e90] [cursor=pointer]:
+                - /url: /locators
+              - link "Locator Groups" [ref=f2e95] [cursor=pointer]:
+                - /url: /locator-groups
+              - link "Modules" [ref=f2e104] [cursor=pointer]:
+                - /url: /modules
+              - link "Environments" [ref=f2e108] [cursor=pointer]:
+                - /url: /environments
+              - link "Tags" [ref=f2e113] [cursor=pointer]:
+                - /url: /tags
+              - link "Settings" [ref=f2e118] [cursor=pointer]:
+                - /url: /settings
+      - paragraph [ref=f2e124]:
+        - generic [ref=f2e126]: Local-first workspace
+    - main [ref=f2e127]:
+      - main [ref=f2e130]:
+        - generic [ref=f2e131]:
+          - generic [ref=f2e132]:
+            - link "Plans" [ref=f2e133] [cursor=pointer]:
+              - /url: /plans
+            - generic [ref=f2e136]: /
+            - generic [ref=f2e137]: Simple Notes Plan Builder E2E 2026-07-13
+          - generic [ref=f2e138]:
+            - generic [ref=f2e139]: awaiting validation review
+            - generic [ref=f2e143]: Approved
+        - generic [ref=f2e145]:
+          - generic [ref=f2e146]:
+            - generic [ref=f2e147]: Rev 1
+            - heading "Simple Notes Plan Builder E2E 2026-07-13" [level=1] [ref=f2e152]
+            - paragraph [ref=f2e153]: Build a simple, accessible browser-based notes app in this empty workspace. Use React, TypeScript, and Vite. Users can create notes with a required title and optional body, edit an existing note, delete a note with confirmation, search notes by title or body, and retain notes after page reload using localStorage. Include an empty state, clear validation feedback, keyboard-accessible controls, responsive styling, unit/component tests, and Appraise-compatible Cucumber/Playwright validation artifacts. Keep the implementation intentionally small and production-quality.
+            - generic [ref=f2e154]:
+              - generic "Implementation groups" [ref=f2e155]:
+                - generic [ref=f2e158]: "Groups:"
+                - generic [ref=f2e159]:
+                  - generic [ref=f2e160]: foundation (2)
+                  - generic [ref=f2e161]: behavior (1)
+                  - generic [ref=f2e162]: quality (1)
+              - generic [ref=f2e163]:
+                - generic [ref=f2e168]: simple-notes-plan-builder-e2e-2026-07-13
+                - generic [ref=f2e169]: "(ID: pln_01kxdc8ag37z7j9wfp8b5cz3cy)"
+          - generic [ref=f2e170]:
+            - button "Shortcuts" [ref=f2e171] [cursor=pointer]
+            - button "Export Plan" [ref=f2e172] [cursor=pointer]
+            - button "Hide inspector" [ref=f2e173] [cursor=pointer]
+        - status [ref=f2e174]:
+          - generic [ref=f2e177]: "Requirement coverage: 7/7"
+          - generic [ref=f2e178]:
+            - paragraph [ref=f2e179]: "Selected domain: notes. Candidates: notes, editor."
+            - paragraph [ref=f2e180]: Every explicit requirement is mapped to a task description, acceptance criterion, or validation intent.
+            - list [ref=f2e181]:
+              - listitem [ref=f2e182]: Create records → scaffold-setup (description), notes-crud (description), notes-crud (validationIntent), notes-crud (acceptanceCriteria)
+              - listitem [ref=f2e183]: Edit records → notes-crud (validationIntent), notes-crud (acceptanceCriteria)
+              - listitem [ref=f2e184]: Delete records → notes-crud (validationIntent), notes-crud (acceptanceCriteria)
+              - listitem [ref=f2e185]: Persistent storage → notes-organization (description), notes-organization (validationIntent), notes-organization (acceptanceCriteria), notes-quality (validationIntent)
+              - listitem [ref=f2e186]: Accessible interaction and screen-reader support → notes-crud (acceptanceCriteria), notes-quality (description), notes-quality (validationIntent), notes-quality (acceptanceCriteria)
+              - listitem [ref=f2e187]: Responsive layout → notes-quality (description), notes-quality (validationIntent), notes-quality (acceptanceCriteria)
+              - listitem [ref=f2e188]: Requested automated validation → notes-quality (validationIntent)
+        - generic [ref=f2e189]:
+          - generic [ref=f2e190]:
+            - generic [ref=f2e192]:
+              - generic [ref=f2e193]:
+                - generic [ref=f2e194]: Review surface
+                - generic [ref=f2e195]: Steps progress left to right. Tasks in the same stage may proceed in parallel.
+              - generic [ref=f2e196]:
+                - generic [ref=f2e197]: depends-on
+                - generic [ref=f2e199]: blocks
+                - generic [ref=f2e201]: relates-to
+            - generic [ref=f2e204]:
+              - tablist "Plan review representations" [ref=f2e206]:
+                - tab "Graph" [ref=f2e207] [cursor=pointer]
+                - tab "Accessible list" [ref=f2e213] [cursor=pointer]
+                - tab "Revisions" [ref=f2e215] [cursor=pointer]
+                - tab "Validations" [active] [selected] [ref=f2e221] [cursor=pointer]
+              - tabpanel "Validations" [ref=f2e381]:
+                - generic [ref=f2e382]:
+                  - generic [ref=f2e383]:
+                    - generic [ref=f2e384]:
+                      - generic [ref=f2e385]:
+                        - heading "Validation review" [level=2] [ref=f2e386]
+                        - paragraph [ref=f2e387]: Approval advances to validations approved. Implementation remains locked until baseline evidence is accepted.
+                      - generic [ref=f2e388]:
+                        - generic [ref=f2e389]: Revision 1
+                        - generic [ref=f2e390]: awaiting validation review
+                        - generic [ref=f2e391]: Baseline changes requested
+                    - list [ref=f2e392]:
+                      - listitem [ref=f2e393]: Required validation notes-app-readiness is not approved for its current content hash.
+                    - generic [ref=f2e394]:
+                      - button "Submit validation review" [disabled]
+                      - paragraph [ref=f2e395]: Required validation notes-app-readiness is not approved for its current content hash.
+                  - region [ref=f2e396]:
+                    - generic [ref=f2e397]:
+                      - heading "Validation nodes" [level=3] [ref=f2e398]
+                      - button "Expand all" [ref=f2e399] [cursor=pointer]
+                    - generic [ref=f2e402]:
+                      - generic [ref=f2e403]:
+                        - button "Expand section" [ref=f2e404] [cursor=pointer]
+                        - generic [ref=f2e405]:
+                          - generic [ref=f2e406]:
+                            - heading [level=4] [ref=f2e407]:
+                              - button "notes-app-readiness" [ref=f2e408] [cursor=pointer]
+                            - generic [ref=f2e409]: Required
+                            - generic [ref=f2e410]: No decision
+                            - generic [ref=f2e411]: Managed AST
+                          - paragraph [ref=f2e412]: sha256:1644daa932d57e92533a6522df9539e4eb01b528bb811d1493c2b94e92afcf94
+                      - generic [ref=f2e413]:
+                        - button "Approve evidence" [ref=f2e414] [cursor=pointer]: Approve
+                        - button "Defer" [disabled]
+                        - button "Reject" [disabled]
+                        - button "Feedback" [ref=f2e415] [cursor=pointer]
+                  - region [ref=f2e416]:
+                    - generic [ref=f2e417]:
+                      - heading "Changed-file evidence" [level=3] [ref=f2e418]
+                      - button "Expand all" [ref=f2e419] [cursor=pointer]
+                  - region [ref=f2e420]:
+                    - heading "Validation feedback" [level=3] [ref=f2e421]
+                    - paragraph [ref=f2e422]: Test-artifact feedback reopens validation review. Product-scope feedback returns the plan to plan review.
+                    - generic [ref=f2e423]:
+                      - button "test artifact" [ref=f2e424] [cursor=pointer]
+                      - button "product scope" [ref=f2e425] [cursor=pointer]
+                      - generic [ref=f2e426]: Target plan
+                    - generic [ref=f2e427]:
+                      - text: Feedback
+                      - textbox "Feedback" [ref=f2e428]:
+                        - /placeholder: Describe what needs to change in the validation evidence...
+                    - button "Submit validation feedback" [disabled]
+          - complementary [ref=f2e250]:
+            - generic [ref=f2e252]:
+              - tablist [ref=f2e254]:
+                - tab "Discussion" [selected] [ref=f2e255] [cursor=pointer]
+                - tab "Baselines" [ref=f2e256] [cursor=pointer]
+                - tab "Approval" [ref=f2e257] [cursor=pointer]
+              - tabpanel "Discussion" [ref=f2e258]:
+                - generic [ref=f2e259]:
+                  - generic [ref=f2e260]:
+                    - 'heading "Task 1: Scaffold and configure the app shell" [level=3] [ref=f2e261]'
+                    - generic [ref=f2e262]: ready
+                  - paragraph [ref=f2e263]: Create the React, Vite application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief. These defaults are reviewable through Appraise feedback when the brief does not name a stack.
+                  - generic [ref=f2e264]:
+                    - paragraph [ref=f2e265]: Acceptance criteria
+                    - list [ref=f2e266]:
+                      - listitem [ref=f2e267]: The app starts locally with React, Vite and no missing dependency errors.
+                      - listitem [ref=f2e268]: Base styling, component primitives, and project structure are in place for the planned UI.
+                      - listitem [ref=f2e269]: Stack assumptions are stated clearly in the review-ready plan.
+                  - generic [ref=f2e270]:
+                    - paragraph [ref=f2e271]: Relationships
+                    - generic [ref=f2e272]:
+                      - text: "Blocks:"
+                      - button "#2 Build local notes CRUD" [ref=f2e274] [cursor=pointer]:
+                        - generic [ref=f2e275]: "#2"
+                        - generic [ref=f2e276]: Build local notes CRUD
+                - generic [ref=f2e277]:
+                  - generic [ref=f2e278]:
+                    - paragraph [ref=f2e279]: Add Remark
+                    - button "Switch to Plan-wide" [ref=f2e280] [cursor=pointer]
+                  - generic [ref=f2e281]:
+                    - generic [ref=f2e282]: Remark body
+                    - textbox "Remark body" [ref=f2e283]:
+                      - /placeholder: Type a comment for Task 1... (Supports markdown)
+                  - generic [ref=f2e284]:
+                    - generic [ref=f2e285]:
+                      - checkbox "Blocking remark" [checked] [ref=f2e286] [cursor=pointer]
+                      - generic [ref=f2e287] [cursor=pointer]: Blocking remark
+                    - button "Comment" [disabled]
+                - generic [ref=f2e288]:
+                  - generic [ref=f2e289]:
+                    - heading "Remarks History" [level=4] [ref=f2e290]
+                    - generic [ref=f2e291]: 0 Threads
+                  - generic [ref=f2e292]: No remarks for this target.
+    - region "Notifications (F8)":
+      - list
+  - button "Open Next.js Dev Tools" [ref=f2e299] [cursor=pointer]
+  - alert [ref=f2e380]

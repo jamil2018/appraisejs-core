@@ -10,5 +10,11 @@
     "apiBaseUrl": "",
     "email": "",
     "password": ""
+  },
+  "todo_local": {
+    "baseUrl": "http://127.0.0.1:5173",
+    "apiBaseUrl": "",
+    "email": "",
+    "password": ""
   }
 }
