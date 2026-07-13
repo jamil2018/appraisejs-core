@@ -15,25 +15,27 @@ const locatorGroupInclude = {
 
 export type LocatorGroupWithModule = Prisma.LocatorGroupGetPayload<{ include: typeof locatorGroupInclude }>
 
-async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
+async function checkUniqueName(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.locatorGroup.findFirst({
     where: {
       name,
+      targetProjectId,
       ...(excludeId && { id: { not: excludeId } }),
     },
   })
   return !!existing
 }
 
-export async function listLocatorGroups(): Promise<LocatorGroupWithModule[]> {
+export async function listLocatorGroups(targetProjectId: string): Promise<LocatorGroupWithModule[]> {
   return prisma.locatorGroup.findMany({
+    where: { targetProjectId },
     include: locatorGroupInclude,
   })
 }
 
-export async function getLocatorGroupByIdOrThrow(id: string): Promise<LocatorGroupWithModule> {
-  const locatorGroup = await prisma.locatorGroup.findUnique({
-    where: { id },
+export async function getLocatorGroupByIdOrThrow(id: string, targetProjectId: string): Promise<LocatorGroupWithModule> {
+  const locatorGroup = await prisma.locatorGroup.findFirst({
+    where: { id, targetProjectId },
     include: locatorGroupInclude,
   })
   if (!locatorGroup) {
@@ -42,8 +44,17 @@ export async function getLocatorGroupByIdOrThrow(id: string): Promise<LocatorGro
   return locatorGroup
 }
 
-export async function createLocatorGroup(value: z.infer<typeof locatorGroupSchema>): Promise<LocatorGroup> {
-  const nameExists = await checkUniqueName(value.name)
+export async function createLocatorGroup(
+  value: z.infer<typeof locatorGroupSchema>,
+  targetProjectId: string,
+): Promise<LocatorGroup> {
+  const [module, locators] = await Promise.all([
+    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
+    prisma.locator.findMany({ where: { id: { in: value.locators ?? [] }, targetProjectId }, select: { id: true } }),
+  ])
+  if (!module || locators.length !== (value.locators ?? []).length)
+    throw new ServiceError('Locator group relationships must belong to the active project', 'VALIDATION', 400)
+  const nameExists = await checkUniqueName(value.name, targetProjectId)
   if (nameExists) {
     throw new ServiceError(
       'A locator group with this name already exists. Please choose a different name.',
@@ -58,6 +69,7 @@ export async function createLocatorGroup(value: z.infer<typeof locatorGroupSchem
         name: value.name,
         moduleId: value.moduleId,
         route: value.route ?? '/',
+        targetProjectId,
         locators: {
           connect: value.locators?.map(locator => ({ id: locator })) || [],
         },
@@ -82,13 +94,14 @@ export async function createLocatorGroup(value: z.infer<typeof locatorGroupSchem
 export async function updateLocatorGroup(
   id: string | undefined,
   value: z.infer<typeof locatorGroupSchema>,
+  targetProjectId: string,
 ): Promise<LocatorGroupWithModule> {
   if (!id) {
     throw new ServiceError('Locator group id is required', 'VALIDATION', 400)
   }
 
-  const currentLocatorGroup = await prisma.locatorGroup.findUnique({
-    where: { id },
+  const currentLocatorGroup = await prisma.locatorGroup.findFirst({
+    where: { id, targetProjectId },
     include: { module: true },
   })
 
@@ -97,7 +110,7 @@ export async function updateLocatorGroup(
   }
 
   if (currentLocatorGroup.name !== value.name) {
-    const nameExists = await checkUniqueName(value.name, id)
+    const nameExists = await checkUniqueName(value.name, targetProjectId, id)
     if (nameExists) {
       throw new ServiceError(
         'A locator group with this name already exists. Please choose a different name.',
@@ -108,6 +121,12 @@ export async function updateLocatorGroup(
   }
 
   const previousFilePath = await getLocatorGroupFilePath(id)
+  const [module, locators] = await Promise.all([
+    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
+    prisma.locator.findMany({ where: { id: { in: value.locators ?? [] }, targetProjectId }, select: { id: true } }),
+  ])
+  if (!module || locators.length !== (value.locators ?? []).length)
+    throw new ServiceError('Locator group relationships must belong to the active project', 'VALIDATION', 400)
   const locatorConnections = value.locators?.map(locator => ({ id: locator })) ?? []
 
   try {
@@ -160,9 +179,9 @@ export async function updateLocatorGroup(
   }
 }
 
-export async function deleteLocatorGroups(ids: string[]): Promise<string[]> {
+export async function deleteLocatorGroups(ids: string[], targetProjectId: string): Promise<string[]> {
   const locatorGroupsToDelete = await prisma.locatorGroup.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, targetProjectId },
     select: { name: true },
   })
 
@@ -170,11 +189,15 @@ export async function deleteLocatorGroups(ids: string[]): Promise<string[]> {
   await Promise.all(ids.map(id => automationProjectionService.deleteLocatorGroup(id)))
 
   await prisma.locatorGroup.deleteMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, targetProjectId },
   })
   return ids
 }
 
-export async function checkLocatorGroupNameUnique(name: string, excludeId?: string): Promise<boolean> {
-  return !(await checkUniqueName(name, excludeId))
+export async function checkLocatorGroupNameUnique(
+  name: string,
+  targetProjectId: string,
+  excludeId?: string,
+): Promise<boolean> {
+  return !(await checkUniqueName(name, targetProjectId, excludeId))
 }

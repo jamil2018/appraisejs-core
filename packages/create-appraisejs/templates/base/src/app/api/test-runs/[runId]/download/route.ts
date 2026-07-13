@@ -7,6 +7,7 @@ import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/a
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import { ServiceError } from '@/services/shared/errors'
 import { opaqueArtifactError } from '@/app/api/test-runs/artifact-route-error'
+import { ACTIVE_PROJECT_COOKIE } from '@/lib/active-project'
 
 // Ensure this route runs in Node.js runtime (not Edge) for file system access
 export const runtime = 'nodejs'
@@ -65,9 +66,9 @@ function isPathWithinDirectory(targetPath: string, directoryPath: string): boole
   return relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath)
 }
 
-async function getDownloadTestRun(runId: string) {
-  return prisma.testRun.findUnique({
-    where: { runId },
+async function getDownloadTestRun(runId: string, targetProjectId: string) {
+  return prisma.testRun.findFirst({
+    where: { runId, targetProjectId },
     select: {
       runId: true,
       targetProjectId: true,
@@ -292,15 +293,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { runId } = await params
 
   try {
-    const testRun = await getDownloadTestRun(runId)
+    const expectedTargetProjectId =
+      request.cookies.get(ACTIVE_PROJECT_COOKIE)?.value ?? request.nextUrl.searchParams.get('targetProjectId')
+    if (!expectedTargetProjectId) return NextResponse.json({ error: 'Test run not found' }, { status: 404 })
+    const testRun = await getDownloadTestRun(runId, expectedTargetProjectId)
 
     if (!testRun) {
       return NextResponse.json({ error: 'Test run not found' }, { status: 404 })
     }
-    const expectedTargetProjectId = request.nextUrl.searchParams.get('targetProjectId') ?? undefined
-    if (testRun.runtimeCapsule && testRun.targetProjectId !== expectedTargetProjectId)
-      return NextResponse.json({ error: 'Test run not found' }, { status: 404 })
-
     const archive = createZipArchive()
     const runArtifactDir = getAutomationReportRunDir(runId, testRun.targetProject?.canonicalPath)
     const hasFiles = await addDownloadArtifacts(archive, testRun, runArtifactDir, expectedTargetProjectId)

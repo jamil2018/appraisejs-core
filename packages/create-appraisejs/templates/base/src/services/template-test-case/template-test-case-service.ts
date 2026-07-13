@@ -21,13 +21,14 @@ const templateTestCaseInclude = {
 export type TemplateTestCaseDetail = Prisma.TemplateTestCaseGetPayload<{ include: typeof templateTestCaseInclude }>
 type TemplateTestCaseInput = z.input<typeof templateTestCaseSchema>
 
-export async function listTemplateTestCases() {
+export async function listTemplateTestCases(targetProjectId: string) {
   return prisma.templateTestCase.findMany({
+    where: { targetProjectId },
     include: templateTestCaseInclude,
   })
 }
 
-export async function deleteTemplateTestCases(ids: string[]): Promise<void> {
+export async function deleteTemplateTestCases(ids: string[], targetProjectId: string): Promise<void> {
   await prisma.$transaction(async tx => {
     await tx.templateTestCaseStepParameter.deleteMany({
       where: {
@@ -42,15 +43,30 @@ export async function deleteTemplateTestCases(ids: string[]): Promise<void> {
     await tx.templateTestCaseFlowBlock.deleteMany({
       where: { templateTestCaseId: { in: ids } },
     })
-    await tx.templateTestCase.deleteMany({ where: { id: { in: ids } } })
+    await tx.templateTestCase.deleteMany({ where: { id: { in: ids }, targetProjectId } })
   })
 }
 
-export async function createTemplateTestCase(value: TemplateTestCaseInput): Promise<TemplateTestCase> {
+async function validateTemplateSteps(value: TemplateTestCaseInput) {
+  const ids = [...new Set(value.steps.map(step => step.templateStepId))]
+  const steps = await prisma.templateStep.findMany({
+    where: { id: { in: ids } },
+    select: { id: true },
+  })
+  if (steps.length !== ids.length)
+    throw new ServiceError('One or more template steps were not found', 'VALIDATION', 400)
+}
+
+export async function createTemplateTestCase(
+  value: TemplateTestCaseInput,
+  targetProjectId: string,
+): Promise<TemplateTestCase> {
+  await validateTemplateSteps(value)
   return prisma.templateTestCase.create({
     data: {
       name: value.title,
       description: value.description ?? '',
+      targetProjectId,
       steps: {
         create: value.steps.map(step => ({
           gherkinStep: step.gherkinStep,
@@ -83,9 +99,12 @@ export async function createTemplateTestCase(value: TemplateTestCaseInput): Prom
   })
 }
 
-export async function getTemplateTestCaseByIdOrThrow(id: string): Promise<TemplateTestCaseDetail> {
-  const templateTestCase = await prisma.templateTestCase.findUnique({
-    where: { id },
+export async function getTemplateTestCaseByIdOrThrow(
+  id: string,
+  targetProjectId: string,
+): Promise<TemplateTestCaseDetail> {
+  const templateTestCase = await prisma.templateTestCase.findFirst({
+    where: { id, targetProjectId },
     include: templateTestCaseInclude,
   })
   if (!templateTestCase) {
@@ -97,6 +116,7 @@ export async function getTemplateTestCaseByIdOrThrow(id: string): Promise<Templa
 export async function updateTemplateTestCase(
   id: string | undefined,
   value: TemplateTestCaseInput,
+  targetProjectId: string,
 ): Promise<TemplateTestCase> {
   if (!id) {
     throw new ServiceError(
@@ -105,6 +125,8 @@ export async function updateTemplateTestCase(
       400,
     )
   }
+  await getTemplateTestCaseByIdOrThrow(id, targetProjectId)
+  await validateTemplateSteps(value)
 
   const steps = await prisma.templateTestCaseStep.findMany({
     where: { templateTestCaseId: id },

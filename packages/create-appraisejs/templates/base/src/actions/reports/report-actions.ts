@@ -8,10 +8,12 @@ import {
   listReports,
 } from '@/services/report/report-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllReportsAction(): Promise<ActionResponse> {
   try {
-    const reports = await listReports()
+    const project = await requireActiveProjectForMutation()
+    const reports = await listReports(project.id)
 
     return {
       status: 200,
@@ -26,7 +28,8 @@ export async function getAllReportsAction(): Promise<ActionResponse> {
 
 export async function getReportByIdAction(reportId: string): Promise<ActionResponse> {
   try {
-    const report = await getReportByIdOrThrow(reportId)
+    const project = await requireActiveProjectForMutation()
+    const report = await getReportByIdOrThrow(reportId, project.id)
 
     return {
       status: 200,
@@ -44,7 +47,8 @@ export async function getReportByIdAction(reportId: string): Promise<ActionRespo
 
 export async function getAllTestCaseMetricsAction(filter: string): Promise<ActionResponse> {
   try {
-    const testCaseMetrics = await getAllTestCaseMetricsForFilter(filter)
+    const project = await requireActiveProjectForMutation()
+    const testCaseMetrics = await getAllTestCaseMetricsForFilter(filter, project.id)
     return {
       status: 200,
       success: true,
@@ -62,7 +66,8 @@ export async function getAllTestCaseMetricsAction(filter: string): Promise<Actio
 
 export async function getAllTestSuiteMetricsAction(filter: string): Promise<ActionResponse> {
   try {
-    const testSuiteMetrics = await getAllTestSuiteMetricsForFilter(filter)
+    const project = await requireActiveProjectForMutation()
+    const testSuiteMetrics = await getAllTestSuiteMetricsForFilter(filter, project.id)
     return {
       status: 200,
       success: true,

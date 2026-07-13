@@ -2,8 +2,8 @@
 
 AppraiseJS treats a `TargetProject` as the mandatory isolation boundary for authored data, managed lifecycle state,
 execution, reports, metrics, reviews, integrations, and evidence. System configuration and built-in contract schemas
-remain global. Template Steps, Template Step Groups, Step Blocks, and test-case templates are project-owned; global
-promotion and cross-project import are separate contracts and are not implied by visibility.
+remain global. Template Steps and Template Step Groups form a shared library visible to every project. Step Blocks and
+test-case templates remain project-owned and may reference entries from that shared library.
 
 ## Active project resolution
 
@@ -22,17 +22,41 @@ Server actions derive ownership from the server-readable active-project cookie. 
 ID, it must equal the resolved project. Project-sensitive services receive that trusted context and reject foreign
 IDs before reading or mutating related records.
 
+All project-owned application reads and writes are project-scoped. Modules, suites, cases, runs, reports,
+environments, tags, locators, locator groups, case templates, Step Blocks, metrics, and dashboard aggregates are
+queried through the active project. Creation and update services validate that every project-owned related record
+belongs to the same project before connecting it. Template Steps and Template Step Groups are deliberately global;
+their CRUD actions do not require a selected project, and project-owned cases and blocks may reference them. A missing
+active project remains a validation error for creation of any project-owned entity.
+Test-run artifact routes apply the same boundary to logs, downloads, traces, and runtime diagnostics, returning an
+opaque not-found response when the active or explicitly trusted project scope does not own the run.
+
+Plan collection and review routes resolve the active project before querying projections. Plan lists, statistics,
+slug resolution, canonical detail access, and every UI review, validation, baseline, layout, and completion mutation
+are restricted to plans whose recorded `targetProjectId` matches that scope. Switching projects returns the plans
+collection rather than carrying a foreign plan detail route into the new scope.
+
+Agent and coordinator operations use the plan-bound `targetProjectId` as their trusted scope. Validation context reads
+filter project-owned resources at the Prisma query boundary, not after loading global data. Shared Template Steps are
+returned alongside that scoped context. Suggested-resource proposals and canonical validation publication persist
+`targetProjectId` on every project root they create, may reuse any shared Template Step Group, and reject an existing
+foreign project-owned record rather than reassigning it. Ownership metadata remains provenance; it is not a substitute
+for a project-owned entity's own project foreign key.
+
 ## Ownership classes
 
-| Class               | Records                                                                                  | Enforcement                                                     |
-| ------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| System              | built-in schemas, provider adapter registrations, system settings                        | intentionally global                                            |
-| Project roots       | modules, cases, suites, locator groups, locators, environments, tags, template libraries | direct `targetProjectId`                                        |
-| Project descendants | steps, parameters, flow blocks, reviews, tickets, joins, conflicts                       | parent ownership plus relationship validation                   |
-| Publication         | plans, validation proposals and publications, export jobs and receipts                   | direct target and immutable plan/publication provenance         |
-| Runtime             | capsules, TestRuns, attempts, logs, reports, traces, screenshots, metrics                | direct target on roots and transitive immutable runtime binding |
+| Class               | Records                                                                              | Enforcement                                                     |
+| ------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| Shared library      | Template Steps and Template Step Groups                                              | intentionally global                                            |
+| System              | built-in schemas, provider adapter registrations, system settings                    | intentionally global                                            |
+| Project roots       | modules, cases, suites, locator groups, locators, environments, tags, case templates | direct `targetProjectId`                                        |
+| Project descendants | steps, parameters, flow blocks, reviews, tickets, joins, conflicts                   | parent ownership plus relationship validation                   |
+| Publication         | plans, validation proposals and publications, export jobs and receipts               | direct target and immutable plan/publication provenance         |
+| Runtime             | capsules, TestRuns, attempts, logs, reports, traces, screenshots, metrics            | direct target on roots and transitive immutable runtime binding |
 
 The migration first registers the hub checkout as **Legacy AppraiseJS**, adds nullable ownership columns, and
-backfills existing rows. A constraint-finalization migration is applied only after integrity checks prove that every
-root and descendant resolves to exactly one project. The hub legacy registration does not create an external-target
-`.appraisejs/project.json` marker.
+backfills existing rows. Nullable columns remain a compatibility seam for databases created before project support;
+new project-owned application and coordinator writes must never rely on null ownership. Shared library entities are
+excluded from that invariant even if legacy rows retain historical ownership metadata. A constraint-finalization migration is
+applied only after integrity checks prove that every root and descendant resolves to exactly one project. The hub
+legacy registration does not create an external-target `.appraisejs/project.json` marker.

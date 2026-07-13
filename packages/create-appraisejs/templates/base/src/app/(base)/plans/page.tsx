@@ -7,6 +7,7 @@ import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { listPlans } from '@/services/plan-review/plan-review-service'
+import { requireActiveProject } from '@/lib/active-project'
 
 import { PlanSummaryCard } from './plan-summary-card'
 import { PlansFilterController } from './plans-filter-controller'
@@ -19,14 +20,16 @@ export const metadata: Metadata = {
 }
 
 type PlansPageProps = {
-  searchParams?: Promise<{ query?: string; tab?: string; sort?: string }>
+  searchParams?: Promise<{ query?: string; tab?: string; sort?: string; project?: string }>
 }
 
 export default async function PlansPage({ searchParams }: PlansPageProps) {
-  const resolvedParams = parsePlansListSearchParams((await searchParams) ?? {})
+  const rawParams = (await searchParams) ?? {}
+  const resolvedParams = parsePlansListSearchParams(rawParams)
   const { query, tab, sort } = resolvedParams
 
-  const plans = await listPlans()
+  const project = await requireActiveProject(rawParams.project)
+  const plans = await listPlans({ targetProjectId: project.id })
   const stats = computePlanStats(plans)
   const sortedPlans = sortPlans(filterPlans(plans, tab, query), sort)
 

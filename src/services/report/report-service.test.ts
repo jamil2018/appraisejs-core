@@ -179,7 +179,7 @@ describe('getReportByIdOrThrow', () => {
   it('throws when the report is missing', async () => {
     mockReportFindUnique.mockResolvedValue(null)
 
-    await expect(getReportByIdOrThrow('missing')).rejects.toMatchObject({
+    await expect(getReportByIdOrThrow('missing', 'project-1')).rejects.toMatchObject({
       message: 'Report not found',
       statusCode: 404,
     })
@@ -198,17 +198,17 @@ describe('getAllTestCaseMetricsForFilter', () => {
   })
 
   it('returns all rows when filter is empty', async () => {
-    const r = await getAllTestCaseMetricsForFilter('')
+    const r = await getAllTestCaseMetricsForFilter('', 'project-1')
     expect(r).toHaveLength(3)
   })
 
   it('filters to repeatedly failing when requested', async () => {
-    const r = await getAllTestCaseMetricsForFilter('repeatedlyFailing')
+    const r = await getAllTestCaseMetricsForFilter('repeatedlyFailing', 'project-1')
     expect(r.map(x => x.id)).toEqual(['m1'])
   })
 
   it('filters to flaky when requested', async () => {
-    const r = await getAllTestCaseMetricsForFilter('flaky')
+    const r = await getAllTestCaseMetricsForFilter('flaky', 'project-1')
     expect(r.map(x => x.id)).toEqual(['m2'])
   })
 })
@@ -227,7 +227,7 @@ describe('getAllTestSuiteMetricsForFilter', () => {
     const rows = [{ id: 's1', lastExecutedAt: new Date('2025-06-14'), testSuite: {} }]
     mockTestSuiteMetricsFindMany.mockResolvedValue(rows)
 
-    const r = await getAllTestSuiteMetricsForFilter('')
+    const r = await getAllTestSuiteMetricsForFilter('', 'project-1')
     expect(r).toHaveLength(1)
   })
 
@@ -265,9 +265,10 @@ describe('getAllTestSuiteMetricsForFilter', () => {
       },
     ])
 
-    const r = await getAllTestSuiteMetricsForFilter('notExecutedRecently')
+    const r = await getAllTestSuiteMetricsForFilter('notExecutedRecently', 'project-1')
     expect(mockTestSuiteFindMany).toHaveBeenCalledWith({
       where: {
+        targetProjectId: 'project-1',
         OR: [
           {
             metrics: {

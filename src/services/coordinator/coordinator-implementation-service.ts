@@ -622,9 +622,13 @@ async function loadImplementationExecutionContext(
     where: { planId },
     select: { targetProject: { select: { id: true, canonicalPath: true } } },
   })
+  if (!projection?.targetProject) throw new ServiceError('Plan must be bound to a target project.', 'CONFLICT')
   const requestedValues = [...new Set(selected.flatMap(item => item.matrix.map(matrix => matrix.environment)))]
   const environments = await client.environment.findMany({
-    where: { OR: [{ id: { in: requestedValues } }, { name: { in: requestedValues } }] },
+    where: {
+      targetProjectId: projection.targetProject.id,
+      OR: [{ id: { in: requestedValues } }, { name: { in: requestedValues } }],
+    },
     select: { id: true, name: true },
   })
   return {

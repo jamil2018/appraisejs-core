@@ -61,6 +61,10 @@ describe('reviewed capsule coordinator lifecycle E2E', () => {
       omitTestRun: true,
       planLifecycle: 'validations_approved',
     })
+    await client.environment.update({
+      where: { id: environment.id },
+      data: { targetProjectId: 'coordinator-e2e-project' },
+    })
     await fs.rm(path.join(fixture.projectRoot, 'automation'), { recursive: true, force: true })
     const capsuleService = new RuntimeCapsuleTestRunService(client, path.join(fixture.projectRoot, '.appraise'))
     let startError: unknown

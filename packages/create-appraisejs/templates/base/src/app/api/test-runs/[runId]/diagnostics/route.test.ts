@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { findUnique, readDiagnostic } = vi.hoisted(() => ({ findUnique: vi.fn(), readDiagnostic: vi.fn() }))
-vi.mock('@/config/db-config', () => ({ default: { testRun: { findUnique } } }))
+vi.mock('@/config/db-config', () => ({ default: { testRun: { findUnique, findFirst: findUnique } } }))
 vi.mock('@/services/test-run/runtime-capsule-diagnostics-service', () => ({
   readRuntimeCapsuleDiagnostic: readDiagnostic,
 }))

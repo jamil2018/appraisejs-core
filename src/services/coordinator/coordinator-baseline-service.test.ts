@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs'
+import { createHash } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -189,18 +190,31 @@ async function writeArtifacts(planId: string, lifecycle?: PlanArtifact['lifecycl
     path.join(workspace, 'appraise', 'plans', 'validations', `${planId}.validation.yaml`),
     serializeYamlArtifact('validation', validation(planId)),
   )
+  await syncPlans({ projectDirectory: workspace, client })
+  const projection = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+  const targetProjectId =
+    projection.targetProjectId ??
+    (
+      await client.targetProject.create({
+        data: {
+          canonicalPath: workspace,
+          displayName: planId,
+          fingerprint: `sha256:${createHash('sha256').update(planId).digest('hex')}`,
+        },
+      })
+    ).id
+  if (!projection.targetProjectId) await client.planProjection.update({ where: { planId }, data: { targetProjectId } })
   await client.environment.upsert({
     where: { name: 'local' },
-    update: { baseUrl: 'http://localhost:3000' },
-    create: { name: 'local', baseUrl: 'http://localhost:3000' },
+    update: { baseUrl: 'http://localhost:3000', targetProjectId },
+    create: { name: 'local', baseUrl: 'http://localhost:3000', targetProjectId },
   })
   await client.environment.upsert({
     where: { name: 'staging' },
-    update: { baseUrl: 'https://staging.example.test' },
-    create: { name: 'staging', baseUrl: 'https://staging.example.test' },
+    update: { baseUrl: 'https://staging.example.test', targetProjectId },
+    create: { name: 'staging', baseUrl: 'https://staging.example.test', targetProjectId },
   })
   await projectValidationArtifacts({ planId, validation: validation(planId) }, client)
-  await syncPlans({ projectDirectory: workspace, client })
 }
 
 async function readValidation(planId: string) {
@@ -280,13 +294,7 @@ describe('baseline execution and implementation gate', () => {
       runtimeInputHash: `sha256:${'c'.repeat(64)}`,
     }
     await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', reviewed))
-    const targetProject = await client.targetProject.create({
-      data: {
-        canonicalPath: workspace,
-        displayName: 'Capsule target',
-        fingerprint: `sha256:${'d'.repeat(64)}`,
-      },
-    })
+    const targetProject = await client.targetProject.findUniqueOrThrow({ where: { canonicalPath: workspace } })
     await client.planProjection.update({ where: { planId }, data: { targetProjectId: targetProject.id } })
     await fs.rm(path.join(workspace, 'automation'), { recursive: true, force: true })
     const calls: Array<{ kind: string; input: Record<string, unknown> }> = []

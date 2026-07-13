@@ -337,7 +337,10 @@ async function submitCapsuleTestRun(
     throw new ServiceError('Reviewed AST baseline requires an exact managed publish operation.', 'CONFLICT')
   const operationId = provenance.publishOperationId
   const environment = await client.environment.findFirst({
-    where: { OR: [{ id: input.environment }, { name: input.environment }] },
+    where: {
+      targetProjectId: input.targetProject.id,
+      OR: [{ id: input.environment }, { name: input.environment }],
+    },
   })
   if (!environment) throw new ServiceError(`Environment "${input.environment}" was not found.`, 'VALIDATION')
   const request = {

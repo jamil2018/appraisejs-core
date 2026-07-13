@@ -35,7 +35,10 @@ export async function assertValidationEnvironmentsReady(
     ...new Set(validation.validations.flatMap(item => item.matrix.map(entry => entry.environment))),
   ]
   const existing = await client.environment.findMany({
-    where: { OR: [{ id: { in: requiredReferences } }, { name: { in: requiredReferences } }] },
+    where: {
+      ...(targetProject ? { targetProjectId: targetProject.id } : {}),
+      OR: [{ id: { in: requiredReferences } }, { name: { in: requiredReferences } }],
+    },
     select: { id: true, name: true },
   })
   const found = new Set(existing.flatMap(environment => [environment.id, environment.name]))
@@ -56,17 +59,18 @@ export async function assertValidationEnvironmentsReady(
   }
 }
 
-async function ensureIdentifierTag(name: string, client: ProjectionClient) {
+async function ensureIdentifierTag(name: string, targetProjectId: string, client: ProjectionClient) {
   const canonicalName = canonicalTagName(name)
   const tagExpression = canonicalTagExpression(name)
   const existing = await client.tag.findFirst({
     where: {
       type: TagType.IDENTIFIER,
+      targetProjectId,
       OR: [{ name: canonicalName }, { name }, { tagExpression }, { tagExpression: canonicalName }],
     },
   })
   if (existing) return existing
-  return client.tag.create({ data: { name: canonicalName, tagExpression, type: TagType.IDENTIFIER } })
+  return client.tag.create({ data: { name: canonicalName, tagExpression, type: TagType.IDENTIFIER, targetProjectId } })
 }
 
 function assertProjectionOwned(existing: { tags: Array<{ name: string }> } | null, entityType: string, id: string) {
@@ -83,13 +87,17 @@ function assertProjectionOwned(existing: { tags: Array<{ name: string }> } | nul
   )
 }
 
-async function assertProjectionOwnedTestCase(id: string, client: ProjectionClient) {
+async function assertProjectionOwnedTestCase(id: string, targetProjectId: string, client: ProjectionClient) {
   const existing = await client.testCase.findUnique({ where: { id }, include: { tags: true } })
+  if (existing && existing.targetProjectId !== targetProjectId)
+    throw new ServiceError(`Validation projection conflicts with foreign test case "${id}".`, 'CONFLICT')
   assertProjectionOwned(existing, 'TestCase', id)
 }
 
-async function assertProjectionOwnedTestSuite(id: string, client: ProjectionClient) {
+async function assertProjectionOwnedTestSuite(id: string, targetProjectId: string, client: ProjectionClient) {
   const existing = await client.testSuite.findUnique({ where: { id }, include: { tags: true } })
+  if (existing && existing.targetProjectId !== targetProjectId)
+    throw new ServiceError(`Validation projection conflicts with foreign test suite "${id}".`, 'CONFLICT')
   assertProjectionOwned(existing, 'TestSuite', id)
 }
 
@@ -176,7 +184,9 @@ async function projectValidationArtifactsInTransaction(
     'findUnique' in client.planProjection
       ? await client.planProjection.findUnique({ where: { planId }, select: { targetProjectId: true } })
       : null
-  const ownerTag = await ensureIdentifierTag(projectionTag(planId), client)
+  if (!plan?.targetProjectId) throw new ServiceError('Plan must be bound to a target project.', 'CONFLICT')
+  const targetProjectId = plan.targetProjectId
+  const ownerTag = await ensureIdentifierTag(projectionTag(planId), targetProjectId, client)
   const moduleIds = new Set<string>()
   const locatorGroupIds = new Set<string>()
   const locatorIds = new Set<string>()
@@ -188,7 +198,7 @@ async function projectValidationArtifactsInTransaction(
       const existing = await client.module.findUnique({ where: { id: artifactModule.id } })
       assertMatchingEntity(
         existing,
-        { name: artifactModule.name, parentId: artifactModule.parentId ?? null },
+        { name: artifactModule.name, parentId: artifactModule.parentId ?? null, targetProjectId },
         'Module',
         artifactModule.id,
       )
@@ -199,6 +209,7 @@ async function projectValidationArtifactsInTransaction(
           id: artifactModule.id,
           name: artifactModule.name,
           parentId: artifactModule.parentId ?? null,
+          targetProjectId,
         },
       })
       moduleIds.add(artifactModule.id)
@@ -208,7 +219,7 @@ async function projectValidationArtifactsInTransaction(
       const existing = await client.locatorGroup.findUnique({ where: { id: locatorGroup.id } })
       assertMatchingEntity(
         existing,
-        { name: locatorGroup.name, route: locatorGroup.route, moduleId: locatorGroup.moduleId },
+        { name: locatorGroup.name, route: locatorGroup.route, moduleId: locatorGroup.moduleId, targetProjectId },
         'LocatorGroup',
         locatorGroup.id,
       )
@@ -220,6 +231,7 @@ async function projectValidationArtifactsInTransaction(
           name: locatorGroup.name,
           route: locatorGroup.route,
           moduleId: locatorGroup.moduleId,
+          targetProjectId,
         },
       })
       locatorGroupIds.add(locatorGroup.id)
@@ -229,7 +241,7 @@ async function projectValidationArtifactsInTransaction(
       const existing = await client.locator.findUnique({ where: { id: locator.id } })
       assertMatchingEntity(
         existing,
-        { name: locator.name, value: locator.value, locatorGroupId: locator.locatorGroupId },
+        { name: locator.name, value: locator.value, locatorGroupId: locator.locatorGroupId, targetProjectId },
         'Locator',
         locator.id,
       )
@@ -241,28 +253,36 @@ async function projectValidationArtifactsInTransaction(
           name: locator.name,
           value: locator.value,
           locatorGroupId: locator.locatorGroupId,
+          targetProjectId,
         },
       })
       locatorIds.add(locator.id)
     }
 
     for (const testCase of artifacts.testCases) {
-      await assertProjectionOwnedTestCase(testCase.id, client)
+      await assertProjectionOwnedTestCase(testCase.id, targetProjectId, client)
       await client.testCase.upsert({
         where: { id: testCase.id },
         update: {
           title: testCase.title,
           description: testCase.description,
           tags: {
-            connect: [{ id: ownerTag.id }, { id: (await ensureIdentifierTag(testCaseTag(testCase.id), client)).id }],
+            connect: [
+              { id: ownerTag.id },
+              { id: (await ensureIdentifierTag(testCaseTag(testCase.id), targetProjectId, client)).id },
+            ],
           },
         },
         create: {
           id: testCase.id,
           title: testCase.title,
           description: testCase.description,
+          targetProjectId,
           tags: {
-            connect: [{ id: ownerTag.id }, { id: (await ensureIdentifierTag(testCaseTag(testCase.id), client)).id }],
+            connect: [
+              { id: ownerTag.id },
+              { id: (await ensureIdentifierTag(testCaseTag(testCase.id), targetProjectId, client)).id },
+            ],
           },
         },
       })
@@ -293,14 +313,15 @@ async function projectValidationArtifactsInTransaction(
     }
 
     for (const testSuite of artifacts.testSuites) {
-      await assertProjectionOwnedTestSuite(testSuite.id, client)
-      const suiteIdentifierTag = await ensureIdentifierTag(testSuiteTag(testSuite.id), client)
+      await assertProjectionOwnedTestSuite(testSuite.id, targetProjectId, client)
+      const suiteIdentifierTag = await ensureIdentifierTag(testSuiteTag(testSuite.id), targetProjectId, client)
       await client.testSuite.upsert({
         where: { id: testSuite.id },
         update: {
           name: testSuite.name,
           description: testSuite.description ?? null,
           moduleId: testSuite.moduleId,
+          targetProjectId,
           tags: { connect: [{ id: ownerTag.id }, { id: suiteIdentifierTag.id }] },
           testCases: { set: testSuite.testCaseIds.map(id => ({ id })) },
         },
@@ -309,6 +330,7 @@ async function projectValidationArtifactsInTransaction(
           name: testSuite.name,
           description: testSuite.description ?? null,
           moduleId: testSuite.moduleId,
+          targetProjectId,
           tags: { connect: [{ id: ownerTag.id }, { id: suiteIdentifierTag.id }] },
           testCases: { connect: testSuite.testCaseIds.map(id => ({ id })) },
         },
@@ -316,7 +338,7 @@ async function projectValidationArtifactsInTransaction(
     }
   }
 
-  if (plan?.targetProjectId) {
+  if (plan.targetProjectId) {
     const resources = [
       ...[...moduleIds].map(entityId => ({ entityType: 'module' as const, entityId })),
       ...[...locatorGroupIds].map(entityId => ({ entityType: 'locator-group' as const, entityId })),

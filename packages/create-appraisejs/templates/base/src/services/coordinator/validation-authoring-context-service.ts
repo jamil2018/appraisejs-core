@@ -137,6 +137,7 @@ async function readReusableResources(client: PrismaClient, targetProjectId: stri
       orderBy: { name: 'asc' },
     }),
     client.stepBlock.findMany({
+      where: { targetProjectId },
       select: {
         id: true,
         name: true,
@@ -159,10 +160,10 @@ async function readReusableResources(client: PrismaClient, targetProjectId: stri
       orderBy: { name: 'asc' },
     }),
   ])
-  const ownerships = await readVisibleResourceOwnerships(targetProjectId, ['template-step', 'step-block'], client)
+  const ownerships = await readVisibleResourceOwnerships(targetProjectId, ['step-block'], client)
   if (ownerships === null) return { templateSteps, stepBlocks }
   return {
-    templateSteps: templateSteps.filter(step => ownerships.has(`template-step:${step.id}`)),
+    templateSteps,
     stepBlocks: stepBlocks.filter(block => ownerships.has(`step-block:${block.id}`)),
   }
 }
@@ -252,19 +253,31 @@ export async function readValidationContext(
   } = {},
 ) {
   const { client, plan, projection } = await readPlanContext(planId, options)
+  if (!projection?.targetProjectId) throw new Error('Plan must be bound to a target project.')
+  const targetProjectId = projection.targetProjectId
   const [modules, testSuites, testCases, templateSteps, stepBlocks, locatorGroups, locators, environments] =
     await Promise.all([
-      client.module.findMany({ select: { id: true, name: true, parentId: true }, orderBy: { name: 'asc' } }),
+      client.module.findMany({
+        where: { targetProjectId },
+        select: { id: true, name: true, parentId: true },
+        orderBy: { name: 'asc' },
+      }),
       client.testSuite.findMany({
+        where: { targetProjectId },
         select: { id: true, name: true, description: true, moduleId: true, testCases: { select: { id: true } } },
         orderBy: { name: 'asc' },
       }),
-      client.testCase.findMany({ select: { id: true, title: true, description: true }, orderBy: { title: 'asc' } }),
+      client.testCase.findMany({
+        where: { targetProjectId },
+        select: { id: true, title: true, description: true },
+        orderBy: { title: 'asc' },
+      }),
       client.templateStep.findMany({
         select: { id: true, name: true, signature: true, type: true, templateStepGroupId: true },
         orderBy: { name: 'asc' },
       }),
       client.stepBlock.findMany({
+        where: { targetProjectId },
         select: {
           id: true,
           name: true,
@@ -284,14 +297,17 @@ export async function readValidationContext(
         orderBy: { name: 'asc' },
       }),
       client.locatorGroup.findMany({
+        where: { targetProjectId },
         select: { id: true, name: true, route: true, moduleId: true },
         orderBy: { name: 'asc' },
       }),
       client.locator.findMany({
+        where: { targetProjectId },
         select: { id: true, name: true, value: true, locatorGroupId: true },
         orderBy: { name: 'asc' },
       }),
       client.environment.findMany({
+        where: { targetProjectId },
         select: { id: true, name: true, baseUrl: true, apiBaseUrl: true },
         orderBy: { name: 'asc' },
       }),
@@ -306,7 +322,6 @@ export async function readValidationContext(
     locators,
     environments,
   }
-  if (!projection?.targetProjectId) throw new Error('Plan must be bound to a target project.')
   const ownerships = await readVisibleResourceOwnerships(
     projection.targetProjectId,
     ['module', 'test-suite', 'test-case', 'template-step', 'step-block', 'locator-group', 'locator', 'environment'],
@@ -330,14 +345,14 @@ export async function readValidationContext(
       resourceType,
       allResources[resourceType]
         .filter(resource => {
-          if (!ownerships) return true
+          if (resourceType === 'templateSteps' || !ownerships) return true
           return ownerships.has(`${entityTypeByResource[resourceType]}:${resource.id}`)
         })
         .map(resource => {
           const ownership = ownerships?.get(`${entityTypeByResource[resourceType]}:${resource.id}`)
           return {
             ...resource,
-            scope: ownership?.scope ?? 'legacy_test_fixture',
+            scope: resourceType === 'templateSteps' ? 'shared_library' : (ownership?.scope ?? 'legacy_test_fixture'),
             provenance: ownership ?? null,
             ...(resourceType === 'environments' ? { reference: resource.id } : {}),
           }

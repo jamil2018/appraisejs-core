@@ -1,20 +1,23 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/config/db-config'
 import { readRuntimeCapsuleDiagnostic } from '@/services/test-run/runtime-capsule-diagnostics-service'
+import { ACTIVE_PROJECT_COOKIE } from '@/lib/active-project'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params
-  const targetProjectId = new URL(request.url).searchParams.get('targetProjectId')
+  const nextRequest = new NextRequest(request)
+  const targetProjectId =
+    nextRequest.cookies.get(ACTIVE_PROJECT_COOKIE)?.value ?? nextRequest.nextUrl.searchParams.get('targetProjectId')
   if (!targetProjectId)
     return NextResponse.json({ error: 'Managed runtime capsule diagnostic was not found.' }, { status: 404 })
-  const run = await prisma.testRun.findUnique({
-    where: { runId },
+  const run = await prisma.testRun.findFirst({
+    where: { runId, targetProjectId },
     select: { targetProjectId: true, runtimeCapsule: { select: { id: true } } },
   })
-  if (!run?.runtimeCapsule || run.targetProjectId !== targetProjectId)
+  if (!run?.runtimeCapsule)
     return NextResponse.json({ error: 'Managed runtime capsule diagnostic was not found.' }, { status: 404 })
   try {
     return NextResponse.json(await readRuntimeCapsuleDiagnostic({ runId, expectedTargetProjectId: targetProjectId }), {

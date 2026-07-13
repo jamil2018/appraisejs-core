@@ -5,6 +5,13 @@ fields may repeat `targetProjectId` for conflict detection, but never establish 
 server-resolved project is rejected. Services require the resolved scope for every lookup and relation check. See
 `docs/project-ownership-boundary.md`.
 
+This applies to reads as well as mutations. Lists, detail views, uniqueness checks, dashboard metrics, reports, and
+test-run controls must receive the resolved project ID. Creation actions fail when no active project is selected, and
+services must persist the resolved ID rather than accepting ownership from form data.
+
+Template Steps and Template Step Groups are the explicit shared-library exception: their actions and services operate
+globally and do not require active-project resolution. Project-owned entities may reference these shared records.
+
 ## Layers
 
 1. **Server Action** (`src/actions/**`): `'use server'` entry points. Parse input with Zod, call a **service**, map results to `ActionResponse`, call `revalidatePath` / `redirect` as needed.

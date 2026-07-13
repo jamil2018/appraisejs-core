@@ -265,7 +265,6 @@ async function deleteProjectAuthoredRecords(targetProjectId: string, tx: Prisma.
   await tx.templateTestCase.deleteMany({ where: { targetProjectId } })
   await tx.testSuite.deleteMany({ where: { targetProjectId } })
   await tx.stepBlock.deleteMany({ where: { targetProjectId } })
-  await tx.templateStepGroup.deleteMany({ where: { targetProjectId } })
   await tx.locator.deleteMany({ where: { targetProjectId } })
   await tx.locatorGroup.deleteMany({ where: { targetProjectId } })
   await tx.module.deleteMany({ where: { targetProjectId } })

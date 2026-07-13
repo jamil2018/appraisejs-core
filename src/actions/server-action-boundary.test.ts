@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { revalidatePath } from 'next/cache'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+
+vi.mock('@/lib/active-project', () => ({
+  requireActiveProjectForMutation: vi.fn().mockResolvedValue({
+    id: 'project-1',
+    displayName: 'Project One',
+    canonicalPath: '/project-one',
+    source: 'cookie',
+  }),
+}))
 import { moduleSchema } from '@/constants/form-opts/module-form-opts'
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
 import { tagSchema } from '@/constants/form-opts/tag-form-opts'
@@ -325,6 +335,12 @@ const payload = { name: 'Smoke' }
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(requireActiveProjectForMutation).mockResolvedValue({
+    id: 'project-1',
+    displayName: 'Project One',
+    canonicalPath: '/project-one',
+    source: 'cookie',
+  })
 })
 
 describe('module actions', () => {
@@ -339,7 +355,7 @@ describe('module actions', () => {
       success: true,
       message: 'Modules deleted successfully',
     })
-    expect(deleteModules).toHaveBeenCalledWith(['module-1'])
+    expect(deleteModules).toHaveBeenCalledWith(['module-1'], 'project-1')
 
     vi.mocked(createModule).mockResolvedValueOnce({ id: 'module-2' } as never)
     await expect(createModuleAction(null, payload as never)).resolves.toMatchObject({
@@ -354,8 +370,8 @@ describe('module actions', () => {
     })
 
     expect(moduleSchema.parse).toHaveBeenCalledTimes(2)
-    expect(createModule).toHaveBeenCalledWith(payload)
-    expect(updateModule).toHaveBeenCalledWith('module-1', payload)
+    expect(createModule).toHaveBeenCalledWith(payload, 'project-1')
+    expect(updateModule).toHaveBeenCalledWith('module-1', payload, 'project-1')
     expect(revalidatePath).toHaveBeenCalledWith('/modules')
   })
 })
@@ -372,7 +388,7 @@ describe('environment actions', () => {
       success: true,
       message: 'Environments deleted successfully',
     })
-    expect(deleteEnvironments).toHaveBeenCalledWith(['env-1'])
+    expect(deleteEnvironments).toHaveBeenCalledWith(['env-1'], 'project-1')
 
     vi.mocked(createEnvironment).mockResolvedValueOnce({ id: 'env-2' } as never)
     await expect(createEnvironmentAction(null, payload as never)).resolves.toMatchObject({
@@ -387,8 +403,8 @@ describe('environment actions', () => {
     })
 
     expect(environmentSchema.parse).toHaveBeenCalledTimes(2)
-    expect(createEnvironment).toHaveBeenCalledWith(payload)
-    expect(updateEnvironment).toHaveBeenCalledWith('env-1', payload)
+    expect(createEnvironment).toHaveBeenCalledWith(payload, 'project-1')
+    expect(updateEnvironment).toHaveBeenCalledWith('env-1', payload, 'project-1')
     expect(revalidatePath).toHaveBeenCalledWith('/environments')
   })
 })
@@ -405,7 +421,7 @@ describe('tag actions', () => {
       success: true,
       message: 'Tag deleted successfully',
     })
-    expect(deleteTags).toHaveBeenCalledWith(['tag-1'])
+    expect(deleteTags).toHaveBeenCalledWith(['tag-1'], 'project-1')
 
     vi.mocked(createTag).mockResolvedValueOnce({ id: 'tag-2' } as never)
     await expect(createTagAction(null, payload as never)).resolves.toMatchObject({
@@ -420,8 +436,8 @@ describe('tag actions', () => {
     })
 
     expect(tagSchema.parse).toHaveBeenCalledTimes(2)
-    expect(createTag).toHaveBeenCalledWith(payload)
-    expect(updateTag).toHaveBeenCalledWith('tag-1', payload)
+    expect(createTag).toHaveBeenCalledWith(payload, 'project-1')
+    expect(updateTag).toHaveBeenCalledWith('tag-1', payload, 'project-1')
     expect(revalidatePath).toHaveBeenCalledWith('/tags')
   })
 })
@@ -453,7 +469,7 @@ describe('locator group actions', () => {
       success: true,
       data: ['group-1', 'group-2'],
     })
-    expect(deleteLocatorGroups).toHaveBeenCalledWith(['group-1', 'group-2'])
+    expect(deleteLocatorGroups).toHaveBeenCalledWith(['group-1', 'group-2'], 'project-1')
 
     vi.mocked(checkLocatorGroupNameUnique).mockResolvedValueOnce(true)
     await expect(checkLocatorGroupNameUniqueAction('Home', 'group-1')).resolves.toMatchObject({
@@ -461,9 +477,9 @@ describe('locator group actions', () => {
       data: { isUnique: true },
     })
 
-    expect(createLocatorGroup).toHaveBeenCalledWith(payload)
-    expect(updateLocatorGroup).toHaveBeenCalledWith('group-1', payload)
-    expect(checkLocatorGroupNameUnique).toHaveBeenCalledWith('Home', 'group-1')
+    expect(createLocatorGroup).toHaveBeenCalledWith(payload, 'project-1')
+    expect(updateLocatorGroup).toHaveBeenCalledWith('group-1', payload, 'project-1')
+    expect(checkLocatorGroupNameUnique).toHaveBeenCalledWith('Home', 'project-1', 'group-1')
     expect(revalidatePath).toHaveBeenCalledWith('/locator-groups')
   })
 })
@@ -490,7 +506,7 @@ describe('locator actions', () => {
       data: { conflicts: 0, errors: [], locatorsCreated: 2, locatorsMergedToFile: 1 },
     })
 
-    expect(deleteLocators).toHaveBeenCalledWith(['loc-1'])
+    expect(deleteLocators).toHaveBeenCalledWith(['loc-1'], 'project-1')
     expect(revalidatePath).toHaveBeenCalledWith('/locators')
   })
 })
@@ -513,7 +529,7 @@ describe('test suite actions', () => {
       success: true,
       message: 'Test suite(s) deleted successfully',
     })
-    expect(deleteTestSuitesByIds).toHaveBeenCalledWith(['suite-1'])
+    expect(deleteTestSuitesByIds).toHaveBeenCalledWith(['suite-1'], 'project-1')
 
     await expect(updateTestSuiteAction(null, payload as never)).resolves.toMatchObject({
       status: 400,
@@ -526,7 +542,7 @@ describe('test suite actions', () => {
     })
 
     expect(testSuiteSchema.parse).toHaveBeenCalledTimes(3)
-    expect(updateTestSuiteFromInput).toHaveBeenCalledWith(payload, 'suite-1')
+    expect(updateTestSuiteFromInput).toHaveBeenCalledWith(payload, 'suite-1', 'project-1')
     expect(revalidatePath).toHaveBeenCalledWith('/test-suites')
   })
 })
@@ -549,7 +565,7 @@ describe('test case actions', () => {
       success: true,
       message: 'Test case(s) deleted successfully',
     })
-    expect(deleteTestCasesByIds).toHaveBeenCalledWith(['case-1'])
+    expect(deleteTestCasesByIds).toHaveBeenCalledWith(['case-1'], 'project-1')
 
     await expect(updateTestCaseAction(payload as never)).resolves.toMatchObject({
       status: 400,
@@ -563,7 +579,7 @@ describe('test case actions', () => {
     })
 
     expect(testCaseSchema.parse).toHaveBeenCalledTimes(2)
-    expect(updateTestCaseFromInput).toHaveBeenCalledWith(payload, 'case-1')
+    expect(updateTestCaseFromInput).toHaveBeenCalledWith(payload, 'case-1', 'project-1')
     expect(revalidatePath).toHaveBeenCalledWith('/test-cases')
   })
 })
@@ -636,10 +652,10 @@ describe('template test case actions', () => {
       success: true,
       message: 'Template test case(s) deleted successfully',
     })
-    expect(deleteTemplateTestCases).toHaveBeenCalledWith(['template-case-1'])
+    expect(deleteTemplateTestCases).toHaveBeenCalledWith(['template-case-1'], 'project-1')
 
     expect(templateTestCaseSchema.parse).toHaveBeenCalledTimes(2)
-    expect(updateTemplateTestCase).toHaveBeenCalledWith('template-case-1', payload)
+    expect(updateTemplateTestCase).toHaveBeenCalledWith('template-case-1', payload, 'project-1')
     expect(revalidatePath).toHaveBeenCalledWith('/template-test-cases')
   })
 })
@@ -682,7 +698,7 @@ describe('test run actions', () => {
   it('wraps test run service calls and maps action-specific outcomes', async () => {
     vi.mocked(listTestRuns).mockResolvedValueOnce([{ id: 'run-1' }] as never)
     await expect(getAllTestRunsAction('all')).resolves.toMatchObject({ success: true, data: [{ id: 'run-1' }] })
-    expect(listTestRuns).toHaveBeenCalledWith('all')
+    expect(listTestRuns).toHaveBeenCalledWith('project-1', 'all')
 
     vi.mocked(getTestRunByIdOrThrow).mockResolvedValueOnce({ id: 'run-1' } as never)
     await expect(getTestRunByIdAction('run-1')).resolves.toMatchObject({ success: true, data: { id: 'run-1' } })
@@ -739,8 +755,8 @@ describe('test run actions', () => {
       data: { isUnique: true },
     })
 
-    expect(deleteTestRunsByIds).toHaveBeenCalledWith(['run-1'])
-    expect(isTestRunNameTaken).toHaveBeenCalledWith('Nightly', 'run-1')
+    expect(deleteTestRunsByIds).toHaveBeenCalledWith(['run-1'], 'project-1')
+    expect(isTestRunNameTaken).toHaveBeenCalledWith('Nightly', 'project-1', 'run-1')
     expect(revalidatePath).toHaveBeenCalledWith('/test-runs')
     expect(revalidatePath).toHaveBeenCalledWith('/test-runs/run-1')
   })

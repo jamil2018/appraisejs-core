@@ -8,10 +8,11 @@ import { ServiceError } from '@/services/shared/errors'
 import { TagType } from '@prisma/client'
 import { z } from 'zod'
 
-export async function listTestSuites() {
-  await ensureTestSuiteIdentifierTags()
+export async function listTestSuites(targetProjectId: string) {
+  await ensureTestSuiteIdentifierTags(undefined, targetProjectId)
 
   return prisma.testSuite.findMany({
+    where: { targetProjectId },
     include: {
       module: true,
       testCases: true,
@@ -20,7 +21,14 @@ export async function listTestSuites() {
   })
 }
 
-export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSchema>) {
+export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSchema>, targetProjectId: string) {
+  const [module, testCases, tags] = await Promise.all([
+    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
+    prisma.testCase.findMany({ where: { id: { in: value.testCases ?? [] }, targetProjectId }, select: { id: true } }),
+    prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
+  ])
+  if (!module || testCases.length !== (value.testCases ?? []).length || tags.length !== (value.tagIds ?? []).length)
+    throw new ServiceError('Test suite relationships must belong to the active project', 'VALIDATION', 400)
   const suiteIdentifier = generateUniqueTestSuiteIdentifier()
   const newTestSuite = await prisma.$transaction(async tx => {
     const suiteIdentifierTag = await tx.tag.create({
@@ -28,6 +36,7 @@ export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSc
         name: suiteIdentifier,
         type: TagType.IDENTIFIER,
         tagExpression: `@${suiteIdentifier}`,
+        targetProject: { connect: { id: targetProjectId } },
       },
     })
 
@@ -35,6 +44,7 @@ export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSc
       data: {
         name: value.name,
         description: value.description,
+        targetProject: { connect: { id: targetProjectId } },
         module: {
           connect: {
             id: value.moduleId,
@@ -59,11 +69,11 @@ export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSc
   return newTestSuite
 }
 
-export async function getTestSuiteByIdOrThrow(id: string) {
-  await ensureTestSuiteIdentifierTags([id])
+export async function getTestSuiteByIdOrThrow(id: string, targetProjectId: string) {
+  await ensureTestSuiteIdentifierTags([id], targetProjectId)
 
-  const testSuite = await prisma.testSuite.findUnique({
-    where: { id },
+  const testSuite = await prisma.testSuite.findFirst({
+    where: { id, targetProjectId },
     include: {
       module: true,
       testCases: true,
@@ -82,10 +92,11 @@ export async function getTestSuiteByIdOrThrow(id: string) {
   return testSuite
 }
 
-export async function deleteTestSuitesByIds(ids: string[]): Promise<void> {
+export async function deleteTestSuitesByIds(ids: string[], targetProjectId: string): Promise<void> {
   const suiteIdentifierTags = await prisma.tag.findMany({
     where: {
       type: TagType.IDENTIFIER,
+      targetProjectId,
       name: {
         startsWith: 'ts_',
       },
@@ -111,7 +122,7 @@ export async function deleteTestSuitesByIds(ids: string[]): Promise<void> {
   }
 
   await prisma.testSuite.deleteMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, targetProjectId },
   })
 
   if (suiteIdentifierTags.length > 0) {
@@ -134,9 +145,13 @@ export async function deleteTestSuitesByIds(ids: string[]): Promise<void> {
   }
 }
 
-export async function updateTestSuiteFromInput(value: z.infer<typeof testSuiteSchema>, id: string): Promise<void> {
-  const currentTestSuite = await prisma.testSuite.findUnique({
-    where: { id },
+export async function updateTestSuiteFromInput(
+  value: z.infer<typeof testSuiteSchema>,
+  id: string,
+  targetProjectId: string,
+): Promise<void> {
+  const currentTestSuite = await prisma.testSuite.findFirst({
+    where: { id, targetProjectId },
     include: {
       module: true,
       tags: {
@@ -153,6 +168,13 @@ export async function updateTestSuiteFromInput(value: z.infer<typeof testSuiteSc
   if (!currentTestSuite) {
     throw new ServiceError('Test suite not found', 'NOT_FOUND', 404)
   }
+  const [module, testCases, tags] = await Promise.all([
+    prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId }, select: { id: true } }),
+    prisma.testCase.findMany({ where: { id: { in: value.testCases ?? [] }, targetProjectId }, select: { id: true } }),
+    prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
+  ])
+  if (!module || testCases.length !== (value.testCases ?? []).length || tags.length !== (value.tagIds ?? []).length)
+    throw new ServiceError('Test suite relationships must belong to the active project', 'VALIDATION', 400)
 
   const nameChanged = currentTestSuite.name !== value.name
   const moduleChanged = currentTestSuite.moduleId !== value.moduleId
@@ -165,7 +187,7 @@ export async function updateTestSuiteFromInput(value: z.infer<typeof testSuiteSc
     }
   }
 
-  const suiteIdentifierTagId = await getOrCreateTestSuiteIdentifierTagId(id)
+  const suiteIdentifierTagId = await getOrCreateTestSuiteIdentifierTagId(id, targetProjectId)
   const updatedTestSuite = await prisma.testSuite.update({
     where: { id },
     data: {

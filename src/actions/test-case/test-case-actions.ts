@@ -12,10 +12,12 @@ import {
   updateTestCaseFromInput,
 } from '@/services/test-case/test-case-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllTestCasesAction(): Promise<ActionResponse> {
   try {
-    const testCases = await listTestCases()
+    const project = await requireActiveProjectForMutation()
+    const testCases = await listTestCases(project.id)
     return {
       status: 200,
       success: true,
@@ -28,7 +30,8 @@ export async function getAllTestCasesAction(): Promise<ActionResponse> {
 
 export async function deleteTestCaseAction(ids: string[]): Promise<ActionResponse> {
   try {
-    await deleteTestCasesByIds(ids)
+    const project = await requireActiveProjectForMutation()
+    await deleteTestCasesByIds(ids, project.id)
 
     revalidatePath('/test-cases')
     return {
@@ -44,7 +47,8 @@ export async function deleteTestCaseAction(ids: string[]): Promise<ActionRespons
 export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>): Promise<ActionResponse> {
   try {
     testCaseSchema.parse(value)
-    const newTestCase = await createTestCaseFromInput(value)
+    const project = await requireActiveProjectForMutation()
+    const newTestCase = await createTestCaseFromInput(value, project.id)
 
     revalidatePath('/test-cases')
     return {
@@ -63,7 +67,8 @@ export async function createTestCaseAction(value: z.infer<typeof testCaseSchema>
 
 export async function getTestCaseByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const testCase = await getTestCaseByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const testCase = await getTestCaseByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -90,7 +95,8 @@ export async function updateTestCaseAction(
   }
   try {
     testCaseSchema.parse(value)
-    const testCase = await updateTestCaseFromInput(value, id)
+    const project = await requireActiveProjectForMutation()
+    const testCase = await updateTestCaseFromInput(value, id, project.id)
 
     revalidatePath('/test-cases')
     return {

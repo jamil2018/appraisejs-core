@@ -12,12 +12,13 @@ import { getPlanDisplaySlug, matchesPlanSlug, planCanonicalRoute } from '@/lib/p
 import { PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import { getPlanReviewDetail, listPlans } from '@/services/plan-review/plan-review-service'
 import { ServiceError } from '@/services/shared/errors'
+import { requireActiveProject } from '@/lib/active-project'
 
 import { PlanReviewWorkspace } from './plan-review-workspace'
 
 type PageProps = {
   params: Promise<{ planId: string }>
-  searchParams?: Promise<{ review?: string }>
+  searchParams?: Promise<{ review?: string; project?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -40,17 +41,17 @@ function isPlanDetailNotFound(error: unknown): boolean {
   return code === 'NOT_FOUND' || code === 'not-found'
 }
 
-async function readExactPlanDetail(routeKey: string) {
+async function readExactPlanDetail(routeKey: string, targetProjectId: string) {
   try {
-    return await getPlanReviewDetail(routeKey)
+    return await getPlanReviewDetail(routeKey, undefined, { targetProjectId })
   } catch (error) {
     if (isPlanDetailNotFound(error)) return undefined
     throw error
   }
 }
 
-async function resolveSlugMatches(routeKey: string) {
-  const plans = await listPlans()
+async function resolveSlugMatches(routeKey: string, targetProjectId: string) {
+  const plans = await listPlans({ targetProjectId })
   return plans.filter(plan => plan.planId !== routeKey && matchesPlanSlug(plan, routeKey))
 }
 
@@ -119,13 +120,14 @@ function AmbiguousPlanSlug({ slug, plans }: { slug: string; plans: Awaited<Retur
 
 // fallow-ignore-next-line complexity
 export default async function PlanReviewPage({ params, searchParams }: PageProps) {
-  const { planId: routeKey } = await params
-  const reviewMode = (await searchParams)?.review
-  const detail = await readExactPlanDetail(routeKey)
+  const [{ planId: routeKey }, resolvedSearchParams] = await Promise.all([params, searchParams])
+  const reviewMode = resolvedSearchParams?.review
+  const project = await requireActiveProject(resolvedSearchParams?.project)
+  const detail = await readExactPlanDetail(routeKey, project.id)
   if (detail)
     return <PlanReviewWorkspace detail={detail} initialTab={reviewMode === 'validation' ? 'validations' : undefined} />
 
-  const slugMatches = await resolveSlugMatches(routeKey)
+  const slugMatches = await resolveSlugMatches(routeKey, project.id)
   if (slugMatches.length === 1) redirect(planCanonicalRoute(slugMatches[0]!.planId))
   if (slugMatches.length > 1) return <AmbiguousPlanSlug slug={routeKey} plans={slugMatches} />
 

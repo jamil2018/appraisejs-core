@@ -54,6 +54,7 @@ vi.mock('@/config/db-config', () => ({
   default: {
     testRun: {
       findUnique: mockFindUnique,
+      findFirst: mockFindUnique,
     },
   },
 }))
@@ -83,9 +84,12 @@ describe('trace route', () => {
   it('returns 404 when the run is missing on GET', async () => {
     mockFindUnique.mockResolvedValue(null)
 
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1'), {
-      params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1?targetProjectId=project-1'),
+      {
+        params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
+      },
+    )
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'Test run not found' })
@@ -96,9 +100,12 @@ describe('trace route', () => {
       testCases: [],
     })
 
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1'), {
-      params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1?targetProjectId=project-1'),
+      {
+        params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
+      },
+    )
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'Test case not found in this test run' })
@@ -110,9 +117,12 @@ describe('trace route', () => {
     })
     mockGetProcess.mockReturnValue({ isRunning: true })
 
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1'), {
-      params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1?targetProjectId=project-1'),
+      {
+        params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
+      },
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
@@ -128,9 +138,12 @@ describe('trace route', () => {
   ])('returns an opaque %i error on GET', async (status, error, message) => {
     mockFindUnique.mockRejectedValue(error)
 
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1'), {
-      params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1?targetProjectId=project-1'),
+      {
+        params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
+      },
+    )
 
     expect(response.status).toBe(status)
     await expect(response.json()).resolves.toEqual({ error: message })
@@ -142,7 +155,9 @@ describe('trace route', () => {
     })
 
     const response = await POST(
-      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }),
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1?targetProjectId=project-1', {
+        method: 'POST',
+      }),
       {
         params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
       },
@@ -159,7 +174,9 @@ describe('trace route', () => {
     mockAccess.mockRejectedValue(new Error('missing'))
 
     const response = await POST(
-      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }),
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1?targetProjectId=project-1', {
+        method: 'POST',
+      }),
       {
         params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
       },
@@ -177,7 +194,9 @@ describe('trace route', () => {
     mockSpawn.mockResolvedValue({ name: 'trace-viewer-trtc-1' })
 
     const response = await POST(
-      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1', { method: 'POST' }),
+      new NextRequest('http://localhost/api/test-runs/run-1/trace/trtc-1?targetProjectId=project-1', {
+        method: 'POST',
+      }),
       {
         params: Promise.resolve({ runId: 'run-1', testCaseId: 'trtc-1' }),
       },

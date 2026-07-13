@@ -62,7 +62,17 @@ function auditClient() {
     module: { findMany: async () => [{ id: 'foreign-module', name: 'Foreign', parentId: null }] },
     testSuite: { findMany: async () => [] },
     testCase: { findMany: async () => [] },
-    templateStep: { findMany: async () => [] },
+    templateStep: {
+      findMany: async () => [
+        {
+          id: 'shared-step',
+          name: 'Shared step',
+          signature: 'Given a shared step',
+          type: 'ACTION',
+          templateStepGroupId: 'shared-group',
+        },
+      ],
+    },
     stepBlock: { findMany: async () => [] },
     locatorGroup: { findMany: async () => [] },
     locator: { findMany: async () => [] },
@@ -92,6 +102,9 @@ describe('managed validation integrity audit fixtures', () => {
     expect(context.notModified).not.toBe(true)
     if (!context.resources) throw new Error('Expected validation resources.')
     expect(context.resources.modules).toEqual([])
+    expect(context.resources.templateSteps).toEqual([
+      expect.objectContaining({ id: 'shared-step', scope: 'shared_library', provenance: null }),
+    ])
   })
 
   it('accepts the exact stable environment reference returned by context', async () => {

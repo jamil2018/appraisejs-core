@@ -12,10 +12,12 @@ import {
   updateTestSuiteFromInput,
 } from '@/services/test-suite/test-suite-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllTestSuitesAction(): Promise<ActionResponse> {
   try {
-    const testSuites = await listTestSuites()
+    const project = await requireActiveProjectForMutation()
+    const testSuites = await listTestSuites(project.id)
     return {
       status: 200,
       success: true,
@@ -32,7 +34,8 @@ export async function createTestSuiteAction(
 ): Promise<ActionResponse> {
   try {
     testSuiteSchema.parse(value)
-    const createdTestSuite = await createTestSuiteFromInput(value)
+    const project = await requireActiveProjectForMutation()
+    const createdTestSuite = await createTestSuiteFromInput(value, project.id)
 
     revalidatePath('/test-suites')
     return {
@@ -51,7 +54,8 @@ export async function createTestSuiteAction(
 
 export async function deleteTestSuiteAction(id: string[]): Promise<ActionResponse> {
   try {
-    await deleteTestSuitesByIds(id)
+    const project = await requireActiveProjectForMutation()
+    await deleteTestSuitesByIds(id, project.id)
 
     revalidatePath('/test-suites')
     return {
@@ -66,7 +70,8 @@ export async function deleteTestSuiteAction(id: string[]): Promise<ActionRespons
 
 export async function getTestSuiteByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const testSuite = await getTestSuiteByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const testSuite = await getTestSuiteByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -95,7 +100,8 @@ export async function updateTestSuiteAction(
       }
     }
 
-    await updateTestSuiteFromInput(value, id)
+    const project = await requireActiveProjectForMutation()
+    await updateTestSuiteFromInput(value, id, project.id)
 
     revalidatePath('/test-suites')
     return {

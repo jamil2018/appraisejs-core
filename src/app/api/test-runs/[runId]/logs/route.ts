@@ -5,6 +5,7 @@ import prisma from '@/config/db-config'
 import { TestRunStatus } from '@prisma/client'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
 import type { LogEntry } from '@/lib/test-run/log-formatter'
+import { ACTIVE_PROJECT_COOKIE } from '@/lib/active-project'
 
 // Ensure this route runs in Node.js runtime (not Edge) for singleton to work
 export const runtime = 'nodejs'
@@ -85,10 +86,10 @@ function sseErrorResponse(status: number, payload: Record<string, unknown>) {
   })
 }
 
-async function readTestRunStatusForLogs(runId: string) {
+async function readTestRunStatusForLogs(runId: string, targetProjectId: string) {
   try {
-    const testRun = await prisma.testRun.findUnique({
-      where: { runId },
+    const testRun = await prisma.testRun.findFirst({
+      where: { runId, targetProjectId },
       select: { id: true, status: true },
     })
 
@@ -143,18 +144,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     request.nextUrl.searchParams.get('format') === 'text' || request.headers.get('accept') === 'text/plain'
   const mode = parseLogMode(request.nextUrl.searchParams.get('mode'))
   const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit') ?? 50) || 50, 1), 500)
-  const capsuleOwnership = await prisma.testRun.findUnique({
-    where: { runId },
-    select: { targetProjectId: true, runtimeCapsule: { select: { id: true } } },
-  })
-  const expectedTargetProjectId = request.nextUrl.searchParams.get('targetProjectId') ?? undefined
-  if (
-    capsuleOwnership?.runtimeCapsule &&
-    (!expectedTargetProjectId || capsuleOwnership.targetProjectId !== expectedTargetProjectId)
-  )
-    return Response.json({ error: 'Test run not found.' }, { status: 404 })
+  const expectedTargetProjectId =
+    request.cookies.get(ACTIVE_PROJECT_COOKIE)?.value ??
+    request.nextUrl.searchParams.get('targetProjectId') ??
+    undefined
+  if (!expectedTargetProjectId) return Response.json({ error: 'Test run not found.' }, { status: 404 })
 
-  const statusResult = await readTestRunStatusForLogs(runId)
+  const statusResult = await readTestRunStatusForLogs(runId, expectedTargetProjectId)
   if ('response' in statusResult) return statusResult.response
 
   if (

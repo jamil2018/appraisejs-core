@@ -262,13 +262,14 @@ async function updateTestSuitesForTestRun(testRunId: string, executedAt: Date): 
 /**
  * Updates dashboard metrics with aggregated counts
  */
-export async function updateDashboardMetrics(): Promise<void> {
+export async function updateDashboardMetrics(targetProjectId: string): Promise<void> {
   try {
     const recentPeriodDate = getRecentPeriodDate()
 
     // Count failed recent runs
     const failedRecentRunsCount = await prisma.testRun.count({
       where: {
+        targetProjectId,
         result: 'FAILED',
         completedAt: {
           gte: recentPeriodDate,
@@ -279,6 +280,7 @@ export async function updateDashboardMetrics(): Promise<void> {
     // Count repeatedly failing live tests
     const repeatedlyFailingTestsCount = await prisma.testCase.count({
       where: {
+        targetProjectId,
         metrics: {
           is: {
             isRepeatedlyFailing: true,
@@ -290,6 +292,7 @@ export async function updateDashboardMetrics(): Promise<void> {
     // Count flaky live tests
     const flakyTestsCount = await prisma.testCase.count({
       where: {
+        targetProjectId,
         metrics: {
           is: {
             isFlaky: true,
@@ -301,6 +304,7 @@ export async function updateDashboardMetrics(): Promise<void> {
     // Count live suites with no execution metrics or stale execution metrics
     const suitesNotExecutedRecentlyCount = await prisma.testSuite.count({
       where: {
+        targetProjectId,
         OR: [
           {
             metrics: {
@@ -328,12 +332,13 @@ export async function updateDashboardMetrics(): Promise<void> {
     })
 
     // Update or create dashboard metrics (singleton pattern)
-    const existingMetrics = await prisma.dashboardMetrics.findFirst()
+    const existingMetrics = await prisma.dashboardMetrics.findFirst({ where: { targetProjectId } })
 
     if (existingMetrics) {
       await prisma.dashboardMetrics.update({
         where: { id: existingMetrics.id },
         data: {
+          targetProjectId,
           failedRecentRunsCount,
           repeatedlyFailingTestsCount,
           flakyTestsCount,
@@ -344,6 +349,7 @@ export async function updateDashboardMetrics(): Promise<void> {
     } else {
       await prisma.dashboardMetrics.create({
         data: {
+          targetProjectId,
           failedRecentRunsCount,
           repeatedlyFailingTestsCount,
           flakyTestsCount,
@@ -583,7 +589,7 @@ export async function updateMetricsForTestRun(testRunId: string): Promise<void> 
     await updateTestSuitesForTestRun(testRunId, executedAt)
 
     // Update dashboard metrics
-    await updateDashboardMetrics()
+    if (testRun.targetProjectId) await updateDashboardMetrics(testRun.targetProjectId)
   } catch (error) {
     console.error(`[MetricCalculator] Error updating metrics for test run ${testRunId}:`, error)
     // Don't throw - metrics are non-critical

@@ -6,10 +6,11 @@ import { TagType } from '@prisma/client'
 import type { Tag } from '@prisma/client'
 import type { z } from 'zod'
 
-async function checkUniqueTagName(name: string, excludeId?: string): Promise<boolean> {
+async function checkUniqueTagName(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.tag.findFirst({
     where: {
       name,
+      targetProjectId,
       ...(excludeId && { id: { not: excludeId } }),
     },
   })
@@ -17,10 +18,15 @@ async function checkUniqueTagName(name: string, excludeId?: string): Promise<boo
   return !!existing
 }
 
-async function checkUniqueTagExpression(tagExpression: string, excludeId?: string): Promise<boolean> {
+async function checkUniqueTagExpression(
+  tagExpression: string,
+  targetProjectId: string,
+  excludeId?: string,
+): Promise<boolean> {
   const existing = await prisma.tag.findFirst({
     where: {
       tagExpression,
+      targetProjectId,
       ...(excludeId && { id: { not: excludeId } }),
     },
   })
@@ -28,19 +34,19 @@ async function checkUniqueTagExpression(tagExpression: string, excludeId?: strin
   return !!existing
 }
 
-export async function listFilterTags(): Promise<Tag[]> {
+export async function listFilterTags(targetProjectId: string): Promise<Tag[]> {
   return prisma.tag.findMany({
-    where: { type: TagType.FILTER },
+    where: { type: TagType.FILTER, targetProjectId },
   })
 }
 
-export async function deleteTags(ids: string[]): Promise<void> {
-  await prisma.tag.deleteMany({ where: { id: { in: ids } } })
+export async function deleteTags(ids: string[], targetProjectId: string): Promise<void> {
+  await prisma.tag.deleteMany({ where: { id: { in: ids }, targetProjectId } })
   await automationProjectionService.regenerateAllFeatures()
 }
 
-export async function createTag(value: z.infer<typeof tagSchema>): Promise<Tag> {
-  const tagNameExists = await checkUniqueTagName(value.name)
+export async function createTag(value: z.infer<typeof tagSchema>, targetProjectId: string): Promise<Tag> {
+  const tagNameExists = await checkUniqueTagName(value.name, targetProjectId)
   if (tagNameExists) {
     throw new ServiceError(
       'A tag with this name already exists. Please choose a different tag name.',
@@ -49,7 +55,7 @@ export async function createTag(value: z.infer<typeof tagSchema>): Promise<Tag> 
     )
   }
 
-  const tagExpressionExists = await checkUniqueTagExpression(value.tagExpression)
+  const tagExpressionExists = await checkUniqueTagExpression(value.tagExpression, targetProjectId)
   if (tagExpressionExists) {
     throw new ServiceError(
       'A tag with this tag expression already exists. Please choose a different tag expression.',
@@ -58,26 +64,30 @@ export async function createTag(value: z.infer<typeof tagSchema>): Promise<Tag> 
     )
   }
 
-  const newTag = await prisma.tag.create({ data: value })
+  const newTag = await prisma.tag.create({ data: { ...value, targetProjectId } })
   await automationProjectionService.regenerateAllFeatures()
   return newTag
 }
 
-export async function getTagByIdOrThrow(id: string): Promise<Tag> {
-  const tag = await prisma.tag.findUnique({ where: { id } })
+export async function getTagByIdOrThrow(id: string, targetProjectId: string): Promise<Tag> {
+  const tag = await prisma.tag.findFirst({ where: { id, targetProjectId } })
   if (!tag) {
     throw new ServiceError('Tag not found', 'NOT_FOUND', 404)
   }
   return tag
 }
 
-export async function updateTag(id: string | undefined, value: z.infer<typeof tagSchema>): Promise<Tag> {
+export async function updateTag(
+  id: string | undefined,
+  value: z.infer<typeof tagSchema>,
+  targetProjectId: string,
+): Promise<Tag> {
   if (!id) {
     throw new ServiceError('Tag id is required', 'VALIDATION', 400)
   }
 
-  const currentTag = await prisma.tag.findUnique({
-    where: { id },
+  const currentTag = await prisma.tag.findFirst({
+    where: { id, targetProjectId },
     select: { name: true, tagExpression: true },
   })
   if (!currentTag) {
@@ -85,7 +95,7 @@ export async function updateTag(id: string | undefined, value: z.infer<typeof ta
   }
 
   if (currentTag.name !== value.name) {
-    const tagNameExists = await checkUniqueTagName(value.name, id)
+    const tagNameExists = await checkUniqueTagName(value.name, targetProjectId, id)
     if (tagNameExists) {
       throw new ServiceError(
         'A tag with this name already exists. Please choose a different tag name.',
@@ -96,7 +106,7 @@ export async function updateTag(id: string | undefined, value: z.infer<typeof ta
   }
 
   if (currentTag.tagExpression !== value.tagExpression) {
-    const tagExpressionExists = await checkUniqueTagExpression(value.tagExpression, id)
+    const tagExpressionExists = await checkUniqueTagExpression(value.tagExpression, targetProjectId, id)
     if (tagExpressionExists) {
       throw new ServiceError(
         'A tag with this tag expression already exists. Please choose a different tag expression.',

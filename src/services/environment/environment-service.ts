@@ -5,10 +5,11 @@ import { ServiceError } from '@/services/shared/errors'
 import type { Environment } from '@prisma/client'
 import type { z } from 'zod'
 
-async function checkUniqueName(name: string, excludeId?: string): Promise<boolean> {
+async function checkUniqueName(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.environment.findFirst({
     where: {
       name,
+      targetProjectId,
       ...(excludeId && { id: { not: excludeId } }),
     },
   })
@@ -24,21 +25,25 @@ function normalizeEnvironmentPayload(value: z.infer<typeof environmentSchema>) {
   }
 }
 
-export async function listEnvironments(): Promise<Environment[]> {
+export async function listEnvironments(targetProjectId: string): Promise<Environment[]> {
   const environments = await prisma.environment.findMany({
+    where: { targetProjectId },
     orderBy: { createdAt: 'desc' },
   })
   await automationProjectionService.syncEnvironments()
   return environments
 }
 
-export async function deleteEnvironments(ids: string[]): Promise<void> {
-  await prisma.environment.deleteMany({ where: { id: { in: ids } } })
+export async function deleteEnvironments(ids: string[], targetProjectId: string): Promise<void> {
+  await prisma.environment.deleteMany({ where: { id: { in: ids }, targetProjectId } })
   await automationProjectionService.syncEnvironments()
 }
 
-export async function createEnvironment(value: z.infer<typeof environmentSchema>): Promise<Environment> {
-  const nameExists = await checkUniqueName(value.name)
+export async function createEnvironment(
+  value: z.infer<typeof environmentSchema>,
+  targetProjectId: string,
+): Promise<Environment> {
+  const nameExists = await checkUniqueName(value.name, targetProjectId)
   if (nameExists) {
     throw new ServiceError(
       'An environment with this name already exists. Please choose a different name.',
@@ -47,14 +52,14 @@ export async function createEnvironment(value: z.infer<typeof environmentSchema>
     )
   }
   const newEnvironment = await prisma.environment.create({
-    data: normalizeEnvironmentPayload(value),
+    data: { ...normalizeEnvironmentPayload(value), targetProjectId },
   })
   await automationProjectionService.syncEnvironments()
   return newEnvironment
 }
 
-export async function getEnvironmentByIdOrThrow(id: string): Promise<Environment> {
-  const environmentData = await prisma.environment.findUnique({ where: { id } })
+export async function getEnvironmentByIdOrThrow(id: string, targetProjectId: string): Promise<Environment> {
+  const environmentData = await prisma.environment.findFirst({ where: { id, targetProjectId } })
   if (!environmentData) {
     throw new ServiceError('Environment not found', 'NOT_FOUND', 404)
   }
@@ -64,12 +69,13 @@ export async function getEnvironmentByIdOrThrow(id: string): Promise<Environment
 export async function updateEnvironment(
   id: string | undefined,
   value: z.infer<typeof environmentSchema>,
+  targetProjectId: string,
 ): Promise<Environment> {
   if (!id) {
     throw new ServiceError('Environment id is required', 'VALIDATION', 400)
   }
-  const currentEnvironment = await prisma.environment.findUnique({
-    where: { id },
+  const currentEnvironment = await prisma.environment.findFirst({
+    where: { id, targetProjectId },
     select: { name: true },
   })
   if (!currentEnvironment) {
@@ -77,7 +83,7 @@ export async function updateEnvironment(
   }
 
   if (currentEnvironment.name !== value.name) {
-    const nameExists = await checkUniqueName(value.name, id)
+    const nameExists = await checkUniqueName(value.name, targetProjectId, id)
     if (nameExists) {
       throw new ServiceError(
         'An environment with this name already exists. Please choose a different name.',

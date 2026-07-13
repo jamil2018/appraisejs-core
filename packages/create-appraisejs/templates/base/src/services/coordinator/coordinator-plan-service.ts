@@ -24,6 +24,18 @@ type PlanServiceOptions = {
 
 const ONLINE_PLAN_CREATE_LIFECYCLES = ['draft', 'awaiting_plan_review'] as const
 
+export async function assertPlanBelongsToProject(
+  planId: string,
+  targetProjectId: string,
+  client: PrismaClient = prisma,
+): Promise<void> {
+  const plan = await client.planProjection.findFirst({
+    where: { planId, targetProjectId, deletedAt: null },
+    select: { id: true },
+  })
+  if (!plan) throw new ServiceError('Plan not found.', 'NOT_FOUND', 404)
+}
+
 function resolvedPlanHashes(
   plan: PlanArtifact,
   projection?: { planContentHash: string; planStateHash: string; reviewBindingHash: string } | null,

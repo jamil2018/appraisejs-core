@@ -17,10 +17,12 @@ import {
   spawnTraceViewerService,
 } from '@/services/test-run/test-run-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllTestRunsAction(filter?: string): Promise<ActionResponse> {
   try {
-    const testRuns = await listTestRuns(filter)
+    const project = await requireActiveProjectForMutation()
+    const testRuns = await listTestRuns(project.id, filter)
     return {
       status: 200,
       success: true,
@@ -33,7 +35,8 @@ export async function getAllTestRunsAction(filter?: string): Promise<ActionRespo
 
 export async function getTestRunByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const testRun = await getTestRunByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const testRun = await getTestRunByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -49,7 +52,8 @@ export async function getTestRunByIdAction(id: string): Promise<ActionResponse> 
 
 export async function deleteTestRunAction(id: string[]): Promise<ActionResponse> {
   try {
-    await deleteTestRunsByIds(id)
+    const project = await requireActiveProjectForMutation()
+    await deleteTestRunsByIds(id, project.id)
 
     revalidatePath('/test-runs')
     revalidatePath('/')
@@ -65,7 +69,8 @@ export async function deleteTestRunAction(id: string[]): Promise<ActionResponse>
 
 export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> {
   try {
-    const testSuiteTestCases = await listTestSuiteTestCases()
+    const project = await requireActiveProjectForMutation()
+    const testSuiteTestCases = await listTestSuiteTestCases(project.id)
     return {
       status: 200,
       success: true,
@@ -78,6 +83,8 @@ export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> 
 
 export async function getTestRunLogsAction(testRunId: string): Promise<ActionResponse> {
   try {
+    const project = await requireActiveProjectForMutation()
+    await getTestRunByIdOrThrow(testRunId, project.id)
     const logs = await getTestRunLogsService(testRunId)
 
     return {
@@ -98,7 +105,8 @@ export async function createTestRunAction(
   try {
     testRunSchema.parse(value)
 
-    const result = await createTestRunFromValidatedValue(value)
+    const project = await requireActiveProjectForMutation()
+    const result = await createTestRunFromValidatedValue(value, project.id)
 
     return {
       status: 200,
@@ -117,6 +125,8 @@ export async function createTestRunAction(
 
 export async function checkTraceViewerStatusAction(testRunId: string, testCaseId: string): Promise<ActionResponse> {
   try {
+    const project = await requireActiveProjectForMutation()
+    await getTestRunByIdOrThrow(testRunId, project.id)
     const outcome = await checkTraceViewerStatusService(testRunId, testCaseId)
 
     if (outcome.kind === 'test_run_not_found') {
@@ -154,6 +164,8 @@ export async function checkTraceViewerStatusAction(testRunId: string, testCaseId
 
 export async function spawnTraceViewerAction(testRunId: string, testCaseId: string): Promise<ActionResponse> {
   try {
+    const project = await requireActiveProjectForMutation()
+    await getTestRunByIdOrThrow(testRunId, project.id)
     const outcome = await spawnTraceViewerService(testRunId, testCaseId)
 
     if (outcome.kind === 'test_run_not_found') {
@@ -207,6 +219,8 @@ export async function spawnTraceViewerAction(testRunId: string, testCaseId: stri
 
 export async function cancelTestRunAction(testRunId: string): Promise<ActionResponse> {
   try {
+    const project = await requireActiveProjectForMutation()
+    await getTestRunByIdOrThrow(testRunId, project.id)
     const outcome = await cancelTestRunService(testRunId)
 
     if (outcome.kind === 'not_found') {
@@ -257,7 +271,8 @@ export async function cancelTestRunAction(testRunId: string): Promise<ActionResp
 
 export async function checkTestRunNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
   try {
-    const nameExists = await isTestRunNameTaken(name, excludeId)
+    const project = await requireActiveProjectForMutation()
+    const nameExists = await isTestRunNameTaken(name, project.id, excludeId)
     return {
       status: 200,
       success: true,

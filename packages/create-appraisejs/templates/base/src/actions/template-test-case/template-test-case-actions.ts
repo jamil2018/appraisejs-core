@@ -12,10 +12,12 @@ import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionRespons
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllTemplateTestCasesAction(): Promise<ActionResponse> {
   try {
-    const templateTestCases = await listTemplateTestCases()
+    const project = await requireActiveProjectForMutation()
+    const templateTestCases = await listTemplateTestCases(project.id)
     return {
       status: 200,
       success: true,
@@ -28,7 +30,8 @@ export async function getAllTemplateTestCasesAction(): Promise<ActionResponse> {
 
 export async function deleteTemplateTestCaseAction(id: string[]): Promise<ActionResponse> {
   try {
-    await deleteTemplateTestCases(id)
+    const project = await requireActiveProjectForMutation()
+    await deleteTemplateTestCases(id, project.id)
     revalidatePath('/template-test-cases')
     return {
       status: 200,
@@ -45,7 +48,8 @@ export async function createTemplateTestCaseAction(
 ): Promise<ActionResponse> {
   try {
     templateTestCaseSchema.parse(value)
-    const newTemplateTestCase = await createTemplateTestCase(value)
+    const project = await requireActiveProjectForMutation()
+    const newTemplateTestCase = await createTemplateTestCase(value, project.id)
     revalidatePath('/template-test-cases')
     return {
       status: 200,
@@ -63,7 +67,8 @@ export async function createTemplateTestCaseAction(
 
 export async function getTemplateTestCaseByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const templateTestCase = await getTemplateTestCaseByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const templateTestCase = await getTemplateTestCaseByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -83,7 +88,8 @@ export async function updateTemplateTestCaseAction(
 ): Promise<ActionResponse> {
   try {
     templateTestCaseSchema.parse(value)
-    const templateTestCase = await updateTemplateTestCase(id, value)
+    const project = await requireActiveProjectForMutation()
+    const templateTestCase = await updateTemplateTestCase(id, value, project.id)
     revalidatePath('/template-test-cases')
     return {
       status: 200,

@@ -10,9 +10,12 @@ vi.mock('@/config/db-config', () => ({
       deleteMany: vi.fn(),
       create: vi.fn(),
     },
+    module: { findFirst: vi.fn() },
+    testCase: { findMany: vi.fn() },
     testSuite: {
       deleteMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
     },
@@ -33,17 +36,18 @@ vi.mock('@/lib/test-suite-identifier-service', () => ({
 }))
 
 import prisma from '@/config/db-config'
+const targetProjectId = 'project-1'
 
 describe('deleteTestSuitesByIds', () => {
   it('deletes suites and skips orphan-tag cleanup when no identifier tags', async () => {
     vi.mocked(prisma.tag.findMany).mockResolvedValue([])
     vi.mocked(prisma.testSuite.deleteMany).mockResolvedValue({ count: 0 })
 
-    await deleteTestSuitesByIds(['suite-1'])
+    await deleteTestSuitesByIds(['suite-1'], targetProjectId)
 
     expect(automationProjectionService.deleteFeature).toHaveBeenCalledWith('suite-1')
     expect(prisma.testSuite.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['suite-1'] } },
+      where: { id: { in: ['suite-1'] }, targetProjectId },
     })
     expect(prisma.tag.deleteMany).not.toHaveBeenCalled()
   })
@@ -51,6 +55,9 @@ describe('deleteTestSuitesByIds', () => {
 
 describe('createTestSuiteFromInput', () => {
   it('creates a suite with an identifier tag and generates its feature', async () => {
+    vi.mocked(prisma.module.findFirst).mockResolvedValue({ id: 'module-1' } as never)
+    vi.mocked(prisma.testCase.findMany).mockResolvedValue([{ id: 'tc-1' }] as never)
+    vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: 'tag-1' }] as never)
     vi.mocked(prisma.$transaction).mockImplementation(async callback => {
       const tx = {
         tag: {
@@ -64,13 +71,16 @@ describe('createTestSuiteFromInput', () => {
       return callback(tx as never)
     })
 
-    const result = await createTestSuiteFromInput({
-      name: 'Login Suite',
-      description: 'Covers login',
-      moduleId: 'module-1',
-      testCases: ['tc-1'],
-      tagIds: ['tag-1'],
-    })
+    const result = await createTestSuiteFromInput(
+      {
+        name: 'Login Suite',
+        description: 'Covers login',
+        moduleId: 'module-1',
+        testCases: ['tc-1'],
+        tagIds: ['tag-1'],
+      },
+      targetProjectId,
+    )
 
     expect(result).toEqual({ id: 'suite-1', name: 'Login Suite' })
     expect(automationProjectionService.generateFeature).toHaveBeenCalledWith('suite-1')
@@ -79,7 +89,7 @@ describe('createTestSuiteFromInput', () => {
 
 describe('updateTestSuiteFromInput', () => {
   it('recreates the feature when the name changes and preserves the identifier tag', async () => {
-    vi.mocked(prisma.testSuite.findUnique).mockResolvedValue({
+    vi.mocked(prisma.testSuite.findFirst).mockResolvedValue({
       id: 'suite-1',
       name: 'Old Name',
       moduleId: 'module-1',
@@ -87,6 +97,9 @@ describe('updateTestSuiteFromInput', () => {
       tags: [{ id: 'identifier-tag', type: TagType.IDENTIFIER }],
     } as never)
     vi.mocked(prisma.testSuite.update).mockResolvedValue({ id: 'suite-1' } as never)
+    vi.mocked(prisma.module.findFirst).mockResolvedValue({ id: 'module-1' } as never)
+    vi.mocked(prisma.testCase.findMany).mockResolvedValue([{ id: 'tc-1' }] as never)
+    vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: 'tag-1' }] as never)
 
     await updateTestSuiteFromInput(
       {
@@ -97,6 +110,7 @@ describe('updateTestSuiteFromInput', () => {
         tagIds: ['tag-1'],
       },
       'suite-1',
+      targetProjectId,
     )
 
     expect(automationProjectionService.deleteFeature).toHaveBeenCalledWith('suite-1')

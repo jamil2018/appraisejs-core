@@ -15,6 +15,8 @@ import {
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
 import { planIdSchema } from '@/lib/plan-contract'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { assertPlanBelongsToProject } from '@/services/coordinator/coordinator-plan-service'
 import {
   acceptBaseline,
   acknowledgeBaselineFailure,
@@ -46,6 +48,8 @@ async function runAction<T extends { planId: string }>(
 ): Promise<ActionResponse> {
   try {
     const value = schema.parse(input)
+    const project = await requireActiveProjectForMutation()
+    await assertPlanBelongsToProject(value.planId, project.id)
     await operation(value)
     revalidatePath('/plans')
     revalidatePath(`/plans/${value.planId}`)

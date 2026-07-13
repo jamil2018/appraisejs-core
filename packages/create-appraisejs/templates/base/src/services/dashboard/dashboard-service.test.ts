@@ -31,7 +31,7 @@ describe('getDashboardMetrics', () => {
     updateDashboardMetricsMock.mockResolvedValue(undefined)
     vi.mocked(prisma.dashboardMetrics.findFirst).mockResolvedValue(metrics as never)
 
-    await expect(getDashboardMetrics()).resolves.toBe(metrics)
+    await expect(getDashboardMetrics('project-1')).resolves.toBe(metrics)
 
     expect(updateDashboardMetricsMock).toHaveBeenCalledOnce()
     expect(prisma.dashboardMetrics.findFirst).toHaveBeenCalledOnce()
@@ -41,7 +41,7 @@ describe('getDashboardMetrics', () => {
 describe('getTestSuiteExecutionData', () => {
   it('returns empty array when no completed test runs', async () => {
     vi.mocked(prisma.testRun.findMany).mockResolvedValue([] as never)
-    await expect(getTestSuiteExecutionData()).resolves.toEqual([])
+    await expect(getTestSuiteExecutionData('project-1')).resolves.toEqual([])
     expect(prisma.report.findMany).not.toHaveBeenCalled()
   })
 
@@ -79,7 +79,7 @@ describe('getTestSuiteExecutionData', () => {
       },
     ] as never)
 
-    const data = await getTestSuiteExecutionData()
+    const data = await getTestSuiteExecutionData('project-1')
 
     expect(data).toHaveLength(2)
     const alpha = data.find(d => d.feature === 'Alpha')
@@ -118,7 +118,7 @@ describe('getTestSuiteExecutionData', () => {
       },
     ] as never)
 
-    const data = await getTestSuiteExecutionData()
+    const data = await getTestSuiteExecutionData('project-1')
     expect(data).toEqual([
       expect.objectContaining({
         feature: 'Gamma',

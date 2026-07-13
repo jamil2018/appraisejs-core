@@ -12,10 +12,12 @@ import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionRespons
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllModulesAction(): Promise<ActionResponse> {
   try {
-    const modules = await listModules()
+    const project = await requireActiveProjectForMutation()
+    const modules = await listModules(project.id)
     return {
       status: 200,
       success: true,
@@ -28,7 +30,8 @@ export async function getAllModulesAction(): Promise<ActionResponse> {
 
 export async function deleteModuleAction(ids: string[]): Promise<ActionResponse> {
   try {
-    await deleteModules(ids)
+    const project = await requireActiveProjectForMutation()
+    await deleteModules(ids, project.id)
     revalidatePath('/modules')
     return {
       status: 200,
@@ -43,7 +46,8 @@ export async function deleteModuleAction(ids: string[]): Promise<ActionResponse>
 export async function createModuleAction(_prev: unknown, value: z.infer<typeof moduleSchema>): Promise<ActionResponse> {
   try {
     moduleSchema.parse(value)
-    const newModule = await createModule(value)
+    const project = await requireActiveProjectForMutation()
+    const newModule = await createModule(value, project.id)
     revalidatePath('/modules')
     return {
       status: 200,
@@ -61,7 +65,8 @@ export async function createModuleAction(_prev: unknown, value: z.infer<typeof m
 
 export async function getModuleByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const moduleData = await getModuleByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const moduleData = await getModuleByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -82,7 +87,8 @@ export async function updateModuleAction(
 ): Promise<ActionResponse> {
   try {
     moduleSchema.parse(value)
-    const updatedModule = await updateModule(id, value)
+    const project = await requireActiveProjectForMutation()
+    const updatedModule = await updateModule(id, value, project.id)
     revalidatePath('/modules')
     return {
       status: 200,
