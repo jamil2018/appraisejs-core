@@ -2,7 +2,11 @@ import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
+import type { PrismaClient } from '@prisma/client'
+import { PrismaClient as TestPrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 
 const { mockTargetProjectUpsert, mockTargetProjectFindMany, mockTargetProjectFindUnique, mockTargetProjectUpdate } =
   vi.hoisted(() => ({
@@ -24,6 +28,7 @@ vi.mock('@/config/db-config', () => ({
 }))
 
 import {
+  deleteTargetProject,
   listTargetProjects,
   renameTargetProject,
   resolveActiveProject,
@@ -196,5 +201,116 @@ describe('target project service', () => {
       where: { id: 'target-1' },
       data: { displayName: 'New name' },
     })
+  })
+
+  it('removes project-owned records transactionally before deleting the project', async () => {
+    const calls: string[] = []
+    const idsByModel: Record<string, Array<{ id: string }>> = {
+      validationAstPublishOperation: [{ id: 'operation-1' }],
+      runtimeCapsule: [{ id: 'capsule-1' }],
+      runtimeCapsuleBlob: [{ id: 'blob-1' }],
+      testCase: [{ id: 'case-1' }],
+      templateTestCase: [{ id: 'template-case-1' }],
+    }
+    const transaction = new Proxy(
+      {},
+      {
+        get: (_target, model: string) => ({
+          findMany: vi.fn(async () => idsByModel[model] ?? []),
+          deleteMany: vi.fn(async () => {
+            calls.push(`${model}.deleteMany`)
+            return { count: 0 }
+          }),
+          delete: vi.fn(async () => {
+            calls.push(`${model}.delete`)
+            return { id: 'target-1' }
+          }),
+        }),
+      },
+    )
+    const client = {
+      targetProject: {
+        findUnique: vi.fn(async () => ({
+          id: 'target-1',
+          displayName: 'Target',
+          canonicalPath: '/target',
+          fingerprint: 'sha256:target',
+        })),
+      },
+      $transaction: vi.fn(async callback => callback(transaction)),
+    } as unknown as PrismaClient
+
+    await expect(deleteTargetProject('target-1', client)).resolves.toMatchObject({ id: 'target-1' })
+
+    expect(calls).toContain('runtimeCapsule.deleteMany')
+    expect(calls).toContain('validationAstPublishOperation.deleteMany')
+    expect(calls).toContain('planProjection.deleteMany')
+    expect(calls).toContain('testCase.deleteMany')
+    expect(calls).toContain('report.deleteMany')
+    expect(calls.at(-1)).toBe('targetProject.delete')
+  })
+
+  it('does not start a deletion transaction for an unknown project', async () => {
+    const transaction = vi.fn()
+    const client = {
+      targetProject: { findUnique: vi.fn(async () => null) },
+      $transaction: transaction,
+    } as unknown as PrismaClient
+
+    await expect(deleteTargetProject('missing', client)).rejects.toMatchObject({ statusCode: 404 })
+    expect(transaction).not.toHaveBeenCalled()
+  })
+
+  it('deletes persisted authored, lifecycle, and run records with their project', async () => {
+    const workspace = await createWorkspace()
+    const databasePath = path.join(workspace, 'project-deletion.db')
+    await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
+    await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
+    const client = new TestPrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+    const targetProjectId = '00000000-0000-4000-8000-000000000099'
+    try {
+      await client.targetProject.create({
+        data: {
+          id: targetProjectId,
+          canonicalPath: workspace,
+          displayName: 'Deletion target',
+          fingerprint: `sha256:${'9'.repeat(64)}`,
+        },
+      })
+      const environment = await client.environment.create({
+        data: { name: 'deletion-local', baseUrl: 'http://localhost:3000', targetProjectId },
+      })
+      const appModule = await client.module.create({ data: { name: 'Deletion module', targetProjectId } })
+      await Promise.all([
+        client.testSuite.create({ data: { name: 'Deletion suite', moduleId: appModule.id, targetProjectId } }),
+        client.testCase.create({ data: { title: 'Deletion case', description: 'Owned case', targetProjectId } }),
+        client.planProjection.create({
+          data: {
+            planId: 'deletion-plan',
+            slug: 'deletion-plan',
+            revision: 1,
+            lifecycle: 'draft',
+            goal: 'Delete safely',
+            description: 'Deletion fixture',
+            sourceHash: 'source',
+            planPath: '/plans/deletion-plan.yaml',
+            lastValidProjectedAt: new Date(),
+            targetProjectId,
+          },
+        }),
+        client.testRun.create({ data: { name: 'Deletion run', environmentId: environment.id, targetProjectId } }),
+      ])
+
+      await deleteTargetProject(targetProjectId, client)
+
+      await expect(client.targetProject.findUnique({ where: { id: targetProjectId } })).resolves.toBeNull()
+      await expect(client.environment.count({ where: { targetProjectId } })).resolves.toBe(0)
+      await expect(client.module.count({ where: { targetProjectId } })).resolves.toBe(0)
+      await expect(client.testCase.count({ where: { targetProjectId } })).resolves.toBe(0)
+      await expect(client.planProjection.count({ where: { targetProjectId } })).resolves.toBe(0)
+      await expect(client.testRun.count({ where: { targetProjectId } })).resolves.toBe(0)
+    } finally {
+      await client.$disconnect()
+    }
   })
 })

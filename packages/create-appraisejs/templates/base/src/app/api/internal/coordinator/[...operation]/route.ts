@@ -244,17 +244,16 @@ async function resolveEvidenceTarget(request: Request) {
   return target
 }
 
+function isNotFoundError(error: unknown) {
+  return (error instanceof ServiceError ? error.code : Reflect.get(Object(error), 'code')) === 'NOT_FOUND'
+}
+
 async function getTestRunEvidence(request: Request, operation: string[]) {
   const runId = z.string().uuid().parse(operation[1])
   const target = await resolveEvidenceTarget(request)
   if (operation.length === 2) {
     const evidence = await readTestRunEvidenceSummary(runId, target.id).catch(error => {
-      if (
-        error instanceof ServiceError
-          ? error.code === 'NOT_FOUND'
-          : typeof error === 'object' && error !== null && 'code' in error && error.code === 'NOT_FOUND'
-      )
-        return readTestRunEvidenceSummary(runId)
+      if (isNotFoundError(error)) return readTestRunEvidenceSummary(runId)
       throw error
     })
     return Response.json(evidence)

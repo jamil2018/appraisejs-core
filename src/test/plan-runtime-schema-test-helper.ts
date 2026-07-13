@@ -30,6 +30,17 @@ function hasColumn(databasePath: string, tableName: string, columnName: string):
   )
 }
 
+function hasIndex(databasePath: string, indexName: string): boolean {
+  return Boolean(
+    execFileSync('sqlite3', [
+      databasePath,
+      `SELECT name FROM sqlite_master WHERE type='index' AND name='${indexName}';`,
+    ])
+      .toString()
+      .trim(),
+  )
+}
+
 function clearPlanRuntimeTestData(databasePath: string) {
   const tables = execFileSync('sqlite3', [
     databasePath,
@@ -137,6 +148,12 @@ async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
   }
   if (!hasColumn(databasePath, 'Environment', 'targetProjectId')) {
     await applyMigration(databasePath, '20260713200000_stage_complete_project_ownership')
+  }
+  if (!hasColumn(databasePath, 'TargetProject', 'description')) {
+    await applyMigration(databasePath, '20260713210000_add_target_project_description')
+  }
+  if (!hasIndex(databasePath, 'TestRun_targetProjectId_preparationKey_key')) {
+    await applyMigration(databasePath, '20260713211000_scope_test_run_preparation_key')
   }
 }
 

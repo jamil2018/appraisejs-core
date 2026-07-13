@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, promises as fs } from 'node:fs'
 import path from 'node:path'
 
-import type { PrismaClient, TargetProject } from '@prisma/client'
+import type { Prisma, PrismaClient, TargetProject } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { ServiceError } from '@/services/shared/errors'
@@ -17,6 +17,7 @@ type PackageMetadata = {
 type RegisterTargetProjectInput = {
   projectPath: string
   displayName?: string
+  description?: string
 }
 
 export type ActiveProjectSelectionSource = 'url' | 'cookie'
@@ -113,6 +114,7 @@ export async function registerTargetProject(
     create: {
       canonicalPath,
       displayName,
+      description: input.description?.trim() || null,
       packageName: metadata.name,
       packageManager,
       packageJson,
@@ -120,6 +122,7 @@ export async function registerTargetProject(
     },
     update: {
       displayName,
+      description: input.description?.trim() || null,
       packageName: metadata.name,
       packageManager,
       packageJson,
@@ -192,7 +195,7 @@ export async function resolveActiveProject(
 }
 
 export async function renameTargetProject(
-  input: { targetProjectId: string; displayName: string },
+  input: { targetProjectId: string; displayName: string; description?: string },
   client: PrismaClient = prisma,
 ): Promise<TargetProject> {
   const displayName = input.displayName.trim()
@@ -201,10 +204,99 @@ export async function renameTargetProject(
   const existing = await client.targetProject.findUnique({ where: { id: input.targetProjectId } })
   if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
 
+  const description = input.description === undefined ? undefined : input.description.trim() || null
   return client.targetProject.update({
     where: { id: existing.id },
-    data: { displayName },
+    data: { displayName, ...(description !== undefined ? { description } : {}) },
   })
+}
+
+async function deleteProjectRuntimeRecords(targetProjectId: string, tx: Prisma.TransactionClient) {
+  const [operations, capsules, blobs] = await Promise.all([
+    tx.validationAstPublishOperation.findMany({ where: { targetProjectId }, select: { id: true } }),
+    tx.runtimeCapsule.findMany({ where: { targetProjectId }, select: { id: true } }),
+    tx.runtimeCapsuleBlob.findMany({ where: { targetProjectId }, select: { id: true } }),
+  ])
+  const operationIds = operations.map(operation => operation.id)
+  const capsuleIds = capsules.map(capsule => capsule.id)
+  const blobIds = blobs.map(blob => blob.id)
+
+  await tx.repositoryExportReceipt.deleteMany({ where: { targetProjectId } })
+  await tx.repositoryExportJob.deleteMany({ where: { targetProjectId } })
+  if (capsuleIds.length)
+    await tx.runtimeCapsuleExecutionAttempt.deleteMany({ where: { capsuleId: { in: capsuleIds } } })
+  if (capsuleIds.length || blobIds.length) {
+    await tx.runtimeCapsuleBlobReference.deleteMany({
+      where: { OR: [{ capsuleId: { in: capsuleIds } }, { blobId: { in: blobIds } }] },
+    })
+  }
+  await tx.runtimeCapsule.deleteMany({ where: { targetProjectId } })
+  await tx.runtimeCapsuleBlob.deleteMany({ where: { targetProjectId } })
+  await tx.runtimeCapsuleLease.deleteMany({ where: { targetProjectId } })
+  await tx.report.deleteMany({ where: { targetProjectId } })
+  await tx.testRun.deleteMany({ where: { targetProjectId } })
+  if (operationIds.length) await tx.planEvent.deleteMany({ where: { publishOperationId: { in: operationIds } } })
+  await tx.validationAstPublishOperation.deleteMany({ where: { targetProjectId } })
+}
+
+async function deleteProjectAuthoredRecords(targetProjectId: string, tx: Prisma.TransactionClient) {
+  const [testCases, templateTestCases] = await Promise.all([
+    tx.testCase.findMany({ where: { targetProjectId }, select: { id: true } }),
+    tx.templateTestCase.findMany({ where: { targetProjectId }, select: { id: true } }),
+  ])
+  const testCaseIds = testCases.map(testCase => testCase.id)
+  const templateTestCaseIds = templateTestCases.map(testCase => testCase.id)
+
+  if (testCaseIds.length) {
+    await tx.review.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
+    await tx.linkedJiraTicket.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
+    await tx.testCaseStep.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
+    await tx.testCaseFlowBlock.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
+  }
+  if (templateTestCaseIds.length) {
+    await tx.templateTestCaseStep.deleteMany({ where: { templateTestCaseId: { in: templateTestCaseIds } } })
+    await tx.templateTestCaseFlowBlock.deleteMany({ where: { templateTestCaseId: { in: templateTestCaseIds } } })
+  }
+
+  await tx.testCaseMetrics.deleteMany({ where: { targetProjectId } })
+  await tx.testSuiteMetrics.deleteMany({ where: { targetProjectId } })
+  await tx.dashboardMetrics.deleteMany({ where: { targetProjectId } })
+  await tx.testCase.deleteMany({ where: { targetProjectId } })
+  await tx.templateTestCase.deleteMany({ where: { targetProjectId } })
+  await tx.testSuite.deleteMany({ where: { targetProjectId } })
+  await tx.stepBlock.deleteMany({ where: { targetProjectId } })
+  await tx.templateStepGroup.deleteMany({ where: { targetProjectId } })
+  await tx.locator.deleteMany({ where: { targetProjectId } })
+  await tx.locatorGroup.deleteMany({ where: { targetProjectId } })
+  await tx.module.deleteMany({ where: { targetProjectId } })
+  await tx.environment.deleteMany({ where: { targetProjectId } })
+  await tx.tag.deleteMany({ where: { targetProjectId } })
+}
+
+export async function deleteTargetProject(
+  targetProjectId: string,
+  client: PrismaClient = prisma,
+): Promise<TargetProject> {
+  const existing = await client.targetProject.findUnique({ where: { id: targetProjectId } })
+  if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
+
+  await client.$transaction(async tx => {
+    await deleteProjectRuntimeRecords(existing.id, tx)
+    await tx.validationResourceProposal.deleteMany({ where: { targetProjectId: existing.id } })
+    await tx.projectResourceImport.deleteMany({
+      where: {
+        OR: [{ destinationProjectId: existing.id }, { sourceOwnership: { targetProjectId: existing.id } }],
+      },
+    })
+    await tx.projectResourceOwnership.deleteMany({ where: { targetProjectId: existing.id } })
+    await tx.providerWorkflowRun.deleteMany({ where: { targetProjectId: existing.id } })
+    await tx.delegatedCoordinatorReceipt.deleteMany({ where: { targetProjectId: existing.id } })
+    await tx.planProjection.deleteMany({ where: { targetProjectId: existing.id } })
+    await deleteProjectAuthoredRecords(existing.id, tx)
+    await tx.targetProject.delete({ where: { id: existing.id } })
+  })
+
+  return existing
 }
 
 export async function resolveTargetProject(reference: string, client: PrismaClient = prisma): Promise<TargetProject> {

@@ -4350,193 +4350,193 @@
     "semantic_hash": "fc8336e49bdb098ee1d303bf3a0542a8"
   },
   "packages/appraisejs/package.json": {
-    "mtime": 1783758175.9635375,
-    "ast_hash": "3ffcad8543440e5a4b801f412900f7c6",
+    "mtime": 1783933548.4104745,
+    "ast_hash": "b83a238067b1872fcab3c929ca82c72b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/active-state-assertion/assert-element-active.ts": {
-    "mtime": 1783873237.737628,
+    "mtime": 1783943257.5430803,
     "ast_hash": "6cf6911351e233c59b214e3b9d0af10b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/click/click.ts": {
-    "mtime": 1783873237.7379174,
+    "mtime": 1783943257.5433412,
     "ast_hash": "1fa2ba9af3d5c2e94b3077f727c630d3",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/click/double-click.ts": {
-    "mtime": 1783873237.738111,
+    "mtime": 1783943257.5435562,
     "ast_hash": "cf4b011c19ca8ef4656c9168b4e7cb7b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/click/right-click.ts": {
-    "mtime": 1783873237.7383418,
+    "mtime": 1783943257.5437362,
     "ast_hash": "5f783ba91974da2cdebd24cb6ac9a5f0",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/hover/hover.ts": {
-    "mtime": 1783873237.7385702,
+    "mtime": 1783943257.5439594,
     "ast_hash": "bf1f4ec6fb9c330fa2dbee1399394d98",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/check.ts": {
-    "mtime": 1783873237.7388039,
+    "mtime": 1783943257.544177,
     "ast_hash": "b607767ebaae76dd00e76deed677e84e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/clear.ts": {
-    "mtime": 1783873237.738981,
+    "mtime": 1783943257.5443532,
     "ast_hash": "6ba52edaa0913cd970ae5c0f2a70f576",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/fill-input-with-stored-value.ts": {
-    "mtime": 1783873237.739132,
+    "mtime": 1783943257.5445452,
     "ast_hash": "c1251ebb98840ce26025fce433283b14",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/fill.ts": {
-    "mtime": 1783873237.7393522,
+    "mtime": 1783943257.5447505,
     "ast_hash": "c284e1c7e001870b8a82decfd8076203",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/select-dropdown-option.ts": {
-    "mtime": 1783873237.7395794,
+    "mtime": 1783943257.544931,
     "ast_hash": "fd3973f7ff66370e449550ec4bb1770b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/uncheck.ts": {
-    "mtime": 1783873237.7397237,
+    "mtime": 1783943257.5451,
     "ast_hash": "72cd25e33a49dcd8e2c3ac116ae5dd6a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation-assertion/assert-url-route-equals.ts": {
-    "mtime": 1783873237.7399123,
+    "mtime": 1783943257.545313,
     "ast_hash": "e54b9ed2dd63c73d7d03df0edfba9f6e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/go-back.ts": {
-    "mtime": 1783873237.7400842,
+    "mtime": 1783943257.545519,
     "ast_hash": "6e894fe0a4bca2865934e78b28f9690a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/navigate-to-environment-base-url.ts": {
-    "mtime": 1783873237.7402241,
+    "mtime": 1783943257.5456955,
     "ast_hash": "2c741a828535a7d02d56a6968292cfe9",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/navigate-to-url.ts": {
-    "mtime": 1783873237.7403522,
+    "mtime": 1783943257.5458755,
     "ast_hash": "704eedae75f2f5a6faecd5e5dc4e08fd",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/reload.ts": {
-    "mtime": 1783873237.740481,
+    "mtime": 1783943257.5460372,
     "ast_hash": "95f6b9acba00a68270f730cbbcdd8ea7",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-address-and-save-in-variable.ts": {
-    "mtime": 1783873237.7406743,
+    "mtime": 1783943257.5462215,
     "ast_hash": "d2dbeea51db1f5513e84a7d9502b94d7",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-email-and-save-in-variable.ts": {
-    "mtime": 1783873237.7409,
+    "mtime": 1783943257.546424,
     "ast_hash": "3338f8cd5117ef48886cc71cd2e25bb0",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-first-name-and-save-in-variable.ts": {
-    "mtime": 1783873237.7410474,
+    "mtime": 1783943257.546608,
     "ast_hash": "7baec43f57ec2b5c138eb0926c8b0a7e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-full-name-and-save-in-variable.ts": {
-    "mtime": 1783873237.7411647,
+    "mtime": 1783943257.546757,
     "ast_hash": "40f1c1d9cd50e36c329b5808d4cd41cf",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-last-name-and-save-in-variable.ts": {
-    "mtime": 1783873237.741297,
+    "mtime": 1783943257.5468836,
     "ast_hash": "2b78c8ae2382dbabcd800514ae71e60c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-password-and-save-in-variable.ts": {
-    "mtime": 1783873237.7414443,
+    "mtime": 1783943257.547001,
     "ast_hash": "a521a27d8fa3a1d6aeef660297bf4916",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-phone-and-save-in-variable.ts": {
-    "mtime": 1783873237.741576,
+    "mtime": 1783943257.5471392,
     "ast_hash": "df6ab59f864c1c3f30f53363551f82e2",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-unique-text-and-save-in-variable.ts": {
-    "mtime": 1783873237.7417161,
+    "mtime": 1783943257.5472758,
     "ast_hash": "c49345394876a0444daeb717a9024c41",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/store/store-element-text.ts": {
-    "mtime": 1783873237.7418857,
+    "mtime": 1783943257.5474641,
     "ast_hash": "6c6aed9cb51f5912f60cbdd6e7e7a32e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/store/store-text-input-text.ts": {
-    "mtime": 1783873237.7420256,
+    "mtime": 1783943257.5475948,
     "ast_hash": "e10849f1f89dce1bba83bc37368e8803",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/store/store-textarea-text.ts": {
-    "mtime": 1783873237.7421486,
+    "mtime": 1783943257.5477314,
     "ast_hash": "26d19f7af1f408df970d52758b5ced5a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/text-assertion/assert-element-contains-stored-variable-text.ts": {
-    "mtime": 1783873237.7422955,
+    "mtime": 1783943257.5479004,
     "ast_hash": "b45cba6bc7585b65d60a2bee3204e126",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/text-assertion/assert-element-contains-text.ts": {
-    "mtime": 1783873237.7423975,
+    "mtime": 1783943257.548024,
     "ast_hash": "a825ae77ae6a35e3d210ff0277e65889",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/text-assertion/assert-element-equals-text.ts": {
-    "mtime": 1783873237.7425027,
+    "mtime": 1783943257.5481527,
     "ast_hash": "68cf066c9cd88a295ee894e9f7d7bbef",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/visibility-assertion/assert-element-visible.ts": {
-    "mtime": 1783873237.7426631,
+    "mtime": 1783943257.5483522,
     "ast_hash": "16b992cb45ce7027e671df260e599eaf",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-element-to-disappear.ts": {
-    "mtime": 1783873237.7428215,
+    "mtime": 1783943257.5485268,
     "ast_hash": "615a2ad757cef3406058a0e5c43ea7c5",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-element.ts": {
-    "mtime": 1783873237.7429545,
+    "mtime": 1783943257.5487208,
     "ast_hash": "8426f2af71fbf9347a8164c252e273b6",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-page-load.ts": {
-    "mtime": 1783873237.7430878,
+    "mtime": 1783943257.5489745,
     "ast_hash": "66b56546a59bd02d9b84d653e5cccf43",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-specific-amount-of-seconds.ts": {
-    "mtime": 1783873237.743199,
+    "mtime": 1783943257.549199,
     "ast_hash": "8ae101cc28924f37946958cf167cd448",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-url-route.ts": {
-    "mtime": 1783873237.7433233,
+    "mtime": 1783943257.5493364,
     "ast_hash": "9fc16693f65e10e37513f167fa7bfcea",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/manifest.json": {
-    "mtime": 1783873237.737234,
-    "ast_hash": "0c736232cfc452886f9d23edce6d0ab1",
+    "mtime": 1783943257.5427923,
+    "ast_hash": "10c0c6431924cd33111105a962c5b9db",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/add-step.test.ts": {
@@ -4550,18 +4550,18 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/cli.ts": {
-    "mtime": 1783845777.3333418,
-    "ast_hash": "304629e86227905a371ca28e24e722eb",
+    "mtime": 1783887541.10691,
+    "ast_hash": "880067db702d4a1201744b538cf80273",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/coordinator-client.test.ts": {
-    "mtime": 1783842720.5467017,
-    "ast_hash": "1d595445535b5f51d03ba39adfb6aaaf",
+    "mtime": 1783887541.1072252,
+    "ast_hash": "90ce311f97f33f7f6e88400314ae04da",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/coordinator-client.ts": {
-    "mtime": 1783848382.6504223,
-    "ast_hash": "a07b63ccda1b7ac3fee019826ed96063",
+    "mtime": 1783933548.4106662,
+    "ast_hash": "4597cd52922b7c510e39f53e4da28b28",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/diagnostics.test.ts": {
@@ -4580,18 +4580,18 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp.e2e.ts": {
-    "mtime": 1783752880.92845,
-    "ast_hash": "8e938825b8d6a55504abd178326e23de",
+    "mtime": 1783887541.1077979,
+    "ast_hash": "f7b52585f92c538123133beba58fcc88",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp.test.ts": {
-    "mtime": 1783872944.6384547,
-    "ast_hash": "778dda68105179f89a15dd2a0840318a",
+    "mtime": 1783934175.6317365,
+    "ast_hash": "f8464176eb9774c905d47c9940afe04e",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp.ts": {
-    "mtime": 1783872944.502245,
-    "ast_hash": "f17cfdac7438402b19d29eedbffe64ad",
+    "mtime": 1783935285.8103666,
+    "ast_hash": "ead9fc6feac2ef27ccad9534f8a67e73",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/plan-contract-parity.test.ts": {
@@ -4605,8 +4605,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/plan-file.ts": {
-    "mtime": 1783788724.9130406,
-    "ast_hash": "9637cca2fe2fb12d922bc3541456c4f8",
+    "mtime": 1783933548.4117298,
+    "ast_hash": "2bf94f8ca12f9b3161e11c44f4d76f46",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/plan-source.test.ts": {
@@ -4645,8 +4645,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/skill-policy.test.ts": {
-    "mtime": 1782842627.7374215,
-    "ast_hash": "57aee4423d39614a83e5275c12da6764",
+    "mtime": 1783933548.412096,
+    "ast_hash": "26ad64c905ce9a74aa953907b9226a53",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/types.ts": {
@@ -4925,8 +4925,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/agent-skills/appraise-planning-standby/SKILL.md": {
-    "mtime": 1783675850.1530607,
-    "ast_hash": "d3629d39b757688b490e8bb792931d9b",
+    "mtime": 1783887541.1065578,
+    "ast_hash": "a56fc41f28f810b47092f18a07d70baa",
     "semantic_hash": ""
   },
   ".agents/skills/shadcn/evals/evals.json": {
@@ -8124,24 +8124,9 @@
     "ast_hash": "e29fea3ef1b55ad0c5bc2d583ca26ba1",
     "semantic_hash": ""
   },
-  "src/services/coordinator/coordinator-validation-draft-service.ts": {
-    "mtime": 1783242689.3619194,
-    "ast_hash": "336c19b3dc5093a04140cb25e1b57dbc",
-    "semantic_hash": ""
-  },
-  "src/services/coordinator/coordinator-validation-service.test.ts": {
-    "mtime": 1783242689.362144,
-    "ast_hash": "f9da77bb4204ccdf6052b9e3eb2a47e3",
-    "semantic_hash": ""
-  },
   "src/services/coordinator/coordinator-validation-service.ts": {
     "mtime": 1783242689.3624144,
     "ast_hash": "43a27bc11b35aa3ebf81259e9cce192c",
-    "semantic_hash": ""
-  },
-  "src/services/coordinator/validation-runtime-projection-service.ts": {
-    "mtime": 1783248164.5499449,
-    "ast_hash": "9d6f00b1a5c6cb1da6a843109e67cd5d",
     "semantic_hash": ""
   },
   "src/services/dashboard/dashboard-service.test.ts": {
@@ -9239,46 +9224,6 @@
     "ast_hash": "a3506a0f8457dc27c6b986f89c335713",
     "semantic_hash": ""
   },
-  "codex/development plan/appraise-0.5/bug fixes/13-validation-review-and-standby-regression-mitigation.md": {
-    "mtime": 1782763132.5688534,
-    "ast_hash": "0fcbc45e876e702a20cf4e9ab238baea",
-    "semantic_hash": ""
-  },
-  "codex/development plan/appraise-0.5/bug fixes/14-review-handoff-validation-artifact-and-registry-first-agent-flow.md": {
-    "mtime": 1782836812.576426,
-    "ast_hash": "a84aca242770b1419dde87e725348354",
-    "semantic_hash": ""
-  },
-  "codex/development plan/appraise-0.5/bug fixes/15-agent-experience-lifecycle-hardening.md": {
-    "mtime": 1783008670.7737644,
-    "ast_hash": "007ab66715cb2aeaaa85695e9ea555ea",
-    "semantic_hash": ""
-  },
-  "codex/development plan/appraise-0.5/bug fixes/16-agent-scaffold-experience-mitigation.md": {
-    "mtime": 1783182135.250273,
-    "ast_hash": "078b7a5814d1c7ab4845740550ced769",
-    "semantic_hash": ""
-  },
-  "codex/development plan/appraise-0.5/bug fixes/17-validation-artifact-runtime-projection.md": {
-    "mtime": 1783233558.6667545,
-    "ast_hash": "82d13736e1fde0b88b8b9f212188f4ff",
-    "semantic_hash": ""
-  },
-  "codex/development plan/appraise-0.5/bug fixes/18-mcp-native-artifact-authoring.md": {
-    "mtime": 1783234611.772285,
-    "ast_hash": "4dd394d6788f59b1ef7e2f12eeaa3008",
-    "semantic_hash": ""
-  },
-  "codex/development plan/appraise-0.5/bug fixes/19-validation-execution-seamless.md": {
-    "mtime": 1783248191.043819,
-    "ast_hash": "f68a5f1e344e2714acc85aafbd812f8c",
-    "semantic_hash": ""
-  },
-  "codex/development plan/appraise-0.5/bug fixes/20-run-experience-rectification-plan.md": {
-    "mtime": 1783248191.0439825,
-    "ast_hash": "442382401f838940dd6871c75b13a3d3",
-    "semantic_hash": ""
-  },
   "codex/development plan/appraise-0.5/bug fixes/natural-language-project-flow-continuation-and-plan-identity.md": {
     "mtime": 1782639612.7757528,
     "ast_hash": "8645f1d265786bcb3699ce940de17dff",
@@ -9659,29 +9604,29 @@
     "ast_hash": "1e75181fb7e118f3c48dd43e18f867a3",
     "semantic_hash": ""
   },
-  "packages/appraisejs/src/phase1-contracts.test.ts": {
-    "mtime": 1783758175.9649951,
-    "ast_hash": "3af5ecd9149d501374cce68de1d3da02",
-    "semantic_hash": ""
-  },
-  "packages/appraisejs/src/phase1-contracts.ts": {
-    "mtime": 1783788724.912852,
-    "ast_hash": "7352e5ce6c4189a8ed37b2dbcddaa607",
-    "semantic_hash": ""
-  },
   "packages/appraisejs/src/plan-requirements.ts": {
-    "mtime": 1783865575.4962811,
-    "ast_hash": "f746761032bd6cf3d18a2f999a279957",
+    "mtime": 1783933548.4119093,
+    "ast_hash": "45ff79257c67ec4f610f71496a304548",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/test-run-diagnose-cli.test.ts": {
-    "mtime": 1783842720.547539,
-    "ast_hash": "a5191d68fd200cdfb9e035d52aff8dfa",
+    "mtime": 1783887541.1095636,
+    "ast_hash": "2b9de32072fb32a1717fc006972dbe9a",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/test-run-diagnose-cli.ts": {
-    "mtime": 1783842720.5476613,
-    "ast_hash": "c26dcdc5ad350fc2546ae32f701ddf7e",
+    "mtime": 1783887541.1098044,
+    "ast_hash": "1b671f8571c4c3ba9890f1d87e394189",
+    "semantic_hash": ""
+  },
+  "packages/appraisejs/src/managed-validation-contracts.test.ts": {
+    "mtime": 1783933548.4107897,
+    "ast_hash": "7b5b7546ff628866810f60c6eebaa24c",
+    "semantic_hash": ""
+  },
+  "packages/appraisejs/src/managed-validation-contracts.ts": {
+    "mtime": 1783933548.4109263,
+    "ast_hash": "006d21d416b0b34c0b4e9a323e4b85f7",
     "semantic_hash": ""
   }
 }

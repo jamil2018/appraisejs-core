@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createActionCatalog } from '@/lib/action-catalog'
 import { createLocatorGraph } from '@/lib/locator-graph'
+import type { ValidationAstSubmission } from '@/lib/validation-ast'
 import { checkValidationAst, previewValidationAst, type ValidationAstCompilerContext } from './compiler'
 import { createCustomExtensionPolicy } from './extension-policy'
 import { compileValidationAstNode } from '@/services/coordinator/validation-ast-compiler-service'
@@ -22,6 +23,7 @@ const catalog = createActionCatalog({
       ],
       outputs: [{ name: 'entered-value', type: 'string', description: 'Entered value.' }],
       requirements: { runtime: 'browser', capabilities: ['forms'] },
+      assertionConcerns: [],
       examples: [],
       deprecated: false,
     },
@@ -29,7 +31,7 @@ const catalog = createActionCatalog({
 })
 const locator = {
   id: 'title-input',
-  version: '1',
+  version: '1' as const,
   title: 'Title',
   type: 'locator' as const,
   groupId: 'form-fields',
@@ -203,10 +205,7 @@ describe('Validation AST check and preview', () => {
   })
 
   it('returns exact compiled extension reviews and deterministic security blockers', () => {
-    const withExtension = structuredClone(submission) as typeof submission & {
-      ast: { customExtensions: string[] }
-      customExtensionProposals: unknown[]
-    }
+    const withExtension = structuredClone(submission) as unknown as ValidationAstSubmission
     withExtension.ast.customExtensions = ['project-assertion']
     ;(withExtension.ast.scenarios[0].steps[0].action.inputs as Record<string, unknown>).value = {
       ref: 'custom-extension',

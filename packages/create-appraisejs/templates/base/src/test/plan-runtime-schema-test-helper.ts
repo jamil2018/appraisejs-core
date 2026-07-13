@@ -30,7 +30,18 @@ function hasColumn(databasePath: string, tableName: string, columnName: string):
   )
 }
 
-export function clearPlanRuntimeTestData(databasePath: string) {
+function hasIndex(databasePath: string, indexName: string): boolean {
+  return Boolean(
+    execFileSync('sqlite3', [
+      databasePath,
+      `SELECT name FROM sqlite_master WHERE type='index' AND name='${indexName}';`,
+    ])
+      .toString()
+      .trim(),
+  )
+}
+
+function clearPlanRuntimeTestData(databasePath: string) {
   const tables = execFileSync('sqlite3', [
     databasePath,
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> '_prisma_migrations';",
@@ -81,7 +92,7 @@ async function ensurePlanProjectionTestSchema(databasePath: string) {
 
 // The fixture intentionally advances old copied databases through each additive runtime migration.
 // fallow-ignore-next-line complexity
-export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
+async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
   await ensurePlanProjectionTestSchema(databasePath)
 
   if (!hasTable(databasePath, 'PlanEvent')) {
@@ -135,6 +146,15 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   if (!hasTable(databasePath, 'RuntimeCapsuleExecutionAttempt')) {
     await applyMigration(databasePath, '20260712010000_add_runtime_capsule_execution_attempt')
   }
+  if (!hasColumn(databasePath, 'Environment', 'targetProjectId')) {
+    await applyMigration(databasePath, '20260713200000_stage_complete_project_ownership')
+  }
+  if (!hasColumn(databasePath, 'TargetProject', 'description')) {
+    await applyMigration(databasePath, '20260713210000_add_target_project_description')
+  }
+  if (!hasIndex(databasePath, 'TestRun_targetProjectId_preparationKey_key')) {
+    await applyMigration(databasePath, '20260713211000_scope_test_run_preparation_key')
+  }
 }
 
 export async function prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath: string) {
@@ -142,7 +162,7 @@ export async function prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePat
   clearPlanRuntimeTestData(databasePath)
 }
 
-export async function ensureProviderRunTestSchema(databasePath: string) {
+async function ensureProviderRunTestSchema(databasePath: string) {
   await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
 
   if (!hasTable(databasePath, 'ProviderWorkflowRun')) {

@@ -300,7 +300,7 @@ model TestRunTestCase {
 model TestRun {
   id                             String                          @id @default(uuid())
   name                           String
-  preparationKey                 String?                         @unique
+  preparationKey                 String?
   runId                          String                          @unique @default(uuid())
   startedAt                      DateTime                        @default(now())
   completedAt                    DateTime?
@@ -325,6 +325,7 @@ model TestRun {
   runtimeCapsule                 RuntimeCapsule?
   runtimeCapsuleExecutionAttempt RuntimeCapsuleExecutionAttempt?
 
+  @@unique([targetProjectId, preparationKey])
   @@index([completedAt])
   @@index([result])
   @@index([evidenceHealth])
@@ -413,6 +414,7 @@ model TargetProject {
   id                             String                          @id @default(uuid())
   canonicalPath                  String                          @unique
   displayName                    String
+  description                    String?
   packageName                    String?
   packageManager                 String?
   packageJson                    String?

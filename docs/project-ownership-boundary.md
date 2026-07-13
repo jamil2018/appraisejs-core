@@ -12,6 +12,12 @@ takes precedence over the `appraise-active-project` cookie. An invalid explicit 
 replaced with the cookie project. Without an explicit ID, a valid cookie may supply the active project. Missing or
 invalid cookie scope routes project-sensitive pages to project onboarding.
 
+The project-management page presents registered projects in a searchable table. Registration and metadata changes
+use modal forms; UI registration requires a display name and accepts an optional description. Removing a project is
+an explicit, name-confirmed destructive operation that transactionally deletes all project-owned authored,
+lifecycle, runtime, reporting, metric, evidence, export, and supporting records before deleting the project identity.
+Agent registration remains compatible with derived display names when callers omit one.
+
 Server actions derive ownership from the server-readable active-project cookie. If a caller also supplies a project
 ID, it must equal the resolved project. Project-sensitive services receive that trusted context and reject foreign
 IDs before reading or mutating related records.
