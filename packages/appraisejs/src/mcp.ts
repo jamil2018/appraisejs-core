@@ -84,6 +84,10 @@ const baseWorkflowCriticalTools = [
   'implementation_completion_review',
   'implementation_complete',
   'delegated_validation_ast_submit',
+  'delegation_create',
+  'delegation_read',
+  'delegation_revoke',
+  'delegated_plan_create',
   'validation_ast_check',
   'validation_ast_preview',
   'validation_ast_compile',
@@ -1544,6 +1548,70 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: { planId: z.string(), operationId: z.string().optional() },
     },
     async ({ planId, operationId }) => text(await api.readValidationAstExtensionReviews(planId, operationId)),
+  )
+  server.registerTool(
+    'delegation_create',
+    {
+      description: 'Issue durable target- and operation-bounded authority to an isolated delegated coordinator.',
+      inputSchema: {
+        parentCoordinatorId: z.string(),
+        delegatedCoordinatorId: z.string(),
+        targetProjectId: z.string().optional(),
+        targetFingerprint: z.string(),
+        pathFingerprint: z.string(),
+        purpose: z.string(),
+        permissions: z.array(
+          z.enum([
+            'target_project_register',
+            'plan_create',
+            'validation_prepare',
+            'baseline_execute',
+            'implementation_execute',
+          ]),
+        ),
+        prohibitions: z.array(z.string()).optional(),
+        briefOrPlanHash: z.string().optional(),
+        expiresAt: z.string(),
+      },
+    },
+    async input => text(await api.request('delegations', { method: 'POST', body: JSON.stringify(input) })),
+  )
+  server.registerTool(
+    'delegation_read',
+    {
+      description: 'Read a delegation receipt and its consumption/revocation audit history.',
+      inputSchema: { id: z.string() },
+    },
+    async ({ id }) => text(await api.request(`delegations/${id}`)),
+  )
+  server.registerTool(
+    'delegation_revoke',
+    {
+      description: 'Revoke delegated coordinator authority immediately.',
+      inputSchema: { id: z.string(), revokedBy: z.string(), reason: z.string().optional() },
+    },
+    async ({ id, ...body }) =>
+      text(await api.request(`delegations/${id}/revoke`, { method: 'POST', body: JSON.stringify(body) })),
+  )
+  server.registerTool(
+    'delegated_plan_create',
+    {
+      description: 'Create a target-bound plan using only an unexpired bounded delegation receipt.',
+      inputSchema: {
+        plan: z.unknown(),
+        target: z.string(),
+        receipt: z.unknown(),
+        delegatedCoordinatorId: z.string(),
+        operationKey: z.string(),
+      },
+    },
+    async ({ plan, target, receipt, delegatedCoordinatorId, operationKey }) =>
+      text(
+        await api.request('plans', {
+          method: 'POST',
+          body: JSON.stringify({ plan, target, delegation: { receipt, delegatedCoordinatorId, operationKey } }),
+        }),
+      ),
   )
   server.registerTool(
     'delegated_validation_ast_submit',

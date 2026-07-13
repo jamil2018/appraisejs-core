@@ -1561,6 +1561,29 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                     ))}
                   </dl>
 
+                  {detail.delegations.length > 0 && (
+                    <section aria-labelledby="delegation-history-heading" className="space-y-2 rounded-xl border p-3">
+                      <h4 id="delegation-history-heading" className="text-xs font-semibold">
+                        Delegated coordinator authority
+                      </h4>
+                      {detail.delegations.map(delegation => (
+                        <article key={delegation.id} className="space-y-1 border-t pt-2 text-[11px] first:border-0">
+                          <p>
+                            <span className="font-medium">{delegation.parentCoordinatorId}</span> to{' '}
+                            <span className="font-medium">{delegation.delegatedCoordinatorId}</span>
+                          </p>
+                          <p>{delegation.purpose}</p>
+                          <p>Permissions: {delegation.permissions.join(', ')}</p>
+                          <p>Prohibitions: {delegation.prohibitions.join(', ') || 'none'}</p>
+                          <p>
+                            Expires {new Date(delegation.expiresAt).toLocaleString()}; consumed operations:{' '}
+                            {delegation.consumptions.length}; status: {delegation.revokedAt ? 'revoked' : 'active'}
+                          </p>
+                        </article>
+                      ))}
+                    </section>
+                  )}
+
                   <div className="space-y-4">
                     {suspiciousReplacement && (
                       <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5">

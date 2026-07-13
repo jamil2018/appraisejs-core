@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
@@ -89,6 +91,13 @@ import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/
 import { ServiceError } from '@/services/shared/errors'
 import { enqueueRepositoryExport, runRepositoryExportJob } from '@/services/repository-export/repository-export-service'
 import { submitDelegatedValidationAst } from '@/services/coordinator/delegated-validation-ast-service'
+import {
+  createDelegatedCoordinatorReceipt,
+  DELEGATED_COORDINATOR_PERMISSIONS,
+  readDelegatedCoordinatorReceipt,
+  revokeDelegatedCoordinatorReceipt,
+  verifyDelegatedCoordinatorReceipt,
+} from '@/services/coordinator/delegated-coordinator-service'
 import { proposeValidationResources } from '@/services/coordinator/validation-resource-proposal-service'
 import {
   checkValidationAstForPlan,
@@ -288,6 +297,9 @@ async function getValidations(request: Request, operation: string[]) {
 // Request routing branches stay in this thin HTTP adapter.
 // fallow-ignore-next-line complexity
 async function dispatchGet(request: Request, operation: string[]) {
+  if (operation[0] === 'delegations' && operation[1]) {
+    return Response.json(await readDelegatedCoordinatorReceipt(z.string().uuid().parse(operation[1])))
+  }
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation[0] === 'test-runs') return getTestRunEvidence(request, operation)
   if (operation[0] === 'actions') {
@@ -553,6 +565,9 @@ const createPlanBodySchema = z.object({
       warning: z.string().optional(),
     })
     .optional(),
+  delegation: z
+    .object({ receipt: z.unknown(), delegatedCoordinatorId: z.string().min(1), operationKey: z.string().min(1) })
+    .optional(),
 })
 
 function parseCreatePlanBody(body: unknown) {
@@ -578,6 +593,7 @@ async function postCreatePlan(request: Request, body: unknown) {
   const value = parseCreatePlanBody(body)
   const identity = await ensureProjectIdentity()
   const targetProject = value.target ? await resolveTargetProject(value.target) : undefined
+  await authorizeDelegatedPlanCreation(value.delegation, targetProject)
   const createdPlan = await createCoordinatorPlan(value.plan, { targetProjectId: targetProject?.id })
   return Response.json(
     {
@@ -595,6 +611,21 @@ async function postCreatePlan(request: Request, body: unknown) {
     },
     { status: 201 },
   )
+}
+
+async function authorizeDelegatedPlanCreation(
+  delegation: z.infer<typeof createPlanBodySchema>['delegation'],
+  targetProject: Awaited<ReturnType<typeof resolveTargetProject>> | undefined,
+) {
+  if (!delegation) return
+  if (!targetProject) throw new ServiceError('Delegated plan creation requires a registered target.', 'VALIDATION')
+  await verifyDelegatedCoordinatorReceipt({
+    ...delegation,
+    targetFingerprint: targetProject.fingerprint,
+    pathFingerprint: `sha256:${createHash('sha256').update(targetProject.canonicalPath).digest('hex')}`,
+    permission: 'plan_create',
+    briefOrPlanHash: undefined,
+  })
 }
 
 async function postTargetProject(body: unknown) {
@@ -820,6 +851,29 @@ function assertPlanOperation(operation: string[]): void {
 
 // fallow-ignore-next-line complexity
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
+  if (operation[0] === 'delegations' && operation.length === 1) {
+    const value = z
+      .object({
+        parentCoordinatorId: z.string().min(1),
+        delegatedCoordinatorId: z.string().min(1),
+        targetProjectId: z.string().min(1).optional(),
+        targetFingerprint: z.string().startsWith('sha256:'),
+        pathFingerprint: z.string().startsWith('sha256:'),
+        purpose: z.string().min(1),
+        permissions: z.array(z.enum(DELEGATED_COORDINATOR_PERMISSIONS)).min(1),
+        prohibitions: z.array(z.string().min(1)).optional(),
+        briefOrPlanHash: z.string().startsWith('sha256:').optional(),
+        expiresAt: z.string().datetime({ offset: true }),
+      })
+      .parse(body)
+    return Response.json(await createDelegatedCoordinatorReceipt(value), { status: 201 })
+  }
+  if (operation[0] === 'delegations' && operation[1] && operation[2] === 'revoke') {
+    const value = z.object({ revokedBy: z.string().min(1), reason: z.string().min(1).optional() }).parse(body)
+    return Response.json(
+      await revokeDelegatedCoordinatorReceipt({ id: z.string().uuid().parse(operation[1]), ...value }),
+    )
+  }
   if (operation[0] === 'objectives') {
     const value = z
       .object({
@@ -949,11 +1003,33 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
 
 export async function POST(request: Request, context: RouteContext) {
   try {
-    await guardCoordinatorRequest(request)
-    return await dispatchPost(request, (await context.params).operation, await readCoordinatorJson(request))
+    const operation = (await context.params).operation
+    const body = await readCoordinatorJson(request)
+    await guardPostRequest(request, operation, body)
+    return await dispatchPost(request, operation, body)
   } catch (error) {
     return responseError(error)
   }
+}
+
+async function guardPostRequest(request: Request, operation: string[], body: unknown) {
+  try {
+    await guardCoordinatorRequest(request)
+  } catch (error) {
+    if (!isDelegatedPlanCreate(operation, body)) throw error
+  }
+}
+
+// This fail-closed predicate is deliberately explicit because it is the only coordinator-auth bypass.
+// fallow-ignore-next-line complexity
+function isDelegatedPlanCreate(operation: string[], body: unknown): boolean {
+  return (
+    operation.length === 1 &&
+    operation[0] === 'plans' &&
+    typeof body === 'object' &&
+    body !== null &&
+    'delegation' in body
+  )
 }
 
 export async function PUT(request: Request, context: RouteContext) {

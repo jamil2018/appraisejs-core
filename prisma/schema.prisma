@@ -400,6 +400,7 @@ model TargetProject {
   resourceOwnerships             ProjectResourceOwnership[]
   resourceImports                ProjectResourceImport[]         @relation("ResourceImportDestination")
   validationResourceProposals    ValidationResourceProposal[]
+  delegatedCoordinatorReceipts   DelegatedCoordinatorReceipt[]
 
   @@index([displayName])
   @@index([fingerprint])
@@ -831,6 +832,43 @@ model DelegatedAuthorizationNonce {
   consumedAt DateTime @default(now())
 
   @@index([expiresAt])
+}
+
+model DelegatedCoordinatorReceipt {
+  id                     String   @id
+  parentCoordinatorId    String
+  delegatedCoordinatorId String
+  targetProjectId        String?
+  targetFingerprint      String
+  pathFingerprint        String
+  purpose                String
+  permissionsJson        String
+  prohibitionsJson       String
+  briefOrPlanHash        String?
+  nonce                  String   @unique
+  receiptJson            String
+  issuedAt               DateTime @default(now())
+  expiresAt              DateTime
+  revokedAt              DateTime?
+  revokedBy              String?
+  revocationReason       String?
+  targetProject          TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  consumptions           DelegatedCoordinatorConsumption[]
+
+  @@index([delegatedCoordinatorId, expiresAt])
+  @@index([targetFingerprint, expiresAt])
+}
+
+model DelegatedCoordinatorConsumption {
+  id           String   @id @default(uuid())
+  receiptId    String
+  permission   String
+  operationKey String
+  consumedAt   DateTime @default(now())
+  receipt      DelegatedCoordinatorReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@unique([receiptId, permission, operationKey])
+  @@index([receiptId, consumedAt])
 }
 
 model DelegatedValidationAstSubmission {

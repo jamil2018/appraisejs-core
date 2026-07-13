@@ -135,6 +135,9 @@ All routes are under `/api/internal/coordinator`.
 | `GET`  | `/plans/:planId/completion`                               | Read the final completion review                                    |
 | `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                                  |
 | `POST` | `/delegated/validation-ast-submissions`                   | Verify authorization and store a non-compiling AST inbox submission |
+| `POST` | `/delegations`                                            | Issue bounded delegated coordinator authority                       |
+| `GET`  | `/delegations/:id`                                        | Read receipt, consumption, expiry, and revocation history           |
+| `POST` | `/delegations/:id/revoke`                                 | Revoke delegated authority                                          |
 | `POST` | `/plans/:planId/validations/ast/check`                    | Check against authoritative target context                          |
 | `POST` | `/plans/:planId/validations/ast/preview`                  | Return bounded preview and exact context receipt                    |
 | `POST` | `/plans/:planId/validations/ast/compile`                  | Project only the exact successful preview into canonical entities   |
@@ -187,6 +190,7 @@ Resources:
 Tools:
 
 - `delegated_validation_ast_submit`
+- `delegation_create`, `delegation_read`, `delegation_revoke`, and `delegated_plan_create`
 - `validation_ast_check`
 - `validation_ast_preview`
 - `validation_ast_compile`

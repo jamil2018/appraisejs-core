@@ -83,6 +83,17 @@ export type PlanReviewDetail = {
     createdAt: Date
   }>
   events: Array<{ type: string; payloadJson: string | null; createdAt: Date }>
+  delegations: Array<{
+    id: string
+    parentCoordinatorId: string
+    delegatedCoordinatorId: string
+    purpose: string
+    permissions: string[]
+    prohibitions: string[]
+    expiresAt: Date
+    revokedAt: Date | null
+    consumptions: Array<{ permission: string; operationKey: string; consumedAt: Date }>
+  }>
   personalPositions: LayoutArtifact['positions']
   sharedPositions: LayoutArtifact['positions']
   blockingThreadIds: string[]
@@ -261,6 +272,14 @@ export async function getPlanReviewDetail(
         revisions: { orderBy: { createdAt: 'desc' } },
         events: { orderBy: { createdAt: 'asc' } },
         personalLayouts: { where: { owner }, take: 1 },
+        targetProject: {
+          include: {
+            delegatedCoordinatorReceipts: {
+              orderBy: { issuedAt: 'desc' },
+              include: { consumptions: { orderBy: { consumedAt: 'asc' } } },
+            },
+          },
+        },
       },
     }),
   ])
@@ -311,6 +330,21 @@ export async function getPlanReviewDetail(
             },
           ]
         : projection.events.map(({ type, payloadJson, createdAt }) => ({ type, payloadJson, createdAt })),
+    delegations: (projection.targetProject?.delegatedCoordinatorReceipts ?? []).map(receipt => ({
+      id: receipt.id,
+      parentCoordinatorId: receipt.parentCoordinatorId,
+      delegatedCoordinatorId: receipt.delegatedCoordinatorId,
+      purpose: receipt.purpose,
+      permissions: JSON.parse(receipt.permissionsJson) as string[],
+      prohibitions: JSON.parse(receipt.prohibitionsJson) as string[],
+      expiresAt: receipt.expiresAt,
+      revokedAt: receipt.revokedAt,
+      consumptions: receipt.consumptions.map(({ permission, operationKey, consumedAt }) => ({
+        permission,
+        operationKey,
+        consumedAt,
+      })),
+    })),
     personalPositions: parsePositions(projection.personalLayouts[0]?.positionsJson),
     sharedPositions: parsePositions(projection.layoutJson),
     blockingThreadIds: getBlockingThreads(review).map(thread => thread.id),

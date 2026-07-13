@@ -204,6 +204,7 @@ const detail: PlanReviewDetail = {
   issues: [],
   revisions: [],
   events: [],
+  delegations: [],
   personalPositions: { 'task-one': { x: 900, y: 901 } },
   sharedPositions: {
     'task-one': { x: 700, y: 701 },

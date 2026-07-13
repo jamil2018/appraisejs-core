@@ -123,6 +123,17 @@ full-assurance evidence in one artifact compare-and-write. Replaying the key doe
 
 ## Ownership Matrix
 
+## Bounded delegation
+
+An isolated coordinator may create a target-bound plan without inheriting the parent transcript when Appraise issues
+a durable delegation receipt. The receipt binds parent and recipient coordinator IDs, target and canonical-path
+fingerprints, purpose, explicit permissions and prohibitions, optional plan hash, expiry, and nonce. Each operation is
+consumed durably; replay, expiry, revocation, recipient mismatch, and target mismatch fail closed. A planning receipt
+with `plan_create` does not authorize validation preparation, baseline execution, or implementation. Those phases
+still require explicit delegated permissions and the ordinary Appraise-owned review events.
+
+## Ownership Matrix
+
 Baseline reconciliation derives `nextAllowedAction` after persisting the final lifecycle transition. A harness failure
 that moves the plan to `validation_changes_requested` directs the agent to read, repair, and republish the validation
 draft; it must never recommend another `baseline_reconcile` call after that transition.
