@@ -23,6 +23,7 @@ const {
   submitValidationFeedbackAction,
   submitValidationReviewAction,
   routerRefresh,
+  completeImplementationAction,
 } = vi.hoisted(() => ({
   approvePlanRevisionAction: vi.fn(),
   approveValidationFileAction: vi.fn(),
@@ -37,6 +38,7 @@ const {
   submitValidationFeedbackAction: vi.fn(),
   submitValidationReviewAction: vi.fn(),
   routerRefresh: vi.fn(),
+  completeImplementationAction: vi.fn(),
 }))
 
 vi.mock('@xyflow/react', () => ({
@@ -83,6 +85,7 @@ vi.mock('@/actions/plan-review/plan-review-actions', () => ({
   approveValidationFileAction,
   approvePlanRevisionAction,
   cancelBaselineExecutionAction,
+  completeImplementationAction,
   decideValidationNodeAction,
   justifyBaselineRegressionPassAction: vi.fn(),
   publishSharedPlanLayoutAction,
@@ -413,6 +416,82 @@ const validationDetail: PlanReviewDetail = {
 }
 
 describe('PlanReviewWorkspace', () => {
+  it('shows final sign-off only for ready validation-passed evidence and requires explicit confirmation', async () => {
+    const user = userEvent.setup()
+    const evidenceHash = `sha256:${'e'.repeat(64)}`
+    completeImplementationAction.mockResolvedValueOnce({ status: 200, success: true })
+    const completionDetail: PlanReviewDetail = {
+      ...detail,
+      plan: { ...detail.plan, lifecycle: 'validation_passed' },
+      completionReview: {
+        plan: { planId: detail.plan.planId, revision: 1, lifecycle: 'validation_passed', hash: detail.planContentHash },
+        validation: { revision: 1, hash: hashA, requiredValidationIds: [] },
+        readiness: { ready: true, blockers: [] },
+        tasks: [],
+        commits: [],
+        validationRuns: [],
+        repositoryExport: { policy: 'disabled', state: 'not_requested' },
+        structuredBlockers: [],
+        optionalFailures: [],
+        acknowledgedFailures: [],
+        blockingRemarks: [],
+        nonBlockingRemarks: [],
+        finalSignOff: undefined,
+        eventSequence: 9,
+        evidenceHash,
+      },
+    }
+
+    render(<PlanReviewWorkspace detail={completionDetail} />)
+    await openApprovalTab(user)
+    const button = screen.getByRole('button', { name: 'Approve final completion' })
+    expect(button).toBeDisabled()
+    expect(screen.getByText(evidenceHash)).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText(/explicitly approve completing this plan/i))
+    expect(button).toBeEnabled()
+    await user.click(button)
+
+    expect(completeImplementationAction).toHaveBeenCalledWith({
+      planId: detail.plan.planId,
+      evidenceHash,
+      confirmCompletion: true,
+    })
+  })
+
+  it('does not render final sign-off when completion evidence is blocked', async () => {
+    const user = userEvent.setup()
+    render(
+      <PlanReviewWorkspace
+        detail={{
+          ...detail,
+          plan: { ...detail.plan, lifecycle: 'validation_passed' },
+          completionReview: {
+            plan: { planId: detail.plan.planId, revision: 1, lifecycle: 'validation_passed', hash: hashA },
+            validation: { revision: 1, hash: hashA, requiredValidationIds: [] },
+            readiness: { ready: false, blockers: ['A required task is not verified.'] },
+            tasks: [],
+            commits: [],
+            validationRuns: [],
+            repositoryExport: { policy: 'disabled', state: 'not_requested' },
+            structuredBlockers: [],
+            optionalFailures: [],
+            acknowledgedFailures: [],
+            blockingRemarks: [],
+            nonBlockingRemarks: [],
+            finalSignOff: undefined,
+            eventSequence: 9,
+            evidenceHash: `sha256:${'f'.repeat(64)}`,
+          },
+        }}
+      />,
+    )
+    await openApprovalTab(user)
+
+    expect(screen.queryByRole('button', { name: 'Approve final completion' })).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('A required task is not verified.')
+  })
+
   it('renders the plan title and description as separate header content', () => {
     render(<PlanReviewWorkspace detail={detail} />)
 

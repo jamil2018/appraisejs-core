@@ -4,6 +4,8 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { ensureDevDatabaseReady } from './lib/dev-startup.mjs'
+
 const isWindows = process.platform === 'win32'
 const npmCommand = isWindows ? 'npm.cmd' : 'npm'
 const appraisejsCommand = isWindows ? 'appraisejs.cmd' : 'appraisejs'
@@ -153,6 +155,8 @@ process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
 const mcp = mcpCommand()
+
+ensureDevDatabaseReady(npmCommand)
 
 if (mode === '--mcp-only') {
   startProcess('mcp', mcp.command, mcp.args)

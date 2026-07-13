@@ -31,15 +31,15 @@ export async function assertValidationEnvironmentsReady(
   client: ProjectionClient,
   targetProject: TargetProjectMetadata,
 ) {
-  const requiredNames = [
+  const requiredReferences = [
     ...new Set(validation.validations.flatMap(item => item.matrix.map(entry => entry.environment))),
   ]
   const existing = await client.environment.findMany({
-    where: { name: { in: requiredNames } },
-    select: { name: true },
+    where: { OR: [{ id: { in: requiredReferences } }, { name: { in: requiredReferences } }] },
+    select: { id: true, name: true },
   })
-  const found = new Set(existing.map(environment => environment.name))
-  const missingEnvironments = requiredNames.filter(name => !found.has(name))
+  const found = new Set(existing.flatMap(environment => [environment.id, environment.name]))
+  const missingEnvironments = requiredReferences.filter(reference => !found.has(reference))
   if (missingEnvironments.length > 0) {
     throw new ServiceError(
       `Validation environments must exist before approval: ${missingEnvironments.join(', ')}.`,

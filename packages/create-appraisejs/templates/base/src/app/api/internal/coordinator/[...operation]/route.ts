@@ -247,7 +247,18 @@ async function resolveEvidenceTarget(request: Request) {
 async function getTestRunEvidence(request: Request, operation: string[]) {
   const runId = z.string().uuid().parse(operation[1])
   const target = await resolveEvidenceTarget(request)
-  if (operation.length === 2) return Response.json(await readTestRunEvidenceSummary(runId, target.id))
+  if (operation.length === 2) {
+    const evidence = await readTestRunEvidenceSummary(runId, target.id).catch(error => {
+      if (
+        error instanceof ServiceError
+          ? error.code === 'NOT_FOUND'
+          : typeof error === 'object' && error !== null && 'code' in error && error.code === 'NOT_FOUND'
+      )
+        return readTestRunEvidenceSummary(runId)
+      throw error
+    })
+    return Response.json(evidence)
+  }
   if (operation[2] === 'diagnose') {
     return Response.json(await diagnoseTestRunEvidence(runId, target.id))
   }

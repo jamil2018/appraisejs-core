@@ -223,7 +223,7 @@ const validationNodeSchema = z.object({
       environment: z.string().min(1),
       signature: z.string().min(1),
       order: z.number().int().nonnegative(),
-      lastPassingStepId: idSchema,
+      lastPassingStepId: idSchema.nullable(),
     }),
   ),
 })

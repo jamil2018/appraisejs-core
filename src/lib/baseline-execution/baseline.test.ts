@@ -89,7 +89,11 @@ describe('baseline execution contract', () => {
             {
               steps: [
                 { keyword: 'Given ', name: 'a cart', result: { status: 'passed' } },
-                { keyword: 'Then ', name: 'checkout succeeds', result: { status: 'failed', error_message: ' exact ' } },
+                {
+                  keyword: 'Then ',
+                  name: 'checkout succeeds',
+                  result: { status: 'failed', error_message: ' exact\nrun-specific stack path' },
+                },
               ],
             },
           ],

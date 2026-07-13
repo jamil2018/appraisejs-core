@@ -634,6 +634,38 @@ describe('RuntimeCapsuleTestRunService SQLite lifecycle races', () => {
     }
   })
 
+  it('terminalizes and classifies a materialization failure before an execution attempt exists', async () => {
+    const { prepared } = await createReadyCapsule('materialization-failure')
+    const materialize = vi
+      .spyOn(RuntimeCapsuleMaterializer.prototype, 'materialize')
+      .mockRejectedValue(new Error('capsule source is unavailable'))
+
+    try {
+      await expect(service.start({ ...prepareInput(prepared.name), testRunDbId: prepared.id })).rejects.toThrow(
+        'capsule source is unavailable',
+      )
+
+      await expect(client.testRun.findUniqueOrThrow({ where: { id: prepared.id } })).resolves.toMatchObject({
+        runId: prepared.runId,
+        status: 'COMPLETED',
+        result: 'FAILED',
+        evidenceHealth: 'infrastructure_failure',
+      })
+      await expect(
+        client.runtimeCapsuleExecutionAttempt.findUnique({ where: { testRunId: prepared.id } }),
+      ).resolves.toBeNull()
+      await expect(
+        client.testRunLog.findUniqueOrThrow({ where: { testRunId: prepared.runId } }),
+      ).resolves.toMatchObject({
+        logs: expect.stringContaining(
+          'Infrastructure failure in runtime capsule materialization: capsule source is unavailable',
+        ),
+      })
+    } finally {
+      materialize.mockRestore()
+    }
+  })
+
   it('keeps cancellation terminal when a real child process exits concurrently', async () => {
     const { run, attempt } = await seededAttempt('STARTING')
     const testRun = await client.testRun.findUniqueOrThrow({

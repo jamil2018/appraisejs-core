@@ -16,7 +16,7 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFailureSignatures } from '@/lib/baseline-execution/baseline'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import type { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
@@ -37,7 +37,7 @@ let databasePath: string
 let client: PrismaClient
 
 async function ensurePlanRuntimeSchema() {
-  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+  await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
 }
 
 function plan(planId: string, lifecycle: PlanArtifact['lifecycle'] = 'validations_approved'): PlanArtifact {
@@ -269,7 +269,8 @@ describe('baseline execution and implementation gate', () => {
     const repository = new PlanArtifactRepository(workspace)
     const stored = await repository.read('validation', planId)
     const reviewed = parseYamlArtifact('validation', stored.content) as ValidationArtifact
-    reviewed.validations[0]!.matrix = [{ browser: 'chromium', environment: 'local' }]
+    const localEnvironment = await client.environment.findUniqueOrThrow({ where: { name: 'local' } })
+    reviewed.validations[0]!.matrix = [{ browser: 'chromium', environment: localEnvironment.id }]
     reviewed.validations[0]!.astProvenance = {
       schemaVersion: '2',
       astHash: `sha256:${'a'.repeat(64)}`,
@@ -319,7 +320,9 @@ describe('baseline execution and implementation gate', () => {
           validationId: 'required-check',
           browserEngine: 'CHROMIUM',
           preparationKey: expect.stringMatching(
-            /^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:local:0$/,
+            new RegExp(
+              `^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:${localEnvironment.id}:0$`,
+            ),
           ),
         }),
       }),
@@ -329,7 +332,9 @@ describe('baseline execution and implementation gate', () => {
           testRunDbId: 'test-run-db-id',
           operationId: 'publish-operation-one',
           preparationKey: expect.stringMatching(
-            /^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:local:0$/,
+            new RegExp(
+              `^baseline:capsule-baseline:1:publish-operation-one:sha256:[a-f0-9]{64}:required-check:chromium:${localEnvironment.id}:0$`,
+            ),
           ),
         }),
       }),

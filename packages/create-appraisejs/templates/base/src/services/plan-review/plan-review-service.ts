@@ -23,6 +23,7 @@ import {
   assertPlanNotCancelled,
   resolvePlanReference,
 } from '@/services/coordinator/coordinator-service'
+import { reviewImplementationCompletion } from '@/services/coordinator/coordinator-implementation-service'
 
 import {
   canApprovePlan,
@@ -62,6 +63,7 @@ export type PlanReviewDetail = {
     operationHash?: string
     extensionArtifactHashes: string[]
   }
+  completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>
   projection: {
     slug: string
@@ -263,7 +265,7 @@ async function readValidationReviewEvidence(
   review: ReviewArtifact | undefined,
   client: PrismaClient,
 ): Promise<PlanReviewDetail['validationReview']> {
-  if (!validation) return undefined
+  if (!validation || !review) return undefined
   const publishOperation = await client.validationAstPublishOperation.findFirst({
     where: { planId, phase: 'review_ready' },
     orderBy: { createdAt: 'desc' },
@@ -309,6 +311,9 @@ export async function getPlanReviewDetail(
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
   const validationReview = await readValidationReviewEvidence(canonicalPlanId, validation, review, client)
+  const completionReview = ['failed_validation', 'validation_passed'].includes(plan.lifecycle)
+    ? await reviewImplementationCompletion(canonicalPlanId, { client, projectDirectory: projectRoot })
+    : undefined
 
   const graph = derivePlanGraph(plan)
   const readiness = evaluateGraphReadiness(projection.events)
@@ -331,6 +336,7 @@ export async function getPlanReviewDetail(
     validation,
     validationContentHash: validation ? hashContent(serializeYamlArtifact('validation', validation)) : undefined,
     validationReview,
+    completionReview,
     graph,
     projection,
     issues: projection.issues,

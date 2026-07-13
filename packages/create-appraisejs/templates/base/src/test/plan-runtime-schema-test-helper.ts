@@ -30,6 +30,22 @@ function hasColumn(databasePath: string, tableName: string, columnName: string):
   )
 }
 
+export function clearPlanRuntimeTestData(databasePath: string) {
+  const tables = execFileSync('sqlite3', [
+    databasePath,
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> '_prisma_migrations';",
+  ])
+    .toString()
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+  const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`
+  const statements = tables.map(table => `DELETE FROM ${quoteIdentifier(table)};`).join('\n')
+  execFileSync('sqlite3', [databasePath], {
+    input: `PRAGMA foreign_keys = OFF;\n${statements}\nPRAGMA foreign_keys = ON;`,
+  })
+}
+
 function addPublishOperationToPlanEvents(databasePath: string) {
   execFileSync('sqlite3', [databasePath], {
     input: `ALTER TABLE "PlanEvent" ADD COLUMN "publishOperationId" TEXT REFERENCES "ValidationAstPublishOperation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -121,6 +137,11 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   }
 }
 
+export async function prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath: string) {
+  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+  clearPlanRuntimeTestData(databasePath)
+}
+
 export async function ensureProviderRunTestSchema(databasePath: string) {
   await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
 
@@ -131,4 +152,9 @@ export async function ensureProviderRunTestSchema(databasePath: string) {
   if (!hasColumn(databasePath, 'ProviderAdapterRegistration', 'launchEnabled')) {
     await applyMigration(databasePath, '20260701120000_add_provider_registration_settings')
   }
+}
+
+export async function prepareCleanProviderRunTestDatabase(databasePath: string) {
+  await ensureProviderRunTestSchema(databasePath)
+  clearPlanRuntimeTestData(databasePath)
 }

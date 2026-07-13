@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { revalidatePath } from 'next/cache'
+import { ServiceError } from '@/services/shared/errors'
 
 const {
   addPlanRemark,
@@ -16,6 +17,7 @@ const {
   reconcileBaselineExecution,
   startBaselineExecution,
   startImplementation,
+  approveImplementationCompletion,
 } = vi.hoisted(() => ({
   addPlanRemark: vi.fn(),
   approvePlanRevision: vi.fn(),
@@ -31,6 +33,7 @@ const {
   reconcileBaselineExecution: vi.fn(),
   startBaselineExecution: vi.fn(),
   startImplementation: vi.fn(),
+  approveImplementationCompletion: vi.fn(),
 }))
 
 vi.mock('next/cache', () => ({
@@ -57,7 +60,11 @@ vi.mock('@/services/coordinator/coordinator-baseline-service', () => ({
   startImplementation,
 }))
 
-import { addPlanRemarkAction } from './plan-review-actions'
+vi.mock('@/services/coordinator/coordinator-implementation-service', () => ({
+  approveImplementationCompletion,
+}))
+
+import { addPlanRemarkAction, completeImplementationAction } from './plan-review-actions'
 
 describe('plan review actions', () => {
   beforeEach(() => {
@@ -96,5 +103,49 @@ describe('plan review actions', () => {
       }),
     ).resolves.toMatchObject({ status: 400, success: false })
     expect(addPlanRemark).not.toHaveBeenCalled()
+  })
+
+  it('requires explicit completion intent and binds the exact evidence hash', async () => {
+    const planId = 'pln_01jz7q1by2e4prv55bda9xf39m'
+    const evidenceHash = `sha256:${'a'.repeat(64)}`
+
+    await expect(
+      completeImplementationAction({ planId, evidenceHash, confirmCompletion: false }),
+    ).resolves.toMatchObject({ status: 400, success: false })
+    expect(approveImplementationCompletion).not.toHaveBeenCalled()
+
+    approveImplementationCompletion.mockResolvedValueOnce(undefined)
+    await expect(completeImplementationAction({ planId, evidenceHash, confirmCompletion: true })).resolves.toEqual({
+      status: 200,
+      success: true,
+    })
+    expect(approveImplementationCompletion).toHaveBeenCalledWith({
+      planId,
+      contentHash: evidenceHash,
+      approvedBy: 'local-user',
+    })
+  })
+
+  it('returns the refreshed receipt details when completion evidence is stale', async () => {
+    const evidenceHash = `sha256:${'a'.repeat(64)}`
+    const currentEvidenceHash = `sha256:${'b'.repeat(64)}`
+    approveImplementationCompletion.mockRejectedValueOnce(
+      new ServiceError('Completion approval must reference the current completion evidence hash.', 'CONFLICT', 409, {
+        staleEvidenceHash: evidenceHash,
+        currentEvidenceHash,
+      }),
+    )
+
+    await expect(
+      completeImplementationAction({
+        planId: 'pln_01jz7q1by2e4prv55bda9xf39m',
+        evidenceHash,
+        confirmCompletion: true,
+      }),
+    ).resolves.toMatchObject({
+      status: 409,
+      success: false,
+      details: { staleEvidenceHash: evidenceHash, currentEvidenceHash },
+    })
   })
 })

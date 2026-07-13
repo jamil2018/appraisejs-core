@@ -57,6 +57,16 @@ export const validationMatrixEntrySchema = z.object({
   environmentId: idSchema,
 })
 
+export const validationAstExpectedFailureSchema = z
+  .object({
+    browser: z.enum(['chromium', 'firefox', 'webkit']),
+    environmentId: idSchema,
+    signature: textSchema,
+    order: z.number().int().nonnegative(),
+    lastPassingStepId: idSchema.nullable(),
+  })
+  .strict()
+
 export const qualityConcernSchema = z.enum(['accessibility', 'persistence', 'responsive', 'performance', 'security'])
 export const coverageStateSchema = z.enum(['covered', 'partial', 'deferred', 'uncovered'])
 
@@ -105,6 +115,7 @@ export const validationAstSchema = z
       .min(1)
       .max(VALIDATION_AST_LIMITS.scenarios),
     qualityConcerns: z.array(qualityConcernSchema).max(5).default([]),
+    expectedFailures: z.array(validationAstExpectedFailureSchema).max(VALIDATION_AST_LIMITS.matrixEntries).default([]),
     coverageArgument: z
       .object({ mappings: z.array(coverageMappingSchema).min(1).max(200) })
       .strict()
@@ -117,6 +128,22 @@ export const validationAstSchema = z
       context.addIssue({ code: 'custom', message: 'Duplicate quality concern.' })
     if (value.scenarios.reduce((total, scenario) => total + scenario.steps.length, 0) > 100)
       context.addIssue({ code: 'custom', message: 'Too many validation steps.' })
+    const matrix = new Set(value.matrix.map(item => `${item.browser ?? 'chromium'}:${item.environmentId}`))
+    const stepIds = new Set(value.scenarios.flatMap(scenario => scenario.steps.map(step => step.id)))
+    value.expectedFailures.forEach((failure, index) => {
+      if (!matrix.has(`${failure.browser}:${failure.environmentId}`))
+        context.addIssue({
+          code: 'custom',
+          path: ['expectedFailures', index],
+          message: 'Expected failure must match the validation matrix.',
+        })
+      if (failure.lastPassingStepId && !stepIds.has(failure.lastPassingStepId))
+        context.addIssue({
+          code: 'custom',
+          path: ['expectedFailures', index, 'lastPassingStepId'],
+          message: 'Expected failure lastPassingStepId must reference an AST step.',
+        })
+    })
     for (const [path, ids] of [
       ['customExtensions', value.customExtensions],
       ['scenarios', value.scenarios.map(item => item.id)],

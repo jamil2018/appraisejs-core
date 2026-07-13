@@ -7,7 +7,7 @@ import { hashRuntimeCapsuleBytes } from './contracts'
 import { resolveCapsuleRuntimeIdentity } from './runtime-identity'
 import { buildCapsuleExecutionArgv, buildCapsulePreflightArgv } from './command-argv'
 
-const require = createRequire(import.meta.url)
+const runtimeRequire = createRequire(path.join(process.cwd(), 'package.json'))
 const APPRAISE_RUNTIME_PATH = path.resolve(process.cwd(), 'packages/cucumber-runtime/dist/index.js')
 const APPRAISE_HOOKS_PATH = path.resolve(process.cwd(), 'packages/cucumber-runtime/dist/hooks.js')
 
@@ -48,7 +48,7 @@ export async function sealCapsuleCommandReceipt(input: {
   runtimeInput: ValidationAstRuntimeInputV1
   built: BuiltCapsuleFiles
 }) {
-  const cucumberModulePath = require.resolve('@cucumber/cucumber')
+  const cucumberModulePath = runtimeRequire.resolve('@cucumber/cucumber')
   const cucumberBinaryPath = path.resolve(path.dirname(cucumberModulePath), '../bin/cucumber.js')
   const runtime = await resolveCapsuleRuntimeIdentity({
     cucumberBinaryPath,
@@ -56,7 +56,7 @@ export async function sealCapsuleCommandReceipt(input: {
     appraiseRuntimeModulePath: APPRAISE_RUNTIME_PATH,
     appraiseRuntimeHooksPath: APPRAISE_HOOKS_PATH,
   })
-  const typescriptPackage = JSON.parse(await fs.readFile(require.resolve('typescript/package.json'), 'utf8')) as {
+  const typescriptPackage = JSON.parse(await fs.readFile(runtimeRequire.resolve('typescript/package.json'), 'utf8')) as {
     version: string
   }
   const fileByPath = new Map(

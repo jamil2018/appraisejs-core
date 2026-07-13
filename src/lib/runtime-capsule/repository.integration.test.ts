@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 import {
   capsuleCommandBytes as commandBytes,
   capsuleCommandHash as commandHash,
@@ -25,7 +25,7 @@ beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-capsule-sqlite-'))
   const databasePath = path.join(workspace, 'appraise.db')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+  await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
   prisma = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
 })
 

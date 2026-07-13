@@ -35,6 +35,8 @@ For Codex, that command now prints the exact inspect and refresh commands for th
 user flow is:
 
 1. Start AppraiseJS with `npm run dev` (or only the sidecar with `npm run dev:mcp`).
+   Both commands deploy pending Prisma migrations before starting services and stop immediately if database readiness
+   fails. Use these entry points instead of starting the web and MCP processes separately.
 2. Run `npm run setup:mcp`.
 3. Inspect the active entry with `codex mcp get appraisejs`.
 4. If its URL or transport differs from the printed configuration, run the printed `codex mcp remove appraisejs`

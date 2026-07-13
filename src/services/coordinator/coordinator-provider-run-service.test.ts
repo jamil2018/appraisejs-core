@@ -5,7 +5,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { ensureProviderRunTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { prepareCleanProviderRunTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 
 import {
   cancelProviderWorkflowRun,
@@ -30,7 +30,7 @@ beforeEach(async () => {
   databasePath = path.join(workspace, 'provider-run.db')
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  await ensureProviderRunTestSchema(databasePath)
+  await prepareCleanProviderRunTestDatabase(databasePath)
   client = createTestClient(databasePath)
 })
 

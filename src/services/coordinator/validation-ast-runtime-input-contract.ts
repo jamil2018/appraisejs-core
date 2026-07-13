@@ -102,6 +102,18 @@ export type ValidationAstRuntimeInputV1 = z.infer<typeof validationAstRuntimeInp
 
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
+export function uniqueProjectedActionReferences(
+  testCases: Array<{ steps?: Array<{ templateStepName?: string }> }>,
+): string[] {
+  return [
+    ...new Set(
+      testCases.flatMap(testCase =>
+        (testCase.steps ?? []).flatMap(step => (step.templateStepName ? [step.templateStepName] : [])),
+      ),
+    ),
+  ]
+}
+
 export function validationAstPublishOperationId(receiptHash: string): string {
   return `astpub_${hashSchema.parse(receiptHash).slice('sha256:'.length)}`
 }
@@ -165,7 +177,7 @@ export function validateValidationAstRuntimeInput(input: {
 
   const projectedCases = projection.validationNode?.appraiseArtifacts?.testCases ?? []
   const expectedCases = runtimeInput.expected.scenarios.map(item => item.caseId)
-  const projectedActions = projectedCases.flatMap(testCase => (testCase.steps ?? []).map(step => step.templateStepName))
+  const projectedActions = uniqueProjectedActionReferences(projectedCases)
   const expectedActions = runtimeInput.actions.map(action => `${action.id}@${action.version}`)
   const projectedStepIds = projectedCases.map(testCase => (testCase.steps ?? []).map(step => step.id))
   const expectedStepIds = runtimeInput.expected.scenarios.map(scenario => scenario.stepIds)
