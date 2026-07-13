@@ -91,6 +91,9 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   if (!hasTable(databasePath, 'ProjectResourceOwnership')) {
     await applyMigration(databasePath, '20260713143000_add_project_resource_ownership')
   }
+  if (!hasTable(databasePath, 'ValidationResourceProposal')) {
+    await applyMigration(databasePath, '20260713153000_add_validation_resource_proposals')
+  }
   if (!hasTable(databasePath, 'ValidationAstPublishOperation')) {
     await applyMigration(databasePath, '20260711190000_add_validation_ast_publish_journal')
   } else if (!hasColumn(databasePath, 'PlanEvent', 'publishOperationId')) {

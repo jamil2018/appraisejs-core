@@ -214,6 +214,8 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
       }) as Promise<ValidationAstExtensionReviewResult>,
     checkValidationAst: (planId: string, submission: ValidationAstSubmission) =>
       post(`plans/${planId}/validations/ast/check`, { submission }),
+    proposeValidationResources: (planId: string, proposal: unknown) =>
+      post(`plans/${planId}/validations/resources/propose`, proposal),
     previewValidationAst: (planId: string, submission: ValidationAstSubmission) =>
       post(`plans/${planId}/validations/ast/preview`, { submission }),
     compileValidationAst: (planId: string, submission: ValidationAstSubmission, expectedReceiptHash: string) =>

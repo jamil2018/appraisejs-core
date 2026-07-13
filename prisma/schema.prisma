@@ -396,9 +396,26 @@ model TargetProject {
   repositoryExportReceipts       RepositoryExportReceipt[]
   resourceOwnerships             ProjectResourceOwnership[]
   resourceImports                ProjectResourceImport[]         @relation("ResourceImportDestination")
+  validationResourceProposals    ValidationResourceProposal[]
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+model ValidationResourceProposal {
+  id              String        @id @default(uuid())
+  planId          String
+  targetProjectId String
+  idempotencyKey  String
+  proposalHash    String
+  proposalJson    String
+  resultJson      String
+  createdAt       DateTime      @default(now())
+  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, idempotencyKey])
+  @@unique([targetProjectId, proposalHash])
+  @@index([targetProjectId, createdAt])
 }
 
 model ProjectResourceOwnership {

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import prisma from '@/config/db-config'
 import { defaultActionCatalog } from '@/lib/action-catalog'
 
 import {
@@ -88,6 +89,7 @@ import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/
 import { ServiceError } from '@/services/shared/errors'
 import { enqueueRepositoryExport, runRepositoryExportJob } from '@/services/repository-export/repository-export-service'
 import { submitDelegatedValidationAst } from '@/services/coordinator/delegated-validation-ast-service'
+import { proposeValidationResources } from '@/services/coordinator/validation-resource-proposal-service'
 import {
   checkValidationAstForPlan,
   compileValidationAstForPlan,
@@ -752,6 +754,8 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
 // fallow-ignore-next-line complexity
 async function postValidationOperation(request: Request, operation: string[], body: unknown) {
   const planId = routePlanIdSchema.parse(operation[1])
+  if (operation[3] === 'resources' && operation[4] === 'propose')
+    return Response.json(await proposeValidationResources({ planId, proposal: body }, prisma))
   if (operation[3] === 'ast') {
     if (operation[4] === 'extension-policy') return Response.json(await readValidationAstExtensionPolicyForPlan(planId))
     if (operation[4] === 'extension-reviews') {

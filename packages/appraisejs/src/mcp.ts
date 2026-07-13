@@ -55,6 +55,7 @@ const baseWorkflowCriticalTools = [
   'template_step_match',
   'step_block_search',
   'locator_search',
+  'validation_resources_propose',
   'validation_ast_check',
   'validation_ast_preview',
   'validation_ast_compile',
@@ -409,6 +410,7 @@ export const validationPreparationWorkflow = {
   happyPath: [
     'plan_start',
     'validation_context_read',
+    'validation_resources_propose when target-bound resources are missing',
     'validation_ast_check',
     'validation_ast_preview',
     'human review of the exact preview receipt',
@@ -1510,6 +1512,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       },
     },
     async input => text(await api.queryLocatorGraph(input)),
+  )
+  server.registerTool(
+    'validation_resources_propose',
+    {
+      description:
+        'Transactionally propose target-bound managed-validation resources and receive stable IDs plus a refreshed context hash.',
+      inputSchema: { planId: z.string(), proposal: z.unknown() },
+    },
+    async ({ planId, proposal }) => text(await api.proposeValidationResources(planId, proposal)),
   )
   server.registerTool(
     'validation_ast_extension_reviews',

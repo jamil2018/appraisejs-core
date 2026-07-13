@@ -4,19 +4,16 @@ import { ResourceScope, type Prisma, type PrismaClient } from '@prisma/client'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
 
-export const PROJECT_RESOURCE_ENTITY_TYPES = [
-  'module',
-  'test-suite',
-  'test-case',
-  'template-step',
-  'step-block',
-  'locator-group',
-  'locator',
-  'environment',
-  'tag',
-] as const
-
-export type ProjectResourceEntityType = (typeof PROJECT_RESOURCE_ENTITY_TYPES)[number]
+export type ProjectResourceEntityType =
+  | 'module'
+  | 'test-suite'
+  | 'test-case'
+  | 'template-step'
+  | 'step-block'
+  | 'locator-group'
+  | 'locator'
+  | 'environment'
+  | 'tag'
 type ResourceClient = PrismaClient | Prisma.TransactionClient
 
 const contentHash = (value: unknown) =>
