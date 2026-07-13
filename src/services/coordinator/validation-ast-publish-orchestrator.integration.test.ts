@@ -207,9 +207,19 @@ describe('Validation AST publish journal with real SQLite', () => {
     await expect(
       resumeValidationAstPublish(operation.id, { client, projectDirectory: workspace, crashAfter: 'after_artifacts' }),
     ).rejects.toThrow('injected-after-artifacts')
+    expect((await repository.read('plan', 'journal-plan')).content).toBe('old-plan\n')
+    expect((await client.planProjection.findUniqueOrThrow({ where: { id: planProjectionId } })).lifecycle).toBe(
+      'preparing_validations',
+    )
+    expect(await client.planEvent.count({ where: { type: 'validation_review_ready' } })).toBe(0)
     await expect(
       resumeValidationAstPublish(operation.id, { client, projectDirectory: workspace, crashAfter: 'after_projection' }),
     ).rejects.toThrow('injected-after-projection')
+    expect((await repository.read('plan', 'journal-plan')).content).toBe('old-plan\n')
+    expect((await client.planProjection.findUniqueOrThrow({ where: { id: planProjectionId } })).lifecycle).toBe(
+      'preparing_validations',
+    )
+    expect(await client.planEvent.count({ where: { type: 'validation_review_ready' } })).toBe(0)
     await expect(
       resumeValidationAstPublish(operation.id, {
         client,
