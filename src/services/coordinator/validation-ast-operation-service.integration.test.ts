@@ -18,6 +18,7 @@ import {
   readValidationAstExtensionReviewsForPlan,
 } from './validation-ast-operation-service'
 import { decideValidationNode, submitValidationReview } from './coordinator-validation-service'
+import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
 
 const planHash = `sha256:${'a'.repeat(64)}`
 const contractHash = (value: unknown) =>
@@ -94,7 +95,7 @@ beforeEach(async () => {
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
   client = sqliteTestClient(databasePath)
   await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
-  await client.environment.upsert({
+  const environment = await client.environment.upsert({
     where: { name: 'local' },
     update: {},
     create: { name: 'local', baseUrl: 'http://localhost' },
@@ -122,6 +123,17 @@ beforeEach(async () => {
       },
     },
   })
+  for (const [entityType, entityId] of [
+    ['environment', environment.id],
+    ['module', 'meditation-module'],
+    ['locator-group', 'meditation-page'],
+    ['locator', 'start-button'],
+    ['locator', 'completion'],
+  ] as const)
+    await registerProjectResourceOwnership(
+      { targetProjectId: target.id, entityType, entityId, origin: 'test-fixture', content: { entityId } },
+      client,
+    )
   for (const planId of ['plan-one', 'plan-two']) {
     await client.planProjection.create({
       data: {

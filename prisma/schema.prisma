@@ -394,9 +394,60 @@ model TargetProject {
   runtimeCapsuleLeases           RuntimeCapsuleLease[]
   repositoryExportJobs           RepositoryExportJob[]
   repositoryExportReceipts       RepositoryExportReceipt[]
+  resourceOwnerships             ProjectResourceOwnership[]
+  resourceImports                ProjectResourceImport[]         @relation("ResourceImportDestination")
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+model ProjectResourceOwnership {
+  id              String                  @id @default(uuid())
+  entityType      String
+  entityId        String
+  scope           ResourceScope
+  targetProjectId String?
+  origin          String
+  provenanceJson  String                  @default("{}")
+  contentHash     String
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  targetProject   TargetProject?          @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  imports         ProjectResourceImport[]
+
+  @@unique([entityType, entityId])
+  @@index([targetProjectId, entityType])
+  @@index([scope, entityType])
+}
+
+model ProjectResourceImport {
+  id                   String                   @id @default(uuid())
+  sourceOwnershipId    String
+  destinationProjectId String
+  sharingMode          ResourceSharingMode
+  sourceContentHash    String
+  actor                String
+  propagationPolicy    String
+  createdAt            DateTime                 @default(now())
+  sourceOwnership      ProjectResourceOwnership @relation(fields: [sourceOwnershipId], references: [id], onDelete: Restrict)
+  destinationProject   TargetProject            @relation("ResourceImportDestination", fields: [destinationProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceOwnershipId, destinationProjectId, sharingMode])
+  @@index([destinationProjectId, createdAt])
+}
+
+enum ResourceScope {
+  system
+  global_library
+  project
+  publication
+  runtime
+  quarantined
+}
+
+enum ResourceSharingMode {
+  immutable_reference
+  copy
 }
 
 enum RepositoryExportPolicy {
