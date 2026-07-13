@@ -1135,6 +1135,29 @@ export type PlanSnapshot = {
   /** Compatibility alias for planContentHash. */
   contentHash: string
   links: unknown
+  validationIntegrity?: {
+    status: 'green' | 'not_applicable' | 'integrity_blocked'
+    operationId?: string
+    operationPhase?: string
+    mismatches: string[]
+    retryable: boolean
+    nextRepairAction?: string
+    failure?: unknown
+  }
+}
+
+function validationIntegrityBlockedResponse(planId: string, current: PlanSnapshot, afterSequence: number) {
+  const integrity = current.validationIntegrity!
+  return {
+    status: 'integrity_blocked',
+    planId,
+    lifecycle: current.plan.lifecycle,
+    integrity,
+    currentAfterSequence: afterSequence,
+    nextAfterSequence: afterSequence,
+    nextRecommendedAction: integrity.nextRepairAction,
+    nextRequiredAgentBehavior: integrity.retryable ? 'resume_validation_publication' : 'diagnose_validation_integrity',
+  }
 }
 
 function approvalGateStatus(lifecycle: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
@@ -2778,6 +2801,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       }
       let events = initial.events ?? []
       let current = await readSnapshot(planId)
+      if (current.validationIntegrity?.status === 'integrity_blocked')
+        return text(validationIntegrityBlockedResponse(planId, current, afterSequence))
       let gateEvent = latestGateEvent(events, validationGateEventStatus)
       let lifecycleStatus = validationGateStatus(current.plan.lifecycle)
 
@@ -2790,6 +2815,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         )
         events = [...events, ...(waited.events ?? [])]
         current = await readSnapshot(planId)
+        if (current.validationIntegrity?.status === 'integrity_blocked')
+          return text(validationIntegrityBlockedResponse(planId, current, afterSequence))
         gateEvent = latestGateEvent(events, validationGateEventStatus)
         lifecycleStatus = validationGateStatus(current.plan.lifecycle)
       }

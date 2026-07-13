@@ -62,6 +62,14 @@ case, step, requested locator, and a corrective locator lookup action.
 
 ## Validation Review
 
+Validation review readiness is receipt-backed. The plan artifact and projection may enter
+`awaiting_validation_review` only when the latest publish journal is `review_ready`, the exact validation/review
+artifact hashes match, the canonical validation projection matches, and the operation owns one
+`validation_review_ready` event. Coordinator waits and the review UI report `integrity_blocked` and hide approval
+controls when any representation disagrees. A staged `prepared`, `artifacts_written`, or `projected` operation may be
+resumed only through the exact `validation_ast_compile` receipt; non-repairable conflicts remain blocked with their
+historical evidence intact.
+
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation
 artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
 older `validation_approved` events may exist in in-flight streams, but new events should use the plural lifecycle name.

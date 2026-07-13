@@ -59,7 +59,13 @@ function fileNeedsApproval(file: ChangedFile): boolean {
   return file.classification === 'production' || file.classification === 'requires_review'
 }
 
-function submitDisabledReason(lifecycle: string, reviewState: ValidationReviewState): string | null {
+function submitDisabledReason(
+  lifecycle: string,
+  reviewState: ValidationReviewState,
+  integrity: PlanReviewDetail['validationIntegrity'] | undefined,
+): string | null {
+  if (integrity?.status === 'integrity_blocked')
+    return `Validation publication integrity is blocked: ${integrity.mismatches.join(', ')}.`
   if (lifecycle === 'validations_approved') {
     return 'Validations are approved. The connected agent starts required baselines through MCP.'
   }
@@ -271,7 +277,7 @@ function ValidationSummary({
   onCancelBaseline: ValidationReviewPanelProps['onCancelBaseline']
   onAcceptBaseline: ValidationReviewPanelProps['onAcceptBaseline']
 }) {
-  const disabledReason = submitDisabledReason(detail.plan.lifecycle, reviewState)
+  const disabledReason = submitDisabledReason(detail.plan.lifecycle, reviewState, detail.validationIntegrity)
 
   return (
     <div className="rounded-lg border p-4">
@@ -874,10 +880,21 @@ export function ValidationReviewPanel({
   const manifest = useMemo(() => new Set(validation?.manifestPaths ?? []), [validation?.manifestPaths])
 
   if (!validation || !reviewState) {
+    const integrityBlocked = detail.validationIntegrity?.status === 'integrity_blocked'
     return (
       <div className="p-5">
-        <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          No validation artifact has been published for this plan revision.
+        <div className={cn('rounded-lg border p-6 text-sm', integrityBlocked ? 'border-destructive' : 'border-dashed')}>
+          <p>
+            {integrityBlocked
+              ? 'Validation publication integrity is blocked.'
+              : 'No validation artifact has been published for this plan revision.'}
+          </p>
+          {integrityBlocked && (
+            <>
+              <p className="mt-2 text-muted-foreground">{detail.validationIntegrity?.mismatches.join(', ')}</p>
+              <p className="mt-2 text-muted-foreground">{detail.validationIntegrity?.nextRepairAction}</p>
+            </>
+          )}
         </div>
       </div>
     )
@@ -887,7 +904,8 @@ export function ValidationReviewPanel({
     setFeedbackScope('test_artifact')
     setFeedbackTarget(target)
   }
-  const canDecideValidation = detail.plan.lifecycle === 'awaiting_validation_review'
+  const canDecideValidation =
+    detail.plan.lifecycle === 'awaiting_validation_review' && detail.validationIntegrity?.status !== 'integrity_blocked'
 
   return (
     <div className="space-y-5 p-5">

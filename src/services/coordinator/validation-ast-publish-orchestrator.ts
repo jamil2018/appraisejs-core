@@ -203,7 +203,22 @@ export async function resumeValidationAstPublish(
     if (options.crashAfter) throw error
     const recovery = await recoverConcurrentPublish(operationId, options, error, client)
     if (recovery.operation) return recovery.operation
-    const failure = (recovery.error instanceof Error ? recovery.error.message : String(recovery.error)).slice(0, 2000)
+    const failedOperation = await client.validationAstPublishOperation.findUnique({
+      where: { id: operationId },
+      select: { phase: true },
+    })
+    const serviceError = recovery.error instanceof ServiceError ? recovery.error : undefined
+    const failure = JSON.stringify({
+      operationId,
+      phase: failedOperation?.phase ?? 'unknown',
+      blockerType: String(serviceError?.details?.blockerType ?? serviceError?.code ?? 'internal_error'),
+      retryable: serviceError?.code !== 'VALIDATION' && serviceError?.code !== 'UNAUTHORIZED',
+      message: (recovery.error instanceof Error ? recovery.error.message : String(recovery.error)).slice(0, 1200),
+      nextRepairAction:
+        serviceError?.code === 'CONFLICT'
+          ? 'Repair the reported integrity conflict, then resume the exact publish operation.'
+          : 'Retry the exact publish operation; Appraise will resume from its durable phase.',
+    }).slice(0, 2000)
     await client.validationAstPublishOperation
       .updateMany({
         where: { id: operationId, phase: { not: 'review_ready' } },
