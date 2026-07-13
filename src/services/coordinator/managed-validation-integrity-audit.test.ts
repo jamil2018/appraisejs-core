@@ -100,10 +100,11 @@ describe('managed validation integrity audit fixtures', () => {
     const environment = context.resources.environments[0] as { reference: string }
     const submission = inadequateFreshTargetAuditSubmission(planHash)
     submission.ast.matrix[0]!.environmentId = environment.reference
-    await expect(checkValidationAstForPlan('plan-a', submission, auditClient())).resolves.toMatchObject({ valid: true })
+    const checked = await checkValidationAstForPlan('plan-a', submission, auditClient())
+    expect(checked.blockers).not.toContainEqual(expect.objectContaining({ code: 'environment-not-found' }))
   })
 
-  it.fails('rejects broad task and quality claims without a reviewable coverage argument', async () => {
+  it('rejects broad task and quality claims without a reviewable coverage argument', async () => {
     const submission = inadequateFreshTargetAuditSubmission(planHash)
     submission.ast.matrix[0]!.environmentId = 'environment-a'
     await expect(checkValidationAstForPlan('plan-a', submission, auditClient())).resolves.toMatchObject({

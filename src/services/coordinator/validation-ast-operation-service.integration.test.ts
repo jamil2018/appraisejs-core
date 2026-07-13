@@ -80,6 +80,37 @@ const meditationSubmission = () => ({
       },
     ],
     qualityConcerns: ['accessibility', 'persistence'],
+    coverageArgument: {
+      mappings: [
+        {
+          kind: 'task',
+          targetId: 'task-one',
+          scenarioIds: ['complete-meditation'],
+          stimulusStepIds: ['start-meditation'],
+          observationStepIds: ['confirm-accessibility', 'confirm-persistence'],
+          rationale: 'Starting meditation is followed by observable accessibility and persistence assertions.',
+          state: 'covered',
+        },
+        {
+          kind: 'quality-concern',
+          targetId: 'accessibility',
+          scenarioIds: ['complete-meditation'],
+          stimulusStepIds: ['start-meditation'],
+          observationStepIds: ['confirm-accessibility'],
+          rationale: 'The registered accessibility assertion observes the completed result.',
+          state: 'covered',
+        },
+        {
+          kind: 'quality-concern',
+          targetId: 'persistence',
+          scenarioIds: ['complete-meditation'],
+          stimulusStepIds: ['start-meditation'],
+          observationStepIds: ['confirm-persistence'],
+          rationale: 'The registered persistence assertion observes the completed result.',
+          state: 'covered',
+        },
+      ],
+    },
     customExtensions: [],
   },
   customExtensionProposals: [],
@@ -378,6 +409,7 @@ describe('Validation AST SQLite preview to compile', () => {
       data: { validationJson: JSON.stringify(legacy) },
     })
     const first = await previewValidationAstForPlan('plan-one', submission(), client)
+    expect(first.blockers).toEqual([])
     const compiled = await compileValidationAstForPlan(
       {
         planId: 'plan-one',
@@ -416,6 +448,7 @@ describe('Validation AST SQLite preview to compile', () => {
 
   it('rejects a tampered receipt without entities or events and cannot bypass lifecycle', async () => {
     const preview = await previewValidationAstForPlan('plan-one', submission(), client)
+    expect(preview.blockers).toEqual([])
     const initialCaseCount = await client.testCase.count()
     await expect(
       compileValidationAstForPlan(

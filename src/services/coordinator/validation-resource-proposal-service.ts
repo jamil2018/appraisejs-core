@@ -17,7 +17,7 @@ const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonical
 const stableId = (targetProjectId: string, entityType: string, localKey: string) =>
   `apr-${createHash('sha256').update(`${targetProjectId}:${entityType}:${localKey}`).digest('hex').slice(0, 24)}`
 
-export const validationResourceProposalSchema = z
+const validationResourceProposalSchema = z
   .object({
     schemaVersion: z.literal(1),
     idempotencyKey: key,

@@ -168,10 +168,22 @@ const validationClassificationOverrideSchema = z.object({
   classification: fileClassificationSchema,
 })
 
+const validationCoverageMappingSchema = z.object({
+  kind: z.enum(['task', 'acceptance-criterion', 'quality-concern']),
+  targetId: idSchema,
+  scenarioIds: z.array(idSchema),
+  stimulusStepIds: z.array(idSchema),
+  observationStepIds: z.array(idSchema),
+  rationale: z.string().min(1),
+  state: z.enum(['covered', 'partial', 'deferred', 'uncovered']),
+  limitation: z.string().min(1).optional(),
+})
+
 const validationNodeSchema = z.object({
   id: idSchema,
   taskIds: z.array(idSchema).min(1),
   required: z.boolean(),
+  coverageArgument: z.object({ mappings: z.array(validationCoverageMappingSchema).min(1) }).optional(),
   testCaseIds: z.array(idSchema).min(1),
   appraiseArtifacts: validationAppraiseArtifactsSchema,
   gherkinPaths: z.array(z.string().min(1)).min(1),

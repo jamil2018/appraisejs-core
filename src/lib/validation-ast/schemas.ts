@@ -58,6 +58,20 @@ export const validationMatrixEntrySchema = z.object({
 })
 
 export const qualityConcernSchema = z.enum(['accessibility', 'persistence', 'responsive', 'performance', 'security'])
+export const coverageStateSchema = z.enum(['covered', 'partial', 'deferred', 'uncovered'])
+
+export const coverageMappingSchema = z
+  .object({
+    kind: z.enum(['task', 'acceptance-criterion', 'quality-concern']),
+    targetId: idSchema,
+    scenarioIds: z.array(idSchema).max(VALIDATION_AST_LIMITS.scenarios),
+    stimulusStepIds: z.array(idSchema).max(VALIDATION_AST_LIMITS.stepsPerScenario),
+    observationStepIds: z.array(idSchema).max(VALIDATION_AST_LIMITS.stepsPerScenario),
+    rationale: textSchema,
+    state: coverageStateSchema,
+    limitation: textSchema.optional(),
+  })
+  .strict()
 
 export const validationAstStepSchema = z
   .object({
@@ -91,6 +105,10 @@ export const validationAstSchema = z
       .min(1)
       .max(VALIDATION_AST_LIMITS.scenarios),
     qualityConcerns: z.array(qualityConcernSchema).max(5).default([]),
+    coverageArgument: z
+      .object({ mappings: z.array(coverageMappingSchema).min(1).max(200) })
+      .strict()
+      .optional(),
     customExtensions: z.array(idSchema).max(VALIDATION_AST_LIMITS.extensionProposals).default([]),
   })
   .strict()

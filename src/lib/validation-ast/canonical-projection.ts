@@ -81,6 +81,7 @@ export function createValidationAstCanonicalProjection(
     id: ast.id,
     taskIds: ast.coversTaskIds,
     required: true,
+    coverageArgument: ast.coverageArgument,
     testCaseIds: testCases.map(item => item.id),
     appraiseArtifacts: {
       modules: [{ id: moduleId, name: ast.title }],
