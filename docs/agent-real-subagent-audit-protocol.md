@@ -111,6 +111,23 @@ validationPreparation:
   receiptHash: '<sha256:...>'
   runtimeInputHash: '<sha256:...>'
   targetAutomationCreated: true | false
+responseMeasurements:
+  planCreateEstimatedTokens: '<number>'
+  coverageRetryEstimatedTokens: '<number>'
+  planReviewLoopEstimatedTokens: '<number>'
+  validationContextEstimatedTokens: '<number>'
+  validationAstCheckEstimatedTokens: '<number>'
+  validationAstPreviewEstimatedTokens: '<number>'
+  validationAstCompileEstimatedTokens: '<number>'
+  validationReviewLoopEstimatedTokens: '<number>'
+  summaryModeBudgetsSatisfied: true | false
+completion:
+  reachedCompleted: true | false
+  baselineAccepted: true | false
+  appraiseManagedTestRunId: '<run id or null>'
+  evidenceHealth: 'valid | invalid | missing'
+  evidenceTargetProjectId: '<target project id or null>'
+  finalSignOffExact: true | false
 commandsRun:
   - '<exact command>'
 mcpDiscoveryAttempts:
@@ -151,6 +168,11 @@ After each subagent reports standby evidence, the coordinator independently veri
     naming the missing reusable capability and why locators plus existing steps were insufficient.
 12. Local worktree changes are limited to expected audit artifacts.
 13. Audit-generated plan YAML files are removed after evidence capture unless the user explicitly wants them committed.
+14. Continue the todo fixture through accepted baseline, implementation, Appraise-managed validation, and exact final
+    sign-off; verify the terminal lifecycle is `completed`, evidence health is `valid`, and every runtime evidence row
+    remains bound to the target project.
+15. Record `estimatedTokens` from each summary-mode planning and validation response. The run fails this audit when a
+    response exceeds the budgets documented in `docs/coordinator-api-mcp.md`, even if the lifecycle completes.
 
 ## Scoring
 
