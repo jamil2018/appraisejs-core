@@ -2,225 +2,556 @@
 
 ## Status
 
-Proposed from a live happy-path audit on 2026-07-13. The run reached exact plan approval and exact Validation AST
-preview approval, but could not reach validation review, baseline, implementation, or completion because the supported
-validation compile path left the plan in an inconsistent partial state.
+Ready for implementation against the current `appraise-0.5` architecture as inspected on 2026-07-14.
 
-## Audit Scope and Evidence
+This revision preserves the 2026-07-13 happy-path audit evidence while accounting for the project-isolation work now
+present on `codex/core-project-isolation`. Project-owned validation resources are already scoped by
+`targetProjectId`, Template Steps and Template Step Groups are shared-library resources, and MCP response modes and
+token-budget constants already exist. Those foundations must be extended rather than replaced.
 
-The audit started the root AppraiseJS web app and MCP sidecar, delegated a simple todo-app brief to an isolated agent
-workspace, and used only native Appraise lifecycle tools plus the real browser review UI.
+The release-blocking defects remain unresolved:
+
+- Validation AST publication can write an `awaiting_validation_review` plan artifact before canonical projection
+  succeeds.
+- Proposed locator resources can conflict with canonical projection ownership/module expectations.
+- Planning retry feedback does not affect generated task shape.
+- Validation review standby can infer readiness from lifecycle without a review-ready publication event and receipt.
+
+## Goal
+
+Make the normal fresh-target workflow complete successfully and efficiently:
+
+`planning_session_create -> exact plan review -> validation resource proposal -> AST check -> exact preview -> AST compile -> exact validation review -> baseline -> implementation -> managed validation -> final completion`
+
+The workflow must remain Appraise-owned, project-isolated, content-addressed, recoverable, and compact enough for
+long-running agent coordination.
+
+## Non-goals
+
+- Do not reintroduce managed-v1 validation compatibility.
+- Do not make target `automation/` files authoritative execution inputs.
+- Do not weaken exact plan, validation, baseline, or completion review gates.
+- Do not make Template Steps or Template Step Groups project-owned; they are intentionally shared library resources.
+- Do not permit cross-project fallback when a project-owned resource lookup fails.
+- Do not repair inconsistent lifecycle state by writing plan YAML, SQLite, or event rows outside Appraise services.
+
+## Current Architecture Baseline
+
+The implementation must preserve these current contracts:
+
+1. Plans are bound to one `TargetProject`; coordinator operations derive trusted scope from the plan projection.
+2. Modules, suites, cases, Step Blocks, locator groups, locators, environments, tags, case templates, TestRuns, and
+   reports are project-owned.
+3. Template Steps and Template Step Groups are shared-library resources visible to every project.
+4. Validation context queries project-owned resources at the Prisma boundary and returns shared Template Steps
+   separately.
+5. Validation AST publication uses `ValidationAstPublishOperation` as its durable journal and emits
+   `validation_review_ready` exactly once.
+6. Managed execution consumes the immutable Appraise-owned runtime capsule, not target-generated runtime files.
+7. MCP already exposes response modes `summary`, `evidenceOnly`, `blockersOnly`, `linksOnly`, and `full`, with initial
+   response-token budget constants. New work extends this contract.
+
+## Audit Evidence
 
 - Target workspace: `/private/tmp/appraise-todo-happy-20260713-Ycnbnu`
+- Target project: `e890d2d2-e4b2-4123-9cb0-c40c2ad8acd8`
 - Plan: `pln_01kxdgrhsp8z6wssqdya4vyjzx`
 - Plan review URL: `http://127.0.0.1:3000/plans/pln_01kxdgrhsp8z6wssqdya4vyjzx`
 - Validation review URL:
   `http://127.0.0.1:3000/plans/pln_01kxdgrhsp8z6wssqdya4vyjzx?review=validation`
 - Approved plan content hash: `sha256:b66524e6981cc7f1f24b8e23ebb481a2a5231efc38f8fb3224f085efa6252388`
-- Approved validation preview receipt:
-  `sha256:a8ef31f5d092fb580b94775b4d191ea04f4e8aaf912c14de16d8323bc34c20cb`
+- Approved preview receipt: `sha256:a8ef31f5d092fb580b94775b4d191ea04f4e8aaf912c14de16d8323bc34c20cb`
 - Preview hash: `sha256:46a6702d2feb9357ca76c35f76617e6ac62c69b0b589b30f13908f44c1fe4d1e`
 - Projection hash: `sha256:71dae95a4248400bd7e4771ec99bbf4d84cdb69a60d840f1f583e6fadf4d6778`
 - Runtime input hash: `sha256:02a3c2be6e112e13382ccdecca807088a8a09b870125d68fd40a0bb2ad0752ba`
+- Compile failure:
+  `Validation projection conflicts with existing LocatorGroup "apr-96ee8f9af20fe163d93936b6".`
+- Browser evidence after failure: lifecycle badge `awaiting validation review`, Validations tab
+  `No validation artifact has been published for this plan revision.`, no approval control, and no console errors.
 
-The plan was approved through the browser UI. The UI reported `plan approved`, displayed the exact approved revision,
-and produced no console errors. The Validation AST check and preview were valid and covered one local Chromium happy
-path with 12 steps: accessible input, add, visibility, completion toggle, Completed and All filtering, reload
-persistence, and deletion.
+The audit stopped at this real blocker. No lifecycle gate was bypassed.
 
-The exact compile failed twice with:
+## Architecture Decisions
 
-> Validation projection conflicts with existing LocatorGroup "apr-96ee8f9af20fe163d93936b6".
+### A1. Review readiness is a committed publication invariant
 
-After the failure, `plan_read` and the browser displayed `awaiting_validation_review`, but no
-`validation_review_ready` event existed and the UI said `No validation artifact has been published for this plan
-revision.` No approval or supported repair action was available. The audit stopped at that real lifecycle blocker
-rather than bypassing Appraise-owned validation review.
+`awaiting_validation_review` is valid only when all of the following agree:
 
-## Defects
+- the plan artifact lifecycle;
+- the `PlanProjection` lifecycle and state hash;
+- a review-ready `ValidationAstPublishOperation`;
+- the exact published validation and review artifact hashes;
+- exactly one `validation_review_ready` event bound to that operation.
 
-### P0: Failed Validation AST compile publishes a split-brain lifecycle
+No reader or wait tool may infer review readiness from only one representation.
 
-`compileValidationAstForPlan` prepares plan artifact content with lifecycle `awaiting_validation_review` before the
-canonical projection succeeds. The publish orchestrator writes plan, validation, and review artifacts in its
-`prepared` phase, then projects canonical entities. A projection conflict therefore leaves the filesystem plan
-artifact advanced even though the database projection, state hash, and event stream remain at validation preparation.
+### A2. Prepared publication does not advance lifecycle
 
-Consequences:
+The prepared operation stores desired final content, but the live plan artifact and projection remain
+`preparing_validations` or `validation_changes_requested` until canonical projection succeeds. The final transition
+must update the plan artifact, projection lifecycle/hash, operation phase, and event through one recoverable commit
+protocol.
 
-- `plan_read`, review loops, artifact-backed UI, and database/event consumers disagree about lifecycle.
-- `validation_review_loop` recommends indefinite standby despite the absence of a review-ready event.
-- The browser advertises validation review while showing no published artifact or approval control.
-- Retrying the exact receipt repeats the conflict and supplies no supported repair path.
+SQLite and filesystem writes cannot share a database transaction, so the journal must distinguish staged content from
+authoritative published content and provide deterministic roll-forward or rollback behavior.
 
-### P0: Fresh-target locator proposal is incompatible with canonical AST projection
+### A3. Proposed resource identity is preserved through compilation
 
-The supported flow creates target-bound locator groups and locators through `validation_resources_propose`. The AST
-compiler then attempts to project referenced groups under its generated validation module. Canonical projection
-rejects the already-existing locator group because its `moduleId` differs. The AST schema has no supported binding
-that tells the compiler to reuse the proposed target module/group ownership.
+Validation resource proposal and canonical projection must share one resource-identity contract. The compiler reuses
+compatible project-owned modules, locator groups, locators, and environments without reparenting them. It rejects
+foreign-project resources and incompatible same-project resources during `validation_ast_check`, before exact preview
+approval.
 
-This makes the documented propose -> check -> preview -> compile path structurally fail for a fresh target whenever a
-validation uses locators.
+Every locator-bearing response exposes both the persistent ID and the AST reference. Agents do not construct prefixes.
 
-### P1: Coverage retry cannot change generated tasks
+### A4. Retry repairs task shape, not descriptive context
 
-The first `planning_session_create` candidate omitted filtering and responsive requirements, under-covered
-accessibility, and invented editing behavior not requested by the brief. The supported retry supplied
-`previousCandidateHash`, explicit omission resolutions, and additional plan context, but task synthesis reran solely
-from the original brief. It returned the same task shape and uncovered IDs. The candidate hash changed only because
-the added context changed the description, which also bypassed the unchanged-candidate guard.
+Planning retries apply normalized omission resolutions and requirement deferrals to deterministic task synthesis.
+Task shape has a separate hash from goal/description/context so prose-only changes cannot masquerade as coverage
+repairs.
 
-This can trap agents in an infinite `coverage_review_required` loop. The only successful continuation in the audit
-was the documented `plan_create` fallback with a manually structured, coverage-complete plan.
+### A5. Compact responses are the default extension of the existing response-mode contract
 
-### P1: Locator tools return IDs that the AST validator rejects
+Existing response modes remain public API. Planning, wait loops, validation context, AST check, preview, and compile
+must adopt them consistently. `summary` is the default; `full` is explicit. Content-addressed detail resources replace
+duplicated embedded payloads.
 
-`validation_resources_propose` and `locator_search` return raw stable IDs such as `apr-...` and instruct the agent to
-use the returned stable IDs. Validation AST locator bindings require graph references prefixed with `locator_`.
-Neither response exposes an AST-ready `locatorRef`, so an otherwise reasonable submission fails with
-`locator-reference-not-found` until the agent reverse-engineers the graph representation.
+## Implementation Tasks
 
-### P1: Scoped context and contract discovery are incomplete
+### Task 1: Lock the failed-publication invariant with regression tests
 
-- A scoped `validation_context_read` request for plan, target project, and environments returned only the generic
-  message `Coordinator API failed` instead of a structured actionable error.
-- The unscoped response included unrelated global resources and duplicated tasks under both `tasks` and
-  `projectedTasks`.
-- The managed Validation AST MCP resource returned only `{version, phases}` and omitted the schema or a discoverable
-  schema link. The agent had to inspect repository source to understand the contract, which defeats self-describing
-  MCP onboarding.
+**Description:** Add failing tests that reproduce the audit before changing publication code. Cover a canonical
+projection conflict after journal preparation and prove the currently inconsistent representations.
 
-### P2: Review state is derived from lifecycle instead of durable readiness
+**Acceptance criteria:**
 
-The native validation review loop treated artifact lifecycle text as sufficient evidence of pending review even when
-there was no `validation_review_ready` event, no validation artifact, and no review control. Review readiness must be
-event- and receipt-backed, not inferred from one projection.
+- A fixture creates a fresh target, proposes locator resources, approves an exact preview, and forces the audited
+  locator-group conflict.
+- The desired assertion requires the live plan artifact and projection to remain at the pre-review lifecycle, with no
+  `validation_review_ready` event.
+- A second test proves exact replay neither duplicates the operation/event nor hides the original failure phase.
 
-## Token and Flow Inefficiencies
+**Likely files:**
 
-The run repeatedly paid for the same information:
+- `src/services/coordinator/validation-ast-operation-service.integration.test.ts`
+- `src/services/coordinator/validation-ast-publish-orchestrator.integration.test.ts`
+- `src/test/validation-ast-test-fixtures.ts`
+- matching scaffold copies produced by template sync
 
-- `project_diagnostic` returned a large capability catalog with duplicated validation tool names.
-- `coverage_review_required` repeated the full candidate plan and the full requirement assessment on every retry.
-- `plan_create` echoed the complete submitted plan plus hub and target metadata when only identity, hashes, links,
-  warnings, and next action were needed.
-- `plan_review_loop` duplicated URLs and hashes across top-level fields, handoff markdown, standby presentation,
-  links, and events.
-- Unscoped validation context returned unrelated system resources and duplicated task collections.
-- Validation preview repeated the full canonical projection and embedded a large escaped `runtimeInputJson`, even
-  though human review needed a concise scenario/resource diff plus content-addressed links or optional detail calls.
-- The eventless partial compile state directed the agent into indefinite long polling rather than returning a compact
-  terminal repair response.
+**Verification:**
 
-The common cause is the absence of response profiles. Tools optimize for carrying every possible handoff field in one
-response, even when the same values are already content-addressed or were returned in the preceding call.
+- `npx vitest run src/services/coordinator/validation-ast-operation-service.integration.test.ts`
+- `npx vitest run src/services/coordinator/validation-ast-publish-orchestrator.integration.test.ts`
 
-## Fix Plan
+**Dependencies:** None
+**Scope:** Medium
 
-### Phase 1: Restore compile atomicity and recovery
+### Task 2: Keep prepared artifacts lifecycle-neutral
 
-1. Keep the authoritative plan lifecycle at `preparing_validations` until artifacts are written, canonical projection
-   succeeds, ownership is verified, and the review-ready event can be committed.
-2. Do not serialize `awaiting_validation_review` into the plan artifact during the `prepared` phase. Advance all
-   lifecycle projections only in the final review-ready transition.
-3. If filesystem journaling must precede database projection, write a non-authoritative prepared artifact or retain
-   the old lifecycle, then finalize it after projection with a hash-bound compare-and-write.
-4. Add a recovery state and native action for failed operations, returning operation ID, failed phase, blocker details,
-   safe retry eligibility, and the exact repair action.
-5. Make `plan_read`, UI badges, and review loops use one authoritative lifecycle snapshot and explicitly report
-   projection drift instead of selecting whichever store is furthest ahead.
-6. Require `validation_review_ready` event and exact publication receipt before review standby or approval controls
-   become available.
+**Description:** Change AST compilation preparation so staged plan content retains the current lifecycle. Separate
+staged validation/review content from the final review-ready plan transition.
 
-Acceptance evidence:
+**Acceptance criteria:**
 
-- Inject a projection conflict after artifact preparation and prove plan lifecycle, state hash, and event sequence do
-  not advance.
-- Retry the same receipt after repair and prove one publication operation and one review-ready event result.
-- Browser test confirms a failed compile displays a repairable preparation error, not an empty validation review.
+- `compileValidationAstForPlan` does not serialize `awaiting_validation_review` before projection.
+- A failure in `prepared` or `artifacts_written` leaves every authoritative plan read at the prior lifecycle.
+- Stored journal hashes remain deterministic and replayable.
 
-### Phase 2: Make proposed resources compilable by construction
+**Likely files:**
 
-1. Define whether AST compilation reuses proposed module/group/locator entities or creates plan-owned projection
-   entities. Encode that ownership rule in one canonical contract.
-2. Add explicit module and locator-group bindings to the AST/context when reuse is intended.
-3. Return both persistent IDs and AST-ready references from resource proposal/search, for example
-   `{id, astRef, version, moduleId, groupId}`.
-4. Validate module/group ownership compatibility during `validation_ast_check`, before preview approval.
-5. Make preview show whether every resource will be reused, created, or rejected.
+- `src/services/coordinator/validation-ast-operation-service.ts`
+- `src/services/coordinator/validation-ast-publish-journal-service.ts`
+- their focused tests
 
-Acceptance evidence:
+**Verification:**
 
-- Fresh target -> propose resources -> check -> preview -> compile succeeds with locator-bearing steps.
-- Existing compatible resources are reused idempotently.
-- Incompatible ownership fails at check with a structured repair recommendation, never after exact preview approval.
+- Task 1 tests pass through the artifact-written phase.
+- Existing journal size, hash, stale-receipt, and idempotency tests remain green.
 
-### Phase 3: Make coverage retry actually revise the candidate
+**Dependencies:** Task 1
+**Scope:** Medium
 
-1. Feed normalized `retryFeedback.addressed`, unresolved requirement IDs, deferrals, and plan context into task
-   synthesis rather than only description construction.
-2. Preserve a stable `taskShapeHash` separate from descriptive/context hashes so appended prose cannot bypass the
-   unchanged-candidate guard.
-3. Remove unrequested generic CRUD behaviors unless they are explicit requirements or clearly labeled review
-   suggestions.
-4. Add a deterministic repair pass that maps every uncovered requirement to an existing or new task and returns a
-   compact task diff.
-5. Cap retries and offer a structured edit/fallback action with the remaining omissions rather than an infinite loop.
+### Task 3: Finalize publication through one integrity-checked transition
 
-Acceptance evidence:
+**Description:** Extend the publish journal so the final step compares the current plan artifact, writes the
+review-ready plan content, updates projection lifecycle and hashes, records operation phase, and emits the exact event
+without exposing an intermediate review-ready state.
 
-- The audited todo brief produces filtering, responsive, accessibility, persistence, add, toggle, and delete coverage
+**Acceptance criteria:**
+
+- Successful publication produces one consistent review-ready snapshot and one event.
+- Crash/replay at every journal phase converges to the same snapshot.
+- A compare-and-write conflict returns a structured recoverable failure without advancing lifecycle.
+- Operation failure records include operation ID, phase, blocker type, retryability, and next repair action.
+
+**Likely files:**
+
+- `src/services/coordinator/validation-ast-publish-orchestrator.ts`
+- `src/services/coordinator/validation-ast-publish-journal-service.ts`
+- `src/services/coordinator/coordinator-service.ts`
+- focused integration tests
+
+**Verification:**
+
+- Injected crashes after preparation, artifact staging, projection, and finalization recover idempotently.
+- State-hash and event-sequence assertions pass after every recovery.
+
+**Dependencies:** Task 2
+**Scope:** Medium
+
+### Checkpoint A: Publication integrity
+
+- [ ] Projection failure cannot expose `awaiting_validation_review`.
+- [ ] Exact replay creates no duplicate operation or event.
+- [ ] Existing validation publication and runtime-input integrity tests pass.
+- [ ] Active lifecycle documentation matches the final journal protocol.
+
+### Task 4: Define canonical project-owned resource bindings
+
+**Description:** Add one internal binding type used by proposal, context, check, preview, and projection. It carries
+persistent identity, AST identity, version, target project, module/group ancestry, and reuse/create disposition.
+
+**Acceptance criteria:**
+
+- Locator and locator-group results include `id`, `astRef`, `version`, `targetProjectId`, and ancestry IDs.
+- Template Step references remain shared-library references and do not gain project ownership.
+- Foreign-project and incompatible same-project bindings have distinct structured blocker codes.
+
+**Likely files:**
+
+- `src/lib/validation-ast/schemas.ts`
+- `src/services/coordinator/validation-resource-proposal-service.ts`
+- `src/services/coordinator/validation-authoring-context-service.ts`
+- `packages/appraisejs/src/mcp.ts`
+- focused contract tests
+
+**Verification:**
+
+- Proposal and search responses can be copied directly into a valid AST without prefix construction.
+- Project-isolation tests prove no foreign resources are returned.
+
+**Dependencies:** None; may be developed alongside Tasks 1-3 after the binding contract is agreed.
+**Scope:** Medium
+
+### Task 5: Reuse compatible proposed resources during canonical projection
+
+**Description:** Teach check/preview/projection to preserve proposed module and locator-group ownership rather than
+reparenting the group under a generated AST module.
+
+**Acceptance criteria:**
+
+- Fresh target -> propose -> check -> preview -> compile succeeds with locator-bearing steps.
+- Existing compatible project-owned resources are reused idempotently with unchanged IDs and ancestry.
+- Foreign-project, duplicate, or structurally incompatible resources fail during check, before preview approval.
+- Canonical publication persists `targetProjectId` on all created project roots.
+
+**Likely files:**
+
+- `src/services/coordinator/validation-ast-compiler-service.ts`
+- `src/services/coordinator/validation-ast-operation-service.ts`
+- `src/services/coordinator/validation-canonical-projection-service.ts`
+- `src/lib/validation-ast/canonical-projection.ts`
+- focused unit and integration tests
+
+**Verification:**
+
+- The exact audit topology compiles without a locator-group conflict.
+- Cross-project collision tests fail closed.
+- Shared Template Step reuse remains green.
+
+**Dependencies:** Task 4
+**Scope:** Medium
+
+### Checkpoint B: Fresh-target validation authoring
+
+- [ ] Empty registered target can propose and compile locator-bearing managed validation.
+- [ ] Preview clearly labels reused, created, and blocked resources.
+- [ ] No caller constructs `locator_` or `group_` prefixes manually.
+- [ ] Project ownership and shared-library invariants pass in root and scaffold tests.
+
+### Task 6: Make coverage retries produce deterministic task diffs
+
+**Description:** Separate task synthesis from descriptive context and apply normalized retry resolutions to task
+generation. Preserve the first candidate as the comparison base.
+
+**Acceptance criteria:**
+
+- `retryFeedback.addressed` and requirement deferrals alter requirement-to-task mappings deterministically.
+- A `taskShapeHash` excludes goal, description, source-file prose, and plan context.
+- The audited todo brief covers add, toggle, delete, filtering, persistence, responsive behavior, and accessibility
   without inventing edit behavior.
-- A retry changes task coverage, keeps resolved requirements resolved, and reports only the diff.
-- An unchanged retry is rejected even when only plan context or description text changed.
+- Unchanged shape with unresolved omissions returns a bounded structured fallback instead of another identical full
+  candidate.
 
-### Phase 4: Introduce compact, progressive MCP responses
+**Likely files:**
 
-1. Add response profiles such as `compact`, `handoff`, and `debug`, defaulting normal agent loops to `compact`.
-2. Return immutable payloads once with hashes and provide detail resources/tools for candidate plans, assessments,
-   context, canonical projections, and runtime inputs.
-3. Use delta responses for retries and unchanged waits: new events, changed requirements, cursor, elapsed time, and
-   next action only.
-4. Deduplicate capability catalogs, task collections, URLs, hashes, and presentation wrappers before serialization.
-5. Return structured coordinator errors with code, phase, blocker type, retryability, and recommended action.
-6. Add response byte/token budgets to MCP contract tests and coordination SLO reporting.
+- `packages/appraisejs/src/mcp.ts`
+- `packages/appraisejs/src/mcp.test.ts`
+- `src/lib/plan-contract/schemas.ts` only if the candidate contract persists the new hash/diff
 
-Suggested initial budgets:
+**Verification:**
 
-- Unchanged wait: at most 1 KiB.
-- Diagnostic success: at most 4 KiB unless `debug` is requested.
-- Coverage retry: at most 6 KiB plus an optional content-addressed detail resource.
-- Preview summary: at most 8 KiB; canonical projection and runtime JSON retrieved separately.
+- Package MCP tests cover initial omission, repaired retry, prose-only retry, deferral, and retry cap.
+- Existing intent classification tests remain green.
 
-### Phase 5: Self-describing workflow and user-facing robustness
+**Dependencies:** None
+**Scope:** Medium
 
-1. Publish the complete versioned Validation AST JSON Schema through an MCP resource and link it from the agent guide,
-   check errors, and preview response.
-2. Add a lifecycle integrity panel to plan review showing artifact, database projection, publish journal, and event
-   agreement. Hide approval while integrity is not green.
-3. Add a resumable operation card for failed validation publication with safe retry/repair guidance.
-4. Add a plan-builder coverage matrix in the UI so users can see explicit requirements, inferred suggestions,
-   deferrals, and task mappings before publication.
-5. Add an agent trace view that collapses repeated payloads and measures bytes/tokens by lifecycle phase, separating
-   active agent time from human review time.
-6. Add an end-to-end synthetic project command that exercises fresh-target planning, exact review, managed validation,
-   baseline, implementation, final validation, and completion with fault injection at each journal phase.
+### Task 7: Make validation review standby receipt-backed
 
-## Validation Matrix
+**Description:** Require a review-ready publication operation and event before validation review is reported as ready
+or pending human decision. Detect inconsistent legacy/failed states and return a repair response.
 
-- Unit: requirement extraction, task-shape hashing, retry synthesis, response compaction, locator reference mapping.
-- Service integration: resource proposal through AST compile; ownership conflicts; journal phase recovery; event
-  uniqueness; state-hash consistency.
-- MCP contract: compact/default/debug response shapes, actionable errors, schema resource completeness, cursor deltas.
-- Browser: plan approval, failed compile recovery UI, validation review visibility, approval control gating.
-- Full lifecycle E2E: isolated fresh todo workspace through final completion with Appraise-managed TestRun evidence.
-- Regression: scaffold sync via `npm --prefix packages/create-appraisejs run prepare-template`, focused lint/format/tests,
-  `npm run validate`, build, harness checks, and Graphify auto-update for touched committed scopes.
+**Acceptance criteria:**
 
-## Recommended Delivery Order
+- Lifecycle text without a matching review-ready operation, validation artifact, receipt, and event returns
+  `integrity_blocked`, not `pending`.
+- The response includes operation/failure evidence when available and one exact repair or diagnostic action.
+- UI approval controls remain hidden until the same invariant passes.
 
-Ship Phases 1 and 2 together as the release blocker: they restore lifecycle integrity and make the supported managed
-validation path executable. Phase 3 restores the plan builder's advertised retry behavior. Phase 4 should follow
-before broad agent adoption because repeated payloads dominate the flow's token cost. Phase 5 can then add operator
-visibility and preventive tooling on top of consistent lifecycle state.
+**Likely files:**
+
+- `packages/appraisejs/src/mcp.ts`
+- `src/services/coordinator/coordinator-service.ts`
+- `src/services/plan-review/plan-review-service.ts`
+- `src/app/(base)/plans/[planId]/validation-review-panel.tsx`
+- focused MCP, service, and component tests
+
+**Verification:**
+
+- Recreate the audit split state and confirm both MCP and UI display the integrity blocker.
+- A valid publication continues to normal validation approval.
+
+**Dependencies:** Task 3
+**Scope:** Medium
+
+### Checkpoint C: Planning and review control
+
+- [ ] Coverage retry changes task shape or returns a bounded actionable fallback.
+- [ ] Validation standby never waits indefinitely on an impossible event.
+- [ ] Plan and validation human gates remain exact and Appraise-owned.
+
+### Task 8: Extend compact response modes to planning and validation authoring
+
+**Description:** Apply the existing response-mode vocabulary and measurement helpers to the token-heavy tools observed
+in the audit. Default to `summary`; retain `full` for diagnostics.
+
+**Acceptance criteria:**
+
+- `planning_session_create`, `plan_create`, plan/validation review loops, validation context, AST check, preview, and
+  compile accept the existing response-mode enum.
+- Repeated content is replaced by hashes, compact diffs, cursors, and detail-resource links.
+- Unchanged waits return only status, cursor, elapsed time, integrity state, and next action.
+- Structured errors retain blocker evidence in every response mode.
+
+**Likely files:**
+
+- `packages/appraisejs/src/mcp.ts`
+- `packages/appraisejs/src/mcp.test.ts`
+- `docs/coordinator-api-mcp.md`
+- MCP resource definitions for content-addressed details
+
+**Verification:**
+
+- Contract tests enforce these maximum estimated-token budgets in `summary` mode:
+  - diagnostic: 1,000;
+  - plan creation or coverage retry: 2,000;
+  - unchanged wait: 300;
+  - validation mutation/preview: 1,500.
+- `full` mode preserves all evidence needed for debugging.
+
+**Dependencies:** Tasks 6 and 7, so their final response contracts are compacted once.
+**Scope:** Medium
+
+### Task 9: Publish complete self-describing authoring contracts
+
+**Description:** Make the managed Validation AST and resource-reference formats discoverable without repository-source
+inspection.
+
+**Acceptance criteria:**
+
+- MCP exposes the complete versioned AST JSON Schema or a content-addressed resource containing it.
+- Agent guide, check failures, proposal/search results, and preview responses link to the correct schema version.
+- Schema examples use returned `astRef` values and current project/shared-library ownership rules.
+
+**Likely files:**
+
+- `packages/appraisejs/src/mcp.ts`
+- `src/lib/validation-ast/schemas.ts`
+- `docs/validation-ast-contracts.md`
+- `docs/coordinator-api-mcp.md`
+- contract tests
+
+**Verification:**
+
+- A schema-driven fixture builds a valid submission without importing AppraiseJS source modules.
+- MCP resource snapshots fail when schema and runtime validator drift.
+
+**Dependencies:** Task 4
+**Scope:** Small to medium
+
+### Task 10: Add lifecycle integrity diagnostics and recovery UI
+
+**Description:** Surface publication journal/artifact/projection/event agreement in the plan review UI and coordinator
+diagnostics. Provide safe recovery for operations stranded by earlier versions.
+
+**Acceptance criteria:**
+
+- Integrity status reports each representation's lifecycle/hash and the exact mismatch.
+- Failed operations expose safe retry/repair only when journal preconditions permit it.
+- Validation approval is disabled whenever integrity is not green.
+- Recovery never deletes historical attempts or mutates a foreign project.
+
+**Likely files:**
+
+- `src/services/coordinator/managed-validation-integrity-audit.ts`
+- `src/services/coordinator/coordinator-service.ts`
+- `src/actions/plan-review/plan-review-actions.ts`
+- `src/app/(base)/plans/[planId]/validation-review-panel.tsx`
+- focused tests and active lifecycle docs
+
+**Verification:**
+
+- The stranded audit plan is diagnosed accurately.
+- A repairable staged operation resumes; a non-repairable conflict remains blocked with preserved evidence.
+
+**Dependencies:** Tasks 3 and 7
+**Scope:** Medium
+
+### Checkpoint D: Agent efficiency and operator recovery
+
+- [ ] Summary-mode budgets pass.
+- [ ] Full schemas are discoverable through MCP.
+- [ ] UI and MCP show the same integrity status and repair action.
+- [ ] No approval control appears for incomplete validation publication.
+
+### Task 11: Prove the entire isolated todo lifecycle
+
+**Description:** Add and run an agent-like happy-path test in a fresh target workspace using the public MCP contracts
+and real review gates. Re-run the original manual audit after automated evidence is green.
+
+**Acceptance criteria:**
+
+- The flow reaches `completed` through plan approval, validation approval, accepted baseline, implementation,
+  Appraise-managed TestRun validation, and exact final sign-off.
+- Required runtime evidence has `evidenceHealth: valid` and remains target-bound.
+- The run uses registry/shared Template Steps where compatible and records justified extensions only when necessary.
+- Per-phase response measurements satisfy the summary-mode budgets.
+
+**Likely files:**
+
+- `docs/agent-real-subagent-audit-protocol.md`
+- coordinator lifecycle E2E tests
+- MCP E2E harness/tests
+- no committed target-workspace artifacts unless the harness contract requires fixtures
+
+**Verification:**
+
+- Automated lifecycle E2E passes.
+- Real isolated subagent audit completes without source inspection, direct state writes, or lifecycle bypass.
+- Browser review pages show valid artifacts and clean console output at each human-owned gate.
+
+**Dependencies:** Tasks 1-10
+**Scope:** Medium
+
+## Dependency Graph
+
+```text
+Task 1 -> Task 2 -> Task 3 -> Task 7 -> Task 8 -> Task 11
+                    |          |                 ^
+                    +-------> Task 10 -----------+
+
+Task 4 -> Task 5 -------------------------------> Task 11
+   |
+   +-------> Task 9 ----------------------------> Task 11
+
+Task 6 -----------------------------------------> Task 8
+```
+
+Tasks 1-3 and Task 4 may proceed in parallel after agreeing on the publication/resource-binding boundaries. Task 6
+is independent. Tasks 5, 7, and 8 must follow their contract dependencies. Task 11 is the final integration gate.
+
+## Required Documentation Updates
+
+Update current docs in the same implementation slices; do not defer doc drift to the final task:
+
+- `docs/agent-lifecycle-flow.md`: final publication invariant, integrity blocker, recovery ownership.
+- `docs/coordinator-api-mcp.md`: retry/task-shape contract, response modes, budgets, structured errors.
+- `docs/validation-ast-contracts.md`: staged versus authoritative publication and resource bindings.
+- `docs/project-ownership-boundary.md`: reuse rules for project-owned validation resources and shared Template Steps.
+- `docs/agent-real-subagent-audit-protocol.md`: full todo lifecycle and response measurement.
+- `docs/scaffold-template-sync.md` only if the sync workflow itself changes.
+
+## Validation Strategy
+
+Use focused checks after every task and broader checks at each checkpoint.
+
+### Focused checks
+
+- `npx eslint <changed-source-files>`
+- `npx prettier --check <changed-files>`
+- `npx vitest run <changed-test-files>`
+- `npm --prefix packages/appraisejs test -- <focused-filter>` when package MCP tests change
+
+### Scaffold synchronization
+
+Root/base source is canonical. After root changes are green:
+
+1. Run `npm --prefix packages/create-appraisejs run prepare-template`.
+2. Verify expected root/template parity.
+3. Run the matching focused tests against the synchronized scaffold source where applicable.
+4. Do not patch template or generated Graphify outputs by hand.
+
+### Final validation
+
+- `npm run lint`
+- `npm run test`
+- `npm run validate`
+- `npm run quality:fallow:commit`
+- `npm run quality:react-doctor:commit`
+- `npm run check:harness`
+- `npm run build`
+- `npm run graphify:auto` when safe source changes touch committed graph scopes
+- Full isolated lifecycle E2E and real subagent audit from Task 11
+
+Environment-only failures must be separated from code failures with exact commands and logs. Hook failures introduced
+by the implementation must be fixed; hooks must not be bypassed.
+
+## Risks and Mitigations
+
+| Risk                                                  | Impact                         | Mitigation                                                                                              |
+| ----------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Filesystem and SQLite cannot commit atomically        | Critical lifecycle drift       | Treat filesystem content as staged until a journaled final compare-and-write; test every crash phase    |
+| Ownership fix reintroduces cross-project visibility   | Critical data isolation breach | Query by `targetProjectId` at Prisma boundary and add foreign-project fixtures for every resource class |
+| Shared Template Steps are accidentally project-scoped | High registry regression       | Keep shared-library type explicit and test reuse from multiple projects                                 |
+| Retry synthesis becomes nondeterministic              | High review/hash instability   | Normalize feedback, isolate `taskShapeHash`, and snapshot exact task diffs                              |
+| Compact mode drops required evidence                  | High unsafe automation         | Define required fields per mode and keep blocker/evidence hashes in every mode                          |
+| Recovery mutates historical or foreign state          | Critical evidence loss         | Bind operation, target fingerprint, hashes, and ownership before exposing repair                        |
+| Root/template divergence                              | High scaffold regression       | Edit root first and require template sync plus parity checks at checkpoints                             |
+
+## Definition of Done
+
+- All eleven tasks and four checkpoints are complete.
+- The original todo brief completes through exact final sign-off in an isolated target.
+- A failed compile cannot expose validation review readiness.
+- Proposed locator resources compile without manual reference rewriting or ownership conflicts.
+- Coverage retry changes task shape or returns a bounded actionable fallback.
+- Summary response budgets pass without losing blocker or evidence hashes.
+- MCP authoring contracts are self-describing.
+- UI, coordinator reads, artifacts, publish journal, projection hashes, and events agree at every lifecycle gate.
+- Project isolation and shared Template Step behavior remain intact.
+- Root, synchronized scaffold, focused tests, full validation, static analysis, harness, build, and required Graphify
+  updates pass.
+
+## Recommended Commit Boundaries
+
+1. `test: capture validation publication split-brain regression` — Task 1.
+2. `fix: keep validation publication lifecycle atomic` — Tasks 2-3 plus Checkpoint A docs.
+3. `feat: expose canonical validation resource bindings` — Task 4.
+4. `fix: reuse project-owned validation resources during compile` — Task 5 plus Checkpoint B docs.
+5. `fix: apply coverage retry feedback to task synthesis` — Task 6.
+6. `fix: require receipt-backed validation review readiness` — Task 7.
+7. `perf: compact planning and validation MCP responses` — Task 8.
+8. `docs: publish self-describing validation authoring contracts` — Task 9.
+9. `feat: expose managed validation integrity recovery` — Task 10.
+10. `test: prove complete isolated todo lifecycle` — Task 11 and final evidence updates.
