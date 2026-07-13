@@ -1,5 +1,10 @@
 # Server Actions conventions (AppraiseJS)
 
+Project-sensitive actions resolve the active project from trusted server context before invoking a service. Client
+fields may repeat `targetProjectId` for conflict detection, but never establish ownership; a mismatch with the
+server-resolved project is rejected. Services require the resolved scope for every lookup and relation check. See
+`docs/project-ownership-boundary.md`.
+
 ## Layers
 
 1. **Server Action** (`src/actions/**`): `'use server'` entry points. Parse input with Zod, call a **service**, map results to `ActionResponse`, call `revalidatePath` / `redirect` as needed.

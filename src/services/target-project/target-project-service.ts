@@ -19,6 +19,12 @@ type RegisterTargetProjectInput = {
   displayName?: string
 }
 
+export type ActiveProjectSelectionSource = 'url' | 'cookie'
+
+export type ActiveProjectContext = Pick<TargetProject, 'id' | 'displayName' | 'canonicalPath'> & {
+  source: ActiveProjectSelectionSource
+}
+
 type PackageJsonShape = Record<string, unknown>
 export type TargetProjectMarkerStatus = {
   status: 'written' | 'refreshed' | 'skipped'
@@ -164,6 +170,41 @@ export async function writeTargetProjectMarker(
 
 export async function listTargetProjects(client: PrismaClient = prisma): Promise<TargetProject[]> {
   return client.targetProject.findMany({ orderBy: [{ displayName: 'asc' }, { canonicalPath: 'asc' }] })
+}
+
+export async function resolveActiveProject(
+  input: { urlProjectId?: string | null; cookieProjectId?: string | null },
+  client: PrismaClient = prisma,
+): Promise<ActiveProjectContext | null> {
+  const source: ActiveProjectSelectionSource | null = input.urlProjectId
+    ? 'url'
+    : input.cookieProjectId
+      ? 'cookie'
+      : null
+  const id = input.urlProjectId || input.cookieProjectId
+  if (!source || !id) return null
+
+  const project = await client.targetProject.findUnique({
+    where: { id },
+    select: { id: true, displayName: true, canonicalPath: true },
+  })
+  return project ? { ...project, source } : null
+}
+
+export async function renameTargetProject(
+  input: { targetProjectId: string; displayName: string },
+  client: PrismaClient = prisma,
+): Promise<TargetProject> {
+  const displayName = input.displayName.trim()
+  if (!displayName) throw new ServiceError('Project display name is required.', 'VALIDATION', 400)
+
+  const existing = await client.targetProject.findUnique({ where: { id: input.targetProjectId } })
+  if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
+
+  return client.targetProject.update({
+    where: { id: existing.id },
+    data: { displayName },
+  })
 }
 
 export async function resolveTargetProject(reference: string, client: PrismaClient = prisma): Promise<TargetProject> {

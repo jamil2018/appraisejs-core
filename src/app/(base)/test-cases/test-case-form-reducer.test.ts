@@ -51,6 +51,7 @@ describe('testCaseFormReducer', () => {
       name: 'Smoke',
       description: null,
       moduleId: 'module-1',
+      targetProjectId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

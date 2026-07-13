@@ -4,11 +4,13 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const { mockTargetProjectUpsert, mockTargetProjectFindMany, mockTargetProjectFindUnique } = vi.hoisted(() => ({
-  mockTargetProjectUpsert: vi.fn(),
-  mockTargetProjectFindMany: vi.fn(),
-  mockTargetProjectFindUnique: vi.fn(),
-}))
+const { mockTargetProjectUpsert, mockTargetProjectFindMany, mockTargetProjectFindUnique, mockTargetProjectUpdate } =
+  vi.hoisted(() => ({
+    mockTargetProjectUpsert: vi.fn(),
+    mockTargetProjectFindMany: vi.fn(),
+    mockTargetProjectFindUnique: vi.fn(),
+    mockTargetProjectUpdate: vi.fn(),
+  }))
 
 vi.mock('@/config/db-config', () => ({
   default: {
@@ -16,12 +18,15 @@ vi.mock('@/config/db-config', () => ({
       upsert: mockTargetProjectUpsert,
       findMany: mockTargetProjectFindMany,
       findUnique: mockTargetProjectFindUnique,
+      update: mockTargetProjectUpdate,
     },
   },
 }))
 
 import {
   listTargetProjects,
+  renameTargetProject,
+  resolveActiveProject,
   registerTargetProject,
   resolveTargetProject,
   writeTargetProjectMarker,
@@ -150,5 +155,46 @@ describe('target project service', () => {
     mockTargetProjectFindMany.mockResolvedValue([{ id: 'target-1', canonicalPath: '/repo' }])
 
     await expect(resolveTargetProject('target-1')).resolves.toMatchObject({ id: 'target-1' })
+  })
+
+  it('resolves URL project scope before cookie scope without silently falling back', async () => {
+    mockTargetProjectFindUnique.mockResolvedValueOnce({ id: 'url-project', displayName: 'URL', canonicalPath: '/url' })
+
+    await expect(
+      resolveActiveProject({ urlProjectId: 'url-project', cookieProjectId: 'cookie-project' }),
+    ).resolves.toEqual({ id: 'url-project', displayName: 'URL', canonicalPath: '/url', source: 'url' })
+    expect(mockTargetProjectFindUnique).toHaveBeenCalledWith({
+      where: { id: 'url-project' },
+      select: { id: true, displayName: true, canonicalPath: true },
+    })
+
+    mockTargetProjectFindUnique.mockResolvedValueOnce(null)
+    await expect(
+      resolveActiveProject({ urlProjectId: 'missing-project', cookieProjectId: 'cookie-project' }),
+    ).resolves.toBeNull()
+  })
+
+  it('renames only the display name and preserves project identity', async () => {
+    const existing = {
+      id: 'target-1',
+      canonicalPath: '/repo',
+      fingerprint: 'sha256:target',
+      displayName: 'Old name',
+    }
+    mockTargetProjectFindUnique.mockResolvedValue(existing)
+    mockTargetProjectUpdate.mockResolvedValue({ ...existing, displayName: 'New name' })
+
+    await expect(
+      renameTargetProject({ targetProjectId: 'target-1', displayName: ' New name ' }),
+    ).resolves.toMatchObject({
+      id: 'target-1',
+      canonicalPath: '/repo',
+      fingerprint: 'sha256:target',
+      displayName: 'New name',
+    })
+    expect(mockTargetProjectUpdate).toHaveBeenCalledWith({
+      where: { id: 'target-1' },
+      data: { displayName: 'New name' },
+    })
   })
 })

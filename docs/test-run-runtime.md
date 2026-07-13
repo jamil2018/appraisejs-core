@@ -1,5 +1,9 @@
 # Test Run Runtime
 
+Every TestRun and report belongs to one target project. Runtime access preserves the project-to-plan-to-publication-
+to-capsule-to-TestRun chain, and logs, downloads, traces, screenshots, metrics, and diagnostics reject conflicting
+project scope rather than disclosing foreign-run existence. See `docs/project-ownership-boundary.md`.
+
 This document helps agents navigate AppraiseJS test execution, logs, reports, and run artifacts.
 
 ## Mental Model

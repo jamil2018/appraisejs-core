@@ -8,17 +8,21 @@ datasource db {
 }
 
 model TestSuite {
-  id          String            @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  moduleId    String
-  module      Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  testCases   TestCase[]        @relation("TestSuiteTestCases")
-  tags        Tag[]
-  metrics     TestSuiteMetrics?
-  testRuns    TestRunTestCase[]
+  id              String            @id @default(uuid())
+  name            String
+  description     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  moduleId        String
+  module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  testCases       TestCase[]        @relation("TestSuiteTestCases")
+  tags            Tag[]
+  metrics         TestSuiteMetrics?
+  testRuns        TestRunTestCase[]
+  targetProjectId String?
+  targetProject   TargetProject?    @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@index([targetProjectId])
 }
 
 model Review {
@@ -73,23 +77,31 @@ model TemplateStepParameter {
 }
 
 model TemplateStepGroup {
-  id            String                @id @default(uuid())
-  name          String
-  description   String?
-  type          TemplateStepGroupType @default(ACTION)
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  templateSteps TemplateStep[]        @relation("TemplateStepGroupSteps")
+  id              String                @id @default(uuid())
+  name            String
+  description     String?
+  type            TemplateStepGroupType @default(ACTION)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  templateSteps   TemplateStep[]        @relation("TemplateStepGroupSteps")
+  targetProjectId String?
+  targetProject   TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, name])
 }
 
 model StepBlock {
-  id          String          @id @default(uuid())
-  name        String
-  description String?
-  intent      String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  steps       StepBlockStep[]
+  id              String          @id @default(uuid())
+  name            String
+  description     String?
+  intent          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  steps           StepBlockStep[]
+  targetProjectId String?
+  targetProject   TargetProject?  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, name])
 }
 
 model StepBlockStep {
@@ -118,6 +130,10 @@ model TestCase {
   tags              Tag[]
   metrics           TestCaseMetrics?
   flowBlocks        TestCaseFlowBlock[]
+  targetProjectId   String?
+  targetProject     TargetProject?      @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@index([targetProjectId])
 }
 
 model TestCaseStep {
@@ -151,13 +167,17 @@ model TestCaseFlowBlockNode {
 }
 
 model TemplateTestCase {
-  id          String                      @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  steps       TemplateTestCaseStep[]
-  flowBlocks  TemplateTestCaseFlowBlock[]
+  id              String                      @id @default(uuid())
+  name            String
+  description     String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  steps           TemplateTestCaseStep[]
+  flowBlocks      TemplateTestCaseFlowBlock[]
+  targetProjectId String?
+  targetProject   TargetProject?              @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, name])
 }
 
 model TemplateTestCaseStep {
@@ -226,29 +246,41 @@ model Locator {
   TemplateTestCaseStepParameter TemplateTestCaseStepParameter[]
   stepParameters                TestCaseStepParameter[]
   conflicts                     ConflictResolution[]
+  targetProjectId               String?
+  targetProject                 TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@index([targetProjectId])
 }
 
 model LocatorGroup {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  route     String    @default("/")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  moduleId  String
-  locators  Locator[]
-  module    Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  id              String         @id @default(uuid())
+  name            String         @unique
+  route           String         @default("/")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  moduleId        String
+  locators        Locator[]
+  module          Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  targetProjectId String?
+  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, name])
 }
 
 model Module {
-  id            String         @id @default(uuid())
-  name          String
-  parentId      String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  locatorGroups LocatorGroup[]
-  parent        Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children      Module[]       @relation("ModuleHierarchy")
-  testSuites    TestSuite[]
+  id              String         @id @default(uuid())
+  name            String
+  parentId        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  locatorGroups   LocatorGroup[]
+  parent          Module?        @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Module[]       @relation("ModuleHierarchy")
+  testSuites      TestSuite[]
+  targetProjectId String?
+  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@index([targetProjectId])
 }
 
 model TestRunTestCase {
@@ -289,7 +321,7 @@ model TestRun {
   planId                         String?
   plan                           PlanProjection?                 @relation(fields: [planId], references: [planId], onDelete: SetNull)
   targetProjectId                String?
-  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
   runtimeCapsule                 RuntimeCapsule?
   runtimeCapsuleExecutionAttempt RuntimeCapsuleExecutionAttempt?
 
@@ -334,7 +366,7 @@ model PlanProjection {
   baselineAttempts               BaselineAttempt[]
   validationAstPublishOperations ValidationAstPublishOperation[]
   targetProjectId                String?
-  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([stale])
   @@index([conflicted])
@@ -401,6 +433,20 @@ model TargetProject {
   resourceImports                ProjectResourceImport[]         @relation("ResourceImportDestination")
   validationResourceProposals    ValidationResourceProposal[]
   delegatedCoordinatorReceipts   DelegatedCoordinatorReceipt[]
+  testSuites                     TestSuite[]
+  testCases                      TestCase[]
+  templateStepGroups             TemplateStepGroup[]
+  stepBlocks                     StepBlock[]
+  templateTestCases              TemplateTestCase[]
+  locators                       Locator[]
+  locatorGroups                  LocatorGroup[]
+  modules                        Module[]
+  environments                   Environment[]
+  tags                           Tag[]
+  reports                        Report[]
+  testCaseMetrics                TestCaseMetrics[]
+  testSuiteMetrics               TestSuiteMetrics[]
+  dashboardMetrics               DashboardMetrics?
 
   @@index([displayName])
   @@index([fingerprint])
@@ -835,7 +881,7 @@ model DelegatedAuthorizationNonce {
 }
 
 model DelegatedCoordinatorReceipt {
-  id                     String   @id
+  id                     String                            @id
   parentCoordinatorId    String
   delegatedCoordinatorId String
   targetProjectId        String?
@@ -845,14 +891,14 @@ model DelegatedCoordinatorReceipt {
   permissionsJson        String
   prohibitionsJson       String
   briefOrPlanHash        String?
-  nonce                  String   @unique
+  nonce                  String                            @unique
   receiptJson            String
-  issuedAt               DateTime @default(now())
+  issuedAt               DateTime                          @default(now())
   expiresAt              DateTime
   revokedAt              DateTime?
   revokedBy              String?
   revocationReason       String?
-  targetProject          TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  targetProject          TargetProject?                    @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
   consumptions           DelegatedCoordinatorConsumption[]
 
   @@index([delegatedCoordinatorId, expiresAt])
@@ -860,11 +906,11 @@ model DelegatedCoordinatorReceipt {
 }
 
 model DelegatedCoordinatorConsumption {
-  id           String   @id @default(uuid())
+  id           String                      @id @default(uuid())
   receiptId    String
   permission   String
   operationKey String
-  consumedAt   DateTime @default(now())
+  consumedAt   DateTime                    @default(now())
   receipt      DelegatedCoordinatorReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
   @@unique([receiptId, permission, operationKey])
@@ -981,27 +1027,35 @@ model TestRunLog {
 }
 
 model Environment {
-  id         String    @id @default(uuid())
-  name       String    @unique
-  baseUrl    String
-  apiBaseUrl String?
-  username   String?
-  password   String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  testRuns   TestRun[]
+  id              String         @id @default(uuid())
+  name            String         @unique
+  baseUrl         String
+  apiBaseUrl      String?
+  username        String?
+  password        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  testRuns        TestRun[]
+  targetProjectId String?
+  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, name])
 }
 
 model Tag {
-  id            String      @id @default(uuid())
-  name          String
-  tagExpression String
-  type          TagType     @default(FILTER)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  testRuns      TestRun[]
-  testSuites    TestSuite[]
-  testCases     TestCase[]
+  id              String         @id @default(uuid())
+  name            String
+  tagExpression   String
+  type            TagType        @default(FILTER)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  testRuns        TestRun[]
+  testSuites      TestSuite[]
+  testCases       TestCase[]
+  targetProjectId String?
+  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([targetProjectId, name, type])
 }
 
 model ConflictResolution {
@@ -1029,16 +1083,20 @@ model ReportTestCase {
 }
 
 model Report {
-  id          String           @id @default(uuid())
-  name        String
-  description String?
-  reportPath  String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  testRunId   String
-  testRun     TestRun          @relation(fields: [testRunId], references: [id], onDelete: Cascade)
-  testCases   ReportTestCase[]
-  features    ReportFeature[]
+  id              String           @id @default(uuid())
+  name            String
+  description     String?
+  reportPath      String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  testRunId       String
+  testRun         TestRun          @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCases       ReportTestCase[]
+  features        ReportFeature[]
+  targetProjectId String?
+  targetProject   TargetProject?   @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@index([targetProjectId])
 }
 
 model ReportFeature {
@@ -1126,44 +1184,50 @@ model ReportHook {
 }
 
 model TestCaseMetrics {
-  id                  String    @id @default(uuid())
-  testCaseId          String    @unique
-  isRepeatedlyFailing Boolean   @default(false)
-  isFlaky             Boolean   @default(false)
-  consecutiveFailures Int       @default(0)
-  failureRate         Float     @default(0)
-  totalRecentRuns     Int       @default(0)
-  failedRecentRuns    Int       @default(0)
+  id                  String         @id @default(uuid())
+  testCaseId          String         @unique
+  isRepeatedlyFailing Boolean        @default(false)
+  isFlaky             Boolean        @default(false)
+  consecutiveFailures Int            @default(0)
+  failureRate         Float          @default(0)
+  totalRecentRuns     Int            @default(0)
+  failedRecentRuns    Int            @default(0)
   lastExecutedAt      DateTime?
   lastFailedAt        DateTime?
   lastPassedAt        DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  testCase            TestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  testCase            TestCase       @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  targetProjectId     String?
+  targetProject       TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([isRepeatedlyFailing])
   @@index([isFlaky])
 }
 
 model TestSuiteMetrics {
-  id             String    @id @default(uuid())
-  testSuiteId    String    @unique
-  lastExecutedAt DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  testSuite      TestSuite @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+  id              String         @id @default(uuid())
+  testSuiteId     String         @unique
+  lastExecutedAt  DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  testSuite       TestSuite      @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+  targetProjectId String?
+  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@index([lastExecutedAt])
 }
 
 model DashboardMetrics {
-  id                             String   @id @default(uuid())
-  failedRecentRunsCount          Int      @default(0)
-  repeatedlyFailingTestsCount    Int      @default(0)
-  flakyTestsCount                Int      @default(0)
-  suitesNotExecutedRecentlyCount Int      @default(0)
-  lastUpdatedAt                  DateTime @default(now())
-  createdAt                      DateTime @default(now())
+  id                             String         @id @default(uuid())
+  failedRecentRunsCount          Int            @default(0)
+  repeatedlyFailingTestsCount    Int            @default(0)
+  flakyTestsCount                Int            @default(0)
+  suitesNotExecutedRecentlyCount Int            @default(0)
+  lastUpdatedAt                  DateTime       @default(now())
+  createdAt                      DateTime       @default(now())
+  targetProjectId                String?        @unique
+  targetProject                  TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 }
 
 enum TagType {

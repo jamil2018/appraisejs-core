@@ -27,6 +27,7 @@ function buildTemplateStep(step: Partial<TemplateStepWithGroup> = {}): TemplateS
       name: 'actions',
       description: null,
       type: TemplateStepGroupType.ACTION,
+      targetProjectId: null,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     },
@@ -35,6 +36,31 @@ function buildTemplateStep(step: Partial<TemplateStepWithGroup> = {}): TemplateS
       { id: 'param-timeout', name: 'timeoutMs' },
     ],
   }
+}
+
+function assertionGroup() {
+  return {
+    id: 'group-assertions',
+    name: 'assertions',
+    description: null,
+    type: TemplateStepGroupType.VALIDATION,
+    targetProjectId: null,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  }
+}
+
+function assertionStep() {
+  return buildTemplateStep({
+    id: 'step-2',
+    name: 'Validate response',
+    description: 'Checks the response status code',
+    icon: TemplateStepIcon.VALIDATION,
+    type: TemplateStepType.ASSERTION,
+    templateStepGroupId: 'group-assertions',
+    templateStepGroup: assertionGroup(),
+    parameters: [{ id: 'param-status', name: 'expectedStatus' }],
+  })
 }
 
 function renderCombobox(templateSteps: TemplateStepWithGroup[]) {
@@ -51,26 +77,7 @@ describe('TemplateStepCombobox', () => {
   it('renders grouped rich options and shows a richer selected preview', async () => {
     const user = userEvent.setup()
 
-    renderCombobox([
-      buildTemplateStep(),
-      buildTemplateStep({
-        id: 'step-2',
-        name: 'Validate response',
-        description: 'Checks the response status code',
-        icon: TemplateStepIcon.VALIDATION,
-        type: TemplateStepType.ASSERTION,
-        templateStepGroupId: 'group-assertions',
-        templateStepGroup: {
-          id: 'group-assertions',
-          name: 'assertions',
-          description: null,
-          type: TemplateStepGroupType.VALIDATION,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-        },
-        parameters: [{ id: 'param-status', name: 'expectedStatus' }],
-      }),
-    ])
+    renderCombobox([buildTemplateStep(), assertionStep()])
 
     await user.click(screen.getByRole('combobox'))
 
@@ -96,26 +103,7 @@ describe('TemplateStepCombobox', () => {
   it('matches search terms from description, group name, and parameter names', async () => {
     const user = userEvent.setup()
 
-    renderCombobox([
-      buildTemplateStep(),
-      buildTemplateStep({
-        id: 'step-2',
-        name: 'Validate response',
-        description: 'Checks the response status code',
-        icon: TemplateStepIcon.VALIDATION,
-        type: TemplateStepType.ASSERTION,
-        templateStepGroupId: 'group-assertions',
-        templateStepGroup: {
-          id: 'group-assertions',
-          name: 'assertions',
-          description: null,
-          type: TemplateStepGroupType.VALIDATION,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-        },
-        parameters: [{ id: 'param-status', name: 'expectedStatus' }],
-      }),
-    ])
+    renderCombobox([buildTemplateStep(), assertionStep()])
 
     await user.click(screen.getByRole('combobox'))
 
@@ -151,14 +139,7 @@ describe('TemplateStepCombobox', () => {
         icon: TemplateStepIcon.VALIDATION,
         type: TemplateStepType.ASSERTION,
         templateStepGroupId: 'group-assertions',
-        templateStepGroup: {
-          id: 'group-assertions',
-          name: 'assertions',
-          description: null,
-          type: TemplateStepGroupType.VALIDATION,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-        },
+        templateStepGroup: assertionGroup(),
       }),
     ])
 

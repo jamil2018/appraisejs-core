@@ -6,6 +6,8 @@ import { Toaster } from '@/components/ui/toaster'
 import AppSidebar from '@/components/navigation/app-sidebar'
 import MobileNavigation from '@/components/navigation/mobile-navigation'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
+import { readActiveProjectCookie } from '@/lib/active-project'
+import { listTargetProjects } from '@/services/target-project/target-project-service'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -60,12 +62,14 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   const providerRunsEnabled = isProviderNativeRunsEnabled()
+  const [projects, cookieProjectId] = await Promise.all([listTargetProjects(), readActiveProjectCookie()])
+  const projectOptions = projects.map(({ id, displayName, canonicalPath }) => ({ id, displayName, canonicalPath }))
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -78,9 +82,17 @@ export default function RootLayout({
             >
               Skip to main content
             </a>
-            <AppSidebar providerRunsEnabled={providerRunsEnabled} />
+            <AppSidebar
+              providerRunsEnabled={providerRunsEnabled}
+              projects={projectOptions}
+              cookieProjectId={cookieProjectId}
+            />
             <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
-              <MobileNavigation providerRunsEnabled={providerRunsEnabled} />
+              <MobileNavigation
+                providerRunsEnabled={providerRunsEnabled}
+                projects={projectOptions}
+                cookieProjectId={cookieProjectId}
+              />
             </div>
             <main
               id="main-content"

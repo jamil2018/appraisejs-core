@@ -1,5 +1,9 @@
 # Agent Generated Artifacts
 
+Generated runtime and report artifacts inherit the owning TestRun target project. Artifact routes require matching
+project scope and return a scoped not-found response for foreign project IDs. See
+`docs/project-ownership-boundary.md`.
+
 Repository compatibility exports contain `.appraise-generated.json`. The marker binds the exact target project,
 validation hash, publication, and reviewed custom-extension paths and declares that replacement must occur through
 Appraise export. See `docs/legacy-automation-migration.md`.

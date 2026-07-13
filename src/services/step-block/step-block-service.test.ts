@@ -37,6 +37,7 @@ describe('step block service', () => {
       intent: 'Log in',
       createdAt: new Date(),
       updatedAt: new Date(),
+      targetProjectId: null,
       steps: [],
     } satisfies StepBlockDetail
 
