@@ -383,7 +383,7 @@ describe('createTestRunFromValidatedValue', () => {
   })
 
   // fallow-ignore-next-line code-duplication -- denial setup intentionally mirrors successful selection
-  it('denies a selected Phase 2 AST test case before creating a run', async () => {
+  it('denies a selected compiler review AST test case before creating a run', async () => {
     mockRunnableSuite([{ id: 'tc-1', title: 'Login', tag: 'login' }])
     mockPlanProjectionFindMany.mockResolvedValue([
       {
@@ -393,7 +393,7 @@ describe('createTestRunFromValidatedValue', () => {
             {
               id: 'ast-validation',
               testCaseIds: ['tc-1'],
-              astProvenance: { executionAuthority: 'phase2_review_only' },
+              astProvenance: { executionAuthority: 'reviewed_publication' },
             },
           ],
         }),
@@ -405,17 +405,17 @@ describe('createTestRunFromValidatedValue', () => {
   })
 
   it.each([
-    ['legacy authority string', { executionAuthority: 'phase3_capsule' }],
+    ['legacy authority string', { executionAuthority: 'runtime_capsule' }],
     [
       'v1 provenance',
-      { schemaVersion: '1', astHash: `sha256:${'a'.repeat(64)}`, executionAuthority: 'phase3_capsule' },
+      { schemaVersion: '1', astHash: `sha256:${'a'.repeat(64)}`, executionAuthority: 'runtime_capsule' },
     ],
     [
-      'v2 provenance',
+      'managed provenance',
       {
         schemaVersion: '2',
         astHash: `sha256:${'a'.repeat(64)}`,
-        executionAuthority: 'phase3_capsule',
+        executionAuthority: 'runtime_capsule',
         publishOperationId: 'operation-one',
         receiptHash: `sha256:${'b'.repeat(64)}`,
         runtimeInputHash: `sha256:${'c'.repeat(64)}`,
@@ -592,7 +592,7 @@ describe('createTestRunFromValidatedValue', () => {
   })
 
   // fallow-ignore-next-line code-duplication -- denial setup intentionally mirrors standalone validation errors
-  it('denies a plan-bound standalone run selecting a Phase 2 AST case', async () => {
+  it('denies a plan-bound standalone run selecting a compiler review AST case', async () => {
     mockStandaloneTarget()
     mockTestCaseFindMany.mockResolvedValue([{ id: 'case-1', TestSuite: [{ id: 'suite-1' }] }])
     mockPlanProjectionFindMany.mockResolvedValue([
@@ -603,7 +603,7 @@ describe('createTestRunFromValidatedValue', () => {
             {
               id: 'ast-validation',
               testCaseIds: ['case-1'],
-              astProvenance: { executionAuthority: 'phase2_review_only' },
+              astProvenance: { executionAuthority: 'reviewed_publication' },
             },
           ],
         }),

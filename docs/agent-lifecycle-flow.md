@@ -34,20 +34,21 @@ change requests, and cancellation inside one Appraise-owned loop. Without that t
 with bounded `plan_wait_for_review` and `plan_wait_for_approval` waits. Compact continuation state is a fallback for
 long reviews or host limits, not the default result after publishing links. No wait call before complete URL handoff:
 the initial handoff for each revision must present the direct browser URL, `appraise://` URL, plan ID, goal,
-description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait
+description, revision, lifecycle, `planContentHash`, `planStateHash`, `reviewBindingHash`, `currentAfterSequence`,
+`nextAfterSequence`, and recommended wait
 call. Later waits with no new events return `pending_unchanged` with only the cursor, timing, and next action; they do
 not repeat the brief or handoff. Pending review or pending approval is not completion.
 
 ## Approval And Validation Preparation
 
 `plan_approved` permits starting validation preparation. A coordinator should acknowledge the approval only after the
-transition it permits succeeds. `validation_preparation_started` permits v2 AST authoring. Agents call
+transition it permits succeeds. `validation_preparation_started` permits managed Validation AST authoring. Agents call
 `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and call
-`validation_ast_compile`. Compilation projects canonical entities and creates the durable v2 publication operation.
+`validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
 Managed execution uses only the exact Appraise-owned immutable runtime capsule; it never writes or executes target
 `automation/` files.
 
-Validation authoring is registry-first through the v2 action catalog and locator graph. Extensions require exact
+Validation authoring is registry-first through the managed action catalog and locator graph. Extensions require exact
 review evidence; target file paths are never managed execution authority.
 
 Draft check, publication, and runtime preflight share one locator-binding rule: every locator-bearing parameter must
@@ -98,7 +99,7 @@ pauses affected tasks and dependents until impact is confirmed and applied.
 
 Pause, resume, and cancellation are lifecycle transitions. Cancellation is terminal after acknowledgement.
 
-Reviewed v2 validation nodes execute baseline and implementation from the exact Appraise-owned runtime capsule bound
+Reviewed managed validation nodes execute baseline and implementation from the exact Appraise-owned runtime capsule bound
 to their publish operation. Mixed validation artifacts keep legacy nodes on legacy runtime inputs without copying them
 into capsule requests. Capsule preparation is idempotent by its durable preparation key; concurrent/crash replay reuses
 the queued or running TestRun, while an explicit retry receives the next ordinal. Passing lifecycle evidence requires
@@ -119,6 +120,17 @@ validations need fresh managed Appraise `TestRun` evidence with `evidenceHealth:
 `implementation_validation_reconcile` may receive `verifyTaskIds` with an `idempotencyKey`. In that combined mode,
 Appraise reconciles managed runs and verifies only implemented tasks whose required validations have fresh, passing,
 full-assurance evidence in one artifact compare-and-write. Replaying the key does not duplicate state or events.
+
+## Ownership Matrix
+
+## Bounded delegation
+
+An isolated coordinator may create a target-bound plan without inheriting the parent transcript when Appraise issues
+a durable delegation receipt. The receipt binds parent and recipient coordinator IDs, target and canonical-path
+fingerprints, purpose, explicit permissions and prohibitions, optional plan hash, expiry, and nonce. Each operation is
+consumed durably; replay, expiry, revocation, recipient mismatch, and target mismatch fail closed. A planning receipt
+with `plan_create` does not authorize validation preparation, baseline execution, or implementation. Those phases
+still require explicit delegated permissions and the ordinary Appraise-owned review events.
 
 ## Ownership Matrix
 

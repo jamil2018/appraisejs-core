@@ -200,9 +200,9 @@ function assertReviewedPhase2Node(operation: PublishOperation, node: ValidationN
   if (
     node.astProvenance?.astHash !== operation.astHash ||
     node.astProvenance?.schemaVersion !== '2' ||
-    node.astProvenance.executionAuthority !== 'phase2_review_only'
+    node.astProvenance.executionAuthority !== 'reviewed_publication'
   )
-    throw new Error('Canonical validation node is not the exact reviewed Phase 2 AST projection.')
+    throw new Error('Canonical validation node is not the exact reviewed compiler review AST projection.')
 }
 
 function assertReviewedPublicationProvenance(operation: PublishOperation, node: ValidationNode) {

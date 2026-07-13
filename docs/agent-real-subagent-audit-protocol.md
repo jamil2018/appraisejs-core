@@ -145,7 +145,7 @@ After each subagent reports standby evidence, the coordinator independently veri
    `validation_preparation_started`, observes `validation_ast_check`, `validation_ast_preview`, and
    `validation_ast_compile`, verifies `validation_review_ready`, and
    records the direct validation review URL.
-10. The validation publication includes exact v2 AST, preview, receipt, projection, and runtime-input hashes.
+10. The validation publication includes exact managed Validation AST, preview, receipt, projection, and runtime-input hashes.
 11. The subagent follows the registry-first policy: existing registry/template steps are reused for common web
     workflows, the todo fixture creates zero custom step definitions, and any custom step includes a gap justification
     naming the missing reusable capability and why locators plus existing steps were insufficient.

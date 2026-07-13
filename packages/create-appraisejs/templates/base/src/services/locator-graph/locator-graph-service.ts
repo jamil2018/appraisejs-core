@@ -8,17 +8,30 @@ import {
   locatorGraphVisualProjection,
   type LocatorGraph,
 } from '@/lib/locator-graph'
+import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 const routeId = (route: string) => `surface_${createHash('sha256').update(route).digest('hex').slice(0, 16)}`
 const edgeId = (fromId: string, toId: string) =>
   `edge_${createHash('sha256').update(`${fromId}:${toId}`).digest('hex').slice(0, 16)}`
 
-export async function buildLocatorGraph(client: PrismaClient = prisma): Promise<LocatorGraph> {
-  const groups = await client.locatorGroup.findMany({
+export async function buildLocatorGraph(
+  client: PrismaClient = prisma,
+  targetProjectId?: string,
+): Promise<LocatorGraph> {
+  const allGroups = await client.locatorGroup.findMany({
     include: { module: true, locators: true },
     orderBy: { id: 'asc' },
   })
+  const ownerships = targetProjectId
+    ? await readVisibleResourceOwnerships(targetProjectId, ['locator-group', 'locator'], client)
+    : null
+  const groups = allGroups
+    .filter(group => !ownerships || ownerships.has(`locator-group:${group.id}`))
+    .map(group => ({
+      ...group,
+      locators: group.locators.filter(locator => !ownerships || ownerships.has(`locator:${locator.id}`)),
+    }))
   const routes = [...new Set(groups.map(group => group.route))].sort()
   const nodes: LocatorGraph['nodes'] = routes.map(route => ({
     id: routeId(route),

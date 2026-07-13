@@ -605,7 +605,10 @@ function selectImplementationValidations(validation: ValidationArtifact, request
     throw new ServiceError('One or more implementation validations were not found.', 'NOT_FOUND')
   }
   if (selected.some(item => item.astProvenance?.schemaVersion !== '2')) {
-    throw new ServiceError('AST validations require an exact reviewed v2 publication before execution.', 'CONFLICT')
+    throw new ServiceError(
+      'AST validations require an exact reviewed managed publication before execution.',
+      'CONFLICT',
+    )
   }
   return selected
 }
@@ -687,7 +690,10 @@ async function prepareImplementationMatrixEntry(input: {
   if (!environment) throw new ServiceError(`Environment "${input.matrix.environment}" was not found.`, 'VALIDATION')
   const provenance = input.validation.astProvenance
   if (provenance?.schemaVersion !== '2')
-    throw new ServiceError('Managed implementation validation requires exact v2 AST provenance.', 'CONFLICT')
+    throw new ServiceError(
+      'Managed implementation validation requires exact managed Validation AST provenance.',
+      'CONFLICT',
+    )
   const id = implementationValidationRunId(
     input.validation.id,
     input.matrix.browser,

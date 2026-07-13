@@ -12,7 +12,7 @@ import {
 const hash = (character: string) => `sha256:${character.repeat(64)}`
 
 const ast = {
-  schemaVersion: '1',
+  schemaVersion: 1,
   id: 'meditation-validation',
   title: 'Meditation workflow',
   purpose: 'Verify a meditation can be completed and persisted.',
@@ -56,7 +56,7 @@ describe('validation AST contracts', () => {
     expect(validationAstSchema.parse(ast)).toEqual(ast)
     expect(
       customActionExtensionProposalSchema.parse({
-        schemaVersion: '1',
+        schemaVersion: 1,
         id: 'read-session-timer',
         version: '1',
         title: 'Read session timer',
@@ -117,7 +117,7 @@ describe('validation AST contracts', () => {
 
   it('bounds source and rejects duplicate extension identities and declarations', () => {
     const extension = {
-      schemaVersion: '1',
+      schemaVersion: 1,
       id: 'read-session-timer',
       version: '1',
       title: 'Read timer',

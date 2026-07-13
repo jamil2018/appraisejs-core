@@ -1,4 +1,5 @@
 import http from 'node:http'
+import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -12,7 +13,7 @@ import {
   VALIDATION_AST_SCHEMA_VERSION,
   type DelegatedAuthorizationReceipt,
   type ValidationAstSubmission,
-} from './phase1-contracts.js'
+} from './managed-validation-contracts.js'
 
 import {
   CoordinatorRequestError,
@@ -55,6 +56,7 @@ const baseWorkflowCriticalTools = [
   'template_step_match',
   'step_block_search',
   'locator_search',
+  'validation_resources_propose',
   'validation_ast_check',
   'validation_ast_preview',
   'validation_ast_compile',
@@ -83,6 +85,10 @@ const baseWorkflowCriticalTools = [
   'implementation_completion_review',
   'implementation_complete',
   'delegated_validation_ast_submit',
+  'delegation_create',
+  'delegation_read',
+  'delegation_revoke',
+  'delegated_plan_create',
   'validation_ast_check',
   'validation_ast_preview',
   'validation_ast_compile',
@@ -345,7 +351,7 @@ export function baselineRecoveryForLifecycle(lifecycle: string | undefined) {
   if (lifecycle === 'validation_changes_requested')
     return {
       nextRecommendedAction:
-        'Read validation feedback, repair the v2 AST, then repeat check, preview, exact review, and compile.',
+        'Read validation feedback, repair the managed Validation AST, then repeat check, preview, exact review, and compile.',
       nextRequiredAgentBehavior: 'revise_validation_artifacts',
       nextAllowedAction: { tool: 'validation_context_read' },
     }
@@ -405,10 +411,11 @@ export const validationPreparationWorkflow = {
   phase: 'validation_preparation',
   preferredTool: 'validation_ast_compile',
   contractResource: 'appraise://contracts/validation-ast',
-  artifactContract: 'appraise.validation-ast/v2',
+  artifactContract: 'appraise.validation-ast',
   happyPath: [
     'plan_start',
     'validation_context_read',
+    'validation_resources_propose when target-bound resources are missing',
     'validation_ast_check',
     'validation_ast_preview',
     'human review of the exact preview receipt',
@@ -419,7 +426,7 @@ export const validationPreparationWorkflow = {
   ownership:
     'Appraise owns canonical projection and immutable runtime capsules. Managed validation never uses target automation files as execution authority.',
   recovery:
-    'Resolve the bounded AST check or preview blocker and retry the same v2 operation. Reconnect the client if removed v1 tools remain visible.',
+    'Resolve the bounded AST check or preview blocker and retry the same managed operation. Reconnect the client if removed v1 tools remain visible.',
 }
 
 export const mcpCapabilityMetadata = {
@@ -1018,6 +1025,23 @@ export function createPlanFromBrief(input: {
   }
 }
 
+export function planCandidateHash(plan: unknown): string {
+  return `sha256:${createHash('sha256').update(JSON.stringify(plan)).digest('hex')}`
+}
+
+export function unresolvedCandidateRetryOmissions(input: {
+  candidateHash: string
+  previousCandidateHash?: string
+  retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
+}): string[] {
+  if (input.previousCandidateHash !== input.candidateHash) return []
+  return (
+    input.retryFeedback?.omissions.filter(
+      omission => !input.retryFeedback?.addressed.some(item => item.omission === omission && item.resolution.trim()),
+    ) ?? []
+  )
+}
+
 function toolError(error: unknown) {
   if (error instanceof CoordinatorRequestError) {
     return {
@@ -1035,6 +1059,10 @@ function toolError(error: unknown) {
 
 export type PlanSnapshot = {
   plan: { revision: number; lifecycle: string; goal?: string; description?: string }
+  planContentHash: string
+  planStateHash: string
+  reviewBindingHash: string
+  /** Compatibility alias for planContentHash. */
   contentHash: string
   links: unknown
 }
@@ -1100,7 +1128,9 @@ function formatReviewHandoff(input: {
   description?: string
   revision: number
   lifecycle: string
-  contentHash: string
+  planContentHash: string
+  planStateHash: string
+  reviewBindingHash: string
   currentAfterSequence: number
   nextAfterSequence: number
   recommendedWait: RecommendedWait
@@ -1114,7 +1144,9 @@ function formatReviewHandoff(input: {
     `Description: ${input.description ?? '(not returned)'}`,
     `Revision: ${input.revision}`,
     `Lifecycle: ${input.lifecycle}`,
-    `Content hash: ${input.contentHash}`,
+    `Plan content hash: ${input.planContentHash}`,
+    `Plan state hash: ${input.planStateHash}`,
+    `Review binding hash: ${input.reviewBindingHash}`,
     `Current after sequence: ${input.currentAfterSequence}`,
     `Next after sequence: ${input.nextAfterSequence}`,
     `Recommended wait call: ${input.recommendedWait.tool}({ planId: "${input.planId}", afterSequence: ${input.recommendedWait.afterSequence}, timeoutMs: ${input.recommendedWait.timeoutMs} })`,
@@ -1138,7 +1170,9 @@ function standbyPresentation(input: {
     description: input.current.plan.description,
     revision: input.current.plan.revision,
     lifecycle: input.current.plan.lifecycle,
-    contentHash: input.current.contentHash,
+    planContentHash: input.current.planContentHash,
+    planStateHash: input.current.planStateHash,
+    reviewBindingHash: input.current.reviewBindingHash,
     currentAfterSequence: input.currentAfterSequence,
     nextAfterSequence: input.nextAfterSequence,
     recommendedWait: input.recommendedWait,
@@ -1151,7 +1185,10 @@ function standbyPresentation(input: {
     description: input.current.plan.description,
     revision: input.current.plan.revision,
     lifecycle: input.current.plan.lifecycle,
-    contentHash: input.current.contentHash,
+    planContentHash: input.current.planContentHash,
+    planStateHash: input.current.planStateHash,
+    reviewBindingHash: input.current.reviewBindingHash,
+    contentHash: input.current.planContentHash,
     currentAfterSequence: input.currentAfterSequence,
     nextAfterSequence: input.nextAfterSequence,
     recommendedWait: input.recommendedWait,
@@ -1164,13 +1201,15 @@ function standbyPresentation(input: {
         'description',
         'revision',
         'lifecycle',
-        'contentHash',
+        'planContentHash',
+        'planStateHash',
+        'reviewBindingHash',
         'currentAfterSequence',
         'nextAfterSequence',
         'recommendedWait',
       ],
       instruction:
-        'No wait call before complete URL handoff. Before entering or continuing standby, present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and the recommended wait call.',
+        'No wait call before complete URL handoff. Before entering or continuing standby, present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, named plan hashes, currentAfterSequence, nextAfterSequence, and the recommended wait call.',
     },
   }
 }
@@ -1512,6 +1551,15 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async input => text(await api.queryLocatorGraph(input)),
   )
   server.registerTool(
+    'validation_resources_propose',
+    {
+      description:
+        'Transactionally propose target-bound managed-validation resources and receive stable IDs plus a refreshed context hash.',
+      inputSchema: { planId: z.string(), proposal: z.unknown() },
+    },
+    async ({ planId, proposal }) => text(await api.proposeValidationResources(planId, proposal)),
+  )
+  server.registerTool(
     'validation_ast_extension_reviews',
     {
       description: 'Read exact bounded extension reviews and the hash required to bind a review decision.',
@@ -1520,10 +1568,74 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async ({ planId, operationId }) => text(await api.readValidationAstExtensionReviews(planId, operationId)),
   )
   server.registerTool(
+    'delegation_create',
+    {
+      description: 'Issue durable target- and operation-bounded authority to an isolated delegated coordinator.',
+      inputSchema: {
+        parentCoordinatorId: z.string(),
+        delegatedCoordinatorId: z.string(),
+        targetProjectId: z.string().optional(),
+        targetFingerprint: z.string(),
+        pathFingerprint: z.string(),
+        purpose: z.string(),
+        permissions: z.array(
+          z.enum([
+            'target_project_register',
+            'plan_create',
+            'validation_prepare',
+            'baseline_execute',
+            'implementation_execute',
+          ]),
+        ),
+        prohibitions: z.array(z.string()).optional(),
+        briefOrPlanHash: z.string().optional(),
+        expiresAt: z.string(),
+      },
+    },
+    async input => text(await api.request('delegations', { method: 'POST', body: JSON.stringify(input) })),
+  )
+  server.registerTool(
+    'delegation_read',
+    {
+      description: 'Read a delegation receipt and its consumption/revocation audit history.',
+      inputSchema: { id: z.string() },
+    },
+    async ({ id }) => text(await api.request(`delegations/${id}`)),
+  )
+  server.registerTool(
+    'delegation_revoke',
+    {
+      description: 'Revoke delegated coordinator authority immediately.',
+      inputSchema: { id: z.string(), revokedBy: z.string(), reason: z.string().optional() },
+    },
+    async ({ id, ...body }) =>
+      text(await api.request(`delegations/${id}/revoke`, { method: 'POST', body: JSON.stringify(body) })),
+  )
+  server.registerTool(
+    'delegated_plan_create',
+    {
+      description: 'Create a target-bound plan using only an unexpired bounded delegation receipt.',
+      inputSchema: {
+        plan: z.unknown(),
+        target: z.string(),
+        receipt: z.unknown(),
+        delegatedCoordinatorId: z.string(),
+        operationKey: z.string(),
+      },
+    },
+    async ({ plan, target, receipt, delegatedCoordinatorId, operationKey }) =>
+      text(
+        await api.request('plans', {
+          method: 'POST',
+          body: JSON.stringify({ plan, target, delegation: { receipt, delegatedCoordinatorId, operationKey } }),
+        }),
+      ),
+  )
+  server.registerTool(
     'delegated_validation_ast_submit',
     {
       description:
-        'Submit a receipt-authorized Validation AST envelope for later Phase 2 checking; does not compile or publish.',
+        'Submit a receipt-authorized Validation AST envelope for later compiler review checking; does not compile or publish.',
       inputSchema: { submission: z.unknown(), receipt: z.unknown() },
     },
     async ({ submission, receipt }) =>
@@ -1930,6 +2042,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         mode: z.enum(['plan_only', 'plan_then_wait']).default('plan_then_wait'),
         sourceFiles: z.array(z.string().min(1)).optional(),
         planContext: z.string().optional(),
+        previousCandidateHash: z.string().startsWith('sha256:').optional(),
+        retryFeedback: z
+          .object({
+            omissions: z.array(z.string().min(1)).min(1),
+            addressed: z.array(z.object({ omission: z.string().min(1), resolution: z.string().min(1) })),
+          })
+          .optional(),
+        requirementDeferrals: z
+          .array(z.object({ requirementId: z.string().min(1), reason: z.string().min(1) }))
+          .optional(),
       },
     },
     async input => {
@@ -1952,11 +2074,33 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           target = targetProject?.id ?? input.targetWorkspacePath
         }
         const candidatePlan = createPlanFromBrief(input)
-        const requirementAssessment = assessPlanRequirements(input.projectBrief, candidatePlan.tasks)
+        const requirementAssessment = assessPlanRequirements(
+          input.projectBrief,
+          candidatePlan.tasks,
+          input.requirementDeferrals,
+        )
+        candidatePlan.requirementAssessment = requirementAssessment
+        const candidateHash = planCandidateHash(candidatePlan)
+        const unresolvedRetryOmissions = unresolvedCandidateRetryOmissions({
+          candidateHash,
+          previousCandidateHash: input.previousCandidateHash,
+          retryFeedback: input.retryFeedback,
+        })
+        if (input.previousCandidateHash === candidateHash && unresolvedRetryOmissions.length) {
+          return text({
+            status: 'unchanged_retry_rejected',
+            candidateHash,
+            unresolvedRetryOmissions,
+            requiredResolution:
+              'Report how every omission was addressed or explain explicitly why it remains unresolved before retrying an unchanged candidate.',
+            nextRequiredAgentBehavior: 'explain_or_resolve_retry_omissions',
+          })
+        }
         if (requirementAssessment.uncoveredRequirementIds.length) {
           return text({
             status: 'coverage_review_required',
             candidatePlan,
+            candidateHash,
             requirementAssessment,
             nextRecommendedAction:
               'Review the uncovered explicit requirements, revise the brief or task shape, then rerun planning_session_create before Appraise publishes a review-ready revision.',
@@ -2003,6 +2147,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         return text({
           diagnostic: summarizeDiagnostic(diagnostic),
           requirementAssessment,
+          candidateHash,
+          retryResolutionReport: input.retryFeedback?.addressed ?? [],
           targetProject: targetProjectResult,
           created,
           reviewReady,
@@ -2685,7 +2831,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             body: JSON.stringify({ reason, expectedValidationHash }),
           }),
           nextRecommendedAction:
-            'Repair the v2 AST and submit it through check, preview, and compile for fresh review.',
+            'Repair the managed Validation AST and submit it through check, preview, and compile for fresh review.',
           nextRequiredAgentBehavior: 'revise_validation_artifacts',
           nextAllowedAction: { tool: 'validation_context_read' },
         }),

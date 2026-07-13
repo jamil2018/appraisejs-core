@@ -29,7 +29,7 @@ function currentFileApproval(review: ReviewArtifact, file: ValidationArtifact['f
 function provenanceBlocker(node: ValidationArtifact['validations'][number]): string | null {
   return node.astProvenance?.schemaVersion === '2'
     ? null
-    : `Managed validation ${node.id} is missing exact v2 AST provenance.`
+    : `Managed validation ${node.id} is missing exact managed Validation AST provenance.`
 }
 
 export function assessValidationReadiness(validation: ValidationArtifact, review: ReviewArtifact): ValidationReadiness {

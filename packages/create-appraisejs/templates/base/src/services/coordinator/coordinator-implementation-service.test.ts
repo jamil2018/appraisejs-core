@@ -135,7 +135,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         astProvenance: {
           schemaVersion: '2',
           astHash: `sha256:${'a'.repeat(64)}`,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-core-validation',
           receiptHash: `sha256:${'b'.repeat(64)}`,
           runtimeInputHash: `sha256:${'c'.repeat(64)}`,
@@ -155,7 +155,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         astProvenance: {
           schemaVersion: '2',
           astHash: `sha256:${'d'.repeat(64)}`,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-docs-validation',
           receiptHash: `sha256:${'e'.repeat(64)}`,
           runtimeInputHash: `sha256:${'f'.repeat(64)}`,
@@ -271,7 +271,7 @@ describe('implementation coordinator checkpoints', () => {
     })
   }
 
-  it('binds reviewed v2 implementation validation to a capsule TestRun without target automation inputs', async () => {
+  it('binds reviewed managed implementation validation to a capsule TestRun without target automation inputs', async () => {
     const planId = 'implementation-capsule-run'
     await writeArtifacts(planId, undefined, {
       implementation: {
@@ -287,7 +287,7 @@ describe('implementation coordinator checkpoints', () => {
     await configureReviewedCapsule(planId, 'capsule-target', {
       schemaVersion: '2',
       astHash: `sha256:${'a'.repeat(64)}`,
-      executionAuthority: 'phase2_review_only',
+      executionAuthority: 'reviewed_publication',
       publishOperationId: 'astpub_reviewed',
       receiptHash: `sha256:${'b'.repeat(64)}`,
       runtimeInputHash: `sha256:${'c'.repeat(64)}`,
@@ -350,7 +350,7 @@ describe('implementation coordinator checkpoints', () => {
       item.astProvenance = {
         schemaVersion: '2',
         astHash: `sha256:${String(index + 1).repeat(64)}`,
-        executionAuthority: 'phase2_review_only',
+        executionAuthority: 'reviewed_publication',
         publishOperationId: `astpub_${item.id}`,
         receiptHash: `sha256:${String(index + 3).repeat(64)}`,
         runtimeInputHash: `sha256:${String(index + 5).repeat(64)}`,
@@ -696,16 +696,16 @@ describe('implementation coordinator checkpoints', () => {
     phase2Validation.validations[0]!.astProvenance = {
       schemaVersion: '1',
       astHash: `sha256:${'a'.repeat(64)}`,
-      executionAuthority: 'phase2_review_only',
+      executionAuthority: 'reviewed_publication',
     }
     expect(() => serializeYamlArtifact('validation', phase2Validation)).toThrow(
-      'Managed validation requires exact v2 AST provenance.',
+      'Managed validation requires exact managed Validation AST provenance.',
     )
 
     await configureReviewedCapsule(planId, `${planId}-target`, {
       schemaVersion: '2',
       astHash: `sha256:${'a'.repeat(64)}`,
-      executionAuthority: 'phase3_capsule',
+      executionAuthority: 'runtime_capsule',
       publishOperationId: 'publish-core-validation',
       receiptHash: `sha256:${'b'.repeat(64)}`,
       runtimeInputHash: `sha256:${'c'.repeat(64)}`,

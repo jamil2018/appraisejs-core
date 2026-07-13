@@ -109,7 +109,7 @@ All routes are under `/api/internal/coordinator`.
 | `GET`  | `/locator-graph/visual`                                   | Read the human projection of the locator graph                      |
 | `POST` | `/heartbeat`                                              | Renew a coordinator lease                                           |
 | `POST` | `/plans`                                                  | Create a structured plan                                            |
-| `GET`  | `/plans/:planId`                                          | Read the plan and exact content hash                                |
+| `GET`  | `/plans/:planId`                                          | Read the plan and named content, state, and review-binding hashes   |
 | `GET`  | `/plans/:planId/review`                                   | Read review hash, remarks, links, and recovery guidance             |
 | `PUT`  | `/plans/:planId`                                          | Submit a higher revision with an expected hash                      |
 | `POST` | `/plans/:planId/start`                                    | Start validation preparation after plan approval                    |
@@ -135,6 +135,9 @@ All routes are under `/api/internal/coordinator`.
 | `GET`  | `/plans/:planId/completion`                               | Read the final completion review                                    |
 | `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                                  |
 | `POST` | `/delegated/validation-ast-submissions`                   | Verify authorization and store a non-compiling AST inbox submission |
+| `POST` | `/delegations`                                            | Issue bounded delegated coordinator authority                       |
+| `GET`  | `/delegations/:id`                                        | Read receipt, consumption, expiry, and revocation history           |
+| `POST` | `/delegations/:id/revoke`                                 | Revoke delegated authority                                          |
 | `POST` | `/plans/:planId/validations/ast/check`                    | Check against authoritative target context                          |
 | `POST` | `/plans/:planId/validations/ast/preview`                  | Return bounded preview and exact context receipt                    |
 | `POST` | `/plans/:planId/validations/ast/compile`                  | Project only the exact successful preview into canonical entities   |
@@ -187,6 +190,7 @@ Resources:
 Tools:
 
 - `delegated_validation_ast_submit`
+- `delegation_create`, `delegation_read`, `delegation_revoke`, and `delegated_plan_create`
 - `validation_ast_check`
 - `validation_ast_preview`
 - `validation_ast_compile`
@@ -310,7 +314,27 @@ resumes the same operation; changed inputs require a new preview. Recovery advan
 artifacts-written, projected, and review-ready phases. It never executes generated code or bypasses validation review.
 After `review_ready`, continue through the ordinary Appraise-owned validation review gate.
 
+### Named hash families
+
+Hashes use recursively key-sorted JSON with a domain discriminator before SHA-256 digesting. `planContentHash`
+covers reviewed plan fields except lifecycle, `reviewBindingHash` binds that content hash to its revision, and
+`planStateHash` binds content hash, revision, and lifecycle. Lifecycle-only transitions preserve `planContentHash`
+and change `planStateHash`. Plan events persist the previous and resulting state hashes, stable content hash,
+revision, sequence, and actor.
+
+The plan response temporarily retains `contentHash` as an alias of `planContentHash`; new integrations must use the
+named field. Validation-publication, runtime-input, and completion-receipt hashes keep their explicit domain names
+and cover their complete canonical contract payloads. Stale writes report expected and current named hashes.
+
 ## Lifecycle Ownership
+
+### Planning requirement fidelity
+
+`planning_session_create` extracts atomic brief requirements and maps each one to task descriptions, acceptance
+criteria, validation intent, or an explicit `requirementDeferrals` reason. Review-ready publication is blocked while
+requirements remain uncovered. Retry callers provide `previousCandidateHash` and structured `retryFeedback`; an
+effectively unchanged candidate is rejected until every reported omission has an explicit resolution or deferral.
+The plan review UI shows each brief requirement and its exact plan-item mappings.
 
 Use one normal writer for each workflow surface. User/Appraise UI owns review decisions: plan approval and change
 requests, validation node and changed-file decisions, validation review submission, baseline acceptance and
@@ -368,7 +392,7 @@ Validation review approval emits `validations_approved`, matching the plan lifec
 events may still appear in older streams, so readers should tolerate both names while new writers prefer the plural
 event.
 
-After `validation_preparation_started`, agents author a v2 Validation AST from exact action and locator catalogs.
+After `validation_preparation_started`, agents author a managed Validation AST from exact action and locator catalogs.
 They call `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and
 call `validation_ast_compile`. Compilation creates canonical database entities and a durable publish operation with exact
 AST, preview, receipt, projection, validation, and runtime-input hashes.

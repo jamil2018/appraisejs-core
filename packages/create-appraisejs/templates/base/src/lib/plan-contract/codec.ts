@@ -97,7 +97,7 @@ export function parseYamlArtifact(kind: Exclude<ArtifactKind, 'layout'>, source:
   return validateArtifact(kind, document.toJS({ maxAliasCount: 0 }))
 }
 
-function canonicalize(value: unknown): unknown {
+export function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonicalize)
   }

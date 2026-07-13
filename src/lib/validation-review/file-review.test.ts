@@ -104,7 +104,7 @@ describe('validation review approval', () => {
         astProvenance: {
           schemaVersion: '2',
           astHash: hash('ast'),
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-required-check',
           receiptHash: hash('receipt'),
           runtimeInputHash: hash('runtime'),

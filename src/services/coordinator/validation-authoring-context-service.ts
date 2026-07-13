@@ -7,6 +7,10 @@ import { parseYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { templateStepGroupPath } from './template-step-group-path'
+import {
+  readVisibleResourceOwnerships,
+  type ProjectResourceEntityType,
+} from '@/services/project-resource/project-resource-ownership-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
 type ReusableRef = { id: string; name?: string; groupId?: string; groupName?: string; path?: string }
@@ -120,7 +124,7 @@ async function readPlanContext(planId: string, options: Options = {}) {
   }
 }
 
-async function readReusableResources(client: PrismaClient) {
+async function readReusableResources(client: PrismaClient, targetProjectId: string) {
   const [templateSteps, stepBlocks] = await Promise.all([
     client.templateStep.findMany({
       select: {
@@ -155,7 +159,12 @@ async function readReusableResources(client: PrismaClient) {
       orderBy: { name: 'asc' },
     }),
   ])
-  return { templateSteps, stepBlocks }
+  const ownerships = await readVisibleResourceOwnerships(targetProjectId, ['template-step', 'step-block'], client)
+  if (ownerships === null) return { templateSteps, stepBlocks }
+  return {
+    templateSteps: templateSteps.filter(step => ownerships.has(`template-step:${step.id}`)),
+    stepBlocks: stepBlocks.filter(block => ownerships.has(`step-block:${block.id}`)),
+  }
 }
 
 type ReusableResources = Awaited<ReturnType<typeof readReusableResources>>
@@ -183,8 +192,9 @@ export async function resolveReusableValidationSteps(
   options: Options = {},
 ) {
   const startedAt = Date.now()
-  const { client } = await readPlanContext(planId, options)
-  const resources = await readReusableResources(client)
+  const { client, projection } = await readPlanContext(planId, options)
+  if (!projection?.targetProjectId) throw new Error('Plan must be bound to a target project.')
+  const resources = await readReusableResources(client, projection.targetProjectId)
   const ranked = rankReusableResources(resources, input.intent, input.parameterNames)
   const limit = Math.min(Math.max(input.limit ?? 5, 1), 25)
   const threshold = 0.5
@@ -296,6 +306,22 @@ export async function readValidationContext(
     locators,
     environments,
   }
+  if (!projection?.targetProjectId) throw new Error('Plan must be bound to a target project.')
+  const ownerships = await readVisibleResourceOwnerships(
+    projection.targetProjectId,
+    ['module', 'test-suite', 'test-case', 'template-step', 'step-block', 'locator-group', 'locator', 'environment'],
+    client,
+  )
+  const entityTypeByResource: Record<ValidationResourceType, ProjectResourceEntityType> = {
+    modules: 'module',
+    testSuites: 'test-suite',
+    testCases: 'test-case',
+    templateSteps: 'template-step',
+    stepBlocks: 'step-block',
+    locatorGroups: 'locator-group',
+    locators: 'locator',
+    environments: 'environment',
+  }
   const selectedTypes = options.resourceTypes ?? (Object.keys(allResources) as ValidationResourceType[])
   const query = options.query?.trim().toLowerCase()
   const limit = Math.min(Math.max(options.limit ?? 50, 1), 200)
@@ -303,6 +329,19 @@ export async function readValidationContext(
     selectedTypes.map(resourceType => [
       resourceType,
       allResources[resourceType]
+        .filter(resource => {
+          if (!ownerships) return true
+          return ownerships.has(`${entityTypeByResource[resourceType]}:${resource.id}`)
+        })
+        .map(resource => {
+          const ownership = ownerships?.get(`${entityTypeByResource[resourceType]}:${resource.id}`)
+          return {
+            ...resource,
+            scope: ownership?.scope ?? 'legacy_test_fixture',
+            provenance: ownership ?? null,
+            ...(resourceType === 'environments' ? { reference: resource.id } : {}),
+          }
+        })
         .filter(resource => !query || JSON.stringify(resource).toLowerCase().includes(query))
         .slice(0, limit),
     ]),
@@ -334,6 +373,7 @@ export async function readValidationContext(
       'appraise.validation/test-case-proposal/v1',
       'appraise.validation/test-step-proposal/v1',
     ],
-    nextRecommendedAction: 'Author the v2 AST, then call validation_ast_check and validation_ast_preview.',
+    nextRecommendedAction:
+      'Propose any missing target resources, then author the managed Validation AST and call validation_ast_check.',
   }
 }

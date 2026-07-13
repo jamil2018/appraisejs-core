@@ -8,6 +8,7 @@ import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-sche
 
 import { parseYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { planContentHash } from '@/lib/plans/plan-hashes'
 import { createCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 
 import {
@@ -200,7 +201,10 @@ describe('online coordinator plan creation', () => {
       legacyPlanId: 'draft-submission',
       revision: 1,
       lifecycle: 'awaiting_plan_review',
-      contentHash: artifact.hash,
+      planContentHash: planContentHash(storedPlan),
+      planStateHash: expect.stringMatching(/^sha256:/),
+      reviewBindingHash: expect.stringMatching(/^sha256:/),
+      contentHash: planContentHash(storedPlan),
       eventSequence: 2,
       reviewUrl: `/plans/${created.planId}`,
       plan: { planId: created.planId, lifecycle: 'awaiting_plan_review' },

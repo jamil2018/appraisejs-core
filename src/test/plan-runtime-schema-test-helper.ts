@@ -63,6 +63,8 @@ async function ensurePlanProjectionTestSchema(databasePath: string) {
   }
 }
 
+// The fixture intentionally advances old copied databases through each additive runtime migration.
+// fallow-ignore-next-line complexity
 export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
   await ensurePlanProjectionTestSchema(databasePath)
 
@@ -88,10 +90,25 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   if (!hasTable(databasePath, 'DelegatedValidationAstSubmission')) {
     await applyMigration(databasePath, '20260711170000_add_delegated_ast_submissions')
   }
+  if (!hasColumn(databasePath, 'PlanProjection', 'planContentHash')) {
+    await applyMigration(databasePath, '20260713173000_add_named_plan_hashes')
+  }
+  if (!hasTable(databasePath, 'DelegatedCoordinatorReceipt')) {
+    await applyMigration(databasePath, '20260713183000_add_delegated_coordinator_receipts')
+  }
+  if (!hasTable(databasePath, 'ProjectResourceOwnership')) {
+    await applyMigration(databasePath, '20260713143000_add_project_resource_ownership')
+  }
+  if (!hasTable(databasePath, 'ValidationResourceProposal')) {
+    await applyMigration(databasePath, '20260713153000_add_validation_resource_proposals')
+  }
   if (!hasTable(databasePath, 'ValidationAstPublishOperation')) {
     await applyMigration(databasePath, '20260711190000_add_validation_ast_publish_journal')
   } else if (!hasColumn(databasePath, 'PlanEvent', 'publishOperationId')) {
     addPublishOperationToPlanEvents(databasePath)
+  }
+  if (hasTable(databasePath, 'ValidationAstPublishOperation')) {
+    await applyMigration(databasePath, '20260713163000_normalize_managed_validation_vocabulary')
   }
   if (!hasTable(databasePath, 'RuntimeCapsule')) {
     await applyMigration(databasePath, '20260711220000_add_runtime_capsules')

@@ -38,7 +38,7 @@ function validationNode(): ValidationArtifact['validations'][number] {
     astProvenance: {
       schemaVersion: '2',
       astHash: `sha256:${'a'.repeat(64)}`,
-      executionAuthority: 'phase3_capsule',
+      executionAuthority: 'runtime_capsule',
       publishOperationId: 'publish-notes',
       receiptHash: `sha256:${'b'.repeat(64)}`,
       runtimeInputHash: `sha256:${'c'.repeat(64)}`,

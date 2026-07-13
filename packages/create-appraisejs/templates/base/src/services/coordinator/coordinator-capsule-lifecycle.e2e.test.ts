@@ -96,7 +96,7 @@ describe('reviewed capsule coordinator lifecycle E2E', () => {
     expect(reconciled.validation.baselineAttempts[0]).toMatchObject({
       testRunId: publicRunId,
       status: 'completed',
-      classification: 'accepted_regression_pass',
+      classification: 'unexpected_pass',
     })
     await expect(client.testRunTestCase.count({ where: { testRun: { runId: publicRunId } } })).resolves.toBe(1)
     await expect(client.report.count({ where: { testRun: { runId: publicRunId } } })).resolves.toBe(1)

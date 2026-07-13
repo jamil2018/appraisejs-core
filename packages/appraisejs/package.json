@@ -27,9 +27,9 @@
   },
   "exports": {
     ".": "./dist/cli.js",
-    "./phase1-contracts": {
-      "types": "./dist/phase1-contracts.d.ts",
-      "import": "./dist/phase1-contracts.js"
+    "./managed-validation-contracts": {
+      "types": "./dist/managed-validation-contracts.d.ts",
+      "import": "./dist/managed-validation-contracts.js"
     }
   },
   "files": [

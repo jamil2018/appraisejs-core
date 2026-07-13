@@ -334,7 +334,7 @@ async function submitCapsuleTestRun(
 ): Promise<{ testRunId: string; start: () => Promise<unknown> }> {
   const provenance = input.validation.astProvenance
   if (provenance?.schemaVersion !== '2')
-    throw new ServiceError('Reviewed AST baseline requires an exact v2 publish operation.', 'CONFLICT')
+    throw new ServiceError('Reviewed AST baseline requires an exact managed publish operation.', 'CONFLICT')
   const operationId = provenance.publishOperationId
   const environment = await client.environment.findUnique({ where: { name: input.environment } })
   if (!environment) throw new ServiceError(`Environment "${input.environment}" was not found.`, 'VALIDATION')
@@ -427,7 +427,7 @@ async function baselineRuntimeValidation(
   const invalid = artifacts.validation.validations.filter(validation => validation.astProvenance?.schemaVersion !== '2')
   if (invalid.length > 0)
     throw new ServiceError(
-      `Managed baseline requires exact v2 AST provenance for every validation; invalid validations: ${invalid.map(item => item.id).join(', ')}.`,
+      `Managed baseline requires exact managed Validation AST provenance for every validation; invalid validations: ${invalid.map(item => item.id).join(', ')}.`,
       'CONFLICT',
     )
   return artifacts.validation
@@ -481,7 +481,7 @@ async function prepareBaselineAttempts(input: {
     ).length
     const provenance = validation.astProvenance
     if (provenance?.schemaVersion !== '2')
-      throw new ServiceError('Managed baseline requires exact v2 AST provenance.', 'CONFLICT')
+      throw new ServiceError('Managed baseline requires exact managed Validation AST provenance.', 'CONFLICT')
     const preparationKey = baselineCapsulePreparationKey({
       planId: input.planId,
       revision: input.artifacts.plan.revision,
@@ -584,7 +584,7 @@ export async function reconcileBaselineExecution(planId: string, options: Baseli
   )
   const stillRunning = attempts.some(attempt => ['scheduled', 'running', 'interrupted'].includes(attempt.status))
   const hasHarnessFailure = attempts.some(
-    attempt => attempt.status === 'completed' && attempt.classification === 'validation_harness_failure',
+    attempt => attempt.status === 'completed' && attempt.classification === 'authoring_failure',
   )
   const plan = {
     ...artifacts.plan,
@@ -657,7 +657,7 @@ export async function acknowledgeBaselineFailure(
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
   const attempt = artifacts.validation.baselineAttempts.find(item => item.id === input.attemptId)
-  if (attempt?.classification !== 'pre_existing_unrelated_failure' || !attempt.signatureHash) {
+  if (attempt?.classification !== 'unrelated_existing_failure' || !attempt.signatureHash) {
     throw new ServiceError('Only current unrelated failures can be acknowledged.', 'CONFLICT')
   }
   const acknowledgement = {
@@ -685,7 +685,7 @@ export async function justifyBaselineRegressionPass(
   const client = options.client ?? prisma
   const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
   const attempt = artifacts.validation.baselineAttempts.find(item => item.id === input.attemptId)
-  if (attempt?.classification !== 'accepted_regression_pass') {
+  if (attempt?.classification !== 'unexpected_pass') {
     throw new ServiceError('Only passing baselines accept regression justification.', 'CONFLICT')
   }
   const validation = {
@@ -737,9 +737,7 @@ export async function retryBaselineAfterRepair(
     throw new ServiceError('Only baseline review evidence can be returned for validation repair.', 'CONFLICT')
   }
   const hasInvalidEvidence = artifacts.validation.baselineAttempts.some(
-    attempt =>
-      attempt.status === 'completed' &&
-      ['validation_harness_failure', 'invalid_baseline_failure'].includes(attempt.classification ?? ''),
+    attempt => attempt.status === 'completed' && attempt.classification === 'authoring_failure',
   )
   if (!hasInvalidEvidence) {
     throw new ServiceError('Baseline repair is only available when current evidence is invalid.', 'CONFLICT')

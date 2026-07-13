@@ -137,6 +137,9 @@ const detail: PlanReviewDetail = {
     ],
     implementationGroups: [{ id: 'delivery', taskIds: ['task-one', 'task-two'] }],
   },
+  planContentHash: `sha256:${'a'.repeat(64)}`,
+  planStateHash: `sha256:${'b'.repeat(64)}`,
+  reviewBindingHash: `sha256:${'c'.repeat(64)}`,
   contentHash: `sha256:${'a'.repeat(64)}`,
   review: {
     version: '1',
@@ -189,6 +192,9 @@ const detail: PlanReviewDetail = {
     slug: 'accessible-plan',
     legacyPlanId: null,
     sourceHash: 'sha256:test',
+    planContentHash: `sha256:${'a'.repeat(64)}`,
+    planStateHash: `sha256:${'b'.repeat(64)}`,
+    reviewBindingHash: `sha256:${'c'.repeat(64)}`,
     lifecycle: 'awaiting_plan_review',
     stale: false,
     conflicted: false,
@@ -198,6 +204,7 @@ const detail: PlanReviewDetail = {
   issues: [],
   revisions: [],
   events: [],
+  delegations: [],
   personalPositions: { 'task-one': { x: 900, y: 901 } },
   sharedPositions: {
     'task-one': { x: 700, y: 701 },
@@ -289,7 +296,7 @@ const validationDetail: PlanReviewDetail = {
         astProvenance: {
           schemaVersion: '2',
           astHash: hashA,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-browser-validation',
           receiptHash: hashB,
           runtimeInputHash: hashC,
@@ -312,7 +319,7 @@ const validationDetail: PlanReviewDetail = {
         astProvenance: {
           schemaVersion: '2',
           astHash: hashB,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-optional-validation',
           receiptHash: hashC,
           runtimeInputHash: hashA,
@@ -400,6 +407,8 @@ const validationDetail: PlanReviewDetail = {
     nodeHashes: { 'browser-validation': hashB, 'optional-validation': hashA },
     fileHashes: { 'automation/features/review.feature': hashB, 'src/app/page.tsx': hashC },
     readiness: { ready: true, blockers: [] },
+    operationHash: hashA,
+    extensionArtifactHashes: [],
   },
 }
 
@@ -708,6 +717,8 @@ describe('PlanReviewWorkspace', () => {
       planId: 'accessible-plan',
       validationId: 'browser-validation',
       decision: 'approved',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
     })
 
     const approveFileButton = screen.getByRole('button', { name: /approve file/i })
@@ -733,7 +744,11 @@ describe('PlanReviewWorkspace', () => {
     rerender(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
     expect(screen.getByText(/submitting the validation review emits validations_approved/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /submit validation review/i }))
-    expect(submitValidationReviewAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
+    expect(submitValidationReviewAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
+    })
   })
 
   it('does not submit a parent form or duplicate node decisions from validation approval buttons', async () => {
@@ -770,6 +785,8 @@ describe('PlanReviewWorkspace', () => {
       planId: 'accessible-plan',
       validationId: 'browser-validation',
       decision: 'approved',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
     })
 
     await waitFor(() => expect(approveButtons[1]).toBeEnabled())
@@ -781,6 +798,8 @@ describe('PlanReviewWorkspace', () => {
       planId: 'accessible-plan',
       validationId: 'optional-validation',
       decision: 'approved',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
     })
   })
 

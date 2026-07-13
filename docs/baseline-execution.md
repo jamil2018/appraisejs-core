@@ -12,11 +12,11 @@ that the required setup step completed first.
 
 Results are classified as:
 
-- `expected_behavioral_failure`: exact ordered signature match.
-- `accepted_regression_pass`: the new validation already passes and needs a written regression-coverage justification.
-- `pre_existing_unrelated_failure`: an unmatched non-infrastructure failure that needs user acknowledgement.
-- `invalid_baseline_failure`: undefined or ambiguous steps, setup/fixture/infrastructure failures, timeouts,
-  cancellation, interruption, or a missing required setup step.
+- `expected_product_failure`: exact ordered signature match.
+- `unexpected_pass`: the new validation already passes and needs a written regression-coverage justification.
+- `unrelated_existing_failure`: an unmatched non-infrastructure failure that needs user acknowledgement.
+- `authoring_failure`: undefined or ambiguous steps, invalid setup/fixture authoring, or a missing required setup step.
+- `infrastructure_failure`: invalid managed evidence, infrastructure failure, cancellation, or interruption.
 
 ## Evidence And Acknowledgements
 

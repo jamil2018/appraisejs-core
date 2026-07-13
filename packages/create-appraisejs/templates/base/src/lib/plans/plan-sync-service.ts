@@ -14,6 +14,7 @@ import {
 
 import { PlanArtifactRepository, type StoredPlanArtifact } from './artifact-repository'
 import { createPlanSlug, isLegacyPlanId } from './plan-identity'
+import { planContentHash, planStateHash, reviewBindingHash } from './plan-hashes'
 import { findProjectRoot } from './project-root'
 import { capturePlanRevision } from './revision-snapshot'
 
@@ -145,6 +146,11 @@ async function projectValidPlan(
   const legacyArtifact = isLegacyPlanId(parsed.plan.planId)
   const slug = legacyArtifact ? parsed.plan.planId : existing?.slug || createPlanSlug(parsed.plan.goal)
   const legacyPlanId = legacyArtifact ? parsed.plan.planId : existing?.legacyPlanId
+  const hashes = {
+    planContentHash: planContentHash(parsed.plan),
+    planStateHash: planStateHash(parsed.plan),
+    reviewBindingHash: reviewBindingHash(parsed.plan),
+  }
 
   // fallow-ignore-next-line complexity
   await client.$transaction(async transaction => {
@@ -159,6 +165,7 @@ async function projectValidPlan(
         goal: parsed.plan.goal,
         description: parsed.plan.description,
         sourceHash: hash,
+        ...hashes,
         planPath: artifacts.find(artifact => artifact.kind === 'plan')!.relativePath,
         reviewJson: parsed.review ? JSON.stringify(parsed.review) : null,
         validationJson: parsed.validation ? JSON.stringify(parsed.validation) : null,
@@ -173,6 +180,7 @@ async function projectValidPlan(
         goal: parsed.plan.goal,
         description: parsed.plan.description,
         sourceHash: hash,
+        ...hashes,
         reviewJson: parsed.review ? JSON.stringify(parsed.review) : null,
         validationJson: parsed.validation ? JSON.stringify(parsed.validation) : null,
         layoutJson: parsed.layout ? JSON.stringify(parsed.layout) : null,

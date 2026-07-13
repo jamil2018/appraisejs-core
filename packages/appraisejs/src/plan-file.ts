@@ -222,6 +222,7 @@ const planArtifactBaseSchema = z
                 surface: z.enum(['description', 'acceptanceCriteria', 'validationIntent']),
               }),
             ),
+            deferredReason: z.string().min(1).optional(),
           }),
         ),
         uncoveredRequirementIds: z.array(z.string().min(1)),
@@ -329,7 +330,7 @@ export const validationArtifactSchema = z
             .object({
               schemaVersion: z.literal('1'),
               astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-              executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+              executionAuthority: z.enum(['reviewed_publication', 'runtime_capsule']),
             })
             .optional()
             .describe('AST origin and explicit runtime execution authority.'),
@@ -426,11 +427,11 @@ export const validationArtifactSchema = z
           status: z.enum(['scheduled', 'running', 'completed', 'cancelled', 'interrupted']),
           classification: z
             .enum([
-              'expected_behavioral_failure',
-              'accepted_regression_pass',
-              'pre_existing_unrelated_failure',
-              'invalid_baseline_failure',
-              'validation_harness_failure',
+              'expected_product_failure',
+              'unexpected_pass',
+              'unrelated_existing_failure',
+              'authoring_failure',
+              'infrastructure_failure',
             ])
             .optional(),
           signatureHash: hashSchema.optional(),

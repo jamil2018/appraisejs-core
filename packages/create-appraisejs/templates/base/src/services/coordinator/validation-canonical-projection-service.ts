@@ -12,6 +12,7 @@ import type { ValidationArtifact } from '@/lib/plan-contract'
 import type { CompiledCustomExtension } from '@/lib/validation-ast'
 import { canonicalTagExpression, canonicalTagName } from '@/lib/tag-filters'
 import { ServiceError } from '@/services/shared/errors'
+import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
 
 type ProjectionClient = PrismaClient | Prisma.TransactionClient
 type TargetProjectMetadata = {
@@ -171,6 +172,10 @@ async function projectValidationArtifactsInTransaction(
   validation: ValidationArtifact,
   client: ProjectionClient,
 ) {
+  const plan =
+    'findUnique' in client.planProjection
+      ? await client.planProjection.findUnique({ where: { planId }, select: { targetProjectId: true } })
+      : null
   const ownerTag = await ensureIdentifierTag(projectionTag(planId), client)
   const moduleIds = new Set<string>()
   const locatorGroupIds = new Set<string>()
@@ -309,6 +314,34 @@ async function projectValidationArtifactsInTransaction(
         },
       })
     }
+  }
+
+  if (plan?.targetProjectId) {
+    const resources = [
+      ...[...moduleIds].map(entityId => ({ entityType: 'module' as const, entityId })),
+      ...[...locatorGroupIds].map(entityId => ({ entityType: 'locator-group' as const, entityId })),
+      ...[...locatorIds].map(entityId => ({ entityType: 'locator' as const, entityId })),
+      ...validation.validations.flatMap(item =>
+        item.appraiseArtifacts.testSuites.map(resource => ({
+          entityType: 'test-suite' as const,
+          entityId: resource.id,
+        })),
+      ),
+      ...validation.validations.flatMap(item =>
+        item.appraiseArtifacts.testCases.map(resource => ({ entityType: 'test-case' as const, entityId: resource.id })),
+      ),
+    ]
+    for (const resource of resources)
+      await registerProjectResourceOwnership(
+        {
+          targetProjectId: plan.targetProjectId,
+          ...resource,
+          origin: 'validation-publication',
+          provenance: { planId },
+          content: resource,
+        },
+        client,
+      )
   }
 
   return {

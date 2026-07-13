@@ -496,8 +496,8 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
     approval => approval.revision === detail.plan.revision && approval.relevantHashes.plan,
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
-  const hasInvalidBaselineEvidence = detail.validation?.baselineAttempts.some(attempt =>
-    ['validation_harness_failure', 'invalid_baseline_failure'].includes(attempt.classification ?? ''),
+  const hasInvalidBaselineEvidence = detail.validation?.baselineAttempts.some(
+    attempt => attempt.classification === 'authoring_failure',
   )
   const reviewUnavailableReason = getReviewUnavailableReason(detail.plan.lifecycle)
   const approvalDisabledReason = approved
@@ -857,6 +857,18 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                 Every explicit requirement is mapped to a task description, acceptance criterion, or validation intent.
               </p>
             )}
+            <ul className="space-y-1">
+              {detail.plan.requirementAssessment.requirements.map(requirement => (
+                <li key={requirement.id}>
+                  <span className="font-medium">{requirement.text}</span> →{' '}
+                  {requirement.coveredBy.length
+                    ? requirement.coveredBy.map(mapping => `${mapping.taskId} (${mapping.surface})`).join(', ')
+                    : requirement.deferredReason
+                      ? `deferred: ${requirement.deferredReason}`
+                      : 'uncovered'}
+                </li>
+              ))}
+            </ul>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -1160,10 +1172,22 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   isPending={isPending}
                   run={run}
                   onDecideValidation={(validationId, decision) =>
-                    decideValidationNodeAction({ planId: detail.plan.planId, validationId, decision })
+                    decideValidationNodeAction({
+                      planId: detail.plan.planId,
+                      validationId,
+                      decision,
+                      operationHash: detail.validationReview?.operationHash,
+                      extensionArtifactHashes: detail.validationReview?.extensionArtifactHashes ?? [],
+                    })
                   }
                   onApproveFile={path => approveValidationFileAction({ planId: detail.plan.planId, path })}
-                  onSubmitReview={() => submitValidationReviewAction({ planId: detail.plan.planId })}
+                  onSubmitReview={() =>
+                    submitValidationReviewAction({
+                      planId: detail.plan.planId,
+                      operationHash: detail.validationReview?.operationHash,
+                      extensionArtifactHashes: detail.validationReview?.extensionArtifactHashes ?? [],
+                    })
+                  }
                   onCancelBaseline={() => cancelBaselineExecutionAction({ planId: detail.plan.planId })}
                   onAcceptBaseline={() => acceptBaselineAction({ planId: detail.plan.planId })}
                   onSubmitFeedback={input =>
@@ -1544,9 +1568,45 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   <div>
                     <h3 className="font-heading text-sm font-semibold">Revision Approval</h3>
                     <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
-                      Approval binds to revision {detail.plan.revision} and its exact plan hash.
+                      Approval binds to revision {detail.plan.revision} and its exact reviewed-content hash.
                     </p>
                   </div>
+
+                  <dl className="bg-muted/30 grid gap-2 rounded-xl border p-3 text-[11px]">
+                    {[
+                      ['Plan content hash', detail.planContentHash],
+                      ['Plan state hash', detail.planStateHash],
+                      ['Review binding hash', detail.reviewBindingHash],
+                    ].map(([label, value]) => (
+                      <div key={label} className="grid gap-1">
+                        <dt className="font-medium text-muted-foreground">{label}</dt>
+                        <dd className="break-all font-mono">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  {detail.delegations.length > 0 && (
+                    <section aria-labelledby="delegation-history-heading" className="space-y-2 rounded-xl border p-3">
+                      <h4 id="delegation-history-heading" className="text-xs font-semibold">
+                        Delegated coordinator authority
+                      </h4>
+                      {detail.delegations.map(delegation => (
+                        <article key={delegation.id} className="space-y-1 border-t pt-2 text-[11px] first:border-0">
+                          <p>
+                            <span className="font-medium">{delegation.parentCoordinatorId}</span> to{' '}
+                            <span className="font-medium">{delegation.delegatedCoordinatorId}</span>
+                          </p>
+                          <p>{delegation.purpose}</p>
+                          <p>Permissions: {delegation.permissions.join(', ')}</p>
+                          <p>Prohibitions: {delegation.prohibitions.join(', ') || 'none'}</p>
+                          <p>
+                            Expires {delegation.expiresAt.toISOString()}; consumed operations:{' '}
+                            {delegation.consumptions.length}; status: {delegation.revokedAt ? 'revoked' : 'active'}
+                          </p>
+                        </article>
+                      ))}
+                    </section>
+                  )}
 
                   <div className="space-y-4">
                     {suspiciousReplacement && (
@@ -1575,7 +1635,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                             approvePlanRevisionAction({
                               planId: detail.plan.planId,
                               displayedRevision: detail.plan.revision,
-                              expectedPlanHash: detail.contentHash,
+                              expectedPlanHash: detail.planContentHash,
                               confirmSuspiciousReplacement: confirmReplacement,
                             }),
                           'Exact plan revision approved.',
@@ -1604,7 +1664,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                             requestPlanChangesAction({
                               planId: detail.plan.planId,
                               displayedRevision: detail.plan.revision,
-                              expectedPlanHash: detail.contentHash,
+                              expectedPlanHash: detail.planContentHash,
                             }),
                           'Plan changes requested.',
                         )

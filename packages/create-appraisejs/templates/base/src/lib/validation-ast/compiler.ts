@@ -379,6 +379,106 @@ function validateSubmissionContext(
   return blockers
 }
 
+type CoverageMapping = NonNullable<ValidationAst['coverageArgument']>['mappings'][number]
+
+function claimedCoverageTargets(ast: ValidationAst) {
+  return [
+    ...ast.coversTaskIds.map(targetId => ({ kind: 'task', targetId })),
+    ...ast.qualityConcerns.map(targetId => ({ kind: 'quality-concern', targetId })),
+  ]
+}
+
+function validateCoverageReferences(
+  mapping: CoverageMapping,
+  scenarios: Set<string>,
+  steps: Map<string, ValidationAst['scenarios'][number]['steps'][number]>,
+) {
+  const location = { referenceId: mapping.targetId }
+  return [
+    ...mapping.scenarioIds
+      .filter(scenarioId => !scenarios.has(scenarioId))
+      .map(scenarioId =>
+        issue('coverage-scenario-not-found', `Coverage scenario ${scenarioId} was not found.`, location),
+      ),
+    ...[...mapping.stimulusStepIds, ...mapping.observationStepIds]
+      .filter(stepId => !steps.has(stepId))
+      .map(stepId => issue('coverage-step-not-found', `Coverage step ${stepId} was not found.`, location)),
+  ]
+}
+
+function validateCoverageObservations(
+  mapping: CoverageMapping,
+  steps: Map<string, ValidationAst['scenarios'][number]['steps'][number]>,
+  actionByIdentity: Map<string, ActionDescriptor>,
+) {
+  const location = { referenceId: mapping.targetId }
+  const missingObservation =
+    ['covered', 'partial'].includes(mapping.state) && mapping.observationStepIds.length === 0
+      ? [issue('coverage-observation-required', 'Covered and partial mappings require an observation step.', location)]
+      : []
+  const unobservable = mapping.observationStepIds.flatMap(stepId => {
+    const step = steps.get(stepId)
+    if (!step) return []
+    const action = actionByIdentity.get(`${step.action.id}@${step.action.version}`)
+    return action?.requirements.capabilities.includes('assertions')
+      ? []
+      : [
+          issue(
+            'coverage-observation-not-observable',
+            `Observation step ${stepId} does not use a registered assertion capability.`,
+            location,
+          ),
+        ]
+  })
+  return [...missingObservation, ...unobservable]
+}
+
+function coverageWarnings(mapping: CoverageMapping) {
+  const location = { referenceId: mapping.targetId }
+  return [
+    ...(['deferred', 'uncovered', 'partial'].includes(mapping.state) && !mapping.limitation
+      ? [issue('coverage-limitation-recommended', `${mapping.state} coverage should explain its limitation.`, location)]
+      : []),
+    ...(mapping.state === 'covered' && mapping.stimulusStepIds.length === 0
+      ? [issue('coverage-stimulus-suspicious', 'Covered mapping has no explicit stimulus step.', location)]
+      : []),
+  ]
+}
+
+function validateCoverageArgument(ast: ValidationAst, actions: ActionDescriptor[]) {
+  const blockers: ValidationAstIssue[] = []
+  const warnings: ValidationAstIssue[] = []
+  const mappings = ast.coverageArgument?.mappings ?? []
+  const claimedTargets = claimedCoverageTargets(ast)
+  if (!ast.coverageArgument) {
+    if (claimedTargets.length > 1)
+      blockers.push(
+        issue(
+          'coverage-argument-required',
+          'Broad task or quality coverage claims require an explicit reviewable coverage argument.',
+        ),
+      )
+    return { blockers, warnings }
+  }
+  const scenarios = new Set(ast.scenarios.map(scenario => scenario.id))
+  const steps = new Map(ast.scenarios.flatMap(scenario => scenario.steps.map(step => [step.id, step] as const)))
+  const actionByIdentity = new Map(actions.map(action => [`${action.id}@${action.version}`, action]))
+  for (const claim of claimedTargets) {
+    if (!mappings.some(mapping => mapping.kind === claim.kind && mapping.targetId === claim.targetId))
+      blockers.push(
+        issue('coverage-mapping-missing', `Coverage mapping is missing for ${claim.kind} ${claim.targetId}.`, {
+          referenceId: claim.targetId,
+        }),
+      )
+  }
+  for (const mapping of mappings) {
+    blockers.push(...validateCoverageReferences(mapping, scenarios, steps))
+    blockers.push(...validateCoverageObservations(mapping, steps, actionByIdentity))
+    warnings.push(...coverageWarnings(mapping))
+  }
+  return { blockers, warnings }
+}
+
 function referencedExtensionIds(ast: ValidationAst) {
   return new Set(validationAstExtensionReferences(ast).map(value => value.id))
 }
@@ -405,6 +505,8 @@ export function checkValidationAst(value: unknown, context: ValidationAstCompile
   const blockers = validateSubmissionContext(submission, context)
   const references = validateReferences(submission.ast, submission.customExtensionProposals, context)
   blockers.push(...references.blockers)
+  const coverage = validateCoverageArgument(submission.ast, references.actions)
+  blockers.push(...coverage.blockers)
   if (submission.authoringProfile)
     blockers.push(
       ...checkValidationAstAuthoringProfile(submission.ast, submission.authoringProfile, references.actions),
@@ -414,7 +516,7 @@ export function checkValidationAst(value: unknown, context: ValidationAstCompile
   return {
     valid: blockers.length === 0,
     blockers,
-    warnings: references.warnings,
+    warnings: [...references.warnings, ...coverage.warnings],
     submission,
     extensionPolicy: context.extensionPolicy,
     resolved: { ...references, compiledExtensions },

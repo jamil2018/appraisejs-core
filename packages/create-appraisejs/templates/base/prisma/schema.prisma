@@ -309,6 +309,9 @@ model PlanProjection {
   goal                           String
   description                    String
   sourceHash                     String
+  planContentHash                String                          @default("")
+  planStateHash                  String                          @default("")
+  reviewBindingHash              String                          @default("")
   planPath                       String
   reviewJson                     String?
   validationJson                 String?
@@ -394,9 +397,78 @@ model TargetProject {
   runtimeCapsuleLeases           RuntimeCapsuleLease[]
   repositoryExportJobs           RepositoryExportJob[]
   repositoryExportReceipts       RepositoryExportReceipt[]
+  resourceOwnerships             ProjectResourceOwnership[]
+  resourceImports                ProjectResourceImport[]         @relation("ResourceImportDestination")
+  validationResourceProposals    ValidationResourceProposal[]
+  delegatedCoordinatorReceipts   DelegatedCoordinatorReceipt[]
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+model ValidationResourceProposal {
+  id              String        @id @default(uuid())
+  planId          String
+  targetProjectId String
+  idempotencyKey  String
+  proposalHash    String
+  proposalJson    String
+  resultJson      String
+  createdAt       DateTime      @default(now())
+  targetProject   TargetProject @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, idempotencyKey])
+  @@unique([targetProjectId, proposalHash])
+  @@index([targetProjectId, createdAt])
+}
+
+model ProjectResourceOwnership {
+  id              String                  @id @default(uuid())
+  entityType      String
+  entityId        String
+  scope           ResourceScope
+  targetProjectId String?
+  origin          String
+  provenanceJson  String                  @default("{}")
+  contentHash     String
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  targetProject   TargetProject?          @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  imports         ProjectResourceImport[]
+
+  @@unique([entityType, entityId])
+  @@index([targetProjectId, entityType])
+  @@index([scope, entityType])
+}
+
+model ProjectResourceImport {
+  id                   String                   @id @default(uuid())
+  sourceOwnershipId    String
+  destinationProjectId String
+  sharingMode          ResourceSharingMode
+  sourceContentHash    String
+  actor                String
+  propagationPolicy    String
+  createdAt            DateTime                 @default(now())
+  sourceOwnership      ProjectResourceOwnership @relation(fields: [sourceOwnershipId], references: [id], onDelete: Restrict)
+  destinationProject   TargetProject            @relation("ResourceImportDestination", fields: [destinationProjectId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceOwnershipId, destinationProjectId, sharingMode])
+  @@index([destinationProjectId, createdAt])
+}
+
+enum ResourceScope {
+  system
+  global_library
+  project
+  publication
+  runtime
+  quarantined
+}
+
+enum ResourceSharingMode {
+  immutable_reference
+  copy
 }
 
 enum RepositoryExportPolicy {
@@ -727,6 +799,11 @@ model PlanEvent {
   sequence           Int
   type               String
   payloadJson        String?
+  previousStateHash  String?
+  stateHash          String?
+  planContentHash    String?
+  revision           Int?
+  actor              String?
   acknowledgedAt     DateTime?
   acknowledgedBy     String?
   supersededAt       DateTime?
@@ -755,6 +832,43 @@ model DelegatedAuthorizationNonce {
   consumedAt DateTime @default(now())
 
   @@index([expiresAt])
+}
+
+model DelegatedCoordinatorReceipt {
+  id                     String   @id
+  parentCoordinatorId    String
+  delegatedCoordinatorId String
+  targetProjectId        String?
+  targetFingerprint      String
+  pathFingerprint        String
+  purpose                String
+  permissionsJson        String
+  prohibitionsJson       String
+  briefOrPlanHash        String?
+  nonce                  String   @unique
+  receiptJson            String
+  issuedAt               DateTime @default(now())
+  expiresAt              DateTime
+  revokedAt              DateTime?
+  revokedBy              String?
+  revocationReason       String?
+  targetProject          TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: SetNull)
+  consumptions           DelegatedCoordinatorConsumption[]
+
+  @@index([delegatedCoordinatorId, expiresAt])
+  @@index([targetFingerprint, expiresAt])
+}
+
+model DelegatedCoordinatorConsumption {
+  id           String   @id @default(uuid())
+  receiptId    String
+  permission   String
+  operationKey String
+  consumedAt   DateTime @default(now())
+  receipt      DelegatedCoordinatorReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@unique([receiptId, permission, operationKey])
+  @@index([receiptId, consumedAt])
 }
 
 model DelegatedValidationAstSubmission {

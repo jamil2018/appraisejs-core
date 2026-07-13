@@ -90,7 +90,7 @@ describe('Appraise workflow skills', () => {
     expect(planning).not.toMatch(/repeated(?:ly)?\s+(?:\w+\s+){0,3}pending|pending\s+(?:\w+\s+){0,3}loop/i)
   })
 
-  it('requires exact v2 AST review and capsule ownership before validation review standby', async () => {
+  it('requires exact managed Validation AST review and capsule ownership before validation review standby', async () => {
     const validationPreparation = await fs.readFile(
       path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-validation-preparation', 'SKILL.md'),
       'utf8',

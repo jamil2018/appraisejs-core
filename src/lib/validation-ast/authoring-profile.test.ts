@@ -4,7 +4,7 @@ import { checkValidationAstAuthoringProfile, validationAstAuthoringProfileSchema
 import { validationAstSchema } from './schemas'
 
 const ast = validationAstSchema.parse({
-  schemaVersion: '1',
+  schemaVersion: 1,
   id: 'simple-flow',
   title: 'Simple flow',
   purpose: 'Verify the happy path.',

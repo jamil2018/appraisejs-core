@@ -168,10 +168,22 @@ const validationClassificationOverrideSchema = z.object({
   classification: fileClassificationSchema,
 })
 
+const validationCoverageMappingSchema = z.object({
+  kind: z.enum(['task', 'acceptance-criterion', 'quality-concern']),
+  targetId: idSchema,
+  scenarioIds: z.array(idSchema),
+  stimulusStepIds: z.array(idSchema),
+  observationStepIds: z.array(idSchema),
+  rationale: z.string().min(1),
+  state: z.enum(['covered', 'partial', 'deferred', 'uncovered']),
+  limitation: z.string().min(1).optional(),
+})
+
 const validationNodeSchema = z.object({
   id: idSchema,
   taskIds: z.array(idSchema).min(1),
   required: z.boolean(),
+  coverageArgument: z.object({ mappings: z.array(validationCoverageMappingSchema).min(1) }).optional(),
   testCaseIds: z.array(idSchema).min(1),
   appraiseArtifacts: validationAppraiseArtifactsSchema,
   gherkinPaths: z.array(z.string().min(1)).min(1),
@@ -185,12 +197,12 @@ const validationNodeSchema = z.object({
       z.object({
         schemaVersion: z.literal('1'),
         astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-        executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+        executionAuthority: z.enum(['reviewed_publication', 'runtime_capsule']),
       }),
       z.object({
         schemaVersion: z.literal('2'),
         astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-        executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+        executionAuthority: z.enum(['reviewed_publication', 'runtime_capsule']),
         publishOperationId: z.string().min(1),
         receiptHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
         runtimeInputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
@@ -224,7 +236,7 @@ const managedValidationNodesSchema = validationNodesSchema.superRefine((items, c
       context.addIssue({
         code: 'custom',
         path: [index, 'astProvenance'],
-        message: 'Managed validation requires exact v2 AST provenance.',
+        message: 'Managed validation requires exact managed Validation AST provenance.',
       })
   })
 })
@@ -318,6 +330,7 @@ export const planArtifactSchema = artifactHeaderSchema
                 surface: z.enum(['description', 'acceptanceCriteria', 'validationIntent']),
               }),
             ),
+            deferredReason: z.string().min(1).optional(),
           }),
         ),
         uncoveredRequirementIds: z.array(z.string().min(1)),
@@ -423,11 +436,11 @@ export const validationArtifactSchema = artifactHeaderSchema
           status: z.enum(['scheduled', 'running', 'completed', 'cancelled', 'interrupted']),
           classification: z
             .enum([
-              'expected_behavioral_failure',
-              'accepted_regression_pass',
-              'pre_existing_unrelated_failure',
-              'invalid_baseline_failure',
-              'validation_harness_failure',
+              'expected_product_failure',
+              'unexpected_pass',
+              'unrelated_existing_failure',
+              'authoring_failure',
+              'infrastructure_failure',
             ])
             .optional(),
           signatureHash: hashSchema.optional(),

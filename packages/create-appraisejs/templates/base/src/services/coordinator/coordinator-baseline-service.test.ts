@@ -127,7 +127,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         astProvenance: {
           schemaVersion: '2',
           astHash: `sha256:${'a'.repeat(64)}`,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-required-check',
           receiptHash: `sha256:${'b'.repeat(64)}`,
           runtimeInputHash: `sha256:${'c'.repeat(64)}`,
@@ -263,7 +263,7 @@ describe('baseline execution and implementation gate', () => {
     ).not.toBe(baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 }))
   })
 
-  it('routes an exact reviewed v2 AST baseline through a prepared capsule TestRun without target automation', async () => {
+  it('routes an exact reviewed managed Validation AST baseline through a prepared capsule TestRun without target automation', async () => {
     const planId = 'capsule-baseline'
     await writeArtifacts(planId)
     const repository = new PlanArtifactRepository(workspace)
@@ -273,7 +273,7 @@ describe('baseline execution and implementation gate', () => {
     reviewed.validations[0]!.astProvenance = {
       schemaVersion: '2',
       astHash: `sha256:${'a'.repeat(64)}`,
-      executionAuthority: 'phase2_review_only',
+      executionAuthority: 'reviewed_publication',
       publishOperationId: 'publish-operation-one',
       receiptHash: `sha256:${'b'.repeat(64)}`,
       runtimeInputHash: `sha256:${'c'.repeat(64)}`,
@@ -467,7 +467,7 @@ describe('baseline execution and implementation gate', () => {
       expect.objectContaining({
         browser: 'chromium',
         environment: 'local',
-        classification: 'expected_behavioral_failure',
+        classification: 'expected_product_failure',
         evidence: {
           logsUrl: '/api/test-runs/run-chromium-local-0/logs',
           reportUrl: '/test-runs/run-chromium-local-0',
@@ -478,13 +478,13 @@ describe('baseline execution and implementation gate', () => {
       expect.objectContaining({
         browser: 'firefox',
         environment: 'local',
-        classification: 'pre_existing_unrelated_failure',
+        classification: 'unrelated_existing_failure',
         signatureHash: hashFailureSignatures(['Existing report export failed']),
       }),
       expect.objectContaining({
         browser: 'webkit',
         environment: 'staging',
-        classification: 'accepted_regression_pass',
+        classification: 'unexpected_pass',
         signatureHash: hashFailureSignatures([]),
       }),
     ])
@@ -501,11 +501,9 @@ describe('baseline execution and implementation gate', () => {
     })
 
     const unrelatedAttempt = reviewed.baselineAttempts.find(
-      attempt => attempt.classification === 'pre_existing_unrelated_failure',
+      attempt => attempt.classification === 'unrelated_existing_failure',
     )!
-    const passingAttempt = reviewed.baselineAttempts.find(
-      attempt => attempt.classification === 'accepted_regression_pass',
-    )!
+    const passingAttempt = reviewed.baselineAttempts.find(attempt => attempt.classification === 'unexpected_pass')!
     await acknowledgeBaselineFailure(
       { planId, attemptId: unrelatedAttempt.id, acknowledgedBy: 'reviewer' },
       { projectDirectory: workspace, client, now: new Date('2026-06-10T00:03:00.000Z') },
@@ -551,9 +549,7 @@ describe('baseline execution and implementation gate', () => {
     const harnessValidation = await readValidation(planId)
     expect(harnessValidation).toMatchObject({
       baselineDecision: 'changes-requested',
-      baselineAttempts: expect.arrayContaining([
-        expect.objectContaining({ classification: 'validation_harness_failure' }),
-      ]),
+      baselineAttempts: expect.arrayContaining([expect.objectContaining({ classification: 'authoring_failure' })]),
     })
     const harnessPlan = parseYamlArtifact(
       'plan',
@@ -612,7 +608,7 @@ describe('baseline execution and implementation gate', () => {
     const current = parseYamlArtifact('validation', stored.content) as ValidationArtifact
     current.baselineAttempts[0] = {
       ...current.baselineAttempts[0],
-      classification: 'validation_harness_failure',
+      classification: 'authoring_failure',
     }
     const repairedStored = await repository.compareAndWrite(
       'validation',
@@ -635,7 +631,7 @@ describe('baseline execution and implementation gate', () => {
       validation: {
         baselineDecision: 'changes-requested',
         baselineAttempts: expect.arrayContaining([
-          expect.objectContaining({ testRunId: 'run-chromium-local', classification: 'validation_harness_failure' }),
+          expect.objectContaining({ testRunId: 'run-chromium-local', classification: 'authoring_failure' }),
         ]),
       },
     })

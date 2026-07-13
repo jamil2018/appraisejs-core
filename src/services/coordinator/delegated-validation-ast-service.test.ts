@@ -8,7 +8,7 @@ const hash = (value: string) => `sha256:${value.repeat(64)}`
 const submission = {
   expectedPlanHash: hash('b'),
   ast: {
-    schemaVersion: '1',
+    schemaVersion: 1,
     id: 'delegated-ast',
     title: 'Delegated AST',
     purpose: 'Prove isolated authorized handoff.',
