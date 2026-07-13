@@ -9,7 +9,7 @@ AppraiseJS owns lifecycle and business rules. This skill coordinates test prepar
 
 1. Read pending events before starting and after each validation-preparation task.
 2. Confirm the returned status permits validation preparation.
-3. Author a v2 Validation AST from exact Appraise action and locator catalogs; do not create target `automation/`
+3. Author a managed Validation AST from exact Appraise action and locator catalogs; do not create target `automation/`
    files or hand-author canonical validation YAML.
 4. Call `validation_ast_check`, then `validation_ast_preview`, and bind compilation to the exact reviewed receipt.
 5. Call `validation_ast_compile` only for the exact successful preview and present the returned review URL, operation

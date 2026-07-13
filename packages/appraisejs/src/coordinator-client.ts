@@ -6,7 +6,7 @@ import type {
   DelegatedAuthorizationReceipt,
   ValidationAstExtensionReviewResult,
   ValidationAstSubmission,
-} from './phase1-contracts.js'
+} from './managed-validation-contracts.js'
 
 export type CoordinatorOptions = {
   cwd: string

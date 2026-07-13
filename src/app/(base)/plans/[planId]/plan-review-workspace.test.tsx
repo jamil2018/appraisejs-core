@@ -289,7 +289,7 @@ const validationDetail: PlanReviewDetail = {
         astProvenance: {
           schemaVersion: '2',
           astHash: hashA,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-browser-validation',
           receiptHash: hashB,
           runtimeInputHash: hashC,
@@ -312,7 +312,7 @@ const validationDetail: PlanReviewDetail = {
         astProvenance: {
           schemaVersion: '2',
           astHash: hashB,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-optional-validation',
           receiptHash: hashC,
           runtimeInputHash: hashA,

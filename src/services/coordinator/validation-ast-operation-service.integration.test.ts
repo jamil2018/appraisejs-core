@@ -29,7 +29,7 @@ const meditationSubmission = () => ({
   expectedPlanHash: planHash,
   authoringProfile: { id: 'simple-happy-path', version: '1' },
   ast: {
-    schemaVersion: '1',
+    schemaVersion: 1,
     id: 'meditation-happy-path',
     title: 'Complete a meditation',
     purpose: 'Verify a meditation completes and its result persists.',

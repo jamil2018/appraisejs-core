@@ -498,10 +498,10 @@ describe('MCP capability and recovery metadata', () => {
     )
   })
 
-  it('exposes the v2-only AST workflow before validation review is published', () => {
+  it('exposes the managed AST workflow before validation review is published', () => {
     expect(agentGuide.validationPreparationWorkflow).toBe(validationPreparationWorkflow)
     expect(validationPreparationWorkflow.preferredTool).toBe('validation_ast_compile')
-    expect(validationPreparationWorkflow.artifactContract).toBe('appraise.validation-ast/v2')
+    expect(validationPreparationWorkflow.artifactContract).toBe('appraise.validation-ast')
     expect(validationPreparationWorkflow.happyPath).toEqual(
       expect.arrayContaining([
         'validation_context_read',

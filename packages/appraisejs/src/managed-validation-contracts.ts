@@ -1,6 +1,6 @@
 export const ACTION_CATALOG_CONTRACT_VERSION = '1' as const
 export const LOCATOR_GRAPH_CONTRACT_VERSION = '1' as const
-export const VALIDATION_AST_SCHEMA_VERSION = '1' as const
+export const VALIDATION_AST_SCHEMA_VERSION = 1 as const
 export const DELEGATED_AUTHORIZATION_VERSION = '1' as const
 
 export type ActionAssertionConcern = 'accessibility' | 'persistence'
@@ -55,6 +55,18 @@ export type ValidationAst = {
     }>
   }>
   qualityConcerns: Array<'accessibility' | 'persistence' | 'responsive' | 'performance' | 'security'>
+  coverageArgument?: {
+    mappings: Array<{
+      kind: 'task' | 'acceptance-criterion' | 'quality-concern'
+      targetId: string
+      scenarioIds: string[]
+      stimulusStepIds: string[]
+      observationStepIds: string[]
+      rationale: string
+      state: 'covered' | 'partial' | 'deferred' | 'uncovered'
+      limitation?: string
+    }>
+  }
   customExtensions: string[]
 }
 

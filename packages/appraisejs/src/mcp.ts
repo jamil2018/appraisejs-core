@@ -12,7 +12,7 @@ import {
   VALIDATION_AST_SCHEMA_VERSION,
   type DelegatedAuthorizationReceipt,
   type ValidationAstSubmission,
-} from './phase1-contracts.js'
+} from './managed-validation-contracts.js'
 
 import {
   CoordinatorRequestError,
@@ -346,7 +346,7 @@ export function baselineRecoveryForLifecycle(lifecycle: string | undefined) {
   if (lifecycle === 'validation_changes_requested')
     return {
       nextRecommendedAction:
-        'Read validation feedback, repair the v2 AST, then repeat check, preview, exact review, and compile.',
+        'Read validation feedback, repair the managed Validation AST, then repeat check, preview, exact review, and compile.',
       nextRequiredAgentBehavior: 'revise_validation_artifacts',
       nextAllowedAction: { tool: 'validation_context_read' },
     }
@@ -406,7 +406,7 @@ export const validationPreparationWorkflow = {
   phase: 'validation_preparation',
   preferredTool: 'validation_ast_compile',
   contractResource: 'appraise://contracts/validation-ast',
-  artifactContract: 'appraise.validation-ast/v2',
+  artifactContract: 'appraise.validation-ast',
   happyPath: [
     'plan_start',
     'validation_context_read',
@@ -421,7 +421,7 @@ export const validationPreparationWorkflow = {
   ownership:
     'Appraise owns canonical projection and immutable runtime capsules. Managed validation never uses target automation files as execution authority.',
   recovery:
-    'Resolve the bounded AST check or preview blocker and retry the same v2 operation. Reconnect the client if removed v1 tools remain visible.',
+    'Resolve the bounded AST check or preview blocker and retry the same managed operation. Reconnect the client if removed v1 tools remain visible.',
 }
 
 export const mcpCapabilityMetadata = {
@@ -1534,7 +1534,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'delegated_validation_ast_submit',
     {
       description:
-        'Submit a receipt-authorized Validation AST envelope for later Phase 2 checking; does not compile or publish.',
+        'Submit a receipt-authorized Validation AST envelope for later compiler review checking; does not compile or publish.',
       inputSchema: { submission: z.unknown(), receipt: z.unknown() },
     },
     async ({ submission, receipt }) =>
@@ -2696,7 +2696,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             body: JSON.stringify({ reason, expectedValidationHash }),
           }),
           nextRecommendedAction:
-            'Repair the v2 AST and submit it through check, preview, and compile for fresh review.',
+            'Repair the managed Validation AST and submit it through check, preview, and compile for fresh review.',
           nextRequiredAgentBehavior: 'revise_validation_artifacts',
           nextAllowedAction: { tool: 'validation_context_read' },
         }),

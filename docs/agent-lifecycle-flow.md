@@ -41,13 +41,13 @@ not repeat the brief or handoff. Pending review or pending approval is not compl
 ## Approval And Validation Preparation
 
 `plan_approved` permits starting validation preparation. A coordinator should acknowledge the approval only after the
-transition it permits succeeds. `validation_preparation_started` permits v2 AST authoring. Agents call
+transition it permits succeeds. `validation_preparation_started` permits managed Validation AST authoring. Agents call
 `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and call
-`validation_ast_compile`. Compilation projects canonical entities and creates the durable v2 publication operation.
+`validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
 Managed execution uses only the exact Appraise-owned immutable runtime capsule; it never writes or executes target
 `automation/` files.
 
-Validation authoring is registry-first through the v2 action catalog and locator graph. Extensions require exact
+Validation authoring is registry-first through the managed action catalog and locator graph. Extensions require exact
 review evidence; target file paths are never managed execution authority.
 
 Draft check, publication, and runtime preflight share one locator-binding rule: every locator-bearing parameter must
@@ -98,7 +98,7 @@ pauses affected tasks and dependents until impact is confirmed and applied.
 
 Pause, resume, and cancellation are lifecycle transitions. Cancellation is terminal after acknowledgement.
 
-Reviewed v2 validation nodes execute baseline and implementation from the exact Appraise-owned runtime capsule bound
+Reviewed managed validation nodes execute baseline and implementation from the exact Appraise-owned runtime capsule bound
 to their publish operation. Mixed validation artifacts keep legacy nodes on legacy runtime inputs without copying them
 into capsule requests. Capsule preparation is idempotent by its durable preparation key; concurrent/crash replay reuses
 the queued or running TestRun, while an explicit retry receives the next ordinal. Passing lifecycle evidence requires

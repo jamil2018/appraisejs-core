@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const VALIDATION_AST_SCHEMA_VERSION = '1' as const
+export const VALIDATION_AST_SCHEMA_VERSION = 1 as const
 
 import { locatorCatalogReferenceSchema } from '@/lib/catalog-contracts'
 

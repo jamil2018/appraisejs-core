@@ -69,7 +69,7 @@ const context: ValidationAstCompilerContext = {
 const submission = {
   expectedPlanHash: hash('a'),
   ast: {
-    schemaVersion: '1',
+    schemaVersion: 1,
     id: 'todo-validation',
     title: 'Todo validation',
     purpose: 'Verify todo entry.',
@@ -215,7 +215,7 @@ describe('Validation AST check and preview', () => {
     }
     withExtension.customExtensionProposals = [
       {
-        schemaVersion: '1',
+        schemaVersion: 1,
         id: 'project-assertion',
         version: '1.0.0',
         title: 'Project assertion',

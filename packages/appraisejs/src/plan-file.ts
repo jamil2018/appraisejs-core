@@ -329,7 +329,7 @@ export const validationArtifactSchema = z
             .object({
               schemaVersion: z.literal('1'),
               astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-              executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+              executionAuthority: z.enum(['reviewed_publication', 'runtime_capsule']),
             })
             .optional()
             .describe('AST origin and explicit runtime execution authority.'),

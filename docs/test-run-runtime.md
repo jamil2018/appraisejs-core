@@ -7,7 +7,7 @@ This document helps agents navigate AppraiseJS test execution, logs, reports, an
 Test runs are created through app actions and services, executed locally through a Cucumber/Playwright adapter, and
 stored back into database/report models after execution. Runtime artifacts live under `automation/reports/<runId>`.
 
-Phase 3 AST-managed runs use a separate Appraise-owned storage contract under
+Managed Validation AST runs use a separate Appraise-owned runtime-capsule storage contract under
 `.appraise/projects/<target-project-id>/runtime/<validation-hash>/<run-id>/`. The database is authoritative for each
 capsule's target-project and TestRun ownership; filesystem directories are projections and are never imported as
 authority. Capsule manifests use strict, bounded, canonical versioned JSON and immutable hashes. Run-specific capsule
@@ -19,7 +19,7 @@ non-symlinked Appraise root; `.appraise`, `projects`, project, cache, digest, va
 realpath containment-checked. Directories use mode `0700`, immutable files use mode `0600`, and symlinked ancestors are
 rejected. Materialization exclusion uses a database lease keyed by project, validation hash, and run ID. Its owner token
 and expiry are transactionally compared for acquire, bounded renewal, expiry takeover, and release, so an active long
-materialization is renewable and an expired owner cannot release a successor. Reviewed v2 validations execute from
+materialization is renewable and an expired owner cannot release a successor. Reviewed managed validations execute from
 these capsules; legacy validations continue using `automation/reports/<runId>`.
 
 Runtime capsule diagnostics are a bounded projection, not an artifact export. The durable execution attempt stores
@@ -51,7 +51,7 @@ identities. The capsule manifest binds the receipt path and hash, the receipt by
 verified run-local file, and compiler-receipt identity remains distinct from capsule-command identity. Predictive
 preflight, persisted execution attempts, and execution all consume this same receipt.
 
-The first materialization slice consumes only a `review_ready` Phase 2 `ValidationAstPublishOperation`. Before writing
+Materialization consumes only a `review_ready` `ValidationAstPublishOperation`. Before writing
 bytes it revalidates the immutable publish journal, exact current `PlanProjection.validationJson`, logical projection,
 runtime-input snapshot, validation provenance, TestRun/plan/project ownership, and ordered extension-review hashes.
 It never reads target-repository `automation/` files. Deterministic feature, binding, reviewed-extension, support,
@@ -176,8 +176,8 @@ Baseline and implementation validation gates must consume `evidenceHealth`. `Tes
 trusted when evidence health is `valid`; invalid or infrastructure evidence stays reduced assurance and blocks normal
 lifecycle progression.
 
-Reviewed v2 validations use capsule execution for baseline and implementation. Mixed artifacts keep legacy validations
-on the legacy runtime while routing reviewed v2 nodes through their exact publish operation. Both paths reconcile into
+Reviewed managed validations use capsule execution for baseline and implementation. Mixed artifacts keep legacy validations
+on the legacy runtime while routing reviewed managed nodes through their exact publish operation. Both paths reconcile into
 the same evidence-health contract; only valid managed evidence provides full assurance.
 
 Projected baseline scenarios carry plan, validation, suite, and case identifier tags. Partial-suite selection uses the

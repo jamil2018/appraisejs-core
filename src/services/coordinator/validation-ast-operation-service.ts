@@ -177,7 +177,7 @@ function bindPublishProvenance(
     astProvenance: {
       schemaVersion: '2' as const,
       astHash: preview.astHash,
-      executionAuthority: 'phase2_review_only' as const,
+      executionAuthority: 'reviewed_publication' as const,
       publishOperationId,
       receiptHash,
       runtimeInputHash,

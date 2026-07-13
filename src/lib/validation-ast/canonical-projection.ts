@@ -113,7 +113,7 @@ export function createValidationAstCanonicalProjection(
     astProvenance: {
       schemaVersion: '1',
       astHash: validationAstHash(ast),
-      executionAuthority: 'phase2_review_only',
+      executionAuthority: 'reviewed_publication',
     },
     matrix: ast.matrix.map(entry => ({ browser: entry.browser ?? 'chromium', environment: entry.environmentId })),
     expectedFailures: [],

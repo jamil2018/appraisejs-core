@@ -9,7 +9,7 @@ export function basicValidationAstSubmission(planHash: string, taskId = 'task-on
   return {
     expectedPlanHash: planHash,
     ast: {
-      schemaVersion: '1' as const,
+      schemaVersion: 1 as const,
       id: 'navigation',
       title: 'Navigation',
       purpose: 'Open home.',
@@ -40,7 +40,7 @@ export function inadequateFreshTargetAuditSubmission(planHash: string) {
   return {
     expectedPlanHash: planHash,
     ast: {
-      schemaVersion: '1' as const,
+      schemaVersion: 1 as const,
       id: 'fresh-target-audit',
       title: 'Fresh target audit',
       purpose: 'Exercise navigation and reload without substantiating the claimed product behavior.',

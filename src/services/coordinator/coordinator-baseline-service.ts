@@ -334,7 +334,7 @@ async function submitCapsuleTestRun(
 ): Promise<{ testRunId: string; start: () => Promise<unknown> }> {
   const provenance = input.validation.astProvenance
   if (provenance?.schemaVersion !== '2')
-    throw new ServiceError('Reviewed AST baseline requires an exact v2 publish operation.', 'CONFLICT')
+    throw new ServiceError('Reviewed AST baseline requires an exact managed publish operation.', 'CONFLICT')
   const operationId = provenance.publishOperationId
   const environment = await client.environment.findUnique({ where: { name: input.environment } })
   if (!environment) throw new ServiceError(`Environment "${input.environment}" was not found.`, 'VALIDATION')
@@ -427,7 +427,7 @@ async function baselineRuntimeValidation(
   const invalid = artifacts.validation.validations.filter(validation => validation.astProvenance?.schemaVersion !== '2')
   if (invalid.length > 0)
     throw new ServiceError(
-      `Managed baseline requires exact v2 AST provenance for every validation; invalid validations: ${invalid.map(item => item.id).join(', ')}.`,
+      `Managed baseline requires exact managed Validation AST provenance for every validation; invalid validations: ${invalid.map(item => item.id).join(', ')}.`,
       'CONFLICT',
     )
   return artifacts.validation
@@ -481,7 +481,7 @@ async function prepareBaselineAttempts(input: {
     ).length
     const provenance = validation.astProvenance
     if (provenance?.schemaVersion !== '2')
-      throw new ServiceError('Managed baseline requires exact v2 AST provenance.', 'CONFLICT')
+      throw new ServiceError('Managed baseline requires exact managed Validation AST provenance.', 'CONFLICT')
     const preparationKey = baselineCapsulePreparationKey({
       planId: input.planId,
       revision: input.artifacts.plan.revision,

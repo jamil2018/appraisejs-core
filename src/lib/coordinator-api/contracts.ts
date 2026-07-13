@@ -98,7 +98,7 @@ export function zodCoordinatorError(error: ZodError): CoordinatorErrorEnvelope {
     message: path ? `${path}: ${issue?.message ?? 'Invalid request.'}` : (issue?.message ?? 'Invalid request.'),
     ...(path ? { path } : {}),
     recovery: path
-      ? `Fill or correct ${path}, then retry the bounded v2 AST check or preview operation.`
+      ? `Fill or correct ${path}, then retry the bounded managed Validation AST check or preview operation.`
       : 'Correct the identified field, then retry validation_ast_check or validation_ast_preview.',
   }
 }

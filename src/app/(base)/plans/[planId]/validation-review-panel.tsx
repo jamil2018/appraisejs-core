@@ -373,9 +373,9 @@ function ValidationNodeCard({
 }) {
   const decide = (decision: 'approved' | 'rejected' | 'deferred') =>
     run(() => onDecideValidation(node.id, decision), `Validation ${node.id} ${decision}.`)
-  const v2Provenance = node.astProvenance?.schemaVersion === '2' ? node.astProvenance : null
-  const hasExactV2Provenance = v2Provenance !== null
-  const controlsLocked = isPending || !canDecide || !hasExactV2Provenance
+  const managedProvenance = node.astProvenance?.schemaVersion === '2' ? node.astProvenance : null
+  const hasExactManagedProvenance = managedProvenance !== null
+  const controlsLocked = isPending || !canDecide || !hasExactManagedProvenance
 
   return (
     <div
@@ -405,8 +405,11 @@ function ValidationNodeCard({
               <Badge variant={decisionVariant(currentDecision?.decision)} className="px-1.5 py-0 text-[10px]">
                 {currentDecision?.decision ? formatState(currentDecision.decision) : 'No decision'}
               </Badge>
-              <Badge variant={hasExactV2Provenance ? 'default' : 'destructive'} className="px-1.5 py-0 text-[10px]">
-                {hasExactV2Provenance ? 'v2 AST' : 'Invalid provenance'}
+              <Badge
+                variant={hasExactManagedProvenance ? 'default' : 'destructive'}
+                className="px-1.5 py-0 text-[10px]"
+              >
+                {hasExactManagedProvenance ? 'Managed AST' : 'Invalid provenance'}
               </Badge>
             </div>
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">{hash}</p>
@@ -467,12 +470,12 @@ function ValidationNodeCard({
           </div>
           <AppraiseArtifactSummary artifacts={node.appraiseArtifacts} />
           <CoverageReviewMatrix coverage={node.coverageArgument} />
-          {hasExactV2Provenance ? (
+          {hasExactManagedProvenance ? (
             <div className="grid gap-3 text-sm md:grid-cols-2">
-              <Info label="Publish operation" value={v2Provenance.publishOperationId} />
-              <Info label="AST hash" value={v2Provenance.astHash} />
-              <Info label="Receipt hash" value={v2Provenance.receiptHash} />
-              <Info label="Runtime input hash" value={v2Provenance.runtimeInputHash} />
+              <Info label="Publish operation" value={managedProvenance.publishOperationId} />
+              <Info label="AST hash" value={managedProvenance.astHash} />
+              <Info label="Receipt hash" value={managedProvenance.receiptHash} />
+              <Info label="Runtime input hash" value={managedProvenance.runtimeInputHash} />
             </div>
           ) : null}
           <div className="grid gap-3 text-sm md:grid-cols-2">

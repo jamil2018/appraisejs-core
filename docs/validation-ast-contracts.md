@@ -10,7 +10,7 @@ extension references. Raw executable source is not accepted in a step. Project-s
 through a versioned `CustomActionExtensionProposal`, including the capability gap, typed inputs/outputs, and required
 capabilities.
 
-`checkValidationAst` and `previewValidationAst` provide the read-only Phase 2 compiler front end. Check validates the
+`checkValidationAst` and `previewValidationAst` provide the read-only compiler front end. Check validates the
 exact plan/task, action, locator, environment, stored-value, extension, runtime, capability, state, compatibility, and
 input/output references. Preview returns bounded deterministic entity IDs, action/locator/extension descriptors,
 human-readable Gherkin, blockers, warnings, hashes, and an immutable command-receipt preview. These operations do not
@@ -59,8 +59,8 @@ does not write target-repository or generated automation files and does not appr
 check/preview path resolves the policy from authoritative target-project context and returns deterministic
 extension blockers or these exact compiled reviews. Canonical compilation verifies the reviewed compiled hashes and
 stores the complete reviews in the same append-only `validation_ast_compiled` transaction as the legacy projection.
-This is review persistence only: compiled extensions are not executable until Phase 3 provides isolated runtime
-capsules. No target-repository or runtime files are materialized here.
+This is review persistence only: compiled extensions are not executable until an isolated runtime capsule is
+available. No target-repository or runtime files are materialized here.
 
 Submission contracts bound identifiers, text, matrices, tasks, scenarios, steps, action inputs, proposals, extension
 fields, capabilities, and TypeScript source bytes before compiler work. Extension identities are unique and the
@@ -78,22 +78,22 @@ Published extension reviews are available through the authenticated `validation_
 `appraisejs validation ast-reviews`; reads revalidate the complete immutable journal and parse every extension through
 the bounded review schema before returning it. Review decisions and final submission bind the current `review_ready`
 operation hash and exact sorted extension artifact hashes; immutable operation-linked decision events reject stale or
-mismatched evidence. Reviewed AST projections carry `phase2_review_only` provenance. Generic form-created,
-standalone, and plan-bound target-automation runs always reject those cases. Phase 3 execution is authorized only by
-exact v2 publish-operation provenance through an Appraise-owned runtime capsule. The historical `phase3_capsule`
-value remains parse-only for backward compatibility and is never an execution grant.
+mismatched evidence. Reviewed AST projections carry `reviewed_publication` provenance. Generic form-created,
+standalone, and plan-bound target-automation runs always reject those cases. Runtime execution is authorized only by
+exact managed publish-operation provenance through an Appraise-owned runtime capsule. The `runtime_capsule` value is
+the active execution grant; `reviewed_publication` is review-only provenance.
 
 Decision evidence is canonical by `(publishOperationId, validationId)`. A retry reads the immutable payload before
 rewriting the artifact, preserving the original reviewer, timestamp, decision, and content hash. Final submission
 compares every decision field plus the operation hash and sorted extension hashes exactly against those events.
 
-Submitting an approved Phase 2 AST review finalizes the canonical validation, lifecycle, and operation-bound approval
+Submitting an approved AST review finalizes the canonical validation, lifecycle, and operation-bound approval
 evidence directly. It does not call the legacy runtime materializer, require generated validation files, re-project
 entities, or perform execution environment preflight. A retry repairs missing artifact state from canonical decision
 evidence without duplicating or mutating the event.
 
 The installable `appraisejs` package exports version-aligned TypeScript contracts from
-`appraisejs/phase1-contracts`. MCP clients discover active contract versions through the four
+`appraisejs/managed-validation-contracts`. MCP clients discover active contract versions through the four
 `appraise://contracts/*` resources without receiving an unbounded catalog or graph dump.
 
 ## Delegated authorization
@@ -113,14 +113,14 @@ Appraise persists consumed nonces with a unique primary key and expiry metadata 
 restart.
 
 `delegated_validation_ast_submit`, `POST /api/internal/coordinator/delegated/validation-ast-submissions`, and
-`appraisejs validation submit-delegated-ast` provide the bounded worker handoff. They validate the V1 envelope, verify
+`appraisejs validation submit-delegated-ast` provide the bounded worker handoff. They validate the schema version 1 envelope, verify
 the exact receipt scope, target fingerprint, plan hash, check-phase ceiling, expiry and signature, then atomically
 consume the nonce and store the submission. The result is `accepted-for-check`; it does not resolve references,
 compile, preview, publish, or mutate validation entities.
 
 ## Compatibility projection
 
-After a successful Phase 2 check/preview handoff, the compatibility compiler maps an exact AST revision into the
+After a successful check/preview handoff, the compatibility compiler maps an exact AST revision into the
 existing validation-node shape and projects its module, suite, cases, ordered steps, identifier tags, and referenced
 legacy entities through one Prisma transaction. The same transaction appends `validation_ast_compiled`, so legacy
 tables and the review event cannot diverge. The transaction revalidates the exact plan, target, locator graph,
@@ -144,11 +144,11 @@ review_ready`; artifact writes verify CAS or exact desired content, projection i
 `validation_review_ready` event commit exactly once. This journal does not materialize runtime files.
 New publications also store one bounded, canonical `runtimeInputJson` snapshot and its hash. The snapshot preserves the
 exact compiler receipt, selected action and locator descriptor hashes, resolved locator bindings, extension artifact
-references, matrix, expected scenario/case/step identities, and Gherkin hash needed by the Phase 3 capsule generator.
+references, matrix, expected scenario/case/step identities, and Gherkin hash needed by the runtime capsule generator.
 Validation AST provenance schema version 2 binds the projected node to the exact publish operation, preview receipt,
 and runtime-input hash. Existing schema-version-1 projections and journal rows remain readable, but they cannot supply
-the stronger Phase 3 capsule provenance without an explicit migration/republication path. The runtime-input snapshot is
-compiler provenance, not the executable capsule command receipt; Phase 3 derives and persists that separate receipt.
+the stronger runtime-capsule provenance without an explicit migration/republication path. The runtime-input snapshot is
+compiler provenance, not the executable capsule command receipt; capsule preparation derives and persists that receipt.
 The journal is owned by immutable PlanProjection and TargetProject foreign keys and snapshots the target fingerprint.
 Server-side preparation recomputes every content hash and a canonical all-input operation hash, bounds artifacts to
 1 MiB and extension reviews to 25, and permits adjacent phase changes only. Projection and its phase advancement share

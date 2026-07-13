@@ -368,7 +368,7 @@ Validation review approval emits `validations_approved`, matching the plan lifec
 events may still appear in older streams, so readers should tolerate both names while new writers prefer the plural
 event.
 
-After `validation_preparation_started`, agents author a v2 Validation AST from exact action and locator catalogs.
+After `validation_preparation_started`, agents author a managed Validation AST from exact action and locator catalogs.
 They call `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and
 call `validation_ast_compile`. Compilation creates canonical database entities and a durable publish operation with exact
 AST, preview, receipt, projection, validation, and runtime-input hashes.

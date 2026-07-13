@@ -99,6 +99,9 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   } else if (!hasColumn(databasePath, 'PlanEvent', 'publishOperationId')) {
     addPublishOperationToPlanEvents(databasePath)
   }
+  if (hasTable(databasePath, 'ValidationAstPublishOperation')) {
+    await applyMigration(databasePath, '20260713163000_normalize_managed_validation_vocabulary')
+  }
   if (!hasTable(databasePath, 'RuntimeCapsule')) {
     await applyMigration(databasePath, '20260711220000_add_runtime_capsules')
   }

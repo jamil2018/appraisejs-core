@@ -197,12 +197,12 @@ const validationNodeSchema = z.object({
       z.object({
         schemaVersion: z.literal('1'),
         astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-        executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+        executionAuthority: z.enum(['reviewed_publication', 'runtime_capsule']),
       }),
       z.object({
         schemaVersion: z.literal('2'),
         astHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
-        executionAuthority: z.enum(['phase2_review_only', 'phase3_capsule']),
+        executionAuthority: z.enum(['reviewed_publication', 'runtime_capsule']),
         publishOperationId: z.string().min(1),
         receiptHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
         runtimeInputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
@@ -236,7 +236,7 @@ const managedValidationNodesSchema = validationNodesSchema.superRefine((items, c
       context.addIssue({
         code: 'custom',
         path: [index, 'astProvenance'],
-        message: 'Managed validation requires exact v2 AST provenance.',
+        message: 'Managed validation requires exact managed Validation AST provenance.',
       })
   })
 })

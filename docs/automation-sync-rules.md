@@ -39,7 +39,7 @@ only when the task explicitly targets that output shape and the owning sync path
 
 Treat `automation/reports` as run output. Do not hand-edit reports, logs, screenshots, or traces to satisfy app behavior.
 
-Reviewed v2 runs use Appraise-owned capsule projections under
+Reviewed managed-validation runs use Appraise-owned capsule projections under
 `.appraise/projects/<TargetProject.id>/runtime/<validationHash>/<runId>/`. These are not automation-sync inputs:
 database ownership plus the sealed manifest/receipt are authoritative, and agents must not hand-edit or import them.
 Legacy runs continue to use `automation/reports`.

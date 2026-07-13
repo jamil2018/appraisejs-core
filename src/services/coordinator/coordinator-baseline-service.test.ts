@@ -127,7 +127,7 @@ function validation(planId: string, overrides: Partial<ValidationArtifact> = {})
         astProvenance: {
           schemaVersion: '2',
           astHash: `sha256:${'a'.repeat(64)}`,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'publish-required-check',
           receiptHash: `sha256:${'b'.repeat(64)}`,
           runtimeInputHash: `sha256:${'c'.repeat(64)}`,
@@ -263,7 +263,7 @@ describe('baseline execution and implementation gate', () => {
     ).not.toBe(baselineCapsulePreparationKey({ ...base, attemptOrdinal: 0 }))
   })
 
-  it('routes an exact reviewed v2 AST baseline through a prepared capsule TestRun without target automation', async () => {
+  it('routes an exact reviewed managed Validation AST baseline through a prepared capsule TestRun without target automation', async () => {
     const planId = 'capsule-baseline'
     await writeArtifacts(planId)
     const repository = new PlanArtifactRepository(workspace)
@@ -273,7 +273,7 @@ describe('baseline execution and implementation gate', () => {
     reviewed.validations[0]!.astProvenance = {
       schemaVersion: '2',
       astHash: `sha256:${'a'.repeat(64)}`,
-      executionAuthority: 'phase2_review_only',
+      executionAuthority: 'reviewed_publication',
       publishOperationId: 'publish-operation-one',
       receiptHash: `sha256:${'b'.repeat(64)}`,
       runtimeInputHash: `sha256:${'c'.repeat(64)}`,

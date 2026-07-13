@@ -5,7 +5,7 @@ import { VALIDATION_AST_LIMITS } from './schemas'
 import type { CustomActionExtensionProposal } from './schemas'
 
 const proposal = (source: string, capabilities = ['browser']): CustomActionExtensionProposal => ({
-  schemaVersion: '1',
+  schemaVersion: 1,
   id: 'observe-breathing',
   version: '1.0.0',
   title: 'Observe breathing',
