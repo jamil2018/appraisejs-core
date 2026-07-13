@@ -36,6 +36,55 @@ export function basicValidationAstSubmission(planHash: string, taskId = 'task-on
   }
 }
 
+export function inadequateFreshTargetAuditSubmission(planHash: string) {
+  return {
+    expectedPlanHash: planHash,
+    ast: {
+      schemaVersion: '1' as const,
+      id: 'fresh-target-audit',
+      title: 'Fresh target audit',
+      purpose: 'Exercise navigation and reload without substantiating the claimed product behavior.',
+      coversTaskIds: ['task-create', 'task-complete', 'task-filter', 'task-persist', 'task-responsive'],
+      matrix: [{ browser: 'chromium' as const, environmentId: 'local' }],
+      scenarios: [
+        {
+          id: 'page-ready',
+          title: 'Page becomes ready',
+          steps: [
+            {
+              id: 'open',
+              keyword: 'When' as const,
+              description: 'the user opens the application',
+              action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+            },
+            {
+              id: 'ready',
+              keyword: 'Then' as const,
+              description: 'the page is ready',
+              action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+            },
+            {
+              id: 'reload',
+              keyword: 'When' as const,
+              description: 'the user reloads the application',
+              action: { id: 'browser.navigation.reload', version: '1', inputs: {} },
+            },
+            {
+              id: 'ready-again',
+              keyword: 'Then' as const,
+              description: 'the page is ready again',
+              action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+            },
+          ],
+        },
+      ],
+      qualityConcerns: ['accessibility', 'persistence', 'responsive'] as const,
+      customExtensions: [],
+    },
+    customExtensionProposals: [],
+  }
+}
+
 export function sqliteTestClient(databasePath: string) {
   return new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
 }
