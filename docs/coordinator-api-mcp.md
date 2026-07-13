@@ -272,6 +272,12 @@ Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" |
 "full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,
 blockers, and next action are insufficient.
 
+Planning creation, plan/validation review loops, validation context, and Validation AST check, preview, and compile
+use the same response-mode vocabulary. Summary responses retain status, lifecycle, task/content hashes, preview and
+receipt hashes, integrity blockers, cursors, and next action while omitting repeated candidate/context payloads. Full
+mode remains available for explicit diagnostics. Summary budgets are 2,000 estimated tokens for plan creation or
+coverage retry, 300 for an unchanged wait, and 1,500 for validation context or mutation.
+
 `planning_session_create` extracts explicit brief requirements before it creates a durable plan. Its response includes
 `requirementAssessment` with scored domain candidates, task-surface coverage, and warnings. When any explicit
 requirement is uncovered, it returns `status: "coverage_review_required"` with a candidate plan instead of creating a
