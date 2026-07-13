@@ -9,7 +9,7 @@ import {
 } from './contracts'
 
 const hash = `sha256:${'a'.repeat(64)}`
-const graph = {
+const graph = locatorGraphSchema.parse({
   version: '1',
   contentHash: hash,
   nodes: [
@@ -33,7 +33,7 @@ const graph = {
     { id: 'checkout-payment', fromId: 'checkout', toId: 'payment', relation: 'contains' },
     { id: 'pay-ready', fromId: 'pay-button', toId: 'ready', relation: 'available-when' },
   ],
-} as const
+})
 
 describe('locator graph contracts', () => {
   it('accepts a surface/component/state/group/locator graph and derives its visual from the same data', () => {
@@ -58,7 +58,10 @@ describe('locator graph contracts', () => {
   it('rejects missing and wrong-type embedded references', () => {
     const locatorIndex = graph.nodes.findIndex(node => node.type === 'locator')
     const nodes = [...graph.nodes]
-    nodes[locatorIndex] = { ...graph.nodes[locatorIndex], groupId: 'checkout' } as (typeof graph.nodes)[number]
+    nodes[locatorIndex] = {
+      ...graph.nodes[locatorIndex]!,
+      groupId: 'checkout',
+    } as unknown as (typeof graph.nodes)[number]
     expect(() => locatorGraphSchema.parse({ ...graph, nodes })).toThrow(/locator-group/)
 
     const missingStateNodes = graph.nodes.filter(node => node.id !== 'ready')

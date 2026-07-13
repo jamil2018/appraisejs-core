@@ -1,5 +1,9 @@
 # Agent Lifecycle Flow
 
+Plans and managed lifecycle operations remain bound to their recorded target project. UI selection, URL scope,
+cookies, and caller-supplied IDs cannot rewrite that binding; conflicts are rejected. See
+`docs/project-ownership-boundary.md`.
+
 When multiple delivered events have been handled in sequence, coordinators should cumulatively acknowledge through
 the highest handled sequence. The cumulative operation is idempotent and avoids one request per historical event;
 use single-event acknowledgement when later delivered events must remain pending.
@@ -82,6 +86,12 @@ read-only guidance for those mechanical transitions rather than competing button
 with baseline decisions and interrupts: cancelling active baseline runs, acknowledging unrelated failures, justifying
 accepted regression-pass evidence, and accepting complete baseline evidence.
 
+When a baseline is intentionally red before implementation, the managed Validation AST must declare `expectedFailures`
+for the exact browser/environment matrix entry. Entries preserve legacy baseline semantics: `signature` is matched in
+`order`, and `lastPassingStepId` names the AST step that must pass before the expected product failure. Use `null` only
+when the expected failure occurs at the first scenario step. Expected red evidence remains review-bound and must not be
+converted into an unrelated-failure acknowledgement.
+
 Baseline TestRun display names include the durable attempt ordinal. Replaying an active content-bound preparation
 reuses its existing TestRun, while a repaired and reapproved validation advances the ordinal and receives a distinct
 name without deleting or renaming historical evidence.
@@ -120,6 +130,8 @@ validations need fresh managed Appraise `TestRun` evidence with `evidenceHealth:
 `implementation_validation_reconcile` may receive `verifyTaskIds` with an `idempotencyKey`. In that combined mode,
 Appraise reconciles managed runs and verifies only implemented tasks whose required validations have fresh, passing,
 full-assurance evidence in one artifact compare-and-write. Replaying the key does not duplicate state or events.
+If later task verification makes the preserved evidence completion-ready, replaying that reconciliation key repairs
+the lifecycle to `validation_passed` and emits the gate event exactly once; the idempotency receipt remains unchanged.
 
 ## Ownership Matrix
 
@@ -154,6 +166,11 @@ Completion requires fresh passing required validations with `evidenceHealth: val
 protected evidence, and a completion review. A passing validation matrix emits `validation_passed`; it does not
 complete the plan. Only explicit final user approval writes final sign-off, emits `completed`, and releases evidence
 protection.
+
+The plan review Approval tab renders **Approve final completion** only while lifecycle is `validation_passed` and the
+current completion receipt is ready. The user must explicitly confirm intent, and the server action submits the exact
+displayed evidence hash. A concurrent event or artifact change rejects the stale hash and leaves the plan incomplete
+until the refreshed receipt is reviewed and confirmed again.
 
 Repository export is independently policy-controlled. Disabled and optional exports never block completion. Required
 export blocks only until a project-bound receipt exists for the exact reviewed validation hash; managed TestRun

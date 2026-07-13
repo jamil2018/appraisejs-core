@@ -21,7 +21,7 @@ function assertReviewOwnership(
     ownership.targetProject.id === ownership.targetProjectId,
     ownership.plan.sourceHash === ownership.expectedPlanHash,
     ownership.targetProject.fingerprint === ownership.targetFingerprint,
-    ownership.plan.lifecycle === 'preparing_validations',
+    ['preparing_validations', 'validation_changes_requested'].includes(ownership.plan.lifecycle),
     ownership.plan.validationJson === ownership.validationProjectionJson,
   ]
   if (matches.some(match => !match)) throw new ServiceError('Publish operation review context changed.', 'CONFLICT')

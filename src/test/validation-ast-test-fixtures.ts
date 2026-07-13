@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 
 export function basicValidationAstSubmission(planHash: string, taskId = 'task-one') {
   return {
@@ -94,6 +94,6 @@ export async function createPlanRuntimeTestWorkspace(prefix: string, databaseNam
   const databasePath = path.join(workspace, databaseName)
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+  await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
   return { workspace, databasePath, client: sqliteTestClient(databasePath) }
 }

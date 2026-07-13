@@ -116,7 +116,13 @@ export function createValidationAstCanonicalProjection(
       executionAuthority: 'reviewed_publication',
     },
     matrix: ast.matrix.map(entry => ({ browser: entry.browser ?? 'chromium', environment: entry.environmentId })),
-    expectedFailures: [],
+    expectedFailures: ast.expectedFailures.map(item => ({
+      browser: item.browser,
+      environment: item.environmentId,
+      signature: item.signature,
+      order: item.order,
+      lastPassingStepId: item.lastPassingStepId,
+    })),
   } satisfies ValidationArtifact['validations'][number]
   const gherkin = ast.scenarios.map(scenario =>
     [`Scenario: ${scenario.title}`, ...scenario.steps.map(step => `  ${step.keyword} ${step.description}`)].join('\n'),

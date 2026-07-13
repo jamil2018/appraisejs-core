@@ -9,6 +9,7 @@ import MobileNavigation from './mobile-navigation'
 vi.mock('next/navigation', () => ({
   usePathname: () => '/reports',
   useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock('./nav-command', () => ({

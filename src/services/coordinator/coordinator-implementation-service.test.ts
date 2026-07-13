@@ -16,7 +16,7 @@ import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
@@ -38,7 +38,7 @@ let databasePath: string
 let client: PrismaClient
 
 async function ensurePlanRuntimeSchema() {
-  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+  await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
 }
 
 function plan(planId: string, lifecycle: PlanArtifact['lifecycle'] = 'in_progress'): PlanArtifact {
@@ -201,6 +201,18 @@ async function writeArtifacts(
   validationOverrides: Partial<ValidationArtifact> = {},
   reviewOverrides: Partial<ReviewArtifact> = {},
 ) {
+  await Promise.all([
+    client.environment.upsert({
+      where: { name: 'local' },
+      update: { baseUrl: 'http://localhost:3000' },
+      create: { name: 'local', baseUrl: 'http://localhost:3000' },
+    }),
+    client.environment.upsert({
+      where: { name: 'staging' },
+      update: { baseUrl: 'https://staging.example.test' },
+      create: { name: 'staging', baseUrl: 'https://staging.example.test' },
+    }),
+  ])
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'validations'), { recursive: true })
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'reviews'), { recursive: true })
   await fs.writeFile(
@@ -421,7 +433,7 @@ describe('implementation coordinator checkpoints', () => {
 
     expect(result.runs.map(run => run.testRunId)).toEqual(prepared.map(row => row.runId))
     expect(result.runs.every(run => run.runtimePaths === undefined)).toBe(true)
-    expect(result.testRunInputs).toBeUndefined()
+    expect(result).not.toHaveProperty('testRunInputs')
     expect(result.capsuleStartOutcomes).toEqual([
       { testRunDbId: prepared[0]!.id, status: 'started', attemptId: `attempt-${prepared[0]!.id}` },
       {
@@ -462,15 +474,15 @@ describe('implementation coordinator checkpoints', () => {
     expect(new Set([...first.runs, ...second.runs].map(run => run.testRunId)).size).toBe(4)
     await expect(client.testRun.count({ where: { planId } })).resolves.toBe(4)
     expect([...first.runs, ...second.runs].every(run => run.runtimePaths === undefined)).toBe(true)
-    expect(first.testRunInputs).toBeUndefined()
-    expect(second.testRunInputs).toBeUndefined()
+    expect(first).not.toHaveProperty('testRunInputs')
+    expect(second).not.toHaveProperty('testRunInputs')
   })
 
   it('atomically verifies explicit tasks from satisfied managed evidence and replays idempotently', async () => {
     const planId = 'atomic-task-evidence'
     await writeArtifacts(planId, undefined, {
       implementation: {
-        taskStates: { foundation: 'implemented' },
+        taskStates: { foundation: 'implemented', api: 'implemented', docs: 'implemented' },
         approvedGroupIds: ['core', 'documentation'],
         pausedTaskIds: [],
         validationRuns: [
@@ -488,6 +500,20 @@ describe('implementation coordinator checkpoints', () => {
             evidenceUrls: ['/test-runs/managed-core-run'],
             completedAt: '2026-06-11T00:00:00.000Z',
           },
+          {
+            id: 'docs-run',
+            validationId: 'docs-validation',
+            taskIds: ['docs'],
+            required: true,
+            status: 'passed',
+            fresh: true,
+            commitHash: 'commit-docs',
+            evidenceSource: 'managed',
+            assurance: 'full',
+            testRunId: 'managed-docs-run',
+            evidenceUrls: ['/test-runs/managed-docs-run'],
+            completedAt: '2026-06-11T00:00:00.000Z',
+          },
         ],
         commits: [],
         reconciliationReceipts: [],
@@ -500,17 +526,31 @@ describe('implementation coordinator checkpoints', () => {
       { projectDirectory: workspace, client, now: new Date('2026-06-11T00:01:00.000Z') },
     )
     expect(first).toMatchObject({
+      plan: { lifecycle: 'failed_validation' },
       validation: { implementation: { taskStates: { foundation: 'verified' } } },
       receipt: { idempotencyKey: 'verify-foundation-1', verifiedTaskIds: ['foundation'] },
     })
+
+    await updateImplementationTask(
+      { planId, taskId: 'api', status: 'verified' },
+      { projectDirectory: workspace, client },
+    )
+    await updateImplementationTask(
+      { planId, taskId: 'docs', status: 'verified' },
+      { projectDirectory: workspace, client },
+    )
 
     const replay = await reconcileImplementationValidation(
       { planId, runIds: [], verifyTaskIds: ['foundation'], idempotencyKey: 'verify-foundation-1' },
       { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
     )
     expect(replay.receipt).toEqual(first.receipt)
+    expect(replay).toMatchObject({ plan: { lifecycle: 'validation_passed' }, readiness: { ready: true } })
     await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
       expect.objectContaining({ type: 'task_evidence_reconciled' }),
+      expect.objectContaining({ type: 'task_updated' }),
+      expect.objectContaining({ type: 'task_updated' }),
+      expect.objectContaining({ type: 'validation_passed' }),
     ])
   })
 
@@ -730,7 +770,7 @@ describe('implementation coordinator checkpoints', () => {
       plan: { lifecycle: 'validating' },
       runs: [expect.objectContaining({ validationId: 'core-validation', status: 'running' })],
     })
-    expect(started.testRunInputs).toBeUndefined()
+    expect(started).not.toHaveProperty('testRunInputs')
 
     const run = started.runs[0]!
     await expect(

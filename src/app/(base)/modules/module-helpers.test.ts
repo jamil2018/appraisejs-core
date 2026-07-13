@@ -12,6 +12,7 @@ const moduleRow = {
   name: 'Payments',
   parentId: null,
   parent: null,
+  targetProjectId: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
 }

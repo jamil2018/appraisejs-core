@@ -5,7 +5,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 import { basicValidationAstSubmission, sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
@@ -125,7 +125,7 @@ beforeEach(async () => {
   await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"ast-operation-test"}')
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
   client = sqliteTestClient(databasePath)
-  await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+  await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
   const environment = await client.environment.upsert({
     where: { name: 'local' },
     update: {},

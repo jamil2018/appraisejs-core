@@ -1,0 +1,158 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - link "Skip to main content" [ref=f1e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=f1e4]:
+      - link "AppraiseJS dashboard" [ref=f1e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f1e7]:
+          - img "AppraiseJS" [ref=f1e8]
+          - generic [ref=f1e9]:
+            - generic [ref=f1e10]: Appraise
+            - generic [ref=f1e11]: JS
+      - button "Open Command Palette" [ref=f1e13] [cursor=pointer]:
+        - generic [ref=f1e14]: Search
+        - generic [ref=f1e15]: Ctrl K
+      - navigation "Primary navigation" [ref=f1e17]:
+        - generic [ref=f1e18]:
+          - generic [ref=f1e19]:
+            - heading "Control" [level=2] [ref=f1e20]
+            - generic [ref=f1e21]:
+              - link "Dashboard" [ref=f1e22] [cursor=pointer]:
+                - /url: /
+              - link "Plans" [ref=f1e29] [cursor=pointer]:
+                - /url: /plans
+          - generic [ref=f1e37]:
+            - heading "Execution" [level=2] [ref=f1e38]
+            - generic [ref=f1e39]:
+              - link "Test Runs" [ref=f1e40] [cursor=pointer]:
+                - /url: /test-runs
+              - link "Reports" [ref=f1e45] [cursor=pointer]:
+                - /url: /reports
+              - link "Test Suites" [ref=f1e51] [cursor=pointer]:
+                - /url: /test-suites
+              - link "Test Cases" [ref=f1e56] [cursor=pointer]:
+                - /url: /test-cases
+          - generic [ref=f1e61]:
+            - heading "Library" [level=2] [ref=f1e62]
+            - generic [ref=f1e63]:
+              - link "Template Steps" [ref=f1e64] [cursor=pointer]:
+                - /url: /template-steps
+              - link "Step Groups" [ref=f1e70] [cursor=pointer]:
+                - /url: /template-step-groups
+              - link "Step Blocks" [ref=f1e77] [cursor=pointer]:
+                - /url: /step-blocks
+              - link "Case Templates" [ref=f1e82] [cursor=pointer]:
+                - /url: /template-test-cases
+          - generic [ref=f1e87]:
+            - heading "System" [level=2] [ref=f1e88]
+            - generic [ref=f1e89]:
+              - link "Locators" [ref=f1e90] [cursor=pointer]:
+                - /url: /locators
+              - link "Locator Groups" [ref=f1e95] [cursor=pointer]:
+                - /url: /locator-groups
+              - link "Modules" [ref=f1e104] [cursor=pointer]:
+                - /url: /modules
+              - link "Environments" [ref=f1e108] [cursor=pointer]:
+                - /url: /environments
+              - link "Tags" [ref=f1e113] [cursor=pointer]:
+                - /url: /tags
+              - link "Settings" [ref=f1e118] [cursor=pointer]:
+                - /url: /settings
+      - paragraph [ref=f1e124]:
+        - generic [ref=f1e126]: Local-first workspace
+    - main [ref=f1e127]:
+      - main [ref=f1e130]:
+        - generic [ref=f1e131]:
+          - generic [ref=f1e132]:
+            - link "Plans" [ref=f1e133] [cursor=pointer]:
+              - /url: /plans
+            - generic [ref=f1e136]: /
+            - generic [ref=f1e137]: Build a simple persistent todo app
+          - generic [ref=f1e138]:
+            - generic [ref=f1e139]: awaiting validation review
+            - generic [ref=f1e143]: Approved
+        - generic [ref=f1e145]:
+          - generic [ref=f1e146]:
+            - generic [ref=f1e147]: Rev 1
+            - heading "Build a simple persistent todo app" [level=1] [ref=f1e152]
+            - paragraph [ref=f1e153]: Create a lightweight React and TypeScript todo web app with add, completion toggle, deletion, All/Active/Completed filtering, localStorage persistence for todos and selected filter, responsive presentation, accessible controls, and automated happy-path validation.
+            - generic [ref=f1e154]:
+              - generic "Implementation groups" [ref=f1e155]:
+                - generic [ref=f1e158]: "Groups:"
+                - generic [ref=f1e159]:
+                  - generic [ref=f1e160]: foundation (1)
+                  - generic [ref=f1e161]: experience (3)
+                  - generic [ref=f1e162]: quality (1)
+              - generic [ref=f1e163]:
+                - generic [ref=f1e168]: build-a-simple-persistent-todo-app
+                - generic [ref=f1e169]: "(ID: pln_01kxdgrhsp8z6wssqdya4vyjzx)"
+          - generic [ref=f1e170]:
+            - button "Shortcuts" [ref=f1e171] [cursor=pointer]
+            - button "Export Plan" [ref=f1e172] [cursor=pointer]
+            - button "Hide inspector" [ref=f1e173] [cursor=pointer]
+        - generic [ref=f1e174]:
+          - generic [ref=f1e175]:
+            - generic [ref=f1e177]:
+              - generic [ref=f1e178]:
+                - generic [ref=f1e179]: Review surface
+                - generic [ref=f1e180]: Steps progress left to right. Tasks in the same stage may proceed in parallel.
+              - generic [ref=f1e181]:
+                - generic [ref=f1e182]: depends-on
+                - generic [ref=f1e184]: blocks
+                - generic [ref=f1e186]: relates-to
+            - generic [ref=f1e189]:
+              - tablist "Plan review representations" [ref=f1e191]:
+                - tab "Graph" [ref=f1e192] [cursor=pointer]
+                - tab "Accessible list" [ref=f1e198] [cursor=pointer]
+                - tab "Revisions" [ref=f1e200] [cursor=pointer]
+                - tab "Validations" [selected] [ref=f1e206] [cursor=pointer]
+              - tabpanel "Validations" [ref=f1e210]:
+                - generic [ref=f1e211]: No validation artifact has been published for this plan revision.
+          - complementary [ref=f1e213]:
+            - generic [ref=f1e215]:
+              - tablist [ref=f1e217]:
+                - tab "Discussion" [selected] [ref=f1e218] [cursor=pointer]
+                - tab "Baselines" [disabled]
+                - tab "Approval" [ref=f1e219] [cursor=pointer]
+              - tabpanel "Discussion" [ref=f1e220]:
+                - generic [ref=f1e221]:
+                  - generic [ref=f1e222]:
+                    - 'heading "Task 1: Scaffold React TypeScript app" [level=3] [ref=f1e223]'
+                    - generic [ref=f1e224]: ready
+                  - paragraph [ref=f1e225]: Create a minimal Vite React TypeScript app with local scripts, semantic page shell, responsive styling foundation, and no unnecessary runtime dependencies.
+                  - generic [ref=f1e226]:
+                    - paragraph [ref=f1e227]: Acceptance criteria
+                    - list [ref=f1e228]:
+                      - listitem [ref=f1e229]: The app installs and starts locally without errors.
+                      - listitem [ref=f1e230]: The layout adapts cleanly to mobile and desktop viewport widths.
+                      - listitem [ref=f1e231]: The project provides build, lint, and test scripts.
+                  - generic [ref=f1e232]:
+                    - paragraph [ref=f1e233]: Relationships
+                    - generic [ref=f1e234]:
+                      - text: "Blocks:"
+                      - button "#2 Build accessible todo interactions" [ref=f1e236] [cursor=pointer]:
+                        - generic [ref=f1e237]: "#2"
+                        - generic [ref=f1e238]: Build accessible todo interactions
+                - generic [ref=f1e239]:
+                  - generic [ref=f1e240]:
+                    - paragraph [ref=f1e241]: Add Remark
+                    - button "Switch to Plan-wide" [ref=f1e242] [cursor=pointer]
+                  - generic [ref=f1e243]:
+                    - generic [ref=f1e244]: Remark body
+                    - textbox "Remark body" [ref=f1e245]:
+                      - /placeholder: Type a comment for Task 1... (Supports markdown)
+                  - generic [ref=f1e246]:
+                    - generic [ref=f1e247]:
+                      - checkbox "Blocking remark" [checked] [ref=f1e248] [cursor=pointer]
+                      - checkbox [checked]
+                      - generic [ref=f1e249] [cursor=pointer]: Blocking remark
+                    - button "Comment" [disabled]
+                - generic [ref=f1e250]:
+                  - generic [ref=f1e251]:
+                    - heading "Remarks History" [level=4] [ref=f1e252]
+                    - generic [ref=f1e253]: 0 Threads
+                  - generic [ref=f1e254]: No remarks for this target.
+    - region "Notifications (F8)":
+      - list
+  - button "Open Next.js Dev Tools" [ref=f1e261] [cursor=pointer]

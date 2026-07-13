@@ -107,6 +107,7 @@ const validation = {
       },
     ],
     commits: [],
+    reconciliationReceipts: [],
     evidenceProtected: true,
   },
 } satisfies ValidationArtifact

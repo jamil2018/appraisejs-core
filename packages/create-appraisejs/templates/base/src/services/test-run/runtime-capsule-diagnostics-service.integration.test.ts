@@ -10,7 +10,7 @@ import {
   RuntimeCapsulePreflight,
 } from '@/lib/runtime-capsule'
 import { processManager } from '@/lib/test-run/process-manager'
-import { ensureCoordinatorPlanRuntimeTestSchema } from '@/test/plan-runtime-schema-test-helper'
+import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
 import { seedReviewedCapsuleLifecycleFixture } from '@/test/reviewed-capsule-lifecycle-fixture'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { readRuntimeCapsuleDiagnostic } from './runtime-capsule-diagnostics-service'
@@ -28,7 +28,7 @@ describe('runtime capsule bounded diagnostics in SQLite', () => {
     workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-capsule-diagnostic-'))
     const databasePath = path.join(workspace, 'diagnostic.db')
     await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
-    await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
+    await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
     client = sqliteTestClient(databasePath)
     const environment = await client.environment.create({
       data: { name: `diagnostic-${Date.now()}`, baseUrl: 'http://localhost' },

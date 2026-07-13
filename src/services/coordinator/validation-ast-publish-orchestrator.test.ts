@@ -134,6 +134,7 @@ describe('Validation AST publish recovery', () => {
     await expect(
       resumeValidationAstPublish('op', { client, projectDirectory: workspace, crashAfter: 'after_projection' }),
     ).rejects.toThrow('injected-after-projection')
+    operation.plan.lifecycle = 'validation_changes_requested'
     await expect(resumeValidationAstPublish('op', { client, projectDirectory: workspace })).resolves.toMatchObject({
       phase: 'review_ready',
     })

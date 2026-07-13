@@ -336,7 +336,9 @@ async function submitCapsuleTestRun(
   if (provenance?.schemaVersion !== '2')
     throw new ServiceError('Reviewed AST baseline requires an exact managed publish operation.', 'CONFLICT')
   const operationId = provenance.publishOperationId
-  const environment = await client.environment.findUnique({ where: { name: input.environment } })
+  const environment = await client.environment.findFirst({
+    where: { OR: [{ id: input.environment }, { name: input.environment }] },
+  })
   if (!environment) throw new ServiceError(`Environment "${input.environment}" was not found.`, 'VALIDATION')
   const request = {
     operationId,
@@ -562,6 +564,24 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
 export async function reconcileBaselineExecution(planId: string, options: BaselineOptions = {}) {
   const { client, artifacts } = await readRunningBaselineArtifacts(planId, options)
   await assertValidationFilesUnchanged(artifacts)
+  const startFailed = await client.planEvent.findFirst({
+    where: { plan: { planId }, type: 'baseline_run_start_failed' },
+    select: { id: true },
+  })
+  if (startFailed) {
+    await client.testRun.updateMany({
+      where: {
+        runId: { in: artifacts.validation.baselineAttempts.map(attempt => attempt.testRunId) },
+        status: TestRunStatus.QUEUED,
+      },
+      data: {
+        status: TestRunStatus.COMPLETED,
+        result: TestRunResult.FAILED,
+        evidenceHealth: 'infrastructure_failure',
+        completedAt: new Date(),
+      },
+    })
+  }
   const loadEvidence =
     options.loadEvidence ??
     (testRunId =>
@@ -583,7 +603,9 @@ export async function reconcileBaselineExecution(planId: string, options: Baseli
     }),
   )
   const stillRunning = attempts.some(attempt => ['scheduled', 'running', 'interrupted'].includes(attempt.status))
-  const hasHarnessFailure = attempts.some(
+  const latestAttempts = new Map<string, (typeof attempts)[number]>()
+  attempts.forEach(attempt => latestAttempts.set(baselineCombinationKey(attempt), attempt))
+  const hasHarnessFailure = [...latestAttempts.values()].some(
     attempt => attempt.status === 'completed' && attempt.classification === 'authoring_failure',
   )
   const plan = {

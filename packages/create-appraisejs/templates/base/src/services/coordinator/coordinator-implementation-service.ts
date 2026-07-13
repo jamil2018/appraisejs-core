@@ -954,10 +954,25 @@ export async function reconcileImplementationValidation(
     receipt => receipt.idempotencyKey === input.idempotencyKey,
   )
   if (existingReceipt) {
+    const readiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
+    const lifecycle = readiness.ready ? ('validation_passed' as const) : ('failed_validation' as const)
+    if (artifacts.plan.lifecycle !== lifecycle) {
+      const plan = { ...artifacts.plan, lifecycle }
+      await writeArtifacts(artifacts, plan, artifacts.validation, artifacts.review, client)
+      await appendPlanEvent(
+        {
+          planId: input.planId,
+          type: readiness.ready ? 'validation_passed' : 'validation_failed',
+          payload: { runIds: existingReceipt.runIds, blockers: readiness.blockers },
+        },
+        client,
+      )
+      return { plan, validation: artifacts.validation, readiness, receipt: existingReceipt }
+    }
     return {
       plan: artifacts.plan,
       validation: artifacts.validation,
-      readiness: canCompleteImplementation(artifacts.plan, artifacts.validation),
+      readiness,
       receipt: existingReceipt,
     }
   }

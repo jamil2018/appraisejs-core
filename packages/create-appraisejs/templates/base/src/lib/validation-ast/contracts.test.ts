@@ -48,6 +48,7 @@ const ast = {
     },
   ],
   qualityConcerns: ['persistence', 'accessibility'],
+  expectedFailures: [],
   customExtensions: ['read-session-timer'],
 } as const
 
@@ -80,7 +81,37 @@ describe('validation AST contracts', () => {
       validationAstSchema.safeParse(withSteps([ast.scenarios[0].steps[0], ast.scenarios[0].steps[0]])).success,
     ).toBe(false)
     expect(
-      validationAstSchema.safeParse(withSteps([{ ...ast.scenarios[0].steps[0], source: 'raw code' }])).success,
+      validationAstSchema.safeParse(
+        withSteps([
+          {
+            ...ast.scenarios[0].steps[0],
+            source: 'raw code',
+          } as unknown as (typeof ast.scenarios)[number]['steps'][number],
+        ]),
+      ).success,
+    ).toBe(false)
+  })
+
+  it('accepts matrix-bound expected red baselines and validates their last passing step', () => {
+    const expectedFailure = {
+      browser: 'chromium' as const,
+      environmentId: 'local',
+      signature: 'The notes app is not reachable before implementation.',
+      order: 0,
+      lastPassingStepId: null,
+    }
+    expect(validationAstSchema.safeParse({ ...ast, expectedFailures: [expectedFailure] }).success).toBe(true)
+    expect(
+      validationAstSchema.safeParse({
+        ...ast,
+        expectedFailures: [{ ...expectedFailure, lastPassingStepId: 'missing-step' }],
+      }).success,
+    ).toBe(false)
+    expect(
+      validationAstSchema.safeParse({
+        ...ast,
+        expectedFailures: [{ ...expectedFailure, environmentId: 'staging' }],
+      }).success,
     ).toBe(false)
   })
 

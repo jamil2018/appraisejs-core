@@ -12,19 +12,36 @@ import {
 } from './plans-page-helpers'
 
 function makePlan(overrides: Partial<ListedPlan> & Pick<ListedPlan, 'planId' | 'lifecycle'>): ListedPlan {
-  return {
+  const plan: ListedPlan = {
+    id: overrides.planId,
+    planId: overrides.planId,
     slug: overrides.planId,
+    legacyPlanId: null,
+    lifecycle: overrides.lifecycle,
     goal: 'Test goal',
     description: 'Test description',
     revision: 1,
+    sourceHash: 'source-hash',
+    planContentHash: 'content-hash',
+    planStateHash: 'state-hash',
+    reviewBindingHash: 'review-hash',
+    planPath: `/plans/${overrides.planId}.yaml`,
+    reviewJson: null,
     stale: false,
     conflicted: false,
+    deletedAt: null,
     tasks: [],
     issues: [],
+    revisions: [],
     validationJson: null,
+    layoutJson: null,
+    targetProjectId: null,
+    lastValidProjectedAt: new Date('2026-06-28T00:00:00.000Z'),
+    lastSyncAt: new Date('2026-06-28T00:00:00.000Z'),
+    createdAt: new Date('2026-06-28T00:00:00.000Z'),
     updatedAt: new Date('2026-06-28T00:00:00.000Z'),
-    ...overrides,
   }
+  return Object.assign(plan, overrides)
 }
 
 describe('plans-page-helpers', () => {
@@ -74,7 +91,16 @@ describe('plans-page-helpers', () => {
     const plan = makePlan({
       planId: 'progress',
       lifecycle: 'in_progress',
-      tasks: [{ taskId: 'a' }, { taskId: 'b' }, { taskId: 'c' }],
+      tasks: ['a', 'b', 'c'].map((taskId, position) => ({
+        id: `task-${taskId}`,
+        taskId,
+        title: taskId,
+        description: taskId,
+        validationIntent: 'verify',
+        planProjectionId: 'progress',
+        position,
+        acceptanceJson: '[]',
+      })),
       validationJson: JSON.stringify({
         implementation: { taskStates: { a: 'completed', b: 'implemented', c: 'pending' } },
       }),

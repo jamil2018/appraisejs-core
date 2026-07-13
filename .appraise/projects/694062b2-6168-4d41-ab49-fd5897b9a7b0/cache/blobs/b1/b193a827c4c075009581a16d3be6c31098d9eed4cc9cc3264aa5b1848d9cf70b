@@ -1,0 +1,2 @@
+export default {"format":["json:reports/cucumber.json"],"import":["bindings/notes-app-readiness.mjs","support/world.mjs","support/hooks.mjs"],"paths":["features/notes-app-readiness.feature"],"publishQuiet":true}
+export const preflight = {"format":["json:reports/preflight.json"],"import":["bindings/notes-app-readiness.mjs","support/world.mjs","support/hooks.mjs"],"paths":["features/notes-app-readiness.feature"],"publishQuiet":true}

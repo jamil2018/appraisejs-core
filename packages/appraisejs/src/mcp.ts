@@ -460,6 +460,15 @@ export function missingCapabilityRecovery(missing: { tools?: string[]; resources
   }
 }
 
+export function compactProjectDiagnostic(diagnostic: Awaited<ReturnType<typeof diagnoseProject>>) {
+  const { targetProjects, ...rest } = diagnostic
+  return {
+    ...rest,
+    targetProjectCount: targetProjects.length,
+    targetProjectDiscovery: 'Call project_list only when target selection requires the registered-project list.',
+  }
+}
+
 export const agentGuide = {
   summary:
     'Use AppraiseJS as the lifecycle owner for planning, validation, baseline, implementation, and completion gates.',
@@ -1837,9 +1846,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       return text(
         withGuidance(
           {
-            ...diagnostic,
+            ...compactProjectDiagnostic(diagnostic),
             capabilities: mcpCapabilityMetadata,
-            capabilityRecovery: missingCapabilityRecovery(),
+            capabilityStatus: 'available',
           },
           diagnosticGuidance(diagnostic),
         ),
@@ -2822,20 +2831,26 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         expectedValidationHash: z.string().startsWith('sha256:'),
       },
     },
-    async ({ planId, reason, expectedValidationHash }) =>
-      text(
-        lifecycleToolPayload({
-          planId,
-          result: await api.request(`plans/${planId}/baseline/retry`, {
-            method: 'POST',
-            body: JSON.stringify({ reason, expectedValidationHash }),
+    async ({ planId, reason, expectedValidationHash }) => {
+      try {
+        return text(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/baseline/retry`, {
+              method: 'POST',
+              body: JSON.stringify({ reason, expectedValidationHash }),
+            }),
+            nextRecommendedAction:
+              'Repair the managed Validation AST and submit it through check, preview, and compile for fresh review.',
+            nextRequiredAgentBehavior: 'revise_validation_artifacts',
+            nextAllowedAction: { tool: 'validation_context_read' },
           }),
-          nextRecommendedAction:
-            'Repair the managed Validation AST and submit it through check, preview, and compile for fresh review.',
-          nextRequiredAgentBehavior: 'revise_validation_artifacts',
-          nextAllowedAction: { tool: 'validation_context_read' },
-        }),
-      ),
+        )
+      } catch (error) {
+        if (error instanceof CoordinatorRequestError) return toolError(error)
+        throw error
+      }
+    },
   )
   server.registerTool(
     'baseline_failure_acknowledge',

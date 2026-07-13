@@ -44,7 +44,7 @@ export function extractCucumberEvidence(
   return {
     failureSignatures: steps
       .filter(step => step.result?.status === 'failed' && step.result.error_message)
-      .map(step => step.result!.error_message!.trim()),
+      .map(step => step.result!.error_message!.trim().split(/\r?\n/, 1)[0]!),
     completedStepIds: steps
       .filter(step => step.result?.status === 'passed')
       .flatMap(step => [step.name?.trim(), `${step.keyword ?? ''}${step.name ?? ''}`.trim()])

@@ -8,6 +8,7 @@ import {
   LayoutTemplate,
   ListChecks,
   Network,
+  FolderKanban,
   Bot,
   Puzzle,
   Server,
@@ -110,6 +111,7 @@ function getSystemSection(): NavigationSection {
   return {
     label: 'System',
     items: [
+      { href: '/projects', label: 'Projects', icon: FolderKanban },
       { href: '/locators', label: 'Locators', icon: Code },
       { href: '/locator-groups', label: 'Locator Groups', icon: Group },
       { href: '/modules', label: 'Modules', icon: Puzzle },

@@ -5,6 +5,7 @@ import {
   approvalPendingResponse,
   applyLifecycleResponseMode,
   baselineRecoveryForLifecycle,
+  compactProjectDiagnostic,
   createAppraiseMcpServer,
   createPlanFromBrief,
   latestGateEvent,
@@ -580,6 +581,31 @@ describe('MCP capability and recovery metadata', () => {
     expect(recovery.status).toBe('missing_or_stale')
     expect(recovery.recoveryActions.join(' ')).toContain('Restart or reconnect the MCP client')
     expect(recovery.toolsNotVisible).toContain('native MCP tools are absent')
+  })
+
+  it('keeps healthy project diagnostics bounded and routes target enumeration to project_list', () => {
+    const diagnostic = compactProjectDiagnostic({
+      ok: true,
+      hubProject: { cwd: '/repo', fingerprint: 'sha256:hub', canonicalPath: '/repo' },
+      project: { cwd: '/repo', fingerprint: 'sha256:hub' },
+      targetProjects: Array.from({ length: 30 }, (_, index) => ({
+        id: `target-${index}`,
+        displayName: `Target ${index}`,
+      })),
+      contractVersion: 'test',
+      baseUrl: 'http://127.0.0.1:3000',
+      checks: [],
+      warnings: [],
+      recommendedValidationBaseRevision: undefined,
+      recoveryActions: [],
+      links: { application: 'http://127.0.0.1:3000' },
+    })
+
+    expect(diagnostic).not.toHaveProperty('targetProjects')
+    expect(diagnostic).toMatchObject({
+      targetProjectCount: 30,
+      targetProjectDiscovery: expect.stringContaining('project_list'),
+    })
   })
 })
 

@@ -25,6 +25,7 @@ const targetProject = {
   id: 'target-1',
   canonicalPath: '/tmp/target',
   displayName: 'Target',
+  description: null,
   packageName: null,
   packageManager: null,
   packageJson: null,

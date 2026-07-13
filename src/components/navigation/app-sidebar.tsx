@@ -1,32 +1,39 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 
 import Logo from '@/components/logo'
 
 import NavCommand from './nav-command'
-import { getSidebarNavigationSections, type NavigationCommandItem } from './nav-command-helpers'
-
-type AppSidebarProps = {
-  providerRunsEnabled?: boolean
-}
-
-function isItemActive(pathname: string, href: string) {
-  return href === '/' ? pathname === '/' : pathname.startsWith(href)
-}
+import NavigationSections from './navigation-sections'
+import ProjectSelector from './project-selector'
+import type { NavigationCommandItem } from './nav-command-helpers'
+import {
+  isNavigationItemActive,
+  projectScopedHref,
+  type ProjectNavigationProps,
+  useProjectNavigationState,
+} from './project-navigation-helpers'
 
 function ariaCurrent(active: boolean) {
   return active ? 'page' : undefined
 }
 
-function SidebarNavItem({ item, pathname }: { item: NavigationCommandItem; pathname: string }) {
+function SidebarNavItem({
+  item,
+  pathname,
+  projectId,
+}: {
+  item: NavigationCommandItem
+  pathname: string
+  projectId?: string
+}) {
   const Icon = item.icon
-  const active = isItemActive(pathname, item.href)
+  const active = isNavigationItemActive(pathname, item.href)
 
   return (
     <Link
-      href={item.href}
+      href={projectScopedHref(item.href, projectId)}
       data-active={active}
       className="hover:text-foreground/90 focus-visible:ring-sidebar-ring group relative flex min-h-8 items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] leading-5 text-muted-foreground outline-none transition-colors hover:bg-white/[0.045] focus-visible:ring-1 data-[active=true]:bg-white/[0.085] data-[active=true]:font-medium data-[active=true]:text-foreground data-[active=true]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_0_0_1px_rgba(255,255,255,0.07)]"
       aria-current={ariaCurrent(active)}
@@ -44,9 +51,12 @@ function SidebarNavItem({ item, pathname }: { item: NavigationCommandItem; pathn
   )
 }
 
-export default function AppSidebar({ providerRunsEnabled = false }: AppSidebarProps) {
-  const pathname = usePathname()
-  const sections = getSidebarNavigationSections({ providerRunsEnabled })
+export default function AppSidebar({
+  providerRunsEnabled = false,
+  projects = [],
+  cookieProjectId,
+}: ProjectNavigationProps) {
+  const { pathname, projectId, sections } = useProjectNavigationState({ providerRunsEnabled, cookieProjectId })
 
   return (
     <aside
@@ -59,7 +69,7 @@ export default function AppSidebar({ providerRunsEnabled = false }: AppSidebarPr
     >
       <div className="flex shrink-0 items-center px-3 pb-0.5 pt-3">
         <Link
-          href="/"
+          href={projectScopedHref('/', projectId)}
           className="focus-visible:ring-sidebar-ring rounded-md outline-none focus-visible:ring-1"
           aria-label="AppraiseJS dashboard"
         >
@@ -68,6 +78,11 @@ export default function AppSidebar({ providerRunsEnabled = false }: AppSidebarPr
       </div>
 
       <div className="shrink-0 px-3 py-1.5">
+        <ProjectSelector
+          projects={projects}
+          cookieProjectId={cookieProjectId}
+          className="mb-2 h-8 border-white/[0.08] bg-white/[0.055] text-xs"
+        />
         <NavCommand
           variant="sidebar"
           label="Search"
@@ -80,20 +95,10 @@ export default function AppSidebar({ providerRunsEnabled = false }: AppSidebarPr
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 pb-3 [scrollbar-color:rgba(255,255,255,0.12)_transparent] [scrollbar-width:thin] lg:pb-2"
         aria-label="Primary navigation"
       >
-        <div className="space-y-3.5">
-          {sections.map(section => (
-            <section key={section.label}>
-              <h2 className="text-muted-foreground/70 mb-1 px-2.5 text-[10px] font-medium uppercase tracking-[0.08em]">
-                {section.label}
-              </h2>
-              <div className="space-y-px">
-                {section.items.map(item => (
-                  <SidebarNavItem key={item.href} item={item} pathname={pathname} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        <NavigationSections
+          sections={sections}
+          renderItem={item => <SidebarNavItem key={item.href} item={item} pathname={pathname} projectId={projectId} />}
+        />
       </nav>
 
       <div className="hidden shrink-0 border-t border-white/[0.08] bg-white/[0.025] px-3 py-2.5 lg:block">

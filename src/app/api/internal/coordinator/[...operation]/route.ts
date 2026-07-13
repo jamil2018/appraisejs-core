@@ -244,10 +244,20 @@ async function resolveEvidenceTarget(request: Request) {
   return target
 }
 
+function isNotFoundError(error: unknown) {
+  return (error instanceof ServiceError ? error.code : Reflect.get(Object(error), 'code')) === 'NOT_FOUND'
+}
+
 async function getTestRunEvidence(request: Request, operation: string[]) {
   const runId = z.string().uuid().parse(operation[1])
   const target = await resolveEvidenceTarget(request)
-  if (operation.length === 2) return Response.json(await readTestRunEvidenceSummary(runId, target.id))
+  if (operation.length === 2) {
+    const evidence = await readTestRunEvidenceSummary(runId, target.id).catch(error => {
+      if (isNotFoundError(error)) return readTestRunEvidenceSummary(runId)
+      throw error
+    })
+    return Response.json(evidence)
+  }
   if (operation[2] === 'diagnose') {
     return Response.json(await diagnoseTestRunEvidence(runId, target.id))
   }

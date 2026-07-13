@@ -4,6 +4,7 @@ import { BrowserEngine, TestRunResult, TestRunStatus, type PrismaClient } from '
 import prisma from '@/config/db-config'
 import { CapsuleExecutorAdapter } from '@/lib/executor/capsule-executor-adapter'
 import { createTestRunLogger } from '@/lib/test-run/winston-logger'
+import { formatLogsForStorage } from '@/lib/test-run/log-formatter'
 import {
   parseCanonicalRuntimeCapsuleManifest,
   RuntimeCapsuleMaterializer,
@@ -146,7 +147,12 @@ export class RuntimeCapsuleTestRunService {
       ])
       if (!environment || !project) throw new Error('Capsule TestRun environment or project is missing.')
       const testRun = await tx.testRun.upsert({
-        where: { preparationKey },
+        where: {
+          targetProjectId_preparationKey: {
+            targetProjectId: input.targetProjectId,
+            preparationKey,
+          },
+        },
         update: {},
         create: {
           name: input.name,
@@ -180,6 +186,7 @@ export class RuntimeCapsuleTestRunService {
 
   async start(input: StartCapsuleTestRunInput) {
     let ownedAttempt: { id: string; ownerToken: string; version: number } | undefined
+    let failedComponent = 'materialization'
     const [operation, testRun] = await Promise.all([
       this.client.validationAstPublishOperation.findUniqueOrThrow({ where: { id: input.operationId } }),
       this.client.testRun.findUniqueOrThrow({
@@ -205,6 +212,7 @@ export class RuntimeCapsuleTestRunService {
         validationHash: materialized.row.validationHash,
         runId: testRun.runId,
       })
+      failedComponent = 'preflight'
       const preflight = await new RuntimeCapsulePreflight(this.client, this.appraiseRoot).check({
         projectId: input.targetProjectId,
         validationHash: materialized.row.validationHash,
@@ -236,6 +244,7 @@ export class RuntimeCapsuleTestRunService {
         return { testRunId: testRun.id, runId: testRun.runId, attemptId: attempt.id, state: attempt.state }
       ownedAttempt = { id: attempt.id, ownerToken, version: attempt.version }
       assertCapsulePreflightReady(preflight)
+      failedComponent = 'execution-start'
       const claimed = await this.client.runtimeCapsuleExecutionAttempt.updateMany({
         where: { id: attempt.id, state: 'STARTING', ownerToken, version: attempt.version },
         data: { version: { increment: 1 } },
@@ -330,6 +339,41 @@ export class RuntimeCapsuleTestRunService {
             },
           })
           if (run.count !== 1) throw new Error('TestRun start state changed before owned failure terminalization.')
+        })
+      else
+        await this.client.$transaction(async tx => {
+          const message = (error instanceof Error ? error.message : String(error)).slice(0, 500)
+          await tx.testRunLog.upsert({
+            where: { testRunId: testRun.runId },
+            create: {
+              testRunId: testRun.runId,
+              logs: formatLogsForStorage([
+                {
+                  type: 'stderr',
+                  message: `Infrastructure failure in runtime capsule ${failedComponent}: ${message}`,
+                  timestamp: new Date(),
+                },
+              ]),
+            },
+            update: {
+              logs: formatLogsForStorage([
+                {
+                  type: 'stderr',
+                  message: `Infrastructure failure in runtime capsule ${failedComponent}: ${message}`,
+                  timestamp: new Date(),
+                },
+              ]),
+            },
+          })
+          await tx.testRun.updateMany({
+            where: { id: testRun.id, status: TestRunStatus.QUEUED },
+            data: {
+              status: TestRunStatus.COMPLETED,
+              result: TestRunResult.FAILED,
+              evidenceHealth: 'infrastructure_failure',
+              completedAt: new Date(),
+            },
+          })
         })
       throw error
     }

@@ -1,0 +1,265 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts:
+  - browser: chromium
+    classification: authoring_failure
+    completedAt: 2026-07-13T09:30:06.595Z
+    createdAt: 2026-07-13T09:27:16.603Z
+    environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+    evidence:
+      logsUrl: /api/test-runs/ff0d7a8a-3c8b-4422-be13-f466d572fa2d/logs
+      reportUrl: /test-runs/ff0d7a8a-3c8b-4422-be13-f466d572fa2d
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-5a59396f-8245-40a5-aeed-7251b145cc92
+    signatureHash: sha256:f306abdcb2a60718c69649e9ec9a1390c05acaf86c002ef9630e6a5449f4d395
+    status: completed
+    testRunId: ff0d7a8a-3c8b-4422-be13-f466d572fa2d
+    validationId: notes-app-readiness
+  - browser: chromium
+    classification: infrastructure_failure
+    completedAt: 2026-07-13T09:40:34.548Z
+    createdAt: 2026-07-13T09:40:17.921Z
+    environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+    evidence:
+      logsUrl: /api/test-runs/4037309d-63a6-45df-b2de-e03a283d9ace/logs
+      reportUrl: /test-runs/4037309d-63a6-45df-b2de-e03a283d9ace
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-dcf6284a-10b5-4ee6-9b3c-546397a4ae70
+    signatureHash: sha256:664239fea87bf2967282df8b4d4755a52dbad1a6d987579b8595e70880f3c305
+    status: completed
+    testRunId: 4037309d-63a6-45df-b2de-e03a283d9ace
+    validationId: notes-app-readiness
+  - browser: chromium
+    classification: unrelated_existing_failure
+    completedAt: 2026-07-13T09:44:12.871Z
+    createdAt: 2026-07-13T09:44:03.303Z
+    environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+    evidence:
+      logsUrl: /api/test-runs/b88daaec-22ed-4cb6-a951-a9177d49d672/logs
+      reportUrl: /test-runs/b88daaec-22ed-4cb6-a951-a9177d49d672
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-451558d6-bb82-4001-816f-21bf05cacc79
+    signatureHash: sha256:cbf152495dbf71b833da3ea2c975b6f941bcfb8e0d70c456e2fe13e7f56cfb8e
+    status: completed
+    testRunId: b88daaec-22ed-4cb6-a951-a9177d49d672
+    validationId: notes-app-readiness
+  - browser: chromium
+    classification: expected_product_failure
+    completedAt: 2026-07-13T09:50:28.513Z
+    createdAt: 2026-07-13T09:50:15.455Z
+    environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+    evidence:
+      logsUrl: /api/test-runs/c44d5963-d446-4f7f-bb1e-372682a460e4/logs
+      reportUrl: /test-runs/c44d5963-d446-4f7f-bb1e-372682a460e4
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-361eb133-70fa-4bd0-a9ec-d63078dc9381
+    signatureHash: sha256:c1cc2212a84a858d145cf060ef5d9d4816cc412a95e6583c08a90d42590408f1
+    status: completed
+    testRunId: c44d5963-d446-4f7f-bb1e-372682a460e4
+    validationId: notes-app-readiness
+  - browser: chromium
+    classification: expected_product_failure
+    completedAt: 2026-07-13T09:52:20.686Z
+    createdAt: 2026-07-13T09:52:08.949Z
+    environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+    evidence:
+      logsUrl: /api/test-runs/807eeb2a-7684-42d1-857c-c234ff75a0b4/logs
+      reportUrl: /test-runs/807eeb2a-7684-42d1-857c-c234ff75a0b4
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-ed2517dc-c6d6-45af-9353-2f13dff2582d
+    signatureHash: sha256:c1cc2212a84a858d145cf060ef5d9d4816cc412a95e6583c08a90d42590408f1
+    status: completed
+    testRunId: 807eeb2a-7684-42d1-857c-c234ff75a0b4
+    validationId: notes-app-readiness
+baselineDecision: accepted
+baseRevision:
+  gitCommit: null
+  reducedAssurance: false
+  snapshotHash: sha256:309111132d960e3abd53e4c2336d095ed36917b45891febb70f5499123eb3ab2
+classificationOverrides: []
+files: []
+implementation:
+  approvedGroupIds:
+    - behavior
+    - foundation
+    - quality
+  checkpoint:
+    queuedFeedbackCount: 0
+    reachedAt: 2026-07-13T10:06:18.132Z
+    taskIds:
+      - scaffold-setup
+      - notes-crud
+      - notes-organization
+      - notes-quality
+    type: before_completion
+  commits:
+    - createdAt: 2026-07-13T10:00:48.208Z
+      hash: 61c36c7a76f633b611859b672d29ad486dee54fa
+      taskIds:
+        - notes-crud
+        - notes-organization
+        - notes-quality
+        - scaffold-setup
+  evidenceProtected: false
+  pausedTaskIds: []
+  reconciliationReceipts:
+    - idempotencyKey: notes-validation-2
+      reconciledAt: 2026-07-13T10:03:38.604Z
+      runIds:
+        - implementation-validation-notes-app-readiness-chromium-b6dd6939-a9d7-4954-a69c-29417b106e68-20260713100317
+      verifiedTaskIds:
+        - scaffold-setup
+  taskStates:
+    notes-crud: verified
+    notes-organization: verified
+    notes-quality: verified
+    scaffold-setup: verified
+  validationRuns:
+    - assurance: reduced
+      browser: chromium
+      commitHash: 61c36c7a76f633b611859b672d29ad486dee54fa
+      completedAt: 2026-07-13T10:02:11.116Z
+      environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+      evidence:
+        logsUrl: /api/test-runs/e4c6ea20-5c5d-407e-a4f3-b1bb97037abd/logs
+        reportUrl: /test-runs/e4c6ea20-5c5d-407e-a4f3-b1bb97037abd
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/e4c6ea20-5c5d-407e-a4f3-b1bb97037abd
+        - /api/test-runs/e4c6ea20-5c5d-407e-a4f3-b1bb97037abd/logs
+      failureSignatureHash: sha256:a1c18c884bba5c355bc4194f192b9fd6045b983dc6a5705f26fccbec7ea90e1e
+      fresh: true
+      id: implementation-validation-notes-app-readiness-chromium-b6dd6939-a9d7-4954-a69c-29417b106e68-20260713100208
+      required: true
+      status: failed
+      tagExpression: (@ts_ast-09a7ff6bbaef-suite and @tc_ast-09a7ff6bbaef-load-notes-app)
+      taskIds:
+        - scaffold-setup
+      testRunId: e4c6ea20-5c5d-407e-a4f3-b1bb97037abd
+      validationId: notes-app-readiness
+    - assurance: full
+      browser: chromium
+      commitHash: 61c36c7a76f633b611859b672d29ad486dee54fa
+      completedAt: 2026-07-13T10:03:19.218Z
+      environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+      evidence:
+        logsUrl: /api/test-runs/37e6922c-086a-4cf5-b306-f1bf45926b9e/logs
+        reportUrl: /test-runs/37e6922c-086a-4cf5-b306-f1bf45926b9e
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/37e6922c-086a-4cf5-b306-f1bf45926b9e
+        - /api/test-runs/37e6922c-086a-4cf5-b306-f1bf45926b9e/logs
+      fresh: true
+      id: implementation-validation-notes-app-readiness-chromium-b6dd6939-a9d7-4954-a69c-29417b106e68-20260713100317
+      required: true
+      status: passed
+      tagExpression: (@ts_ast-09a7ff6bbaef-suite and @tc_ast-09a7ff6bbaef-load-notes-app)
+      taskIds:
+        - scaffold-setup
+      testRunId: 37e6922c-086a-4cf5-b306-f1bf45926b9e
+      validationId: notes-app-readiness
+manifestPaths: []
+planId: pln_01kxdc8ag37z7j9wfp8b5cz3cy
+reviewSubmittedAt: 2026-07-13T09:52:00.159Z
+revision: 1
+validationDecisions:
+  - contentHash: sha256:d6de5e7c199ae23bee238d6ac336a2a9216fd7a0ca8134c55f1920807a3b9b72
+    decidedAt: 2026-07-13T09:51:59.810Z
+    decidedBy: local-user
+    decision: approved
+    validationId: notes-app-readiness
+validations:
+  - appraiseArtifacts:
+      locatorGroups: []
+      locators: []
+      modules:
+        - id: ast-09a7ff6bbaef-module
+          name: Notes app readiness
+      testCases:
+        - description: Verify that the target application can load and reload in the approved local browser environment.
+          id: ast-09a7ff6bbaef-load-notes-app
+          steps:
+            - gherkinStep: When the user opens the notes app
+              id: ast-3ded9c49ab2320fa99b7-step
+              label: the user opens the notes app
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: Then the page becomes ready
+              id: ast-3455682164c9b19f3694-step
+              label: the page becomes ready
+              order: 1
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+            - gherkinStep: When the user reloads the notes app
+              id: ast-5d2c716d8976c8afb6c4-step
+              label: the user reloads the notes app
+              order: 2
+              parameters: []
+              templateStepName: browser.navigation.reload@1
+            - gherkinStep: Then the page becomes ready again
+              id: ast-0159e1c825765a4c6672-step
+              label: the page becomes ready again
+              order: 3
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+          title: Load and reload the notes app
+      testSuites:
+        - description: Verify that the target application can load and reload in the approved local browser environment.
+          id: ast-09a7ff6bbaef-suite
+          moduleId: ast-09a7ff6bbaef-module
+          name: Notes app readiness
+          testCaseIds:
+            - ast-09a7ff6bbaef-load-notes-app
+    astProvenance:
+      astHash: sha256:78917797cf00acf9af3fa52efe79a3c420fa0cedfc12093d7543bd2e0c29af8c
+      executionAuthority: reviewed_publication
+      publishOperationId: astpub_0d7c8da027a20dc0049f4e5ae410ce0c4031bb238b2b4a586b8ead74d4f11290
+      receiptHash: sha256:0d7c8da027a20dc0049f4e5ae410ce0c4031bb238b2b4a586b8ead74d4f11290
+      runtimeInputHash: sha256:56fb50fa4a5c46b95a531717be2838536b96926130083a81b6c6854ba5c6dfda
+      schemaVersion: "2"
+    coverageArgument:
+      mappings:
+        - kind: task
+          limitation: Target-bound locator proposals are not currently materialized into the authoritative locator graph; product assertions must be prepared after that defect is fixed.
+          observationStepIds: []
+          rationale: The scenario establishes browser runtime readiness but does not assert approved product behavior.
+          scenarioIds:
+            - load-notes-app
+          state: deferred
+          stimulusStepIds:
+            - open
+            - reload
+          targetId: scaffold-setup
+    executable:
+      path: automation/features/notes-app-readiness.feature
+    expectedFailures:
+      - browser: chromium
+        environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+        lastPassingStepId: null
+        order: 0
+        signature: "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:5173/"
+    gherkinPaths:
+      - automation/features/notes-app-readiness.feature
+    id: notes-app-readiness
+    matrix:
+      - browser: chromium
+        environment: b6dd6939-a9d7-4954-a69c-29417b106e68
+    required: true
+    stepPaths: []
+    taskIds:
+      - scaffold-setup
+    testCaseIds:
+      - ast-09a7ff6bbaef-load-notes-app
+version: "1"

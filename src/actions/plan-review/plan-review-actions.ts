@@ -28,6 +28,7 @@ import {
   submitValidationFeedback,
   submitValidationReview,
 } from '@/services/coordinator/coordinator-validation-service'
+import { approveImplementationCompletion } from '@/services/coordinator/coordinator-implementation-service'
 
 const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const planTargetSchema = z.object({ type: z.literal('plan') })
@@ -156,6 +157,23 @@ export async function justifyBaselineRegressionPassAction(input: unknown): Promi
 export async function acceptBaselineAction(input: unknown): Promise<ActionResponse> {
   return runAction(input, z.object({ planId: planIdSchema }), value =>
     acceptBaseline(value.planId).then(() => undefined),
+  )
+}
+
+export async function completeImplementationAction(input: unknown): Promise<ActionResponse> {
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
+      evidenceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+      confirmCompletion: z.literal(true),
+    }),
+    value =>
+      approveImplementationCompletion({
+        planId: value.planId,
+        contentHash: value.evidenceHash,
+        approvedBy: 'local-user',
+      }).then(() => undefined),
   )
 }
 

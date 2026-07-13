@@ -1,0 +1,292 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts: []
+baselineDecision: pending
+baseRevision:
+  gitCommit: null
+  reducedAssurance: false
+  snapshotHash: sha256:daaaa48e03c9fb3a7fa4b97fb4b47917afa7e1922fa32ac84567385afe262ba0
+classificationOverrides: []
+files: []
+manifestPaths: []
+planId: pln_01kxdgrhsp8z6wssqdya4vyjzx
+revision: 1
+validationDecisions: []
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: apr-96ee8f9af20fe163d93936b6
+          moduleId: ast-3cb03d8de08a-module
+          name: Todo Page
+          route: /
+      locators:
+        - id: apr-17c366d50f083aa97a0f11bb
+          locatorGroupId: apr-96ee8f9af20fe163d93936b6
+          name: Add todo button
+          value: '[data-testid="add-todo"]'
+        - id: apr-5421098fae62791e34197a5e
+          locatorGroupId: apr-96ee8f9af20fe163d93936b6
+          name: First todo delete button
+          value: '[data-testid="todo-delete"]:first-of-type'
+        - id: apr-70a7694d151ebb34f5cd1d1d
+          locatorGroupId: apr-96ee8f9af20fe163d93936b6
+          name: Todo input
+          value: '[data-testid="todo-input"]'
+        - id: apr-99b9ff0c6ce95d9e2812cbf4
+          locatorGroupId: apr-96ee8f9af20fe163d93936b6
+          name: Completed filter
+          value: '[data-testid="filter-completed"]'
+        - id: apr-bf1e3d9f3d8582b99a54768f
+          locatorGroupId: apr-96ee8f9af20fe163d93936b6
+          name: All filter
+          value: '[data-testid="filter-all"]'
+        - id: apr-c3ee4d79c68c0f6294ea08d2
+          locatorGroupId: apr-96ee8f9af20fe163d93936b6
+          name: First todo toggle
+          value: '[data-testid="todo-toggle"]:first-of-type'
+        - id: apr-fd7b9c7343c022ef3e7dd9ee
+          locatorGroupId: apr-96ee8f9af20fe163d93936b6
+          name: First todo item
+          value: '[data-testid="todo-item"]:first-child'
+      modules:
+        - id: ast-3cb03d8de08a-module
+          name: Manage todos and persist selected state
+      testCases:
+        - description: Verify the core todo workflow across creation, completion, filtering, deletion, accessibility, and persistence.
+          id: ast-3cb03d8de08a-manage-todos
+          steps:
+            - gherkinStep: Given the todo application is open
+              id: ast-7dd6c9a08a7c5a256a57-step
+              label: the todo application is open
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: Then the todo input exposes an accessible name and role
+              id: ast-b3ac847d41f4a9611628-step
+              label: the todo input exposes an accessible name and role
+              order: 1
+              parameters:
+                - locatorId: apr-70a7694d151ebb34f5cd1d1d
+                  locatorName: Todo input
+                  name: target
+                  value: '{"id":"locator_apr-70a7694d151ebb34f5cd1d1d","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+            - gherkinStep: When the user enters a todo
+              id: ast-7af976d25395c9a3d949-step
+              label: the user enters a todo
+              order: 2
+              parameters:
+                - locatorId: apr-70a7694d151ebb34f5cd1d1d
+                  locatorName: Todo input
+                  name: target
+                  value: '{"id":"locator_apr-70a7694d151ebb34f5cd1d1d","version":"1","ref":"locator"}'
+                - name: value
+                  value: Audit the happy path
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user adds the todo
+              id: ast-6bf5db883f82fac42f0e-step
+              label: the user adds the todo
+              order: 3
+              parameters:
+                - locatorId: apr-17c366d50f083aa97a0f11bb
+                  locatorName: Add todo button
+                  name: target
+                  value: '{"id":"locator_apr-17c366d50f083aa97a0f11bb","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the new todo is visible
+              id: ast-6a8f6c242c4f38013778-step
+              label: the new todo is visible
+              order: 4
+              parameters:
+                - locatorId: apr-fd7b9c7343c022ef3e7dd9ee
+                  locatorName: First todo item
+                  name: target
+                  value: '{"id":"locator_apr-fd7b9c7343c022ef3e7dd9ee","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+            - gherkinStep: When the user marks the todo completed
+              id: ast-84ba12410ddb4a0a0f14-step
+              label: the user marks the todo completed
+              order: 5
+              parameters:
+                - locatorId: apr-c3ee4d79c68c0f6294ea08d2
+                  locatorName: First todo toggle
+                  name: target
+                  value: '{"id":"locator_apr-c3ee4d79c68c0f6294ea08d2","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user selects the completed filter
+              id: ast-913869baf9aaa77e86ac-step
+              label: the user selects the completed filter
+              order: 6
+              parameters:
+                - locatorId: apr-99b9ff0c6ce95d9e2812cbf4
+                  locatorName: Completed filter
+                  name: target
+                  value: '{"id":"locator_apr-99b9ff0c6ce95d9e2812cbf4","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the completed todo remains visible
+              id: ast-35be2a3058463158d860-step
+              label: the completed todo remains visible
+              order: 7
+              parameters:
+                - locatorId: apr-fd7b9c7343c022ef3e7dd9ee
+                  locatorName: First todo item
+                  name: target
+                  value: '{"id":"locator_apr-fd7b9c7343c022ef3e7dd9ee","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+            - gherkinStep: When the user reloads the application
+              id: ast-0dfcacdc40ca4f147730-step
+              label: the user reloads the application
+              order: 8
+              parameters: []
+              templateStepName: browser.navigation.reload@1
+            - gherkinStep: Then the todo and selected filter are persisted
+              id: ast-c3ef4ef3478b825bfeb4-step
+              label: the todo and selected filter are persisted
+              order: 9
+              parameters:
+                - locatorId: apr-fd7b9c7343c022ef3e7dd9ee
+                  locatorName: First todo item
+                  name: target
+                  value: '{"id":"locator_apr-fd7b9c7343c022ef3e7dd9ee","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.persisted@1
+            - gherkinStep: When the user selects the all filter
+              id: ast-154ef02769c43e4e1f5f-step
+              label: the user selects the all filter
+              order: 10
+              parameters:
+                - locatorId: apr-bf1e3d9f3d8582b99a54768f
+                  locatorName: All filter
+                  name: target
+                  value: '{"id":"locator_apr-bf1e3d9f3d8582b99a54768f","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user deletes the todo
+              id: ast-e8155d3aa56010931560-step
+              label: the user deletes the todo
+              order: 11
+              parameters:
+                - locatorId: apr-5421098fae62791e34197a5e
+                  locatorName: First todo delete button
+                  name: target
+                  value: '{"id":"locator_apr-5421098fae62791e34197a5e","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+          title: Create filter persist and delete a todo
+      testSuites:
+        - description: Verify the core todo workflow across creation, completion, filtering, deletion, accessibility, and persistence.
+          id: ast-3cb03d8de08a-suite
+          moduleId: ast-3cb03d8de08a-module
+          name: Manage todos and persist selected state
+          testCaseIds:
+            - ast-3cb03d8de08a-manage-todos
+    astProvenance:
+      astHash: sha256:3caa52a22d4dcc670ec9d538de80f5c1b1c97a681f6961305e4f8b7dff03ee92
+      executionAuthority: reviewed_publication
+      publishOperationId: astpub_a8ef31f5d092fb580b94775b4d191ea04f4e8aaf912c14de16d8323bc34c20cb
+      receiptHash: sha256:a8ef31f5d092fb580b94775b4d191ea04f4e8aaf912c14de16d8323bc34c20cb
+      runtimeInputHash: sha256:02a3c2be6e112e13382ccdecca807088a8a09b870125d68fd40a0bb2ad0752ba
+      schemaVersion: "2"
+    coverageArgument:
+      mappings:
+        - kind: task
+          observationStepIds:
+            - input-accessible
+          rationale: Navigation and an accessible rendered input demonstrate the app shell is available.
+          scenarioIds:
+            - manage-todos
+          state: covered
+          stimulusStepIds:
+            - open
+          targetId: scaffold
+        - kind: task
+          observationStepIds:
+            - item-visible
+            - completed-visible
+          rationale: The primary todo interactions produce visible observable state changes.
+          scenarioIds:
+            - manage-todos
+          state: covered
+          stimulusStepIds:
+            - fill
+            - add
+            - toggle
+            - delete
+          targetId: todo-ui
+        - kind: task
+          observationStepIds:
+            - completed-visible
+          rationale: The completed filter preserves the matching completed todo and All restores the unfiltered workflow.
+          scenarioIds:
+            - manage-todos
+          state: covered
+          stimulusStepIds:
+            - completed-filter
+            - all-filter
+          targetId: filtering
+        - kind: task
+          observationStepIds:
+            - persisted
+          rationale: Reload is followed by a catalog-backed persistence assertion.
+          scenarioIds:
+            - manage-todos
+          state: covered
+          stimulusStepIds:
+            - reload
+          targetId: persistence
+        - kind: task
+          observationStepIds:
+            - input-accessible
+            - item-visible
+            - completed-visible
+            - persisted
+          rationale: The managed scenario covers core interaction and quality evidence.
+          scenarioIds:
+            - manage-todos
+          state: covered
+          stimulusStepIds:
+            - add
+            - toggle
+            - completed-filter
+            - reload
+            - delete
+          targetId: validation
+        - kind: quality-concern
+          observationStepIds:
+            - input-accessible
+          rationale: A catalog-backed accessibility assertion checks the primary input.
+          scenarioIds:
+            - manage-todos
+          state: covered
+          stimulusStepIds:
+            - open
+          targetId: accessibility
+        - kind: quality-concern
+          observationStepIds:
+            - persisted
+          rationale: A catalog-backed persistence assertion checks restored todo state.
+          scenarioIds:
+            - manage-todos
+          state: covered
+          stimulusStepIds:
+            - reload
+          targetId: persistence
+    executable:
+      path: automation/features/todo-happy-path.feature
+    expectedFailures: []
+    gherkinPaths:
+      - automation/features/todo-happy-path.feature
+    id: todo-happy-path
+    matrix:
+      - browser: chromium
+        environment: apr-3ab6840e93bc1b3bec23ae40
+    required: true
+    stepPaths: []
+    taskIds:
+      - scaffold
+      - todo-ui
+      - filtering
+      - persistence
+      - validation
+    testCaseIds:
+      - ast-3cb03d8de08a-manage-todos
+version: "1"

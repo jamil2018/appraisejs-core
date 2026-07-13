@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { compileCustomExtension, createCustomExtensionPolicy, validationAstHash } from '@/lib/validation-ast'
+import {
+  compileCustomExtension,
+  createCustomExtensionPolicy,
+  validationAstHash,
+  validationAstSchema,
+} from '@/lib/validation-ast'
 import {
   compileValidationAstNode,
   compileValidationAstToCanonicalEntities,
@@ -142,7 +147,7 @@ describe('Validation AST canonical projection compiler', () => {
     ).catch(error => error)
     expect(result).toMatchObject({ code: 'CONFLICT' })
 
-    const astHash = validationAstHash(extensionAst)
+    const astHash = validationAstHash(validationAstSchema.parse(extensionAst))
     await compileValidationAstToCanonicalEntities(
       {
         planId: 'plan-one',

@@ -247,6 +247,11 @@ export async function compileValidationAstForPlan(
   const receiptHash = preview.receiptHash
   if (receiptHash !== input.expectedReceiptHash)
     throw new ServiceError('Validation AST preview receipt is stale.', 'CONFLICT')
+  const existingOperation = await client.validationAstPublishOperation.findUnique({
+    where: { id: preview.publishOperationId },
+  })
+  if (existingOperation)
+    return resumeValidationAstPublish(existingOperation.id, { client, projectDirectory: input.projectDirectory })
   const existing = context.plan.validationJson
     ? validationArtifactSchema.parse(JSON.parse(context.plan.validationJson))
     : undefined

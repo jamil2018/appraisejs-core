@@ -73,6 +73,7 @@ describe('TestRunHeader', () => {
             description: null,
             reportPath: null,
             testRunId: 'run-db-id',
+            targetProjectId: null,
             createdAt: completedRunAt,
             updatedAt: completedRunAt,
           },

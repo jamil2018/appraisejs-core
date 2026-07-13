@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { CompiledCustomExtension } from '@/lib/validation-ast'
+import type { PrismaClient } from '@prisma/client'
 
 import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
 
@@ -21,7 +22,7 @@ describe('compiled validation extension persistence', () => {
         create: eventCreate,
       },
     }
-    const client = { $transaction: vi.fn(async callback => callback(transaction)) } as never
+    const client = { $transaction: vi.fn(async callback => callback(transaction)) } as unknown as PrismaClient
     const compiledExtension = {
       schemaVersion: '1',
       projectId: 'project-one',

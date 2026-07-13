@@ -1,0 +1,105 @@
+[
+  {
+    "description": "",
+    "elements": [
+      {
+        "description": "",
+        "id": "notes-app-readiness;load-and-reload-the-notes-app",
+        "keyword": "Scenario",
+        "line": 4,
+        "name": "Load and reload the notes app",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 43892082
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 5,
+            "name": "the user opens the notes app",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 198131040
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 6,
+            "name": "the page becomes ready",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1070249
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 7,
+            "name": "the user reloads the notes app",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 79547415
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 8,
+            "name": "the page becomes ready again",
+            "match": {
+              "location": "bindings/notes-app-readiness.mjs:43"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 429081
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 4857499
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@appraise_validation_notes-app-readiness",
+            "line": 3
+          },
+          {
+            "name": "@ts_ast-09a7ff6bbaef-suite",
+            "line": 3
+          },
+          {
+            "name": "@tc_ast-09a7ff6bbaef-load-notes-app",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "notes-app-readiness",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "Notes app readiness",
+    "tags": [],
+    "uri": "features/notes-app-readiness.feature"
+  }
+]

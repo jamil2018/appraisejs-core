@@ -49,6 +49,7 @@ import {
   approveValidationFileAction,
   approvePlanRevisionAction,
   cancelBaselineExecutionAction,
+  completeImplementationAction,
   decideValidationNodeAction,
   publishSharedPlanLayoutAction,
   requestPlanChangesAction,
@@ -78,6 +79,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
+import { hasInvalidLatestBaselineEvidence } from './baseline-attempt-summary'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
@@ -326,6 +328,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
   const [blocking, setBlocking] = useState(true)
   const [message, setMessage] = useState<ActionMessage | null>(null)
   const [confirmReplacement, setConfirmReplacement] = useState(false)
+  const [confirmCompletion, setConfirmCompletion] = useState(false)
   const [regressionJustification, setRegressionJustification] = useState('')
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [isPending, startTransition] = useTransition()
@@ -496,9 +499,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
     approval => approval.revision === detail.plan.revision && approval.relevantHashes.plan,
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
-  const hasInvalidBaselineEvidence = detail.validation?.baselineAttempts.some(
-    attempt => attempt.classification === 'authoring_failure',
-  )
+  const hasInvalidBaselineEvidence = hasInvalidLatestBaselineEvidence(detail.validation?.baselineAttempts ?? [])
   const reviewUnavailableReason = getReviewUnavailableReason(detail.plan.lifecycle)
   const approvalDisabledReason = approved
     ? 'This exact revision has already been approved.'
@@ -1609,6 +1610,66 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   )}
 
                   <div className="space-y-4">
+                    {detail.plan.lifecycle === 'validation_passed' && detail.completionReview?.readiness.ready && (
+                      <section
+                        aria-labelledby="completion-signoff-heading"
+                        className="space-y-3 rounded-xl border border-emerald-500/35 bg-emerald-500/5 p-3.5"
+                      >
+                        <div>
+                          <h4 id="completion-signoff-heading" className="text-xs font-semibold">
+                            Final completion sign-off
+                          </h4>
+                          <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
+                            All required tasks and validation evidence are ready. Completion binds permanently to this
+                            exact evidence hash.
+                          </p>
+                        </div>
+                        <p className="bg-background/60 break-all rounded-lg border p-2 font-mono text-[10px]">
+                          {detail.completionReview.evidenceHash}
+                        </p>
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            id="completion-confirmation"
+                            checked={confirmCompletion}
+                            onCheckedChange={value => setConfirmCompletion(value === true)}
+                            className="mt-0.5"
+                          />
+                          <Label
+                            htmlFor="completion-confirmation"
+                            className="cursor-pointer text-xs font-medium leading-normal"
+                          >
+                            I reviewed the final evidence and explicitly approve completing this plan.
+                          </Label>
+                        </div>
+                        <Button
+                          className="h-10 w-full rounded-lg font-bold"
+                          disabled={isPending || !confirmCompletion}
+                          onClick={() =>
+                            run(
+                              () =>
+                                completeImplementationAction({
+                                  planId: detail.plan.planId,
+                                  evidenceHash: detail.completionReview!.evidenceHash,
+                                  confirmCompletion: true,
+                                }),
+                              'Plan completed with exact final sign-off.',
+                            )
+                          }
+                        >
+                          <CheckCircle2 className="mr-2 size-4" />
+                          Approve final completion
+                        </Button>
+                      </section>
+                    )}
+                    {detail.plan.lifecycle === 'validation_passed' &&
+                      detail.completionReview &&
+                      !detail.completionReview.readiness.ready && (
+                        <Alert variant="destructive">
+                          <AlertTriangle className="size-4" />
+                          <AlertTitle>Final completion is blocked</AlertTitle>
+                          <AlertDescription>{detail.completionReview.readiness.blockers.join(' ')}</AlertDescription>
+                        </Alert>
+                      )}
                     {suspiciousReplacement && (
                       <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5">
                         <Checkbox
