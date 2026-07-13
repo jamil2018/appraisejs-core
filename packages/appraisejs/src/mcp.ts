@@ -566,8 +566,11 @@ function structuredBriefPlan(tasks: BriefPlanTask[]): StructuredBriefPlan {
   }
 }
 
-function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPlan | undefined {
-  const brief = projectBrief.toLowerCase()
+function createStructuredTasksFromBrief(
+  projectBrief: string,
+  retryResolutions: string[] = [],
+): StructuredBriefPlan | undefined {
+  const brief = [projectBrief, ...retryResolutions].join('\n').toLowerCase()
   const briefAnalysis = analyzeBrief(projectBrief)
   const isAppBrief = includesAny(brief, [
     /\bapp(?:lication)?\b/,
@@ -689,6 +692,55 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
 
   if (isTodoBrief && (asksForCrud || asksForCompletion || asksForPersistence)) {
     const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
+    const asksForEdit = includesAny(brief, [/\bcrud\b/, /\bedit\b/, /\bupdate\b/, /\brename\b/])
+    const behaviorCriteria = [
+      `Users can add and delete ${taskNoun} items.`,
+      ...(asksForCompletion ? [`Users can mark ${taskNoun} items complete or incomplete.`] : []),
+      ...(asksForEdit ? [`Users can edit existing ${taskNoun} items.`] : []),
+    ]
+    const filteringTasks: BriefPlanTask[] = includesAny(brief, [/\bfilter(?:ing|ed|s)?\b/, /\bactive\b/])
+      ? [
+          {
+            id: 'filtering',
+            title: `Filter ${taskNoun} items`,
+            description: `Add the requested all, active, and completed views without changing stored ${taskNoun} state.`,
+            acceptanceCriteria: [
+              `Users can switch between all, active, and completed ${taskNoun} items.`,
+              'Filtering changes only the visible subset and preserves item state.',
+            ],
+            validationIntent: 'Verify each filter against mixed active and completed data.',
+          },
+        ]
+      : []
+    const persistenceTasks: BriefPlanTask[] = asksForPersistence
+      ? [
+          {
+            id: 'persistence',
+            title: `Persist ${taskNoun} state`,
+            description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
+            acceptanceCriteria: [
+              `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
+              'Persistence failures do not corrupt the visible in-memory state.',
+            ],
+            validationIntent: 'Verify saved items and completion state reload correctly.',
+          },
+        ]
+      : []
+    const qualityTasks: BriefPlanTask[] = includesAny(brief, [/\bresponsive\b/, /\baccessib(?:le|ility)\b/, /\ba11y\b/])
+      ? [
+          {
+            id: 'quality',
+            title: `Polish accessible responsive ${taskNoun} workflows`,
+            description:
+              'Preserve the requested workflow across small screens, keyboard navigation, and assistive technology.',
+            acceptanceCriteria: [
+              'The primary workflow remains usable at narrow viewport sizes.',
+              'Inputs, toggles, filters, and delete controls have accessible names and keyboard focus states.',
+            ],
+            validationIntent: 'Run responsive viewport and accessibility-focused interaction checks.',
+          },
+        ]
+      : []
     return structuredBriefPlan([
       setupTask,
       {
@@ -703,25 +755,14 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
       },
       {
         id: 'crud-completion',
-        title: `Implement ${taskNoun} CRUD and completion behavior`,
-        description: `Add create, read, update, delete, and completion-toggle flows with predictable state updates and accessible controls.`,
-        acceptanceCriteria: [
-          `Users can add, edit, delete, and mark ${taskNoun} items complete or incomplete.`,
-          'Completion changes are reflected immediately in the rendered list without stale UI state.',
-        ],
+        title: `Implement requested ${taskNoun} behavior`,
+        description: `Add only the item operations explicitly requested by the brief, with predictable state updates.`,
+        acceptanceCriteria: behaviorCriteria,
         validationIntent: 'Run focused interaction tests or manually verify each CRUD and completion path.',
       },
-      {
-        id: 'persistence',
-        title: `Persist ${taskNoun} state`,
-        description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
-        acceptanceCriteria: [
-          `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
-          'Persistence failures do not corrupt the visible in-memory state.',
-        ],
-        validationIntent:
-          'Verify saved items reload correctly and cover persistence behavior with the closest available automated test.',
-      },
+      ...filteringTasks,
+      ...persistenceTasks,
+      ...qualityTasks,
       {
         id: 'validation',
         title: 'Validate the planned user workflow',
@@ -1000,6 +1041,7 @@ export function createPlanFromBrief(input: {
   displayName?: string
   sourceFiles?: string[]
   planContext?: string
+  retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
 }) {
   const title = (input.displayName ?? input.projectBrief.split(/\r?\n/, 1)[0] ?? 'AppraiseJS planning session')
     .trim()
@@ -1011,7 +1053,10 @@ export function createPlanFromBrief(input: {
   ]
     .filter(Boolean)
     .join('\n\n')
-  const structuredPlan = createStructuredTasksFromBrief(input.projectBrief)
+  const structuredPlan = createStructuredTasksFromBrief(
+    input.projectBrief,
+    input.retryFeedback?.addressed.map(item => `${item.omission}: ${item.resolution}`) ?? [],
+  )
   const tasks = structuredPlan?.tasks ?? [
     {
       id: 'plan-from-brief',
@@ -1038,12 +1083,28 @@ export function planCandidateHash(plan: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(plan)).digest('hex')}`
 }
 
+export function planTaskShapeHash(plan: {
+  tasks?: Array<{ id: string }>
+  edges?: Array<{ from: string; to: string; type: string }>
+  implementationGroups?: Array<{ id: string; taskIds: string[] }>
+}): string {
+  return planCandidateHash({
+    taskIds: plan.tasks?.map(task => task.id) ?? [],
+    edges: plan.edges ?? [],
+    implementationGroups: plan.implementationGroups ?? [],
+  })
+}
+
 export function unresolvedCandidateRetryOmissions(input: {
   candidateHash: string
   previousCandidateHash?: string
+  taskShapeHash?: string
+  previousTaskShapeHash?: string
   retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
 }): string[] {
-  if (input.previousCandidateHash !== input.candidateHash) return []
+  const sameCandidate = input.previousCandidateHash === input.candidateHash
+  const sameTaskShape = Boolean(input.taskShapeHash && input.previousTaskShapeHash === input.taskShapeHash)
+  if (!sameCandidate && !sameTaskShape) return []
   return (
     input.retryFeedback?.omissions.filter(
       omission => !input.retryFeedback?.addressed.some(item => item.omission === omission && item.resolution.trim()),
@@ -2052,6 +2113,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         sourceFiles: z.array(z.string().min(1)).optional(),
         planContext: z.string().optional(),
         previousCandidateHash: z.string().startsWith('sha256:').optional(),
+        previousTaskShapeHash: z.string().startsWith('sha256:').optional(),
         retryFeedback: z
           .object({
             omissions: z.array(z.string().min(1)).min(1),
@@ -2090,15 +2152,22 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         )
         candidatePlan.requirementAssessment = requirementAssessment
         const candidateHash = planCandidateHash(candidatePlan)
+        const taskShapeHash = planTaskShapeHash(candidatePlan)
         const unresolvedRetryOmissions = unresolvedCandidateRetryOmissions({
           candidateHash,
           previousCandidateHash: input.previousCandidateHash,
+          taskShapeHash,
+          previousTaskShapeHash: input.previousTaskShapeHash,
           retryFeedback: input.retryFeedback,
         })
-        if (input.previousCandidateHash === candidateHash && unresolvedRetryOmissions.length) {
+        if (
+          (input.previousTaskShapeHash === taskShapeHash || input.previousCandidateHash === candidateHash) &&
+          unresolvedRetryOmissions.length
+        ) {
           return text({
             status: 'unchanged_retry_rejected',
             candidateHash,
+            taskShapeHash,
             unresolvedRetryOmissions,
             requiredResolution:
               'Report how every omission was addressed or explain explicitly why it remains unresolved before retrying an unchanged candidate.',
@@ -2110,6 +2179,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             status: 'coverage_review_required',
             candidatePlan,
             candidateHash,
+            taskShapeHash,
             requirementAssessment,
             nextRecommendedAction:
               'Review the uncovered explicit requirements, revise the brief or task shape, then rerun planning_session_create before Appraise publishes a review-ready revision.',
@@ -2157,6 +2227,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           diagnostic: summarizeDiagnostic(diagnostic),
           requirementAssessment,
           candidateHash,
+          taskShapeHash,
           retryResolutionReport: input.retryFeedback?.addressed ?? [],
           targetProject: targetProjectResult,
           created,

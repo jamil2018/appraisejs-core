@@ -18,6 +18,7 @@ import {
   orderedEventBatch,
   planningSessionTargetRequiredResponse,
   planCandidateHash,
+  planTaskShapeHash,
   planningWorkflow,
   reviewReadyPendingResponse,
   standbyWorkflow,
@@ -255,6 +256,33 @@ describe('planning retry fidelity', () => {
     ).toEqual([])
   })
 
+  it('changes todo task shape from normalized retry feedback without inventing edit behavior', () => {
+    const initial = createPlanFromBrief({ projectBrief: 'Build a todo app where users add, toggle, and delete tasks.' })
+    const retried = createPlanFromBrief({
+      projectBrief: 'Build a todo app where users add, toggle, and delete tasks.',
+      retryFeedback: {
+        omissions: ['filtering'],
+        addressed: [{ omission: 'filtering', resolution: 'Add all, active, and completed filters.' }],
+      },
+    })
+    expect(initial.tasks.flatMap(task => task.acceptanceCriteria).join(' ')).not.toMatch(/edit existing/i)
+    expect(retried.tasks.map(task => task.id)).toContain('filtering')
+    expect(planTaskShapeHash(retried)).not.toBe(planTaskShapeHash(initial))
+  })
+
+  it('keeps the task-shape hash stable across prose-only plan context changes', () => {
+    const first = createPlanFromBrief({
+      projectBrief: 'Build a todo app with add and delete.',
+      planContext: 'Blue UI.',
+    })
+    const second = createPlanFromBrief({
+      projectBrief: 'Build a todo app with add and delete.',
+      planContext: 'Red UI.',
+    })
+    expect(planCandidateHash(second)).not.toBe(planCandidateHash(first))
+    expect(planTaskShapeHash(second)).toBe(planTaskShapeHash(first))
+  })
+
   it.each([
     ['todo', 'Build a todo app with active and completed filtering and responsive layouts.'],
     ['recipe', 'Build a recipe organizer with search, favorites, responsive layouts, and tests.'],
@@ -414,13 +442,11 @@ describe('MCP agent workflow guidance', () => {
         }),
         expect.objectContaining({
           id: 'crud-completion',
-          acceptanceCriteria: expect.arrayContaining([
-            expect.stringContaining('add, edit, delete, and mark todo items complete or incomplete'),
-          ]),
+          acceptanceCriteria: expect.arrayContaining([expect.stringContaining('edit existing todo items')]),
         }),
         expect.objectContaining({
           id: 'persistence',
-          validationIntent: expect.stringContaining('saved items reload'),
+          validationIntent: expect.stringContaining('saved items'),
         }),
         expect.objectContaining({
           id: 'validation',
