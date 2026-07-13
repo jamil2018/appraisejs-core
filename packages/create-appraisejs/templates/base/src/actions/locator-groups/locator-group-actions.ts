@@ -13,10 +13,12 @@ import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionRespons
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllLocatorGroupsAction(): Promise<ActionResponse> {
   try {
-    const locatorGroups = await listLocatorGroups()
+    const project = await requireActiveProjectForMutation()
+    const locatorGroups = await listLocatorGroups(project.id)
     return {
       status: 200,
       success: true,
@@ -29,7 +31,8 @@ export async function getAllLocatorGroupsAction(): Promise<ActionResponse> {
 
 export async function getLocatorGroupByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const locatorGroup = await getLocatorGroupByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const locatorGroup = await getLocatorGroupByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -48,7 +51,8 @@ export async function createLocatorGroupAction(
   value: z.infer<typeof locatorGroupSchema>,
 ): Promise<ActionResponse> {
   try {
-    const locatorGroup = await createLocatorGroup(value)
+    const project = await requireActiveProjectForMutation()
+    const locatorGroup = await createLocatorGroup(value, project.id)
     revalidatePath('/locator-groups')
     return {
       status: 200,
@@ -70,7 +74,8 @@ export async function updateLocatorGroupAction(
   id?: string,
 ): Promise<ActionResponse> {
   try {
-    const updatedLocatorGroup = await updateLocatorGroup(id, value)
+    const project = await requireActiveProjectForMutation()
+    const updatedLocatorGroup = await updateLocatorGroup(id, value, project.id)
     revalidatePath('/locator-groups')
     return {
       status: 200,
@@ -88,7 +93,8 @@ export async function updateLocatorGroupAction(
 
 export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionResponse> {
   try {
-    await deleteLocatorGroups(ids)
+    const project = await requireActiveProjectForMutation()
+    await deleteLocatorGroups(ids, project.id)
     revalidatePath('/locator-groups')
     return {
       status: 200,
@@ -103,7 +109,8 @@ export async function deleteLocatorGroupAction(ids: string[]): Promise<ActionRes
 
 export async function checkLocatorGroupNameUniqueAction(name: string, excludeId?: string): Promise<ActionResponse> {
   try {
-    const isUnique = await checkLocatorGroupNameUnique(name, excludeId)
+    const project = await requireActiveProjectForMutation()
+    const isUnique = await checkLocatorGroupNameUnique(name, project.id, excludeId)
     return {
       status: 200,
       success: true,

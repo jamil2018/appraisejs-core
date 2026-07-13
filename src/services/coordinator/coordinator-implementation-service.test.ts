@@ -268,6 +268,10 @@ describe('implementation coordinator checkpoints', () => {
         fingerprint: hashFileContent(targetProjectId),
       },
     })
+    await client.environment.updateMany({
+      where: { name: { in: ['local', 'staging'] } },
+      data: { targetProjectId },
+    })
     await client.planProjection.update({ where: { planId }, data: { targetProjectId } })
     const repository = new PlanArtifactRepository(workspace)
     const stored = await repository.read('validation', planId)
@@ -350,6 +354,10 @@ describe('implementation coordinator checkpoints', () => {
         displayName: 'Capsule batch target',
         fingerprint: hashFileContent(planId),
       },
+    })
+    await client.environment.updateMany({
+      where: { name: { in: ['local', 'staging'] } },
+      data: { targetProjectId: `${planId}-target` },
     })
     await client.planProjection.update({
       where: { planId },
@@ -959,10 +967,7 @@ describe('implementation coordinator checkpoints', () => {
       { planId, approvedBy: 'user', contentHash: completionReview.evidenceHash },
       { projectDirectory: workspace, client },
     )
-    releaseLock()
-    await held
-    await newerEvent
-    await expect(racedApproval).rejects.toMatchObject({
+    const racedApprovalRejection = expect(racedApproval).rejects.toMatchObject({
       code: 'CONFLICT',
       details: {
         staleEvidenceHash: completionReview.evidenceHash,
@@ -974,6 +979,10 @@ describe('implementation coordinator checkpoints', () => {
         },
       },
     })
+    releaseLock()
+    await held
+    await newerEvent
+    await racedApprovalRejection
     const currentCompletionReview = await reviewImplementationCompletion(planId, {
       projectDirectory: workspace,
       client,

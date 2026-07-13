@@ -195,10 +195,11 @@ describe('updateDashboardMetrics', () => {
   })
 
   it('counts attention metrics from live entities instead of orphaned metric rows', async () => {
-    await updateDashboardMetrics()
+    await updateDashboardMetrics('project-1')
 
     expect(mockTestCaseCount).toHaveBeenNthCalledWith(1, {
       where: {
+        targetProjectId: 'project-1',
         metrics: {
           is: {
             isRepeatedlyFailing: true,
@@ -208,6 +209,7 @@ describe('updateDashboardMetrics', () => {
     })
     expect(mockTestCaseCount).toHaveBeenNthCalledWith(2, {
       where: {
+        targetProjectId: 'project-1',
         metrics: {
           is: {
             isFlaky: true,
@@ -217,6 +219,7 @@ describe('updateDashboardMetrics', () => {
     })
     expect(mockTestSuiteCount).toHaveBeenCalledWith({
       where: {
+        targetProjectId: 'project-1',
         OR: [
           {
             metrics: {

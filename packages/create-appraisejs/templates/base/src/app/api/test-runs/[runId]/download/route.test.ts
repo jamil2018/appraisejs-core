@@ -56,6 +56,7 @@ vi.mock('@/config/db-config', () => ({
   default: {
     testRun: {
       findUnique: mockFindUnique,
+      findFirst: mockFindUnique,
     },
   },
 }))
@@ -115,9 +116,12 @@ describe('test run download route', () => {
   it('returns 404 when the test run does not exist', async () => {
     mockFindUnique.mockResolvedValue(null)
 
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/download'), {
-      params: Promise.resolve({ runId: 'run-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/download?targetProjectId=project-1'),
+      {
+        params: Promise.resolve({ runId: 'run-1' }),
+      },
+    )
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'Test run not found' })
@@ -131,9 +135,12 @@ describe('test run download route', () => {
     })
     mockReaddir.mockRejectedValue(new Error('missing'))
 
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/download'), {
-      params: Promise.resolve({ runId: 'run-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/download?targetProjectId=project-1'),
+      {
+        params: Promise.resolve({ runId: 'run-1' }),
+      },
+    )
 
     expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({ error: 'No run artifacts available for this test run' })
@@ -164,9 +171,12 @@ describe('test run download route', () => {
     })
     mockAccess.mockResolvedValue(undefined)
 
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/download'), {
-      params: Promise.resolve({ runId: 'run-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/download?targetProjectId=project-1'),
+      {
+        params: Promise.resolve({ runId: 'run-1' }),
+      },
+    )
 
     expect(response.status).toBe(200)
     expect(response.headers.get('Content-Type')).toBe('application/zip')

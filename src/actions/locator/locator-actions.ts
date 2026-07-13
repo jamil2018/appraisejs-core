@@ -9,10 +9,12 @@ import {
   syncLocatorsFromFiles,
 } from '@/services/locator/locator-service'
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllLocatorsAction(): Promise<ActionResponse> {
   try {
-    const locators = await listLocators()
+    const project = await requireActiveProjectForMutation()
+    const locators = await listLocators(project.id)
     return {
       status: 200,
       success: true,
@@ -25,7 +27,8 @@ export async function getAllLocatorsAction(): Promise<ActionResponse> {
 
 export async function deleteLocatorAction(ids: string[]): Promise<ActionResponse> {
   try {
-    const locator = await deleteLocators(ids)
+    const project = await requireActiveProjectForMutation()
+    const locator = await deleteLocators(ids, project.id)
 
     revalidatePath('/locators')
     return {
@@ -40,7 +43,8 @@ export async function deleteLocatorAction(ids: string[]): Promise<ActionResponse
 
 export async function getLocatorByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const locator = await getLocatorByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const locator = await getLocatorByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -56,6 +60,7 @@ export async function getLocatorByIdAction(id: string): Promise<ActionResponse> 
 
 export async function syncLocatorsFromFilesAction(): Promise<ActionResponse> {
   try {
+    await requireActiveProjectForMutation()
     const result = await syncLocatorsFromFiles()
 
     revalidatePath('/locators')

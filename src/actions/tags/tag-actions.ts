@@ -6,10 +6,12 @@ import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionRespons
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllTagsAction(): Promise<ActionResponse> {
   try {
-    const tags = await listFilterTags()
+    const project = await requireActiveProjectForMutation()
+    const tags = await listFilterTags(project.id)
     return {
       status: 200,
       success: true,
@@ -22,7 +24,8 @@ export async function getAllTagsAction(): Promise<ActionResponse> {
 
 export async function deleteTagAction(ids: string[]): Promise<ActionResponse> {
   try {
-    await deleteTags(ids)
+    const project = await requireActiveProjectForMutation()
+    await deleteTags(ids, project.id)
     revalidatePath('/tags')
     return {
       status: 200,
@@ -37,7 +40,8 @@ export async function deleteTagAction(ids: string[]): Promise<ActionResponse> {
 export async function createTagAction(_prev: unknown, value: z.infer<typeof tagSchema>): Promise<ActionResponse> {
   try {
     tagSchema.parse(value)
-    const newTag = await createTag(value)
+    const project = await requireActiveProjectForMutation()
+    const newTag = await createTag(value, project.id)
     revalidatePath('/tags')
     return {
       status: 200,
@@ -55,7 +59,8 @@ export async function createTagAction(_prev: unknown, value: z.infer<typeof tagS
 
 export async function getTagByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const tag = await getTagByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const tag = await getTagByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -76,7 +81,8 @@ export async function updateTagAction(
 ): Promise<ActionResponse> {
   try {
     tagSchema.parse(value)
-    const updatedTag = await updateTag(id, value)
+    const project = await requireActiveProjectForMutation()
+    const updatedTag = await updateTag(id, value, project.id)
     revalidatePath('/tags')
     return {
       status: 200,

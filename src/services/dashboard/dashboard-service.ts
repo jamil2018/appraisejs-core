@@ -19,17 +19,18 @@ export type EntityMetrics = {
   runningTestRunsCount: number
 }
 
-export async function getDashboardMetrics() {
-  await updateDashboardMetrics()
-  return prisma.dashboardMetrics.findFirst()
+export async function getDashboardMetrics(targetProjectId: string) {
+  await updateDashboardMetrics(targetProjectId)
+  return prisma.dashboardMetrics.findFirst({ where: { targetProjectId } })
 }
 
-export async function getEntityMetrics(): Promise<EntityMetrics> {
-  const testCases = await prisma.testCase.count()
-  const testSuites = await prisma.testSuite.count()
+export async function getEntityMetrics(targetProjectId: string): Promise<EntityMetrics> {
+  const testCases = await prisma.testCase.count({ where: { targetProjectId } })
+  const testSuites = await prisma.testSuite.count({ where: { targetProjectId } })
   const templateSteps = await prisma.templateStep.count()
   const runningTestRuns = await prisma.testRun.count({
     where: {
+      targetProjectId,
       status: {
         in: [TestRunStatus.RUNNING, TestRunStatus.QUEUED, TestRunStatus.CANCELLING],
       },
@@ -44,9 +45,10 @@ export async function getEntityMetrics(): Promise<EntityMetrics> {
   }
 }
 
-export async function getRunningTestRunsCount(): Promise<number> {
+export async function getRunningTestRunsCount(targetProjectId: string): Promise<number> {
   return prisma.testRun.count({
     where: {
+      targetProjectId,
       status: {
         in: [TestRunStatus.RUNNING, TestRunStatus.QUEUED, TestRunStatus.CANCELLING],
       },
@@ -54,9 +56,10 @@ export async function getRunningTestRunsCount(): Promise<number> {
   })
 }
 
-export async function getTestSuiteExecutionData(): Promise<TestSuiteExecutionData> {
+export async function getTestSuiteExecutionData(targetProjectId: string): Promise<TestSuiteExecutionData> {
   const testRuns = await prisma.testRun.findMany({
     where: {
+      targetProjectId,
       status: TestRunStatus.COMPLETED,
       completedAt: {
         not: null,

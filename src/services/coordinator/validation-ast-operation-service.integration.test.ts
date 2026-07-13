@@ -118,6 +118,7 @@ const meditationSubmission = () => ({
 
 let workspace: string
 let client: PrismaClient
+let targetProjectId: string
 // fallow-ignore-next-line code-duplication -- isolated real-SQLite harness
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-ast-operation-'))
@@ -126,28 +127,36 @@ beforeEach(async () => {
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
   client = sqliteTestClient(databasePath)
   await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
-  const environment = await client.environment.upsert({
-    where: { name: 'local' },
-    update: {},
-    create: { name: 'local', baseUrl: 'http://localhost' },
-  })
   const target = await client.targetProject.create({
     data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'b'.repeat(64)}` },
+  })
+  targetProjectId = target.id
+  const environment = await client.environment.upsert({
+    where: { name: 'local' },
+    update: { targetProjectId: target.id },
+    create: { name: 'local', baseUrl: 'http://localhost', targetProjectId: target.id },
   })
   const repository = new PlanArtifactRepository(workspace)
   await client.module.create({
     data: {
       id: 'meditation-module',
       name: 'Meditation',
+      targetProjectId: target.id,
       locatorGroups: {
         create: {
           id: 'meditation-page',
           name: 'Meditation page',
           route: '/meditate',
+          targetProjectId: target.id,
           locators: {
             create: [
-              { id: 'start-button', name: 'Start button', value: '[data-testid="start"]' },
-              { id: 'completion', name: 'Completion message', value: '[data-testid="completion"]' },
+              { id: 'start-button', name: 'Start button', value: '[data-testid="start"]', targetProjectId: target.id },
+              {
+                id: 'completion',
+                name: 'Completion message',
+                value: '[data-testid="completion"]',
+                targetProjectId: target.id,
+              },
             ],
           },
         },
@@ -245,7 +254,7 @@ describe('Validation AST SQLite preview to compile', () => {
     expect(preview.customExtensions.length).toBeLessThanOrEqual(1)
     const projectedModule = preview.canonicalProjection.validationNode.appraiseArtifacts.modules[0]!
     if (projectedModule.id !== 'meditation-module') {
-      await client.module.create({ data: projectedModule })
+      await client.module.create({ data: { ...projectedModule, targetProjectId } })
       await client.locatorGroup.update({
         where: { id: 'meditation-page' },
         data: { moduleId: projectedModule.id },

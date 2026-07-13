@@ -633,6 +633,41 @@ describe('requestPlanChanges', () => {
 })
 
 describe('listPlans', () => {
+  it('returns only plans owned by the selected project', async () => {
+    await writePlan('project-one-plan', serializeYamlArtifact('plan', plan('project-one-plan')))
+    await writePlan('project-two-plan', serializeYamlArtifact('plan', plan('project-two-plan')))
+    await syncPlans({ projectDirectory: workspace, client })
+    const [projectOne, projectTwo] = await Promise.all([
+      client.targetProject.create({
+        data: { canonicalPath: '/project-one', displayName: 'Project One', fingerprint: 'project-one' },
+      }),
+      client.targetProject.create({
+        data: { canonicalPath: '/project-two', displayName: 'Project Two', fingerprint: 'project-two' },
+      }),
+    ])
+    await Promise.all([
+      client.planProjection.update({
+        where: { planId: 'project-one-plan' },
+        data: { targetProjectId: projectOne.id },
+      }),
+      client.planProjection.update({
+        where: { planId: 'project-two-plan' },
+        data: { targetProjectId: projectTwo.id },
+      }),
+    ])
+
+    const selectedPlans = await listPlans({ projectDirectory: workspace, client, targetProjectId: projectOne.id })
+
+    expect(selectedPlans.map(projectedPlan => projectedPlan.planId)).toEqual(['project-one-plan'])
+    await expect(
+      getPlanReviewDetail('project-two-plan', undefined, {
+        projectDirectory: workspace,
+        client,
+        targetProjectId: projectOne.id,
+      }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
   it('discovers pending, stale, conflicted, awaiting-review, approved, cancelled, and completed plans', async () => {
     const lifecycles = [
       ['pending-flow', 'draft'],

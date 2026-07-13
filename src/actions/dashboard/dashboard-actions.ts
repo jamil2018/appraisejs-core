@@ -8,10 +8,12 @@ import {
   getTestSuiteExecutionData,
 } from '@/services/dashboard/dashboard-service'
 import { unknownErrorToActionResponse } from '@/services/shared/errors'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getDashboardMetricsAction(): Promise<ActionResponse> {
   try {
-    const dashboardMetrics = await getDashboardMetrics()
+    const project = await requireActiveProjectForMutation()
+    const dashboardMetrics = await getDashboardMetrics(project.id)
     return {
       status: 200,
       success: true,
@@ -24,7 +26,8 @@ export async function getDashboardMetricsAction(): Promise<ActionResponse> {
 
 export async function getEntityMetricsAction(): Promise<ActionResponse> {
   try {
-    const metrics = await getEntityMetrics()
+    const project = await requireActiveProjectForMutation()
+    const metrics = await getEntityMetrics(project.id)
     return {
       status: 200,
       success: true,
@@ -37,7 +40,8 @@ export async function getEntityMetricsAction(): Promise<ActionResponse> {
 
 export async function getRunningTestRunsCountAction(): Promise<ActionResponse> {
   try {
-    const count = await getRunningTestRunsCount()
+    const project = await requireActiveProjectForMutation()
+    const count = await getRunningTestRunsCount(project.id)
     return {
       status: 200,
       success: true,
@@ -50,7 +54,8 @@ export async function getRunningTestRunsCountAction(): Promise<ActionResponse> {
 
 export async function getTestSuiteExecutionDataAction(): Promise<ActionResponse> {
   try {
-    const data = await getTestSuiteExecutionData()
+    const project = await requireActiveProjectForMutation()
+    const data = await getTestSuiteExecutionData(project.id)
     return {
       status: 200,
       success: true,

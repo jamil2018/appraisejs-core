@@ -40,6 +40,7 @@ const DEFAULT_REVIEWER = 'local-user'
 type ReviewMutationOptions = {
   client?: PrismaClient
   projectDirectory?: string
+  targetProjectId?: string
 }
 
 type WriteReviewOptions = ReviewMutationOptions & {
@@ -249,7 +250,7 @@ async function writeReview(
 export async function listPlans(options?: ReviewMutationOptions) {
   const client = options?.client ?? prisma
   return client.planProjection.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, targetProjectId: options?.targetProjectId },
     orderBy: { updatedAt: 'desc' },
     include: {
       tasks: { orderBy: { position: 'asc' } },
@@ -290,8 +291,11 @@ export async function getPlanReviewDetail(
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const [{ plan, review }, projection] = await Promise.all([
     readPlanAndReview(projectRoot, canonicalPlanId),
-    client.planProjection.findUnique({
-      where: { planId: canonicalPlanId },
+    client.planProjection.findFirst({
+      where: {
+        planId: canonicalPlanId,
+        targetProjectId: options?.targetProjectId,
+      },
       include: {
         issues: { where: { resolvedAt: null }, orderBy: { createdAt: 'desc' } },
         revisions: { orderBy: { createdAt: 'desc' } },

@@ -13,8 +13,9 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { glob } from 'glob'
 
-export async function listLocators() {
+export async function listLocators(targetProjectId: string) {
   return prisma.locator.findMany({
+    where: { targetProjectId },
     include: {
       locatorGroup: {
         select: {
@@ -42,15 +43,15 @@ async function updateLocatorGroupFile(locatorGroupId: string | null): Promise<vo
   }
 }
 
-export async function deleteLocators(ids: string[]) {
+export async function deleteLocators(ids: string[], targetProjectId: string) {
   const locatorsToDelete = await prisma.locator.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, targetProjectId },
     select: { locatorGroupId: true },
   })
 
   const locatorGroupIds = [...new Set(locatorsToDelete.map(locator => locator.locatorGroupId).filter(Boolean))]
   const result = await prisma.locator.deleteMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, targetProjectId },
   })
 
   await Promise.all(locatorGroupIds.map(groupId => updateLocatorGroupFile(groupId)))
@@ -58,9 +59,9 @@ export async function deleteLocators(ids: string[]) {
   return result
 }
 
-export async function getLocatorByIdOrThrow(id: string) {
-  const locator = await prisma.locator.findUnique({
-    where: { id },
+export async function getLocatorByIdOrThrow(id: string, targetProjectId: string) {
+  const locator = await prisma.locator.findFirst({
+    where: { id, targetProjectId },
     include: {
       locatorGroup: {
         select: {

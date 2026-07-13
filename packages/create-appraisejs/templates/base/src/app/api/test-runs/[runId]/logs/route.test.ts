@@ -11,6 +11,7 @@ vi.mock('@/config/db-config', () => ({
   default: {
     testRun: {
       findUnique: mockTestRunFindUnique,
+      findFirst: mockTestRunFindUnique,
     },
   },
 }))
@@ -52,9 +53,12 @@ describe('test run logs route', () => {
   })
 
   it('returns only stderr entries for errorsOnly mode', async () => {
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/logs?mode=errorsOnly'), {
-      params: Promise.resolve({ runId: 'run-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/logs?targetProjectId=project-1&mode=errorsOnly'),
+      {
+        params: Promise.resolve({ runId: 'run-1' }),
+      },
+    )
 
     const body = await response!.json()
     expect(body.mode).toBe('errorsOnly')
@@ -63,9 +67,12 @@ describe('test run logs route', () => {
   })
 
   it('returns a bounded tail for tail mode', async () => {
-    const response = await GET(new NextRequest('http://localhost/api/test-runs/run-1/logs?mode=tail&limit=2'), {
-      params: Promise.resolve({ runId: 'run-1' }),
-    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/test-runs/run-1/logs?targetProjectId=project-1&mode=tail&limit=2'),
+      {
+        params: Promise.resolve({ runId: 'run-1' }),
+      },
+    )
 
     const body = await response!.json()
     expect(body.logs.map((log: { message: string }) => log.message)).toEqual(['Error: failed step', 'after'])
@@ -73,7 +80,9 @@ describe('test run logs route', () => {
 
   it('returns text around the first failure for aroundFailure mode', async () => {
     const response = await GET(
-      new NextRequest('http://localhost/api/test-runs/run-1/logs?mode=aroundFailure&limit=3&format=text'),
+      new NextRequest(
+        'http://localhost/api/test-runs/run-1/logs?targetProjectId=project-1&mode=aroundFailure&limit=3&format=text',
+      ),
       { params: Promise.resolve({ runId: 'run-1' }) },
     )
 

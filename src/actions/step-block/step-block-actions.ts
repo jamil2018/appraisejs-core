@@ -13,10 +13,12 @@ import {
   updateStepBlock,
 } from '@/services/step-block/step-block-service'
 import type { ActionResponse } from '@/types/form/actionHandler'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllStepBlocksAction(): Promise<ActionResponse> {
   try {
-    const stepBlocks = await listStepBlocks()
+    const project = await requireActiveProjectForMutation()
+    const stepBlocks = await listStepBlocks(project.id)
     return { status: 200, success: true, data: stepBlocks }
   } catch (error) {
     return unknownErrorToActionResponse(error)
@@ -25,7 +27,8 @@ export async function getAllStepBlocksAction(): Promise<ActionResponse> {
 
 export async function getStepBlockByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const stepBlock = await getStepBlockByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const stepBlock = await getStepBlockByIdOrThrow(id, project.id)
     return { status: 200, success: true, data: stepBlock }
   } catch (error) {
     if (error instanceof ServiceError) {
@@ -40,7 +43,8 @@ export async function createStepBlockAction(
   value: z.infer<typeof stepBlockSchema>,
 ): Promise<ActionResponse> {
   try {
-    const stepBlock = await createStepBlock(value)
+    const project = await requireActiveProjectForMutation()
+    const stepBlock = await createStepBlock(value, project.id)
     revalidatePath('/step-blocks')
     return { status: 200, success: true, message: 'Step block created successfully', data: stepBlock }
   } catch (error) {
@@ -60,7 +64,8 @@ export async function updateStepBlockAction(
   id?: string,
 ): Promise<ActionResponse> {
   try {
-    const stepBlock = await updateStepBlock(id, value)
+    const project = await requireActiveProjectForMutation()
+    const stepBlock = await updateStepBlock(id, value, project.id)
     revalidatePath('/step-blocks')
     return { status: 200, success: true, message: 'Step block updated successfully', data: stepBlock }
   } catch (error) {
@@ -76,7 +81,8 @@ export async function updateStepBlockAction(
 
 export async function deleteStepBlockAction(ids: string[]): Promise<ActionResponse> {
   try {
-    await deleteStepBlocks(ids)
+    const project = await requireActiveProjectForMutation()
+    await deleteStepBlocks(ids, project.id)
     revalidatePath('/step-blocks')
     return { status: 200, success: true, message: 'Step block(s) deleted successfully' }
   } catch (error) {

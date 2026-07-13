@@ -38,16 +38,17 @@ function normalizeStepBlockInput(value: StepBlockFormValues) {
   }
 }
 
-export async function listStepBlocks(): Promise<StepBlockDetail[]> {
+export async function listStepBlocks(targetProjectId: string): Promise<StepBlockDetail[]> {
   return prisma.stepBlock.findMany({
+    where: { targetProjectId },
     include: stepBlockInclude,
     orderBy: { name: 'asc' },
   })
 }
 
-export async function getStepBlockByIdOrThrow(id: string): Promise<StepBlockDetail> {
-  const stepBlock = await prisma.stepBlock.findUnique({
-    where: { id },
+export async function getStepBlockByIdOrThrow(id: string, targetProjectId: string): Promise<StepBlockDetail> {
+  const stepBlock = await prisma.stepBlock.findFirst({
+    where: { id, targetProjectId },
     include: stepBlockInclude,
   })
   if (!stepBlock) {
@@ -56,13 +57,25 @@ export async function getStepBlockByIdOrThrow(id: string): Promise<StepBlockDeta
   return stepBlock
 }
 
-export async function createStepBlock(value: StepBlockFormValues): Promise<StepBlockDetail> {
+async function validateTemplateSteps(templateStepIds: string[]) {
+  const ids = [...new Set(templateStepIds)]
+  const steps = await prisma.templateStep.findMany({
+    where: { id: { in: ids } },
+    select: { id: true },
+  })
+  if (steps.length !== ids.length)
+    throw new ServiceError('One or more template steps were not found', 'VALIDATION', 400)
+}
+
+export async function createStepBlock(value: StepBlockFormValues, targetProjectId: string): Promise<StepBlockDetail> {
   const input = normalizeStepBlockInput(value)
+  await validateTemplateSteps(input.steps.map(step => step.templateStepId))
   return prisma.stepBlock.create({
     data: {
       name: input.name,
       description: input.description,
       intent: input.intent,
+      targetProjectId,
       steps: {
         create: input.steps,
       },
@@ -71,15 +84,20 @@ export async function createStepBlock(value: StepBlockFormValues): Promise<StepB
   })
 }
 
-export async function updateStepBlock(id: string | undefined, value: StepBlockFormValues): Promise<StepBlockDetail> {
+export async function updateStepBlock(
+  id: string | undefined,
+  value: StepBlockFormValues,
+  targetProjectId: string,
+): Promise<StepBlockDetail> {
   if (!id) {
     throw new ServiceError('Step block ID is required', 'VALIDATION', 400)
   }
 
   const input = normalizeStepBlockInput(value)
+  await validateTemplateSteps(input.steps.map(step => step.templateStepId))
 
   return prisma.$transaction(async tx => {
-    const existing = await tx.stepBlock.findUnique({ where: { id }, select: { id: true } })
+    const existing = await tx.stepBlock.findFirst({ where: { id, targetProjectId }, select: { id: true } })
     if (!existing) {
       throw new ServiceError('Step block not found', 'NOT_FOUND', 404)
     }
@@ -99,6 +117,6 @@ export async function updateStepBlock(id: string | undefined, value: StepBlockFo
   })
 }
 
-export async function deleteStepBlocks(ids: string[]): Promise<void> {
-  await prisma.stepBlock.deleteMany({ where: { id: { in: ids } } })
+export async function deleteStepBlocks(ids: string[], targetProjectId: string): Promise<void> {
+  await prisma.stepBlock.deleteMany({ where: { id: { in: ids }, targetProjectId } })
 }

@@ -107,6 +107,7 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       id: ids.modules[item.localKey],
       name: item.name,
       parentId: item.parentKey ? ids.modules[item.parentKey] : null,
+      targetProjectId,
     }
     await tx.module.upsert({
       where: { id: data.id },
@@ -131,6 +132,7 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       name: item.name,
       moduleId: ids.modules[item.moduleKey],
       route: item.route,
+      targetProjectId,
     }
     await tx.locatorGroup.upsert({
       where: { id: data.id },
@@ -155,6 +157,7 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       name: item.name,
       locatorGroupId: ids.locatorGroups[item.groupKey],
       value: item.selector,
+      targetProjectId,
     }
     await tx.locator.upsert({
       where: { id: data.id },
@@ -179,6 +182,7 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       name: item.name,
       baseUrl: item.baseUrl,
       apiBaseUrl: item.apiBaseUrl,
+      targetProjectId,
     }
     await tx.environment.upsert({
       where: { id: data.id },
@@ -198,6 +202,11 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
     )
   }
   for (const item of proposal.templateSteps) {
+    const group = await tx.templateStepGroup.findUnique({
+      where: { id: item.groupId },
+      select: { id: true },
+    })
+    if (!group) throw new ServiceError(`Template step group "${item.groupId}" was not found.`, 'CONFLICT')
     const data = {
       id: ids.templateSteps[item.localKey],
       name: item.name,

@@ -14,20 +14,29 @@ const moduleInclude = {
 
 export type ModuleWithParent = Prisma.ModuleGetPayload<{ include: typeof moduleInclude }>
 
-export async function listModules(): Promise<ModuleWithParent[]> {
+export async function listModules(targetProjectId: string): Promise<ModuleWithParent[]> {
   return prisma.module.findMany({
+    where: { targetProjectId },
     include: moduleInclude,
   })
 }
 
-export async function deleteModules(ids: string[]): Promise<void> {
-  await prisma.module.deleteMany({ where: { id: { in: ids } } })
+export async function deleteModules(ids: string[], targetProjectId: string): Promise<void> {
+  await prisma.module.deleteMany({ where: { id: { in: ids }, targetProjectId } })
   await automationProjectionService.regenerateAllPathDependentArtifacts()
 }
 
-export async function createModule(value: z.infer<typeof moduleSchema>): Promise<Module> {
+export async function createModule(value: z.infer<typeof moduleSchema>, targetProjectId: string): Promise<Module> {
+  if (value.parentId !== ROOT_MODULE_UUID) {
+    const parent = await prisma.module.findFirst({
+      where: { id: value.parentId, targetProjectId },
+      select: { id: true },
+    })
+    if (!parent) throw new ServiceError('Parent module not found in the active project', 'VALIDATION', 400)
+  }
   const moduleData = {
     ...value,
+    targetProjectId,
     parentId: value.parentId === ROOT_MODULE_UUID ? null : value.parentId,
   }
   const newModule = await prisma.module.create({ data: moduleData })
@@ -35,9 +44,9 @@ export async function createModule(value: z.infer<typeof moduleSchema>): Promise
   return newModule
 }
 
-export async function getModuleByIdOrThrow(id: string): Promise<ModuleWithParent> {
-  const moduleData = await prisma.module.findUnique({
-    where: { id },
+export async function getModuleByIdOrThrow(id: string, targetProjectId: string): Promise<ModuleWithParent> {
+  const moduleData = await prisma.module.findFirst({
+    where: { id, targetProjectId },
     include: moduleInclude,
   })
   if (!moduleData) {
@@ -46,9 +55,21 @@ export async function getModuleByIdOrThrow(id: string): Promise<ModuleWithParent
   return moduleData
 }
 
-export async function updateModule(id: string | undefined, value: z.infer<typeof moduleSchema>): Promise<Module> {
+export async function updateModule(
+  id: string | undefined,
+  value: z.infer<typeof moduleSchema>,
+  targetProjectId: string,
+): Promise<Module> {
   if (!id) {
     throw new ServiceError('Module id is required', 'VALIDATION', 400)
+  }
+  await getModuleByIdOrThrow(id, targetProjectId)
+  if (value.parentId !== ROOT_MODULE_UUID) {
+    const parent = await prisma.module.findFirst({
+      where: { id: value.parentId, targetProjectId },
+      select: { id: true },
+    })
+    if (!parent) throw new ServiceError('Parent module not found in the active project', 'VALIDATION', 400)
   }
   const moduleData = {
     ...value,

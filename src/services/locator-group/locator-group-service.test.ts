@@ -18,6 +18,8 @@ vi.mock('@/config/db-config', () => ({
       findMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    module: { findFirst: vi.fn() },
+    locator: { findMany: vi.fn() },
   },
 }))
 
@@ -38,11 +40,12 @@ vi.mock('@/lib/automation/projection-service', () => ({
 }))
 
 import prisma from '@/config/db-config'
+const targetProjectId = 'project-1'
 
 describe('getLocatorGroupByIdOrThrow', () => {
   it('throws when locator group is missing', async () => {
-    vi.mocked(prisma.locatorGroup.findUnique).mockResolvedValue(null)
-    await expect(getLocatorGroupByIdOrThrow('missing')).rejects.toMatchObject({
+    vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValue(null)
+    await expect(getLocatorGroupByIdOrThrow('missing', targetProjectId)).rejects.toMatchObject({
       message: 'Locator group not found',
       statusCode: 404,
     })
@@ -52,27 +55,32 @@ describe('getLocatorGroupByIdOrThrow', () => {
 describe('checkLocatorGroupNameUnique', () => {
   it('returns false when name is taken', async () => {
     vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValue({ id: 'lg1' } as never)
-    await expect(checkLocatorGroupNameUnique('Taken')).resolves.toBe(false)
+    await expect(checkLocatorGroupNameUnique('Taken', targetProjectId)).resolves.toBe(false)
   })
 
   it('returns true when name is free', async () => {
     vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValue(null)
-    await expect(checkLocatorGroupNameUnique('Free')).resolves.toBe(true)
+    await expect(checkLocatorGroupNameUnique('Free', targetProjectId)).resolves.toBe(true)
   })
 })
 
 describe('createLocatorGroup', () => {
   it('creates the group and syncs its files', async () => {
+    vi.mocked(prisma.module.findFirst).mockResolvedValue({ id: 'module-1' } as never)
+    vi.mocked(prisma.locator.findMany).mockResolvedValue([{ id: 'loc-1' }] as never)
     vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.locatorGroup.create).mockResolvedValue({ id: 'group-1', name: 'Home' } as never)
 
     await expect(
-      createLocatorGroup({
-        name: 'Home',
-        moduleId: 'module-1',
-        route: '/home',
-        locators: ['loc-1'],
-      }),
+      createLocatorGroup(
+        {
+          name: 'Home',
+          moduleId: 'module-1',
+          route: '/home',
+          locators: ['loc-1'],
+        },
+        targetProjectId,
+      ),
     ).resolves.toEqual({ id: 'group-1', name: 'Home' })
 
     expect(automationProjectionService.createEmptyLocatorGroup).toHaveBeenCalledWith('group-1')
@@ -82,26 +90,32 @@ describe('createLocatorGroup', () => {
 
 describe('updateLocatorGroup', () => {
   it('renames the group and updates the locator map when the name changes', async () => {
-    vi.mocked(prisma.locatorGroup.findUnique).mockResolvedValue({
+    vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValueOnce({
       id: 'group-1',
       name: 'Old Name',
       moduleId: 'module-1',
       route: '/old',
       module: { id: 'module-1' },
     } as never)
-    vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.locatorGroup.findFirst).mockResolvedValueOnce(null)
+    vi.mocked(prisma.module.findFirst).mockResolvedValue({ id: 'module-1' } as never)
+    vi.mocked(prisma.locator.findMany).mockResolvedValue([{ id: 'loc-1' }] as never)
     vi.mocked(prisma.locatorGroup.update).mockResolvedValue({
       id: 'group-1',
       name: 'New Name',
       module: { name: 'Core' },
     } as never)
 
-    await updateLocatorGroup('group-1', {
-      name: 'New Name',
-      moduleId: 'module-1',
-      route: '/new',
-      locators: ['loc-1'],
-    })
+    await updateLocatorGroup(
+      'group-1',
+      {
+        name: 'New Name',
+        moduleId: 'module-1',
+        route: '/new',
+        locators: ['loc-1'],
+      },
+      targetProjectId,
+    )
 
     expect(automationProjectionService.renameLocatorGroup).toHaveBeenCalledWith('group-1', 'New Name', 'Old Name')
     expect(automationProjectionService.syncLocatorMap).toHaveBeenCalledWith('/old', '/new', 'Old Name', 'New Name')
@@ -113,11 +127,11 @@ describe('deleteLocatorGroups', () => {
     vi.mocked(prisma.locatorGroup.findMany).mockResolvedValue([{ name: 'Home' }] as never)
     vi.mocked(prisma.locatorGroup.deleteMany).mockResolvedValue({ count: 1 } as never)
 
-    await expect(deleteLocatorGroups(['group-1'])).resolves.toEqual(['group-1'])
+    await expect(deleteLocatorGroups(['group-1'], targetProjectId)).resolves.toEqual(['group-1'])
     expect(automationProjectionService.deleteLocatorMapEntries).toHaveBeenCalledWith(['Home'])
     expect(automationProjectionService.deleteLocatorGroup).toHaveBeenCalledWith('group-1')
     expect(prisma.locatorGroup.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['group-1'] } },
+      where: { id: { in: ['group-1'] }, targetProjectId },
     })
   })
 })

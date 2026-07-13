@@ -6,9 +6,10 @@ import { z } from 'zod'
 import { StepParameterType, TagType } from '@prisma/client'
 import { ServiceError } from '@/services/shared/errors'
 
-export async function deleteTestCasesByIds(ids: string[]): Promise<void> {
+export async function deleteTestCasesByIds(ids: string[], targetProjectId: string): Promise<void> {
   const affectedTestSuites = await prisma.testSuite.findMany({
     where: {
+      targetProjectId,
       testCases: {
         some: {
           id: {
@@ -23,6 +24,7 @@ export async function deleteTestCasesByIds(ids: string[]): Promise<void> {
   const testCaseIdentifierTags = await prisma.tag.findMany({
     where: {
       type: TagType.IDENTIFIER,
+      targetProjectId,
       testCases: {
         some: {
           id: {
@@ -86,15 +88,16 @@ export async function deleteTestCasesByIds(ids: string[]): Promise<void> {
     })
 
     await tx.testCase.deleteMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, targetProjectId },
     })
   })
 
   await Promise.all(affectedTestSuites.map(testSuite => automationProjectionService.generateFeature(testSuite.id)))
 }
 
-export async function listTestCases() {
+export async function listTestCases(targetProjectId: string) {
   return prisma.testCase.findMany({
+    where: { targetProjectId },
     include: {
       steps: {
         include: {
@@ -109,19 +112,44 @@ export async function listTestCases() {
 
 type TestCaseInput = z.input<typeof testCaseSchema>
 
-export async function createTestCaseFromInput(value: TestCaseInput) {
+async function validateTestCaseRelationships(value: TestCaseInput, targetProjectId: string) {
+  const templateStepIds = [...new Set(value.steps.map(step => step.templateStepId))]
+  const [suites, tags, templateSteps] = await Promise.all([
+    prisma.testSuite.findMany({ where: { id: { in: value.testSuiteIds }, targetProjectId }, select: { id: true } }),
+    prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
+    prisma.templateStep.findMany({
+      where: { id: { in: templateStepIds } },
+      select: { id: true },
+    }),
+  ])
+  if (
+    suites.length !== value.testSuiteIds.length ||
+    tags.length !== (value.tagIds ?? []).length ||
+    templateSteps.length !== templateStepIds.length
+  )
+    throw new ServiceError(
+      'Test case project relationships are invalid or a template step was not found',
+      'VALIDATION',
+      400,
+    )
+}
+
+export async function createTestCaseFromInput(value: TestCaseInput, targetProjectId: string) {
+  await validateTestCaseRelationships(value, targetProjectId)
   const uniqueTestCaseIdentifier = generateUniqueTestCaseIdentifier()
   const testCaseIdentifierTag = await prisma.tag.create({
     data: {
       name: uniqueTestCaseIdentifier,
       type: TagType.IDENTIFIER,
       tagExpression: `@${uniqueTestCaseIdentifier}`,
+      targetProjectId,
     },
   })
 
   const baseData = {
     title: value.title,
     description: value.description ?? '',
+    targetProjectId,
     TestSuite: {
       connect: value.testSuiteIds.map(id => ({ id })),
     },
@@ -186,9 +214,9 @@ export async function createTestCaseFromInput(value: TestCaseInput) {
   return newTestCase
 }
 
-export async function getTestCaseByIdOrThrow(id: string) {
-  const testCase = await prisma.testCase.findUnique({
-    where: { id },
+export async function getTestCaseByIdOrThrow(id: string, targetProjectId: string) {
+  const testCase = await prisma.testCase.findFirst({
+    where: { id, targetProjectId },
     include: {
       steps: {
         include: {
@@ -227,9 +255,12 @@ export async function getTestCaseByIdOrThrow(id: string) {
   }
 }
 
-export async function updateTestCaseFromInput(value: TestCaseInput, id: string) {
+export async function updateTestCaseFromInput(value: TestCaseInput, id: string, targetProjectId: string) {
+  await getTestCaseByIdOrThrow(id, targetProjectId)
+  await validateTestCaseRelationships(value, targetProjectId)
   const affectedTestSuites = await prisma.testSuite.findMany({
     where: {
+      targetProjectId,
       testCases: {
         some: {
           id,
@@ -260,8 +291,8 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string) 
     where: { testCaseId: id },
   })
 
-  const existingTestCase = await prisma.testCase.findUnique({
-    where: { id },
+  const existingTestCase = await prisma.testCase.findFirst({
+    where: { id, targetProjectId },
     include: {
       tags: {
         where: {

@@ -7,7 +7,8 @@ vi.mock('@/config/db-config', () => ({
     testSuite: { findMany: vi.fn() },
     tag: { findMany: vi.fn(), create: vi.fn() },
     $transaction: vi.fn(),
-    testCase: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+    testCase: { create: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    templateStep: { findMany: vi.fn() },
     testCaseStep: { findMany: vi.fn(), deleteMany: vi.fn() },
     testCaseStepParameter: { deleteMany: vi.fn() },
     testCaseFlowBlock: { deleteMany: vi.fn() },
@@ -73,12 +74,12 @@ describe('deleteTestCasesByIds', () => {
       await fn(tx as never)
     })
 
-    await deleteTestCasesByIds(['tc-1', 'tc-2'])
+    await deleteTestCasesByIds(['tc-1', 'tc-2'], 'project-1')
 
     expect(prisma.testSuite.findMany).toHaveBeenCalled()
     expect(prisma.tag.findMany).toHaveBeenCalled()
     expect(tx.testCase.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['tc-1', 'tc-2'] } },
+      where: { id: { in: ['tc-1', 'tc-2'] }, targetProjectId: 'project-1' },
     })
     expect(tx.tag.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ['tag-1'] } },
@@ -95,7 +96,7 @@ describe('deleteTestCasesByIds', () => {
       await fn(tx as never)
     })
 
-    await deleteTestCasesByIds(['tc-x'])
+    await deleteTestCasesByIds(['tc-x'], 'project-1')
 
     expect(automationProjectionService.generateFeature).not.toHaveBeenCalled()
     expect(tx.testCase.deleteMany).toHaveBeenCalled()
@@ -108,13 +109,16 @@ describe('createTestCaseFromInput', () => {
   })
 
   it('creates an identifier tag, persists the test case, and regenerates affected features', async () => {
+    vi.mocked(prisma.testSuite.findMany).mockResolvedValue([{ id: 'suite-a' }] as never)
+    vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: 'tag-1' }] as never)
+    vi.mocked(prisma.templateStep.findMany).mockResolvedValue([{ id: 'template-1' }] as never)
     vi.mocked(prisma.tag.create).mockResolvedValue({ id: 'identifier-tag' } as never)
     vi.mocked(prisma.testCase.create).mockResolvedValue({
       id: 'tc-1',
       TestSuite: [{ id: 'suite-a' }],
     } as never)
 
-    const result = await createTestCaseFromInput(baseInput)
+    const result = await createTestCaseFromInput(baseInput, 'project-1')
 
     expect(result).toEqual({
       id: 'tc-1',
@@ -125,6 +129,7 @@ describe('createTestCaseFromInput', () => {
         name: expect.stringMatching(/^tc_/),
         type: TagType.IDENTIFIER,
         tagExpression: expect.stringMatching(/^@tc_/),
+        targetProjectId: 'project-1',
       },
     })
     expect(prisma.testCase.create).toHaveBeenCalled()
@@ -139,17 +144,22 @@ describe('updateTestCaseFromInput', () => {
 
   it('replaces steps, preserves identifier tags, and regenerates affected suite features', async () => {
     vi.mocked(prisma.testSuite.findMany).mockResolvedValue([{ id: 'suite-a' }] as never)
+    vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: 'tag-1' }] as never)
+    vi.mocked(prisma.templateStep.findMany).mockResolvedValue([{ id: 'template-1' }] as never)
     vi.mocked(prisma.testCaseStep.findMany).mockResolvedValue([{ id: 'step-1' }] as never)
-    vi.mocked(prisma.testCase.findUnique).mockResolvedValue({
+    vi.mocked(prisma.testCase.findFirst).mockResolvedValue({
       id: 'tc-1',
+      TestSuite: [],
       tags: [{ id: 'identifier-tag' }],
+      steps: [],
+      flowBlocks: [],
     } as never)
     vi.mocked(prisma.testCase.update).mockResolvedValue({
       id: 'tc-1',
       steps: [],
     } as never)
 
-    const result = await updateTestCaseFromInput(baseInput, 'tc-1')
+    const result = await updateTestCaseFromInput(baseInput, 'tc-1', 'project-1')
 
     expect(result).toEqual({ id: 'tc-1', steps: [] })
     expect(prisma.testCaseStepParameter.deleteMany).toHaveBeenCalledWith({

@@ -9,6 +9,7 @@ import { proposeValidationResources } from './validation-resource-proposal-servi
 
 let workspace: string
 let client: PrismaClient
+let targetProjectId: string
 
 beforeEach(async () => {
   const created = await createPlanRuntimeTestWorkspace('validation-resources-', 'appraise.db')
@@ -17,6 +18,7 @@ beforeEach(async () => {
   const target = await client.targetProject.create({
     data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'d'.repeat(64)}` },
   })
+  targetProjectId = target.id
   await client.planProjection.create({
     data: {
       planId: 'plan-resources',
@@ -80,7 +82,24 @@ describe('validation resource proposals', () => {
       client,
     )
     expect(replay).toMatchObject({ replayed: true, proposalHash: first.proposalHash })
-    await expect(client.module.count({ where: { id: first.ids.modules.todo } })).resolves.toBe(1)
+    await expect(client.module.findUnique({ where: { id: first.ids.modules.todo } })).resolves.toMatchObject({
+      targetProjectId,
+    })
+    await expect(
+      client.locatorGroup.findUnique({ where: { id: first.ids.locatorGroups['todo-page'] } }),
+    ).resolves.toMatchObject({
+      targetProjectId,
+    })
+    await expect(client.locator.findUnique({ where: { id: first.ids.locators['todo-input'] } })).resolves.toMatchObject(
+      {
+        targetProjectId,
+      },
+    )
+    await expect(client.environment.findUnique({ where: { id: first.ids.environments.local } })).resolves.toMatchObject(
+      {
+        targetProjectId,
+      },
+    )
   })
 
   it('rejects unresolved graphs before any database write', async () => {
@@ -100,5 +119,29 @@ describe('validation resource proposals', () => {
         client,
       ),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
+  it('allows an agent-suggested template step to reference a shared group', async () => {
+    const foreignProject = await client.targetProject.create({
+      data: {
+        canonicalPath: `${workspace}-foreign`,
+        displayName: 'Foreign',
+        fingerprint: `sha256:${'e'.repeat(64)}`,
+      },
+    })
+    const foreignGroup = await client.templateStepGroup.create({
+      data: { name: 'Foreign actions', targetProjectId: foreignProject.id },
+    })
+    const input = {
+      ...proposal(),
+      templateSteps: [
+        { localKey: 'foreign-step', name: 'Foreign step', signature: 'Given foreign data', groupId: foreignGroup.id },
+      ],
+    }
+
+    await expect(
+      proposeValidationResources({ planId: 'plan-resources', proposal: input, projectDirectory: workspace }, client),
+    ).resolves.toMatchObject({ replayed: false })
+    await expect(client.templateStep.count({ where: { id: { startsWith: 'apr-' } } })).resolves.toBe(1)
   })
 })

@@ -46,7 +46,7 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
   const [locatorGraph, allEnvironments, environmentOwnerships] = await Promise.all([
     buildLocatorGraph(client, plan.targetProject.id),
-    client.environment.findMany({ orderBy: { name: 'asc' } }),
+    client.environment.findMany({ where: { targetProjectId: plan.targetProject.id }, orderBy: { name: 'asc' } }),
     readVisibleResourceOwnerships(plan.targetProject.id, ['environment'], client),
   ])
   const environments = allEnvironments.filter(

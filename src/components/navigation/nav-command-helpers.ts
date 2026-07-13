@@ -103,6 +103,11 @@ function getLibrarySection(): NavigationSection {
       { href: '/template-step-groups', label: 'Step Groups', icon: Component },
       { href: '/step-blocks', label: 'Step Blocks', icon: Blocks },
       { href: '/template-test-cases', label: 'Case Templates', icon: Blocks },
+      { href: '/locators', label: 'Locators', icon: Code },
+      { href: '/locator-groups', label: 'Locator Groups', icon: Group },
+      { href: '/modules', label: 'Modules', icon: Puzzle },
+      { href: '/environments', label: 'Environments', icon: Server },
+      { href: '/tags', label: 'Tags', icon: Tag },
     ],
   }
 }
@@ -112,11 +117,6 @@ function getSystemSection(): NavigationSection {
     label: 'System',
     items: [
       { href: '/projects', label: 'Projects', icon: FolderKanban },
-      { href: '/locators', label: 'Locators', icon: Code },
-      { href: '/locator-groups', label: 'Locator Groups', icon: Group },
-      { href: '/modules', label: 'Modules', icon: Puzzle },
-      { href: '/environments', label: 'Environments', icon: Server },
-      { href: '/tags', label: 'Tags', icon: Tag },
       { href: '/settings', label: 'Settings', icon: Settings2 },
     ],
   }

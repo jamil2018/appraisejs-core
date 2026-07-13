@@ -124,7 +124,6 @@ export async function updateTemplateStep(
   if (!currentStep) {
     throw new ServiceError('Template step not found', 'NOT_FOUND', 404)
   }
-
   const description = normalizeOptionalText(value.description)
   const functionDefinition = await normalizeFunctionDefinition(value.functionDefinition)
 

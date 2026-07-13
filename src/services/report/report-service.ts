@@ -52,8 +52,9 @@ type ExecutedTestCaseSets = {
   legacyTestCaseIds: Set<string>
 }
 
-export async function listReports(): Promise<ReportWithRelations[]> {
+export async function listReports(targetProjectId: string): Promise<ReportWithRelations[]> {
   const reports = await prisma.report.findMany({
+    where: { testRun: { targetProjectId } },
     include: {
       testRun: {
         include: {
@@ -89,9 +90,12 @@ export async function listReports(): Promise<ReportWithRelations[]> {
   return reports as ReportWithRelations[]
 }
 
-export async function getReportByIdOrThrow(reportId: string): Promise<ReportDetailWithRelations> {
-  const report = await prisma.report.findUnique({
-    where: { id: reportId },
+export async function getReportByIdOrThrow(
+  reportId: string,
+  targetProjectId: string,
+): Promise<ReportDetailWithRelations> {
+  const report = await prisma.report.findFirst({
+    where: { id: reportId, testRun: { targetProjectId } },
     include: {
       testRun: {
         include: {
@@ -455,8 +459,9 @@ export async function storeReportFromFileService(
   }
 }
 
-export async function getAllTestCaseMetricsForFilter(filter: string) {
+export async function getAllTestCaseMetricsForFilter(filter: string, targetProjectId: string) {
   let testCaseMetrics = await prisma.testCaseMetrics.findMany({
+    where: { testCase: { targetProjectId } },
     include: {
       testCase: {
         include: {
@@ -473,13 +478,14 @@ export async function getAllTestCaseMetricsForFilter(filter: string) {
   return testCaseMetrics
 }
 
-export async function getAllTestSuiteMetricsForFilter(filter: string) {
+export async function getAllTestSuiteMetricsForFilter(filter: string, targetProjectId: string) {
   if (filter === 'notExecutedRecently') {
     const recentPeriodDate = new Date()
     recentPeriodDate.setDate(recentPeriodDate.getDate() - RECENT_PERIOD_DAYS)
 
     const testSuites = await prisma.testSuite.findMany({
       where: {
+        targetProjectId,
         OR: [
           {
             metrics: {
@@ -526,6 +532,7 @@ export async function getAllTestSuiteMetricsForFilter(filter: string) {
   }
 
   const testSuiteMetrics = await prisma.testSuiteMetrics.findMany({
+    where: { testSuite: { targetProjectId } },
     include: {
       testSuite: {
         include: {

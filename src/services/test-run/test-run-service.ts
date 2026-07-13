@@ -58,21 +58,22 @@ export {
   normalizeSuiteSelection,
 } from '@/services/test-run/test-run-helpers'
 
-export async function isTestRunNameTaken(name: string, excludeId?: string): Promise<boolean> {
+export async function isTestRunNameTaken(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.testRun.findFirst({
     where: {
       name,
+      targetProjectId,
       ...(excludeId && { id: { not: excludeId } }),
     },
   })
   return !!existing
 }
 
-export async function listTestRuns(filter?: string) {
+export async function listTestRuns(targetProjectId: string, filter?: string) {
   const whereClause = buildTestRunsWhereClause(filter)
 
   return prisma.testRun.findMany({
-    where: whereClause,
+    where: { AND: [whereClause, { targetProjectId }] },
     include: {
       testCases: true,
       tags: true,
@@ -81,9 +82,9 @@ export async function listTestRuns(filter?: string) {
   })
 }
 
-export async function getTestRunByIdOrThrow(id: string) {
-  const testRun = await prisma.testRun.findUnique({
-    where: { id },
+export async function getTestRunByIdOrThrow(id: string, targetProjectId: string) {
+  const testRun = await prisma.testRun.findFirst({
+    where: { id, targetProjectId },
     include: {
       testCases: {
         include: {
@@ -104,10 +105,11 @@ export async function getTestRunByIdOrThrow(id: string) {
   return testRun
 }
 
-export async function listTestSuiteTestCases() {
-  await ensureTestSuiteIdentifierTags()
+export async function listTestSuiteTestCases(targetProjectId: string) {
+  await ensureTestSuiteIdentifierTags(undefined, targetProjectId)
 
   return prisma.testSuite.findMany({
+    where: { targetProjectId },
     include: {
       module: true,
       tags: true,
@@ -129,14 +131,17 @@ type ResolvedTestRunFilters = {
   testRunTestCases: TestRunTestCaseLink[]
 }
 
-async function resolveTagExpressionAndTestCases(value: TestRunFormValue): Promise<{
+async function resolveTagExpressionAndTestCases(
+  value: TestRunFormValue,
+  targetProjectId: string,
+): Promise<{
   tagExpression: string
   tags: Tag[]
   testRunTestCases: TestRunTestCaseLink[]
   environment: Environment
 }> {
-  const environment = await prisma.environment.findUnique({
-    where: { id: value.environmentId },
+  const environment = await prisma.environment.findFirst({
+    where: { id: value.environmentId, targetProjectId },
   })
 
   if (!environment) {
@@ -151,8 +156,8 @@ async function resolveTagExpressionAndTestCases(value: TestRunFormValue): Promis
   }
 
   const { tagExpression, tags, testRunTestCases } = isFilteringByTags
-    ? await resolveTaggedTestRunFilters(value.tags)
-    : await resolveSuiteTestRunFilters(value.testSuites)
+    ? await resolveTaggedTestRunFilters(value.tags, targetProjectId)
+    : await resolveSuiteTestRunFilters(value.testSuites, targetProjectId)
 
   if (!tagExpression) {
     throw new ServiceError('No executable tests were resolved from the selected filters.', 'VALIDATION', 400)
@@ -161,14 +166,17 @@ async function resolveTagExpressionAndTestCases(value: TestRunFormValue): Promis
   return { tagExpression, tags, testRunTestCases, environment }
 }
 
-async function resolveTaggedTestRunFilters(tagIds: string[]): Promise<ResolvedTestRunFilters> {
+async function resolveTaggedTestRunFilters(tagIds: string[], targetProjectId: string): Promise<ResolvedTestRunFilters> {
   const tags = await prisma.tag.findMany({
-    where: { id: { in: tagIds } },
+    where: { id: { in: tagIds }, targetProjectId },
   })
+  if (tags.length !== tagIds.length)
+    throw new ServiceError('One or more selected tags do not belong to the active project.', 'VALIDATION', 400)
 
   const tagExpression = buildOrExpression(tags.map(tag => `(${tag.tagExpression})`))
   const tagFilteredTestCases = await prisma.testCase.findMany({
     where: {
+      targetProjectId,
       OR: [
         {
           tags: {
@@ -198,14 +206,21 @@ async function resolveTaggedTestRunFilters(tagIds: string[]): Promise<ResolvedTe
   }
 }
 
-async function resolveSuiteTestRunFilters(value: TestRunFormValue['testSuites']): Promise<ResolvedTestRunFilters> {
-  await ensureTestSuiteIdentifierTags(value.map(testSuite => testSuite.testSuiteId))
+async function resolveSuiteTestRunFilters(
+  value: TestRunFormValue['testSuites'],
+  targetProjectId: string,
+): Promise<ResolvedTestRunFilters> {
+  await ensureTestSuiteIdentifierTags(
+    value.map(testSuite => testSuite.testSuiteId),
+    targetProjectId,
+  )
 
   const selectedSuites = await prisma.testSuite.findMany({
     where: {
       id: {
         in: value.map(testSuite => testSuite.testSuiteId),
       },
+      targetProjectId,
     },
     include: {
       tags: true,
@@ -420,11 +435,10 @@ async function persistLogsAndUpdateRunStatus(args: {
   testRunDbId: string
   runId: string
   logEntries: LogEntry[]
-  logger: Awaited<ReturnType<typeof createTestRunLogger>>
   exitCode: number
   client?: PrismaClient
 }): Promise<void> {
-  const { testRunDbId, runId, logEntries, logger, exitCode, client = prisma } = args
+  const { testRunDbId, runId, logEntries, exitCode, client = prisma } = args
 
   if (logEntries.length > 0) {
     const formattedLogs = formatLogsForStorage(logEntries)
@@ -434,8 +448,6 @@ async function persistLogsAndUpdateRunStatus(args: {
       update: { logs: formattedLogs },
     })
   }
-  await closeLogger(logger)
-
   const currentTestRun = await client.testRun.findUnique({
     where: { id: testRunDbId },
     select: { status: true, result: true },
@@ -781,12 +793,9 @@ export async function scheduleTestRunCompletion(args: {
           testRunDbId: testRun.id,
           runId: testRun.runId,
           logEntries,
-          logger,
           exitCode,
           client,
         })
-
-        cleanupListener()
 
         await storeReportAfterRunIfNeeded(testRun.id, testRun.runId, reportPath, client, appraiseRoot)
         await reconcileFinalRunEvidence({
@@ -834,14 +843,8 @@ export async function scheduleTestRunCompletion(args: {
       .catch(async error => {
         console.error(`[TestRunService] Error executing test run for testRunId: ${testRun.runId}:`, error)
 
-        if (!logger.writableEnded) {
-          logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
-          if (error instanceof Error && error.stack) logger.error(error.stack)
-        }
-
-        await closeLogger(logger).catch(err => {
-          console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, err)
-        })
+        logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
+        if (error instanceof Error && error.stack) logger.error(error.stack)
 
         await client.$transaction(async tx => {
           const completedAt = new Date()
@@ -872,8 +875,12 @@ export async function scheduleTestRunCompletion(args: {
             if (attempt.count !== 1) throw new Error('Execution attempt terminal state changed before failure CAS.')
           }
         })
-
+      })
+      .finally(async () => {
         cleanupListener()
+        await closeLogger(logger).catch(error => {
+          console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, error)
+        })
       })
   } catch (error) {
     console.error(`[TestRunService] Synchronous error calling executeTestRun for testRunId: ${testRun.runId}:`, error)
@@ -908,9 +915,10 @@ async function assertAstExecutionAuthorized(testCaseIds: string[]) {
 
 export async function createTestRunFromValidatedValue(
   value: TestRunFormValue,
+  targetProjectId: string,
   executionOverrides: TestRunExecutionOverrides = {},
 ): Promise<{ runId: string; id: string }> {
-  const nameTaken = await isTestRunNameTaken(value.name)
+  const nameTaken = await isTestRunNameTaken(value.name, targetProjectId)
   if (nameTaken) {
     throw new ServiceError(
       'A test run with this name already exists. Please choose a different name.',
@@ -919,12 +927,16 @@ export async function createTestRunFromValidatedValue(
     )
   }
 
-  const { tagExpression, tags, testRunTestCases, environment } = await resolveTagExpressionAndTestCases(value)
+  const { tagExpression, tags, testRunTestCases, environment } = await resolveTagExpressionAndTestCases(
+    value,
+    targetProjectId,
+  )
   await assertAstExecutionAuthorized(testRunTestCases.map(item => item.testCaseId))
 
   const testRun = await prisma.testRun.create({
     data: {
       name: value.name,
+      targetProjectId,
       environmentId: value.environmentId,
       testWorkersCount: value.testWorkersCount || 1,
       browserEngine: value.browserEngine,
@@ -1034,7 +1046,7 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
   }
 
   const name = input.name?.trim() || `${targetProject.displayName} standalone ${new Date().toISOString()}`
-  const nameTaken = await isTestRunNameTaken(name)
+  const nameTaken = await isTestRunNameTaken(name, targetProject.id)
   if (nameTaken) {
     throw new ServiceError(
       'A test run with this name already exists. Please choose a different name.',
@@ -1177,9 +1189,9 @@ export async function preflightStandaloneTargetTestRun(input: Parameters<typeof 
   return preflightTestRun(input)
 }
 
-export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
+export async function deleteTestRunsByIds(ids: string[], targetProjectId: string): Promise<void> {
   const testRuns = await prisma.testRun.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, targetProjectId },
     select: {
       runId: true,
       logPath: true,
@@ -1210,7 +1222,7 @@ export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
   }
 
   await prisma.testRun.deleteMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, targetProjectId },
   })
 
   const { recalculateMetricsForTestCases, updateDashboardMetrics } = await import('@/lib/metrics/metric-calculator')
@@ -1222,6 +1234,7 @@ export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
     where: {
       status: TestRunTestCaseStatus.COMPLETED,
       testRun: {
+        targetProjectId,
         completedAt: {
           gte: recentPeriodDate,
         },
@@ -1240,7 +1253,7 @@ export async function deleteTestRunsByIds(ids: string[]): Promise<void> {
     await recalculateMetricsForTestCases(allAffectedTestCaseIds)
   }
 
-  await updateDashboardMetrics()
+  await updateDashboardMetrics(targetProjectId)
 }
 
 export async function storeTestRunLogsService(testRunId: string, logs: LogEntry[]): Promise<void> {

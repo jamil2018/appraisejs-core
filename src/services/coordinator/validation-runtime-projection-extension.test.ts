@@ -14,6 +14,7 @@ describe('compiled validation extension persistence', () => {
         create: vi.fn().mockResolvedValue({ id: 'owner-tag', name: 'appraise_plan_plan-one' }),
       },
       planProjection: {
+        findUnique: vi.fn().mockResolvedValue({ targetProjectId: 'project-one' }),
         findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'projection-one' }),
         update: vi.fn().mockResolvedValue({}),
       },

@@ -3,7 +3,7 @@ import { generateUniqueTestSuiteIdentifier } from '@/lib/test-suite-utils'
 import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
 import { TagType } from '@prisma/client'
 
-async function createTestSuiteIdentifierTag() {
+async function createTestSuiteIdentifierTag(targetProjectId: string) {
   const identifier = generateUniqueTestSuiteIdentifier()
 
   return prisma.tag.create({
@@ -11,13 +11,17 @@ async function createTestSuiteIdentifierTag() {
       name: identifier,
       type: TagType.IDENTIFIER,
       tagExpression: `@${identifier}`,
+      targetProjectId,
     },
   })
 }
 
-export async function ensureTestSuiteIdentifierTags(testSuiteIds?: string[]): Promise<void> {
+export async function ensureTestSuiteIdentifierTags(
+  testSuiteIds: string[] | undefined,
+  targetProjectId: string,
+): Promise<void> {
   const testSuites = await prisma.testSuite.findMany({
-    where: testSuiteIds ? { id: { in: testSuiteIds } } : undefined,
+    where: { targetProjectId, ...(testSuiteIds ? { id: { in: testSuiteIds } } : {}) },
     include: {
       tags: {
         select: {
@@ -36,7 +40,7 @@ export async function ensureTestSuiteIdentifierTags(testSuiteIds?: string[]): Pr
       continue
     }
 
-    const identifierTag = await createTestSuiteIdentifierTag()
+    const identifierTag = await createTestSuiteIdentifierTag(targetProjectId)
     await prisma.testSuite.update({
       where: { id: testSuite.id },
       data: {
@@ -50,11 +54,14 @@ export async function ensureTestSuiteIdentifierTags(testSuiteIds?: string[]): Pr
   }
 }
 
-export async function getOrCreateTestSuiteIdentifierTagId(testSuiteId: string): Promise<string> {
-  await ensureTestSuiteIdentifierTags([testSuiteId])
+export async function getOrCreateTestSuiteIdentifierTagId(
+  testSuiteId: string,
+  targetProjectId: string,
+): Promise<string> {
+  await ensureTestSuiteIdentifierTags([testSuiteId], targetProjectId)
 
-  const testSuite = await prisma.testSuite.findUnique({
-    where: { id: testSuiteId },
+  const testSuite = await prisma.testSuite.findFirst({
+    where: { id: testSuiteId, targetProjectId },
     include: {
       tags: {
         select: {

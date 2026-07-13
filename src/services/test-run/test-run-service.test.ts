@@ -82,7 +82,7 @@ const {
 
 vi.mock('@/config/db-config', () => ({
   default: {
-    environment: { findUnique: mockEnvironmentFindUnique },
+    environment: { findUnique: mockEnvironmentFindUnique, findFirst: mockEnvironmentFindUnique },
     tag: { findMany: mockTagFindMany },
     testCase: { findMany: mockTestCaseFindMany },
     testSuite: { findMany: mockTestSuiteFindMany },
@@ -345,13 +345,14 @@ describe('createTestRunFromValidatedValue', () => {
     ])
     mockTestRunCreate.mockResolvedValue({ id: 'db-1', runId: 'run-1' })
 
-    const result = await createTestRunFromValidatedValue(baseValue)
+    const result = await createTestRunFromValidatedValue(baseValue, 'project-1')
 
-    expect(mockEnsureTestSuiteIdentifierTags).toHaveBeenCalledWith(['suite-1'])
+    expect(mockEnsureTestSuiteIdentifierTags).toHaveBeenCalledWith(['suite-1'], 'project-1')
     expect(mockGenerateFeature).toHaveBeenCalledWith('suite-1')
     expect(mockTestRunCreate).toHaveBeenCalledWith({
       data: {
         name: 'Nightly Run',
+        targetProjectId: 'project-1',
         environmentId: 'env-1',
         testWorkersCount: 2,
         browserEngine: BrowserEngine.CHROMIUM,
@@ -400,7 +401,7 @@ describe('createTestRunFromValidatedValue', () => {
       },
     ])
 
-    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({ code: 'CONFLICT' })
     expect(mockTestRunCreate).not.toHaveBeenCalled()
   })
 
@@ -432,7 +433,7 @@ describe('createTestRunFromValidatedValue', () => {
       },
     ])
 
-    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({
+    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({
       code: 'CONFLICT',
       message: expect.stringContaining('exact reviewed runtime capsule'),
     })
@@ -443,7 +444,7 @@ describe('createTestRunFromValidatedValue', () => {
   it('rejects duplicate run names', async () => {
     mockTestRunFindFirst.mockResolvedValue({ id: 'existing' })
 
-    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({
+    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({
       message: expect.stringContaining('already exists'),
       statusCode: 400,
     })
@@ -453,7 +454,7 @@ describe('createTestRunFromValidatedValue', () => {
     mockTestRunFindFirst.mockResolvedValue(null)
     mockEnvironmentFindUnique.mockResolvedValue(null)
 
-    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({
+    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({
       message: 'Environment not found',
       statusCode: 400,
     })
@@ -464,11 +465,14 @@ describe('createTestRunFromValidatedValue', () => {
     mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1' })
 
     await expect(
-      createTestRunFromValidatedValue({
-        ...baseValue,
-        tags: [],
-        testSuites: [],
-      }),
+      createTestRunFromValidatedValue(
+        {
+          ...baseValue,
+          tags: [],
+          testSuites: [],
+        },
+        'project-1',
+      ),
     ).rejects.toMatchObject({
       message: expect.stringContaining('Either tags or test suites'),
       statusCode: 400,
@@ -480,7 +484,7 @@ describe('createTestRunFromValidatedValue', () => {
     mockEnvironmentFindUnique.mockResolvedValue({ id: 'env-1' })
     mockTestSuiteFindMany.mockResolvedValue([])
 
-    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({
+    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({
       message: 'One or more selected test suites could not be found.',
       statusCode: 400,
     })
@@ -498,7 +502,7 @@ describe('createTestRunFromValidatedValue', () => {
       },
     ])
 
-    await expect(createTestRunFromValidatedValue(baseValue)).rejects.toMatchObject({
+    await expect(createTestRunFromValidatedValue(baseValue, 'project-1')).rejects.toMatchObject({
       message: 'Test suite "Login Suite" does not have an identifier tag.',
       statusCode: 400,
     })

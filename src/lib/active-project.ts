@@ -9,12 +9,17 @@ export async function readActiveProjectCookie(): Promise<string | undefined> {
   return cookieStore.get(ACTIVE_PROJECT_COOKIE)?.value
 }
 
+export async function requireActiveProject(urlProjectId?: string | null): Promise<ActiveProjectContext> {
+  const cookieProjectId = await readActiveProjectCookie()
+  const project = await resolveActiveProject({ urlProjectId, cookieProjectId })
+  if (!project) throw new ServiceError('Select an active project before accessing project data.', 'VALIDATION', 400)
+  return project
+}
+
 export async function requireActiveProjectForMutation(
   callerTargetProjectId?: string | null,
 ): Promise<ActiveProjectContext> {
-  const cookieProjectId = await readActiveProjectCookie()
-  const project = await resolveActiveProject({ cookieProjectId })
-  if (!project) throw new ServiceError('Select an active project before changing project data.', 'VALIDATION', 400)
+  const project = await requireActiveProject()
   if (callerTargetProjectId && callerTargetProjectId !== project.id) {
     throw new ServiceError('Caller project scope conflicts with the active project.', 'CONFLICT', 409)
   }

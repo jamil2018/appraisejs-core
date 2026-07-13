@@ -12,10 +12,12 @@ import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionRespons
 import { ActionResponse } from '@/types/form/actionHandler'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 export async function getAllEnvironmentsAction(): Promise<ActionResponse> {
   try {
-    const environments = await listEnvironments()
+    const project = await requireActiveProjectForMutation()
+    const environments = await listEnvironments(project.id)
     return {
       status: 200,
       success: true,
@@ -28,7 +30,8 @@ export async function getAllEnvironmentsAction(): Promise<ActionResponse> {
 
 export async function deleteEnvironmentAction(ids: string[]): Promise<ActionResponse> {
   try {
-    await deleteEnvironments(ids)
+    const project = await requireActiveProjectForMutation()
+    await deleteEnvironments(ids, project.id)
     revalidatePath('/environments')
     return {
       status: 200,
@@ -46,7 +49,8 @@ export async function createEnvironmentAction(
 ): Promise<ActionResponse> {
   try {
     environmentSchema.parse(value)
-    const newEnvironment = await createEnvironment(value)
+    const project = await requireActiveProjectForMutation()
+    const newEnvironment = await createEnvironment(value, project.id)
     revalidatePath('/environments')
     return {
       status: 200,
@@ -64,7 +68,8 @@ export async function createEnvironmentAction(
 
 export async function getEnvironmentByIdAction(id: string): Promise<ActionResponse> {
   try {
-    const environmentData = await getEnvironmentByIdOrThrow(id)
+    const project = await requireActiveProjectForMutation()
+    const environmentData = await getEnvironmentByIdOrThrow(id, project.id)
     return {
       status: 200,
       success: true,
@@ -85,7 +90,8 @@ export async function updateEnvironmentAction(
 ): Promise<ActionResponse> {
   try {
     environmentSchema.parse(value)
-    const updatedEnvironment = await updateEnvironment(id, value)
+    const project = await requireActiveProjectForMutation()
+    const updatedEnvironment = await updateEnvironment(id, value, project.id)
     revalidatePath('/environments')
     return {
       status: 200,

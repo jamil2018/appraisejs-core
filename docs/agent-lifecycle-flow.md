@@ -180,3 +180,12 @@ evidence never depends on repository export files.
 
 Reports should distinguish backend/service approval from browser/UI approval. If a run used API or service calls only,
 say that plainly and do not imply a human used the browser flow.
+
+## Project-scoped authored resources
+
+Agent-authored project resources inherit the plan projection's `targetProjectId`. Context discovery returns only
+modules, suites, cases, Step Blocks, locator groups, locators, and environments owned by that project, together with
+the global shared Template Step library. Resource proposals and canonical publication write the project ID onto
+created project roots, may reference shared Template Step Groups, and reject cross-project references or ID
+collisions for project-owned entities. Coordinator callers must not use global lookup as a fallback for scoped entity
+types.

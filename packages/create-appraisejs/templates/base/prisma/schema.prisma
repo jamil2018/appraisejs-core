@@ -87,7 +87,7 @@ model TemplateStepGroup {
   targetProjectId String?
   targetProject   TargetProject?        @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
-  @@unique([targetProjectId, name])
+  @@unique([name])
 }
 
 model StepBlock {

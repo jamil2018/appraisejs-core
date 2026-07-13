@@ -15224,6 +15224,19 @@
       "community_name": "20260713211000_scope_test_run_preparation_key",
       "norm_label": "20260713211000_scope_test_run_preparation_key",
       "graphify_type": "migration"
+    },
+    {
+      "id": "prisma_migration_20260714000000_make_template_library_shared",
+      "label": "20260714000000_make_template_library_shared",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "migrations/20260714000000_make_template_library_shared/migration.sql",
+      "source_location": "L1",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "20260714000000_make_template_library_shared",
+      "norm_label": "20260714000000_make_template_library_shared",
+      "graphify_type": "migration"
     }
   ],
   "links": [
@@ -42748,8 +42761,30 @@
       "source_file": "migrations/20260713211000_scope_test_run_preparation_key/migration.sql",
       "source_location": "L1",
       "weight": 1
+    },
+    {
+      "source": "prisma_schema",
+      "target": "prisma_migration_20260714000000_make_template_library_shared",
+      "relation": "has_migration",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20260714000000_make_template_library_shared/migration.sql",
+      "source_location": "L1",
+      "weight": 1
+    },
+    {
+      "source": "prisma_migration_20260714000000_make_template_library_shared",
+      "target": "prisma_model_templatestepgroup",
+      "relation": "migrates_model",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20260714000000_make_template_library_shared/migration.sql",
+      "source_location": "L1",
+      "weight": 1
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "af3a629e"
+  "built_at_commit": "c99105c6"
 }

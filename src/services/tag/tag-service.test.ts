@@ -21,6 +21,7 @@ vi.mock('@/lib/automation/projection-service', () => ({
 }))
 
 import prisma from '@/config/db-config'
+const targetProjectId = 'project-1'
 
 const basePayload = tagSchema.parse({
   name: 'Smoke',
@@ -38,8 +39,8 @@ beforeEach(() => {
 
 describe('getTagByIdOrThrow', () => {
   it('throws when tag missing', async () => {
-    vi.mocked(prisma.tag.findUnique).mockResolvedValue(null)
-    await expect(getTagByIdOrThrow('id')).rejects.toMatchObject({
+    vi.mocked(prisma.tag.findFirst).mockResolvedValue(null)
+    await expect(getTagByIdOrThrow('id', targetProjectId)).rejects.toMatchObject({
       message: 'Tag not found',
       statusCode: 404,
     })
@@ -50,7 +51,7 @@ describe('createTag', () => {
   it('throws when tag name already exists', async () => {
     vi.mocked(prisma.tag.findFirst).mockResolvedValueOnce({ id: 'tag-1' } as never)
 
-    await expect(createTag(basePayload)).rejects.toMatchObject({
+    await expect(createTag(basePayload, targetProjectId)).rejects.toMatchObject({
       message: expect.stringContaining('tag name'),
       statusCode: 400,
     })
@@ -63,7 +64,7 @@ describe('createTag', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'tag-1' } as never)
 
-    await expect(createTag(basePayload)).rejects.toMatchObject({
+    await expect(createTag(basePayload, targetProjectId)).rejects.toMatchObject({
       message: expect.stringContaining('tag expression'),
       statusCode: 400,
     })
@@ -77,16 +78,17 @@ describe('createTag', () => {
     vi.mocked(prisma.tag.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.tag.create).mockResolvedValue(created as never)
 
-    await expect(createTag(basePayload)).resolves.toEqual(created)
-    expect(prisma.tag.create).toHaveBeenCalledWith({ data: basePayload })
+    await expect(createTag(basePayload, targetProjectId)).resolves.toEqual(created)
+    expect(prisma.tag.create).toHaveBeenCalledWith({ data: { ...basePayload, targetProjectId } })
     expect(automationProjectionService.regenerateAllFeatures).toHaveBeenCalled()
   })
 })
 
 describe('updateTag', () => {
   it('throws when tag name already exists on another tag', async () => {
-    vi.mocked(prisma.tag.findUnique).mockResolvedValue({ name: 'Old Smoke', tagExpression: '@old-smoke' } as never)
-    vi.mocked(prisma.tag.findFirst).mockResolvedValueOnce({ id: 'tag-2' } as never)
+    vi.mocked(prisma.tag.findFirst)
+      .mockResolvedValueOnce({ name: 'Old Smoke', tagExpression: '@old-smoke' } as never)
+      .mockResolvedValueOnce({ id: 'tag-2' } as never)
 
     await expect(
       updateTag(
@@ -95,6 +97,7 @@ describe('updateTag', () => {
           name: 'Regression',
           tagExpression: '@old-smoke',
         }),
+        targetProjectId,
       ),
     ).rejects.toMatchObject({
       message: expect.stringContaining('tag name'),
@@ -105,8 +108,9 @@ describe('updateTag', () => {
   })
 
   it('throws when tag expression already exists on another tag', async () => {
-    vi.mocked(prisma.tag.findUnique).mockResolvedValue({ name: 'Smoke', tagExpression: '@old-smoke' } as never)
-    vi.mocked(prisma.tag.findFirst).mockResolvedValueOnce({ id: 'tag-2' } as never)
+    vi.mocked(prisma.tag.findFirst)
+      .mockResolvedValueOnce({ name: 'Smoke', tagExpression: '@old-smoke' } as never)
+      .mockResolvedValueOnce({ id: 'tag-2' } as never)
 
     await expect(
       updateTag(
@@ -115,6 +119,7 @@ describe('updateTag', () => {
           name: 'Smoke',
           tagExpression: '@regression',
         }),
+        targetProjectId,
       ),
     ).rejects.toMatchObject({
       message: expect.stringContaining('tag expression'),
@@ -127,8 +132,9 @@ describe('updateTag', () => {
   it('updates the tag when the tag expression remains unchanged', async () => {
     const updated = { id: 'tag-1', name: 'Smoke Updated', tagExpression: '@smoke' }
 
-    vi.mocked(prisma.tag.findUnique).mockResolvedValue({ name: 'Smoke', tagExpression: '@smoke' } as never)
-    vi.mocked(prisma.tag.findFirst).mockResolvedValueOnce(null)
+    vi.mocked(prisma.tag.findFirst)
+      .mockResolvedValueOnce({ name: 'Smoke', tagExpression: '@smoke' } as never)
+      .mockResolvedValueOnce(null)
     vi.mocked(prisma.tag.update).mockResolvedValue(updated as never)
 
     await expect(
@@ -138,13 +144,15 @@ describe('updateTag', () => {
           name: 'Smoke Updated',
           tagExpression: '@smoke',
         }),
+        targetProjectId,
       ),
     ).resolves.toEqual(updated)
 
-    expect(prisma.tag.findFirst).toHaveBeenCalledTimes(1)
+    expect(prisma.tag.findFirst).toHaveBeenCalledTimes(2)
     expect(prisma.tag.findFirst).toHaveBeenCalledWith({
       where: {
         name: 'Smoke Updated',
+        targetProjectId,
         id: { not: 'tag-1' },
       },
     })

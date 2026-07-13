@@ -51,9 +51,9 @@ describe('deleteLocators', () => {
     ] as never)
     vi.mocked(prisma.locator.deleteMany).mockResolvedValue({ count: 3 } as never)
 
-    await expect(deleteLocators(['loc-1', 'loc-2', 'loc-3'])).resolves.toEqual({ count: 3 })
+    await expect(deleteLocators(['loc-1', 'loc-2', 'loc-3'], 'project-1')).resolves.toEqual({ count: 3 })
     expect(prisma.locator.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['loc-1', 'loc-2', 'loc-3'] } },
+      where: { id: { in: ['loc-1', 'loc-2', 'loc-3'] }, targetProjectId: 'project-1' },
     })
     expect(automationProjectionService.syncLocatorGroup).toHaveBeenCalledWith('group-1')
     expect(automationProjectionService.syncLocatorGroup).toHaveBeenCalledWith('group-2')

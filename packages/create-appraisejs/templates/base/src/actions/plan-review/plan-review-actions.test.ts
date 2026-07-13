@@ -18,6 +18,8 @@ const {
   startBaselineExecution,
   startImplementation,
   approveImplementationCompletion,
+  requireActiveProjectForMutation,
+  assertPlanBelongsToProject,
 } = vi.hoisted(() => ({
   addPlanRemark: vi.fn(),
   approvePlanRevision: vi.fn(),
@@ -34,6 +36,8 @@ const {
   startBaselineExecution: vi.fn(),
   startImplementation: vi.fn(),
   approveImplementationCompletion: vi.fn(),
+  requireActiveProjectForMutation: vi.fn(),
+  assertPlanBelongsToProject: vi.fn(),
 }))
 
 vi.mock('next/cache', () => ({
@@ -64,11 +68,17 @@ vi.mock('@/services/coordinator/coordinator-implementation-service', () => ({
   approveImplementationCompletion,
 }))
 
+vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation }))
+
+vi.mock('@/services/coordinator/coordinator-plan-service', () => ({ assertPlanBelongsToProject }))
+
 import { addPlanRemarkAction, completeImplementationAction } from './plan-review-actions'
 
 describe('plan review actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    requireActiveProjectForMutation.mockResolvedValue({ id: 'project-one' })
+    assertPlanBelongsToProject.mockResolvedValue(undefined)
   })
 
   it('accepts opaque plan IDs when adding remarks', async () => {
@@ -89,6 +99,7 @@ describe('plan review actions', () => {
       body: 'Needs a blocker.',
       blocking: true,
     })
+    expect(assertPlanBelongsToProject).toHaveBeenCalledWith(planId, 'project-one')
     expect(revalidatePath).toHaveBeenCalledWith('/plans')
     expect(revalidatePath).toHaveBeenCalledWith(`/plans/${planId}`)
   })
