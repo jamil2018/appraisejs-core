@@ -19,6 +19,7 @@ export type PlanRequirementAssessment = {
   requirements: Array<
     PlanRequirement & {
       coveredBy: Array<{ taskId: string; surface: 'description' | 'acceptanceCriteria' | 'validationIntent' }>
+      deferredReason?: string
     }
   >
   uncoveredRequirementIds: string[]
@@ -266,7 +267,11 @@ export function analyzeBrief(projectBrief: string) {
   return { requirements, domainCandidates, selectedDomain: domainCandidates[0]?.domain }
 }
 
-export function assessPlanRequirements(projectBrief: string, tasks: TaskSurface[]): PlanRequirementAssessment {
+export function assessPlanRequirements(
+  projectBrief: string,
+  tasks: TaskSurface[],
+  deferrals: Array<{ requirementId: string; reason: string }> = [],
+): PlanRequirementAssessment {
   const analysis = analyzeBrief(projectBrief)
   const requirements = analysis.requirements.map(requirement => {
     const definition = requirementDefinitions.find(candidate => candidate.id === requirement.id)!
@@ -283,10 +288,12 @@ export function assessPlanRequirements(projectBrief: string, tasks: TaskSurface[
         })
         .map(({ surface }) => ({ taskId: task.id, surface }))
     })
-    return { ...requirement, coveredBy }
+    const deferredReason = deferrals.find(deferral => deferral.requirementId === requirement.id)?.reason.trim()
+    return { ...requirement, coveredBy, ...(deferredReason ? { deferredReason } : {}) }
   })
   const uncoveredRequirementIds = requirements
     .filter(requirement => {
+      if (requirement.deferredReason) return false
       if (requirement.kind === 'quality') {
         return (
           !requirement.coveredBy.some(item => item.surface === 'acceptanceCriteria') ||

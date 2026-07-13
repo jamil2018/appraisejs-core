@@ -16,9 +16,11 @@ import {
   nextApprovalWaitSequence,
   orderedEventBatch,
   planningSessionTargetRequiredResponse,
+  planCandidateHash,
   planningWorkflow,
   reviewReadyPendingResponse,
   standbyWorkflow,
+  unresolvedCandidateRetryOmissions,
   validationGateStatus,
   validationReviewPendingResponse,
   validationPreparationWorkflow,
@@ -224,6 +226,46 @@ describe('MCP approval wait helpers', () => {
       latestEvent: { sequence: 5, type: 'validation_review_ready' },
       nextAfterSequence: 5,
     })
+  })
+})
+
+describe('planning retry fidelity', () => {
+  it('rejects an unchanged candidate until every reported omission has an explicit resolution', () => {
+    const candidateHash = `sha256:${'a'.repeat(64)}`
+    expect(
+      unresolvedCandidateRetryOmissions({
+        candidateHash,
+        previousCandidateHash: candidateHash,
+        retryFeedback: {
+          omissions: ['filtering', 'responsive'],
+          addressed: [{ omission: 'filtering', resolution: 'Added an acceptance criterion.' }],
+        },
+      }),
+    ).toEqual(['responsive'])
+    expect(
+      unresolvedCandidateRetryOmissions({
+        candidateHash,
+        previousCandidateHash: candidateHash,
+        retryFeedback: {
+          omissions: ['filtering'],
+          addressed: [{ omission: 'filtering', resolution: 'Deferred pending a product decision.' }],
+        },
+      }),
+    ).toEqual([])
+  })
+
+  it.each([
+    ['todo', 'Build a todo app with active and completed filtering and responsive layouts.'],
+    ['recipe', 'Build a recipe organizer with search, favorites, responsive layouts, and tests.'],
+    ['notes', 'Build a local notes app with CRUD, search, persistence, accessibility, and responsive layouts.'],
+    ['inventory', 'Build an inventory app with CRUD, filtering, persistence, responsive layouts, and tests.'],
+  ])('retains explicit filtering and responsive requirements for %s briefs', (_name, projectBrief) => {
+    const plan = createPlanFromBrief({ projectBrief })
+    const assessment = assessPlanRequirements(projectBrief, plan.tasks)
+    const requested = assessment.requirements.map(requirement => requirement.id)
+    if (/filter/i.test(projectBrief)) expect(requested).toContain('filtering')
+    if (/responsive/i.test(projectBrief)) expect(requested).toContain('responsive')
+    expect(planCandidateHash(plan)).toMatch(/^sha256:[a-f0-9]{64}$/)
   })
 })
 

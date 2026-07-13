@@ -857,6 +857,18 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                 Every explicit requirement is mapped to a task description, acceptance criterion, or validation intent.
               </p>
             )}
+            <ul className="space-y-1">
+              {detail.plan.requirementAssessment.requirements.map(requirement => (
+                <li key={requirement.id}>
+                  <span className="font-medium">{requirement.text}</span> →{' '}
+                  {requirement.coveredBy.length
+                    ? requirement.coveredBy.map(mapping => `${mapping.taskId} (${mapping.surface})`).join(', ')
+                    : requirement.deferredReason
+                      ? `deferred: ${requirement.deferredReason}`
+                      : 'uncovered'}
+                </li>
+              ))}
+            </ul>
           </AlertDescription>
         </Alert>
       ) : null}

@@ -330,6 +330,7 @@ export const planArtifactSchema = artifactHeaderSchema
                 surface: z.enum(['description', 'acceptanceCriteria', 'validationIntent']),
               }),
             ),
+            deferredReason: z.string().min(1).optional(),
           }),
         ),
         uncoveredRequirementIds: z.array(z.string().min(1)),

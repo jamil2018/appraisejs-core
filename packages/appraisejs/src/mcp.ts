@@ -1,4 +1,5 @@
 import http from 'node:http'
+import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -1024,6 +1025,23 @@ export function createPlanFromBrief(input: {
   }
 }
 
+export function planCandidateHash(plan: unknown): string {
+  return `sha256:${createHash('sha256').update(JSON.stringify(plan)).digest('hex')}`
+}
+
+export function unresolvedCandidateRetryOmissions(input: {
+  candidateHash: string
+  previousCandidateHash?: string
+  retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
+}): string[] {
+  if (input.previousCandidateHash !== input.candidateHash) return []
+  return (
+    input.retryFeedback?.omissions.filter(
+      omission => !input.retryFeedback?.addressed.some(item => item.omission === omission && item.resolution.trim()),
+    ) ?? []
+  )
+}
+
 function toolError(error: unknown) {
   if (error instanceof CoordinatorRequestError) {
     return {
@@ -2024,6 +2042,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         mode: z.enum(['plan_only', 'plan_then_wait']).default('plan_then_wait'),
         sourceFiles: z.array(z.string().min(1)).optional(),
         planContext: z.string().optional(),
+        previousCandidateHash: z.string().startsWith('sha256:').optional(),
+        retryFeedback: z
+          .object({
+            omissions: z.array(z.string().min(1)).min(1),
+            addressed: z.array(z.object({ omission: z.string().min(1), resolution: z.string().min(1) })),
+          })
+          .optional(),
+        requirementDeferrals: z
+          .array(z.object({ requirementId: z.string().min(1), reason: z.string().min(1) }))
+          .optional(),
       },
     },
     async input => {
@@ -2046,11 +2074,33 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           target = targetProject?.id ?? input.targetWorkspacePath
         }
         const candidatePlan = createPlanFromBrief(input)
-        const requirementAssessment = assessPlanRequirements(input.projectBrief, candidatePlan.tasks)
+        const requirementAssessment = assessPlanRequirements(
+          input.projectBrief,
+          candidatePlan.tasks,
+          input.requirementDeferrals,
+        )
+        candidatePlan.requirementAssessment = requirementAssessment
+        const candidateHash = planCandidateHash(candidatePlan)
+        const unresolvedRetryOmissions = unresolvedCandidateRetryOmissions({
+          candidateHash,
+          previousCandidateHash: input.previousCandidateHash,
+          retryFeedback: input.retryFeedback,
+        })
+        if (input.previousCandidateHash === candidateHash && unresolvedRetryOmissions.length) {
+          return text({
+            status: 'unchanged_retry_rejected',
+            candidateHash,
+            unresolvedRetryOmissions,
+            requiredResolution:
+              'Report how every omission was addressed or explain explicitly why it remains unresolved before retrying an unchanged candidate.',
+            nextRequiredAgentBehavior: 'explain_or_resolve_retry_omissions',
+          })
+        }
         if (requirementAssessment.uncoveredRequirementIds.length) {
           return text({
             status: 'coverage_review_required',
             candidatePlan,
+            candidateHash,
             requirementAssessment,
             nextRecommendedAction:
               'Review the uncovered explicit requirements, revise the brief or task shape, then rerun planning_session_create before Appraise publishes a review-ready revision.',
@@ -2097,6 +2147,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         return text({
           diagnostic: summarizeDiagnostic(diagnostic),
           requirementAssessment,
+          candidateHash,
+          retryResolutionReport: input.retryFeedback?.addressed ?? [],
           targetProject: targetProjectResult,
           created,
           reviewReady,

@@ -328,6 +328,14 @@ and cover their complete canonical contract payloads. Stale writes report expect
 
 ## Lifecycle Ownership
 
+### Planning requirement fidelity
+
+`planning_session_create` extracts atomic brief requirements and maps each one to task descriptions, acceptance
+criteria, validation intent, or an explicit `requirementDeferrals` reason. Review-ready publication is blocked while
+requirements remain uncovered. Retry callers provide `previousCandidateHash` and structured `retryFeedback`; an
+effectively unchanged candidate is rejected until every reported omission has an explicit resolution or deferral.
+The plan review UI shows each brief requirement and its exact plan-item mappings.
+
 Use one normal writer for each workflow surface. User/Appraise UI owns review decisions: plan approval and change
 requests, validation node and changed-file decisions, validation review submission, baseline acceptance and
 acknowledgements, regression-pass justification, cancellation interrupts, and final completion approval. MCP tools that
