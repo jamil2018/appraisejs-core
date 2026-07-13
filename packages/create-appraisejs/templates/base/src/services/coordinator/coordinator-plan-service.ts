@@ -8,6 +8,7 @@ import { planContentHash, planStateHash, reviewBindingHash } from '@/lib/plans/p
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
+import { auditManagedValidationIntegrity } from './managed-validation-integrity-audit'
 
 import {
   appendPlanEvent,
@@ -48,7 +49,9 @@ function resolvedPlanHashes(
 }
 
 export class CoordinatorPlanCreatePartialError extends Error {
+  // fallow-ignore-next-line unused-class-member
   readonly code = 'plan-create-partial'
+  // fallow-ignore-next-line unused-class-member
   readonly statusCode = 500
 
   constructor(
@@ -170,6 +173,10 @@ export async function readCoordinatorPlan(planId: string, options: PlanServiceOp
     select: { slug: true, legacyPlanId: true, planContentHash: true, planStateHash: true, reviewBindingHash: true },
   })
   const hashes = resolvedPlanHashes(plan, projection)
+  const validationIntegrity = await auditManagedValidationIntegrity(canonicalPlanId, {
+    client,
+    projectDirectory: projectRoot,
+  })
   return {
     planId: canonicalPlanId,
     plan,
@@ -178,6 +185,7 @@ export async function readCoordinatorPlan(planId: string, options: PlanServiceOp
     ...hashes,
     contentHash: hashes.planContentHash,
     reviewUrl: `/plans/${canonicalPlanId}`,
+    validationIntegrity,
   }
 }
 

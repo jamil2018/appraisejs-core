@@ -13,6 +13,7 @@ import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtu
 
 import { prepareValidationAstPublish, validationAstPublishOperationId } from './validation-ast-publish-journal-service'
 import { resumeValidationAstPublish } from './validation-ast-publish-orchestrator'
+import { auditManagedValidationIntegrity } from './managed-validation-integrity-audit'
 
 const digest = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
 const contractDigest = (value: unknown) => digest(canonicalContractJson(value))
@@ -207,9 +208,19 @@ describe('Validation AST publish journal with real SQLite', () => {
     await expect(
       resumeValidationAstPublish(operation.id, { client, projectDirectory: workspace, crashAfter: 'after_artifacts' }),
     ).rejects.toThrow('injected-after-artifacts')
+    expect((await repository.read('plan', 'journal-plan')).content).toBe('old-plan\n')
+    expect((await client.planProjection.findUniqueOrThrow({ where: { id: planProjectionId } })).lifecycle).toBe(
+      'preparing_validations',
+    )
+    expect(await client.planEvent.count({ where: { type: 'validation_review_ready' } })).toBe(0)
     await expect(
       resumeValidationAstPublish(operation.id, { client, projectDirectory: workspace, crashAfter: 'after_projection' }),
     ).rejects.toThrow('injected-after-projection')
+    expect((await repository.read('plan', 'journal-plan')).content).toBe('old-plan\n')
+    expect((await client.planProjection.findUniqueOrThrow({ where: { id: planProjectionId } })).lifecycle).toBe(
+      'preparing_validations',
+    )
+    expect(await client.planEvent.count({ where: { type: 'validation_review_ready' } })).toBe(0)
     await expect(
       resumeValidationAstPublish(operation.id, {
         client,
@@ -237,6 +248,28 @@ describe('Validation AST publish journal with real SQLite', () => {
       }),
     ).rejects.toBeTruthy()
     expect(projection.lifecycle).toBe('awaiting_validation_review')
+  })
+
+  it('reports a legacy review lifecycle without a review-ready receipt as integrity blocked', async () => {
+    const operation = await prepare('legacy-split')
+    await expect(
+      resumeValidationAstPublish(operation.id, { client, projectDirectory: workspace, crashAfter: 'after_artifacts' }),
+    ).rejects.toThrow('injected-after-artifacts')
+    await repository.compareAndWrite('plan', 'journal-plan', operation.expectedPlanArtifactHash, operation.planContent)
+    await client.planProjection.update({
+      where: { id: planProjectionId },
+      data: { lifecycle: 'awaiting_validation_review' },
+    })
+
+    await expect(
+      auditManagedValidationIntegrity('journal-plan', { client, projectDirectory: workspace }),
+    ).resolves.toMatchObject({
+      status: 'integrity_blocked',
+      operationId: operation.id,
+      operationPhase: 'artifacts_written',
+      retryable: true,
+      mismatches: expect.arrayContaining(['publish_operation_phase', 'validation_review_ready_event']),
+    })
   })
 
   it('serializes concurrent resume and rejects post-phase artifact drift with persisted failure', async () => {

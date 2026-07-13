@@ -4,6 +4,11 @@ The version 1 Validation AST is the canonical agent-authored description of vali
 versioned action and locator references while retaining descriptions for human review. The public schemas are exported
 from `src/lib/validation-ast`.
 
+The complete versioned submission JSON Schema is also available at `appraise://contracts/validation-ast`. Its
+content-addressed response includes the schema hash, current compiler phases, and locator binding fields returned by
+proposal and context tools. Examples copy the returned locator `astRef`; callers never construct `locator_` or
+`group_` prefixes.
+
 An AST contains an ID, title, purpose, covered plan tasks, browser/environment matrix, scenarios, ordered semantic
 steps, and quality concerns. Step inputs may be primitives or exact locator, environment, stored-output, and custom
 extension references. Raw executable source is not accepted in a step. Project-specific TypeScript is submitted only
@@ -140,8 +145,11 @@ use a secret from protected local configuration and short expirations.
 Canonical publication is restart-safe. `ValidationAstPublishOperation` stores every serialized next artifact and
 expected/current hash, AST/context/preview/receipt identities, and the complete projection payload. Immutable extension
 reviews are child records referenced by artifact hash. Recovery resumes `prepared -> artifacts_written -> projected ->
-review_ready`; artifact writes verify CAS or exact desired content, projection is replay-safe, and the lifecycle plus
-`validation_review_ready` event commit exactly once. This journal does not materialize runtime files.
+review_ready`. The artifact-staging phase writes only validation and review content; the authoritative plan artifact
+retains its pre-review lifecycle until canonical projection succeeds. Finalization then compare-and-writes the
+review-ready plan content and commits the projection lifecycle, journal phase, and `validation_review_ready` event
+exactly once. Projection failures therefore cannot expose a review-ready plan artifact. Artifact writes verify CAS or
+exact desired content and projection is replay-safe. This journal does not materialize runtime files.
 New publications also store one bounded, canonical `runtimeInputJson` snapshot and its hash. The snapshot preserves the
 exact compiler receipt, selected action and locator descriptor hashes, resolved locator bindings, extension artifact
 references, matrix, expected scenario/case/step identities, and Gherkin hash needed by the runtime capsule generator.

@@ -45,16 +45,31 @@ export async function buildLocatorGraph(
   for (const group of groups) {
     const groupId = `group_${group.id}`
     const surfaceId = routeId(group.route)
-    nodes.push({ id: groupId, version: '1', title: group.name, type: 'locator-group', surfaceId })
+    nodes.push({
+      id: groupId,
+      persistentId: group.id,
+      astRef: groupId,
+      version: '1',
+      title: group.name,
+      type: 'locator-group',
+      targetProjectId: group.targetProjectId ?? undefined,
+      moduleId: group.moduleId,
+      surfaceId,
+    })
     edges.push({ id: edgeId(surfaceId, groupId), fromId: surfaceId, toId: groupId, relation: 'contains' })
     for (const locator of group.locators.sort((a, b) => a.id.localeCompare(b.id))) {
       const id = `locator_${locator.id}`
       const descriptor = {
         id,
+        persistentId: locator.id,
+        astRef: id,
         version: '1' as const,
         title: locator.name,
         type: 'locator' as const,
         groupId,
+        locatorGroupId: group.id,
+        targetProjectId: locator.targetProjectId ?? undefined,
+        moduleId: group.moduleId,
         scope: { surfaceId, availableStates: [] },
         strategy: { type: 'css' as const, value: { selector: locator.value } },
         compatibleActionCategories: [],

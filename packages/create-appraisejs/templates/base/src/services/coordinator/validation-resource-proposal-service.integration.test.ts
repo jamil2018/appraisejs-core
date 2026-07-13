@@ -74,6 +74,14 @@ describe('validation resource proposals', () => {
     )
     expect(first).toMatchObject({ replayed: false, contextHash: expect.stringMatching(/^sha256:/) })
     expect(first.ids.environments.local).toMatch(/^apr-/)
+    expect(first.bindings.locators[0]).toMatchObject({
+      id: first.ids.locators['todo-input'],
+      astRef: `locator_${first.ids.locators['todo-input']}`,
+      version: '1',
+      targetProjectId,
+      moduleId: first.ids.modules.todo,
+      locatorGroupId: first.ids.locatorGroups['todo-page'],
+    })
     const storedProposal = JSON.parse(
       (await client.validationResourceProposal.findFirstOrThrow({ where: { planId: 'plan-resources' } })).proposalJson,
     )

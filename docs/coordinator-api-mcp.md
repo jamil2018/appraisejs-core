@@ -272,6 +272,12 @@ Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" |
 "full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,
 blockers, and next action are insufficient.
 
+Planning creation, plan/validation review loops, validation context, and Validation AST check, preview, and compile
+use the same response-mode vocabulary. Summary responses retain status, lifecycle, task/content hashes, preview and
+receipt hashes, integrity blockers, cursors, and next action while omitting repeated candidate/context payloads. Full
+mode remains available for explicit diagnostics. Summary budgets are 2,000 estimated tokens for plan creation or
+coverage retry, 300 for an unchanged wait, and 1,500 for validation context or mutation.
+
 `planning_session_create` extracts explicit brief requirements before it creates a durable plan. Its response includes
 `requirementAssessment` with scored domain candidates, task-surface coverage, and warnings. When any explicit
 requirement is uncovered, it returns `status: "coverage_review_required"` with a candidate plan instead of creating a
@@ -332,8 +338,12 @@ and cover their complete canonical contract payloads. Stale writes report expect
 
 `planning_session_create` extracts atomic brief requirements and maps each one to task descriptions, acceptance
 criteria, validation intent, or an explicit `requirementDeferrals` reason. Review-ready publication is blocked while
-requirements remain uncovered. Retry callers provide `previousCandidateHash` and structured `retryFeedback`; an
-effectively unchanged candidate is rejected until every reported omission has an explicit resolution or deferral.
+requirements remain uncovered. Retry callers provide `previousCandidateHash`, `previousTaskShapeHash`, and structured
+`retryFeedback`. Normalized omission resolutions participate in deterministic task synthesis, while
+`taskShapeHash` covers task IDs, dependency edges, and implementation groups without goal, description, source-file,
+or plan-context prose. An effectively unchanged task shape is rejected with a bounded actionable fallback until every
+reported omission has an explicit resolution or deferral. Todo synthesis adds edit behavior only when the brief or
+normalized retry resolution requests it.
 The plan review UI shows each brief requirement and its exact plan-item mappings.
 
 Use one normal writer for each workflow surface. User/Appraise UI owns review decisions: plan approval and change

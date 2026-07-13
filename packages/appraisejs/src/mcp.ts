@@ -11,6 +11,7 @@ import {
   DELEGATED_AUTHORIZATION_VERSION,
   LOCATOR_GRAPH_CONTRACT_VERSION,
   VALIDATION_AST_SCHEMA_VERSION,
+  VALIDATION_AST_JSON_SCHEMA,
   type DelegatedAuthorizationReceipt,
   type ValidationAstSubmission,
 } from './managed-validation-contracts.js'
@@ -309,6 +310,43 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
   }
 }
 
+export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
+  if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
+  const payload = value as Record<string, unknown>
+  const common = {
+    status: payload.status,
+    planId: payload.planId,
+    valid: payload.valid,
+    lifecycle: payload.lifecycle,
+    candidateHash: payload.candidateHash,
+    taskShapeHash: payload.taskShapeHash,
+    contextHash: payload.contextHash,
+    previewHash: payload.previewHash,
+    receiptHash: payload.receiptHash,
+    projectionHash: payload.projectionHash,
+    operationId: payload.operationId ?? payload.id,
+    phase: payload.phase,
+    blockers: payload.blockers,
+    warnings: payload.warnings,
+    integrity: payload.integrity,
+    nextRecommendedAction: payload.nextRecommendedAction,
+    nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
+  }
+  if (responseMode === 'linksOnly') return { ...common, links: payload.links, detailResource: payload.detailResource }
+  if (responseMode === 'blockersOnly') return common
+  if (responseMode === 'evidenceOnly')
+    return { ...common, hashes: payload.hashes, counts: payload.counts, events: payload.events }
+  return {
+    ...common,
+    requirementAssessment: payload.requirementAssessment,
+    taskDiff: payload.taskDiff,
+    created: payload.created,
+    reviewReady: payload.reviewReady,
+    targetProject: payload.targetProject,
+    resources: payload.resources,
+  }
+}
+
 export function applyCapsuleDiagnosticMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
   if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
   const diagnostic = value as Record<string, unknown>
@@ -566,8 +604,11 @@ function structuredBriefPlan(tasks: BriefPlanTask[]): StructuredBriefPlan {
   }
 }
 
-function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPlan | undefined {
-  const brief = projectBrief.toLowerCase()
+function createStructuredTasksFromBrief(
+  projectBrief: string,
+  retryResolutions: string[] = [],
+): StructuredBriefPlan | undefined {
+  const brief = [projectBrief, ...retryResolutions].join('\n').toLowerCase()
   const briefAnalysis = analyzeBrief(projectBrief)
   const isAppBrief = includesAny(brief, [
     /\bapp(?:lication)?\b/,
@@ -689,6 +730,55 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
 
   if (isTodoBrief && (asksForCrud || asksForCompletion || asksForPersistence)) {
     const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
+    const asksForEdit = includesAny(brief, [/\bcrud\b/, /\bedit\b/, /\bupdate\b/, /\brename\b/])
+    const behaviorCriteria = [
+      `Users can add and delete ${taskNoun} items.`,
+      ...(asksForCompletion ? [`Users can mark ${taskNoun} items complete or incomplete.`] : []),
+      ...(asksForEdit ? [`Users can edit existing ${taskNoun} items.`] : []),
+    ]
+    const filteringTasks: BriefPlanTask[] = includesAny(brief, [/\bfilter(?:ing|ed|s)?\b/, /\bactive\b/])
+      ? [
+          {
+            id: 'filtering',
+            title: `Filter ${taskNoun} items`,
+            description: `Add the requested all, active, and completed views without changing stored ${taskNoun} state.`,
+            acceptanceCriteria: [
+              `Users can switch between all, active, and completed ${taskNoun} items.`,
+              'Filtering changes only the visible subset and preserves item state.',
+            ],
+            validationIntent: 'Verify each filter against mixed active and completed data.',
+          },
+        ]
+      : []
+    const persistenceTasks: BriefPlanTask[] = asksForPersistence
+      ? [
+          {
+            id: 'persistence',
+            title: `Persist ${taskNoun} state`,
+            description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
+            acceptanceCriteria: [
+              `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
+              'Persistence failures do not corrupt the visible in-memory state.',
+            ],
+            validationIntent: 'Verify saved items and completion state reload correctly.',
+          },
+        ]
+      : []
+    const qualityTasks: BriefPlanTask[] = includesAny(brief, [/\bresponsive\b/, /\baccessib(?:le|ility)\b/, /\ba11y\b/])
+      ? [
+          {
+            id: 'quality',
+            title: `Polish accessible responsive ${taskNoun} workflows`,
+            description:
+              'Preserve the requested workflow across small screens, keyboard navigation, and assistive technology.',
+            acceptanceCriteria: [
+              'The primary workflow remains usable at narrow viewport sizes.',
+              'Inputs, toggles, filters, and delete controls have accessible names and keyboard focus states.',
+            ],
+            validationIntent: 'Run responsive viewport and accessibility-focused interaction checks.',
+          },
+        ]
+      : []
     return structuredBriefPlan([
       setupTask,
       {
@@ -703,25 +793,14 @@ function createStructuredTasksFromBrief(projectBrief: string): StructuredBriefPl
       },
       {
         id: 'crud-completion',
-        title: `Implement ${taskNoun} CRUD and completion behavior`,
-        description: `Add create, read, update, delete, and completion-toggle flows with predictable state updates and accessible controls.`,
-        acceptanceCriteria: [
-          `Users can add, edit, delete, and mark ${taskNoun} items complete or incomplete.`,
-          'Completion changes are reflected immediately in the rendered list without stale UI state.',
-        ],
+        title: `Implement requested ${taskNoun} behavior`,
+        description: `Add only the item operations explicitly requested by the brief, with predictable state updates.`,
+        acceptanceCriteria: behaviorCriteria,
         validationIntent: 'Run focused interaction tests or manually verify each CRUD and completion path.',
       },
-      {
-        id: 'persistence',
-        title: `Persist ${taskNoun} state`,
-        description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
-        acceptanceCriteria: [
-          `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
-          'Persistence failures do not corrupt the visible in-memory state.',
-        ],
-        validationIntent:
-          'Verify saved items reload correctly and cover persistence behavior with the closest available automated test.',
-      },
+      ...filteringTasks,
+      ...persistenceTasks,
+      ...qualityTasks,
       {
         id: 'validation',
         title: 'Validate the planned user workflow',
@@ -1000,6 +1079,7 @@ export function createPlanFromBrief(input: {
   displayName?: string
   sourceFiles?: string[]
   planContext?: string
+  retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
 }) {
   const title = (input.displayName ?? input.projectBrief.split(/\r?\n/, 1)[0] ?? 'AppraiseJS planning session')
     .trim()
@@ -1011,7 +1091,10 @@ export function createPlanFromBrief(input: {
   ]
     .filter(Boolean)
     .join('\n\n')
-  const structuredPlan = createStructuredTasksFromBrief(input.projectBrief)
+  const structuredPlan = createStructuredTasksFromBrief(
+    input.projectBrief,
+    input.retryFeedback?.addressed.map(item => `${item.omission}: ${item.resolution}`) ?? [],
+  )
   const tasks = structuredPlan?.tasks ?? [
     {
       id: 'plan-from-brief',
@@ -1038,12 +1121,28 @@ export function planCandidateHash(plan: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(plan)).digest('hex')}`
 }
 
+export function planTaskShapeHash(plan: {
+  tasks?: Array<{ id: string }>
+  edges?: Array<{ from: string; to: string; type: string }>
+  implementationGroups?: Array<{ id: string; taskIds: string[] }>
+}): string {
+  return planCandidateHash({
+    taskIds: plan.tasks?.map(task => task.id) ?? [],
+    edges: plan.edges ?? [],
+    implementationGroups: plan.implementationGroups ?? [],
+  })
+}
+
 export function unresolvedCandidateRetryOmissions(input: {
   candidateHash: string
   previousCandidateHash?: string
+  taskShapeHash?: string
+  previousTaskShapeHash?: string
   retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
 }): string[] {
-  if (input.previousCandidateHash !== input.candidateHash) return []
+  const sameCandidate = input.previousCandidateHash === input.candidateHash
+  const sameTaskShape = Boolean(input.taskShapeHash && input.previousTaskShapeHash === input.taskShapeHash)
+  if (!sameCandidate && !sameTaskShape) return []
   return (
     input.retryFeedback?.omissions.filter(
       omission => !input.retryFeedback?.addressed.some(item => item.omission === omission && item.resolution.trim()),
@@ -1074,6 +1173,29 @@ export type PlanSnapshot = {
   /** Compatibility alias for planContentHash. */
   contentHash: string
   links: unknown
+  validationIntegrity?: {
+    status: 'green' | 'not_applicable' | 'integrity_blocked'
+    operationId?: string
+    operationPhase?: string
+    mismatches: string[]
+    retryable: boolean
+    nextRepairAction?: string
+    failure?: unknown
+  }
+}
+
+function validationIntegrityBlockedResponse(planId: string, current: PlanSnapshot, afterSequence: number) {
+  const integrity = current.validationIntegrity!
+  return {
+    status: 'integrity_blocked',
+    planId,
+    lifecycle: current.plan.lifecycle,
+    integrity,
+    currentAfterSequence: afterSequence,
+    nextAfterSequence: afterSequence,
+    nextRecommendedAction: integrity.nextRepairAction,
+    nextRequiredAgentBehavior: integrity.retryable ? 'resume_validation_publication' : 'diagnose_validation_integrity',
+  }
 }
 
 function approvalGateStatus(lifecycle: string): 'approved' | 'changes_requested' | 'cancelled' | undefined {
@@ -1486,7 +1608,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       name: 'validation-ast-contract',
       uri: 'appraise://contracts/validation-ast',
       title: 'Agent-authored validation AST contract',
-      value: { version: VALIDATION_AST_SCHEMA_VERSION, phases: ['check', 'preview', 'publish'] },
+      value: {
+        version: VALIDATION_AST_SCHEMA_VERSION,
+        schemaHash: planCandidateHash(VALIDATION_AST_JSON_SCHEMA),
+        schema: VALIDATION_AST_JSON_SCHEMA,
+        phases: ['check', 'preview', 'compile'],
+        resourceBinding: {
+          locator: ['id', 'astRef', 'version', 'targetProjectId', 'moduleId', 'locatorGroupId'],
+          templateStepScope: 'shared_library',
+        },
+      },
     },
     {
       name: 'delegated-authorization-contract',
@@ -1660,13 +1791,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       `validation_ast_${phase}`,
       {
         description: `${phase} a bounded Validation AST against authoritative plan, catalog, locator, and environment context.`,
-        inputSchema: { planId: z.string(), submission: z.unknown() },
+        inputSchema: { planId: z.string(), submission: z.unknown(), responseMode: responseModeSchema },
       },
-      async ({ planId, submission }) =>
+      async ({ planId, submission, responseMode }) =>
         text(
-          await api[phase === 'check' ? 'checkValidationAst' : 'previewValidationAst'](
-            planId,
-            submission as ValidationAstSubmission,
+          applyAuthoringResponseMode(
+            await api[phase === 'check' ? 'checkValidationAst' : 'previewValidationAst'](
+              planId,
+              submission as ValidationAstSubmission,
+            ),
+            responseMode,
           ),
         ),
     )
@@ -1688,10 +1822,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         planId: z.string(),
         submission: z.unknown(),
         expectedReceiptHash: z.string().startsWith('sha256:'),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, submission, expectedReceiptHash }) =>
-      text(await api.compileValidationAst(planId, submission as ValidationAstSubmission, expectedReceiptHash)),
+    async ({ planId, submission, expectedReceiptHash, responseMode }) =>
+      text(
+        applyAuthoringResponseMode(
+          await api.compileValidationAst(planId, submission as ValidationAstSubmission, expectedReceiptHash),
+          responseMode,
+        ),
+      ),
   )
   if (providerNativeRunsEnabled()) {
     server.registerResource(
@@ -2022,16 +2162,23 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Create a structured AppraiseJS plan with a short title in goal and a separate description, then wait until its review surface is ready.',
-      inputSchema: { plan: planCreateInputSchema, target: z.string().min(1).optional() },
+      inputSchema: {
+        plan: planCreateInputSchema,
+        target: z.string().min(1).optional(),
+        responseMode: responseModeSchema,
+      },
     },
-    async ({ plan, target }) => {
+    async ({ plan, target, responseMode }) => {
       try {
         return text(
-          withGuidance(target ? await api.createPlanForTarget(plan, target) : await api.createPlan(plan), {
-            nextRecommendedAction:
-              'Present the returned browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence when present, nextAfterSequence when present, and recommended wait call; then call plan_review_loop to wait for durable review readiness and Appraise-owned approval feedback before implementation.',
-            nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
-          }),
+          applyAuthoringResponseMode(
+            withGuidance(target ? await api.createPlanForTarget(plan, target) : await api.createPlan(plan), {
+              nextRecommendedAction:
+                'Present the returned browser URL, appraise:// URL, goal, description, revision, lifecycle, content hash, currentAfterSequence when present, nextAfterSequence when present, and recommended wait call; then call plan_review_loop to wait for durable review readiness and Appraise-owned approval feedback before implementation.',
+              nextRequiredAgentBehavior: 'wait_for_plan_review_ready',
+            }),
+            responseMode,
+          ),
         )
       } catch (error) {
         return toolError(error)
@@ -2052,6 +2199,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         sourceFiles: z.array(z.string().min(1)).optional(),
         planContext: z.string().optional(),
         previousCandidateHash: z.string().startsWith('sha256:').optional(),
+        previousTaskShapeHash: z.string().startsWith('sha256:').optional(),
         retryFeedback: z
           .object({
             omissions: z.array(z.string().min(1)).min(1),
@@ -2061,6 +2209,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         requirementDeferrals: z
           .array(z.object({ requirementId: z.string().min(1), reason: z.string().min(1) }))
           .optional(),
+        responseMode: responseModeSchema,
       },
     },
     async input => {
@@ -2068,11 +2217,14 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         const diagnostic = await diagnoseProject(options)
         if (!input.targetWorkspacePath && input.targetMode !== 'hub') {
           return text(
-            planningSessionTargetRequiredResponse({
-              projectBrief: input.projectBrief,
-              targetProjects: await api.listTargetProjects(),
-              hubProjectPath: api.project.canonicalProjectPath,
-            }),
+            applyAuthoringResponseMode(
+              planningSessionTargetRequiredResponse({
+                projectBrief: input.projectBrief,
+                targetProjects: await api.listTargetProjects(),
+                hubProjectPath: api.project.canonicalProjectPath,
+              }),
+              input.responseMode,
+            ),
           )
         }
         let targetProjectResult: unknown
@@ -2090,31 +2242,49 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         )
         candidatePlan.requirementAssessment = requirementAssessment
         const candidateHash = planCandidateHash(candidatePlan)
+        const taskShapeHash = planTaskShapeHash(candidatePlan)
         const unresolvedRetryOmissions = unresolvedCandidateRetryOmissions({
           candidateHash,
           previousCandidateHash: input.previousCandidateHash,
+          taskShapeHash,
+          previousTaskShapeHash: input.previousTaskShapeHash,
           retryFeedback: input.retryFeedback,
         })
-        if (input.previousCandidateHash === candidateHash && unresolvedRetryOmissions.length) {
-          return text({
-            status: 'unchanged_retry_rejected',
-            candidateHash,
-            unresolvedRetryOmissions,
-            requiredResolution:
-              'Report how every omission was addressed or explain explicitly why it remains unresolved before retrying an unchanged candidate.',
-            nextRequiredAgentBehavior: 'explain_or_resolve_retry_omissions',
-          })
+        if (
+          (input.previousTaskShapeHash === taskShapeHash || input.previousCandidateHash === candidateHash) &&
+          unresolvedRetryOmissions.length
+        ) {
+          return text(
+            applyAuthoringResponseMode(
+              {
+                status: 'unchanged_retry_rejected',
+                candidateHash,
+                taskShapeHash,
+                unresolvedRetryOmissions,
+                requiredResolution:
+                  'Report how every omission was addressed or explain explicitly why it remains unresolved before retrying an unchanged candidate.',
+                nextRequiredAgentBehavior: 'explain_or_resolve_retry_omissions',
+              },
+              input.responseMode,
+            ),
+          )
         }
         if (requirementAssessment.uncoveredRequirementIds.length) {
-          return text({
-            status: 'coverage_review_required',
-            candidatePlan,
-            candidateHash,
-            requirementAssessment,
-            nextRecommendedAction:
-              'Review the uncovered explicit requirements, revise the brief or task shape, then rerun planning_session_create before Appraise publishes a review-ready revision.',
-            nextRequiredAgentBehavior: 'resolve_uncovered_plan_requirements',
-          })
+          return text(
+            applyAuthoringResponseMode(
+              {
+                status: 'coverage_review_required',
+                candidatePlan,
+                candidateHash,
+                taskShapeHash,
+                requirementAssessment,
+                nextRecommendedAction:
+                  'Review the uncovered explicit requirements, revise the brief or task shape, then rerun planning_session_create before Appraise publishes a review-ready revision.',
+                nextRequiredAgentBehavior: 'resolve_uncovered_plan_requirements',
+              },
+              input.responseMode,
+            ),
+          )
         }
         const created = (
           target ? await api.createPlanForTarget(candidatePlan, target) : await api.createPlan(candidatePlan)
@@ -2153,35 +2323,41 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
             nextAfterSequence: reviewReadyAfterSequence,
           }
         }
-        return text({
-          diagnostic: summarizeDiagnostic(diagnostic),
-          requirementAssessment,
-          candidateHash,
-          retryResolutionReport: input.retryFeedback?.addressed ?? [],
-          targetProject: targetProjectResult,
-          created,
-          reviewReady,
-          nextRequiredAgentBehavior: reviewReady ? 'standby_for_appraise_review' : 'wait_for_plan_review_ready',
-          standby: {
-            preferredTool: 'plan_review_loop',
-            compatibilityTool: reviewReady ? 'plan_wait_for_approval' : 'plan_wait_for_review',
-            currentAfterSequence: reviewReady
-              ? (reviewReady as { currentAfterSequence: number }).currentAfterSequence
-              : 0,
-            nextAfterSequence: reviewReadyAfterSequence,
-            recommendedWait: {
-              tool: 'plan_review_loop',
-              mode: 'long_poll',
-              timeoutMs: defaultReviewLoopTimeoutMs,
-              afterSequence: reviewReadyAfterSequence,
+        return text(
+          applyAuthoringResponseMode(
+            {
+              diagnostic: summarizeDiagnostic(diagnostic),
+              requirementAssessment,
+              candidateHash,
+              taskShapeHash,
+              retryResolutionReport: input.retryFeedback?.addressed ?? [],
+              targetProject: targetProjectResult,
+              created,
+              reviewReady,
+              nextRequiredAgentBehavior: reviewReady ? 'standby_for_appraise_review' : 'wait_for_plan_review_ready',
+              standby: {
+                preferredTool: 'plan_review_loop',
+                compatibilityTool: reviewReady ? 'plan_wait_for_approval' : 'plan_wait_for_review',
+                currentAfterSequence: reviewReady
+                  ? (reviewReady as { currentAfterSequence: number }).currentAfterSequence
+                  : 0,
+                nextAfterSequence: reviewReadyAfterSequence,
+                recommendedWait: {
+                  tool: 'plan_review_loop',
+                  mode: 'long_poll',
+                  timeoutMs: defaultReviewLoopTimeoutMs,
+                  afterSequence: reviewReadyAfterSequence,
+                },
+                requiredPresentation:
+                  'No wait call before complete URL handoff. Present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and recommended wait call before entering standby.',
+                rule: reviewReady
+                  ? 'Keep an active bounded Appraise review wait when the host supports it. Do not implement until Appraise emits approval and plan_start succeeds.'
+                  : 'Wait for durable plan_review_ready evidence before presenting the review URL as complete. Pending review is not completion.',
+              },
             },
-            requiredPresentation:
-              'No wait call before complete URL handoff. Present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and recommended wait call before entering standby.',
-            rule: reviewReady
-              ? 'Keep an active bounded Appraise review wait when the host supports it. Do not implement until Appraise emits approval and plan_start succeeds.'
-              : 'Wait for durable plan_review_ready evidence before presenting the review URL as complete. Pending review is not completion.',
-          },
-        })
+            input.responseMode,
+          ),
+        )
       } catch (error) {
         return toolError(error)
       }
@@ -2312,9 +2488,10 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         planId: z.string(),
         afterSequence: z.number().int().nonnegative().default(0),
         timeoutMs: z.number().int().positive().max(300_000).default(defaultReviewLoopTimeoutMs),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, afterSequence, timeoutMs }) => {
+    async ({ planId, afterSequence, timeoutMs, responseMode }) => {
       const initial = (await api.request(`plans/${planId}/events?after=${afterSequence}`)) as {
         events?: CoordinatorToolEvent[]
       }
@@ -2338,7 +2515,12 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       }
 
       if (!reviewReady && !gateEvent && !lifecycleStatus) {
-        return text(reviewReadyPendingResponse({ planId, current, events, afterSequence, timeoutMs }))
+        return text(
+          applyAuthoringResponseMode(
+            reviewReadyPendingResponse({ planId, current, events, afterSequence, timeoutMs }),
+            responseMode,
+          ),
+        )
       }
 
       if (!gateEvent && !lifecycleStatus) {
@@ -2352,43 +2534,58 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
 
       if (!gateEvent && !lifecycleStatus) {
         return text(
-          approvalPendingResponse({ planId, current, events, afterSequence, waitTool: 'plan_review_loop', timeoutMs }),
+          applyAuthoringResponseMode(
+            approvalPendingResponse({
+              planId,
+              current,
+              events,
+              afterSequence,
+              waitTool: 'plan_review_loop',
+              timeoutMs,
+            }),
+            responseMode,
+          ),
         )
       }
 
       const status = gateEvent ? approvalGateEventStatus(gateEvent.type) : lifecycleStatus
-      return text({
-        status,
-        planId,
-        revision: current.plan.revision,
-        lifecycle: current.plan.lifecycle,
-        contentHash: current.contentHash,
-        links: current.links,
-        ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
-        events,
-        currentAfterSequence: afterSequence,
-        nextAfterSequence: nextApprovalWaitSequence(afterSequence, events),
-        cursorGuidance:
-          'afterSequence is exclusive. Acknowledge the observed gate event only after the permitted transition or recovery action succeeds.',
-        ...(status === 'changes_requested'
-          ? {
-              recovery:
-                'Call plan_review_read to capture blocking remarks and reviewHash, then submit a higher revision with plan_revise. Do not acknowledge plan_changes_requested until the review decision has been captured.',
-            }
-          : {}),
-        nextRecommendedAction:
-          status === 'approved'
-            ? 'Call plan_start, then acknowledge the approval event only after validation_preparation_started.'
-            : status === 'changes_requested'
-              ? 'Call plan_review_read, revise against the current hash, and return to plan_review_loop standby.'
-              : 'Acknowledge cancellation and stop.',
-        nextRequiredAgentBehavior:
-          status === 'approved'
-            ? 'start_validation_preparation'
-            : status === 'changes_requested'
-              ? 'revise_plan_from_review_feedback'
-              : 'stop_after_cancellation',
-      })
+      return text(
+        applyAuthoringResponseMode(
+          {
+            status,
+            planId,
+            revision: current.plan.revision,
+            lifecycle: current.plan.lifecycle,
+            contentHash: current.contentHash,
+            links: current.links,
+            ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
+            events,
+            currentAfterSequence: afterSequence,
+            nextAfterSequence: nextApprovalWaitSequence(afterSequence, events),
+            cursorGuidance:
+              'afterSequence is exclusive. Acknowledge the observed gate event only after the permitted transition or recovery action succeeds.',
+            ...(status === 'changes_requested'
+              ? {
+                  recovery:
+                    'Call plan_review_read to capture blocking remarks and reviewHash, then submit a higher revision with plan_revise. Do not acknowledge plan_changes_requested until the review decision has been captured.',
+                }
+              : {}),
+            nextRecommendedAction:
+              status === 'approved'
+                ? 'Call plan_start, then acknowledge the approval event only after validation_preparation_started.'
+                : status === 'changes_requested'
+                  ? 'Call plan_review_read, revise against the current hash, and return to plan_review_loop standby.'
+                  : 'Acknowledge cancellation and stop.',
+            nextRequiredAgentBehavior:
+              status === 'approved'
+                ? 'start_validation_preparation'
+                : status === 'changes_requested'
+                  ? 'revise_plan_from_review_feedback'
+                  : 'stop_after_cancellation',
+          },
+          responseMode,
+        ),
+      )
     },
   )
   server.registerTool(
@@ -2593,14 +2790,17 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         query: z.string().optional(),
         limit: z.number().int().positive().max(200).default(50),
         sinceHash: z.string().optional(),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, resourceTypes, query, limit, sinceHash }) => {
+    async ({ planId, resourceTypes, query, limit, sinceHash, responseMode }) => {
       const params = new URLSearchParams({ limit: String(limit) })
       if (resourceTypes?.length) params.set('resourceTypes', resourceTypes.join(','))
       if (query) params.set('query', query)
       if (sinceHash) params.set('sinceHash', sinceHash)
-      return text(await api.request(`plans/${planId}/validations/context?${params}`))
+      return text(
+        applyAuthoringResponseMode(await api.request(`plans/${planId}/validations/context?${params}`), responseMode),
+      )
     },
   )
   server.registerTool(
@@ -2699,14 +2899,19 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         planId: z.string(),
         afterSequence: z.number().int().nonnegative().default(0),
         timeoutMs: z.number().int().positive().max(300_000).default(defaultReviewLoopTimeoutMs),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, afterSequence, timeoutMs }) => {
+    async ({ planId, afterSequence, timeoutMs, responseMode }) => {
       const initial = (await api.request(`plans/${planId}/events?after=${afterSequence}`)) as {
         events?: CoordinatorToolEvent[]
       }
       let events = initial.events ?? []
       let current = await readSnapshot(planId)
+      if (current.validationIntegrity?.status === 'integrity_blocked')
+        return text(
+          applyAuthoringResponseMode(validationIntegrityBlockedResponse(planId, current, afterSequence), responseMode),
+        )
       let gateEvent = latestGateEvent(events, validationGateEventStatus)
       let lifecycleStatus = validationGateStatus(current.plan.lifecycle)
 
@@ -2719,43 +2924,60 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         )
         events = [...events, ...(waited.events ?? [])]
         current = await readSnapshot(planId)
+        if (current.validationIntegrity?.status === 'integrity_blocked')
+          return text(
+            applyAuthoringResponseMode(
+              validationIntegrityBlockedResponse(planId, current, afterSequence),
+              responseMode,
+            ),
+          )
         gateEvent = latestGateEvent(events, validationGateEventStatus)
         lifecycleStatus = validationGateStatus(current.plan.lifecycle)
       }
 
       if (!gateEvent && !lifecycleStatus) {
-        return text(validationReviewPendingResponse({ planId, current, events, afterSequence, timeoutMs }))
+        return text(
+          applyAuthoringResponseMode(
+            validationReviewPendingResponse({ planId, current, events, afterSequence, timeoutMs }),
+            responseMode,
+          ),
+        )
       }
 
       const status = gateEvent ? validationGateEventStatus(gateEvent.type) : lifecycleStatus
-      return text({
-        status,
-        planId,
-        revision: current.plan.revision,
-        lifecycle: current.plan.lifecycle,
-        contentHash: current.contentHash,
-        links: current.links,
-        terminal: status === 'cancelled',
-        mustContinue: status !== 'cancelled',
-        ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
-        events,
-        currentAfterSequence: afterSequence,
-        nextAfterSequence: nextApprovalWaitSequence(afterSequence, events),
-        cursorGuidance:
-          'afterSequence is exclusive. Acknowledge the observed validation gate only after the permitted transition or recovery action succeeds.',
-        nextRecommendedAction:
-          status === 'approved'
-            ? 'Call baseline_start, then keep reconciling baseline evidence until baseline review is ready.'
-            : status === 'changes_requested'
-              ? 'Read validation feedback, revise validation artifacts, publish again, and return to validation_review_loop standby.'
-              : 'Acknowledge cancellation and stop.',
-        nextRequiredAgentBehavior:
-          status === 'approved'
-            ? 'start_baseline'
-            : status === 'changes_requested'
-              ? 'revise_validation_artifacts'
-              : 'stop_after_cancellation',
-      })
+      return text(
+        applyAuthoringResponseMode(
+          {
+            status,
+            planId,
+            revision: current.plan.revision,
+            lifecycle: current.plan.lifecycle,
+            contentHash: current.contentHash,
+            links: current.links,
+            terminal: status === 'cancelled',
+            mustContinue: status !== 'cancelled',
+            ...(gateEvent ? { eventSequence: gateEvent.sequence } : {}),
+            events,
+            currentAfterSequence: afterSequence,
+            nextAfterSequence: nextApprovalWaitSequence(afterSequence, events),
+            cursorGuidance:
+              'afterSequence is exclusive. Acknowledge the observed validation gate only after the permitted transition or recovery action succeeds.',
+            nextRecommendedAction:
+              status === 'approved'
+                ? 'Call baseline_start, then keep reconciling baseline evidence until baseline review is ready.'
+                : status === 'changes_requested'
+                  ? 'Read validation feedback, revise validation artifacts, publish again, and return to validation_review_loop standby.'
+                  : 'Acknowledge cancellation and stop.',
+            nextRequiredAgentBehavior:
+              status === 'approved'
+                ? 'start_baseline'
+                : status === 'changes_requested'
+                  ? 'revise_validation_artifacts'
+                  : 'stop_after_cancellation',
+          },
+          responseMode,
+        ),
+      )
     },
   )
   server.registerTool(

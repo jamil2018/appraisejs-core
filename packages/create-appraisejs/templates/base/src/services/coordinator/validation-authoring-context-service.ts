@@ -352,6 +352,11 @@ export async function readValidationContext(
           const ownership = ownerships?.get(`${entityTypeByResource[resourceType]}:${resource.id}`)
           return {
             ...resource,
+            ...((resourceType === 'locatorGroups' || resourceType === 'locators') && {
+              version: '1',
+              targetProjectId,
+              astRef: `${resourceType === 'locatorGroups' ? 'group' : 'locator'}_${resource.id}`,
+            }),
             scope: resourceType === 'templateSteps' ? 'shared_library' : (ownership?.scope ?? 'legacy_test_fixture'),
             provenance: ownership ?? null,
             ...(resourceType === 'environments' ? { reference: resource.id } : {}),

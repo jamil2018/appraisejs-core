@@ -96,11 +96,11 @@ async function ensureArtifact(
   return stored
 }
 
-async function assertPublishedArtifacts(
+async function assertStagedArtifacts(
   repository: PlanArtifactRepository,
   operation: {
     planId: string
-    planHash: string
+    expectedPlanArtifactHash: string
     validationHash: string
     reviewHash: string
   },
@@ -111,11 +111,11 @@ async function assertPublishedArtifacts(
     repository.read('review', operation.planId),
   ])
   if (
-    plan.hash !== operation.planHash ||
+    plan.hash !== operation.expectedPlanArtifactHash ||
     validation.hash !== operation.validationHash ||
     review.hash !== operation.reviewHash
   )
-    throw new ServiceError('Published AST artifacts drifted during recovery.', 'CONFLICT')
+    throw new ServiceError('Staged AST artifacts drifted during recovery.', 'CONFLICT')
 }
 
 async function resumeValidationAstPublishInternal(
@@ -144,13 +144,6 @@ async function resumeValidationAstPublishInternal(
       desiredHash: operation.reviewHash,
       content: operation.reviewContent,
     })
-    await ensureArtifact(repository, {
-      kind: 'plan',
-      planId: operation.planId,
-      expectedHash: operation.expectedPlanArtifactHash,
-      desiredHash: operation.planHash,
-      content: operation.planContent,
-    })
     operation = (await advanceValidationAstPublish(
       { operationId, from: 'prepared', to: 'artifacts_written' },
       client,
@@ -163,7 +156,7 @@ async function resumeValidationAstPublishInternal(
     if (options.crashAfter === 'after_artifacts') throw new Error('injected-after-artifacts')
   }
   if (operation.phase === 'artifacts_written') {
-    await assertPublishedArtifacts(repository, operation)
+    await assertStagedArtifacts(repository, operation)
     const validation = validationArtifactSchema.parse(JSON.parse(operation.validationProjectionJson))
     const extensions = operation.extensionReviews.map(item => JSON.parse(item.artifactJson) as CompiledCustomExtension)
     await projectCompiledValidationArtifacts(
@@ -185,7 +178,14 @@ async function resumeValidationAstPublishInternal(
     if (options.crashAfter === 'after_projection') throw new Error('injected-after-projection')
   }
   if (operation.phase === 'projected') {
-    await assertPublishedArtifacts(repository, operation)
+    await assertStagedArtifacts(repository, operation)
+    await ensureArtifact(repository, {
+      kind: 'plan',
+      planId: operation.planId,
+      expectedHash: operation.expectedPlanArtifactHash,
+      desiredHash: operation.planHash,
+      content: operation.planContent,
+    })
     operation = (await markValidationReviewReady(operation, client)) as typeof operation
     if (options.crashAfter === 'after_review_ready') throw new Error('injected-after-review-ready')
   }
@@ -203,7 +203,22 @@ export async function resumeValidationAstPublish(
     if (options.crashAfter) throw error
     const recovery = await recoverConcurrentPublish(operationId, options, error, client)
     if (recovery.operation) return recovery.operation
-    const failure = (recovery.error instanceof Error ? recovery.error.message : String(recovery.error)).slice(0, 2000)
+    const failedOperation = await client.validationAstPublishOperation.findUnique({
+      where: { id: operationId },
+      select: { phase: true },
+    })
+    const serviceError = recovery.error instanceof ServiceError ? recovery.error : undefined
+    const failure = JSON.stringify({
+      operationId,
+      phase: failedOperation?.phase ?? 'unknown',
+      blockerType: String(serviceError?.details?.blockerType ?? serviceError?.code ?? 'internal_error'),
+      retryable: serviceError?.code !== 'VALIDATION' && serviceError?.code !== 'UNAUTHORIZED',
+      message: (recovery.error instanceof Error ? recovery.error.message : String(recovery.error)).slice(0, 1200),
+      nextRepairAction:
+        serviceError?.code === 'CONFLICT'
+          ? 'Repair the reported integrity conflict, then resume the exact publish operation.'
+          : 'Retry the exact publish operation; Appraise will resume from its durable phase.',
+    }).slice(0, 2000)
     await client.validationAstPublishOperation
       .updateMany({
         where: { id: operationId, phase: { not: 'review_ready' } },
