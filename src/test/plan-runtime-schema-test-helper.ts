@@ -88,6 +88,9 @@ export async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: strin
   if (!hasTable(databasePath, 'DelegatedValidationAstSubmission')) {
     await applyMigration(databasePath, '20260711170000_add_delegated_ast_submissions')
   }
+  if (!hasColumn(databasePath, 'PlanProjection', 'planContentHash')) {
+    await applyMigration(databasePath, '20260713173000_add_named_plan_hashes')
+  }
   if (!hasTable(databasePath, 'ProjectResourceOwnership')) {
     await applyMigration(databasePath, '20260713143000_add_project_resource_ownership')
   }

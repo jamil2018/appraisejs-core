@@ -3,11 +3,12 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-import type { PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { deriveCoordinatorProjectIdentity } from '@/lib/coordinator-api/project-identity'
 import { findProjectRoot } from '@/lib/plans/project-root'
+import { transitionStateHash } from '@/lib/plans/plan-hashes'
 import { ServiceError } from '@/services/shared/errors'
 
 const COORDINATOR_LEASE_MS = 30_000
@@ -111,6 +112,11 @@ export type CoordinatorEvent = {
   sequence: number
   type: string
   payload: unknown
+  previousStateHash: string | null
+  stateHash: string | null
+  planContentHash: string | null
+  revision: number | null
+  actor: string | null
   acknowledgedAt: Date | null
   supersededAt: Date | null
   createdAt: Date
@@ -169,7 +175,14 @@ async function getProjection(client: PrismaClient, planReference: string) {
   const planId = await resolvePlanReference(planReference, client)
   const projection = await client.planProjection.findUnique({
     where: { planId },
-    select: { id: true, planId: true, lifecycle: true },
+    select: {
+      id: true,
+      planId: true,
+      lifecycle: true,
+      revision: true,
+      planContentHash: true,
+      planStateHash: true,
+    },
   })
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   return projection
@@ -282,46 +295,69 @@ export async function heartbeatCoordinator(
 }
 
 export async function appendPlanEvent(
-  input: { planId: string; type: string; payload?: unknown },
+  input: { planId: string; type: string; payload?: unknown; actor?: string },
   client: PrismaClient = prisma,
 ) {
   return withPlanEventStreamLock(
     input.planId,
-    () =>
-      client.$transaction(async transaction => {
-        const projection = await getProjection(transaction as PrismaClient, input.planId)
-        const lastEvent = await transaction.planEvent.findFirst({
-          where: { planProjectionId: projection.id },
-          orderBy: { sequence: 'desc' },
-          select: { sequence: true },
-        })
-        if (input.type === 'plan_review_ready' && projection.lifecycle !== 'awaiting_plan_review') return undefined
-        if (input.type === 'plan_cancelled') {
-          await transaction.planEvent.updateMany({
-            where: {
-              planProjectionId: projection.id,
-              type: { in: PROGRESSION_EVENT_TYPES },
-              acknowledgedAt: null,
-              supersededAt: null,
-            },
-            data: { supersededAt: new Date() },
-          })
-          await transaction.planProjection.update({
-            where: { id: projection.id },
-            data: { lifecycle: 'cancelled' },
-          })
-        }
-        return transaction.planEvent.create({
-          data: {
-            planProjectionId: projection.id,
-            sequence: (lastEvent?.sequence ?? 0) + 1,
-            type: input.type,
-            payloadJson: input.payload === undefined ? null : JSON.stringify(input.payload),
-          },
-        })
-      }),
+    () => client.$transaction(transaction => appendPlanEventInTransaction(transaction, input)),
     client,
   )
+}
+
+// Atomic event sequencing, cancellation, and transition-receipt capture intentionally share one transaction.
+// fallow-ignore-next-line complexity
+async function appendPlanEventInTransaction(
+  transaction: Prisma.TransactionClient,
+  input: { planId: string; type: string; payload?: unknown; actor?: string },
+) {
+  const projection = await getProjection(transaction as PrismaClient, input.planId)
+  const lastEvent = await transaction.planEvent.findFirst({
+    where: { planProjectionId: projection.id },
+    orderBy: { sequence: 'desc' },
+    select: { sequence: true, stateHash: true },
+  })
+  if (input.type === 'plan_review_ready' && projection.lifecycle !== 'awaiting_plan_review') return undefined
+  const stateHash =
+    input.type === 'plan_cancelled' ? await cancelPlanTransition(transaction, projection) : projection.planStateHash
+  return transaction.planEvent.create({
+    data: {
+      planProjectionId: projection.id,
+      sequence: (lastEvent?.sequence ?? 0) + 1,
+      type: input.type,
+      payloadJson: input.payload === undefined ? null : JSON.stringify(input.payload),
+      previousStateHash: lastEvent?.stateHash ?? null,
+      stateHash,
+      planContentHash: projection.planContentHash,
+      revision: projection.revision,
+      actor: input.actor ?? 'coordinator',
+    },
+  })
+}
+
+async function cancelPlanTransition(
+  transaction: Prisma.TransactionClient,
+  projection: Awaited<ReturnType<typeof getProjection>>,
+): Promise<string> {
+  await transaction.planEvent.updateMany({
+    where: {
+      planProjectionId: projection.id,
+      type: { in: PROGRESSION_EVENT_TYPES },
+      acknowledgedAt: null,
+      supersededAt: null,
+    },
+    data: { supersededAt: new Date() },
+  })
+  const stateHash = transitionStateHash({
+    lifecycle: 'cancelled',
+    planContentHash: projection.planContentHash,
+    revision: projection.revision,
+  })
+  await transaction.planProjection.update({
+    where: { id: projection.id },
+    data: { lifecycle: 'cancelled', planStateHash: stateHash },
+  })
+  return stateHash
 }
 
 export async function ensurePlanReviewReadyEvent(planId: string, client: PrismaClient = prisma) {
@@ -368,6 +404,11 @@ export async function readPlanEvents(
     sequence: event.sequence,
     type: event.type,
     payload: parsePayload(event.payloadJson),
+    previousStateHash: event.previousStateHash,
+    stateHash: event.stateHash,
+    planContentHash: event.planContentHash,
+    revision: event.revision,
+    actor: event.actor,
     acknowledgedAt: event.acknowledgedAt,
     supersededAt: event.supersededAt,
     createdAt: event.createdAt,

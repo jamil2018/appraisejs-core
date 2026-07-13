@@ -4,6 +4,7 @@ import prisma from '@/config/db-config'
 import { parseYamlArtifact, serializeYamlArtifact, type PlanArtifact, type ReviewArtifact } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { createOpaquePlanId, createPlanSlug, isLegacyPlanId } from '@/lib/plans/plan-identity'
+import { planContentHash, planStateHash, reviewBindingHash } from '@/lib/plans/plan-hashes'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
@@ -23,6 +24,17 @@ type PlanServiceOptions = {
 
 const ONLINE_PLAN_CREATE_LIFECYCLES = ['draft', 'awaiting_plan_review'] as const
 
+function resolvedPlanHashes(
+  plan: PlanArtifact,
+  projection?: { planContentHash: string; planStateHash: string; reviewBindingHash: string } | null,
+) {
+  return {
+    planContentHash: projection?.planContentHash || planContentHash(plan),
+    planStateHash: projection?.planStateHash || planStateHash(plan),
+    reviewBindingHash: projection?.reviewBindingHash || reviewBindingHash(plan),
+  }
+}
+
 export class CoordinatorPlanCreatePartialError extends Error {
   readonly code = 'plan-create-partial'
   readonly statusCode = 500
@@ -34,7 +46,7 @@ export class CoordinatorPlanCreatePartialError extends Error {
       artifactPath?: string
       stage: 'write-artifact' | 'sync-projection' | 'append-graph-event' | 'append-review-ready' | 'read-artifact'
       safeToRetry: boolean
-      contentHash?: string
+      planContentHash?: string
       recovery: string
     },
     options?: ErrorOptions,
@@ -63,7 +75,7 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
   const projectRoot = await findProjectRoot(options.projectDirectory)
   const repository = new PlanArtifactRepository(projectRoot)
   let artifactPath: string | undefined
-  let contentHash: string | undefined
+  let createdPlanContentHash: string | undefined
   const partial = (stage: CoordinatorPlanCreatePartialError['details']['stage'], error: unknown, safeToRetry = true) =>
     new CoordinatorPlanCreatePartialError(
       `Plan ${planId} was partially created but failed during ${stage}.`,
@@ -72,7 +84,7 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
         artifactPath,
         stage,
         safeToRetry,
-        contentHash,
+        planContentHash: createdPlanContentHash,
         recovery: `Run npm run sync-plans, then check appraise://plans/${planId} or retry plan status for ${planId}.`,
       },
       { cause: error },
@@ -113,10 +125,9 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
   } catch (error) {
     throw partial('append-review-ready', error)
   }
-  let artifact
   try {
-    artifact = await repository.read('plan', reviewPlan.planId)
-    contentHash = artifact.hash
+    await repository.read('plan', reviewPlan.planId)
+    createdPlanContentHash = planContentHash(reviewPlan)
   } catch (error) {
     throw partial('read-artifact', error)
   }
@@ -127,7 +138,10 @@ export async function createCoordinatorPlan(plan: PlanArtifact, options: PlanSer
     legacyPlanId: legacyPlanId ?? undefined,
     revision: reviewPlan.revision,
     lifecycle: reviewPlan.lifecycle,
-    contentHash: artifact.hash,
+    planContentHash: planContentHash(reviewPlan),
+    planStateHash: planStateHash(reviewPlan),
+    reviewBindingHash: reviewBindingHash(reviewPlan),
+    contentHash: planContentHash(reviewPlan),
     eventSequence: reviewReadyEvent.sequence,
     reviewUrl: `/plans/${reviewPlan.planId}`,
   }
@@ -141,14 +155,16 @@ export async function readCoordinatorPlan(planId: string, options: PlanServiceOp
   const plan = parseYamlArtifact('plan', artifact.content) as PlanArtifact
   const projection = await client.planProjection.findUnique({
     where: { planId: canonicalPlanId },
-    select: { slug: true, legacyPlanId: true },
+    select: { slug: true, legacyPlanId: true, planContentHash: true, planStateHash: true, reviewBindingHash: true },
   })
+  const hashes = resolvedPlanHashes(plan, projection)
   return {
     planId: canonicalPlanId,
     plan,
     slug: projection?.slug ?? createPlanSlug(plan.goal),
     legacyPlanId: projection?.legacyPlanId ?? undefined,
-    contentHash: artifact.hash,
+    ...hashes,
+    contentHash: hashes.planContentHash,
     reviewUrl: `/plans/${canonicalPlanId}`,
   }
 }
@@ -166,6 +182,14 @@ export async function reviseCoordinatorPlan(
   const repository = new PlanArtifactRepository(projectRoot)
   const current = await repository.read('plan', canonicalPlanId)
   const currentPlan = parseYamlArtifact('plan', current.content) as PlanArtifact
+  const currentPlanContentHash = planContentHash(currentPlan)
+  if (expectedHash !== currentPlanContentHash) {
+    throw new ServiceError('The expected plan content hash is stale.', 'CONFLICT', 409, {
+      expectedPlanContentHash: expectedHash,
+      currentPlanContentHash,
+      currentPlanStateHash: planStateHash(currentPlan),
+    })
+  }
   if (plan.revision <= currentPlan.revision) {
     throw new ServiceError('A revision must increase the current revision number.', 'CONFLICT')
   }
@@ -173,7 +197,7 @@ export async function reviseCoordinatorPlan(
     currentPlan.lifecycle === 'changes_requested' && plan.lifecycle !== 'awaiting_plan_review'
       ? ({ ...plan, lifecycle: 'awaiting_plan_review' as const } satisfies PlanArtifact)
       : plan
-  await repository.compareAndWrite('plan', canonicalPlanId, expectedHash, serializeYamlArtifact('plan', nextPlan))
+  await repository.compareAndWrite('plan', canonicalPlanId, current.hash, serializeYamlArtifact('plan', nextPlan))
   await syncPlans({ projectDirectory: projectRoot, client })
   await appendPlanEvent(
     { planId: canonicalPlanId, type: 'plan_revision_submitted', payload: { revision: nextPlan.revision } },
@@ -194,7 +218,7 @@ export async function startCoordinatorPlan(planId: string, options: PlanServiceO
   const review = reviewArtifact ? (parseYamlArtifact('review', reviewArtifact.content) as ReviewArtifact) : undefined
   if (
     !review?.planApprovals.some(
-      approval => approval.revision === plan.revision && approval.contentHash === current.hash,
+      approval => approval.revision === plan.revision && approval.contentHash === planContentHash(plan),
     )
   ) {
     throw new ServiceError('The current plan revision has not been approved.', 'CONFLICT')

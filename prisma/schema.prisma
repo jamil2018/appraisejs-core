@@ -309,6 +309,9 @@ model PlanProjection {
   goal                           String
   description                    String
   sourceHash                     String
+  planContentHash                String                          @default("")
+  planStateHash                  String                          @default("")
+  reviewBindingHash              String                          @default("")
   planPath                       String
   reviewJson                     String?
   validationJson                 String?
@@ -795,6 +798,11 @@ model PlanEvent {
   sequence           Int
   type               String
   payloadJson        String?
+  previousStateHash  String?
+  stateHash          String?
+  planContentHash    String?
+  revision           Int?
+  actor              String?
   acknowledgedAt     DateTime?
   acknowledgedBy     String?
   supersededAt       DateTime?

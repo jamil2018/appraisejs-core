@@ -109,7 +109,7 @@ All routes are under `/api/internal/coordinator`.
 | `GET`  | `/locator-graph/visual`                                   | Read the human projection of the locator graph                      |
 | `POST` | `/heartbeat`                                              | Renew a coordinator lease                                           |
 | `POST` | `/plans`                                                  | Create a structured plan                                            |
-| `GET`  | `/plans/:planId`                                          | Read the plan and exact content hash                                |
+| `GET`  | `/plans/:planId`                                          | Read the plan and named content, state, and review-binding hashes   |
 | `GET`  | `/plans/:planId/review`                                   | Read review hash, remarks, links, and recovery guidance             |
 | `PUT`  | `/plans/:planId`                                          | Submit a higher revision with an expected hash                      |
 | `POST` | `/plans/:planId/start`                                    | Start validation preparation after plan approval                    |
@@ -309,6 +309,18 @@ conflict. Re-read context and preview rather than retrying with an old receipt. 
 resumes the same operation; changed inputs require a new preview. Recovery advances only through adjacent prepared,
 artifacts-written, projected, and review-ready phases. It never executes generated code or bypasses validation review.
 After `review_ready`, continue through the ordinary Appraise-owned validation review gate.
+
+### Named hash families
+
+Hashes use recursively key-sorted JSON with a domain discriminator before SHA-256 digesting. `planContentHash`
+covers reviewed plan fields except lifecycle, `reviewBindingHash` binds that content hash to its revision, and
+`planStateHash` binds content hash, revision, and lifecycle. Lifecycle-only transitions preserve `planContentHash`
+and change `planStateHash`. Plan events persist the previous and resulting state hashes, stable content hash,
+revision, sequence, and actor.
+
+The plan response temporarily retains `contentHash` as an alias of `planContentHash`; new integrations must use the
+named field. Validation-publication, runtime-input, and completion-receipt hashes keep their explicit domain names
+and cover their complete canonical contract payloads. Stale writes report expected and current named hashes.
 
 ## Lifecycle Ownership
 

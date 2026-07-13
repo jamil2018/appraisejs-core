@@ -11,6 +11,7 @@ import {
   type PlanLifecycleState,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { planContentHash } from '@/lib/plans/plan-hashes'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { reviseCoordinatorPlan, startCoordinatorPlan } from '@/services/coordinator/coordinator-plan-service'
 import { acknowledgePlanEvent, appendPlanEvent, readPlanEvents } from '@/services/coordinator/coordinator-service'
@@ -60,7 +61,8 @@ async function writePlan(planId: string, source: string) {
 }
 
 async function readPlanHash(planId: string) {
-  return (await new PlanArtifactRepository(workspace).read('plan', planId)).hash
+  const artifact = await new PlanArtifactRepository(workspace).read('plan', planId)
+  return planContentHash(parseYamlArtifact('plan', artifact.content) as PlanArtifact)
 }
 
 async function readReview(planId: string) {
@@ -162,7 +164,8 @@ describe('approvePlanRevision', () => {
       plan: { lifecycle: 'preparing_validations' },
     })
 
-    await expect(readPlanEvents({ planId: 'startable-flow' }, client)).resolves.toEqual([
+    const transitionEvents = await readPlanEvents({ planId: 'startable-flow' }, client)
+    expect(transitionEvents).toEqual([
       expect.objectContaining({ sequence: 1, type: 'plan_approved' }),
       expect.objectContaining({
         sequence: 2,
@@ -170,6 +173,11 @@ describe('approvePlanRevision', () => {
         payload: { revision: 1 },
       }),
     ])
+    expect(transitionEvents[0].planContentHash).toBe(expectedPlanHash)
+    expect(transitionEvents[1].planContentHash).toBe(expectedPlanHash)
+    expect(transitionEvents[1].previousStateHash).toBe(transitionEvents[0].stateHash)
+    expect(transitionEvents[1].stateHash).not.toBe(transitionEvents[0].stateHash)
+    expect(transitionEvents[1]).toMatchObject({ revision: 1, actor: 'coordinator' })
   })
 
   it('blocks plan approval after cancellation is pending', async () => {

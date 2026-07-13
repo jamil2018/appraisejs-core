@@ -14,6 +14,7 @@ import {
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
+import { planContentHash, planStateHash, reviewBindingHash } from '@/lib/plans/plan-hashes'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { assessValidationReadiness, fileReviewHash, validationNodeHash } from '@/lib/validation-review/approval'
 import { ServiceError } from '@/services/shared/errors'
@@ -46,6 +47,10 @@ type WriteReviewOptions = ReviewMutationOptions & {
 
 export type PlanReviewDetail = {
   plan: PlanArtifact
+  planContentHash: string
+  planStateHash: string
+  reviewBindingHash: string
+  /** Compatibility alias for planContentHash. */
   contentHash: string
   review?: ReviewArtifact
   validation?: ValidationArtifact
@@ -60,6 +65,9 @@ export type PlanReviewDetail = {
     slug: string
     legacyPlanId: string | null
     sourceHash: string
+    planContentHash: string
+    planStateHash: string
+    reviewBindingHash: string
     lifecycle: string
     stale: boolean
     conflicted: boolean
@@ -100,6 +108,9 @@ export type PlanReviewSummary = {
   plan: {
     revision: number
     lifecycle: PlanArtifact['lifecycle']
+    planContentHash: string
+    planStateHash: string
+    reviewBindingHash: string
     contentHash: string
   }
   reviewHash: string
@@ -241,7 +252,7 @@ export async function getPlanReviewDetail(
   const client = options?.client ?? prisma
   const canonicalPlanId = await resolvePlanReference(planId, client)
   const projectRoot = await findProjectRoot(options?.projectDirectory)
-  const [{ plan, planArtifact, review }, projection] = await Promise.all([
+  const [{ plan, review }, projection] = await Promise.all([
     readPlanAndReview(projectRoot, canonicalPlanId),
     client.planProjection.findUnique({
       where: { planId: canonicalPlanId },
@@ -276,7 +287,10 @@ export async function getPlanReviewDetail(
 
   return {
     plan,
-    contentHash: planArtifact.hash,
+    planContentHash: projection.planContentHash || planContentHash(plan),
+    planStateHash: projection.planStateHash,
+    reviewBindingHash: projection.reviewBindingHash,
+    contentHash: projection.planContentHash || planContentHash(plan),
     review,
     validation,
     validationContentHash: validation ? hashContent(serializeYamlArtifact('validation', validation)) : undefined,
@@ -313,7 +327,7 @@ export async function readPlanReviewSummary(
   const client = options?.client ?? prisma
   const canonicalPlanId = await resolvePlanReference(planId, client)
   const projectRoot = await findProjectRoot(options?.projectDirectory)
-  const { plan, planArtifact, review, reviewArtifact } = await readPlanAndReview(projectRoot, canonicalPlanId)
+  const { plan, review, reviewArtifact } = await readPlanAndReview(projectRoot, canonicalPlanId)
   const orphanedThreads = getOrphanedThreads(plan, review)
   const orphanedThreadIds = new Set(orphanedThreads.map(thread => thread.id))
   const openThreads = review.threads.filter(thread => !['resolved', 'dismissed'].includes(getThreadStatus(thread)))
@@ -322,7 +336,10 @@ export async function readPlanReviewSummary(
     plan: {
       revision: plan.revision,
       lifecycle: plan.lifecycle,
-      contentHash: planArtifact.hash,
+      planContentHash: planContentHash(plan),
+      planStateHash: planStateHash(plan),
+      reviewBindingHash: reviewBindingHash(plan),
+      contentHash: planContentHash(plan),
     },
     reviewHash: reviewHash(review, reviewArtifact?.hash),
     blockingThreads: openThreads
@@ -466,7 +483,7 @@ export async function approvePlanRevision(
     displayedRevision: input.displayedRevision,
     currentRevision: plan.revision,
     expectedPlanHash: input.expectedPlanHash,
-    currentPlanHash: planArtifact.hash,
+    currentPlanHash: planContentHash(plan),
     stale: projection.stale,
     conflicted: projection.conflicted,
     representationReady: true,
@@ -482,7 +499,7 @@ export async function approvePlanRevision(
     planArtifact.hash,
     serializeYamlArtifact('plan', { ...plan, lifecycle: 'plan_approved' }),
   )
-  const approvedPlanHash = (await repository.read('plan', input.planId)).hash
+  const approvedPlanHash = planContentHash(plan)
   review.planApprovals.push({
     id: id('approval'),
     revision: plan.revision,
@@ -523,7 +540,7 @@ export async function requestPlanChanges(
     displayedRevision: input.displayedRevision,
     currentRevision: plan.revision,
     expectedPlanHash: input.expectedPlanHash,
-    currentPlanHash: planArtifact.hash,
+    currentPlanHash: planContentHash(plan),
     stale: projection.stale,
     conflicted: projection.conflicted,
     representationReady: readiness.ready || !readiness.staleWorker,

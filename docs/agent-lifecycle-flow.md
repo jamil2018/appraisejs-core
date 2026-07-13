@@ -34,7 +34,8 @@ change requests, and cancellation inside one Appraise-owned loop. Without that t
 with bounded `plan_wait_for_review` and `plan_wait_for_approval` waits. Compact continuation state is a fallback for
 long reviews or host limits, not the default result after publishing links. No wait call before complete URL handoff:
 the initial handoff for each revision must present the direct browser URL, `appraise://` URL, plan ID, goal,
-description, revision, lifecycle, content hash, `currentAfterSequence`, `nextAfterSequence`, and recommended wait
+description, revision, lifecycle, `planContentHash`, `planStateHash`, `reviewBindingHash`, `currentAfterSequence`,
+`nextAfterSequence`, and recommended wait
 call. Later waits with no new events return `pending_unchanged` with only the cursor, timing, and next action; they do
 not repeat the brief or handoff. Pending review or pending approval is not completion.
 

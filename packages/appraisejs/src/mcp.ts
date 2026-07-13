@@ -1037,6 +1037,10 @@ function toolError(error: unknown) {
 
 export type PlanSnapshot = {
   plan: { revision: number; lifecycle: string; goal?: string; description?: string }
+  planContentHash: string
+  planStateHash: string
+  reviewBindingHash: string
+  /** Compatibility alias for planContentHash. */
   contentHash: string
   links: unknown
 }
@@ -1102,7 +1106,9 @@ function formatReviewHandoff(input: {
   description?: string
   revision: number
   lifecycle: string
-  contentHash: string
+  planContentHash: string
+  planStateHash: string
+  reviewBindingHash: string
   currentAfterSequence: number
   nextAfterSequence: number
   recommendedWait: RecommendedWait
@@ -1116,7 +1122,9 @@ function formatReviewHandoff(input: {
     `Description: ${input.description ?? '(not returned)'}`,
     `Revision: ${input.revision}`,
     `Lifecycle: ${input.lifecycle}`,
-    `Content hash: ${input.contentHash}`,
+    `Plan content hash: ${input.planContentHash}`,
+    `Plan state hash: ${input.planStateHash}`,
+    `Review binding hash: ${input.reviewBindingHash}`,
     `Current after sequence: ${input.currentAfterSequence}`,
     `Next after sequence: ${input.nextAfterSequence}`,
     `Recommended wait call: ${input.recommendedWait.tool}({ planId: "${input.planId}", afterSequence: ${input.recommendedWait.afterSequence}, timeoutMs: ${input.recommendedWait.timeoutMs} })`,
@@ -1140,7 +1148,9 @@ function standbyPresentation(input: {
     description: input.current.plan.description,
     revision: input.current.plan.revision,
     lifecycle: input.current.plan.lifecycle,
-    contentHash: input.current.contentHash,
+    planContentHash: input.current.planContentHash,
+    planStateHash: input.current.planStateHash,
+    reviewBindingHash: input.current.reviewBindingHash,
     currentAfterSequence: input.currentAfterSequence,
     nextAfterSequence: input.nextAfterSequence,
     recommendedWait: input.recommendedWait,
@@ -1153,7 +1163,10 @@ function standbyPresentation(input: {
     description: input.current.plan.description,
     revision: input.current.plan.revision,
     lifecycle: input.current.plan.lifecycle,
-    contentHash: input.current.contentHash,
+    planContentHash: input.current.planContentHash,
+    planStateHash: input.current.planStateHash,
+    reviewBindingHash: input.current.reviewBindingHash,
+    contentHash: input.current.planContentHash,
     currentAfterSequence: input.currentAfterSequence,
     nextAfterSequence: input.nextAfterSequence,
     recommendedWait: input.recommendedWait,
@@ -1166,13 +1179,15 @@ function standbyPresentation(input: {
         'description',
         'revision',
         'lifecycle',
-        'contentHash',
+        'planContentHash',
+        'planStateHash',
+        'reviewBindingHash',
         'currentAfterSequence',
         'nextAfterSequence',
         'recommendedWait',
       ],
       instruction:
-        'No wait call before complete URL handoff. Before entering or continuing standby, present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, content hash, currentAfterSequence, nextAfterSequence, and the recommended wait call.',
+        'No wait call before complete URL handoff. Before entering or continuing standby, present the complete direct browser URL, appraise:// URL, plan ID, goal, description, revision, lifecycle, named plan hashes, currentAfterSequence, nextAfterSequence, and the recommended wait call.',
     },
   }
 }

@@ -1544,9 +1544,22 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   <div>
                     <h3 className="font-heading text-sm font-semibold">Revision Approval</h3>
                     <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
-                      Approval binds to revision {detail.plan.revision} and its exact plan hash.
+                      Approval binds to revision {detail.plan.revision} and its exact reviewed-content hash.
                     </p>
                   </div>
+
+                  <dl className="bg-muted/30 grid gap-2 rounded-xl border p-3 text-[11px]">
+                    {[
+                      ['Plan content hash', detail.planContentHash],
+                      ['Plan state hash', detail.planStateHash],
+                      ['Review binding hash', detail.reviewBindingHash],
+                    ].map(([label, value]) => (
+                      <div key={label} className="grid gap-1">
+                        <dt className="font-medium text-muted-foreground">{label}</dt>
+                        <dd className="break-all font-mono">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
 
                   <div className="space-y-4">
                     {suspiciousReplacement && (
@@ -1575,7 +1588,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                             approvePlanRevisionAction({
                               planId: detail.plan.planId,
                               displayedRevision: detail.plan.revision,
-                              expectedPlanHash: detail.contentHash,
+                              expectedPlanHash: detail.planContentHash,
                               confirmSuspiciousReplacement: confirmReplacement,
                             }),
                           'Exact plan revision approved.',
@@ -1604,7 +1617,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                             requestPlanChangesAction({
                               planId: detail.plan.planId,
                               displayedRevision: detail.plan.revision,
-                              expectedPlanHash: detail.contentHash,
+                              expectedPlanHash: detail.planContentHash,
                             }),
                           'Plan changes requested.',
                         )
