@@ -147,7 +147,12 @@ export class RuntimeCapsuleTestRunService {
       ])
       if (!environment || !project) throw new Error('Capsule TestRun environment or project is missing.')
       const testRun = await tx.testRun.upsert({
-        where: { preparationKey },
+        where: {
+          targetProjectId_preparationKey: {
+            targetProjectId: input.targetProjectId,
+            preparationKey,
+          },
+        },
         update: {},
         create: {
           name: input.name,

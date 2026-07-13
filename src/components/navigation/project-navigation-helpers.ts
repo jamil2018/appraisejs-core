@@ -1,3 +1,9 @@
+'use client'
+
+import { usePathname, useSearchParams } from 'next/navigation'
+
+import { getSidebarNavigationSections } from './nav-command-helpers'
+
 export type ProjectNavigationProps = {
   providerRunsEnabled?: boolean
   projects?: Array<{ id: string; displayName: string; canonicalPath: string }>
@@ -21,8 +27,3 @@ export function useProjectNavigationState({ providerRunsEnabled = false, cookieP
     sections: getSidebarNavigationSections({ providerRunsEnabled }),
   }
 }
-;('use client')
-
-import { usePathname, useSearchParams } from 'next/navigation'
-
-import { getSidebarNavigationSections } from './nav-command-helpers'

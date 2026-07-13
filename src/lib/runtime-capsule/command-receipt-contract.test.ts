@@ -151,10 +151,19 @@ function receipt() {
 describe('capsule command receipt contract', () => {
   it('rejects unresolved project placeholders before a receipt can be reviewed', () => {
     const value = receipt()
-    value.runtime.cucumber.binaryRealPath =
-      '/Users/jamil/Personal Projects/appraisejs/[project]/node_modules/@cucumber/cucumber/bin/cucumber.js'
+    const invalidValue = {
+      ...value,
+      runtime: {
+        ...value.runtime,
+        cucumber: {
+          ...value.runtime.cucumber,
+          binaryRealPath:
+            '/Users/jamil/Personal Projects/appraisejs/[project]/node_modules/@cucumber/cucumber/bin/cucumber.js',
+        },
+      },
+    }
 
-    const result = capsuleCommandReceiptV1Schema.safeParse(value)
+    const result = capsuleCommandReceiptV1Schema.safeParse(invalidValue)
 
     expect(result.success).toBe(false)
     if (!result.success)

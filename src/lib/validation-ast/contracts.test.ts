@@ -81,7 +81,14 @@ describe('validation AST contracts', () => {
       validationAstSchema.safeParse(withSteps([ast.scenarios[0].steps[0], ast.scenarios[0].steps[0]])).success,
     ).toBe(false)
     expect(
-      validationAstSchema.safeParse(withSteps([{ ...ast.scenarios[0].steps[0], source: 'raw code' }])).success,
+      validationAstSchema.safeParse(
+        withSteps([
+          {
+            ...ast.scenarios[0].steps[0],
+            source: 'raw code',
+          } as unknown as (typeof ast.scenarios)[number]['steps'][number],
+        ]),
+      ).success,
     ).toBe(false)
   })
 

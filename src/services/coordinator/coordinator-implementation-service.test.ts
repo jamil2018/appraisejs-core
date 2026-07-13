@@ -433,7 +433,7 @@ describe('implementation coordinator checkpoints', () => {
 
     expect(result.runs.map(run => run.testRunId)).toEqual(prepared.map(row => row.runId))
     expect(result.runs.every(run => run.runtimePaths === undefined)).toBe(true)
-    expect(result.testRunInputs).toBeUndefined()
+    expect(result).not.toHaveProperty('testRunInputs')
     expect(result.capsuleStartOutcomes).toEqual([
       { testRunDbId: prepared[0]!.id, status: 'started', attemptId: `attempt-${prepared[0]!.id}` },
       {
@@ -474,8 +474,8 @@ describe('implementation coordinator checkpoints', () => {
     expect(new Set([...first.runs, ...second.runs].map(run => run.testRunId)).size).toBe(4)
     await expect(client.testRun.count({ where: { planId } })).resolves.toBe(4)
     expect([...first.runs, ...second.runs].every(run => run.runtimePaths === undefined)).toBe(true)
-    expect(first.testRunInputs).toBeUndefined()
-    expect(second.testRunInputs).toBeUndefined()
+    expect(first).not.toHaveProperty('testRunInputs')
+    expect(second).not.toHaveProperty('testRunInputs')
   })
 
   it('atomically verifies explicit tasks from satisfied managed evidence and replays idempotently', async () => {
@@ -770,7 +770,7 @@ describe('implementation coordinator checkpoints', () => {
       plan: { lifecycle: 'validating' },
       runs: [expect.objectContaining({ validationId: 'core-validation', status: 'running' })],
     })
-    expect(started.testRunInputs).toBeUndefined()
+    expect(started).not.toHaveProperty('testRunInputs')
 
     const run = started.runs[0]!
     await expect(

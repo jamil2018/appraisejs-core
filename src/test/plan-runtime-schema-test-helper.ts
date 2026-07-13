@@ -135,6 +135,9 @@ async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
   if (!hasTable(databasePath, 'RuntimeCapsuleExecutionAttempt')) {
     await applyMigration(databasePath, '20260712010000_add_runtime_capsule_execution_attempt')
   }
+  if (!hasColumn(databasePath, 'Environment', 'targetProjectId')) {
+    await applyMigration(databasePath, '20260713200000_stage_complete_project_ownership')
+  }
 }
 
 export async function prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath: string) {

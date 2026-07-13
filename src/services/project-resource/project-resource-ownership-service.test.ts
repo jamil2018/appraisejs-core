@@ -52,7 +52,7 @@ function ownershipClient() {
           .filter(row => where.entityType.in.includes(row.entityType))
           .filter(
             row =>
-              row.scope === ResourceScope.system ||
+              String(row.scope) === ResourceScope.system ||
               row.scope === ResourceScope.global_library ||
               row.targetProjectId === JSON.stringify(where.OR).match(/project-[ab]/)?.[0],
           ),
