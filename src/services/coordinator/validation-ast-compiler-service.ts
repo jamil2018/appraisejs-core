@@ -27,6 +27,7 @@ export type ResolvedLocatorBinding = {
   value: string
   groupId: string
   groupName: string
+  moduleId: string
   route: string
 }
 

@@ -43,6 +43,12 @@ returned alongside that scoped context. Suggested-resource proposals and canonic
 foreign project-owned record rather than reassigning it. Ownership metadata remains provenance; it is not a substitute
 for a project-owned entity's own project foreign key.
 
+Locator proposal, context, check, preview, and compile responses share one binding shape. Each locator and locator
+group exposes its persistent `id`, copyable `astRef`, contract `version`, `targetProjectId`, and module/group ancestry.
+Canonical projection reuses a compatible binding with that ancestry unchanged; it never reparents a proposed locator
+group beneath the validation AST's generated module. Foreign bindings and same-project structural mismatches fail
+before publication instead of falling back across project boundaries.
+
 ## Ownership classes
 
 | Class               | Records                                                                              | Enforcement                                                     |

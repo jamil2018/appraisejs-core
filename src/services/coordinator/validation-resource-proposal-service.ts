@@ -18,6 +18,36 @@ const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonical
 const stableId = (targetProjectId: string, entityType: string, localKey: string) =>
   `apr-${createHash('sha256').update(`${targetProjectId}:${entityType}:${localKey}`).digest('hex').slice(0, 24)}`
 
+function proposalBindings(
+  proposal: Proposal,
+  ids: Awaited<ReturnType<typeof persistProposalGraph>>,
+  targetProjectId: string,
+) {
+  return {
+    locatorGroups: proposal.locatorGroups.map(item => ({
+      id: ids.locatorGroups[item.localKey],
+      astRef: `group_${ids.locatorGroups[item.localKey]}`,
+      version: '1',
+      targetProjectId,
+      moduleId: ids.modules[item.moduleKey],
+      disposition: 'reused_or_created' as const,
+    })),
+    locators: proposal.locators.map(item => {
+      const group = proposal.locatorGroups.find(candidate => candidate.localKey === item.groupKey)!
+      return {
+        id: ids.locators[item.localKey],
+        astRef: `locator_${ids.locators[item.localKey]}`,
+        version: '1',
+        targetProjectId,
+        moduleId: ids.modules[group.moduleKey],
+        locatorGroupId: ids.locatorGroups[item.groupKey],
+        locatorGroupAstRef: `group_${ids.locatorGroups[item.groupKey]}`,
+        disposition: 'reused_or_created' as const,
+      }
+    }),
+  }
+}
+
 const validationResourceProposalSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -256,7 +286,14 @@ export async function proposeValidationResources(
       return { ...JSON.parse(replay.resultJson), replayed: true }
     }
     const ids = await persistProposalGraph(proposal, plan.targetProjectId!, input.planId, tx)
-    const stored = { schemaVersion: 1, planId: input.planId, targetProjectId: plan.targetProjectId, proposalHash, ids }
+    const stored = {
+      schemaVersion: 1,
+      planId: input.planId,
+      targetProjectId: plan.targetProjectId,
+      proposalHash,
+      ids,
+      bindings: proposalBindings(proposal, ids, plan.targetProjectId!),
+    }
     await tx.validationResourceProposal.create({
       data: {
         planId: input.planId,
