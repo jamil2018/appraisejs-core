@@ -127,7 +127,12 @@ function invalidateValidationEvidence(
   },
 ) {
   if (input.scope === 'product_scope') {
-    return { ...validation, validationDecisions: [], reviewSubmittedAt: undefined, baselineDecision: 'pending' as const }
+    return {
+      ...validation,
+      validationDecisions: [],
+      reviewSubmittedAt: undefined,
+      baselineDecision: 'pending' as const,
+    }
   }
   const validationIds = affectedValidationIds(validation, input.target, input.affectedValidationIds)
   return {
@@ -298,12 +303,12 @@ export async function decideValidationNode(
   if (!node) throw new ServiceError('Validation node not found.', 'NOT_FOUND')
   if (node.astProvenance?.schemaVersion !== '2')
     throw new ServiceError(
-      'Managed validation decisions require an exact reviewed v2 AST publication. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
+      'Managed validation decisions require an exact reviewed managed Validation AST publication. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
       'CONFLICT',
     )
   const publishOperation = await findCurrentAstPublishOperation(input.planId, client)
   if (!publishOperation)
-    throw new ServiceError('The exact reviewed v2 AST publish operation was not found.', 'CONFLICT')
+    throw new ServiceError('The exact reviewed managed Validation AST publish operation was not found.', 'CONFLICT')
   {
     const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     const suppliedExtensions = [...(input.extensionArtifactHashes ?? [])].sort()
@@ -411,12 +416,12 @@ export async function submitValidationReview(planId: string, options: Options = 
   if (!readiness.ready) throw new ServiceError(readiness.blockers.join(' '), 'CONFLICT')
   if (artifacts.validation.validations.some(validation => validation.astProvenance?.schemaVersion !== '2'))
     throw new ServiceError(
-      'Managed validation review requires exact v2 AST provenance for every validation. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
+      'Managed validation review requires exact managed Validation AST provenance for every validation. Use validation_ast_check, validation_ast_preview, and validation_ast_compile.',
       'CONFLICT',
     )
   const publishOperation = await findCurrentAstPublishOperation(planId, client)
   if (!publishOperation)
-    throw new ServiceError('The exact reviewed v2 AST publish operation was not found.', 'CONFLICT')
+    throw new ServiceError('The exact reviewed managed Validation AST publish operation was not found.', 'CONFLICT')
   {
     const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     if (

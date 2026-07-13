@@ -84,7 +84,7 @@ export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | und
         artifactPath: error.details.artifactPath,
         stage: error.details.stage,
         safeToRetry: error.details.safeToRetry,
-        contentHash: error.details.contentHash,
+        planContentHash: error.details.planContentHash,
       },
     }
   }

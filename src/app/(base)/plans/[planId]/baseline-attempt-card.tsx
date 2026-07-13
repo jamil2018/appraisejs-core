@@ -55,7 +55,7 @@ const baselineVisualRules: Array<{
       attempt.status === 'cancelled' ||
       attempt.status === 'interrupted' ||
       attempt.classification === 'authoring_failure' ||
-      attempt.classification === 'authoring_failure',
+      attempt.classification === 'infrastructure_failure',
     style: baselineVisualStyles.failed,
   },
   { matches: attempt => attempt.status === 'completed', style: baselineVisualStyles.completed },
@@ -71,7 +71,7 @@ function getBaselineIconClass(status: string, classification?: string): string {
     status === 'cancelled' ||
     status === 'interrupted' ||
     classification === 'authoring_failure' ||
-    classification === 'authoring_failure'
+    classification === 'infrastructure_failure'
   ) {
     return 'text-destructive'
   }
@@ -179,7 +179,7 @@ function BaselineStatusIcon({
     status === 'cancelled' ||
     status === 'interrupted' ||
     classification === 'authoring_failure' ||
-    classification === 'authoring_failure'
+    classification === 'infrastructure_failure'
   ) {
     return <XCircle className={iconClass} />
   }

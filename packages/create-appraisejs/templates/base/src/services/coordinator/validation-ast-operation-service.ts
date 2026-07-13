@@ -22,6 +22,7 @@ import {
   type ValidationAstCompilerContext,
 } from '@/lib/validation-ast'
 import { ServiceError } from '@/services/shared/errors'
+import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { buildLocatorGraph } from '@/services/locator-graph/locator-graph-service'
 import {
   buildCompiledValidationAstResult,
@@ -35,20 +36,30 @@ import { resumeValidationAstPublish } from './validation-ast-publish-orchestrato
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
 async function loadValidationAstContext(planId: string, client: PrismaClient) {
-  const [plan, locatorGraph, environments] = await Promise.all([
-    client.planProjection.findUnique({
-      where: { planId },
-      include: { tasks: { orderBy: { position: 'asc' } }, targetProject: true },
-    }),
-    buildLocatorGraph(client),
-    client.environment.findMany({ orderBy: { name: 'asc' } }),
-  ])
+  const plan = await client.planProjection.findUnique({
+    where: { planId },
+    include: { tasks: { orderBy: { position: 'asc' } }, targetProject: true },
+  })
   if (!plan) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   if (!plan.targetProject) throw new ServiceError('Plan must be bound to an authoritative target project.', 'CONFLICT')
   if (!['preparing_validations', 'validation_changes_requested'].includes(plan.lifecycle))
     throw new ServiceError('The plan is not preparing validations.', 'CONFLICT')
+  const [locatorGraph, allEnvironments, environmentOwnerships] = await Promise.all([
+    buildLocatorGraph(client, plan.targetProject.id),
+    client.environment.findMany({ orderBy: { name: 'asc' } }),
+    readVisibleResourceOwnerships(plan.targetProject.id, ['environment'], client),
+  ])
+  const environments = allEnvironments.filter(
+    environment => !environmentOwnerships || environmentOwnerships.has(`environment:${environment.id}`),
+  )
   const environmentContext = Object.fromEntries(
-    environments.map(environment => [environment.name, { keys: ['baseUrl'] }]),
+    environments.flatMap(environment => {
+      const descriptor = { keys: ['baseUrl'], name: environment.name, reference: environment.id }
+      return [
+        [environment.id, descriptor],
+        [environment.name, descriptor],
+      ]
+    }),
   )
   const extensionPolicy = createCustomExtensionPolicy({
     projectId: plan.targetProject.id,
@@ -166,7 +177,7 @@ function bindPublishProvenance(
     astProvenance: {
       schemaVersion: '2' as const,
       astHash: preview.astHash,
-      executionAuthority: 'phase2_review_only' as const,
+      executionAuthority: 'reviewed_publication' as const,
       publishOperationId,
       receiptHash,
       runtimeInputHash,

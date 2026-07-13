@@ -12,7 +12,7 @@ vi.mock('./validation-canonical-projection-service', () => ({
 }))
 
 const ast = {
-  schemaVersion: '1',
+  schemaVersion: 1,
   id: 'meditation',
   title: 'Meditation',
   purpose: 'Complete a session.',
@@ -92,7 +92,7 @@ describe('Validation AST canonical projection compiler', () => {
       version: '1.0.0',
     }
     const extension = {
-      schemaVersion: '1' as const,
+      schemaVersion: 1 as const,
       id: 'observe-breathing',
       version: '1.0.0',
       title: 'Observe breathing',

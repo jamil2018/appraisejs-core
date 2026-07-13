@@ -1172,10 +1172,22 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   isPending={isPending}
                   run={run}
                   onDecideValidation={(validationId, decision) =>
-                    decideValidationNodeAction({ planId: detail.plan.planId, validationId, decision })
+                    decideValidationNodeAction({
+                      planId: detail.plan.planId,
+                      validationId,
+                      decision,
+                      operationHash: detail.validationReview?.operationHash,
+                      extensionArtifactHashes: detail.validationReview?.extensionArtifactHashes ?? [],
+                    })
                   }
                   onApproveFile={path => approveValidationFileAction({ planId: detail.plan.planId, path })}
-                  onSubmitReview={() => submitValidationReviewAction({ planId: detail.plan.planId })}
+                  onSubmitReview={() =>
+                    submitValidationReviewAction({
+                      planId: detail.plan.planId,
+                      operationHash: detail.validationReview?.operationHash,
+                      extensionArtifactHashes: detail.validationReview?.extensionArtifactHashes ?? [],
+                    })
+                  }
                   onCancelBaseline={() => cancelBaselineExecutionAction({ planId: detail.plan.planId })}
                   onAcceptBaseline={() => acceptBaselineAction({ planId: detail.plan.planId })}
                   onSubmitFeedback={input =>
@@ -1588,7 +1600,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                           <p>Permissions: {delegation.permissions.join(', ')}</p>
                           <p>Prohibitions: {delegation.prohibitions.join(', ') || 'none'}</p>
                           <p>
-                            Expires {new Date(delegation.expiresAt).toLocaleString()}; consumed operations:{' '}
+                            Expires {delegation.expiresAt.toISOString()}; consumed operations:{' '}
                             {delegation.consumptions.length}; status: {delegation.revokedAt ? 'revoked' : 'active'}
                           </p>
                         </article>

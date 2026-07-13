@@ -69,7 +69,7 @@ const context: ValidationAstCompilerContext = {
 const submission = {
   expectedPlanHash: hash('a'),
   ast: {
-    schemaVersion: '1',
+    schemaVersion: 1,
     id: 'todo-validation',
     title: 'Todo validation',
     purpose: 'Verify todo entry.',
@@ -95,6 +95,30 @@ const submission = {
       },
     ],
     qualityConcerns: ['accessibility'],
+    coverageArgument: {
+      mappings: [
+        {
+          kind: 'task',
+          targetId: 'task-one',
+          scenarioIds: ['create-todo'],
+          stimulusStepIds: ['fill-title'],
+          observationStepIds: [],
+          rationale: 'The fixture exercises the task stimulus but intentionally does not assert the result.',
+          state: 'deferred',
+          limitation: 'Assertion coverage is outside this reference-resolution fixture.',
+        },
+        {
+          kind: 'quality-concern',
+          targetId: 'accessibility',
+          scenarioIds: [],
+          stimulusStepIds: [],
+          observationStepIds: [],
+          rationale: 'Accessibility is declared but not exercised by this fixture.',
+          state: 'uncovered',
+          limitation: 'Covered by dedicated accessibility validation tests.',
+        },
+      ],
+    },
     customExtensions: [],
   },
   customExtensionProposals: [],
@@ -191,7 +215,7 @@ describe('Validation AST check and preview', () => {
     }
     withExtension.customExtensionProposals = [
       {
-        schemaVersion: '1',
+        schemaVersion: 1,
         id: 'project-assertion',
         version: '1.0.0',
         title: 'Project assertion',

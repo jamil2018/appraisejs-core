@@ -215,7 +215,7 @@ async function seedValidationReviewPlan(): Promise<void> {
         astProvenance: {
           schemaVersion: '2',
           astHash: `sha256:${'a'.repeat(64)}`,
-          executionAuthority: 'phase3_capsule',
+          executionAuthority: 'runtime_capsule',
           publishOperationId: 'astpub_validation_review_e2e',
           receiptHash: `sha256:${'b'.repeat(64)}`,
           runtimeInputHash: `sha256:${'c'.repeat(64)}`,
@@ -261,12 +261,66 @@ async function seedValidationReviewPlan(): Promise<void> {
   ])
 }
 
+async function seedValidationPublishOperation(): Promise<void> {
+  const targetFingerprint = hashContent(`target:${process.cwd()}`)
+  const targetProject = await prisma.targetProject.upsert({
+    where: { fingerprint: targetFingerprint },
+    create: {
+      canonicalPath: process.cwd(),
+      displayName: 'E2E validation target',
+      packageName: 'appraise',
+      packageJson: '{}',
+      fingerprint: targetFingerprint,
+    },
+    update: {},
+  })
+  const projection = await prisma.planProjection.update({
+    where: { planId: validationPlanId },
+    data: { targetProjectId: targetProject.id },
+  })
+  const digest = (label: string) => hashContent(`${validationPlanId}:${label}`)
+  await prisma.validationAstPublishOperation.deleteMany({ where: { id: 'astpub_validation_review_e2e' } })
+  await prisma.validationAstPublishOperation.create({
+    data: {
+      id: 'astpub_validation_review_e2e',
+      planId: validationPlanId,
+      planProjectionId: projection.id,
+      targetProjectId: targetProject.id,
+      targetFingerprint: targetProject.fingerprint,
+      idempotencyKey: 'validation-review-e2e',
+      operationHash: digest('operation'),
+      phase: 'review_ready',
+      expectedPlanHash: digest('expected-plan'),
+      expectedPlanArtifactHash: digest('expected-plan-artifact'),
+      expectedValidationHash: digest('expected-validation'),
+      expectedReviewHash: digest('expected-review'),
+      planHash: digest('plan'),
+      validationHash: digest('validation'),
+      reviewHash: digest('review'),
+      planContent: '{}',
+      validationContent: '{}',
+      reviewContent: '{}',
+      astId: 'validation-review-e2e',
+      astHash: `sha256:${'a'.repeat(64)}`,
+      contextHash: digest('context'),
+      previewHash: digest('preview'),
+      receiptHash: `sha256:${'b'.repeat(64)}`,
+      projectionHash: digest('projection'),
+      projectionJson: '{}',
+      validationProjectionJson: '{}',
+      runtimeInputHash: `sha256:${'c'.repeat(64)}`,
+      runtimeInputJson: '{}',
+    },
+  })
+}
+
 test.describe('Plan review', () => {
   test.beforeEach(async () => {
     await resetE2eData()
     await seedReviewablePlan()
     await seedValidationReviewPlan()
     await syncPlans()
+    await seedValidationPublishOperation()
   })
 
   test.afterAll(async () => {

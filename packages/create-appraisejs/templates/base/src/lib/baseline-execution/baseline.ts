@@ -4,11 +4,11 @@ import type { ValidationArtifact } from '@/lib/plan-contract'
 import type { TestRunEvidenceHealthValue } from '@/services/test-run/run-evidence-summary-service'
 
 export type BaselineClassification =
-  | 'expected_behavioral_failure'
-  | 'accepted_regression_pass'
-  | 'pre_existing_unrelated_failure'
-  | 'invalid_baseline_failure'
-  | 'validation_harness_failure'
+  | 'expected_product_failure'
+  | 'unexpected_pass'
+  | 'unrelated_existing_failure'
+  | 'authoring_failure'
+  | 'infrastructure_failure'
 
 export type BaselineEvidence = {
   result: 'passed' | 'failed' | 'cancelled' | 'interrupted'
@@ -80,7 +80,8 @@ export function classifyBaselineResult(
 
   if (evidence.evidenceHealth && evidence.evidenceHealth !== 'valid') {
     return {
-      classification: 'validation_harness_failure',
+      classification:
+        evidence.evidenceHealth === 'infrastructure_failure' ? 'infrastructure_failure' : 'authoring_failure',
       signatureHash,
       reason:
         evidence.evidenceHealth === 'infrastructure_failure'
@@ -91,21 +92,21 @@ export function classifyBaselineResult(
 
   if (evidence.result === 'passed') {
     return {
-      classification: 'accepted_regression_pass',
+      classification: 'unexpected_pass',
       signatureHash,
       reason: 'The validation already passes and requires explicit regression-coverage justification.',
     }
   }
   if (evidence.result !== 'failed') {
     return {
-      classification: 'invalid_baseline_failure',
+      classification: 'infrastructure_failure',
       signatureHash,
       reason: `The run ended as ${evidence.result}.`,
     }
   }
   if (evidence.failureSignatures.some(signature => isBlockingFailure(signature))) {
     return {
-      classification: 'validation_harness_failure',
+      classification: 'authoring_failure',
       signatureHash,
       reason:
         'The run contains a validation harness failure such as an undefined step, failed import, missing setup, or timeout.',
@@ -114,7 +115,7 @@ export function classifyBaselineResult(
   const lastExpectedStep = expected.at(-1)?.lastPassingStepId
   if (lastExpectedStep && !evidence.completedStepIds.includes(lastExpectedStep)) {
     return {
-      classification: 'invalid_baseline_failure',
+      classification: 'authoring_failure',
       signatureHash,
       reason: `Required setup step "${lastExpectedStep}" did not pass before the failure.`,
     }
@@ -125,13 +126,13 @@ export function classifyBaselineResult(
     expected.every((item, index) => item.signature === evidence.failureSignatures[index])
   if (exactMatch) {
     return {
-      classification: 'expected_behavioral_failure',
+      classification: 'expected_product_failure',
       signatureHash,
       reason: 'Observed failures match the approved ordered signatures.',
     }
   }
   return {
-    classification: 'pre_existing_unrelated_failure',
+    classification: 'unrelated_existing_failure',
     signatureHash,
     reason: 'The failure is outside the approved expected signatures and requires acknowledgement.',
   }
@@ -165,15 +166,17 @@ function baselineCombinationBlockers(
   const key = baselineCombinationKey(combination)
   const latest = attempts.at(-1)
   if (!latest || latest.status !== 'completed') return [`${key} has no completed baseline.`]
-  if (latest.classification === 'validation_harness_failure') {
-    return [`${key} has a validation harness failure that must be remediated in validation review.`]
+  if (latest.classification === 'authoring_failure') {
+    return [`${key} has a validation authoring failure that must be remediated in validation review.`]
   }
-  if (latest.classification === 'invalid_baseline_failure') return [`${key} has an invalid baseline failure.`]
-  if (latest.classification === 'accepted_regression_pass' && !latest.regressionJustification?.trim()) {
+  if (latest.classification === 'infrastructure_failure') {
+    return [`${key} has a baseline infrastructure failure that must be repaired before retrying.`]
+  }
+  if (latest.classification === 'unexpected_pass' && !latest.regressionJustification?.trim()) {
     return [`${key} needs regression-coverage justification.`]
   }
   const acknowledged =
-    latest.classification !== 'pre_existing_unrelated_failure' ||
+    latest.classification !== 'unrelated_existing_failure' ||
     validation.baselineAcknowledgements.some(
       acknowledgement =>
         acknowledgement.attemptId === latest.id && acknowledgement.signatureHash === latest.signatureHash,

@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto'
 
 import { z } from 'zod'
 
-import prisma from '@/config/db-config'
 import { defaultActionCatalog } from '@/lib/action-catalog'
 
 import {
@@ -620,7 +619,9 @@ async function authorizeDelegatedPlanCreation(
   if (!delegation) return
   if (!targetProject) throw new ServiceError('Delegated plan creation requires a registered target.', 'VALIDATION')
   await verifyDelegatedCoordinatorReceipt({
-    ...delegation,
+    receipt: delegation.receipt,
+    delegatedCoordinatorId: delegation.delegatedCoordinatorId,
+    operationKey: delegation.operationKey,
     targetFingerprint: targetProject.fingerprint,
     pathFingerprint: `sha256:${createHash('sha256').update(targetProject.canonicalPath).digest('hex')}`,
     permission: 'plan_create',
@@ -786,7 +787,7 @@ async function postEventAcknowledgement(operation: string[], body: unknown) {
 async function postValidationOperation(request: Request, operation: string[], body: unknown) {
   const planId = routePlanIdSchema.parse(operation[1])
   if (operation[3] === 'resources' && operation[4] === 'propose')
-    return Response.json(await proposeValidationResources({ planId, proposal: body }, prisma))
+    return Response.json(await proposeValidationResources({ planId, proposal: body }))
   if (operation[3] === 'ast') {
     if (operation[4] === 'extension-policy') return Response.json(await readValidationAstExtensionPolicyForPlan(planId))
     if (operation[4] === 'extension-reviews') {

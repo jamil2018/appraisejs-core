@@ -18,6 +18,7 @@ import {
   readValidationAstExtensionReviewsForPlan,
 } from './validation-ast-operation-service'
 import { decideValidationNode, submitValidationReview } from './coordinator-validation-service'
+import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
 
 const planHash = `sha256:${'a'.repeat(64)}`
 const contractHash = (value: unknown) =>
@@ -28,7 +29,7 @@ const meditationSubmission = () => ({
   expectedPlanHash: planHash,
   authoringProfile: { id: 'simple-happy-path', version: '1' },
   ast: {
-    schemaVersion: '1',
+    schemaVersion: 1,
     id: 'meditation-happy-path',
     title: 'Complete a meditation',
     purpose: 'Verify a meditation completes and its result persists.',
@@ -79,6 +80,37 @@ const meditationSubmission = () => ({
       },
     ],
     qualityConcerns: ['accessibility', 'persistence'],
+    coverageArgument: {
+      mappings: [
+        {
+          kind: 'task',
+          targetId: 'task-one',
+          scenarioIds: ['complete-meditation'],
+          stimulusStepIds: ['start-meditation'],
+          observationStepIds: ['confirm-accessibility', 'confirm-persistence'],
+          rationale: 'Starting meditation is followed by observable accessibility and persistence assertions.',
+          state: 'covered',
+        },
+        {
+          kind: 'quality-concern',
+          targetId: 'accessibility',
+          scenarioIds: ['complete-meditation'],
+          stimulusStepIds: ['start-meditation'],
+          observationStepIds: ['confirm-accessibility'],
+          rationale: 'The registered accessibility assertion observes the completed result.',
+          state: 'covered',
+        },
+        {
+          kind: 'quality-concern',
+          targetId: 'persistence',
+          scenarioIds: ['complete-meditation'],
+          stimulusStepIds: ['start-meditation'],
+          observationStepIds: ['confirm-persistence'],
+          rationale: 'The registered persistence assertion observes the completed result.',
+          state: 'covered',
+        },
+      ],
+    },
     customExtensions: [],
   },
   customExtensionProposals: [],
@@ -94,7 +126,7 @@ beforeEach(async () => {
   await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
   client = sqliteTestClient(databasePath)
   await ensureCoordinatorPlanRuntimeTestSchema(databasePath)
-  await client.environment.upsert({
+  const environment = await client.environment.upsert({
     where: { name: 'local' },
     update: {},
     create: { name: 'local', baseUrl: 'http://localhost' },
@@ -122,6 +154,17 @@ beforeEach(async () => {
       },
     },
   })
+  for (const [entityType, entityId] of [
+    ['environment', environment.id],
+    ['module', 'meditation-module'],
+    ['locator-group', 'meditation-page'],
+    ['locator', 'start-button'],
+    ['locator', 'completion'],
+  ] as const)
+    await registerProjectResourceOwnership(
+      { targetProjectId: target.id, entityType, entityId, origin: 'test-fixture', content: { entityId } },
+      client,
+    )
   for (const planId of ['plan-one', 'plan-two']) {
     await client.planProjection.create({
       data: {
@@ -366,6 +409,7 @@ describe('Validation AST SQLite preview to compile', () => {
       data: { validationJson: JSON.stringify(legacy) },
     })
     const first = await previewValidationAstForPlan('plan-one', submission(), client)
+    expect(first.blockers).toEqual([])
     const compiled = await compileValidationAstForPlan(
       {
         planId: 'plan-one',
@@ -404,6 +448,7 @@ describe('Validation AST SQLite preview to compile', () => {
 
   it('rejects a tampered receipt without entities or events and cannot bypass lifecycle', async () => {
     const preview = await previewValidationAstForPlan('plan-one', submission(), client)
+    expect(preview.blockers).toEqual([])
     const initialCaseCount = await client.testCase.count()
     await expect(
       compileValidationAstForPlan(

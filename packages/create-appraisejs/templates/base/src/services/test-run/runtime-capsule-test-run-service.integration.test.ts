@@ -117,7 +117,7 @@ beforeAll(async () => {
         astProvenance: {
           schemaVersion: '2',
           astHash: hash('4'),
-          executionAuthority: 'phase2_review_only',
+          executionAuthority: 'reviewed_publication',
           publishOperationId: 'operation-placeholder',
           receiptHash: hash('5'),
           runtimeInputHash: hash('6'),

@@ -139,7 +139,7 @@ export function validationForReviewedCapsule(
         astProvenance: {
           schemaVersion: '2',
           astHash: reviewedCapsuleAstHash,
-          executionAuthority: 'phase2_review_only',
+          executionAuthority: 'reviewed_publication',
           publishOperationId: operationId,
           receiptHash: reviewedReceiptHash,
           runtimeInputHash: reviewedRuntimeInputHash,

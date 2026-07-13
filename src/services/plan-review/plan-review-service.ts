@@ -59,6 +59,8 @@ export type PlanReviewDetail = {
     nodeHashes: Record<string, string>
     fileHashes: Record<string, string>
     readiness: ReturnType<typeof assessValidationReadiness>
+    operationHash?: string
+    extensionArtifactHashes: string[]
   }
   graph: ReturnType<typeof derivePlanGraph>
   projection: {
@@ -255,6 +257,27 @@ export async function listPlans(options?: ReviewMutationOptions) {
   })
 }
 
+async function readValidationReviewEvidence(
+  planId: string,
+  validation: ValidationArtifact | undefined,
+  review: ReviewArtifact | undefined,
+  client: PrismaClient,
+): Promise<PlanReviewDetail['validationReview']> {
+  if (!validation) return undefined
+  const publishOperation = await client.validationAstPublishOperation.findFirst({
+    where: { planId, phase: 'review_ready' },
+    orderBy: { createdAt: 'desc' },
+    include: { extensionReviews: true },
+  })
+  return {
+    nodeHashes: Object.fromEntries(validation.validations.map(node => [node.id, validationNodeHash(node)])),
+    fileHashes: Object.fromEntries(validation.files.map(file => [file.path, fileReviewHash(file)])),
+    readiness: assessValidationReadiness(validation, review),
+    operationHash: publishOperation?.operationHash,
+    extensionArtifactHashes: publishOperation?.extensionReviews.map(item => item.artifactHash).sort() ?? [],
+  }
+}
+
 export async function getPlanReviewDetail(
   planId: string,
   owner = DEFAULT_REVIEWER,
@@ -285,13 +308,7 @@ export async function getPlanReviewDetail(
   ])
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
-  const validationReview = validation
-    ? {
-        nodeHashes: Object.fromEntries(validation.validations.map(node => [node.id, validationNodeHash(node)])),
-        fileHashes: Object.fromEntries(validation.files.map(file => [file.path, fileReviewHash(file)])),
-        readiness: assessValidationReadiness(validation, review),
-      }
-    : undefined
+  const validationReview = await readValidationReviewEvidence(canonicalPlanId, validation, review, client)
 
   const graph = derivePlanGraph(plan)
   const readiness = evaluateGraphReadiness(projection.events)

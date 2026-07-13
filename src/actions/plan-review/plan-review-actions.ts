@@ -166,6 +166,8 @@ export async function decideValidationNodeAction(input: unknown): Promise<Action
       planId: planIdSchema,
       validationId: idSchema,
       decision: z.enum(['approved', 'rejected', 'deferred']),
+      operationHash: z.string().startsWith('sha256:'),
+      extensionArtifactHashes: z.array(z.string().startsWith('sha256:')),
     }),
     value => decideValidationNode({ ...value, decidedBy: 'local-user' }).then(() => undefined),
   )
@@ -178,8 +180,18 @@ export async function approveValidationFileAction(input: unknown): Promise<Actio
 }
 
 export async function submitValidationReviewAction(input: unknown): Promise<ActionResponse> {
-  return runAction(input, z.object({ planId: planIdSchema }), value =>
-    submitValidationReview(value.planId).then(() => undefined),
+  return runAction(
+    input,
+    z.object({
+      planId: planIdSchema,
+      operationHash: z.string().startsWith('sha256:'),
+      extensionArtifactHashes: z.array(z.string().startsWith('sha256:')),
+    }),
+    value =>
+      submitValidationReview(value.planId, {
+        operationHash: value.operationHash,
+        extensionArtifactHashes: value.extensionArtifactHashes,
+      }).then(() => undefined),
   )
 }
 

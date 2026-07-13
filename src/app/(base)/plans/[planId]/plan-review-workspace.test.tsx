@@ -407,6 +407,8 @@ const validationDetail: PlanReviewDetail = {
     nodeHashes: { 'browser-validation': hashB, 'optional-validation': hashA },
     fileHashes: { 'automation/features/review.feature': hashB, 'src/app/page.tsx': hashC },
     readiness: { ready: true, blockers: [] },
+    operationHash: hashA,
+    extensionArtifactHashes: [],
   },
 }
 
@@ -715,6 +717,8 @@ describe('PlanReviewWorkspace', () => {
       planId: 'accessible-plan',
       validationId: 'browser-validation',
       decision: 'approved',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
     })
 
     const approveFileButton = screen.getByRole('button', { name: /approve file/i })
@@ -740,7 +744,11 @@ describe('PlanReviewWorkspace', () => {
     rerender(<PlanReviewWorkspace detail={validationDetail} initialTab="validations" />)
     expect(screen.getByText(/submitting the validation review emits validations_approved/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /submit validation review/i }))
-    expect(submitValidationReviewAction).toHaveBeenCalledWith({ planId: 'accessible-plan' })
+    expect(submitValidationReviewAction).toHaveBeenCalledWith({
+      planId: 'accessible-plan',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
+    })
   })
 
   it('does not submit a parent form or duplicate node decisions from validation approval buttons', async () => {
@@ -777,6 +785,8 @@ describe('PlanReviewWorkspace', () => {
       planId: 'accessible-plan',
       validationId: 'browser-validation',
       decision: 'approved',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
     })
 
     await waitFor(() => expect(approveButtons[1]).toBeEnabled())
@@ -788,6 +798,8 @@ describe('PlanReviewWorkspace', () => {
       planId: 'accessible-plan',
       validationId: 'optional-validation',
       decision: 'approved',
+      operationHash: hashA,
+      extensionArtifactHashes: [],
     })
   })
 

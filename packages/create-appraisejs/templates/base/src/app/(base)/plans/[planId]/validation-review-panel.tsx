@@ -153,6 +153,65 @@ function AppraiseArtifactSummary({ artifacts }: { artifacts?: ValidationAppraise
   )
 }
 
+function CoverageReviewMatrix({ coverage }: { coverage?: ValidationNode['coverageArgument'] }) {
+  if (!coverage) {
+    return (
+      <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3" role="alert">
+        <p className="text-sm font-semibold text-destructive">Coverage argument missing</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          The reviewer cannot assess how this validation substantiates its claims.
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-2" aria-labelledby="coverage-review-heading">
+      <h5 id="coverage-review-heading" className="text-sm font-semibold">
+        Coverage review matrix
+      </h5>
+      <div className="overflow-x-auto rounded-md border">
+        <table className="w-full min-w-[48rem] text-left text-xs">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="p-2 font-medium">Claim</th>
+              <th className="p-2 font-medium">State</th>
+              <th className="p-2 font-medium">Scenarios</th>
+              <th className="p-2 font-medium">Stimuli</th>
+              <th className="p-2 font-medium">Observations</th>
+              <th className="p-2 font-medium">Rationale / limitation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {coverage.mappings.map(mapping => {
+              const incomplete = mapping.state !== 'covered'
+              return (
+                <tr
+                  key={`${mapping.kind}:${mapping.targetId}`}
+                  className={cn('border-t align-top', incomplete && 'bg-destructive/5')}
+                >
+                  <th scope="row" className="p-2 font-medium">
+                    {formatState(mapping.kind)}: {mapping.targetId}
+                  </th>
+                  <td className="p-2">
+                    <Badge variant={incomplete ? 'destructive' : 'default'}>{mapping.state}</Badge>
+                  </td>
+                  <td className="p-2 font-mono">{mapping.scenarioIds.join(', ') || 'None'}</td>
+                  <td className="p-2 font-mono">{mapping.stimulusStepIds.join(', ') || 'None'}</td>
+                  <td className="p-2 font-mono">{mapping.observationStepIds.join(', ') || 'None'}</td>
+                  <td className="p-2">
+                    <p>{mapping.rationale}</p>
+                    {mapping.limitation ? <p className="mt-1 text-destructive">{mapping.limitation}</p> : null}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function BaselineLifecycleActions({
   lifecycle,
   isPending,
@@ -314,9 +373,9 @@ function ValidationNodeCard({
 }) {
   const decide = (decision: 'approved' | 'rejected' | 'deferred') =>
     run(() => onDecideValidation(node.id, decision), `Validation ${node.id} ${decision}.`)
-  const v2Provenance = node.astProvenance?.schemaVersion === '2' ? node.astProvenance : null
-  const hasExactV2Provenance = v2Provenance !== null
-  const controlsLocked = isPending || !canDecide || !hasExactV2Provenance
+  const managedProvenance = node.astProvenance?.schemaVersion === '2' ? node.astProvenance : null
+  const hasExactManagedProvenance = managedProvenance !== null
+  const controlsLocked = isPending || !canDecide || !hasExactManagedProvenance
 
   return (
     <div
@@ -346,8 +405,11 @@ function ValidationNodeCard({
               <Badge variant={decisionVariant(currentDecision?.decision)} className="px-1.5 py-0 text-[10px]">
                 {currentDecision?.decision ? formatState(currentDecision.decision) : 'No decision'}
               </Badge>
-              <Badge variant={hasExactV2Provenance ? 'default' : 'destructive'} className="px-1.5 py-0 text-[10px]">
-                {hasExactV2Provenance ? 'v2 AST' : 'Invalid provenance'}
+              <Badge
+                variant={hasExactManagedProvenance ? 'default' : 'destructive'}
+                className="px-1.5 py-0 text-[10px]"
+              >
+                {hasExactManagedProvenance ? 'Managed AST' : 'Invalid provenance'}
               </Badge>
             </div>
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">{hash}</p>
@@ -407,12 +469,13 @@ function ValidationNodeCard({
             <Info label="Test cases" value={node.testCaseIds.join(', ')} />
           </div>
           <AppraiseArtifactSummary artifacts={node.appraiseArtifacts} />
-          {hasExactV2Provenance ? (
+          <CoverageReviewMatrix coverage={node.coverageArgument} />
+          {hasExactManagedProvenance ? (
             <div className="grid gap-3 text-sm md:grid-cols-2">
-              <Info label="Publish operation" value={v2Provenance.publishOperationId} />
-              <Info label="AST hash" value={v2Provenance.astHash} />
-              <Info label="Receipt hash" value={v2Provenance.receiptHash} />
-              <Info label="Runtime input hash" value={v2Provenance.runtimeInputHash} />
+              <Info label="Publish operation" value={managedProvenance.publishOperationId} />
+              <Info label="AST hash" value={managedProvenance.astHash} />
+              <Info label="Receipt hash" value={managedProvenance.receiptHash} />
+              <Info label="Runtime input hash" value={managedProvenance.runtimeInputHash} />
             </div>
           ) : null}
           <div className="grid gap-3 text-sm md:grid-cols-2">

@@ -54,8 +54,8 @@ const baselineVisualRules: Array<{
     matches: attempt =>
       attempt.status === 'cancelled' ||
       attempt.status === 'interrupted' ||
-      attempt.classification === 'invalid_baseline_failure' ||
-      attempt.classification === 'validation_harness_failure',
+      attempt.classification === 'authoring_failure' ||
+      attempt.classification === 'infrastructure_failure',
     style: baselineVisualStyles.failed,
   },
   { matches: attempt => attempt.status === 'completed', style: baselineVisualStyles.completed },
@@ -70,8 +70,8 @@ function getBaselineIconClass(status: string, classification?: string): string {
   if (
     status === 'cancelled' ||
     status === 'interrupted' ||
-    classification === 'invalid_baseline_failure' ||
-    classification === 'validation_harness_failure'
+    classification === 'authoring_failure' ||
+    classification === 'infrastructure_failure'
   ) {
     return 'text-destructive'
   }
@@ -178,8 +178,8 @@ function BaselineStatusIcon({
   if (
     status === 'cancelled' ||
     status === 'interrupted' ||
-    classification === 'invalid_baseline_failure' ||
-    classification === 'validation_harness_failure'
+    classification === 'authoring_failure' ||
+    classification === 'infrastructure_failure'
   ) {
     return <XCircle className={iconClass} />
   }
@@ -231,7 +231,7 @@ function BaselineAttemptFollowUp({
   regressionJustification: string
   onRegressionJustificationChange: (value: string) => void
 }) {
-  if (attempt.classification === 'pre_existing_unrelated_failure') {
+  if (attempt.classification === 'unrelated_existing_failure') {
     return (
       <Button
         className="mt-1 h-8 w-full text-xs font-semibold"
@@ -254,7 +254,7 @@ function BaselineAttemptFollowUp({
     )
   }
 
-  if (attempt.classification === 'validation_harness_failure') {
+  if (attempt.classification === 'authoring_failure') {
     return (
       <div className="border-destructive/30 bg-destructive/10 rounded-lg border p-2.5 text-[11px] font-medium leading-normal text-destructive">
         Runtime harness wiring failed. Fix step definitions, imports, Cucumber config, or setup, then republish.
@@ -262,7 +262,7 @@ function BaselineAttemptFollowUp({
     )
   }
 
-  if (attempt.classification === 'accepted_regression_pass' && !attempt.regressionJustification) {
+  if (attempt.classification === 'unexpected_pass' && !attempt.regressionJustification) {
     return (
       <RegressionJustificationForm
         planId={planId}
