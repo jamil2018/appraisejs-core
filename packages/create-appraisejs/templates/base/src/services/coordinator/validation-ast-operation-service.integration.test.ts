@@ -118,7 +118,6 @@ const meditationSubmission = () => ({
 
 let workspace: string
 let client: PrismaClient
-let targetProjectId: string
 // fallow-ignore-next-line code-duplication -- isolated real-SQLite harness
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-ast-operation-'))
@@ -130,7 +129,6 @@ beforeEach(async () => {
   const target = await client.targetProject.create({
     data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'b'.repeat(64)}` },
   })
-  targetProjectId = target.id
   const environment = await client.environment.upsert({
     where: { name: 'local' },
     update: { targetProjectId: target.id },
@@ -252,16 +250,6 @@ describe('Validation AST SQLite preview to compile', () => {
     expect(preview.actions).toHaveLength(4)
     expect(preview.locators).toHaveLength(2)
     expect(preview.customExtensions.length).toBeLessThanOrEqual(1)
-    const projectedModule = preview.canonicalProjection.validationNode.appraiseArtifacts.modules[0]!
-    if (projectedModule.id !== 'meditation-module') {
-      await client.module.create({ data: { ...projectedModule, targetProjectId } })
-      await client.locatorGroup.update({
-        where: { id: 'meditation-page' },
-        data: { moduleId: projectedModule.id },
-      })
-      await client.module.delete({ where: { id: 'meditation-module' } })
-    }
-
     const published = await compileValidationAstForPlan(
       {
         planId: 'plan-one',

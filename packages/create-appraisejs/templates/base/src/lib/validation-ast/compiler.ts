@@ -529,7 +529,7 @@ export function previewValidationAst(value: unknown, context: ValidationAstCompi
   const canonicalProjection = createValidationAstCanonicalProjection(
     ast,
     context.planScope,
-    locatorBindingsForAst(ast, context.locatorGraph),
+    locatorBindingsForAst(ast, context.locatorGraph, context.planScope),
   )
   const gherkin = canonicalProjection.gherkin
   const entities = canonicalProjection.validationNode.appraiseArtifacts.testCases.map((testCase, index) => ({

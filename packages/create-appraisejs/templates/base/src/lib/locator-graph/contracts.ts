@@ -22,6 +22,10 @@ export const componentNodeSchema = nodeBase.extend({ type: z.literal('component'
 export const stateNodeSchema = nodeBase.extend({ type: z.literal('state'), surfaceId: id, componentId: id.optional() })
 export const locatorGroupNodeSchema = nodeBase.extend({
   type: z.literal('locator-group'),
+  persistentId: id.optional(),
+  astRef: id.optional(),
+  targetProjectId: id.optional(),
+  moduleId: id.optional(),
   surfaceId: id,
   componentId: id.optional(),
 })
@@ -32,6 +36,11 @@ export const locatorStrategySchema = z.object({
 })
 export const locatorDescriptorSchema = nodeBase.extend({
   type: z.literal('locator'),
+  persistentId: id.optional(),
+  astRef: id.optional(),
+  targetProjectId: id.optional(),
+  moduleId: id.optional(),
+  locatorGroupId: id.optional(),
   groupId: id,
   scope: z.object({ surfaceId: id, componentId: id.optional(), availableStates: z.array(id).default([]) }),
   strategy: locatorStrategySchema,

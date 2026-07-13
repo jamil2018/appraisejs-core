@@ -24,6 +24,7 @@ import {
   resolvePlanReference,
 } from '@/services/coordinator/coordinator-service'
 import { reviewImplementationCompletion } from '@/services/coordinator/coordinator-implementation-service'
+import { auditManagedValidationIntegrity } from '@/services/coordinator/managed-validation-integrity-audit'
 
 import {
   canApprovePlan,
@@ -315,6 +316,10 @@ export async function getPlanReviewDetail(
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
   const validationReview = await readValidationReviewEvidence(canonicalPlanId, validation, review, client)
+  const validationIntegrity = await auditManagedValidationIntegrity(canonicalPlanId, {
+    client,
+    projectDirectory: projectRoot,
+  })
   const completionReview = ['failed_validation', 'validation_passed'].includes(plan.lifecycle)
     ? await reviewImplementationCompletion(canonicalPlanId, { client, projectDirectory: projectRoot })
     : undefined
@@ -340,6 +345,7 @@ export async function getPlanReviewDetail(
     validation,
     validationContentHash: validation ? hashContent(serializeYamlArtifact('validation', validation)) : undefined,
     validationReview,
+    validationIntegrity,
     completionReview,
     graph,
     projection,

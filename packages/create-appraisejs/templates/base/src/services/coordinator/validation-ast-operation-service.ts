@@ -230,6 +230,7 @@ function locatorBindings(context: ValidationAstCompilerContext, locatorIds: Set<
         value: selector,
         groupId: group.id.replace(/^group_/, ''),
         groupName: group.title,
+        moduleId: group.moduleId ?? '',
         route: surface?.type === 'surface' ? (surface.route ?? '/') : '/',
       }
     })

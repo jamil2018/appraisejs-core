@@ -10,10 +10,15 @@ export type CanonicalLocatorBinding = {
   value: string
   groupId: string
   groupName: string
+  moduleId: string
   route: string
 }
 
-export function locatorBindingsForAst(ast: ValidationAst, graph: LocatorGraph): CanonicalLocatorBinding[] {
+export function locatorBindingsForAst(
+  ast: ValidationAst,
+  graph: LocatorGraph,
+  planScope = 'unscoped',
+): CanonicalLocatorBinding[] {
   const refs = new Set<string>()
   for (const scenario of ast.scenarios)
     for (const step of scenario.steps)
@@ -53,6 +58,7 @@ export function locatorBindingsForAst(ast: ValidationAst, graph: LocatorGraph): 
         value,
         groupId: group.id.replace(/^group_/, ''),
         groupName: group.title,
+        moduleId: group.moduleId ?? validationAstEntityIds(planScope, ast.id, ast.scenarios[0]!.id).moduleId,
         route: surface?.type === 'surface' ? (surface.route ?? '/') : '/',
       }
     })
@@ -97,7 +103,10 @@ export function createValidationAstCanonicalProjection(
       testCases,
       locatorGroups: [
         ...new Map(
-          bindings.map(item => [item.groupId, { id: item.groupId, name: item.groupName, route: item.route, moduleId }]),
+          bindings.map(item => [
+            item.groupId,
+            { id: item.groupId, name: item.groupName, route: item.route, moduleId: item.moduleId },
+          ]),
         ).values(),
       ],
       locators: bindings.map(item => ({
