@@ -8,7 +8,12 @@ import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runt
 import { seedReviewedCapsuleLifecycleFixture } from '@/test/reviewed-capsule-lifecycle-fixture'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
-import { diagnoseTestRunEvidence, readTestRunEvidenceSummary } from '@/services/test-run/test-run-service'
+import {
+  diagnoseTestRunEvidence,
+  getTestRunLogsService,
+  readTestRunEvidenceSummary,
+} from '@/services/test-run/test-run-service'
+import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import { reconcileBaselineExecution, startBaselineExecution } from './coordinator-baseline-service'
 
 describe('reviewed capsule coordinator lifecycle E2E', () => {
@@ -46,11 +51,7 @@ describe('reviewed capsule coordinator lifecycle E2E', () => {
   }, 30_000)
 
   it('runs one exact reviewed case through the real capsule and reconciles full assurance', async () => {
-    const environment = await client.environment.upsert({
-      where: { name: 'local' },
-      update: { baseUrl },
-      create: { name: 'local', baseUrl },
-    })
+    const environment = await client.environment.create({ data: { name: 'local', baseUrl } })
     const fixture = await seedReviewedCapsuleLifecycleFixture({
       client,
       workspace,
@@ -116,8 +117,9 @@ describe('reviewed capsule coordinator lifecycle E2E', () => {
       ),
     ).resolves.toMatchObject({
       executionRunId: publicRunId,
-      reportUrl: `/test-runs/${publicRunId}`,
-      logsUrl: `/api/test-runs/${publicRunId}/logs`,
+      testRunPageId: publicRunId,
+      reportUrl: `/test-runs/${publicRunId}?project=coordinator-e2e-project`,
+      logsUrl: `/api/test-runs/${publicRunId}/logs?targetProjectId=coordinator-e2e-project`,
       evidenceHealth: 'valid',
       completed: true,
     })
@@ -136,6 +138,27 @@ describe('reviewed capsule coordinator lifecycle E2E', () => {
         attempt: { state: 'COMPLETED', active: false },
       },
     })
+    const storedRun = await client.testRun.findUniqueOrThrow({
+      where: { runId: publicRunId },
+      select: { logPath: true },
+    })
+    expect(storedRun.logPath).toBeTruthy()
+    await expect(fs.access(storedRun.logPath!)).resolves.toBeUndefined()
+    await expect(
+      getTestRunLogsService(
+        publicRunId,
+        'coordinator-e2e-project',
+        path.join(fixture.projectRoot, '.appraise'),
+        client,
+      ),
+    ).resolves.toEqual(expect.any(Array))
+    await expect(
+      new TestRunArtifactAccessService(client, path.join(fixture.projectRoot, '.appraise')).readText({
+        runId: publicRunId,
+        kind: 'report',
+        expectedTargetProjectId: 'coordinator-e2e-project',
+      }),
+    ).resolves.toContain('Open home')
     await expect(fs.access(path.join(fixture.projectRoot, 'automation'))).rejects.toThrow()
   }, 45_000)
 })

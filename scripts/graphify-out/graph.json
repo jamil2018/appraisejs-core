@@ -647,9 +647,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "configure-git-line-endings.mjs",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings"
     },
     {
@@ -658,9 +658,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "scriptdir",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_scriptdir"
     },
     {
@@ -669,9 +669,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "reporoot",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_reporoot"
     },
     {
@@ -680,9 +680,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "quiet",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_quiet"
     },
     {
@@ -691,9 +691,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "log()",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_log"
     },
     {
@@ -702,9 +702,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "rungit()",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_rungit"
     },
     {
@@ -713,9 +713,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "isgitrepository()",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_isgitrepository"
     },
     {
@@ -724,9 +724,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L47",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "getlocalconfig()",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_getlocalconfig"
     },
     {
@@ -735,9 +735,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L55",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "setlocalconfig()",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_setlocalconfig"
     },
     {
@@ -746,9 +746,9 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L59",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "ensuregitinclude()",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_ensuregitinclude"
     },
     {
@@ -757,186 +757,10 @@
       "source_file": "configure-git-line-endings.mjs",
       "source_location": "L70",
       "_origin": "ast",
-      "community": 11,
+      "community": 12,
       "norm_label": "main()",
-      "community_name": "Community 11",
+      "community_name": "Community 12",
       "id": "configure_git_line_endings_main"
-    },
-    {
-      "label": "dev-with-mcp.mjs",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "dev-with-mcp.mjs",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp"
-    },
-    {
-      "label": "children",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L17",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "children",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_children"
-    },
-    {
-      "label": "startProcess()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L20",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "startprocess()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_startprocess"
-    },
-    {
-      "label": "handleProcessExit()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L33",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "handleprocessexit()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_handleprocessexit"
-    },
-    {
-      "label": "exitLabel()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L43",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "exitlabel()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_exitlabel"
-    },
-    {
-      "label": "exitCode()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L48",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "exitcode()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_exitcode"
-    },
-    {
-      "label": "handleProcessError()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L53",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "handleprocesserror()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_handleprocesserror"
-    },
-    {
-      "label": "handleProcessStop()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L63",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "handleprocessstop()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_handleprocessstop"
-    },
-    {
-      "label": "stopChildren()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L70",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "stopchildren()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_stopchildren"
-    },
-    {
-      "label": "shutdown()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L76",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "shutdown()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_shutdown"
-    },
-    {
-      "label": "optionValue()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L82",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "optionvalue()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_optionvalue"
-    },
-    {
-      "label": "optionTokenValue()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L90",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "optiontokenvalue()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_optiontokenvalue"
-    },
-    {
-      "label": "valueForLongOption()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L96",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "valueforlongoption()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_valueforlongoption"
-    },
-    {
-      "label": "inferredBaseUrl()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L101",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "inferredbaseurl()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_inferredbaseurl"
-    },
-    {
-      "label": "mcpCommand()",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L107",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "mcpcommand()",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_mcpcommand"
-    },
-    {
-      "label": "mcp",
-      "file_type": "code",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L155",
-      "_origin": "ast",
-      "community": 9,
-      "norm_label": "mcp",
-      "community_name": "Community 9",
-      "id": "dev_with_mcp_mcp"
     },
     {
       "label": "install-playwright.ts",
@@ -944,9 +768,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "install-playwright.ts",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "install_playwright"
     },
     {
@@ -955,9 +779,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "require",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "install_playwright_require"
     },
     {
@@ -966,9 +790,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "main()",
-      "community_name": "Community 21",
+      "community_name": "Community 20",
       "id": "install_playwright_main"
     },
     {
@@ -1142,9 +966,9 @@
       "source_file": "lib/step-file-parser.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "step-file-parser.test.ts",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_test"
     },
     {
@@ -1153,9 +977,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "step-file-parser.ts",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser"
     },
     {
@@ -1164,9 +988,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "stepparameter",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_stepparameter"
     },
     {
@@ -1186,9 +1010,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "stepdata",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_stepdata"
     },
     {
@@ -1197,9 +1021,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "stepkeyword",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_stepkeyword"
     },
     {
@@ -1208,9 +1032,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "findstepjsdocstartoffset()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_findstepjsdocstartoffset"
     },
     {
@@ -1219,9 +1043,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L62",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "maptypetoparametertype()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_maptypetoparametertype"
     },
     {
@@ -1230,9 +1054,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L77",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "extractfunctiondefinition()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_extractfunctiondefinition"
     },
     {
@@ -1241,9 +1065,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L93",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "extractstepsource()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_extractstepsource"
     },
     {
@@ -1252,9 +1076,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L101",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "extractstepsourcerange()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_extractstepsourcerange"
     },
     {
@@ -1263,9 +1087,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L125",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "getstepkeyword()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_getstepkeyword"
     },
     {
@@ -1274,9 +1098,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L132",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "getstepsignature()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_getstepsignature"
     },
     {
@@ -1285,9 +1109,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L137",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "getstepfunction()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_getstepfunction"
     },
     {
@@ -1296,9 +1120,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L142",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "iscucumberworldparam()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_iscucumberworldparam"
     },
     {
@@ -1307,9 +1131,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L155",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "getidentifierparamtype()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_getidentifierparamtype"
     },
     {
@@ -1318,9 +1142,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L171",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "parsestepparameters()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_parsestepparameters"
     },
     {
@@ -1329,9 +1153,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L194",
       "_origin": "ast",
-      "community": 8,
+      "community": 9,
       "norm_label": "parsestepcall()",
-      "community_name": "Community 8",
+      "community_name": "Community 9",
       "id": "lib_step_file_parser_parsestepcall"
     },
     {
@@ -1516,9 +1340,9 @@
       "source_file": "lib/tag-parsing.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 3,
       "norm_label": "tag-parsing.test.ts",
-      "community_name": "Community 12",
+      "community_name": "Community 3",
       "id": "lib_tag_parsing_test"
     },
     {
@@ -1527,9 +1351,9 @@
       "source_file": "lib/tag-parsing.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 3,
       "norm_label": "tag-parsing.ts",
-      "community_name": "Community 12",
+      "community_name": "Community 3",
       "id": "lib_tag_parsing"
     },
     {
@@ -1538,9 +1362,9 @@
       "source_file": "lib/tag-parsing.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 12,
+      "community": 3,
       "norm_label": "splittagline()",
-      "community_name": "Community 12",
+      "community_name": "Community 3",
       "id": "lib_tag_parsing_splittagline"
     },
     {
@@ -2011,9 +1835,9 @@
       "source_file": "lib/template-sync-utils.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 25,
+      "community": 24,
       "norm_label": "template-sync-utils.test.ts",
-      "community_name": "Community 25",
+      "community_name": "Community 24",
       "id": "lib_template_sync_utils_test"
     },
     {
@@ -2022,9 +1846,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "protect-seeded-files.ts",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "protect_seeded_files"
     },
     {
@@ -2033,9 +1857,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "seeded_template_paths",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "protect_seeded_files_seeded_template_paths"
     },
     {
@@ -2044,9 +1868,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "trimtrailingblanklines()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "protect_seeded_files_trimtrailingblanklines"
     },
     {
@@ -2055,9 +1879,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "setseededtemplatefilestracked()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "protect_seeded_files_setseededtemplatefilestracked"
     },
     {
@@ -2066,9 +1890,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 18,
+      "community": 17,
       "norm_label": "main()",
-      "community_name": "Community 18",
+      "community_name": "Community 17",
       "id": "protect_seeded_files_main"
     },
     {
@@ -2077,9 +1901,9 @@
       "source_file": "regenerate-features.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 23,
+      "community": 22,
       "norm_label": "regenerate-features.ts",
-      "community_name": "Community 23",
+      "community_name": "Community 22",
       "id": "regenerate_features"
     },
     {
@@ -2088,9 +1912,9 @@
       "source_file": "regenerate-features.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 23,
+      "community": 22,
       "norm_label": "main()",
-      "community_name": "Community 23",
+      "community_name": "Community 22",
       "id": "regenerate_features_main"
     },
     {
@@ -2176,9 +2000,9 @@
       "source_file": "run-vitest.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "run-vitest.ts",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "run_vitest"
     },
     {
@@ -2187,9 +2011,9 @@
       "source_file": "run-vitest.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "isusabledirectory()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "run_vitest_isusabledirectory"
     },
     {
@@ -2198,9 +2022,9 @@
       "source_file": "run-vitest.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "gettempdirectory()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "run_vitest_gettempdirectory"
     },
     {
@@ -2209,9 +2033,9 @@
       "source_file": "run-vitest.ts",
       "source_location": "L31",
       "_origin": "ast",
-      "community": 19,
+      "community": 18,
       "norm_label": "main()",
-      "community_name": "Community 19",
+      "community_name": "Community 18",
       "id": "run_vitest_main"
     },
     {
@@ -2220,9 +2044,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 24,
+      "community": 23,
       "norm_label": "setup-env.ts",
-      "community_name": "Community 24",
+      "community_name": "Community 23",
       "id": "setup_env"
     },
     {
@@ -2231,9 +2055,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 24,
+      "community": 23,
       "norm_label": "main()",
-      "community_name": "Community 24",
+      "community_name": "Community 23",
       "id": "setup_env_main"
     },
     {
@@ -2242,9 +2066,9 @@
       "source_file": "smoke-coordinator.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 22,
+      "community": 21,
       "norm_label": "smoke-coordinator.ts",
-      "community_name": "Community 22",
+      "community_name": "Community 21",
       "id": "smoke_coordinator"
     },
     {
@@ -2253,9 +2077,9 @@
       "source_file": "smoke-coordinator.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 22,
+      "community": 21,
       "norm_label": "headers",
-      "community_name": "Community 22",
+      "community_name": "Community 21",
       "id": "smoke_coordinator_headers"
     },
     {
@@ -2264,9 +2088,9 @@
       "source_file": "smoke-coordinator.ts",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 22,
+      "community": 21,
       "norm_label": "result",
-      "community_name": "Community 22",
+      "community_name": "Community 21",
       "id": "smoke_coordinator_result"
     },
     {
@@ -2275,9 +2099,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "sync-all.ts",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all"
     },
     {
@@ -2286,9 +2110,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "sync_script_ids",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_sync_script_ids"
     },
     {
@@ -2297,9 +2121,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "divider",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_divider"
     },
     {
@@ -2308,9 +2132,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "databasechanges",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_databasechanges"
     },
     {
@@ -2319,9 +2143,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "scriptresult",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_scriptresult"
     },
     {
@@ -2330,9 +2154,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "syncsummary",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_syncsummary"
     },
     {
@@ -2341,9 +2165,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "db_change_patterns",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_db_change_patterns"
     },
     {
@@ -2352,9 +2176,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L66",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "parsedatabasechanges()",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_parsedatabasechanges"
     },
     {
@@ -2363,9 +2187,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L98",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "executesyncscript()",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_executesyncscript"
     },
     {
@@ -2374,9 +2198,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L156",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "aggregatedatabasechanges()",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_aggregatedatabasechanges"
     },
     {
@@ -2385,9 +2209,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L183",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "hasdatabasechanges()",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_hasdatabasechanges"
     },
     {
@@ -2396,9 +2220,9 @@
       "source_file": "sync-all.ts",
       "source_location": "L187",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "displaysummary()",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_displaysummary"
     },
     {
@@ -2407,120 +2231,10 @@
       "source_file": "sync-all.ts",
       "source_location": "L242",
       "_origin": "ast",
-      "community": 10,
+      "community": 11,
       "norm_label": "main()",
-      "community_name": "Community 10",
+      "community_name": "Community 11",
       "id": "sync_all_main"
-    },
-    {
-      "label": "sync-environments.ts",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "sync-environments.ts",
-      "community_name": "Community 2",
-      "id": "sync_environments"
-    },
-    {
-      "label": "EnvironmentConfig",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L18",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "environmentconfig",
-      "community_name": "Community 2",
-      "id": "sync_environments_environmentconfig"
-    },
-    {
-      "label": "EnvironmentData",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L25",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "environmentdata",
-      "community_name": "Community 2",
-      "id": "sync_environments_environmentdata"
-    },
-    {
-      "label": "SyncResult",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L33",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "syncresult",
-      "community_name": "Community 2",
-      "id": "sync_environments_syncresult"
-    },
-    {
-      "label": "readEnvironmentsFromFile()",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L51",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "readenvironmentsfromfile()",
-      "community_name": "Community 2",
-      "id": "sync_environments_readenvironmentsfromfile"
-    },
-    {
-      "label": "normalizeEnvironmentName()",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L79",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "normalizeenvironmentname()",
-      "community_name": "Community 2",
-      "id": "sync_environments_normalizeenvironmentname"
-    },
-    {
-      "label": "getEnvironmentIdentityKey()",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L93",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "getenvironmentidentitykey()",
-      "community_name": "Community 2",
-      "id": "sync_environments_getenvironmentidentitykey"
-    },
-    {
-      "label": "buildEnvironmentObjects()",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L104",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "buildenvironmentobjects()",
-      "community_name": "Community 2",
-      "id": "sync_environments_buildenvironmentobjects"
-    },
-    {
-      "label": "syncEnvironmentsToDatabase()",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L138",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "syncenvironmentstodatabase()",
-      "community_name": "Community 2",
-      "id": "sync_environments_syncenvironmentstodatabase"
-    },
-    {
-      "label": "main()",
-      "file_type": "code",
-      "source_file": "sync-environments.ts",
-      "source_location": "L267",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "main()",
-      "community_name": "Community 2",
-      "id": "sync_environments_main"
     },
     {
       "label": "sync-locator-groups.ts",
@@ -2880,9 +2594,9 @@
       "source_file": "sync-tags.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 2,
       "norm_label": "sync-tags.ts",
-      "community_name": "Community 12",
+      "community_name": "Community 2",
       "id": "sync_tags"
     },
     {
@@ -2891,9 +2605,9 @@
       "source_file": "sync-tags.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 12,
+      "community": 2,
       "norm_label": "tagdata",
-      "community_name": "Community 12",
+      "community_name": "Community 2",
       "id": "sync_tags_tagdata"
     },
     {
@@ -2902,9 +2616,9 @@
       "source_file": "sync-tags.ts",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 12,
+      "community": 2,
       "norm_label": "syncresult",
-      "community_name": "Community 12",
+      "community_name": "Community 2",
       "id": "sync_tags_syncresult"
     },
     {
@@ -2913,9 +2627,9 @@
       "source_file": "sync-tags.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 12,
+      "community": 2,
       "norm_label": "extractuniquetags()",
-      "community_name": "Community 12",
+      "community_name": "Community 2",
       "id": "sync_tags_extractuniquetags"
     },
     {
@@ -2924,9 +2638,9 @@
       "source_file": "sync-tags.ts",
       "source_location": "L80",
       "_origin": "ast",
-      "community": 12,
+      "community": 2,
       "norm_label": "buildtagobjects()",
-      "community_name": "Community 12",
+      "community_name": "Community 2",
       "id": "sync_tags_buildtagobjects"
     },
     {
@@ -2935,9 +2649,9 @@
       "source_file": "sync-tags.ts",
       "source_location": "L103",
       "_origin": "ast",
-      "community": 12,
+      "community": 2,
       "norm_label": "synctagstodatabase()",
-      "community_name": "Community 12",
+      "community_name": "Community 2",
       "id": "sync_tags_synctagstodatabase"
     },
     {
@@ -2946,9 +2660,9 @@
       "source_file": "sync-tags.ts",
       "source_location": "L193",
       "_origin": "ast",
-      "community": 12,
+      "community": 2,
       "norm_label": "main()",
-      "community_name": "Community 12",
+      "community_name": "Community 2",
       "id": "sync_tags_main"
     },
     {
@@ -3573,9 +3287,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "validate-prisma-migrations.mjs",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "validate_prisma_migrations"
     },
     {
@@ -3584,9 +3298,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "workspace",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "validate_prisma_migrations_workspace"
     },
     {
@@ -3595,9 +3309,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "databasepath",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "validate_prisma_migrations_databasepath"
     },
     {
@@ -3606,9 +3320,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 20,
+      "community": 19,
       "norm_label": "migrationsroot",
-      "community_name": "Community 20",
+      "community_name": "Community 19",
       "id": "validate_prisma_migrations_migrationsroot"
     },
     {
@@ -3617,9 +3331,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "update-graphify-graphs.mjs",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs"
     },
     {
@@ -3628,9 +3342,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "graphscopes",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_graphscopes"
     },
     {
@@ -3639,9 +3353,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "graphoutputprefixes",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_graphoutputprefixes"
     },
     {
@@ -3650,9 +3364,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "packagegraphexclusions",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_packagegraphexclusions"
     },
     {
@@ -3661,9 +3375,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "args",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_args"
     },
     {
@@ -3672,9 +3386,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L45",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "runall",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_runall"
     },
     {
@@ -3683,9 +3397,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L46",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "dryrun",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_dryrun"
     },
     {
@@ -3694,9 +3408,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L85",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "listchangedfiles()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_listchangedfiles"
     },
     {
@@ -3705,9 +3419,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L91",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "git()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_git"
     },
     {
@@ -3716,9 +3430,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L103",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "handlemissingcommand()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_handlemissingcommand"
     },
     {
@@ -3727,9 +3441,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L110",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "handlefailedcommand()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_handlefailedcommand"
     },
     {
@@ -3738,9 +3452,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L117",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "normalizepath()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_normalizepath"
     },
     {
@@ -3749,9 +3463,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L121",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "isrelevantchange()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_isrelevantchange"
     },
     {
@@ -3760,9 +3474,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L125",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "isgraphoutputpath()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_isgraphoutputpath"
     },
     {
@@ -3771,9 +3485,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L129",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "ispackagegraphsource()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_ispackagegraphsource"
     },
     {
@@ -3782,9 +3496,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L133",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "ispackagegraphexcluded()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_ispackagegraphexcluded"
     },
     {
@@ -3793,9 +3507,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L137",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "issourcelike()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_issourcelike"
     },
     {
@@ -3804,9 +3518,9 @@
       "source_file": "update-graphify-graphs.mjs",
       "source_location": "L141",
       "_origin": "ast",
-      "community": 6,
+      "community": 7,
       "norm_label": "printunmatchedfiles()",
-      "community_name": "Community 6",
+      "community_name": "Community 7",
       "id": "update_graphify_graphs_printunmatchedfiles"
     },
     {
@@ -3885,336 +3599,6 @@
       "norm_label": "findcommandinuvtoolbin()",
       "community_name": "Community 16",
       "id": "setup_graphify_findcommandinuvtoolbin"
-    },
-    {
-      "label": "mcp-config.mjs",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "mcp-config.mjs",
-      "community_name": "Community 14",
-      "id": "mcp_config"
-    },
-    {
-      "label": "envValue()",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L3",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "envvalue()",
-      "community_name": "Community 14",
-      "id": "mcp_config_envvalue"
-    },
-    {
-      "label": "normalizeEndpointPath()",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L7",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "normalizeendpointpath()",
-      "community_name": "Community 14",
-      "id": "mcp_config_normalizeendpointpath"
-    },
-    {
-      "label": "resolveMcpConfig()",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L11",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "resolvemcpconfig()",
-      "community_name": "Community 14",
-      "id": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "label": "mcp-config.test.mjs",
-      "file_type": "code",
-      "source_file": "mcp-config.test.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "mcp-config.test.mjs",
-      "community_name": "Community 14",
-      "id": "mcp_config_test"
-    },
-    {
-      "label": "print-mcp-config.mjs",
-      "file_type": "code",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "print-mcp-config.mjs",
-      "community_name": "Community 14",
-      "id": "print_mcp_config"
-    },
-    {
-      "label": "config",
-      "file_type": "code",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L5",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "config",
-      "community_name": "Community 14",
-      "id": "print_mcp_config_config"
-    },
-    {
-      "label": "print-agent-config.mjs",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 17,
-      "norm_label": "print-agent-config.mjs",
-      "community_name": "Community 17",
-      "id": "print_agent_config"
-    },
-    {
-      "label": "config",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L7",
-      "_origin": "ast",
-      "community": 17,
-      "norm_label": "config",
-      "community_name": "Community 17",
-      "id": "print_agent_config_config"
-    },
-    {
-      "label": "skillExists",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 17,
-      "norm_label": "skillexists",
-      "community_name": "Community 17",
-      "id": "print_agent_config_skillexists"
-    },
-    {
-      "label": "expectedCapabilities",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L9",
-      "_origin": "ast",
-      "community": 17,
-      "norm_label": "expectedcapabilities",
-      "community_name": "Community 17",
-      "id": "print_agent_config_expectedcapabilities"
-    },
-    {
-      "label": "staleCapabilityRecovery",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L13",
-      "_origin": "ast",
-      "community": 17,
-      "norm_label": "stalecapabilityrecovery",
-      "community_name": "Community 17",
-      "id": "print_agent_config_stalecapabilityrecovery"
-    },
-    {
-      "label": "toolsNotVisibleRecovery",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L18",
-      "_origin": "ast",
-      "community": 17,
-      "norm_label": "toolsnotvisiblerecovery",
-      "community_name": "Community 17",
-      "id": "print_agent_config_toolsnotvisiblerecovery"
-    },
-    {
-      "label": "check-agent-harness.mjs",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "check-agent-harness.mjs",
-      "community_name": "Community 7",
-      "id": "check_agent_harness"
-    },
-    {
-      "label": "repoRoot",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L6",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "reporoot",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_reporoot"
-    },
-    {
-      "label": "literalForbidden",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "literalforbidden",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_literalforbidden"
-    },
-    {
-      "label": "regexForbidden",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L19",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "regexforbidden",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_regexforbidden"
-    },
-    {
-      "label": "hasRootAgentHarness",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L27",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "hasrootagentharness",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_hasrootagentharness"
-    },
-    {
-      "label": "rootHarnessRequiredFiles",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L29",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "rootharnessrequiredfiles",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_rootharnessrequiredfiles"
-    },
-    {
-      "label": "staticFiles",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L50",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "staticfiles",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_staticfiles"
-    },
-    {
-      "label": "requiredTokens",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L66",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "requiredtokens",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_requiredtokens"
-    },
-    {
-      "label": "walkFiles()",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L106",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "walkfiles()",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_walkfiles"
-    },
-    {
-      "label": "collectEntryFiles()",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L113",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "collectentryfiles()",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_collectentryfiles"
-    },
-    {
-      "label": "listDirectories()",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L119",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "listdirectories()",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_listdirectories"
-    },
-    {
-      "label": "lineFor()",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L124",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "linefor()",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_linefor"
-    },
-    {
-      "label": "toRepoRelative()",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L128",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "toreporelative()",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_toreporelative"
-    },
-    {
-      "label": "requireFile()",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L132",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "requirefile()",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_requirefile"
-    },
-    {
-      "label": "checkRootRelativeReferences()",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L138",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "checkrootrelativereferences()",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_checkrootrelativereferences"
-    },
-    {
-      "label": "activeFiles",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L147",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "activefiles",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_activefiles"
-    },
-    {
-      "label": "failures",
-      "file_type": "code",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L167",
-      "_origin": "ast",
-      "community": 7,
-      "norm_label": "failures",
-      "community_name": "Community 7",
-      "id": "check_agent_harness_failures"
     },
     {
       "label": "run-graphify.mjs",
@@ -4325,6 +3709,655 @@
       "norm_label": "resolvecommandfromuvtoolpath()",
       "community_name": "Community 13",
       "id": "run_graphify_resolvecommandfromuvtoolpath"
+    },
+    {
+      "label": "check-agent-harness.mjs",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "check-agent-harness.mjs",
+      "id": "check_agent_harness",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "repoRoot",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "reporoot",
+      "id": "check_agent_harness_reporoot",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "literalForbidden",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "literalforbidden",
+      "id": "check_agent_harness_literalforbidden",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "regexForbidden",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L19",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "regexforbidden",
+      "id": "check_agent_harness_regexforbidden",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "hasRootAgentHarness",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L27",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "hasrootagentharness",
+      "id": "check_agent_harness_hasrootagentharness",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "rootHarnessRequiredFiles",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L29",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "rootharnessrequiredfiles",
+      "id": "check_agent_harness_rootharnessrequiredfiles",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "staticFiles",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L50",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "staticfiles",
+      "id": "check_agent_harness_staticfiles",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "requiredTokens",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L66",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "requiredtokens",
+      "id": "check_agent_harness_requiredtokens",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "walkFiles()",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L100",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "walkfiles()",
+      "id": "check_agent_harness_walkfiles",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "collectEntryFiles()",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L107",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "collectentryfiles()",
+      "id": "check_agent_harness_collectentryfiles",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "listDirectories()",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L113",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "listdirectories()",
+      "id": "check_agent_harness_listdirectories",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "lineFor()",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L118",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "linefor()",
+      "id": "check_agent_harness_linefor",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "toRepoRelative()",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L122",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "toreporelative()",
+      "id": "check_agent_harness_toreporelative",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "requireFile()",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L126",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "requirefile()",
+      "id": "check_agent_harness_requirefile",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "checkRootRelativeReferences()",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L132",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "checkrootrelativereferences()",
+      "id": "check_agent_harness_checkrootrelativereferences",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "activeFiles",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L141",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "activefiles",
+      "id": "check_agent_harness_activefiles",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "failures",
+      "file_type": "code",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L161",
+      "_origin": "ast",
+      "community": 8,
+      "norm_label": "failures",
+      "id": "check_agent_harness_failures",
+      "community_name": "Community 8"
+    },
+    {
+      "label": "dev-with-mcp.mjs",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "dev-with-mcp.mjs",
+      "id": "dev_with_mcp",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "children",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L19",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "children",
+      "id": "dev_with_mcp_children",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "startProcess()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L22",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "startprocess()",
+      "id": "dev_with_mcp_startprocess",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "handleProcessExit()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L35",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "handleprocessexit()",
+      "id": "dev_with_mcp_handleprocessexit",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "exitLabel()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L45",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "exitlabel()",
+      "id": "dev_with_mcp_exitlabel",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "exitCode()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L50",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "exitcode()",
+      "id": "dev_with_mcp_exitcode",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "handleProcessError()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L55",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "handleprocesserror()",
+      "id": "dev_with_mcp_handleprocesserror",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "handleProcessStop()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L65",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "handleprocessstop()",
+      "id": "dev_with_mcp_handleprocessstop",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "stopChildren()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L72",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "stopchildren()",
+      "id": "dev_with_mcp_stopchildren",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "shutdown()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L78",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "shutdown()",
+      "id": "dev_with_mcp_shutdown",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "optionValue()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L84",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "optionvalue()",
+      "id": "dev_with_mcp_optionvalue",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "optionTokenValue()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L92",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "optiontokenvalue()",
+      "id": "dev_with_mcp_optiontokenvalue",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "valueForLongOption()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L98",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "valueforlongoption()",
+      "id": "dev_with_mcp_valueforlongoption",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "inferredBaseUrl()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L103",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "inferredbaseurl()",
+      "id": "dev_with_mcp_inferredbaseurl",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "mcpCommand()",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L109",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "mcpcommand()",
+      "id": "dev_with_mcp_mcpcommand",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "mcp",
+      "file_type": "code",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L157",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "mcp",
+      "id": "dev_with_mcp_mcp",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "dev-startup.mjs",
+      "file_type": "code",
+      "source_file": "lib/dev-startup.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "dev-startup.mjs",
+      "id": "lib_dev_startup",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "ensureDevDatabaseReady()",
+      "file_type": "code",
+      "source_file": "lib/dev-startup.mjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "ensuredevdatabaseready()",
+      "id": "lib_dev_startup_ensuredevdatabaseready",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "dev-startup.test.ts",
+      "file_type": "code",
+      "source_file": "lib/dev-startup.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 6,
+      "norm_label": "dev-startup.test.ts",
+      "id": "lib_dev_startup_test",
+      "community_name": "Community 6"
+    },
+    {
+      "label": "mcp-config.mjs",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "mcp-config.mjs",
+      "id": "mcp_config",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "envValue()",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "envvalue()",
+      "id": "mcp_config_envvalue",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "normalizeEndpointPath()",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "normalizeendpointpath()",
+      "id": "mcp_config_normalizeendpointpath",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "resolveMcpConfig()",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L11",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "resolvemcpconfig()",
+      "id": "mcp_config_resolvemcpconfig",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "mcp-config.test.mjs",
+      "file_type": "code",
+      "source_file": "mcp-config.test.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "mcp-config.test.mjs",
+      "id": "mcp_config_test",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "print-agent-config.mjs",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "print-agent-config.mjs",
+      "id": "print_agent_config",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "config",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "config",
+      "id": "print_agent_config_config",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "skillExists",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "skillexists",
+      "id": "print_agent_config_skillexists",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "expectedCapabilities",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "expectedcapabilities",
+      "id": "print_agent_config_expectedcapabilities",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "staleCapabilityRecovery",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L25",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "stalecapabilityrecovery",
+      "id": "print_agent_config_stalecapabilityrecovery",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "toolsNotVisibleRecovery",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L30",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "toolsnotvisiblerecovery",
+      "id": "print_agent_config_toolsnotvisiblerecovery",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "print-mcp-config.mjs",
+      "file_type": "code",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "print-mcp-config.mjs",
+      "id": "print_mcp_config",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "config",
+      "file_type": "code",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L5",
+      "_origin": "ast",
+      "community": 10,
+      "norm_label": "config",
+      "id": "print_mcp_config_config",
+      "community_name": "Community 10"
+    },
+    {
+      "label": "sync-environments.ts",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "sync-environments.ts",
+      "id": "sync_environments",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "EnvironmentConfig",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L18",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "environmentconfig",
+      "id": "sync_environments_environmentconfig",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "EnvironmentData",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L25",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "environmentdata",
+      "id": "sync_environments_environmentdata",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "SyncResult",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L33",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "syncresult",
+      "id": "sync_environments_syncresult",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "readEnvironmentsFromFile()",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L51",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "readenvironmentsfromfile()",
+      "id": "sync_environments_readenvironmentsfromfile",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "normalizeEnvironmentName()",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L79",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "normalizeenvironmentname()",
+      "id": "sync_environments_normalizeenvironmentname",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "getEnvironmentIdentityKey()",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L93",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "getenvironmentidentitykey()",
+      "id": "sync_environments_getenvironmentidentitykey",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "buildEnvironmentObjects()",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L104",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "buildenvironmentobjects()",
+      "id": "sync_environments_buildenvironmentobjects",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "syncEnvironmentsToDatabase()",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L138",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "syncenvironmentstodatabase()",
+      "id": "sync_environments_syncenvironmentstodatabase",
+      "community_name": "Community 14"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "sync-environments.ts",
+      "source_location": "L267",
+      "_origin": "ast",
+      "community": 14,
+      "norm_label": "main()",
+      "id": "sync_environments_main",
+      "community_name": "Community 14"
     }
   ],
   "links": [
@@ -5552,255 +5585,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_children"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L48",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_exitcode"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L43",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_exitlabel"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L53",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_handleprocesserror"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L33",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_handleprocessexit"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L63",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_handleprocessstop"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L101",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_inferredbaseurl"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L155",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_mcp"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L107",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_mcpcommand"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L90",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_optiontokenvalue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L82",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_optionvalue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L76",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_shutdown"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_startprocess"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L70",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_stopchildren"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L96",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp",
-      "target": "dev_with_mcp_valueforlongoption"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L39",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_handleprocessexit",
-      "target": "dev_with_mcp_exitcode"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L38",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_handleprocessexit",
-      "target": "dev_with_mcp_exitlabel"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L37",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_handleprocessexit",
-      "target": "dev_with_mcp_handleprocessstop"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L57",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_handleprocesserror",
-      "target": "dev_with_mcp_handleprocessstop"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L66",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_handleprocessstop",
-      "target": "dev_with_mcp_stopchildren"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L79",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_shutdown",
-      "target": "dev_with_mcp_stopchildren"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L102",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_inferredbaseurl",
-      "target": "dev_with_mcp_optionvalue"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L84",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_optionvalue",
-      "target": "dev_with_mcp_optiontokenvalue"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "dev-with-mcp.mjs",
-      "source_location": "L93",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "dev_with_mcp_optiontokenvalue",
-      "target": "dev_with_mcp_valueforlongoption"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "install-playwright.ts",
       "source_location": "L13",
       "weight": 1.0,
@@ -6963,17 +6747,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "lib_sync_script_runner"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "sync-locator-groups.ts",
       "source_location": "L20",
       "weight": 1.0,
@@ -7214,17 +6987,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "lib_sync_summary"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "sync-locator-groups.ts",
       "source_location": "L19",
       "weight": 1.0,
@@ -7351,17 +7113,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "sync_environments",
-      "target": "lib_sync_summary_printsyncsummary"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L288",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments_main",
       "target": "lib_sync_summary_printsyncsummary"
     },
     {
@@ -8901,151 +8652,6 @@
       "confidence_score": 1.0,
       "source": "sync_all_main",
       "target": "sync_all_displaysummary"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L104",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_buildenvironmentobjects"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L18",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_environmentconfig"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_environmentdata"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L93",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_getenvironmentidentitykey"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L267",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_main"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L79",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_normalizeenvironmentname"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L51",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_readenvironmentsfromfile"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L138",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_syncenvironmentstodatabase"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L33",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments",
-      "target": "sync_environments_syncresult"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L275",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments_main",
-      "target": "sync_environments_readenvironmentsfromfile"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L109",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments_buildenvironmentobjects",
-      "target": "sync_environments_normalizeenvironmentname"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L173",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments_syncenvironmentstodatabase",
-      "target": "sync_environments_getenvironmentidentitykey"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L281",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments_main",
-      "target": "sync_environments_buildenvironmentobjects"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "sync-environments.ts",
-      "source_location": "L286",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sync_environments_main",
-      "target": "sync_environments_syncenvironmentstodatabase"
     },
     {
       "relation": "contains",
@@ -10918,344 +10524,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config",
-      "target": "mcp_config_envvalue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config",
-      "target": "mcp_config_normalizeendpointpath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config",
-      "target": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.test.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_test",
-      "target": "mcp_config"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_mcp_config",
-      "target": "mcp_config"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_resolvemcpconfig",
-      "target": "mcp_config_envvalue"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_resolvemcpconfig",
-      "target": "mcp_config_normalizeendpointpath"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.test.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_test",
-      "target": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_mcp_config",
-      "target": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_mcp_config",
-      "target": "print_mcp_config_config"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_config"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_expectedcapabilities"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_skillexists"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_stalecapabilityrecovery"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L18",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_toolsnotvisiblerecovery"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L147",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_activefiles"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L138",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_checkrootrelativereferences"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L113",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_collectentryfiles"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L167",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_failures"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_hasrootagentharness"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L124",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_linefor"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L119",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_listdirectories"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_literalforbidden"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_regexforbidden"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_reporoot"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L66",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_requiredtokens"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L132",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_requirefile"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L29",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_rootharnessrequiredfiles"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L50",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_staticfiles"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L128",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_toreporelative"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L106",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness",
-      "target": "check_agent_harness_walkfiles"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L114",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness_collectentryfiles",
-      "target": "check_agent_harness_walkfiles"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "check-agent-harness.mjs",
-      "source_location": "L143",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "check_agent_harness_checkrootrelativereferences",
-      "target": "check_agent_harness_linefor"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "run-graphify.mjs",
       "source_location": "L6",
       "weight": 1.0,
@@ -11364,8 +10632,816 @@
       "confidence_score": 1.0,
       "source": "run_graphify_resolvecommand",
       "target": "run_graphify_resolvecommandfromuvtoolpath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L141",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_activefiles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L132",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_checkrootrelativereferences"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L107",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_collectentryfiles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L161",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_failures"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_hasrootagentharness"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L118",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_linefor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L113",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_listdirectories"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_literalforbidden"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_regexforbidden"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_reporoot"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_requiredtokens"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L126",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_requirefile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_rootharnessrequiredfiles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_staticfiles"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L122",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_toreporelative"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L100",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness",
+      "target": "check_agent_harness_walkfiles"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L108",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness_collectentryfiles",
+      "target": "check_agent_harness_walkfiles"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "check-agent-harness.mjs",
+      "source_location": "L137",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "check_agent_harness_checkrootrelativereferences",
+      "target": "check_agent_harness_linefor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_children"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_exitcode"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L45",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_exitlabel"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L55",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_handleprocesserror"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_handleprocessexit"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_handleprocessstop"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L103",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_inferredbaseurl"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L157",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_mcp"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_mcpcommand"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L92",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_optiontokenvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L84",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_optionvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L78",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_shutdown"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_startprocess"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_stopchildren"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L98",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "dev_with_mcp_valueforlongoption"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "lib_dev_startup"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp",
+      "target": "lib_dev_startup_ensuredevdatabaseready"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_handleprocessexit",
+      "target": "dev_with_mcp_exitcode"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_handleprocessexit",
+      "target": "dev_with_mcp_exitlabel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L39",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_handleprocessexit",
+      "target": "dev_with_mcp_handleprocessstop"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_handleprocesserror",
+      "target": "dev_with_mcp_handleprocessstop"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L68",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_handleprocessstop",
+      "target": "dev_with_mcp_stopchildren"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L81",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_shutdown",
+      "target": "dev_with_mcp_stopchildren"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L104",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_inferredbaseurl",
+      "target": "dev_with_mcp_optionvalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L86",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_optionvalue",
+      "target": "dev_with_mcp_optiontokenvalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "dev-with-mcp.mjs",
+      "source_location": "L95",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "dev_with_mcp_optiontokenvalue",
+      "target": "dev_with_mcp_valueforlongoption"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/dev-startup.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_dev_startup",
+      "target": "lib_dev_startup_ensuredevdatabaseready"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/dev-startup.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_dev_startup_test",
+      "target": "lib_dev_startup"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/dev-startup.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_dev_startup_test",
+      "target": "lib_dev_startup_ensuredevdatabaseready"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config",
+      "target": "mcp_config_envvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config",
+      "target": "mcp_config_normalizeendpointpath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.test.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config_test",
+      "target": "mcp_config"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "mcp_config"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_mcp_config",
+      "target": "mcp_config"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config_resolvemcpconfig",
+      "target": "mcp_config_envvalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config_resolvemcpconfig",
+      "target": "mcp_config_normalizeendpointpath"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.test.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config_test",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_mcp_config",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_config"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_expectedcapabilities"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_skillexists"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_stalecapabilityrecovery"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_toolsnotvisiblerecovery"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_mcp_config",
+      "target": "print_mcp_config_config"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L104",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_buildenvironmentobjects"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_environmentconfig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_environmentdata"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L93",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_getenvironmentidentitykey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L267",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_main"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_normalizeenvironmentname"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L51",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_readenvironmentsfromfile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L138",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_syncenvironmentstodatabase"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments",
+      "target": "sync_environments_syncresult"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L275",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments_main",
+      "target": "sync_environments_readenvironmentsfromfile"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments_buildenvironmentobjects",
+      "target": "sync_environments_normalizeenvironmentname"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L173",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments_syncenvironmentstodatabase",
+      "target": "sync_environments_getenvironmentidentitykey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L281",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments_main",
+      "target": "sync_environments_buildenvironmentobjects"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "sync-environments.ts",
+      "source_location": "L286",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sync_environments_main",
+      "target": "sync_environments_syncenvironmentstodatabase"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "469a2cbe31b260ea4195ff0573414bcfc40167ed"
+  "built_at_commit": "5238399d9d9c7008b8b4d70247df25b422071015"
 }

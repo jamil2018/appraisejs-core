@@ -24,6 +24,7 @@ import {
   resolvePlanReference,
 } from '@/services/coordinator/coordinator-service'
 import { reviewImplementationCompletion } from '@/services/coordinator/coordinator-implementation-service'
+import { analyzeExecutionOrder } from '@/lib/implementation-checkpoints/protocol'
 import { auditManagedValidationIntegrity } from '@/services/coordinator/managed-validation-integrity-audit'
 
 import {
@@ -63,11 +64,13 @@ export type PlanReviewDetail = {
     fileHashes: Record<string, string>
     readiness: ReturnType<typeof assessValidationReadiness>
     operationHash?: string
+    reviewStateHash?: string
     extensionArtifactHashes: string[]
   }
   validationIntegrity: Awaited<ReturnType<typeof auditManagedValidationIntegrity>>
   completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>
+  executionOrder: ReturnType<typeof analyzeExecutionOrder>
   projection: {
     slug: string
     legacyPlanId: string | null
@@ -123,6 +126,7 @@ type ReviewThreadSummary = {
 
 export type PlanReviewSummary = {
   planId: string
+  targetProjectId?: string
   plan: {
     revision: number
     lifecycle: PlanArtifact['lifecycle']
@@ -279,6 +283,7 @@ async function readValidationReviewEvidence(
     fileHashes: Object.fromEntries(validation.files.map(file => [file.path, fileReviewHash(file)])),
     readiness: assessValidationReadiness(validation, review),
     operationHash: publishOperation?.operationHash,
+    reviewStateHash: publishOperation?.reviewStateHash ?? undefined,
     extensionArtifactHashes: publishOperation?.extensionReviews.map(item => item.artifactHash).sort() ?? [],
   }
 }
@@ -321,7 +326,7 @@ export async function getPlanReviewDetail(
     client,
     projectDirectory: projectRoot,
   })
-  const completionReview = ['failed_validation', 'validation_passed'].includes(plan.lifecycle)
+  const completionReview = ['failed_validation', 'validation_passed', 'completed'].includes(plan.lifecycle)
     ? await reviewImplementationCompletion(canonicalPlanId, { client, projectDirectory: projectRoot })
     : undefined
 
@@ -349,6 +354,7 @@ export async function getPlanReviewDetail(
     validationIntegrity,
     completionReview,
     graph,
+    executionOrder: analyzeExecutionOrder(plan),
     projection,
     issues: projection.issues,
     revisions: projection.revisions,
@@ -396,11 +402,16 @@ export async function readPlanReviewSummary(
   const canonicalPlanId = await resolvePlanReference(planId, client)
   const projectRoot = await findProjectRoot(options?.projectDirectory)
   const { plan, review, reviewArtifact } = await readPlanAndReview(projectRoot, canonicalPlanId)
+  const projection = await client.planProjection.findUnique({
+    where: { planId: canonicalPlanId },
+    select: { targetProjectId: true },
+  })
   const orphanedThreads = getOrphanedThreads(plan, review)
   const orphanedThreadIds = new Set(orphanedThreads.map(thread => thread.id))
   const openThreads = review.threads.filter(thread => !['resolved', 'dismissed'].includes(getThreadStatus(thread)))
   return {
     planId: canonicalPlanId,
+    targetProjectId: projection?.targetProjectId ?? undefined,
     plan: {
       revision: plan.revision,
       lifecycle: plan.lifecycle,

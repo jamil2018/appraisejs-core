@@ -19,6 +19,7 @@ import { processManager } from '@/lib/test-run/process-manager'
 import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { testRunEvidenceLinks } from './test-run-evidence-links'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
 import { getAutomationReportRunDir, resolveStoredPath } from '@/lib/automation/automation-path-roots'
 import { automationProjectionService } from '@/lib/automation/projection-service'
@@ -84,7 +85,10 @@ export async function listTestRuns(targetProjectId: string, filter?: string) {
 
 export async function getTestRunByIdOrThrow(id: string, targetProjectId: string) {
   const testRun = await prisma.testRun.findFirst({
-    where: { id, targetProjectId },
+    where: {
+      targetProjectId,
+      OR: [{ id }, { runId: id }],
+    },
     include: {
       testCases: {
         include: {
@@ -589,9 +593,12 @@ async function updateImplementationValidationRunFromTestRun(
   const validation = parseYamlArtifact('validation', stored.content) as ValidationArtifact
   const testRun = await prisma.testRun.findUnique({
     where: { runId: input.runId },
-    select: { runId: true, result: true, status: true, completedAt: true },
+    select: { runId: true, targetProjectId: true, result: true, status: true, completedAt: true },
   })
   if (!testRun) return
+  if (!testRun.targetProjectId)
+    throw new ServiceError('Managed test run has no target-project ownership.', 'CONFLICT', 409)
+  const evidenceLinks = testRunEvidenceLinks(testRun.runId, testRun.targetProjectId)
 
   const status =
     testRun.status === TestRunStatus.RUNNING ||
@@ -614,10 +621,10 @@ async function updateImplementationValidationRunFromTestRun(
           assurance: status === 'passed' ? ('full' as const) : ('reduced' as const),
           status,
           testRunId: testRun.runId,
-          evidenceUrls: [`/test-runs/${testRun.runId}`, `/api/test-runs/${testRun.runId}/logs`],
+          evidenceUrls: [evidenceLinks.reportUrl, evidenceLinks.logsUrl],
           evidence: {
-            logsUrl: `/api/test-runs/${testRun.runId}/logs`,
-            reportUrl: `/test-runs/${testRun.runId}`,
+            logsUrl: evidenceLinks.logsUrl,
+            reportUrl: evidenceLinks.reportUrl,
             traceUrls: [],
             screenshotUrls: [],
           },
@@ -675,6 +682,7 @@ export async function scheduleTestRunCompletion(args: {
     waitForProcess = processName => localExecutorAdapter.waitForProcess(processName),
     appraiseRoot,
   } = args
+  let loggerClosed = false
 
   try {
     if (prepareWorkspace !== false) {
@@ -746,6 +754,7 @@ export async function scheduleTestRunCompletion(args: {
     const executePromise = Promise.resolve(spawnedProcess)
 
     executePromise
+      // fallow-ignore-next-line complexity
       .then(async proc => {
         const exitCodeRaw = await waitForProcess(proc.name)
         const exitCode = exitCodeRaw ?? 1
@@ -788,6 +797,20 @@ export async function scheduleTestRunCompletion(args: {
           timestamp: proc.endTime || new Date(),
         })
         logger.info(exitMessage)
+
+        // Capsule logs are managed evidence. Flush and close the file transport before
+        // publishing a terminal TestRun state so every terminal read can resolve them.
+        await closeLogger(logger)
+        loggerClosed = true
+        if (executionAttempt) {
+          const managedRun = await client.testRun.findUnique({
+            where: { id: testRun.id },
+            select: { logPath: true },
+          })
+          if (!managedRun?.logPath)
+            throw new ServiceError('Managed test run log path was not prepared.', 'CONFLICT', 409)
+          await fs.writeFile(managedRun.logPath, formatLogsForStorage(logEntries), { mode: 0o600 })
+        }
 
         await persistLogsAndUpdateRunStatus({
           testRunDbId: testRun.id,
@@ -878,9 +901,10 @@ export async function scheduleTestRunCompletion(args: {
       })
       .finally(async () => {
         cleanupListener()
-        await closeLogger(logger).catch(error => {
-          console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, error)
-        })
+        if (!loggerClosed)
+          await closeLogger(logger).catch(error => {
+            console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, error)
+          })
       })
   } catch (error) {
     console.error(`[TestRunService] Synchronous error calling executeTestRun for testRunId: ${testRun.runId}:`, error)
@@ -1125,14 +1149,16 @@ export async function createStandaloneTargetTestRun(input: StandaloneTargetTestR
     implementationValidationBinding,
   })
 
+  const evidenceLinks = testRunEvidenceLinks(testRun.runId, targetProject.id)
+
   return {
     runId: testRun.runId,
     id: testRun.id,
     targetProjectId: targetProject.id,
-    testRunPageId: testRun.id,
+    testRunPageId: testRun.runId,
     executionRunId: testRun.runId,
-    reportUrl: `/test-runs/${testRun.runId}`,
-    logsUrl: `/api/test-runs/${testRun.runId}/logs`,
+    reportUrl: evidenceLinks.reportUrl,
+    logsUrl: evidenceLinks.logsUrl,
     evidenceHealth: 'invalid_missing_report',
     nextAllowedAction: {
       tool: 'test_run_read',

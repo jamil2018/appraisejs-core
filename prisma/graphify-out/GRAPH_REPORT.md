@@ -1,22 +1,22 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 49 files from prisma/schema.prisma and migrations
+- 51 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1108 nodes · 2504 edges · 165 communities
+- 1112 nodes · 2510 edges · 167 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 438 edges
+1. `String` - 440 edges
 2. `TargetProject` - 152 edges
-3. `schema.prisma` - 146 edges
+3. `schema.prisma` - 148 edges
 4. `DateTime` - 122 edges
 5. `PlanProjection` - 86 edges
 6. `TestRun` - 72 edges
-7. `ValidationAstPublishOperation` - 59 edges
+7. `ValidationAstPublishOperation` - 62 edges
 8. `ProviderWorkflowRun` - 56 edges
 9. `TestCase` - 52 edges
 10. `TestSuite` - 37 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (165 total)
+## Communities (167 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -218,7 +218,7 @@ Nodes (7): DelegatedCoordinatorConsumption, DelegatedCoordinatorConsumption.id, 
 Nodes (10): DelegatedValidationAstSubmission, DelegatedValidationAstSubmission.id, DelegatedValidationAstSubmission.nonce, DelegatedValidationAstSubmission.targetFingerprint, DelegatedValidationAstSubmission.planHash, DelegatedValidationAstSubmission.issuer, DelegatedValidationAstSubmission.astId, DelegatedValidationAstSubmission.astJson (+more)
 
 ### Community 58 - "ValidationAstPublishOperation"
-Nodes (37): ValidationAstPublishOperation, ValidationAstPublishOperation.id, ValidationAstPublishOperation.planId, ValidationAstPublishOperation.planProjectionId, ValidationAstPublishOperation.targetProjectId, ValidationAstPublishOperation.targetFingerprint, ValidationAstPublishOperation.idempotencyKey, ValidationAstPublishOperation.operationHash (+more)
+Nodes (39): ValidationAstPublishOperation, ValidationAstPublishOperation.id, ValidationAstPublishOperation.planId, ValidationAstPublishOperation.planProjectionId, ValidationAstPublishOperation.targetProjectId, ValidationAstPublishOperation.targetFingerprint, ValidationAstPublishOperation.idempotencyKey, ValidationAstPublishOperation.operationHash (+more)
 
 ### Community 59 - "ValidationExtensionReview"
 Nodes (11): ValidationExtensionReview, ValidationExtensionReview.id, ValidationExtensionReview.operationId, ValidationExtensionReview.extensionId, ValidationExtensionReview.version, ValidationExtensionReview.sourceHash, ValidationExtensionReview.compiledHash, ValidationExtensionReview.artifactHash (+more)
@@ -537,6 +537,12 @@ Nodes (1): 20260713211000_scope_test_run_preparation_key
 
 ### Community 164 - "20260714000000_make_template_library_shared"
 Nodes (1): 20260714000000_make_template_library_shared
+
+### Community 165 - "20260714143000_add_validation_review_state_receipt"
+Nodes (1): 20260714143000_add_validation_review_state_receipt
+
+### Community 166 - "20260714160500_scope_environment_names_to_project"
+Nodes (1): 20260714160500_scope_environment_names_to_project
 
 ## Suggested Questions
 - Which models are connected to PlanProjection?

@@ -77,6 +77,7 @@ const submission = {
     purpose: 'Verify todo entry.',
     coversTaskIds: ['task-one'],
     matrix: [{ browser: 'chromium', environmentId: 'local' }],
+    expectedFailures: [],
     scenarios: [
       {
         id: 'create-todo',
@@ -116,7 +117,7 @@ const submission = {
           stimulusStepIds: [],
           observationStepIds: [],
           rationale: 'Accessibility is declared but not exercised by this fixture.',
-          state: 'uncovered',
+          state: 'deferred',
           limitation: 'Covered by dedicated accessibility validation tests.',
         },
       ],
@@ -150,6 +151,7 @@ describe('Validation AST check and preview', () => {
       [
         {
           refId: 'title-input',
+          moduleId: 'todo-module',
           id: 'title-input',
           name: 'Title',
           value: '[name="title"]',
@@ -201,6 +203,22 @@ describe('Validation AST check and preview', () => {
         'locator-reference-not-found',
         'capability-unavailable',
       ]),
+    )
+  })
+
+  it('blocks uncovered requirements and partial coverage without exact acknowledgement', () => {
+    const incomplete = structuredClone(submission) as unknown as ValidationAstSubmission
+    incomplete.ast.coverageArgument!.mappings[0]!.state = 'uncovered'
+    expect(checkValidationAst(incomplete, context).blockers.map(blocker => blocker.code)).toContain(
+      'coverage-uncovered',
+    )
+    incomplete.ast.coverageArgument!.mappings[0]!.state = 'partial'
+    expect(checkValidationAst(incomplete, context).blockers.map(blocker => blocker.code)).toContain(
+      'coverage-partial-acknowledgement-required',
+    )
+    incomplete.ast.coverageArgument!.mappings[0]!.partialAcknowledgement = 'Reviewed missing portable capability.'
+    expect(checkValidationAst(incomplete, context).blockers.map(blocker => blocker.code)).not.toContain(
+      'coverage-partial-acknowledgement-required',
     )
   })
 

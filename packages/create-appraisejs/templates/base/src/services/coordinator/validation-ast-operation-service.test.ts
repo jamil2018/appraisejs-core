@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 import { basicValidationAstSubmission } from '@/test/validation-ast-test-fixtures'
+import type { ValidationAstSubmission } from '@/lib/validation-ast'
 import {
   checkValidationAstForPlan,
   previewValidationAstForPlan,
@@ -40,6 +41,31 @@ describe('Validation AST operational context', () => {
         locatorGraphHash: expect.stringMatching(/^sha256:/),
       },
     })
+  })
+
+  it('accepts every capability advertised by built-in keyboard and viewport actions', async () => {
+    const capabilitySubmission = structuredClone(submission) as ValidationAstSubmission
+    capabilitySubmission.ast.scenarios[0].steps.push(
+      {
+        id: 'press-tab',
+        keyword: 'When',
+        description: 'the user presses Tab',
+        action: { id: 'browser.keyboard.press', version: '1', inputs: { key: 'Tab' } },
+      },
+      {
+        id: 'mobile-viewport',
+        keyword: 'Then',
+        description: 'the viewport is mobile sized',
+        action: { id: 'browser.viewport.set', version: '1', inputs: { width: 390, height: 844 } },
+      },
+    )
+
+    const checked = await checkValidationAstForPlan('plan-one', capabilitySubmission, client)
+
+    expect(checked.blockers).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'capability-unavailable' })]),
+    )
+    expect(checked.valid).toBe(true)
   })
 
   it('discovers a bounded versioned policy bound to the authoritative project', async () => {

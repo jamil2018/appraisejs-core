@@ -114,6 +114,7 @@ const validationResourceProposalSchema = z
 type Proposal = z.infer<typeof validationResourceProposalSchema>
 type Transaction = Prisma.TransactionClient
 
+// fallow-ignore-next-line complexity
 async function persistProposalGraph(proposal: Proposal, targetProjectId: string, planId: string, tx: Transaction) {
   const ids = {
     modules: Object.fromEntries(
@@ -133,12 +134,62 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
     ),
   }
   for (const item of proposal.modules) {
+    const matches = await tx.module.findMany({
+      where: { targetProjectId, name: item.name },
+      select: { id: true },
+      take: 2,
+    })
+    if (matches.length > 1)
+      throw new ServiceError(`Module "${item.name}" is ambiguous in the target project.`, 'CONFLICT')
+    if (matches[0]) ids.modules[item.localKey] = matches[0].id
+  }
+  for (const item of proposal.locatorGroups) {
+    const existing = await tx.locatorGroup.findFirst({
+      where: { targetProjectId, name: item.name },
+      select: { id: true, moduleId: true, route: true },
+    })
+    if (!existing) continue
+    if (existing.moduleId !== ids.modules[item.moduleKey] || existing.route !== item.route)
+      throw new ServiceError(
+        `Locator group "${item.name}" already exists with different module or route ownership.`,
+        'CONFLICT',
+      )
+    ids.locatorGroups[item.localKey] = existing.id
+  }
+  for (const item of proposal.locators) {
+    const locatorGroupId = ids.locatorGroups[item.groupKey]
+    const matches = await tx.locator.findMany({
+      where: { targetProjectId, locatorGroupId, name: item.name },
+      select: { id: true, value: true },
+      take: 2,
+    })
+    if (matches.length > 1)
+      throw new ServiceError(`Locator "${item.name}" is ambiguous in its locator group.`, 'CONFLICT')
+    if (!matches[0]) continue
+    if (matches[0].value !== item.selector)
+      throw new ServiceError(`Locator "${item.name}" already exists with a different selector.`, 'CONFLICT')
+    ids.locators[item.localKey] = matches[0].id
+  }
+  for (const item of proposal.environments) {
+    const existing = await tx.environment.findFirst({
+      where: { targetProjectId, name: item.name },
+      select: { id: true, baseUrl: true, apiBaseUrl: true },
+    })
+    if (!existing) continue
+    if (existing.baseUrl !== item.baseUrl || existing.apiBaseUrl !== (item.apiBaseUrl ?? null))
+      throw new ServiceError(`Environment "${item.name}" already exists with different URLs.`, 'CONFLICT')
+    ids.environments[item.localKey] = existing.id
+  }
+  for (const item of proposal.modules) {
     const data = {
       id: ids.modules[item.localKey],
       name: item.name,
       parentId: item.parentKey ? ids.modules[item.parentKey] : null,
       targetProjectId,
     }
+    const existing = await tx.module.findUnique({ where: { id: data.id }, select: { parentId: true } })
+    if (existing && existing.parentId !== data.parentId)
+      throw new ServiceError(`Module "${item.name}" already exists with different parent ownership.`, 'CONFLICT')
     await tx.module.upsert({
       where: { id: data.id },
       create: data,
@@ -312,4 +363,115 @@ export async function proposeValidationResources(
     contextHash: context.contextHash,
     nextRecommendedAction: 'Use the returned stable IDs and refreshed context to author the managed Validation AST.',
   }
+}
+
+async function readProposalForMutation(planId: string, idempotencyKey: string, client: PrismaClient) {
+  const proposal = await client.validationResourceProposal.findUnique({
+    where: { planId_idempotencyKey: { planId, idempotencyKey } },
+  })
+  if (!proposal) throw new ServiceError('Validation resource proposal was not found.', 'NOT_FOUND')
+  return proposal
+}
+
+async function readStoredProposalForMutation(planId: string, idempotencyKey: string, client: PrismaClient) {
+  const proposal = await readProposalForMutation(planId, idempotencyKey, client)
+  return { proposal, stored: JSON.parse(proposal.resultJson) as Record<string, unknown> }
+}
+
+export async function abandonValidationResourceProposal(
+  input: { planId: string; idempotencyKey: string; reason: string },
+  client: PrismaClient = prisma,
+) {
+  const { proposal, stored } = await readStoredProposalForMutation(input.planId, input.idempotencyKey, client)
+  if (stored.status === 'cleaned') return stored
+  const result = {
+    ...stored,
+    status: 'abandoned',
+    abandonedAt: typeof stored.abandonedAt === 'string' ? stored.abandonedAt : new Date().toISOString(),
+    abandonReason: input.reason.trim(),
+  }
+  await client.validationResourceProposal.update({
+    where: { id: proposal.id },
+    data: { resultJson: canonicalContractJson(result) },
+  })
+  return result
+}
+
+export async function cleanupValidationResourceProposal(
+  input: { planId: string; idempotencyKey: string },
+  client: PrismaClient = prisma,
+) {
+  const { proposal, stored } = await readStoredProposalForMutation(input.planId, input.idempotencyKey, client)
+  if (stored.status === 'cleaned') return stored
+  if (stored.status !== 'abandoned')
+    throw new ServiceError('Abandon the validation resource proposal before cleanup.', 'CONFLICT')
+  const ids = stored.ids as Record<string, Record<string, string>> | undefined
+  const requested = Object.entries(ids ?? {}).flatMap(([entityType, values]) =>
+    Object.values(values).map(entityId => ({
+      entityType: entityType.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`).replace(/s$/, ''),
+      entityId,
+    })),
+  )
+  const ownership = await client.projectResourceOwnership.findMany({
+    where: { OR: requested.map(item => ({ entityType: item.entityType, entityId: item.entityId })) },
+    select: { id: true, entityType: true, entityId: true, origin: true, provenanceJson: true },
+  })
+  const removable = ownership.filter(item => {
+    const provenance = JSON.parse(item.provenanceJson) as { planId?: string }
+    return item.origin === 'validation-resource-proposal' && provenance.planId === input.planId
+  })
+  const removableIds = (entityType: string) =>
+    removable.filter(item => item.entityType === entityType).map(item => item.entityId)
+  const cleaned = await client.$transaction(async tx => {
+    const deleted: Array<{ entityType: string; entityId: string }> = []
+    const remove = async (entityType: string, entityIds: string[], action: () => Promise<{ count: number }>) => {
+      if (!entityIds.length) return
+      const result = await action()
+      if (result.count) deleted.push(...entityIds.map(entityId => ({ entityType, entityId })))
+    }
+    await remove('locator', removableIds('locator'), () =>
+      tx.locator.deleteMany({ where: { id: { in: removableIds('locator') } } }),
+    )
+    await remove('locator-group', removableIds('locator-group'), () =>
+      tx.locatorGroup.deleteMany({ where: { id: { in: removableIds('locator-group') }, locators: { none: {} } } }),
+    )
+    await remove('environment', removableIds('environment'), () =>
+      tx.environment.deleteMany({ where: { id: { in: removableIds('environment') }, testRuns: { none: {} } } }),
+    )
+    await remove('template-step', removableIds('template-step'), () =>
+      tx.templateStep.deleteMany({
+        where: {
+          id: { in: removableIds('template-step') },
+          TemplateTestCaseStep: { none: {} },
+          TestCaseStep: { none: {} },
+          StepBlockStep: { none: {} },
+        },
+      }),
+    )
+    const moduleIds = removableIds('module')
+    for (const moduleId of moduleIds.reverse()) {
+      await remove('module', [moduleId], () =>
+        tx.module.deleteMany({
+          where: { id: moduleId, children: { none: {} }, locatorGroups: { none: {} }, testSuites: { none: {} } },
+        }),
+      )
+    }
+    await tx.projectResourceOwnership.deleteMany({
+      where: { OR: deleted.map(item => ({ entityType: item.entityType, entityId: item.entityId })) },
+    })
+    return deleted
+  })
+  const cleanedKeys = new Set(cleaned.map(item => `${item.entityType}:${item.entityId}`))
+  const result = {
+    ...stored,
+    status: 'cleaned',
+    cleanedAt: new Date().toISOString(),
+    cleaned,
+    retained: requested.filter(item => !cleanedKeys.has(`${item.entityType}:${item.entityId}`)),
+  }
+  await client.validationResourceProposal.update({
+    where: { id: proposal.id },
+    data: { resultJson: canonicalContractJson(result) },
+  })
+  return result
 }

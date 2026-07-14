@@ -80,6 +80,7 @@ export const coverageMappingSchema = z
     rationale: textSchema,
     state: coverageStateSchema,
     limitation: textSchema.optional(),
+    partialAcknowledgement: textSchema.optional(),
   })
   .strict()
 

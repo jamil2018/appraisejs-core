@@ -358,9 +358,9 @@ describe('reviewed runtime capsule materialization integration', () => {
     client = sqliteTestClient(databasePath)
     environmentId = (
       await client.environment.upsert({
-        where: { name: 'capsule-local' },
+        where: { id: 'materializer-capsule-local' },
         update: {},
-        create: { name: 'capsule-local', baseUrl: 'http://localhost' },
+        create: { id: 'materializer-capsule-local', name: 'capsule-local', baseUrl: 'http://localhost' },
       })
     ).id
   })

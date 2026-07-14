@@ -112,7 +112,7 @@ describe('baseline execution contract', () => {
     ])
   })
 
-  it('accepts only ordered exact expected failures after the required setup step', () => {
+  it('accepts ordered approved failure signatures after the required setup step', () => {
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
         result: 'failed',
@@ -128,6 +128,27 @@ describe('baseline execution contract', () => {
         completedStepIds: ['given-cart'],
       }).classification,
     ).toBe('authoring_failure')
+
+    expect(
+      classifyBaselineResult(
+        {
+          ...validation.validations[0],
+          expectedFailures: [
+            {
+              ...validation.validations[0].expectedFailures[0],
+              signature: 'ERR_CONNECTION_REFUSED',
+              lastPassingStepId: null,
+            },
+          ],
+        },
+        requiredBaselineCombinations(validation)[0],
+        {
+          result: 'failed',
+          failureSignatures: ['page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/'],
+          completedStepIds: [],
+        },
+      ).classification,
+    ).toBe('expected_product_failure')
   })
 
   it('blocks harness failures and classifies unmatched failures as unrelated', () => {

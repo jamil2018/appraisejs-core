@@ -21,6 +21,8 @@ describe('executable binding generator', () => {
           },
         ],
       })
+      expect(source).toContain("'labels' in element")
+      expect(source).toContain("element.getAttribute('aria-labelledby')")
       await fs.mkdir(path.join(root, 'features'))
       await fs.mkdir(path.join(root, 'bindings'))
       await fs.mkdir(path.join(root, 'reports'))

@@ -150,6 +150,29 @@ export class PlanArtifactRepository {
     })
   }
 
+  // fallow-ignore-next-line unused-class-member
+  async writeCompletionTransaction(planId: string, content: string): Promise<void> {
+    await this.withPlanLock(planId, async () => {
+      const targetPath = await this.resolveCompletionTransactionPath(planId, true)
+      if (await pathExists(targetPath)) return
+      await this.atomicWrite(targetPath, content)
+    })
+  }
+
+  async readCompletionTransaction(planId: string): Promise<string | null> {
+    const targetPath = await this.resolveCompletionTransactionPath(planId, false)
+    return fs.readFile(targetPath, 'utf8').catch(error => {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw error
+    })
+  }
+
+  async removeCompletionTransaction(planId: string): Promise<void> {
+    await this.withPlanLock(planId, async () => {
+      await fs.rm(await this.resolveCompletionTransactionPath(planId, false), { force: true })
+    })
+  }
+
   private async resolvePlansRoot(create: boolean): Promise<string> {
     const projectRoot = await this.projectRootPromise
     const plansRoot = path.join(projectRoot, 'appraise', 'plans')
@@ -166,6 +189,15 @@ export class PlanArtifactRepository {
     await this.assertContainedPath(plansRoot, artifactDirectory)
     if (createDirectory) await fs.mkdir(artifactDirectory, { recursive: true })
     return path.join(artifactDirectory, `${planId}${extension}`)
+  }
+
+  private async resolveCompletionTransactionPath(planId: string, createDirectory: boolean): Promise<string> {
+    assertPlanId(planId)
+    const plansRoot = await this.resolvePlansRoot(createDirectory)
+    const transactionDirectory = path.join(plansRoot, '.transactions')
+    await this.assertContainedPath(plansRoot, transactionDirectory)
+    if (createDirectory) await fs.mkdir(transactionDirectory, { recursive: true })
+    return path.join(transactionDirectory, `${planId}.completion.json`)
   }
 
   private async assertContainedPath(root: string, target: string): Promise<void> {

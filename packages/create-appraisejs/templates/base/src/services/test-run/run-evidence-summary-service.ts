@@ -9,6 +9,7 @@ import {
 } from '@/services/test-run/test-run-artifact-context'
 import { TestRunResult, TestRunStatus, type PrismaClient } from '@prisma/client'
 import path from 'path'
+import { testRunEvidenceLinks } from './test-run-evidence-links'
 
 export type TestRunEvidenceHealthValue =
   | 'valid'
@@ -217,13 +218,16 @@ function summaryFromClassification(
         : classification.evidenceHealth === 'infrastructure_failure'
           ? 'infrastructure_failure'
           : 'invalid'
+  if (!testRun.targetProjectId)
+    throw new ServiceError('Test run evidence has no target-project ownership.', 'CONFLICT', 409)
+  const links = testRunEvidenceLinks(testRun.runId, testRun.targetProjectId)
 
   return {
-    testRunPageId: testRun.id,
+    testRunPageId: testRun.runId,
     executionRunId: testRun.runId,
     planId: testRun.planId,
-    reportUrl: `/test-runs/${testRun.runId}`,
-    logsUrl: `/api/test-runs/${testRun.runId}/logs`,
+    reportUrl: links.reportUrl,
+    logsUrl: links.logsUrl,
     evidenceHealth: classification.evidenceHealth,
     grade,
     nextAllowedAction:

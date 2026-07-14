@@ -19,6 +19,7 @@ import prisma from '../../src/config/db-config'
 import { generateFeatureFile } from '../../src/lib/feature-file-generator'
 
 export const seededIds = {
+  targetProject: '00000000-0000-4000-8000-000000000001',
   module: 'e2e-module',
   environment: 'e2e-environment',
   tag: 'e2e-tag',
@@ -350,6 +351,22 @@ export async function seedCoreData(): Promise<void> {
   await seedSecondModuleSuite()
   await seedTestRunVariants()
   await seedDashboardAttentionMetrics()
+  await Promise.all([
+    prisma.module.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.environment.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.tag.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.locatorGroup.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.locator.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.templateStepGroup.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.testCase.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.testSuite.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.templateTestCase.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.testRun.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.report.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.testCaseMetrics.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.testSuiteMetrics.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+    prisma.dashboardMetrics.updateMany({ data: { targetProjectId: seededIds.targetProject } }),
+  ])
 }
 
 export async function seedTemplateCatalog(): Promise<void> {

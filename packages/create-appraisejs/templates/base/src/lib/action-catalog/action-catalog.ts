@@ -8,7 +8,7 @@ export const ACTION_CATALOG_CONTRACT_VERSION = '1' as const
 export const actionCategoryIdSchema = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
 const idSchema = actionCategoryIdSchema
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
-export const actionAssertionConcernSchema = z.enum(['accessibility', 'persistence'])
+export const actionAssertionConcernSchema = z.enum(['accessibility', 'persistence', 'responsive'])
 export const actionNumericUnitSchema = z.enum(['milliseconds', 'seconds'])
 
 export const actionCategorySchema = z.object({

@@ -89,6 +89,11 @@ target-repository automation as authority.
 
 ## E2E And Playwright
 
+Prefer the native browser control surface. If browser bootstrap fails before navigation with the host-level error
+`Cannot redefine property: process`, record that exact infrastructure defect and continue the same visible-browser
+workflow with a `playwright-cli` session. Preserve screenshots, console output, scoped project URLs, and human review
+gates; the fallback must not replace Appraise-owned approvals with direct API or database edits.
+
 Read `docs/test-run-runtime.md`, the target spec, and shared helpers before changing assertions or setup. Keep tests
 aligned with normal user flows rather than backend shortcuts.
 

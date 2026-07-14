@@ -34,6 +34,7 @@ function baseRun(overrides: Record<string, unknown> = {}) {
     status: TestRunStatus.COMPLETED,
     result: TestRunResult.PASSED,
     reportPath: 'reports/cucumber.json',
+    targetProjectId: 'project one',
     targetProject: { canonicalPath: '/workspace/app' },
     logs: { logs: 'status: Process exited with code 0' },
     testCases: [],
@@ -93,6 +94,12 @@ describe('run evidence summary service', () => {
     expect(summary.evidenceHealth).toBe('invalid_missing_report')
     expect(summary.grade).toBe('invalid')
     expect(summary.nextAllowedAction.tool).toBe('test_run_diagnose')
+    expect(summary).toMatchObject({
+      testRunPageId: '11111111-1111-4111-8111-111111111111',
+      executionRunId: '11111111-1111-4111-8111-111111111111',
+      reportUrl: '/test-runs/11111111-1111-4111-8111-111111111111?project=project%20one',
+      logsUrl: '/api/test-runs/11111111-1111-4111-8111-111111111111/logs?targetProjectId=project%20one',
+    })
   })
 
   it('classifies empty Cucumber reports as invalid empty run', async () => {

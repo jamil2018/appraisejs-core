@@ -28,6 +28,7 @@ import {
   reachImplementationCheckpoint,
   recordImplementationValidation,
   reconcileImplementationValidation,
+  readImplementationLifecycleHealth,
   reviewImplementationCompletion,
   startImplementationValidation,
   updateImplementationTask,
@@ -72,7 +73,7 @@ function plan(planId: string, lifecycle: PlanArtifact['lifecycle'] = 'in_progres
         validationIntent: 'Run docs validation.',
       },
     ],
-    edges: [{ from: 'foundation', to: 'api', type: 'depends-on' }],
+    edges: [{ from: 'foundation', to: 'api', type: 'blocks' }],
     implementationGroups: [
       { id: 'core', taskIds: ['foundation', 'api'] },
       { id: 'documentation', taskIds: ['docs'] },
@@ -201,17 +202,15 @@ async function writeArtifacts(
   validationOverrides: Partial<ValidationArtifact> = {},
   reviewOverrides: Partial<ReviewArtifact> = {},
 ) {
+  const ensureGlobalEnvironment = async (name: string, baseUrl: string) => {
+    const existing = await client.environment.findFirst({ where: { name, targetProjectId: null } })
+    return existing
+      ? client.environment.update({ where: { id: existing.id }, data: { baseUrl } })
+      : client.environment.create({ data: { name, baseUrl } })
+  }
   await Promise.all([
-    client.environment.upsert({
-      where: { name: 'local' },
-      update: { baseUrl: 'http://localhost:3000' },
-      create: { name: 'local', baseUrl: 'http://localhost:3000' },
-    }),
-    client.environment.upsert({
-      where: { name: 'staging' },
-      update: { baseUrl: 'https://staging.example.test' },
-      create: { name: 'staging', baseUrl: 'https://staging.example.test' },
-    }),
+    ensureGlobalEnvironment('local', 'http://localhost:3000'),
+    ensureGlobalEnvironment('staging', 'https://staging.example.test'),
   ])
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'validations'), { recursive: true })
   await fs.mkdir(path.join(workspace, 'appraise', 'plans', 'reviews'), { recursive: true })
@@ -906,6 +905,59 @@ describe('implementation coordinator checkpoints', () => {
       ],
     }
 
+    const crashPhases = [
+      'after_validation_write',
+      'after_review_write',
+      'after_sync',
+      'after_event_write',
+      'after_plan_write',
+    ] as const
+    for (const crashPhase of crashPhases) {
+      const crashPlanId = `completion-crash-${crashPhase.replaceAll('_', '-')}`
+      await writeArtifacts(
+        crashPlanId,
+        { lifecycle: 'validation_passed' },
+        { implementation },
+        { threads: [nonBlockingRemark] },
+      )
+      const crashReceipt = await reviewImplementationCompletion(crashPlanId, {
+        projectDirectory: workspace,
+        client,
+      })
+      await expect(
+        approveImplementationCompletion(
+          { planId: crashPlanId, approvedBy: 'user', contentHash: crashReceipt.evidenceHash },
+          { projectDirectory: workspace, client, completionCrashAfter: crashPhase },
+        ),
+      ).rejects.toThrow(`injected-${crashPhase.replaceAll('_', '-')}`)
+
+      const repository = new PlanArtifactRepository(workspace)
+      const crashedPlan = parseYamlArtifact(
+        'plan',
+        (await repository.read('plan', crashPlanId)).content,
+      ) as PlanArtifact
+      const crashedReview = parseYamlArtifact(
+        'review',
+        (await repository.read('review', crashPlanId)).content,
+      ) as ReviewArtifact
+      const crashEvents = await readPlanEvents({ planId: crashPlanId }, client)
+      if (crashedPlan.lifecycle === 'completed') {
+        expect(crashedReview.finalSignOff).toBeDefined()
+        expect(crashEvents).toContainEqual(expect.objectContaining({ type: 'plan_completed' }))
+      }
+
+      await expect(
+        reviewImplementationCompletion(crashPlanId, { projectDirectory: workspace, client }),
+      ).resolves.toMatchObject({
+        plan: { lifecycle: 'completed' },
+        finalSignOff: expect.objectContaining({ approvedBy: 'user' }),
+        readiness: { ready: true, blockers: [] },
+      })
+      await expect(readPlanEvents({ planId: crashPlanId }, client)).resolves.toEqual([
+        expect.objectContaining({ sequence: 1, type: 'plan_completed', payload: { approvedBy: 'user' } }),
+      ])
+    }
+
     await writeArtifacts(planId, { lifecycle: 'in_progress' }, { implementation }, { threads: [nonBlockingRemark] })
     const beforeValidationReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace, client })
     expect(beforeValidationReview).toMatchObject({
@@ -1013,5 +1065,12 @@ describe('implementation coordinator checkpoints', () => {
       expect.objectContaining({ sequence: 1, type: 'implementation_checkpoint_reached' }),
       expect.objectContaining({ sequence: 2, type: 'plan_completed', payload: { approvedBy: 'user' } }),
     ])
+    await expect(
+      readImplementationLifecycleHealth(planId, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      lifecycle: 'completed',
+      healthy: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'MISSING_VALIDATION_PASSED_EVENT' })]),
+    })
   })
 })

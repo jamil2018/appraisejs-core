@@ -556,10 +556,10 @@ describe('createTestRunFromValidatedValue', () => {
       runId: 'run-1',
       id: 'db-1',
       targetProjectId: 'target-1',
-      testRunPageId: 'db-1',
+      testRunPageId: 'run-1',
       executionRunId: 'run-1',
-      reportUrl: '/test-runs/run-1',
-      logsUrl: '/api/test-runs/run-1/logs',
+      reportUrl: '/test-runs/run-1?project=target-1',
+      logsUrl: '/api/test-runs/run-1/logs?targetProjectId=target-1',
       evidenceHealth: 'invalid_missing_report',
       nextAllowedAction: { tool: 'test_run_read' },
     })

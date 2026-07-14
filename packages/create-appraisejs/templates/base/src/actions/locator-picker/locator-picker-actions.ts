@@ -5,6 +5,7 @@ import type { SavePickedLocatorRequest, StartLocatorPickerSessionRequest } from 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { locatorPickerSessionManager } from '@/lib/locator-picker/session-manager'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 import { savePickedLocatorFromRequest } from '@/services/locator/locator-service'
 
 const startLocatorPickerSessionSchema = z
@@ -65,7 +66,8 @@ export async function getLocatorPickerSessionAction(sessionId: string): Promise<
 
 export async function savePickedLocatorAction(request: SavePickedLocatorRequest): Promise<ActionResponse> {
   try {
-    const outcome = await savePickedLocatorFromRequest(request)
+    const project = await requireActiveProjectForMutation()
+    const outcome = await savePickedLocatorFromRequest(request, project.id)
 
     if (outcome.kind === 'error') {
       return {

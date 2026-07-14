@@ -205,12 +205,12 @@ async function writeArtifacts(planId: string, lifecycle?: PlanArtifact['lifecycl
     ).id
   if (!projection.targetProjectId) await client.planProjection.update({ where: { planId }, data: { targetProjectId } })
   await client.environment.upsert({
-    where: { name: 'local' },
+    where: { targetProjectId_name: { targetProjectId, name: 'local' } },
     update: { baseUrl: 'http://localhost:3000', targetProjectId },
     create: { name: 'local', baseUrl: 'http://localhost:3000', targetProjectId },
   })
   await client.environment.upsert({
-    where: { name: 'staging' },
+    where: { targetProjectId_name: { targetProjectId, name: 'staging' } },
     update: { baseUrl: 'https://staging.example.test', targetProjectId },
     create: { name: 'staging', baseUrl: 'https://staging.example.test', targetProjectId },
   })
@@ -283,7 +283,10 @@ describe('baseline execution and implementation gate', () => {
     const repository = new PlanArtifactRepository(workspace)
     const stored = await repository.read('validation', planId)
     const reviewed = parseYamlArtifact('validation', stored.content) as ValidationArtifact
-    const localEnvironment = await client.environment.findUniqueOrThrow({ where: { name: 'local' } })
+    const projection = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+    const localEnvironment = await client.environment.findUniqueOrThrow({
+      where: { targetProjectId_name: { targetProjectId: projection.targetProjectId!, name: 'local' } },
+    })
     reviewed.validations[0]!.matrix = [{ browser: 'chromium', environment: localEnvironment.id }]
     reviewed.validations[0]!.astProvenance = {
       schemaVersion: '2',
@@ -398,6 +401,8 @@ describe('baseline execution and implementation gate', () => {
     const planId = 'baseline-gate'
     const submitted: Array<{ browser: string; environment: string; attemptOrdinal: number; testRunId: string }> = []
     await writeArtifacts(planId)
+    const projection = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+    const targetProjectId = projection.targetProjectId!
 
     await expect(startImplementation(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
       code: 'CONFLICT',
@@ -482,8 +487,8 @@ describe('baseline execution and implementation gate', () => {
         environment: 'local',
         classification: 'expected_product_failure',
         evidence: {
-          logsUrl: '/api/test-runs/run-chromium-local-0/logs',
-          reportUrl: '/test-runs/run-chromium-local-0',
+          logsUrl: `/api/test-runs/run-chromium-local-0/logs?targetProjectId=${targetProjectId}`,
+          reportUrl: `/test-runs/run-chromium-local-0?project=${targetProjectId}`,
           traceUrls: [],
           screenshotUrls: [],
         },

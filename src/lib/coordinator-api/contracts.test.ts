@@ -6,10 +6,10 @@ import { coordinatorError, planLinks, zodCoordinatorError } from './contracts'
 
 describe('coordinator public contracts', () => {
   it('builds stable Appraise, browser, and compatibility routes from the configured base URL', () => {
-    expect(planLinks('planning-experience', 'http://127.0.0.1:3000/')).toEqual({
+    expect(planLinks('planning-experience', 'http://127.0.0.1:3000/', 'project-one')).toEqual({
       appraise: 'appraise://plans/planning-experience',
-      browser: 'http://127.0.0.1:3000/plans/planning-experience',
-      route: '/plans/planning-experience',
+      browser: 'http://localhost:3000/plans/planning-experience?project=project-one',
+      route: '/plans/planning-experience?project=project-one',
     })
   })
 
@@ -47,6 +47,25 @@ describe('coordinator public contracts', () => {
         prismaCode: 'P2022',
         column: 'main.TestRun.evidenceHealth',
         modelName: 'TestRun',
+      },
+    })
+  })
+
+  it('returns bounded recovery guidance for database uniqueness conflicts', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { modelName: 'LocatorGroup', target: ['targetProjectId', 'name'] },
+    })
+
+    expect(coordinatorError(error)).toEqual({
+      code: 'database-unique-conflict',
+      message: 'A project resource with the same unique identity already exists.',
+      recovery: 'Reread the project-scoped resources and reuse the compatible ID or submit a distinct canonical name.',
+      details: {
+        prismaCode: 'P2002',
+        modelName: 'LocatorGroup',
+        fields: ['targetProjectId', 'name'],
       },
     })
   })

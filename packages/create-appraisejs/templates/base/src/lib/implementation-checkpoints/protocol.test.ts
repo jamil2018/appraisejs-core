@@ -4,6 +4,7 @@ import type { PlanArtifact, ValidationArtifact } from '@/lib/plan-contract'
 
 import {
   analyzeBlockingFeedback,
+  analyzeExecutionOrder,
   canCompleteImplementation,
   carriedFailureAcknowledgementIsValid,
   queuedFeedbackMessage,
@@ -24,7 +25,7 @@ const plan = {
     acceptanceCriteria: ['done'],
     validationIntent: 'verify',
   })),
-  edges: [{ from: 'foundation', to: 'api', type: 'depends-on' }],
+  edges: [{ from: 'foundation', to: 'api', type: 'blocks' }],
   implementationGroups: [
     { id: 'core', taskIds: ['foundation', 'api'] },
     { id: 'documentation', taskIds: ['docs'] },
@@ -118,6 +119,29 @@ describe('implementation checkpoint protocol', () => {
     expect(runnableTasks(plan, { foundation: 'verified' }, ['core', 'documentation'])).toEqual(['api', 'docs'])
   })
 
+  it('interprets depends-on from the dependent task to its prerequisite', () => {
+    const dependsOnPlan = {
+      ...plan,
+      edges: [{ from: 'api', to: 'foundation', type: 'depends-on' as const }],
+    }
+
+    expect(runnableTasks(dependsOnPlan, {}, ['core', 'documentation'])).toEqual(['foundation', 'docs'])
+    expect(runnableTasks(dependsOnPlan, { foundation: 'verified' }, ['core', 'documentation'])).toEqual(['api', 'docs'])
+  })
+
+  it('shows the deterministic execution order and rejects dependency cycles', () => {
+    expect(analyzeExecutionOrder(plan)).toMatchObject({ valid: true, orderedTaskIds: ['foundation', 'docs', 'api'] })
+    expect(
+      analyzeExecutionOrder({
+        ...plan,
+        edges: [
+          { from: 'foundation', to: 'api', type: 'blocks' },
+          { from: 'api', to: 'foundation', type: 'blocks' },
+        ],
+      }),
+    ).toMatchObject({ valid: false, blockedTaskIds: ['foundation', 'api'] })
+  })
+
   it('pauses affected tasks and transitive dependents without stopping independent work', () => {
     expect(analyzeBlockingFeedback(plan, validation, ['foundation'], ['core', 'documentation'])).toEqual({
       affectedTaskIds: ['foundation'],
@@ -136,6 +160,15 @@ describe('implementation checkpoint protocol', () => {
 
   it('requires verified tasks, fresh passing required validations, and protected evidence', () => {
     expect(canCompleteImplementation(plan, validation)).toEqual({ ready: true, blockers: [] })
+    expect(
+      canCompleteImplementation(
+        { ...plan, lifecycle: 'completed' },
+        {
+          ...validation,
+          implementation: { ...validation.implementation, evidenceProtected: false },
+        },
+      ),
+    ).toEqual({ ready: true, blockers: [] })
     expect(
       canCompleteImplementation(plan, {
         ...validation,

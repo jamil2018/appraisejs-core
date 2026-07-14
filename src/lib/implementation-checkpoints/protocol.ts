@@ -33,12 +33,41 @@ export function implementationState(validation: ValidationArtifact): Implementat
   )
 }
 
-const executionEdges = (plan: PlanArtifact) => plan.edges.filter(edge => edge.type !== 'relates-to')
+const executionEdges = (plan: PlanArtifact) =>
+  plan.edges
+    .filter(edge => edge.type !== 'relates-to')
+    .map(edge =>
+      edge.type === 'depends-on'
+        ? { prerequisite: edge.to, dependent: edge.from }
+        : { prerequisite: edge.from, dependent: edge.to },
+    )
 
 export function taskDependencies(plan: PlanArtifact, taskId: string): string[] {
   return executionEdges(plan)
-    .filter(edge => edge.to === taskId)
-    .map(edge => edge.from)
+    .filter(edge => edge.dependent === taskId)
+    .map(edge => edge.prerequisite)
+}
+
+export function analyzeExecutionOrder(plan: PlanArtifact) {
+  const remaining = new Set(plan.tasks.map(task => task.id))
+  const orderedTaskIds: string[] = []
+  while (remaining.size) {
+    const runnable = plan.tasks
+      .map(task => task.id)
+      .filter(taskId => remaining.has(taskId))
+      .filter(taskId => taskDependencies(plan, taskId).every(dependency => !remaining.has(dependency)))
+    if (!runnable.length) break
+    runnable.forEach(taskId => {
+      orderedTaskIds.push(taskId)
+      remaining.delete(taskId)
+    })
+  }
+  return {
+    valid: remaining.size === 0,
+    orderedTaskIds,
+    blockedTaskIds: [...remaining],
+    issues: remaining.size ? ['Execution graph contains a dependency cycle.'] : [],
+  }
 }
 
 export function transitiveDependents(plan: PlanArtifact, taskIds: string[]): string[] {
@@ -47,8 +76,8 @@ export function transitiveDependents(plan: PlanArtifact, taskIds: string[]): str
   while (changed) {
     changed = false
     for (const edge of executionEdges(plan)) {
-      if (affected.has(edge.from) && !affected.has(edge.to)) {
-        affected.add(edge.to)
+      if (affected.has(edge.prerequisite) && !affected.has(edge.dependent)) {
+        affected.add(edge.dependent)
         changed = true
       }
     }
@@ -125,7 +154,9 @@ export function canCompleteImplementation(
       blockers.push(`Required validation "${requiredValidation.id}" needs a fresh passing managed Appraise run.`)
     }
   }
-  if (!implementation.evidenceProtected) {
+  // Signed-off completion releases mutation protection while retaining the
+  // immutable managed-run identities and artifact/sign-off hashes as proof.
+  if (!implementation.evidenceProtected && plan.lifecycle !== 'completed') {
     blockers.push('Required evidence must remain protected until final completion.')
   }
   return { ready: blockers.length === 0, blockers }

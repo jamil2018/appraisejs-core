@@ -18,6 +18,7 @@ import {
   readValidationAstExtensionReviewsForPlan,
 } from './validation-ast-operation-service'
 import { decideValidationNode, submitValidationReview } from './coordinator-validation-service'
+import { auditManagedValidationIntegrity } from './managed-validation-integrity-audit'
 import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
 
 const planHash = `sha256:${'a'.repeat(64)}`
@@ -130,9 +131,9 @@ beforeEach(async () => {
     data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'b'.repeat(64)}` },
   })
   const environment = await client.environment.upsert({
-    where: { name: 'local' },
+    where: { id: 'validation-operation-local' },
     update: { targetProjectId: target.id },
-    create: { name: 'local', baseUrl: 'http://localhost', targetProjectId: target.id },
+    create: { id: 'validation-operation-local', name: 'local', baseUrl: 'http://localhost', targetProjectId: target.id },
   })
   const repository = new PlanArtifactRepository(workspace)
   await client.module.create({
@@ -341,6 +342,12 @@ describe('Validation AST SQLite preview to compile', () => {
       },
     })
     expect(JSON.parse(decisionEvent.payloadJson!)).toMatchObject(firstDecision)
+    await expect(
+      auditManagedValidationIntegrity('plan-one', { client, projectDirectory: workspace }),
+    ).resolves.toMatchObject({
+      status: 'green',
+      mismatches: [],
+    })
     const currentValidation = await repository.read('validation', 'plan-one')
     const mismatchedValidation = parseYamlArtifact('validation', currentValidation.content) as ValidationArtifact
     mismatchedValidation.validationDecisions[0]!.decidedBy = 'tampered-reviewer'
@@ -355,6 +362,8 @@ describe('Validation AST SQLite preview to compile', () => {
       client,
       projectDirectory: workspace,
       operationHash: published.operationHash,
+      reviewStateHash: (await client.validationAstPublishOperation.findUniqueOrThrow({ where: { id: published.id } }))
+        .reviewStateHash!,
       extensionArtifactHashes: [] as string[],
     }
     // fallow-ignore-next-line code-duplication -- same binding intentionally proves reject then accept

@@ -6,6 +6,7 @@ import { TestRunStatus } from '@prisma/client'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
 import type { LogEntry } from '@/lib/test-run/log-formatter'
 import { ACTIVE_PROJECT_COOKIE } from '@/lib/active-project'
+import { ServiceError } from '@/services/shared/errors'
 
 // Ensure this route runs in Node.js runtime (not Edge) for singleton to work
 export const runtime = 'nodejs'
@@ -86,6 +87,18 @@ function sseErrorResponse(status: number, payload: Record<string, unknown>) {
   })
 }
 
+function storedLogsErrorResponse(error: unknown, runId: string) {
+  const status = error instanceof ServiceError && error.statusCode === 409 ? 409 : 404
+  return Response.json(
+    {
+      error: status === 409 ? 'Test run log integrity conflict.' : 'Test run logs not found.',
+      code: status === 409 ? 'CONFLICT' : 'NOT_FOUND',
+      runId,
+    },
+    { status, headers: { 'Cache-Control': 'no-store' } },
+  )
+}
+
 async function readTestRunStatusForLogs(runId: string, targetProjectId: string) {
   try {
     const testRun = await prisma.testRun.findFirst({
@@ -158,7 +171,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     statusResult.status === TestRunStatus.CANCELLED ||
     !acceptsEventStream
   ) {
-    return storedLogsResponse({ runId, status: statusResult.status, wantsText, mode, limit, expectedTargetProjectId })
+    try {
+      return await storedLogsResponse({
+        runId,
+        status: statusResult.status,
+        wantsText,
+        mode,
+        limit,
+        expectedTargetProjectId,
+      })
+    } catch (error) {
+      return storedLogsErrorResponse(error, runId)
+    }
   }
 
   const processResult = await waitForRegisteredProcess(runId)

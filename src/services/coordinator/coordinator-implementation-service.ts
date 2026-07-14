@@ -25,6 +25,7 @@ import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
+import { testRunEvidenceLinks } from '@/services/test-run/test-run-evidence-links'
 import {
   createTestRunArtifactAccess,
   createTestRunArtifactContext,
@@ -40,10 +41,114 @@ import {
 } from './coordinator-service'
 import { readStoredJsonReport } from './coordinator-baseline-service'
 
-type Options = { client?: PrismaClient; projectDirectory?: string; now?: Date; appraiseRoot?: string }
+type CompletionCrashPhase =
+  | 'after_validation_write'
+  | 'after_review_write'
+  | 'after_sync'
+  | 'after_event_write'
+  | 'after_plan_write'
+
+type Options = {
+  client?: PrismaClient
+  projectDirectory?: string
+  now?: Date
+  appraiseRoot?: string
+  /** Test-only fault injection for verifying durable completion recovery. */
+  completionCrashAfter?: CompletionCrashPhase
+}
 
 function completionEvidenceHash(value: unknown) {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+}
+
+type CompletionTransaction = {
+  transactionId: string
+  planId: string
+  approvedBy: string
+  expectedHashes: { plan: string; validation: string; review: string }
+  desiredHashes: { plan: string; validation: string; review: string }
+  contents: { plan: string; validation: string; review: string }
+}
+
+function artifactContentHash(content: string) {
+  return `sha256:${createHash('sha256').update(content).digest('hex')}`
+}
+
+async function ensureCompletionArtifact(
+  repository: PlanArtifactRepository,
+  transaction: CompletionTransaction,
+  kind: 'plan' | 'validation' | 'review',
+) {
+  const current = await repository.read(kind, transaction.planId)
+  if (current.hash === transaction.desiredHashes[kind]) return
+  if (current.hash !== transaction.expectedHashes[kind])
+    throw new ServiceError(`${kind} artifact drifted during completion recovery.`, 'CONFLICT')
+  const stored = await repository.compareAndWrite(
+    kind,
+    transaction.planId,
+    transaction.expectedHashes[kind],
+    transaction.contents[kind],
+  )
+  if (stored.hash !== transaction.desiredHashes[kind])
+    throw new ServiceError(`${kind} artifact did not match its completion transaction hash.`, 'CONFLICT')
+}
+
+async function completionJournalEvent(planId: string, type: 'plan_completed', client: PrismaClient) {
+  const projection = await client.planProjection.findUnique({ where: { planId }, select: { id: true } })
+  if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
+  return client.planEvent.findFirst({
+    where: { planProjectionId: projection.id, type },
+    orderBy: { sequence: 'desc' },
+  })
+}
+
+async function appendCompletionEventOnce(transaction: CompletionTransaction, client: PrismaClient) {
+  const existing = await completionJournalEvent(transaction.planId, 'plan_completed', client)
+  if (existing) return existing
+  return appendPlanEvent(
+    {
+      planId: transaction.planId,
+      type: 'plan_completed',
+      payload: { approvedBy: transaction.approvedBy },
+    },
+    client,
+  )
+}
+
+function parseCompletionTransaction(payloadJson: string | null): CompletionTransaction | null {
+  if (!payloadJson) return null
+  const value = JSON.parse(payloadJson) as CompletionTransaction
+  if (!value.transactionId || !value.planId || !value.expectedHashes || !value.desiredHashes || !value.contents)
+    throw new ServiceError('Completion transaction record is invalid.', 'CONFLICT')
+  for (const kind of ['plan', 'validation', 'review'] as const) {
+    if (artifactContentHash(value.contents[kind]) !== value.desiredHashes[kind])
+      throw new ServiceError(`Completion transaction ${kind} content hash is invalid.`, 'CONFLICT')
+  }
+  return value
+}
+
+async function pendingCompletionTransaction(planId: string, projectDirectory?: string) {
+  const repository = new PlanArtifactRepository(projectDirectory)
+  return parseCompletionTransaction(await repository.readCompletionTransaction(planId))
+}
+
+async function resumeCompletionTransaction(transaction: CompletionTransaction, options: Options) {
+  const client = options.client ?? prisma
+  const repository = new PlanArtifactRepository(options.projectDirectory)
+  await ensureCompletionArtifact(repository, transaction, 'validation')
+  if (options.completionCrashAfter === 'after_validation_write') throw new Error('injected-after-validation-write')
+  await ensureCompletionArtifact(repository, transaction, 'review')
+  if (options.completionCrashAfter === 'after_review_write') throw new Error('injected-after-review-write')
+  await syncPlans({ projectDirectory: options.projectDirectory, client })
+  if (options.completionCrashAfter === 'after_sync') throw new Error('injected-after-sync')
+  await appendCompletionEventOnce(transaction, client)
+  if (options.completionCrashAfter === 'after_event_write') throw new Error('injected-after-event-write')
+  // The terminal lifecycle write is deliberately last: a stored completed plan
+  // therefore always has both its exact sign-off and plan_completed event.
+  await ensureCompletionArtifact(repository, transaction, 'plan')
+  if (options.completionCrashAfter === 'after_plan_write') throw new Error('injected-after-plan-write')
+  await syncPlans({ projectDirectory: options.projectDirectory, client })
+  await repository.removeCompletionTransaction(transaction.planId)
 }
 
 async function readArtifacts(planId: string, projectDirectory?: string) {
@@ -73,29 +178,22 @@ async function writeArtifacts(
   review: ReviewArtifact,
   client: PrismaClient,
 ) {
+  const serializedValidation = serializeYamlArtifact('validation', validation)
+  const serializedPlan = serializeYamlArtifact('plan', plan)
+  const serializedReview = serializeYamlArtifact('review', review)
   // This mirrors the baseline coordinator's artifact transaction boundary.
   // fallow-ignore-next-line code-duplication
   await artifacts.repository.compareAndWrite(
     'validation',
     plan.planId,
     artifacts.validationStored.hash,
-    serializeYamlArtifact('validation', validation),
+    serializedValidation,
   )
   if (plan.lifecycle !== artifacts.plan.lifecycle) {
-    await artifacts.repository.compareAndWrite(
-      'plan',
-      plan.planId,
-      artifacts.planStored.hash,
-      serializeYamlArtifact('plan', plan),
-    )
+    await artifacts.repository.compareAndWrite('plan', plan.planId, artifacts.planStored.hash, serializedPlan)
   }
   if (review.finalSignOff !== artifacts.review.finalSignOff) {
-    await artifacts.repository.compareAndWrite(
-      'review',
-      plan.planId,
-      artifacts.reviewStored.hash,
-      serializeYamlArtifact('review', review),
-    )
+    await artifacts.repository.compareAndWrite('review', plan.planId, artifacts.reviewStored.hash, serializedReview)
   }
   await syncPlans({ projectDirectory: artifacts.projectRoot, client })
 }
@@ -530,7 +628,7 @@ async function loadManagedImplementationRun(
 
   const testRun = await client.testRun.findUnique({
     where: { runId: run.testRunId },
-    select: { runId: true, status: true, result: true, reportPath: true, completedAt: true },
+    select: { runId: true, targetProjectId: true, status: true, result: true, reportPath: true, completedAt: true },
   })
   if (!testRun) {
     return managedInfrastructureFailure(run, now)
@@ -539,6 +637,8 @@ async function loadManagedImplementationRun(
   const evidenceSummary = await summarizeRunEvidence(testRun.runId, client, appraiseRoot)
   const status = implementationRunStatus({ ...testRun, evidenceHealth: evidenceSummary.evidenceHealth })
   const failureSignatureHash = await failureSignatureHashForRun(testRun, client, appraiseRoot)
+  if (!testRun.targetProjectId) throw new ServiceError('Managed test run has no target-project ownership.', 'CONFLICT')
+  const evidenceLinks = testRunEvidenceLinks(testRun.runId, testRun.targetProjectId)
 
   return {
     ...run,
@@ -547,10 +647,10 @@ async function loadManagedImplementationRun(
       status === 'passed' && evidenceSummary.evidenceHealth === 'valid' ? ('full' as const) : ('reduced' as const),
     status,
     testRunId: testRun.runId,
-    evidenceUrls: [`/test-runs/${testRun.runId}`, `/api/test-runs/${testRun.runId}/logs`],
+    evidenceUrls: [evidenceLinks.reportUrl, evidenceLinks.logsUrl],
     evidence: {
-      logsUrl: `/api/test-runs/${testRun.runId}/logs`,
-      reportUrl: `/test-runs/${testRun.runId}`,
+      logsUrl: evidenceLinks.logsUrl,
+      reportUrl: evidenceLinks.reportUrl,
       traceUrls: [],
       screenshotUrls: [],
     },
@@ -847,6 +947,23 @@ export async function startImplementationValidation(
 ) {
   const { client, artifacts, implementation } = await implementationContext(input.planId, options)
   const selected = selectImplementationValidations(artifacts.validation, input.validationIds)
+  const selectedIds = new Set(selected.map(validation => validation.id))
+  const requestedCommitHash = input.commitHash ?? implementation.commits.at(-1)?.hash
+  const activeRuns = implementation.validationRuns.filter(
+    run =>
+      run.status === 'running' &&
+      selectedIds.has(run.validationId) &&
+      (!requestedCommitHash || run.commitHash === requestedCommitHash),
+  )
+  if (activeRuns.length > 0) {
+    return {
+      plan: artifacts.plan,
+      validation: artifacts.validation,
+      runs: activeRuns,
+      capsuleStartOutcomes: [],
+      reused: true,
+    }
+  }
   const startedAt = (options.now ?? new Date()).toISOString()
   const preparedCapsuleTestRunDbIds: string[] = []
   let prepared
@@ -943,6 +1060,7 @@ function reconciliationEvent(input: {
   }
 }
 
+// fallow-ignore-next-line complexity
 export async function reconcileImplementationValidation(
   input: {
     planId: string
@@ -1048,6 +1166,12 @@ export async function reconcileImplementationValidation(
     },
     client,
   )
+  if (receipt && readiness.ready) {
+    await appendPlanEvent(
+      { planId: input.planId, type: 'validation_passed', payload: { runIds: [...updates.keys()] } },
+      client,
+    )
+  }
   return { plan, validation, readiness, receipt }
 }
 
@@ -1127,9 +1251,75 @@ async function evaluateImplementationCompletion(
   return { ...receipt, evidenceHash: completionEvidenceHash(receipt) }
 }
 
+function restorePartialCompletionEvidence<T extends Awaited<ReturnType<typeof readArtifacts>>>(current: T): T {
+  return (
+    current.plan.lifecycle === 'completed' && current.review.finalSignOff === undefined
+      ? {
+          ...current,
+          validation: {
+            ...current.validation,
+            implementation: { ...implementationState(current.validation), evidenceProtected: true },
+          },
+        }
+      : current
+  ) as T
+}
+
 export async function reviewImplementationCompletion(planId: string, options: Options = {}) {
+  const pending = await pendingCompletionTransaction(planId, options.projectDirectory)
+  if (pending) await resumeCompletionTransaction(pending, options)
+  const artifacts = restorePartialCompletionEvidence(await readArtifacts(planId, options.projectDirectory))
+  const receipt = await evaluateImplementationCompletion(artifacts, options.client ?? prisma)
+  return artifacts.plan.lifecycle === 'completed' && artifacts.review.finalSignOff
+    ? { ...receipt, readiness: { ready: true, blockers: [] } }
+    : receipt
+}
+
+export async function readImplementationLifecycleHealth(planId: string, options: Options = {}) {
+  const client = options.client ?? prisma
   const artifacts = await readArtifacts(planId, options.projectDirectory)
-  return evaluateImplementationCompletion(artifacts, options.client ?? prisma)
+  const implementation = implementationState(artifacts.validation)
+  const [events, managedRuns] = await Promise.all([
+    client.planEvent.findMany({ where: { plan: { planId } }, select: { type: true }, orderBy: { sequence: 'asc' } }),
+    client.testRun.findMany({
+      where: { runId: { in: implementation.validationRuns.flatMap(run => (run.testRunId ? [run.testRunId] : [])) } },
+      select: { runId: true },
+    }),
+  ])
+  const eventTypes = new Set(events.map(event => event.type))
+  const knownRunIds = new Set(managedRuns.map(run => run.runId))
+  const orphanedRunIds = implementation.validationRuns
+    .filter(run => run.testRunId && !knownRunIds.has(run.testRunId))
+    .map(run => run.id)
+  const issues = [
+    ...(artifacts.plan.lifecycle === 'completed' && !artifacts.review.finalSignOff
+      ? [{ code: 'MISSING_FINAL_SIGN_OFF', recoveryAction: 'RETRY_COMPLETION_WITH_REVIEWED_RECEIPT' }]
+      : []),
+    ...(artifacts.plan.lifecycle === 'completed' && !eventTypes.has('plan_completed')
+      ? [{ code: 'MISSING_PLAN_COMPLETED_EVENT', recoveryAction: 'RECONCILE_COMPLETION_EVENT' }]
+      : []),
+    ...(['validation_passed', 'completed'].includes(artifacts.plan.lifecycle) && !eventTypes.has('validation_passed')
+      ? [{ code: 'MISSING_VALIDATION_PASSED_EVENT', recoveryAction: 'RECONCILE_VALIDATION_EVENT' }]
+      : []),
+    ...(artifacts.plan.lifecycle !== 'completed' && !implementation.evidenceProtected
+      ? [{ code: 'EVIDENCE_PROTECTION_RELEASED_EARLY', recoveryAction: 'RESTORE_EVIDENCE_PROTECTION' }]
+      : []),
+    ...orphanedRunIds.map(runId => ({
+      code: 'ORPHANED_IMPLEMENTATION_RUN',
+      runId,
+      recoveryAction: 'RETRY_MANAGED_VALIDATION',
+    })),
+  ]
+  return {
+    schemaVersion: 1,
+    planId,
+    lifecycle: artifacts.plan.lifecycle,
+    healthy: issues.length === 0,
+    issues,
+    finalSignOffId: artifacts.review.finalSignOff?.id,
+    evidenceProtected: implementation.evidenceProtected,
+    managedRunCount: implementation.validationRuns.length,
+  }
 }
 
 function staleCompletionReceipt(
@@ -1155,10 +1345,18 @@ export async function approveImplementationCompletion(
   options: Options = {},
 ) {
   const client = options.client ?? prisma
-  let artifacts = await readArtifacts(input.planId, options.projectDirectory)
+  const pending = await pendingCompletionTransaction(input.planId, options.projectDirectory)
+  if (pending) {
+    await resumeCompletionTransaction(pending, options)
+    const completed = await readArtifacts(input.planId, options.projectDirectory)
+    return { plan: completed.plan, review: completed.review, validation: completed.validation }
+  }
+  let artifacts = restorePartialCompletionEvidence(await readArtifacts(input.planId, options.projectDirectory))
   let receipt = await evaluateImplementationCompletion(artifacts, client)
   if (input.contentHash !== receipt.evidenceHash) throw staleCompletionReceipt(input.contentHash, receipt)
-  if (receipt.plan.lifecycle !== 'validation_passed') {
+  const recoverablePartialCompletion =
+    receipt.plan.lifecycle === 'completed' && artifacts.review.finalSignOff === undefined
+  if (receipt.plan.lifecycle !== 'validation_passed' && !recoverablePartialCompletion) {
     throw new ServiceError('Passing validations are required before completion.', 'CONFLICT')
   }
   if (!receipt.readiness.ready) throw new ServiceError(receipt.readiness.blockers.join(' '), 'CONFLICT')
@@ -1170,12 +1368,13 @@ export async function approveImplementationCompletion(
       // Re-read inside the event-stream critical section. Repository compare-and-write
       // remains the final artifact CAS for non-event artifact mutations.
       artifacts = await readArtifacts(input.planId, options.projectDirectory)
+      artifacts = restorePartialCompletionEvidence(artifacts)
       receipt = await evaluateImplementationCompletion(artifacts, client)
       if (input.contentHash !== receipt.evidenceHash) throw staleCompletionReceipt(input.contentHash, receipt)
       const review = {
         ...artifacts.review,
         finalSignOff: {
-          id: `completion-${input.planId}`,
+          id: `completion-${input.planId.replaceAll('_', '-')}`,
           revision: artifacts.plan.revision,
           contentHash: input.contentHash,
           relevantHashes: {
@@ -1192,11 +1391,29 @@ export async function approveImplementationCompletion(
         ...artifacts.validation,
         implementation: { ...implementationState(artifacts.validation), evidenceProtected: false },
       }
-      await writeArtifacts(artifacts, plan, validation, review, client)
-      await appendPlanEvent(
-        { planId: input.planId, type: 'plan_completed', payload: { approvedBy: input.approvedBy } },
-        client,
-      )
+      const contents = {
+        plan: serializeYamlArtifact('plan', plan),
+        validation: serializeYamlArtifact('validation', validation),
+        review: serializeYamlArtifact('review', review),
+      }
+      const transaction: CompletionTransaction = {
+        transactionId: `completion-${input.planId.replaceAll('_', '-')}-${artifacts.plan.revision}`,
+        planId: input.planId,
+        approvedBy: input.approvedBy,
+        expectedHashes: {
+          plan: artifacts.planStored.hash,
+          validation: artifacts.validationStored.hash,
+          review: artifacts.reviewStored.hash,
+        },
+        desiredHashes: {
+          plan: artifactContentHash(contents.plan),
+          validation: artifactContentHash(contents.validation),
+          review: artifactContentHash(contents.review),
+        },
+        contents,
+      }
+      await artifacts.repository.writeCompletionTransaction(input.planId, JSON.stringify(transaction))
+      await resumeCompletionTransaction(transaction, { ...options, client })
       return { plan, review, validation }
     },
     client,

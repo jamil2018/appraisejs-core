@@ -73,6 +73,7 @@ import {
   reconcileImplementationValidation,
   reviewImplementationCompletion,
   startImplementationValidation,
+  readImplementationLifecycleHealth,
   updateImplementationTask,
 } from '@/services/coordinator/coordinator-implementation-service'
 import {
@@ -97,7 +98,12 @@ import {
   revokeDelegatedCoordinatorReceipt,
   verifyDelegatedCoordinatorReceipt,
 } from '@/services/coordinator/delegated-coordinator-service'
-import { proposeValidationResources } from '@/services/coordinator/validation-resource-proposal-service'
+import {
+  abandonValidationResourceProposal,
+  cleanupValidationResourceProposal,
+  proposeValidationResources,
+} from '@/services/coordinator/validation-resource-proposal-service'
+import { reconcileManagedValidationReviewState } from '@/services/coordinator/managed-validation-review-state'
 import {
   checkValidationAstForPlan,
   compileValidationAstForPlan,
@@ -124,6 +130,7 @@ const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const routePlanIdSchema = planIdSchema
 const astReviewBindingSchema = z.object({
   operationHash: z.string().startsWith('sha256:').optional(),
+  reviewStateHash: z.string().startsWith('sha256:').optional(),
   extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
 })
 const reviewTargetSchema = z.discriminatedUnion('type', [
@@ -155,16 +162,22 @@ function validationErrorResponse(error: unknown): Response | undefined {
   if (envelope) return Response.json({ error: envelope.message, ...envelope }, { status: 400 })
 }
 
+// fallow-ignore-next-line complexity
 function responseError(error: unknown): Response {
   const knownResponse = serviceErrorResponse(error) ?? validationErrorResponse(error)
-  if (knownResponse) return knownResponse
+  if (knownResponse) {
+    const envelope = coordinatorError(error)
+    if (envelope?.code === 'database-unique-conflict')
+      return Response.json({ error: envelope.message, ...envelope }, { status: 409 })
+    return knownResponse
+  }
   console.error('Coordinator API failed', error)
   return Response.json({ error: 'Coordinator API failed.' }, { status: 500 })
 }
 
-function withLinks<T extends object>(value: T, planId: string, request: Request) {
+function withLinks<T extends object>(value: T, planId: string, request: Request, targetProjectId?: string | null) {
   const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
-  return { ...value, links: planLinks(planId, baseUrl) }
+  return { ...value, links: planLinks(planId, baseUrl, targetProjectId) }
 }
 
 function assertProviderNativeRunsEnabled() {
@@ -180,13 +193,13 @@ function assertProviderNativeRunsEnabled() {
 async function getPlan(request: Request, operation: string[]) {
   const planId = routePlanIdSchema.parse(operation[1])
   const plan = await readCoordinatorPlan(planId)
-  return Response.json(withLinks(plan, plan.planId, request))
+  return Response.json(withLinks(plan, plan.planId, request, plan.targetProjectId))
 }
 
 async function getReview(request: Request, operation: string[]) {
   const planId = routePlanIdSchema.parse(operation[1])
   const review = await readPlanReviewSummary(planId)
-  return Response.json(withLinks(review, review.planId, request))
+  return Response.json(withLinks(review, review.planId, request, review.targetProjectId))
 }
 
 async function getEvents(request: Request, operation: string[]) {
@@ -244,19 +257,11 @@ async function resolveEvidenceTarget(request: Request) {
   return target
 }
 
-function isNotFoundError(error: unknown) {
-  return (error instanceof ServiceError ? error.code : Reflect.get(Object(error), 'code')) === 'NOT_FOUND'
-}
-
 async function getTestRunEvidence(request: Request, operation: string[]) {
   const runId = z.string().uuid().parse(operation[1])
   const target = await resolveEvidenceTarget(request)
   if (operation.length === 2) {
-    const evidence = await readTestRunEvidenceSummary(runId, target.id).catch(error => {
-      if (isNotFoundError(error)) return readTestRunEvidenceSummary(runId)
-      throw error
-    })
-    return Response.json(evidence)
+    return Response.json(await readTestRunEvidenceSummary(runId, target.id))
   }
   if (operation[2] === 'diagnose') {
     return Response.json(await diagnoseTestRunEvidence(runId, target.id))
@@ -311,6 +316,9 @@ async function dispatchGet(request: Request, operation: string[]) {
   }
   if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
   if (operation[0] === 'test-runs') return getTestRunEvidence(request, operation)
+  if (operation[0] === 'plans' && operation[1] && operation[2] === 'health') {
+    return Response.json(await readImplementationLifecycleHealth(routePlanIdSchema.parse(operation[1])))
+  }
   if (operation[0] === 'actions') {
     const query = new URL(request.url).searchParams
     if (operation[1] === 'categories') {
@@ -598,6 +606,7 @@ function sourceResponse(source: z.infer<typeof createPlanBodySchema>['source']) 
   }
 }
 
+// fallow-ignore-next-line complexity
 async function postCreatePlan(request: Request, body: unknown) {
   const value = parseCreatePlanBody(body)
   const identity = await ensureProjectIdentity()
@@ -606,7 +615,7 @@ async function postCreatePlan(request: Request, body: unknown) {
   const createdPlan = await createCoordinatorPlan(value.plan, { targetProjectId: targetProject?.id })
   return Response.json(
     {
-      ...withLinks(createdPlan, createdPlan.planId, request),
+      ...withLinks(createdPlan, createdPlan.planId, request, targetProject?.id),
       hubProject: {
         fingerprint: identity.projectFingerprint,
         canonicalPath: identity.canonicalProjectPath,
@@ -798,6 +807,14 @@ async function postValidationOperation(request: Request, operation: string[], bo
   const planId = routePlanIdSchema.parse(operation[1])
   if (operation[3] === 'resources' && operation[4] === 'propose')
     return Response.json(await proposeValidationResources({ planId, proposal: body }))
+  if (operation[3] === 'resources' && operation[4] === 'abandon') {
+    const value = z.object({ idempotencyKey: idSchema, reason: z.string().trim().min(1) }).parse(body)
+    return Response.json(await abandonValidationResourceProposal({ planId, ...value }))
+  }
+  if (operation[3] === 'resources' && operation[4] === 'cleanup') {
+    const value = z.object({ idempotencyKey: idSchema }).parse(body)
+    return Response.json(await cleanupValidationResourceProposal({ planId, ...value }))
+  }
   if (operation[3] === 'ast') {
     if (operation[4] === 'extension-policy') return Response.json(await readValidationAstExtensionPolicyForPlan(planId))
     if (operation[4] === 'extension-reviews') {
@@ -838,6 +855,7 @@ async function postValidationOperation(request: Request, operation: string[], bo
     const binding = astReviewBindingSchema.parse(body)
     return Response.json(await submitValidationReview(planId, binding))
   }
+  if (operation[3] === 'reconcile') return Response.json(await reconcileManagedValidationReviewState(planId))
   if (operation[3] === 'nodes') {
     const value = astReviewBindingSchema
       .extend({
@@ -1055,7 +1073,7 @@ export async function PUT(request: Request, context: RouteContext) {
       .parse(await readCoordinatorJson(request))
     const planId = routePlanIdSchema.parse(operation[1])
     const revised = await reviseCoordinatorPlan(planId, body.plan, body.expectedHash)
-    return Response.json(withLinks(revised, revised.planId, request))
+    return Response.json(withLinks(revised, revised.planId, request, revised.targetProjectId))
   } catch (error) {
     return responseError(error)
   }

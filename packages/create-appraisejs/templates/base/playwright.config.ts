@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 const port = Number(process.env.E2E_PORT ?? 3200)
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`
 const databaseUrl = process.env.DATABASE_URL ?? `file:./e2e-${Date.now()}.db`
+const seededTargetProjectId = '00000000-0000-4000-8000-000000000001'
 
 process.env.DATABASE_URL = databaseUrl
 
@@ -21,6 +22,21 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
   use: {
     baseURL,
+    storageState: {
+      cookies: [
+        {
+          name: 'appraise-active-project',
+          value: seededTargetProjectId,
+          domain: new URL(baseURL).hostname,
+          path: '/',
+          httpOnly: true,
+          secure: false,
+          sameSite: 'Lax',
+          expires: -1,
+        },
+      ],
+      origins: [],
+    },
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

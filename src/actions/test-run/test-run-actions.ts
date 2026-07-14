@@ -85,7 +85,7 @@ export async function getTestRunLogsAction(testRunId: string): Promise<ActionRes
   try {
     const project = await requireActiveProjectForMutation()
     await getTestRunByIdOrThrow(testRunId, project.id)
-    const logs = await getTestRunLogsService(testRunId)
+    const logs = await getTestRunLogsService(testRunId, project.id)
 
     return {
       status: 200,

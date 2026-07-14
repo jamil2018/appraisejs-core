@@ -588,10 +588,22 @@ describe('requestPlanChanges', () => {
       { planId: 'agent-readable-loop', displayedRevision: 1, expectedPlanHash },
       { projectDirectory: workspace, client },
     )
+    const targetProject = await client.targetProject.create({
+      data: {
+        canonicalPath: '/agent-readable-loop',
+        displayName: 'Agent readable loop',
+        fingerprint: 'agent-readable-loop',
+      },
+    })
+    await client.planProjection.update({
+      where: { planId: 'agent-readable-loop' },
+      data: { targetProjectId: targetProject.id },
+    })
 
     const summary = await readPlanReviewSummary('agent-readable-loop', { projectDirectory: workspace, client })
     expect(summary).toMatchObject({
       planId: 'agent-readable-loop',
+      targetProjectId: targetProject.id,
       plan: { revision: 1, lifecycle: 'changes_requested' },
       blockingThreads: [
         expect.objectContaining({

@@ -14,25 +14,47 @@ export type CoordinatorErrorEnvelope = {
   details?: Record<string, unknown>
 }
 
-export function planLinks(planId: string, baseUrl: string) {
-  const route = `/plans/${planId}`
+function canonicalBrowserOrigin(baseUrl: string) {
+  const configured = process.env.APPRAISE_BROWSER_ORIGIN?.trim()
+  const url = new URL(configured || baseUrl)
+  if (!configured && ['127.0.0.1', '::1'].includes(url.hostname)) url.hostname = 'localhost'
+  return url.origin
+}
+
+export function planLinks(planId: string, baseUrl: string, targetProjectId?: string | null) {
+  const project = targetProjectId ? `?project=${encodeURIComponent(targetProjectId)}` : ''
+  const route = `/plans/${planId}${project}`
   return {
     appraise: `appraise://plans/${planId}`,
-    browser: new URL(route, `${baseUrl.replace(/\/$/, '')}/`).href,
+    browser: new URL(route, `${canonicalBrowserOrigin(baseUrl)}/`).href,
     route,
   }
 }
 
-export function validationReviewLinks(planId: string, baseUrl: string) {
-  const route = `/plans/${planId}?review=validation`
+export function validationReviewLinks(planId: string, baseUrl: string, targetProjectId?: string | null) {
+  const query = new URLSearchParams({ review: 'validation' })
+  if (targetProjectId) query.set('project', targetProjectId)
+  const route = `/plans/${planId}?${query}`
   return {
     appraise: `appraise://plans/${planId}`,
-    browser: new URL(route, `${baseUrl.replace(/\/$/, '')}/`).href,
+    browser: new URL(route, `${canonicalBrowserOrigin(baseUrl)}/`).href,
     route,
   }
 }
 
 export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | undefined {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    return {
+      code: 'database-unique-conflict',
+      message: 'A project resource with the same unique identity already exists.',
+      recovery: 'Reread the project-scoped resources and reuse the compatible ID or submit a distinct canonical name.',
+      details: {
+        prismaCode: error.code,
+        modelName: error.meta?.modelName,
+        fields: error.meta?.target,
+      },
+    }
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
     return {
       code: 'database-schema-drift',

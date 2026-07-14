@@ -62,13 +62,16 @@ case, step, requested locator, and a corrective locator lookup action.
 
 ## Validation Review
 
-Validation review readiness is receipt-backed. The plan artifact and projection may enter
-`awaiting_validation_review` only when the latest publish journal is `review_ready`, the exact validation/review
-artifact hashes match, the canonical validation projection matches, and the operation owns one
-`validation_review_ready` event. Coordinator waits and the review UI report `integrity_blocked` and hide approval
-controls when any representation disagrees. A staged `prepared`, `artifacts_written`, or `projected` operation may be
-resumed only through the exact `validation_ast_compile` receipt; non-repairable conflicts remain blocked with their
-historical evidence intact.
+Validation review uses two hash domains. The publish operation protects immutable compiled validation, review, and
+projection content. Node decisions, file approvals, and review submission advance a separate current-review-state
+receipt. Validation submission must present the exact current receipt shown in the review UI. A legitimate review
+decision therefore cannot invalidate compile-time publication integrity.
+
+Coordinator waits and the review UI report `integrity_blocked` and hide approval controls when either immutable
+content or the current receipt disagrees. A staged `prepared`, `artifacts_written`, or `projected` operation resumes
+through its exact `validation_ast_compile` receipt. A `review_ready` operation whose immutable content is intact may
+use the idempotent `validation_review_reconcile` action to refresh only its current review-state receipt; history and
+the original publication receipt remain unchanged.
 
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation
 artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
@@ -76,6 +79,10 @@ older `validation_approved` events may exist in in-flight streams, but new event
 The validation review handoff should include the direct validation review URL, `appraise://` URL, lifecycle, revision,
 validation artifact path, validation count, changed-file count, manifest paths, reused registry/template step paths,
 new custom step paths, and the next review action.
+
+Explicit non-deferred requirements must have reviewable coverage mappings. `uncovered` blocks review. `partial`
+requires an exact human acknowledgement describing the missing capability. The standard browser catalog includes
+keyboard/focus, checked/value/text/absence assertions, viewport changes, and horizontal-overflow checks.
 
 ## Baseline
 
@@ -95,8 +102,9 @@ with baseline decisions and interrupts: cancelling active baseline runs, acknowl
 accepted regression-pass evidence, and accepting complete baseline evidence.
 
 When a baseline is intentionally red before implementation, the managed Validation AST must declare `expectedFailures`
-for the exact browser/environment matrix entry. Entries preserve legacy baseline semantics: `signature` is matched in
-`order`, and `lastPassingStepId` names the AST step that must pass before the expected product failure. Use `null` only
+for the exact browser/environment matrix entry. Entries preserve legacy baseline semantics: each approved `signature`
+is matched as an ordered fragment of the observed failure line, and `lastPassingStepId` names the AST step that must
+pass before the expected product failure. Use `null` only
 when the expected failure occurs at the first scenario step. Expected red evidence remains review-bound and must not be
 converted into an unrelated-failure acknowledgement.
 
@@ -110,6 +118,12 @@ conflicts may reuse only a TestRun already bound to the same plan and target pro
 the existing run identity and an Appraise-owned repair action instead of a generic name-validation error.
 
 ## Implementation
+
+Execution edges are directional: `A blocks B` means A must be verified before B can start, while `A depends-on B`
+means B must be verified before A can start. `relates-to` never affects task eligibility.
+
+Managed implementation validation starts its runtime capsules automatically. Replaying the start operation reuses
+content-bound active runs; agents reconcile the returned implementation run IDs and do not invoke `test_run` again.
 
 Tasks move through `pending`, `in_progress`, `implemented`, and `verified`. Dependencies must be verified before a
 dependent task starts. Poll before and after task groups, before validation, and before completion. Blocking feedback
@@ -183,6 +197,12 @@ until the refreshed receipt is reviewed and confirmed again.
 Repository export is independently policy-controlled. Disabled and optional exports never block completion. Required
 export blocks only until a project-bound receipt exists for the exact reviewed validation hash; managed TestRun
 evidence never depends on repository export files.
+
+Final approval first records a durable private completion transaction beside the plan artifacts. Its
+validation, review, projection-sync, completion-event, and terminal-plan writes are replay-safe, and completion reads
+or repeated approval resume interrupted work. The terminal `completed` plan write happens only after the exact final
+sign-off and `plan_completed` event exist. Evidence protection may then be released: immutable managed TestRun
+identities, evidence URLs, artifact hashes, and sign-off hashes remain the signed-off completion proof.
 
 ## Reporting Evidence
 

@@ -1,7 +1,15 @@
+import { createHash } from 'node:crypto'
+
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
+import {
+  immutableReviewContent,
+  immutableValidationContent,
+  immutableValidationProjection,
+  validationReviewStateReceipt,
+} from './managed-validation-review-state'
 
 type Representation = { present: boolean; lifecycle?: string; hash?: string | null }
 
@@ -51,31 +59,39 @@ function integrityMismatches(input: {
   planHash: string
   expectedPlanHash?: string
   validationProjection?: string | null
-  expectedValidationProjection?: string
+  expectedValidationProjection?: string | null
+  reviewStateHash?: string
+  expectedReviewStateHash?: string | null
   hasEvent: boolean
 }) {
   const checks: Array<[string, boolean]> = [
     ['plan_artifact_lifecycle', input.planLifecycle === 'awaiting_validation_review'],
     ['projection_lifecycle', input.projectionLifecycle === 'awaiting_validation_review'],
     ['publish_operation_phase', input.operationPhase === 'review_ready'],
-    ['validation_artifact_hash', input.validationHash === input.expectedValidationHash],
-    ['review_artifact_hash', input.reviewHash === input.expectedReviewHash],
+    ['validation_compile_content_hash', input.validationHash === input.expectedValidationHash],
+    ['review_compile_content_hash', input.reviewHash === input.expectedReviewHash],
     ['plan_artifact_hash', input.planHash === input.expectedPlanHash],
-    ['validation_projection_hash', input.validationProjection === input.expectedValidationProjection],
+    ['validation_compile_projection_hash', input.validationProjection === input.expectedValidationProjection],
+    ['validation_review_state_receipt', input.reviewStateHash === input.expectedReviewStateHash],
     ['validation_review_ready_event', input.hasEvent],
   ]
   return checks.filter(([, matches]) => !matches).map(([name]) => name)
 }
 
 function repairGuidance(operationPhase: string | undefined, hasMismatches: boolean) {
-  const retryable = Boolean(operationPhase && ['prepared', 'artifacts_written', 'projected'].includes(operationPhase))
+  const retryable = Boolean(
+    operationPhase && ['prepared', 'artifacts_written', 'projected', 'review_ready'].includes(operationPhase),
+  )
   return {
     retryable,
-    nextRepairAction: retryable
-      ? 'Retry validation_ast_compile with the exact stored submission and receipt so Appraise can resume this operation.'
-      : hasMismatches
-        ? 'Run project_diagnostic and inspect the publish operation; republish from validation preparation after repairing the reported mismatch.'
-        : undefined,
+    nextRepairAction:
+      operationPhase === 'review_ready' && hasMismatches
+        ? 'Call validation_review_reconcile for this operation. Appraise will preserve immutable publication history and refresh only the exact current review-state receipt.'
+        : retryable
+          ? 'Retry validation_ast_compile with the exact stored submission and receipt so Appraise can resume this operation.'
+          : hasMismatches
+            ? 'Run project_diagnostic and inspect the publish operation; republish from validation preparation after repairing the reported mismatch.'
+            : undefined,
   }
 }
 
@@ -129,14 +145,27 @@ export async function auditManagedValidationIntegrity(
     planLifecycle,
     projectionLifecycle: projection?.lifecycle,
     operationPhase: operation?.phase,
-    validationHash: validationArtifact?.hash,
-    expectedValidationHash: operation?.validationHash,
-    reviewHash: reviewArtifact?.hash,
-    expectedReviewHash: operation?.reviewHash,
+    validationHash: validationArtifact
+      ? hashContent(immutableValidationContent(validationArtifact.content))
+      : undefined,
+    expectedValidationHash: operation
+      ? hashContent(immutableValidationContent(operation.validationContent))
+      : undefined,
+    reviewHash: reviewArtifact ? hashContent(immutableReviewContent(reviewArtifact.content)) : undefined,
+    expectedReviewHash: operation ? hashContent(immutableReviewContent(operation.reviewContent)) : undefined,
     planHash: planArtifact.hash,
     expectedPlanHash: operation?.planHash,
-    validationProjection: projection?.validationJson,
-    expectedValidationProjection: operation?.validationProjectionJson,
+    validationProjection: immutableValidationProjection(projection?.validationJson),
+    expectedValidationProjection: immutableValidationProjection(operation?.validationProjectionJson),
+    reviewStateHash:
+      validationArtifact && reviewArtifact && projection?.validationJson
+        ? validationReviewStateReceipt({
+            validationHash: validationArtifact.hash,
+            reviewHash: reviewArtifact.hash,
+            validationProjectionJson: projection.validationJson,
+          }).hash
+        : undefined,
+    expectedReviewStateHash: operation?.reviewStateHash,
     hasEvent: Boolean(event),
   })
   const repair = repairGuidance(operation?.phase, mismatches.length > 0)
@@ -149,4 +178,8 @@ export async function auditManagedValidationIntegrity(
     ...repair,
     failure: parseFailure(operation?.failure ?? null),
   }
+}
+
+function hashContent(content: string) {
+  return `sha256:${createHash('sha256').update(content).digest('hex')}`
 }

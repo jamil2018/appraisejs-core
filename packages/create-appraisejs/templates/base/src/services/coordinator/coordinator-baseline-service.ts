@@ -26,6 +26,7 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { ServiceError } from '@/services/shared/errors'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
+import { testRunEvidenceLinks } from '@/services/test-run/test-run-evidence-links'
 import { summarizeRunEvidence } from '@/services/test-run/run-evidence-summary-service'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import {
@@ -505,14 +506,17 @@ async function prepareBaselineAttempts(input: {
       ...combination,
     })
     if (submitted.start) pendingStarts.push(submitted.start)
+    if (!input.artifacts.targetProject)
+      throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+    const evidenceLinks = testRunEvidenceLinks(submitted.testRunId, input.artifacts.targetProject.id)
     attempts.push({
       id: `baseline-${randomUUID()}`,
       ...combination,
       testRunId: submitted.testRunId,
       status: 'running',
       evidence: {
-        logsUrl: `/api/test-runs/${submitted.testRunId}/logs`,
-        reportUrl: `/test-runs/${submitted.testRunId}`,
+        logsUrl: evidenceLinks.logsUrl,
+        reportUrl: evidenceLinks.reportUrl,
         traceUrls: [],
         screenshotUrls: [],
       },

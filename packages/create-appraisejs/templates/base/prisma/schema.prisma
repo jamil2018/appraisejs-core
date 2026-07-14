@@ -962,6 +962,8 @@ model ValidationAstPublishOperation {
   validationProjectionJson String
   runtimeInputHash         String?
   runtimeInputJson         String?
+  reviewStateHash          String?
+  reviewStateJson          String?
   failure                  String?
   createdAt                DateTime                    @default(now())
   updatedAt                DateTime                    @updatedAt
@@ -1030,7 +1032,7 @@ model TestRunLog {
 
 model Environment {
   id              String         @id @default(uuid())
-  name            String         @unique
+  name            String
   baseUrl         String
   apiBaseUrl      String?
   username        String?

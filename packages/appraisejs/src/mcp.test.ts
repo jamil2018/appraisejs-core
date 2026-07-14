@@ -218,6 +218,24 @@ describe('MCP approval wait helpers', () => {
     expect(response).not.toHaveProperty('links')
   })
 
+  it('preserves project scope when adding the validation-review query', () => {
+    const response = validationReviewPendingResponse({
+      planId: 'plan-1',
+      current: {
+        plan: { revision: 1, lifecycle: 'awaiting_validation_review' },
+        contentHash: 'sha256:test',
+        links: {
+          appraise: 'appraise://plans/plan-1',
+          browser: 'http://localhost:3000/plans/plan-1?project=project-1',
+        },
+      },
+      events: [{ sequence: 6, type: 'validation_review_ready' }],
+      afterSequence: 4,
+    })
+
+    expect(response.browserUrl).toBe('http://localhost:3000/plans/plan-1?project=project-1&review=validation')
+  })
+
   it('orders bounded event batches and projects the newest event', () => {
     expect(
       orderedEventBatch(3, [
@@ -298,6 +316,20 @@ describe('planning retry fidelity', () => {
     if (/responsive/i.test(projectBrief)) expect(requested).toContain('responsive')
     expect(planCandidateHash(plan)).toMatch(/^sha256:[a-f0-9]{64}$/)
   })
+
+  it('covers every explicit requirement in a complete todo brief', () => {
+    const projectBrief =
+      'Build a todo app where users can add, edit, complete and uncomplete, and delete todos; persist across reloads; support active, completed, and all filtering; provide keyboard-accessible controls and a responsive layout; and add automated happy-path validation.'
+    const plan = createPlanFromBrief({ projectBrief })
+
+    expect(plan.requirementAssessment?.selectedDomain).toBe('todo')
+    expect(plan.requirementAssessment?.uncoveredRequirementIds).toEqual([])
+    expect(plan.requirementAssessment?.requirements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'responsive', coveredBy: expect.arrayContaining([expect.any(Object)]) }),
+      ]),
+    )
+  })
 })
 
 describe('compact lifecycle responses', () => {
@@ -316,6 +348,66 @@ describe('compact lifecycle responses', () => {
       'summary',
     )
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.planCreation)
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
+  })
+
+  it('flattens the review-ready planning handoff without repeating nested plan payloads', () => {
+    const compact = applyAuthoringResponseMode(
+      {
+        created: { planId: 'plan-1', planContentHash: `sha256:${'a'.repeat(64)}`, duplicatedPlan: 'x'.repeat(20_000) },
+        reviewReady: {
+          planId: 'plan-1',
+          lifecycle: 'awaiting_plan_review',
+          revision: 1,
+          planContentHash: `sha256:${'a'.repeat(64)}`,
+          planStateHash: `sha256:${'b'.repeat(64)}`,
+          reviewBindingHash: `sha256:${'c'.repeat(64)}`,
+          browserUrl: 'http://localhost:3000/plans/plan-1?project=project-1',
+          appraiseUrl: 'appraise://plans/plan-1',
+          currentAfterSequence: 0,
+          nextAfterSequence: 2,
+          recommendedWait: { tool: 'plan_review_loop', afterSequence: 2, timeoutMs: 120_000 },
+          duplicatedPlan: 'x'.repeat(20_000),
+        },
+        nextRequiredAgentBehavior: 'standby_for_appraise_review',
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      planId: 'plan-1',
+      lifecycle: 'awaiting_plan_review',
+      browserUrl: 'http://localhost:3000/plans/plan-1?project=project-1',
+      nextAfterSequence: 2,
+    })
+    expect(compact).not.toHaveProperty('created')
+    expect(compact).not.toHaveProperty('reviewReady')
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.planCreation)
+  })
+
+  it('summarizes validation resources as counts instead of returning full shared libraries', () => {
+    const compact = applyAuthoringResponseMode(
+      {
+        planId: 'plan-1',
+        contextHash: `sha256:${'a'.repeat(64)}`,
+        resources: {
+          templateSteps: Array.from({ length: 35 }, (_, index) => ({
+            id: `step-${index}`,
+            name: `Shared step ${index}`,
+            signature: `A verbose reusable signature ${index}`,
+          })),
+          modules: [],
+          locators: [],
+        },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      returnedResourceCounts: { templateSteps: 35, modules: 0, locators: 0 },
+      resourceSearchGuidance: expect.stringContaining('template_step_search'),
+    })
+    expect(compact).not.toHaveProperty('resources')
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
   })
 
@@ -348,6 +440,39 @@ describe('compact lifecycle responses', () => {
     expect(compact).toEqual(
       expect.objectContaining({ planId: 'plan-1', nextAllowedAction: { tool: 'validation_context_read' } }),
     )
+  })
+
+  it('preserves nested baseline attempt and test run evidence in compact lifecycle responses', () => {
+    const compact = applyLifecycleResponseMode(
+      {
+        plan: { planId: 'plan-1', lifecycle: 'baseline_review', revision: 1 },
+        validation: {
+          baselineAttempts: [
+            {
+              id: 'attempt-1',
+              testRunId: 'run-1',
+              status: 'completed',
+              classification: 'expected_product_failure',
+            },
+          ],
+        },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      planId: 'plan-1',
+      attemptId: 'attempt-1',
+      attemptIds: ['attempt-1'],
+      testRunIds: ['run-1'],
+      evidence: [
+        expect.objectContaining({
+          id: 'attempt-1',
+          testRunId: 'run-1',
+          classification: 'expected_product_failure',
+        }),
+      ],
+    })
   })
 
   it('normalizes empty optional validation references without hiding invalid values', () => {

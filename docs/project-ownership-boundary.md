@@ -28,6 +28,8 @@ queried through the active project. Creation and update services validate that e
 belongs to the same project before connecting it. Template Steps and Template Step Groups are deliberately global;
 their CRUD actions do not require a selected project, and project-owned cases and blocks may reference them. A missing
 active project remains a validation error for creation of any project-owned entity.
+Project-owned display names, including environment names, are unique only within their target project; identical names
+in different projects must not collide during validation resource publication.
 Test-run artifact routes apply the same boundary to logs, downloads, traces, and runtime diagnostics, returning an
 opaque not-found response when the active or explicitly trusted project scope does not own the run.
 
@@ -48,6 +50,9 @@ group exposes its persistent `id`, copyable `astRef`, contract `version`, `targe
 Canonical projection reuses a compatible binding with that ancestry unchanged; it never reparents a proposed locator
 group beneath the validation AST's generated module. Foreign bindings and same-project structural mismatches fail
 before publication instead of falling back across project boundaries.
+Resource proposals also reuse compatible same-project modules, locators, and environments when a later proposal uses a
+different local key for the same canonical name and ancestry. Ambiguous names or incompatible routes, selectors, URLs,
+or ownership return a bounded conflict instead of leaking a database uniqueness failure.
 
 ## Ownership classes
 

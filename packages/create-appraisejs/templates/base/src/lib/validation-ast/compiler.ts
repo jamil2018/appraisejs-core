@@ -445,6 +445,24 @@ function coverageWarnings(mapping: CoverageMapping) {
   ]
 }
 
+function coverageStateBlockers(mapping: CoverageMapping) {
+  if (mapping.state === 'uncovered')
+    return [
+      issue('coverage-uncovered', `Explicit requirement ${mapping.targetId} is uncovered.`, {
+        referenceId: mapping.targetId,
+      }),
+    ]
+  if (mapping.state === 'partial' && !mapping.partialAcknowledgement)
+    return [
+      issue(
+        'coverage-partial-acknowledgement-required',
+        `Partial coverage for ${mapping.targetId} requires an exact reviewed acknowledgement.`,
+        { referenceId: mapping.targetId },
+      ),
+    ]
+  return []
+}
+
 function validateCoverageArgument(ast: ValidationAst, actions: ActionDescriptor[]) {
   const blockers: ValidationAstIssue[] = []
   const warnings: ValidationAstIssue[] = []
@@ -474,6 +492,7 @@ function validateCoverageArgument(ast: ValidationAst, actions: ActionDescriptor[
   for (const mapping of mappings) {
     blockers.push(...validateCoverageReferences(mapping, scenarios, steps))
     blockers.push(...validateCoverageObservations(mapping, steps, actionByIdentity))
+    blockers.push(...coverageStateBlockers(mapping))
     warnings.push(...coverageWarnings(mapping))
   }
   return { blockers, warnings }
