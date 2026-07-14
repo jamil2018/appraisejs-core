@@ -475,6 +475,32 @@ describe('compact lifecycle responses', () => {
     })
   })
 
+  it('keeps implementation mutation results actionable in summary mode', () => {
+    const compact = applyLifecycleResponseMode(
+      {
+        planId: 'plan-1',
+        implementation: {
+          taskStates: { foundation: 'verified', ui: 'in_progress' },
+          approvedGroupIds: ['core'],
+          validationRuns: [{ id: 'validation-run-1' }],
+        },
+        runnableTaskIds: ['ui'],
+        readiness: { ready: false, blockers: ['Task ui is not verified.'] },
+        nextAllowedAction: { tool: 'implementation_task_update', taskId: 'ui', status: 'implemented' },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      planId: 'plan-1',
+      approvedGroupIds: ['core'],
+      runnableTaskIds: ['ui'],
+      counts: { tasks: 2, verifiedTasks: 1, validationRuns: 1 },
+      blockers: ['Task ui is not verified.'],
+      nextAllowedAction: { tool: 'implementation_task_update', taskId: 'ui', status: 'implemented' },
+    })
+  })
+
   it('normalizes empty optional validation references without hiding invalid values', () => {
     expect(normalizeOptionalRef('')).toBeUndefined()
     expect(normalizeOptionalRef('   ')).toBeUndefined()

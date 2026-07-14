@@ -27,6 +27,11 @@ Use `plan_lifecycle_snapshot` to create content-addressed Appraise-owned state b
 Continuation packages never replace lifecycle events or approval receipts. Coordination SLO evidence records active
 Appraise time, active agent time, and human-review time separately.
 
+The plan review workspace shows the same lifecycle as a five-stage progress rail and names the next actor and action.
+Its copy-continuation control emits a compact JSON handoff with the target project, plan ID, lifecycle, revision,
+current hashes, latest event cursor, scoped review URL, and next action. This clipboard package is a convenience for
+agent handoff; durable continuation still uses the snapshot and continuation-package MCP tools.
+
 ## Plan Review
 
 Create or update plans through the Appraise plan surface. Wait for `plan_review_ready`, then use the review URL or
@@ -51,6 +56,9 @@ transition it permits succeeds. `validation_preparation_started` permits managed
 `validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
 Managed execution uses only the exact Appraise-owned immutable runtime capsule; it never writes or executes target
 `automation/` files.
+
+Successful compilation returns the exact project-scoped `review=validation` browser link and the Appraise resource
+link directly, so the agent can hand off the review gate without another plan read.
 
 Validation authoring is registry-first through the managed action catalog and locator graph. Extensions require exact
 review evidence; target file paths are never managed execution authority.
@@ -129,6 +137,10 @@ Tasks move through `pending`, `in_progress`, `implemented`, and `verified`. Depe
 dependent task starts. Poll before and after task groups, before validation, and before completion. Blocking feedback
 pauses affected tasks and dependents until impact is confirmed and applied.
 
+Group approval returns runnable task IDs and points directly to `implementation_task_update`; it satisfies the group
+entry checkpoint and does not require a second `before_group` call. Task conflicts include structured blocker records
+with stable codes, the blocked task or predecessor/group, required and actual status, and one exact recovery action.
+
 Pause, resume, and cancellation are lifecycle transitions. Cancellation is terminal after acknowledgement.
 
 Reviewed managed validation nodes execute baseline and implementation from the exact Appraise-owned runtime capsule bound
@@ -154,6 +166,17 @@ Appraise reconciles managed runs and verifies only implemented tasks whose requi
 full-assurance evidence in one artifact compare-and-write. Replaying the key does not duplicate state or events.
 If later task verification makes the preserved evidence completion-ready, replaying that reconciliation key repairs
 the lifecycle to `validation_passed` and emits the gate event exactly once; the idempotency receipt remains unchanged.
+Reconciling passing managed evidence without task verification does not classify the plan as `failed_validation`;
+the plan remains in its current implementation/validation lifecycle with task-verification blockers until an atomic
+or later verification step satisfies completion readiness. `failed_validation` is reserved for evidence failures.
+
+Project-scoped review URLs use `review=validation`, `review=baseline`, and `review=implementation` to open the exact
+validation, baseline, and final-completion review panels respectively. Agents should hand off those returned deep
+links instead of requiring users to locate the gate manually.
+
+Once final implementation evidence exists, the baseline panel shows a per-validation delta from the latest baseline
+attempt to the final managed run, including baseline classification, final status, and assurance. This comparison is
+review guidance only; canonical attempts and implementation runs remain the evidence authority.
 
 ## Ownership Matrix
 

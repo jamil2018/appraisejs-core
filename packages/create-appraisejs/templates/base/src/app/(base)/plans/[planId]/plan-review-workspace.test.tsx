@@ -109,6 +109,12 @@ async function openApprovalTab(user = userEvent.setup()) {
   await user.click(screen.getByRole('tab', { name: /approval/i }))
 }
 
+function expectReviewActionsLocked(reason: RegExp) {
+  expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
+  expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
+  expect(screen.getAllByText(reason)).toHaveLength(2)
+}
+
 const detail: PlanReviewDetail = {
   plan: {
     version: '1',
@@ -210,6 +216,7 @@ const detail: PlanReviewDetail = {
     ],
   },
   projection: {
+    targetProjectId: 'project-one',
     slug: 'accessible-plan',
     legacyPlanId: null,
     sourceHash: 'sha256:test',
@@ -507,7 +514,9 @@ describe('PlanReviewWorkspace', () => {
     await openApprovalTab(user)
 
     expect(screen.queryByRole('button', { name: 'Approve final completion' })).not.toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('A required task is not verified.')
+    expect(screen.getByText('Final completion is blocked').closest('[role="alert"]')).toHaveTextContent(
+      'A required task is not verified.',
+    )
   })
 
   it('renders the plan title and description as separate header content', () => {
@@ -718,10 +727,8 @@ describe('PlanReviewWorkspace', () => {
     render(<PlanReviewWorkspace detail={draftDetail} />)
     await openApprovalTab()
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/draft not submitted for review/i)
-    expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
-    expect(screen.getAllByText(/this draft has not been submitted for plan review/i)).toHaveLength(2)
+    expect(screen.getByText(/draft not submitted for review/i).closest('[role="alert"]')).toBeInTheDocument()
+    expectReviewActionsLocked(/this draft has not been submitted for plan review/i)
   })
 
   it('uses the same non-review lifecycle lockout for approval and change requests', async () => {
@@ -735,16 +742,14 @@ describe('PlanReviewWorkspace', () => {
     render(<PlanReviewWorkspace detail={inProgressDetail} />)
     await openApprovalTab()
 
-    expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /request changes/i })).toBeDisabled()
-    expect(screen.getAllByText(/the plan is not awaiting plan review/i)).toHaveLength(2)
+    expectReviewActionsLocked(/the plan is not awaiting plan review/i)
   })
 
   it('defaults to list review and explains approval lockout when graph readiness failed', async () => {
     render(<PlanReviewWorkspace detail={{ ...detail, reviewReady: false, listFallback: true }} />)
     await openApprovalTab()
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Graph unavailable, list review enabled')
+    expect(screen.getByText('Graph unavailable, list review enabled').closest('[role="alert"]')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /graph/i })).toBeDisabled()
     expect(screen.getByRole('tabpanel', { name: /accessible list/i })).toBeInTheDocument()
     const approvalButton = screen.getByRole('button', { name: /approve exact revision/i })
@@ -781,6 +786,15 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Approved evidence' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Deferred' })).toBeDisabled()
     expect(screen.getAllByText('Approved').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('opens review deep links on the requested sidebar panel', () => {
+    const { unmount } = render(<PlanReviewWorkspace detail={validationDetail} initialSidebarTab="baselines" />)
+    expect(screen.getByRole('tabpanel', { name: /baselines/i })).toBeInTheDocument()
+
+    unmount()
+    render(<PlanReviewWorkspace detail={validationDetail} initialSidebarTab="approval" />)
+    expect(screen.getByRole('tabpanel', { name: /approval/i })).toBeInTheDocument()
   })
 
   it('submits validation node decisions, file approvals, validation review, and feedback actions', async () => {

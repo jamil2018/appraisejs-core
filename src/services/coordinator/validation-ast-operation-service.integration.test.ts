@@ -133,7 +133,12 @@ beforeEach(async () => {
   const environment = await client.environment.upsert({
     where: { id: 'validation-operation-local' },
     update: { targetProjectId: target.id },
-    create: { id: 'validation-operation-local', name: 'local', baseUrl: 'http://localhost', targetProjectId: target.id },
+    create: {
+      id: 'validation-operation-local',
+      name: 'local',
+      baseUrl: 'http://localhost',
+      targetProjectId: target.id,
+    },
   })
   const repository = new PlanArtifactRepository(workspace)
   await client.module.create({
@@ -347,6 +352,7 @@ describe('Validation AST SQLite preview to compile', () => {
     ).resolves.toMatchObject({
       status: 'green',
       mismatches: [],
+      nextRepairAction: undefined,
     })
     const currentValidation = await repository.read('validation', 'plan-one')
     const mismatchedValidation = parseYamlArtifact('validation', currentValidation.content) as ValidationArtifact

@@ -10,6 +10,7 @@ import {
   implementationState,
   queuedFeedbackMessage,
   runnableTasks,
+  taskDependencies,
   type CheckpointType,
   type TaskState,
 } from '@/lib/implementation-checkpoints/protocol'
@@ -260,6 +261,15 @@ function preImplementationRecovery(plan: PlanArtifact, validation: ValidationArt
     terminal: false,
     mustContinue: true,
     blockingReasons: ['Implementation checkpoints require accepted baseline evidence and implementation_start.'],
+    structuredBlockers: [
+      {
+        code: 'IMPLEMENTATION_GATE_CLOSED',
+        requiredLifecycle: 'baseline_accepted',
+        actualLifecycle: plan.lifecycle,
+        requiredBaselineDecision: 'accepted',
+        actualBaselineDecision: validation.baselineDecision,
+      },
+    ],
     nextAllowedAction: next,
     nextRecommendedAction:
       'Complete validation review, baseline execution, baseline acceptance, and implementation_start before recording implementation checkpoints.',
@@ -378,7 +388,51 @@ export async function updateImplementationTask(
       implementation.pausedTaskIds,
     )
     if (!runnable.includes(input.taskId) && current === 'pending') {
-      throw new ServiceError('Task dependencies or implementation-group approval are incomplete.', 'CONFLICT')
+      const group = artifacts.plan.implementationGroups.find(candidate => candidate.taskIds.includes(input.taskId))
+      if (group && !implementation.approvedGroupIds.includes(group.id)) {
+        throw new ServiceError(
+          `Task "${input.taskId}" requires implementation group "${group.id}" approval.`,
+          'CONFLICT',
+          undefined,
+          {
+            blocker: {
+              code: 'GROUP_APPROVAL_REQUIRED',
+              blockingTaskId: input.taskId,
+              groupId: group.id,
+              requiredStatus: 'approved',
+              actualStatus: 'pending',
+            },
+            nextAllowedAction: { tool: 'implementation_group_approve', groupIds: [group.id] },
+          },
+        )
+      }
+      const blockers = taskDependencies(artifacts.plan, input.taskId)
+        .map(taskId => ({ taskId, status: implementation.taskStates[taskId] ?? 'pending' }))
+        .filter(dependency => dependency.status !== 'verified')
+      if (blockers.length) {
+        throw new ServiceError(
+          `Task "${input.taskId}" requires verified predecessors: ${blockers
+            .map(dependency => `${dependency.taskId} (${dependency.status})`)
+            .join(', ')}.`,
+          'CONFLICT',
+          undefined,
+          {
+            blockers: blockers.map(dependency => ({
+              code: 'PREDECESSOR_NOT_VERIFIED',
+              blockingTaskId: input.taskId,
+              predecessorTaskId: dependency.taskId,
+              requiredStatus: 'verified',
+              actualStatus: dependency.status,
+            })),
+            nextAllowedAction: {
+              tool: 'implementation_task_update',
+              taskId: blockers[0]?.taskId,
+              status: 'verified',
+            },
+          },
+        )
+      }
+      throw new ServiceError(`Task "${input.taskId}" is not runnable in the current implementation state.`, 'CONFLICT')
     }
   }
   const existingCommit = input.commitHash
@@ -1052,11 +1106,28 @@ function reconciliationEvent(input: {
   runIds: string[]
   blockers: string[]
   ready: boolean
+  evidenceFailed: boolean
 }) {
   if (input.receipt) return { type: 'task_evidence_reconciled', payload: input.receipt }
   return {
-    type: input.ready ? 'validation_passed' : 'validation_failed',
+    type: input.ready
+      ? 'validation_passed'
+      : input.evidenceFailed
+        ? 'validation_failed'
+        : 'validation_evidence_reconciled',
     payload: { runIds: input.runIds, blockers: input.blockers },
+  }
+}
+
+function reconciliationLifecycle(
+  current: PlanArtifact['lifecycle'],
+  readiness: { ready: boolean; blockers: string[] },
+) {
+  if (readiness.ready) return { lifecycle: 'validation_passed' as const, evidenceFailed: false }
+  const evidenceFailed = readiness.blockers.some(blocker => !blocker.startsWith('Required tasks are not verified:'))
+  return {
+    lifecycle: evidenceFailed ? ('failed_validation' as const) : current,
+    evidenceFailed,
   }
 }
 
@@ -1077,7 +1148,8 @@ export async function reconcileImplementationValidation(
   )
   if (existingReceipt) {
     const readiness = canCompleteImplementation(artifacts.plan, artifacts.validation)
-    const lifecycle = readiness.ready ? ('validation_passed' as const) : ('failed_validation' as const)
+    const outcome = reconciliationLifecycle(artifacts.plan.lifecycle, readiness)
+    const lifecycle = outcome.lifecycle
     if (artifacts.plan.lifecycle !== lifecycle) {
       const plan = { ...artifacts.plan, lifecycle }
       await writeArtifacts(artifacts, plan, artifacts.validation, artifacts.review, client)
@@ -1148,9 +1220,11 @@ export async function reconcileImplementationValidation(
     },
   }
   const readiness = canCompleteImplementation(artifacts.plan, validation)
+  const outcome = reconciliationLifecycle(artifacts.plan.lifecycle, readiness)
+  const lifecycle = outcome.lifecycle
   const plan = {
     ...artifacts.plan,
-    lifecycle: readiness.ready ? ('validation_passed' as const) : ('failed_validation' as const),
+    lifecycle,
   }
   await writeArtifacts(artifacts, plan, validation, artifacts.review, client)
   const event = reconciliationEvent({
@@ -1158,6 +1232,7 @@ export async function reconcileImplementationValidation(
     runIds: [...updates.keys()],
     blockers: readiness.blockers,
     ready: readiness.ready,
+    evidenceFailed: outcome.evidenceFailed,
   })
   await appendPlanEvent(
     {

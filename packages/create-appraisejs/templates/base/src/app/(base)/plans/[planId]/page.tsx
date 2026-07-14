@@ -125,7 +125,15 @@ export default async function PlanReviewPage({ params, searchParams }: PageProps
   const project = await requireActiveProject(resolvedSearchParams?.project)
   const detail = await readExactPlanDetail(routeKey, project.id)
   if (detail)
-    return <PlanReviewWorkspace detail={detail} initialTab={reviewMode === 'validation' ? 'validations' : undefined} />
+    return (
+      <PlanReviewWorkspace
+        detail={detail}
+        initialTab={reviewMode === 'validation' ? 'validations' : undefined}
+        initialSidebarTab={
+          reviewMode === 'baseline' ? 'baselines' : reviewMode === 'implementation' ? 'approval' : undefined
+        }
+      />
+    )
 
   const slugMatches = await resolveSlugMatches(routeKey, project.id)
   if (slugMatches.length === 1) redirect(planCanonicalRoute(slugMatches[0]!.planId))

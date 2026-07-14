@@ -84,14 +84,13 @@ function repairGuidance(operationPhase: string | undefined, hasMismatches: boole
   )
   return {
     retryable,
-    nextRepairAction:
-      operationPhase === 'review_ready' && hasMismatches
+    nextRepairAction: !hasMismatches
+      ? undefined
+      : operationPhase === 'review_ready' && hasMismatches
         ? 'Call validation_review_reconcile for this operation. Appraise will preserve immutable publication history and refresh only the exact current review-state receipt.'
         : retryable
           ? 'Retry validation_ast_compile with the exact stored submission and receipt so Appraise can resume this operation.'
-          : hasMismatches
-            ? 'Run project_diagnostic and inspect the publish operation; republish from validation preparation after repairing the reported mismatch.'
-            : undefined,
+          : 'Run project_diagnostic and inspect the publish operation; republish from validation preparation after repairing the reported mismatch.',
   }
 }
 
