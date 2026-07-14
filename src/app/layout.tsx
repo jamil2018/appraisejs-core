@@ -58,7 +58,7 @@ export const metadata: Metadata = {
       { url: '/favicon.ico', sizes: 'any' },
     ],
     shortcut: ['/favicon.svg'],
-    other: [{ rel: 'mask-icon', url: '/favicon.svg', color: '#5cb85c' }],
+    other: [{ rel: 'mask-icon', url: '/favicon.svg', color: '#22d3a6' }],
   },
 }
 
