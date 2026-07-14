@@ -409,8 +409,8 @@ export async function savePickedLocatorFromRequest(
       return fail(400, 'Choose a module for the new locator group.')
     }
 
-    const module = await prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId } })
-    if (!module) {
+    const selectedModule = await prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId } })
+    if (!selectedModule) {
       return fail(404, 'The selected module no longer exists in the active project.')
     }
 
