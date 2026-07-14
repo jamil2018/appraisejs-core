@@ -59,7 +59,7 @@ function integrityMismatches(input: {
   planHash: string
   expectedPlanHash?: string
   validationProjection?: string | null
-  expectedValidationProjection?: string
+  expectedValidationProjection?: string | null
   reviewStateHash?: string
   expectedReviewStateHash?: string | null
   hasEvent: boolean

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
@@ -12,12 +12,14 @@ import {
   type ValidationArtifact,
 } from '../src/lib/plan-contract'
 import { syncPlans } from '../src/lib/plans/plan-sync-service'
+import { reconcileManagedValidationReviewState } from '../src/services/coordinator/managed-validation-review-state'
 import { disconnectPrisma, resetE2eData } from './helpers/test-data'
 
 const seededPlanId = 'e2e-semantic-plan-flow-graph'
 const seededPlanPath = join(process.cwd(), 'appraise', 'plans', `${seededPlanId}.yaml`)
 const seededReviewPath = join(process.cwd(), 'appraise', 'plans', 'reviews', `${seededPlanId}.review.yaml`)
 const validationPlanId = 'e2e-validation-review-approval'
+const seededTargetProjectId = '00000000-0000-4000-8000-000000000001'
 const validationPlanPath = join(process.cwd(), 'appraise', 'plans', `${validationPlanId}.yaml`)
 const validationReviewPath = join(process.cwd(), 'appraise', 'plans', 'reviews', `${validationPlanId}.review.yaml`)
 const validationArtifactPath = join(
@@ -262,23 +264,22 @@ async function seedValidationReviewPlan(): Promise<void> {
 }
 
 async function seedValidationPublishOperation(): Promise<void> {
-  const targetFingerprint = hashContent(`target:${process.cwd()}`)
-  const targetProject = await prisma.targetProject.upsert({
-    where: { fingerprint: targetFingerprint },
-    create: {
-      canonicalPath: process.cwd(),
-      displayName: 'E2E validation target',
-      packageName: 'appraise',
-      packageJson: '{}',
-      fingerprint: targetFingerprint,
-    },
-    update: {},
+  const targetProject = await prisma.targetProject.findUniqueOrThrow({ where: { id: seededTargetProjectId } })
+  await prisma.planProjection.update({
+    where: { planId: seededPlanId },
+    data: { targetProjectId: targetProject.id },
   })
   const projection = await prisma.planProjection.update({
     where: { planId: validationPlanId },
     data: { targetProjectId: targetProject.id },
   })
+  const [planContent, validationContent, reviewContent] = await Promise.all([
+    readFile(validationPlanPath, 'utf8'),
+    readFile(validationArtifactPath, 'utf8'),
+    readFile(validationReviewPath, 'utf8'),
+  ])
   const digest = (label: string) => hashContent(`${validationPlanId}:${label}`)
+  await prisma.planEvent.deleteMany({ where: { publishOperationId: 'astpub_validation_review_e2e' } })
   await prisma.validationAstPublishOperation.deleteMany({ where: { id: 'astpub_validation_review_e2e' } })
   await prisma.validationAstPublishOperation.create({
     data: {
@@ -294,12 +295,12 @@ async function seedValidationPublishOperation(): Promise<void> {
       expectedPlanArtifactHash: digest('expected-plan-artifact'),
       expectedValidationHash: digest('expected-validation'),
       expectedReviewHash: digest('expected-review'),
-      planHash: digest('plan'),
-      validationHash: digest('validation'),
-      reviewHash: digest('review'),
-      planContent: '{}',
-      validationContent: '{}',
-      reviewContent: '{}',
+      planHash: hashContent(planContent),
+      validationHash: hashContent(validationContent),
+      reviewHash: hashContent(reviewContent),
+      planContent,
+      validationContent,
+      reviewContent,
       astId: 'validation-review-e2e',
       astHash: `sha256:${'a'.repeat(64)}`,
       contextHash: digest('context'),
@@ -307,11 +308,25 @@ async function seedValidationPublishOperation(): Promise<void> {
       receiptHash: `sha256:${'b'.repeat(64)}`,
       projectionHash: digest('projection'),
       projectionJson: '{}',
-      validationProjectionJson: '{}',
+      validationProjectionJson: projection.validationJson ?? validationContent,
       runtimeInputHash: `sha256:${'c'.repeat(64)}`,
       runtimeInputJson: '{}',
     },
   })
+  const latestEvent = await prisma.planEvent.findFirst({
+    where: { planProjectionId: projection.id },
+    orderBy: { sequence: 'desc' },
+  })
+  await prisma.planEvent.create({
+    data: {
+      planProjectionId: projection.id,
+      publishOperationId: 'astpub_validation_review_e2e',
+      sequence: (latestEvent?.sequence ?? 0) + 1,
+      type: 'validation_review_ready',
+      payloadJson: '{}',
+    },
+  })
+  await reconcileManagedValidationReviewState(validationPlanId)
 }
 
 test.describe('Plan review', () => {

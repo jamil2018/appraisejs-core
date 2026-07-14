@@ -84,7 +84,10 @@ export async function listTestRuns(targetProjectId: string, filter?: string) {
 
 export async function getTestRunByIdOrThrow(id: string, targetProjectId: string) {
   const testRun = await prisma.testRun.findFirst({
-    where: { id, targetProjectId },
+    where: {
+      targetProjectId,
+      OR: [{ id }, { runId: id }],
+    },
     include: {
       testCases: {
         include: {

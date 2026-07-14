@@ -21,17 +21,25 @@ type ReviewState = {
 const digest = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
 
 export function immutableValidationContent(content: string) {
-  const validation = parseYamlArtifact('validation', content) as ValidationArtifact
-  return serializeYamlArtifact('validation', {
-    ...validation,
-    validationDecisions: [],
-    reviewSubmittedAt: undefined,
-  })
+  try {
+    const validation = parseYamlArtifact('validation', content) as ValidationArtifact
+    return serializeYamlArtifact('validation', {
+      ...validation,
+      validationDecisions: [],
+      reviewSubmittedAt: undefined,
+    })
+  } catch {
+    return content
+  }
 }
 
 export function immutableReviewContent(content: string) {
-  const review = parseYamlArtifact('review', content) as ReviewArtifact
-  return serializeYamlArtifact('review', { ...review, fileApprovals: [] })
+  try {
+    const review = parseYamlArtifact('review', content) as ReviewArtifact
+    return serializeYamlArtifact('review', { ...review, fileApprovals: [] })
+  } catch {
+    return content
+  }
 }
 
 export function immutableValidationProjection(value: string | null | undefined) {

@@ -65,7 +65,7 @@ export async function createLocatorGroup(
   await page.goto('/locator-groups/create')
   await expectPageHeading(page, 'Create Locator Group')
   await page.getByLabel('Name').fill(name)
-  await page.getByRole('combobox').click()
+  await page.getByRole('main').getByRole('combobox').first().click()
   await page.getByRole('option', { name: moduleName }).click()
   await page.getByLabel('Route').fill(route)
   await saveForm(page)

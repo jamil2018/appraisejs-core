@@ -355,6 +355,7 @@ export type SavePickedLocatorOutcome =
 
 export async function savePickedLocatorFromRequest(
   request: SavePickedLocatorRequest,
+  targetProjectId: string,
 ): Promise<SavePickedLocatorOutcome> {
   const value = savePickedLocatorSchema.parse(request)
   const session = value.sessionId ? await locatorPickerSessionManager.getSession(value.sessionId) : null
@@ -373,8 +374,8 @@ export async function savePickedLocatorFromRequest(
   const locatorName = value.locatorName.trim()
   const selector = value.selector.trim()
   const currentLocator = value.locatorId
-    ? await prisma.locator.findUnique({
-        where: { id: value.locatorId },
+    ? await prisma.locator.findFirst({
+        where: { id: value.locatorId, targetProjectId },
         select: { locatorGroupId: true },
       })
     : null
@@ -388,10 +389,8 @@ export async function savePickedLocatorFromRequest(
       return fail(400, 'Choose an existing locator group before saving.')
     }
 
-    const locatorGroup = await prisma.locatorGroup.findUnique({
-      where: {
-        id: locatorGroupId,
-      },
+    const locatorGroup = await prisma.locatorGroup.findFirst({
+      where: { id: locatorGroupId, targetProjectId },
     })
 
     if (!locatorGroup) {
@@ -410,9 +409,15 @@ export async function savePickedLocatorFromRequest(
       return fail(400, 'Choose a module for the new locator group.')
     }
 
+    const module = await prisma.module.findFirst({ where: { id: value.moduleId, targetProjectId } })
+    if (!module) {
+      return fail(404, 'The selected module no longer exists in the active project.')
+    }
+
     const duplicateGroup = await prisma.locatorGroup.findFirst({
       where: {
         name: value.newLocatorGroupName.trim(),
+        targetProjectId,
       },
     })
 
@@ -425,6 +430,7 @@ export async function savePickedLocatorFromRequest(
         name: value.newLocatorGroupName.trim(),
         route,
         moduleId: value.moduleId,
+        targetProjectId,
       },
     })
 
@@ -444,6 +450,7 @@ export async function savePickedLocatorFromRequest(
     where: {
       locatorGroupId,
       name: locatorName,
+      targetProjectId,
       ...(value.locatorId
         ? {
             id: {
@@ -465,6 +472,7 @@ export async function savePickedLocatorFromRequest(
           name: locatorName,
           value: selector,
           locatorGroupId,
+          targetProjectId,
         },
       })
     : await prisma.locator.create({
@@ -472,6 +480,7 @@ export async function savePickedLocatorFromRequest(
           name: locatorName,
           value: selector,
           locatorGroupId,
+          targetProjectId,
         },
       })
 
