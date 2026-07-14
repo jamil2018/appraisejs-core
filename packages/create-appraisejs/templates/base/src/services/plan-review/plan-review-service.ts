@@ -63,8 +63,10 @@ export type PlanReviewDetail = {
     fileHashes: Record<string, string>
     readiness: ReturnType<typeof assessValidationReadiness>
     operationHash?: string
+    reviewStateHash?: string
     extensionArtifactHashes: string[]
   }
+  validationIntegrity: Awaited<ReturnType<typeof auditManagedValidationIntegrity>>
   completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>
   projection: {
@@ -278,6 +280,7 @@ async function readValidationReviewEvidence(
     fileHashes: Object.fromEntries(validation.files.map(file => [file.path, fileReviewHash(file)])),
     readiness: assessValidationReadiness(validation, review),
     operationHash: publishOperation?.operationHash,
+    reviewStateHash: publishOperation?.reviewStateHash ?? undefined,
     extensionArtifactHashes: publishOperation?.extensionReviews.map(item => item.artifactHash).sort() ?? [],
   }
 }

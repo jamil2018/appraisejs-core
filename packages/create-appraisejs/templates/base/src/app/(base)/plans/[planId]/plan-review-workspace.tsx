@@ -1186,6 +1186,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                     submitValidationReviewAction({
                       planId: detail.plan.planId,
                       operationHash: detail.validationReview?.operationHash,
+                      reviewStateHash: detail.validationReview?.reviewStateHash,
                       extensionArtifactHashes: detail.validationReview?.extensionArtifactHashes ?? [],
                     })
                   }

@@ -98,6 +98,7 @@ import {
   verifyDelegatedCoordinatorReceipt,
 } from '@/services/coordinator/delegated-coordinator-service'
 import { proposeValidationResources } from '@/services/coordinator/validation-resource-proposal-service'
+import { reconcileManagedValidationReviewState } from '@/services/coordinator/managed-validation-review-state'
 import {
   checkValidationAstForPlan,
   compileValidationAstForPlan,
@@ -124,6 +125,7 @@ const idSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const routePlanIdSchema = planIdSchema
 const astReviewBindingSchema = z.object({
   operationHash: z.string().startsWith('sha256:').optional(),
+  reviewStateHash: z.string().startsWith('sha256:').optional(),
   extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
 })
 const reviewTargetSchema = z.discriminatedUnion('type', [
@@ -162,9 +164,9 @@ function responseError(error: unknown): Response {
   return Response.json({ error: 'Coordinator API failed.' }, { status: 500 })
 }
 
-function withLinks<T extends object>(value: T, planId: string, request: Request) {
+function withLinks<T extends object>(value: T, planId: string, request: Request, targetProjectId?: string | null) {
   const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
-  return { ...value, links: planLinks(planId, baseUrl) }
+  return { ...value, links: planLinks(planId, baseUrl, targetProjectId) }
 }
 
 function assertProviderNativeRunsEnabled() {
@@ -180,7 +182,7 @@ function assertProviderNativeRunsEnabled() {
 async function getPlan(request: Request, operation: string[]) {
   const planId = routePlanIdSchema.parse(operation[1])
   const plan = await readCoordinatorPlan(planId)
-  return Response.json(withLinks(plan, plan.planId, request))
+  return Response.json(withLinks(plan, plan.planId, request, plan.targetProjectId))
 }
 
 async function getReview(request: Request, operation: string[]) {
@@ -598,6 +600,7 @@ function sourceResponse(source: z.infer<typeof createPlanBodySchema>['source']) 
   }
 }
 
+// fallow-ignore-next-line complexity
 async function postCreatePlan(request: Request, body: unknown) {
   const value = parseCreatePlanBody(body)
   const identity = await ensureProjectIdentity()
@@ -606,7 +609,7 @@ async function postCreatePlan(request: Request, body: unknown) {
   const createdPlan = await createCoordinatorPlan(value.plan, { targetProjectId: targetProject?.id })
   return Response.json(
     {
-      ...withLinks(createdPlan, createdPlan.planId, request),
+      ...withLinks(createdPlan, createdPlan.planId, request, targetProject?.id),
       hubProject: {
         fingerprint: identity.projectFingerprint,
         canonicalPath: identity.canonicalProjectPath,
@@ -838,6 +841,7 @@ async function postValidationOperation(request: Request, operation: string[], bo
     const binding = astReviewBindingSchema.parse(body)
     return Response.json(await submitValidationReview(planId, binding))
   }
+  if (operation[3] === 'reconcile') return Response.json(await reconcileManagedValidationReviewState(planId))
   if (operation[3] === 'nodes') {
     const value = astReviewBindingSchema
       .extend({

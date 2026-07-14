@@ -4,7 +4,7 @@ import { defaultActionCatalog } from './default-catalog'
 describe('default action catalog', () => {
   it('publishes current runtime-backed browser actions through progressive discovery', () => {
     expect(defaultActionCatalog.listCategories().categories).toMatchObject([
-      { id: 'browser', childCategoryCount: 5, actionCount: 10 },
+      { id: 'browser', childCategoryCount: 7, actionCount: 18 },
     ])
     expect(defaultActionCatalog.listActions({ categoryId: 'browser.navigation' }).items.map(item => item.id)).toEqual([
       'browser.navigation.goto',
@@ -20,5 +20,12 @@ describe('default action catalog', () => {
     expect(defaultActionCatalog.readActions([{ id: 'browser.waits.timeout', version: '1' }])[0]).toMatchObject({
       inputs: [{ numeric: { unit: 'milliseconds', minimum: 0, maximum: 300_000 } }],
     })
+    expect(
+      defaultActionCatalog.readActions([
+        { id: 'browser.keyboard.press', version: '1' },
+        { id: 'browser.viewport.set', version: '1' },
+        { id: 'browser.assertions.no-horizontal-overflow', version: '1' },
+      ]),
+    ).toHaveLength(3)
   })
 })

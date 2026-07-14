@@ -18,7 +18,7 @@ const {
   startBaselineExecution,
   startImplementation,
   approveImplementationCompletion,
-  requireActiveProjectForMutation,
+  requireActiveProjectForPlanMutation,
   assertPlanBelongsToProject,
 } = vi.hoisted(() => ({
   addPlanRemark: vi.fn(),
@@ -36,7 +36,7 @@ const {
   startBaselineExecution: vi.fn(),
   startImplementation: vi.fn(),
   approveImplementationCompletion: vi.fn(),
-  requireActiveProjectForMutation: vi.fn(),
+  requireActiveProjectForPlanMutation: vi.fn(),
   assertPlanBelongsToProject: vi.fn(),
 }))
 
@@ -68,7 +68,7 @@ vi.mock('@/services/coordinator/coordinator-implementation-service', () => ({
   approveImplementationCompletion,
 }))
 
-vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation }))
+vi.mock('@/lib/active-project', () => ({ requireActiveProjectForPlanMutation }))
 
 vi.mock('@/services/coordinator/coordinator-plan-service', () => ({ assertPlanBelongsToProject }))
 
@@ -77,7 +77,7 @@ import { addPlanRemarkAction, completeImplementationAction } from './plan-review
 describe('plan review actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    requireActiveProjectForMutation.mockResolvedValue({ id: 'project-one' })
+    requireActiveProjectForPlanMutation.mockResolvedValue({ id: 'project-one' })
     assertPlanBelongsToProject.mockResolvedValue(undefined)
   })
 
