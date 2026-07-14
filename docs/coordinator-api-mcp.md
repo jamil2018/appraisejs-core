@@ -287,6 +287,11 @@ receipt hashes, integrity blockers, cursors, and next action while omitting repe
 mode remains available for explicit diagnostics. Summary budgets are 2,000 estimated tokens for plan creation or
 coverage retry, 300 for an unchanged wait, and 1,500 for validation context or mutation.
 
+Validation-context summary responses return resource counts and search guidance instead of serializing shared resource
+libraries. Agents should use `resourceTypes`, `query`, and a small `limit`, or the dedicated template-step, Step Block,
+and locator search tools, to fetch only the candidates required for the current AST node. Use `full` only for an
+explicit bounded diagnostic.
+
 `planning_session_create` extracts explicit brief requirements before it creates a durable plan. Its response includes
 `requirementAssessment` with scored domain candidates, task-surface coverage, and warnings. When any explicit
 requirement is uncovered, it returns `status: "coverage_review_required"` with a candidate plan instead of creating a
@@ -381,6 +386,12 @@ created atomically with the run before scheduling. Implementation reconciliation
 Completion receipts include the latest event sequence in their evidence hash. A stale completion mutation responds
 with `staleEvidenceHash`, `currentEvidenceHash`, and `currentReceipt`; callers must obtain a new explicit final sign-off.
 
+Completion approval journals a private transaction record before changing final artifacts. Each write is
+idempotent and completion reads or approval replays recover interrupted validation, review, projection sync,
+`plan_completed`, and terminal plan writes. The `completed` lifecycle is written last, so it always has the exact
+final sign-off and completion event. Released evidence protection is valid after signed-off completion because the
+managed run identities and all evidence and sign-off hashes remain immutable.
+
 The canonical agent path is MCP-first: create or revise plans from the coding agent and let AppraiseJS reflect review,
 validation, and approval state back into the app. Provider-native runs are experimental and disabled by default. When
 `APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true` is set before startup, the MCP server also exposes
@@ -415,6 +426,8 @@ After `validation_preparation_started`, agents author a managed Validation AST f
 They call `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and
 call `validation_ast_compile`. Compilation creates canonical database entities and a durable publish operation with exact
 AST, preview, receipt, projection, validation, and runtime-input hashes.
+AST capability availability is derived from the current built-in action catalog for each runtime, so discovered browser
+keyboard and viewport actions remain authorable without custom extensions.
 
 Managed baseline and implementation runs execute only immutable Appraise-owned runtime capsules. Target repository
 files are never managed execution authority; optional repository export is a separate receipt-bound operation.

@@ -120,11 +120,11 @@ export function classifyBaselineResult(
       reason: `Required setup step "${lastExpectedStep}" did not pass before the failure.`,
     }
   }
-  const exactMatch =
+  const orderedMatch =
     expected.length > 0 &&
     expected.length === evidence.failureSignatures.length &&
-    expected.every((item, index) => item.signature === evidence.failureSignatures[index])
-  if (exactMatch) {
+    expected.every((item, index) => evidence.failureSignatures[index]?.includes(item.signature))
+  if (orderedMatch) {
     return {
       classification: 'expected_product_failure',
       signatureHash,

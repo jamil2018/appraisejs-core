@@ -151,6 +151,24 @@ const detail: PlanReviewDetail = {
     planApprovals: [],
     fileApprovals: [],
   },
+  validationIntegrity: {
+    status: 'not_applicable',
+    representations: {
+      planArtifact: { present: true, lifecycle: 'awaiting_plan_review', hash: `sha256:${'a'.repeat(64)}` },
+      projection: { present: true, lifecycle: 'awaiting_plan_review' },
+      validationArtifact: { present: false },
+      reviewArtifact: { present: true, hash: `sha256:${'c'.repeat(64)}` },
+      reviewReadyEvent: { present: false },
+    },
+    mismatches: [],
+    retryable: false,
+  },
+  executionOrder: {
+    valid: true,
+    orderedTaskIds: ['task-two', 'task-one'],
+    blockedTaskIds: [],
+    issues: [],
+  },
   graph: {
     nodes: [
       {

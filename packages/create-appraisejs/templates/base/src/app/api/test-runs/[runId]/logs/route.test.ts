@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TestRunStatus } from '@prisma/client'
+import { ServiceError } from '@/services/shared/errors'
 
 const { mockTestRunFindUnique, mockGetTestRunLogsService } = vi.hoisted(() => ({
   mockTestRunFindUnique: vi.fn(),
@@ -87,5 +88,25 @@ describe('test run logs route', () => {
     )
 
     await expect(response!.text()).resolves.toContain('[stderr] Error: failed step')
+  })
+
+  it('returns bounded missing and integrity envelopes for absent stored artifacts', async () => {
+    mockGetTestRunLogsService.mockRejectedValueOnce(new ServiceError('private missing path', 'NOT_FOUND', 404))
+    const missing = await GET(new NextRequest('http://localhost/api/test-runs/run-1/logs?targetProjectId=project-1'), {
+      params: Promise.resolve({ runId: 'run-1' }),
+    })
+    expect(missing!.status).toBe(404)
+    await expect(missing!.json()).resolves.toEqual({
+      error: 'Test run logs not found.',
+      code: 'NOT_FOUND',
+      runId: 'run-1',
+    })
+
+    mockGetTestRunLogsService.mockRejectedValueOnce(new ServiceError('private corrupt path', 'CONFLICT', 409))
+    const conflict = await GET(new NextRequest('http://localhost/api/test-runs/run-1/logs?targetProjectId=project-1'), {
+      params: Promise.resolve({ runId: 'run-1' }),
+    })
+    expect(conflict!.status).toBe(409)
+    expect(JSON.stringify(await conflict!.json())).not.toContain('private corrupt path')
   })
 })

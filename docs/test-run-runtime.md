@@ -108,6 +108,12 @@ implementation start must resolve immediately through `test_run_read` and `test_
 run is queued/running and after a harness failure. Owned links must embed that same `runId`; callers must not translate
 between the public run ID and the internal TestRun row ID.
 
+Evidence summaries use the public `runId` for both `testRunPageId` and `executionRunId`. Report pages include
+`?project=<targetProjectId>`, while logs and diagnostics include `?targetProjectId=<targetProjectId>`. Coordinator
+reads never retry without their bound project. A missing managed log or report returns an opaque, bounded 404; an
+integrity failure returns an opaque 409. Managed execution flushes and durably writes its sealed capsule log before
+publishing a terminal TestRun state, so terminal evidence links are immediately readable.
+
 The database lease covers the complete preflight, not only materialization. Ownership is renewed before every check,
 and the final dry-run stage renews, repeats complete repository/blob/run-file integrity, securely revalidates output
 ancestors, renews again, and only then spawns. Controlled mutation therefore blocks without invoking Cucumber. Config

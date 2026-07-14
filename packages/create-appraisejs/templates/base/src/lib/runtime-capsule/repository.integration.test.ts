@@ -40,9 +40,9 @@ describe('RuntimeCapsuleRepository SQLite concurrency', () => {
       data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'b'.repeat(64)}` },
     })
     const environment = await prisma.environment.upsert({
-      where: { name: 'capsule-local' },
+      where: { id: 'repository-capsule-local' },
       update: {},
-      create: { name: 'capsule-local', baseUrl: 'http://localhost' },
+      create: { id: 'repository-capsule-local', name: 'capsule-local', baseUrl: 'http://localhost' },
     })
     const testRun = await prisma.testRun.create({
       data: {

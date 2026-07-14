@@ -14,6 +14,7 @@ import { canonicalRuntimeCapsuleJson, hashRuntimeCapsuleValue } from '@/lib/runt
 import { processManager } from '@/lib/test-run/process-manager'
 import { summarizeRunEvidence } from './run-evidence-summary-service'
 import { ServiceError } from '@/services/shared/errors'
+import { testRunEvidenceLinks } from './test-run-evidence-links'
 
 const ACTIVE_ATTEMPTS = new Set(['STARTING', 'RUNNING'])
 
@@ -103,6 +104,7 @@ export async function readRuntimeCapsuleDiagnostic(
   const processRegistered = processManager.has(run.runId)
   const stateBlocker = attemptBlocker(attempt.state, processRegistered)
   const nextRecoveryAction = recovery(attempt.state, preflight.status, evidence.evidenceHealth)
+  const evidenceLinks = testRunEvidenceLinks(run.runId, run.targetProjectId)
   return runtimeCapsuleDiagnosticV1Schema.parse({
     schemaVersion: '1',
     run: {
@@ -174,9 +176,9 @@ export async function readRuntimeCapsuleDiagnostic(
       matchedCaseCount: evidence.counts.matchedScenarios,
       scenarioCount: evidence.counts.scenarios,
       links: {
-        run: `/test-runs/${run.runId}`,
-        logs: evidence.logsUrl,
-        ...(run.reportPath ? { report: evidence.reportUrl } : {}),
+        run: evidenceLinks.reportUrl,
+        logs: evidenceLinks.logsUrl,
+        ...(run.reportPath ? { report: evidenceLinks.reportUrl } : {}),
       },
     },
     nextRecoveryAction,

@@ -144,7 +144,16 @@ const workflowResourceUris = [
 ] as const
 
 function text(value: unknown) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
+  const serialized = JSON.stringify(value, null, 2)
+  return {
+    content: [{ type: 'text' as const, text: serialized }],
+    _meta: {
+      'appraise/responseMetrics': {
+        bytes: Buffer.byteLength(serialized),
+        estimatedTokens: Math.ceil(serialized.length / 4),
+      },
+    },
+  }
 }
 
 export function normalizeOptionalRef(value: unknown) {
@@ -269,6 +278,21 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
   if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
   const payload = value as Record<string, unknown>
   const plan = payload.plan && typeof payload.plan === 'object' ? (payload.plan as Record<string, unknown>) : undefined
+  const validation =
+    payload.validation && typeof payload.validation === 'object'
+      ? (payload.validation as Record<string, unknown>)
+      : undefined
+  const baselineAttempts = Array.isArray(validation?.baselineAttempts) ? validation.baselineAttempts : undefined
+  const testRunIds =
+    baselineAttempts
+      ?.map(attempt =>
+        attempt && typeof attempt === 'object' ? (attempt as Record<string, unknown>).testRunId : undefined,
+      )
+      .filter((testRunId): testRunId is string => typeof testRunId === 'string') ?? payload.testRunIds
+  const attemptIds =
+    baselineAttempts
+      ?.map(attempt => (attempt && typeof attempt === 'object' ? (attempt as Record<string, unknown>).id : undefined))
+      .filter((attemptId): attemptId is string => typeof attemptId === 'string') ?? undefined
   const common = {
     planId: payload.planId ?? plan?.planId,
     lifecycle: payload.lifecycle ?? plan?.lifecycle,
@@ -284,10 +308,11 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
   if (responseMode === 'evidenceOnly') {
     return {
       ...common,
-      attemptId: payload.attemptId,
+      attemptId: payload.attemptId ?? attemptIds?.[0],
+      attemptIds,
       testRunId: payload.testRunId,
-      testRunIds: payload.testRunIds,
-      evidence: payload.evidence ?? payload.evidenceSummary,
+      testRunIds,
+      evidence: payload.evidence ?? payload.evidenceSummary ?? baselineAttempts,
       counts: payload.counts,
       manifestPaths: payload.manifestPaths,
     }
@@ -295,11 +320,12 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
   return {
     ...common,
     published: payload.published,
-    attemptId: payload.attemptId,
+    attemptId: payload.attemptId ?? attemptIds?.[0],
+    attemptIds,
     testRunId: payload.testRunId,
-    testRunIds: payload.testRunIds,
+    testRunIds,
     reused: payload.reused,
-    evidence: payload.evidenceSummary ?? payload.evidence,
+    evidence: payload.evidenceSummary ?? payload.evidence ?? baselineAttempts,
     counts: payload.counts,
     blockers: payload.blockers,
     warnings: payload.warnings,
@@ -314,11 +340,33 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
 export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
   if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
   const payload = value as Record<string, unknown>
+  const created =
+    payload.created && typeof payload.created === 'object' ? (payload.created as Record<string, unknown>) : undefined
+  const reviewReady =
+    payload.reviewReady && typeof payload.reviewReady === 'object'
+      ? (payload.reviewReady as Record<string, unknown>)
+      : undefined
+  const resources =
+    payload.resources && typeof payload.resources === 'object' && !Array.isArray(payload.resources)
+      ? (payload.resources as Record<string, unknown>)
+      : undefined
+  const returnedResourceCounts = resources
+    ? Object.fromEntries(
+        Object.entries(resources).map(([resourceType, entries]) => [
+          resourceType,
+          Array.isArray(entries) ? entries.length : 0,
+        ]),
+      )
+    : undefined
   const common = {
     status: payload.status,
-    planId: payload.planId,
+    planId: payload.planId ?? reviewReady?.planId ?? created?.planId,
     valid: payload.valid,
-    lifecycle: payload.lifecycle,
+    lifecycle: payload.lifecycle ?? reviewReady?.lifecycle ?? created?.lifecycle,
+    revision: payload.revision ?? reviewReady?.revision ?? created?.revision,
+    planContentHash: payload.planContentHash ?? reviewReady?.planContentHash ?? created?.planContentHash,
+    planStateHash: payload.planStateHash ?? reviewReady?.planStateHash ?? created?.planStateHash,
+    reviewBindingHash: payload.reviewBindingHash ?? reviewReady?.reviewBindingHash ?? created?.reviewBindingHash,
     candidateHash: payload.candidateHash,
     taskShapeHash: payload.taskShapeHash,
     contextHash: payload.contextHash,
@@ -333,18 +381,28 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     nextRecommendedAction: payload.nextRecommendedAction,
     nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
   }
-  if (responseMode === 'linksOnly') return { ...common, links: payload.links, detailResource: payload.detailResource }
+  const handoff = {
+    links: payload.links ?? reviewReady?.links ?? created?.links,
+    browserUrl: payload.browserUrl ?? reviewReady?.browserUrl,
+    appraiseUrl: payload.appraiseUrl ?? reviewReady?.appraiseUrl,
+    currentAfterSequence: payload.currentAfterSequence ?? reviewReady?.currentAfterSequence,
+    nextAfterSequence: payload.nextAfterSequence ?? reviewReady?.nextAfterSequence,
+    recommendedWait: payload.recommendedWait ?? reviewReady?.recommendedWait,
+  }
+  if (responseMode === 'linksOnly') return { ...common, ...handoff, detailResource: payload.detailResource }
   if (responseMode === 'blockersOnly') return common
   if (responseMode === 'evidenceOnly')
     return { ...common, hashes: payload.hashes, counts: payload.counts, events: payload.events }
   return {
     ...common,
+    ...handoff,
     requirementAssessment: payload.requirementAssessment,
     taskDiff: payload.taskDiff,
-    created: payload.created,
-    reviewReady: payload.reviewReady,
     targetProject: payload.targetProject,
-    resources: payload.resources,
+    returnedResourceCounts,
+    resourceSearchGuidance: resources
+      ? 'Use validation_context_read with resourceTypes/query and a small limit, or the dedicated template_step_search, step_block_search, and locator_search tools, before requesting full context.'
+      : undefined,
   }
 }
 
@@ -773,7 +831,7 @@ function createStructuredTasksFromBrief(
             description:
               'Preserve the requested workflow across small screens, keyboard navigation, and assistive technology.',
             acceptanceCriteria: [
-              'The primary workflow remains usable at narrow viewport sizes.',
+              'The primary workflow remains usable in responsive layouts at narrow viewport sizes.',
               'Inputs, toggles, filters, and delete controls have accessible names and keyboard focus states.',
             ],
             validationIntent: 'Run responsive viewport and accessibility-focused interaction checks.',
@@ -1252,6 +1310,13 @@ function linkFromSnapshot(links: unknown, key: 'appraise' | 'browser'): string |
   return typeof value === 'string' ? value : undefined
 }
 
+function validationReviewBrowserUrl(browserUrl: string | undefined) {
+  if (!browserUrl) return undefined
+  const url = new URL(browserUrl)
+  url.searchParams.set('review', 'validation')
+  return url.href
+}
+
 function formatReviewHandoff(input: {
   browserUrl?: string
   appraiseUrl: string
@@ -1448,7 +1513,7 @@ export function validationReviewPendingResponse(input: {
     terminal: false,
     mustContinue: true,
     planId: input.planId,
-    browserUrl: browserUrl ? `${browserUrl}?review=validation` : undefined,
+    browserUrl: validationReviewBrowserUrl(browserUrl),
     appraiseUrl,
     revision: input.current.plan.revision,
     lifecycle: input.current.plan.lifecycle,
@@ -1701,6 +1766,35 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async ({ planId, proposal }) => text(await api.proposeValidationResources(planId, proposal)),
   )
   server.registerTool(
+    'validation_resources_abandon',
+    {
+      description: 'Idempotently abandon a validation resource proposal before safe cleanup.',
+      inputSchema: { planId: z.string(), idempotencyKey: z.string(), reason: z.string().min(1) },
+    },
+    async ({ planId, idempotencyKey, reason }) =>
+      text(
+        await api.request(`plans/${planId}/validations/resources/abandon`, {
+          method: 'POST',
+          body: JSON.stringify({ idempotencyKey, reason }),
+        }),
+      ),
+  )
+  server.registerTool(
+    'validation_resources_cleanup',
+    {
+      description:
+        'Safely clean abandoned proposal-owned resources; reused or referenced resources are retained and reported.',
+      inputSchema: { planId: z.string(), idempotencyKey: z.string() },
+    },
+    async ({ planId, idempotencyKey }) =>
+      text(
+        await api.request(`plans/${planId}/validations/resources/cleanup`, {
+          method: 'POST',
+          body: JSON.stringify({ idempotencyKey }),
+        }),
+      ),
+  )
+  server.registerTool(
     'validation_ast_extension_reviews',
     {
       description: 'Read exact bounded extension reviews and the hash required to bind a review decision.',
@@ -1810,7 +1904,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'validation_ast_extension_policy',
     {
       description: 'Read the bounded, versioned custom-extension capability policy for an authoritative target plan.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
     async ({ planId }) => text(await api.readValidationAstExtensionPolicy(planId)),
   )
@@ -2467,7 +2561,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'plan_read',
     {
       description: 'Read the current plan artifact and content hash.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
     async ({ planId }) => text(await api.request(`plans/${planId}`)),
   )
@@ -3031,16 +3125,19 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Explicit user/Appraise interrupt relay: cancel active baseline executions and return the plan to baseline changes requested.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId }) =>
+    async ({ planId, responseMode }) =>
       text(
-        lifecycleToolPayload({
-          planId,
-          result: await api.request(`plans/${planId}/baseline/cancel`, { method: 'POST', body: '{}' }),
-          nextRecommendedAction: 'Revise validation or baseline setup, then call baseline_start again when ready.',
-          nextRequiredAgentBehavior: 'revise_baseline_or_validation',
-        }),
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/baseline/cancel`, { method: 'POST', body: '{}' }),
+            nextRecommendedAction: 'Revise validation or baseline setup, then call baseline_start again when ready.',
+            nextRequiredAgentBehavior: 'revise_baseline_or_validation',
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
@@ -3329,6 +3426,16 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     async input => text(await api.evaluateCoordinationSlo(input)),
   )
   server.registerTool(
+    'plan_lifecycle_health',
+    {
+      description:
+        'Read bounded lifecycle invariant health, orphaned managed runs, and authorized recovery actions for a plan.',
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
+    },
+    async ({ planId, responseMode }) =>
+      text(applyLifecycleResponseMode(await api.request(`plans/${planId}/health`), responseMode)),
+  )
+  server.registerTool(
     'implementation_start',
     {
       description: 'Agent-owned execution tool: start implementation after accepted baseline evidence.',
@@ -3361,34 +3468,45 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         ]),
         taskIds: z.array(z.string()).optional(),
         queuedFeedbackCount: z.number().int().nonnegative().optional(),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, ...body }) =>
+    async ({ planId, responseMode, ...body }) =>
       text(
-        await api.request(`plans/${planId}/implementation/checkpoint`, {
-          method: 'POST',
-          body: JSON.stringify(body),
-        }),
+        applyLifecycleResponseMode(
+          await api.request(`plans/${planId}/implementation/checkpoint`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
     'implementation_group_approve',
     {
       description: 'Approve implementation groups and receive currently runnable task IDs.',
-      inputSchema: { planId: z.string(), groupIds: z.array(z.string().min(1)).min(1) },
+      inputSchema: {
+        planId: z.string(),
+        groupIds: z.array(z.string().min(1)).min(1),
+        responseMode: responseModeSchema,
+      },
     },
-    async ({ planId, groupIds }) =>
+    async ({ planId, groupIds, responseMode }) =>
       text(
-        lifecycleToolPayload({
-          planId,
-          result: await api.request(`plans/${planId}/implementation/groups`, {
-            method: 'POST',
-            body: JSON.stringify({ groupIds }),
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/implementation/groups`, {
+              method: 'POST',
+              body: JSON.stringify({ groupIds }),
+            }),
+            nextRecommendedAction: 'Call implementation_checkpoint before working on runnable tasks.',
+            nextRequiredAgentBehavior: 'record_implementation_checkpoint',
+            nextAllowedAction: { tool: 'implementation_checkpoint', type: 'before_group' },
           }),
-          nextRecommendedAction: 'Call implementation_checkpoint before working on runnable tasks.',
-          nextRequiredAgentBehavior: 'record_implementation_checkpoint',
-          nextAllowedAction: { tool: 'implementation_checkpoint', type: 'before_group' },
-        }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
@@ -3400,14 +3518,18 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         taskId: z.string(),
         status: z.enum(['pending', 'in_progress', 'implemented', 'verified']),
         commitHash: z.string().optional(),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, taskId, ...body }) =>
+    async ({ planId, taskId, responseMode, ...body }) =>
       text(
-        await api.request(`plans/${planId}/implementation/tasks/${taskId}`, {
-          method: 'POST',
-          body: JSON.stringify(body),
-        }),
+        applyLifecycleResponseMode(
+          await api.request(`plans/${planId}/implementation/tasks/${taskId}`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
@@ -3415,14 +3537,21 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Record exceptional manual implementation validation evidence. This is always reduced assurance and does not replace managed Appraise TestRun evidence for required runtime validations.',
-      inputSchema: { planId: z.string(), run: implementationValidationRunInputSchema },
+      inputSchema: {
+        planId: z.string(),
+        run: implementationValidationRunInputSchema,
+        responseMode: responseModeSchema,
+      },
     },
-    async ({ planId, run }) =>
+    async ({ planId, run, responseMode }) =>
       text(
-        await api.request(`plans/${planId}/implementation/validations`, {
-          method: 'POST',
-          body: JSON.stringify({ run }),
-        }),
+        applyLifecycleResponseMode(
+          await api.request(`plans/${planId}/implementation/validations`, {
+            method: 'POST',
+            body: JSON.stringify({ run }),
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
@@ -3434,21 +3563,25 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         planId: z.string(),
         validationIds: z.array(z.string().min(1)).optional(),
         commitHash: z.string().min(1).optional(),
+        responseMode: responseModeSchema.optional(),
       },
     },
-    async ({ planId, validationIds, commitHash }) =>
+    async ({ planId, validationIds, commitHash, responseMode }) =>
       text(
-        lifecycleToolPayload({
-          planId,
-          result: await api.request(`plans/${planId}/implementation/validations/start`, {
-            method: 'POST',
-            body: JSON.stringify({ validationIds, commitHash }),
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/implementation/validations/start`, {
+              method: 'POST',
+              body: JSON.stringify({ validationIds, commitHash }),
+            }),
+            nextRecommendedAction:
+              'Managed runtime capsules start automatically. Call implementation_validation_reconcile with the returned implementation run IDs until evidence is terminal.',
+            nextRequiredAgentBehavior: 'reconcile_bound_test_runs',
+            nextAllowedAction: { tool: 'implementation_validation_reconcile' },
           }),
-          nextRecommendedAction:
-            'Call test_run once for each returned testRunInputs item, then call implementation_validation_reconcile with the implementation run IDs.',
-          nextRequiredAgentBehavior: 'run_bound_test_runs_then_reconcile',
-          nextAllowedAction: { tool: 'test_run' },
-        }),
+          responseMode ?? 'summary',
+        ),
       ),
   )
   server.registerTool(
@@ -3461,21 +3594,25 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         runIds: z.array(z.string().min(1)).optional(),
         verifyTaskIds: z.array(z.string().min(1)).optional(),
         idempotencyKey: z.string().min(1).optional(),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, runIds, verifyTaskIds, idempotencyKey }) =>
+    async ({ planId, runIds, verifyTaskIds, idempotencyKey, responseMode }) =>
       text(
-        lifecycleToolPayload({
-          planId,
-          result: await api.request(`plans/${planId}/implementation/validations/reconcile`, {
-            method: 'POST',
-            body: JSON.stringify({ runIds, verifyTaskIds, idempotencyKey }),
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/implementation/validations/reconcile`, {
+              method: 'POST',
+              body: JSON.stringify({ runIds, verifyTaskIds, idempotencyKey }),
+            }),
+            nextRecommendedAction:
+              'If readiness is blocked, inspect test_run_diagnose for invalid evidence; otherwise continue toward implementation_completion_review.',
+            nextRequiredAgentBehavior: 'inspect_validation_readiness_then_continue',
+            nextAllowedAction: { tool: 'implementation_completion_review' },
           }),
-          nextRecommendedAction:
-            'If readiness is blocked, inspect test_run_diagnose for invalid evidence; otherwise continue toward implementation_completion_review.',
-          nextRequiredAgentBehavior: 'inspect_validation_readiness_then_continue',
-          nextAllowedAction: { tool: 'implementation_completion_review' },
-        }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
@@ -3487,14 +3624,18 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         affectedTaskIds: z.array(z.string()).min(1),
         confirmed: z.boolean(),
         pausePlanWide: z.boolean().optional(),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, ...body }) =>
+    async ({ planId, responseMode, ...body }) =>
       text(
-        await api.request(`plans/${planId}/implementation/feedback`, {
-          method: 'POST',
-          body: JSON.stringify(body),
-        }),
+        applyLifecycleResponseMode(
+          await api.request(`plans/${planId}/implementation/feedback`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
@@ -3505,23 +3646,28 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         planId: z.string(),
         action: z.enum(['pause', 'resume', 'cancel']),
         stopActiveRuns: z.boolean().optional(),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, ...body }) =>
+    async ({ planId, responseMode, ...body }) =>
       text(
-        await api.request(`plans/${planId}/implementation/control`, {
-          method: 'POST',
-          body: JSON.stringify(body),
-        }),
+        applyLifecycleResponseMode(
+          await api.request(`plans/${planId}/implementation/control`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
     'implementation_completion_review',
     {
       description: 'Read final task, commit, validation, evidence, failure, and remark review data.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId }) => text(await api.request(`plans/${planId}/completion`)),
+    async ({ planId, responseMode }) =>
+      text(applyLifecycleResponseMode(await api.request(`plans/${planId}/completion`), responseMode)),
   )
   server.registerTool(
     'implementation_complete',
@@ -3531,14 +3677,18 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         planId: z.string(),
         approvedBy: z.string(),
         contentHash: z.string(),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, ...body }) =>
+    async ({ planId, responseMode, ...body }) =>
       text(
-        await api.request(`plans/${planId}/implementation/complete`, {
-          method: 'POST',
-          body: JSON.stringify(body),
-        }),
+        applyLifecycleResponseMode(
+          await api.request(`plans/${planId}/implementation/complete`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(

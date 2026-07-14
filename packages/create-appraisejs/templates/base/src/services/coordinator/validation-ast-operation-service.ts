@@ -66,6 +66,11 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     projectFingerprint: plan.targetProject.fingerprint,
     capabilityImports: PROJECT_EXTENSION_CAPABILITY_IMPORTS,
   })
+  const builtInBrowserCapabilities = [
+    ...new Set(
+      defaultActionCatalog.listActions({ runtime: 'browser' }, 0, 100).items.flatMap(action => action.capabilities),
+    ),
+  ].sort()
   const compilerContext: ValidationAstCompilerContext = {
     project: { id: plan.targetProject.id, fingerprint: plan.targetProject.fingerprint },
     planScope: `${plan.targetProject.fingerprint}:${plan.planId}`,
@@ -75,7 +80,7 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     locatorGraph,
     environments: environmentContext,
     availableRuntimes: ['browser'],
-    availableCapabilities: ['navigation', 'mouse', 'forms', 'waits', 'assertions'],
+    availableCapabilities: builtInBrowserCapabilities,
     extensionPolicy,
   }
   const contextHash = hash({

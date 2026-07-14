@@ -130,9 +130,9 @@ async function seedReviewablePlan(): Promise<void> {
 
 async function seedValidationReviewPlan(): Promise<void> {
   await prisma.environment.upsert({
-    where: { name: 'local' },
+    where: { id: 'e2e-plan-review-local' },
     update: { baseUrl: 'http://127.0.0.1:3200' },
-    create: { name: 'local', baseUrl: 'http://127.0.0.1:3200' },
+    create: { id: 'e2e-plan-review-local', name: 'local', baseUrl: 'http://127.0.0.1:3200' },
   })
   const planContent = serializeYamlArtifact('plan', validationPlan)
   const planHash = hashContent(planContent)

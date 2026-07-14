@@ -131,9 +131,9 @@ beforeEach(async () => {
     data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'b'.repeat(64)}` },
   })
   const environment = await client.environment.upsert({
-    where: { name: 'local' },
+    where: { id: 'validation-operation-local' },
     update: { targetProjectId: target.id },
-    create: { name: 'local', baseUrl: 'http://localhost', targetProjectId: target.id },
+    create: { id: 'validation-operation-local', name: 'local', baseUrl: 'http://localhost', targetProjectId: target.id },
   })
   const repository = new PlanArtifactRepository(workspace)
   await client.module.create({

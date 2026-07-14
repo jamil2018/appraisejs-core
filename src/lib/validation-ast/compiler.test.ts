@@ -77,6 +77,7 @@ const submission = {
     purpose: 'Verify todo entry.',
     coversTaskIds: ['task-one'],
     matrix: [{ browser: 'chromium', environmentId: 'local' }],
+    expectedFailures: [],
     scenarios: [
       {
         id: 'create-todo',
@@ -150,6 +151,7 @@ describe('Validation AST check and preview', () => {
       [
         {
           refId: 'title-input',
+          moduleId: 'todo-module',
           id: 'title-input',
           name: 'Title',
           value: '[name="title"]',
@@ -205,7 +207,7 @@ describe('Validation AST check and preview', () => {
   })
 
   it('blocks uncovered requirements and partial coverage without exact acknowledgement', () => {
-    const incomplete = structuredClone(submission) as ValidationAstSubmission
+    const incomplete = structuredClone(submission) as unknown as ValidationAstSubmission
     incomplete.ast.coverageArgument!.mappings[0]!.state = 'uncovered'
     expect(checkValidationAst(incomplete, context).blockers.map(blocker => blocker.code)).toContain(
       'coverage-uncovered',

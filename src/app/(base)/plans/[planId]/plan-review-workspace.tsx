@@ -874,6 +874,16 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         </Alert>
       ) : null}
 
+      <Alert className={cn('rounded-xl', !detail.executionOrder.valid && 'border-destructive/50 bg-destructive/10')}>
+        <AlertTriangle className="size-4" />
+        <AlertTitle>Computed implementation order</AlertTitle>
+        <AlertDescription>
+          {detail.executionOrder.valid
+            ? detail.executionOrder.orderedTaskIds.join(' → ') || 'No implementation tasks.'
+            : `Invalid dependency graph: ${detail.executionOrder.blockedTaskIds.join(', ')}.`}
+        </AlertDescription>
+      </Alert>
+
       <div className={cn('grid gap-5', inspectorOpen && 'xl:grid-cols-[minmax(0,1fr)_420px]')}>
         <Card className="overflow-hidden rounded-xl border">
           <CardHeader className="bg-muted/10 border-b">
@@ -1611,57 +1621,59 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                   )}
 
                   <div className="space-y-4">
-                    {detail.plan.lifecycle === 'validation_passed' && detail.completionReview?.readiness.ready && (
-                      <section
-                        aria-labelledby="completion-signoff-heading"
-                        className="space-y-3 rounded-xl border border-emerald-500/35 bg-emerald-500/5 p-3.5"
-                      >
-                        <div>
-                          <h4 id="completion-signoff-heading" className="text-xs font-semibold">
-                            Final completion sign-off
-                          </h4>
-                          <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
-                            All required tasks and validation evidence are ready. Completion binds permanently to this
-                            exact evidence hash.
-                          </p>
-                        </div>
-                        <p className="bg-background/60 break-all rounded-lg border p-2 font-mono text-[10px]">
-                          {detail.completionReview.evidenceHash}
-                        </p>
-                        <div className="flex items-start gap-2">
-                          <Checkbox
-                            id="completion-confirmation"
-                            checked={confirmCompletion}
-                            onCheckedChange={value => setConfirmCompletion(value === true)}
-                            className="mt-0.5"
-                          />
-                          <Label
-                            htmlFor="completion-confirmation"
-                            className="cursor-pointer text-xs font-medium leading-normal"
-                          >
-                            I reviewed the final evidence and explicitly approve completing this plan.
-                          </Label>
-                        </div>
-                        <Button
-                          className="h-10 w-full rounded-lg font-bold"
-                          disabled={isPending || !confirmCompletion}
-                          onClick={() =>
-                            run(
-                              () =>
-                                completeImplementationAction({
-                                  planId: detail.plan.planId,
-                                  evidenceHash: detail.completionReview!.evidenceHash,
-                                  confirmCompletion: true,
-                                }),
-                              'Plan completed with exact final sign-off.',
-                            )
-                          }
+                    {(detail.plan.lifecycle === 'validation_passed' ||
+                      (detail.plan.lifecycle === 'completed' && !detail.completionReview?.finalSignOff)) &&
+                      detail.completionReview?.readiness.ready && (
+                        <section
+                          aria-labelledby="completion-signoff-heading"
+                          className="space-y-3 rounded-xl border border-emerald-500/35 bg-emerald-500/5 p-3.5"
                         >
-                          <CheckCircle2 className="mr-2 size-4" />
-                          Approve final completion
-                        </Button>
-                      </section>
-                    )}
+                          <div>
+                            <h4 id="completion-signoff-heading" className="text-xs font-semibold">
+                              Final completion sign-off
+                            </h4>
+                            <p className="mt-1 text-[11px] leading-normal text-muted-foreground">
+                              All required tasks and validation evidence are ready. Completion binds permanently to this
+                              exact evidence hash.
+                            </p>
+                          </div>
+                          <p className="bg-background/60 break-all rounded-lg border p-2 font-mono text-[10px]">
+                            {detail.completionReview.evidenceHash}
+                          </p>
+                          <div className="flex items-start gap-2">
+                            <Checkbox
+                              id="completion-confirmation"
+                              checked={confirmCompletion}
+                              onCheckedChange={value => setConfirmCompletion(value === true)}
+                              className="mt-0.5"
+                            />
+                            <Label
+                              htmlFor="completion-confirmation"
+                              className="cursor-pointer text-xs font-medium leading-normal"
+                            >
+                              I reviewed the final evidence and explicitly approve completing this plan.
+                            </Label>
+                          </div>
+                          <Button
+                            className="h-10 w-full rounded-lg font-bold"
+                            disabled={isPending || !confirmCompletion}
+                            onClick={() =>
+                              run(
+                                () =>
+                                  completeImplementationAction({
+                                    planId: detail.plan.planId,
+                                    evidenceHash: detail.completionReview!.evidenceHash,
+                                    confirmCompletion: true,
+                                  }),
+                                'Plan completed with exact final sign-off.',
+                              )
+                            }
+                          >
+                            <CheckCircle2 className="mr-2 size-4" />
+                            Approve final completion
+                          </Button>
+                        </section>
+                      )}
                     {detail.plan.lifecycle === 'validation_passed' &&
                       detail.completionReview &&
                       !detail.completionReview.readiness.ready && (

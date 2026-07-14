@@ -50,4 +50,23 @@ describe('coordinator public contracts', () => {
       },
     })
   })
+
+  it('returns bounded recovery guidance for database uniqueness conflicts', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { modelName: 'LocatorGroup', target: ['targetProjectId', 'name'] },
+    })
+
+    expect(coordinatorError(error)).toEqual({
+      code: 'database-unique-conflict',
+      message: 'A project resource with the same unique identity already exists.',
+      recovery: 'Reread the project-scoped resources and reuse the compatible ID or submit a distinct canonical name.',
+      details: {
+        prismaCode: 'P2002',
+        modelName: 'LocatorGroup',
+        fields: ['targetProjectId', 'name'],
+      },
+    })
+  })
 })

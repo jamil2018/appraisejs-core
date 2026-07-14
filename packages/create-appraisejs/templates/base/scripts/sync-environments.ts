@@ -193,7 +193,7 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
           console.log(`   ⚠️  Skipped deletion of '${dbEnv.name}' (has ${testRunCount} test run(s))`)
         } else {
           await prisma.environment.delete({
-            where: { name: dbEnv.name },
+            where: { id: dbEnv.id },
           })
           result.environmentsDeleted++
           result.deletedEnvironments.push(dbEnv.name)

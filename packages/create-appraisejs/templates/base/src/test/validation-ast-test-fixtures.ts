@@ -15,6 +15,7 @@ export function basicValidationAstSubmission(planHash: string, taskId = 'task-on
       purpose: 'Open home.',
       coversTaskIds: [taskId],
       matrix: [{ browser: 'chromium' as const, environmentId: 'local' }],
+      expectedFailures: [],
       scenarios: [
         {
           id: 'open-home',
@@ -46,6 +47,7 @@ export function inadequateFreshTargetAuditSubmission(planHash: string) {
       purpose: 'Exercise navigation and reload without substantiating the claimed product behavior.',
       coversTaskIds: ['task-create', 'task-complete', 'task-filter', 'task-persist', 'task-responsive'],
       matrix: [{ browser: 'chromium' as const, environmentId: 'local' }],
+      expectedFailures: [],
       scenarios: [
         {
           id: 'page-ready',

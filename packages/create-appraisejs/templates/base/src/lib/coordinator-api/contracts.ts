@@ -43,6 +43,18 @@ export function validationReviewLinks(planId: string, baseUrl: string, targetPro
 }
 
 export function coordinatorError(error: unknown): CoordinatorErrorEnvelope | undefined {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    return {
+      code: 'database-unique-conflict',
+      message: 'A project resource with the same unique identity already exists.',
+      recovery: 'Reread the project-scoped resources and reuse the compatible ID or submit a distinct canonical name.',
+      details: {
+        prismaCode: error.code,
+        modelName: error.meta?.modelName,
+        fields: error.meta?.target,
+      },
+    }
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
     return {
       code: 'database-schema-drift',

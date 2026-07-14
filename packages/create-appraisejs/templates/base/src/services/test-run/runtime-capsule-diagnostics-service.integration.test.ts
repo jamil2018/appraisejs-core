@@ -88,6 +88,10 @@ describe('runtime capsule bounded diagnostics in SQLite', () => {
     expect(first.attempt).toMatchObject({ state: 'STARTING', active: true })
     expect(first.blockers).toContainEqual({ code: 'ATTEMPT_STARTING', recoveryAction: 'WAIT_FOR_RUN' })
     expect(first.run.processRegistered).toBe(false)
+    expect(first.evidence.links).toMatchObject({
+      run: `/test-runs/${runId}?project=${projectId}`,
+      logs: `/api/test-runs/${runId}/logs?targetProjectId=${projectId}`,
+    })
     expect(JSON.stringify(first)).not.toMatch(/owner-token-secret|super-secret|\/Users\/private/)
   })
 

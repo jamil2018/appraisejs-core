@@ -5,7 +5,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { serializeYamlArtifact } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { createPlanRuntimeTestWorkspace } from '@/test/validation-ast-test-fixtures'
-import { proposeValidationResources } from './validation-resource-proposal-service'
+import {
+  abandonValidationResourceProposal,
+  cleanupValidationResourceProposal,
+  proposeValidationResources,
+} from './validation-resource-proposal-service'
 
 let workspace: string
 let client: PrismaClient
@@ -108,6 +112,81 @@ describe('validation resource proposals', () => {
         targetProjectId,
       },
     )
+  })
+
+  it('allows different target projects to use the same environment name', async () => {
+    const input = proposal()
+    input.environments[0]!.name = 'Local'
+    const foreignProject = await client.targetProject.create({
+      data: {
+        canonicalPath: `${workspace}-foreign-environment`,
+        displayName: 'Foreign environment project',
+        fingerprint: `sha256:${'f'.repeat(64)}`,
+      },
+    })
+    await client.environment.create({
+      data: { name: 'Local', baseUrl: 'http://localhost:4000', targetProjectId: foreignProject.id },
+    })
+
+    const result = await proposeValidationResources(
+      { planId: 'plan-resources', proposal: input, projectDirectory: workspace },
+      client,
+    )
+
+    await expect(
+      client.environment.findUnique({ where: { id: result.ids.environments.local } }),
+    ).resolves.toMatchObject({ name: 'Local', targetProjectId })
+    await expect(client.environment.count({ where: { name: 'Local' } })).resolves.toBe(2)
+  })
+
+  it('reuses a compatible same-project graph proposed under different local keys', async () => {
+    const initial = proposal()
+    const first = await proposeValidationResources(
+      { planId: 'plan-resources', proposal: initial, projectDirectory: workspace },
+      client,
+    )
+    const compatible = structuredClone(initial)
+    compatible.idempotencyKey = 'todo-page-resources-compatible'
+    compatible.modules[0]!.localKey = 'todo-v2'
+    compatible.locatorGroups[0]!.localKey = 'todo-page-v2'
+    compatible.locatorGroups[0]!.moduleKey = 'todo-v2'
+    compatible.locators[0]!.localKey = 'todo-input-v2'
+    compatible.locators[0]!.groupKey = 'todo-page-v2'
+    compatible.environments[0]!.localKey = 'local-v2'
+
+    const reused = await proposeValidationResources(
+      { planId: 'plan-resources', proposal: compatible, projectDirectory: workspace },
+      client,
+    )
+
+    expect(reused.ids.modules['todo-v2']).toBe(first.ids.modules.todo)
+    expect(reused.ids.locatorGroups['todo-page-v2']).toBe(first.ids.locatorGroups['todo-page'])
+    expect(reused.ids.locators['todo-input-v2']).toBe(first.ids.locators['todo-input'])
+    expect(reused.ids.environments['local-v2']).toBe(first.ids.environments.local)
+  })
+
+  it('abandons and safely cleans proposal-owned resources without deleting reused resources', async () => {
+    const first = await proposeValidationResources(
+      { planId: 'plan-resources', proposal: proposal(), projectDirectory: workspace },
+      client,
+    )
+    await expect(
+      abandonValidationResourceProposal(
+        { planId: 'plan-resources', idempotencyKey: 'todo-page-resources', reason: 'Diagnostic proposal' },
+        client,
+      ),
+    ).resolves.toMatchObject({ status: 'abandoned', abandonReason: 'Diagnostic proposal' })
+
+    const cleaned = await cleanupValidationResourceProposal(
+      { planId: 'plan-resources', idempotencyKey: 'todo-page-resources' },
+      client,
+    )
+    expect(cleaned).toMatchObject({ status: 'cleaned', retained: [] })
+    await expect(client.module.findUnique({ where: { id: first.ids.modules.todo } })).resolves.toBeNull()
+    await expect(client.locator.findUnique({ where: { id: first.ids.locators['todo-input'] } })).resolves.toBeNull()
+    await expect(
+      cleanupValidationResourceProposal({ planId: 'plan-resources', idempotencyKey: 'todo-page-resources' }, client),
+    ).resolves.toMatchObject({ status: 'cleaned' })
   })
 
   it('rejects unresolved graphs before any database write', async () => {

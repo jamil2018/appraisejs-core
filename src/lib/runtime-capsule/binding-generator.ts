@@ -45,7 +45,25 @@ const dispatch = async (world, step) => {
     case 'browser.assertions.no-horizontal-overflow@1': expect(await world.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).to.equal(true); return
     case 'browser.assertions.accessible@1': {
       const locator = await target(world, step.parameters.find(item => item.name === 'target'))
-      expect((await locator.getAttribute('aria-label')) ?? (await locator.textContent()) ?? '').not.to.equal('')
+      const accessibleName = await locator.evaluate(element => {
+        const labelledBy = element.getAttribute('aria-labelledby')
+          ?.split(/\s+/)
+          .map(id => document.getElementById(id)?.textContent ?? '')
+          .join(' ')
+        const labels = 'labels' in element
+          ? Array.from(element.labels ?? []).map(label => label.textContent ?? '').join(' ')
+          : ''
+        return [
+          element.getAttribute('aria-label'),
+          labelledBy,
+          labels,
+          element.getAttribute('alt'),
+          element.getAttribute('title'),
+          element.getAttribute('placeholder'),
+          element.textContent,
+        ].find(value => value?.trim()) ?? ''
+      })
+      expect(accessibleName).not.to.equal('')
       return
     }
     case 'browser.assertions.persisted@1': expect(await (await target(world, step.parameters.find(item => item.name === 'target'))).isVisible()).to.equal(true); return

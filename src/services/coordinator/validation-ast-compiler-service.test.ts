@@ -56,6 +56,7 @@ describe('Validation AST canonical projection compiler', () => {
     const node = compileValidationAstNode(ast, [
       {
         refId: 'loc_start',
+        moduleId: 'meditation',
         id: 'start-button',
         name: 'Start button',
         value: '[data-testid="start"]',
@@ -132,6 +133,7 @@ describe('Validation AST canonical projection compiler', () => {
         resolvedLocators: [
           {
             refId: 'loc_start',
+            moduleId: 'meditation',
             id: 'start-button',
             name: 'Start button',
             value: '[data-testid="start"]',
@@ -157,6 +159,7 @@ describe('Validation AST canonical projection compiler', () => {
         resolvedLocators: [
           {
             refId: 'loc_start',
+            moduleId: 'meditation',
             id: 'start-button',
             name: 'Start button',
             value: '[data-testid="start"]',
