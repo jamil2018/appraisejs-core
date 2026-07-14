@@ -10,7 +10,11 @@ test-case templates remain project-owned and may reference entries from that sha
 Canonical application URLs keep their existing path and use `?project=<targetProjectId>`. An explicit URL project
 takes precedence over the `appraise-active-project` cookie. An invalid explicit ID produces a scoped 404 and is never
 replaced with the cookie project. Without an explicit ID, a valid cookie may supply the active project. Missing or
-invalid cookie scope routes project-sensitive pages to project onboarding.
+invalid cookie scope routes project-sensitive pages to project onboarding. Requests for the dashboard or a
+project-scoped collection/detail page that have neither URL nor cookie scope are rewritten before page data loads to
+a required project-selection dialog. The browser keeps the requested URL, and selecting a project returns to the
+same path and query with `project=<targetProjectId>` added, preventing missing-scope errors from becoming route-level
+500 responses.
 
 The project-management page presents registered projects in a searchable table. Registration and metadata changes
 use modal forms; UI registration requires a display name and accepts an optional description. Removing a project is

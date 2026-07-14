@@ -6,11 +6,17 @@ import { listTargetProjects } from '@/services/target-project/target-project-ser
 import { FolderGit2 } from 'lucide-react'
 
 import ProjectManagement from './project-management'
+import ProjectSelectionDialog from './project-selection-dialog'
 
 export const metadata: Metadata = { title: 'Projects' }
 
-export default async function ProjectsPage() {
-  const projects = await listTargetProjects()
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ selectProject?: string; returnTo?: string }>
+}) {
+  const [resolvedSearchParams, projects] = await Promise.all([searchParams, listTargetProjects()])
+  const projectOptions = projects.map(({ id, displayName, canonicalPath }) => ({ id, displayName, canonicalPath }))
 
   return (
     <div className="flex flex-col gap-8">
@@ -32,6 +38,9 @@ export default async function ProjectsPage() {
           lastDetectedAt,
         }))}
       />
+      {resolvedSearchParams?.selectProject === 'required' ? (
+        <ProjectSelectionDialog projects={projectOptions} returnTo={resolvedSearchParams.returnTo ?? '/'} />
+      ) : null}
     </div>
   )
 }
