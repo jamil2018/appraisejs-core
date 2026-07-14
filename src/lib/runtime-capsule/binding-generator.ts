@@ -31,10 +31,18 @@ const dispatch = async (world, step) => {
     case 'browser.navigation.reload@1': await world.page.reload(); return
     case 'browser.mouse.click@1': await (await target(world, step.parameters.find(item => item.name === 'target'))).click(); return
     case 'browser.forms.fill@1': await (await target(world, step.parameters.find(item => item.name === 'target'))).fill(String(inputs.value)); return
+    case 'browser.keyboard.press@1': await world.page.keyboard.press(String(inputs.key)); return
+    case 'browser.keyboard.focus@1': await (await target(world, step.parameters.find(item => item.name === 'target'))).focus(); return
+    case 'browser.viewport.set@1': await world.page.setViewportSize({ width: Number(inputs.width), height: Number(inputs.height) }); return
     case 'browser.waits.page-ready@1': await world.page.waitForLoadState('domcontentloaded'); return
     case 'browser.waits.duration@1': await world.page.waitForTimeout(Number(inputs.duration) * 1000); return
     case 'browser.waits.timeout@1': await world.page.waitForTimeout(Number(inputs.timeout)); return
     case 'browser.assertions.visible@1': expect(await (await target(world, step.parameters.find(item => item.name === 'target'))).isVisible()).to.equal(true); return
+    case 'browser.assertions.hidden@1': expect(await (await target(world, step.parameters.find(item => item.name === 'target'))).isVisible()).to.equal(false); return
+    case 'browser.assertions.checked@1': expect(await (await target(world, step.parameters.find(item => item.name === 'target'))).isChecked()).to.equal(Boolean(inputs.checked)); return
+    case 'browser.assertions.value@1': expect(await (await target(world, step.parameters.find(item => item.name === 'target'))).inputValue()).to.equal(String(inputs.value)); return
+    case 'browser.assertions.text@1': expect((await (await target(world, step.parameters.find(item => item.name === 'target'))).textContent()) ?? '').to.contain(String(inputs.text)); return
+    case 'browser.assertions.no-horizontal-overflow@1': expect(await world.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).to.equal(true); return
     case 'browser.assertions.accessible@1': {
       const locator = await target(world, step.parameters.find(item => item.name === 'target'))
       expect((await locator.getAttribute('aria-label')) ?? (await locator.textContent()) ?? '').not.to.equal('')

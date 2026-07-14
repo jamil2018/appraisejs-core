@@ -116,7 +116,7 @@ const submission = {
           stimulusStepIds: [],
           observationStepIds: [],
           rationale: 'Accessibility is declared but not exercised by this fixture.',
-          state: 'uncovered',
+          state: 'deferred',
           limitation: 'Covered by dedicated accessibility validation tests.',
         },
       ],
@@ -201,6 +201,22 @@ describe('Validation AST check and preview', () => {
         'locator-reference-not-found',
         'capability-unavailable',
       ]),
+    )
+  })
+
+  it('blocks uncovered requirements and partial coverage without exact acknowledgement', () => {
+    const incomplete = structuredClone(submission) as ValidationAstSubmission
+    incomplete.ast.coverageArgument!.mappings[0]!.state = 'uncovered'
+    expect(checkValidationAst(incomplete, context).blockers.map(blocker => blocker.code)).toContain(
+      'coverage-uncovered',
+    )
+    incomplete.ast.coverageArgument!.mappings[0]!.state = 'partial'
+    expect(checkValidationAst(incomplete, context).blockers.map(blocker => blocker.code)).toContain(
+      'coverage-partial-acknowledgement-required',
+    )
+    incomplete.ast.coverageArgument!.mappings[0]!.partialAcknowledgement = 'Reviewed missing portable capability.'
+    expect(checkValidationAst(incomplete, context).blockers.map(blocker => blocker.code)).not.toContain(
+      'coverage-partial-acknowledgement-required',
     )
   })
 
