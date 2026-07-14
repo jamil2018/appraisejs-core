@@ -1,0 +1,22 @@
+fileApprovals: []
+finalSignOff:
+  approvedAt: 2026-07-14T11:48:59.435Z
+  approvedBy: local-user
+  contentHash: sha256:e01a611ff431c08680d4568b2e16a0a5050347a3a7cf4b361bf0f3ac27b97d12
+  id: completion-pln-01kxg69t9565c825793zkchfwg
+  relevantHashes:
+    plan: sha256:2b3da10c2324861adcb4e14671c0847b8a544e66d93cb5a53db3935014041b0f
+    review: sha256:3c247276c3d8c329de8016f14d8d8aaba0f41aceee8241d40736b1b3a9d44209
+    validation: sha256:d3c927b82e24c91882ea7c6cefdffaa87a56bd04bb2e2bd658ea25afb9665db1
+  revision: 1
+planApprovals:
+  - approvedAt: 2026-07-14T11:32:23.924Z
+    approvedBy: local-user
+    contentHash: sha256:53a9720801a3fba4807aee5cf1c984d2b86f1360fc34056b8f32bd4fa40b393e
+    id: approval-ae04aaf7-c07c-4db9-9e3b-65270f41609a
+    relevantHashes:
+      plan: sha256:53a9720801a3fba4807aee5cf1c984d2b86f1360fc34056b8f32bd4fa40b393e
+    revision: 1
+planId: pln_01kxg69t9565c825793zkchfwg
+threads: []
+version: "1"

@@ -1,0 +1,9 @@
+[2026-07-14T11:47:17.776Z] [STDOUT] ◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[2026-07-14T11:47:17.786Z] [STDOUT] ................................{"event":"scenario::end","data":{"featureName":"Todo application happy path","scenarioName":"Manage and persist todos","scenarioTags":["@appraise_validation_todo-happy-path","@ts_ast-192ef4b604c8-suite","@tc_ast-192ef4b604c8-manage-todos"],"status":"passed"}}
+[2026-07-14T11:47:17.796Z] [STDOUT] {"event":"scenario::end","data":{"featureName":"Todo application happy path","scenarioName":"Manage and persist todos","scenarioTags":["@appraise_validation_todo-happy-path","@ts_ast-192ef4b604c8-suite","@tc_ast-192ef4b604c8-manage-todos"],"status":"passed"}}
+[2026-07-14T11:47:17.806Z] [STDOUT] .
+[2026-07-14T11:47:17.816Z] [STDOUT] 1 scenario (1 passed)
+[2026-07-14T11:47:17.826Z] [STDOUT] 31 steps (31 passed)
+[2026-07-14T11:47:17.836Z] [STDOUT] 0m00.589s (executing steps: 0m00.411s)
+[2026-07-14T11:47:17.846Z] [STDERR] This Node.js version (v26.5.0) has not been tested with this version of Cucumber; it should work normally, but please raise an issue if you see anything unexpected.
+[2026-07-14T11:47:18.803Z] [STATUS] Process exited with code 0

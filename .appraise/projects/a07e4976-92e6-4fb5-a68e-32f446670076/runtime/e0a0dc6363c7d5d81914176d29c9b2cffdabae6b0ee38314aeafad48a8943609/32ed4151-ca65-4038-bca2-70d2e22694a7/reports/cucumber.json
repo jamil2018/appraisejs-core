@@ -1,0 +1,456 @@
+[
+  {
+    "description": "",
+    "elements": [
+      {
+        "description": "",
+        "id": "todo-application-happy-path;manage-and-persist-todos",
+        "keyword": "Scenario",
+        "line": 4,
+        "name": "Manage and persist todos",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 143308207
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 5,
+            "name": "the user opens the todo application",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 61164042
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 6,
+            "name": "the new todo input is accessible",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 33271373
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 7,
+            "name": "the user enters Buy milk",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 16364915
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 8,
+            "name": "the user adds the todo",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 49141874
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 9,
+            "name": "the todo appears",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 2713624
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "the user opens editing",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 12179248
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 11,
+            "name": "the user changes the todo",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 4857167
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 12,
+            "name": "the user saves the edit",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 20201042
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 13,
+            "name": "the edited todo appears",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1600874
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 14,
+            "name": "the user completes the todo",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 15786625
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 15,
+            "name": "the todo is completed",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1579583
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 16,
+            "name": "the user selects Active",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 13749331
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 17,
+            "name": "the completed todo is absent from Active",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1279707
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 18,
+            "name": "the user selects Completed",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 14161457
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 19,
+            "name": "the completed todo appears",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1350582
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 20,
+            "name": "the user reloads",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 11036499
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 21,
+            "name": "the todo and completion state remain",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 5944875
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 22,
+            "name": "the user returns the todo to active",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 16198498
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 23,
+            "name": "the todo is active",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1471291
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 24,
+            "name": "the user deletes the todo",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 14978206
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 25,
+            "name": "the empty state appears",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1291584
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 26,
+            "name": "the viewport is mobile sized",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 2350539
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 27,
+            "name": "the user opens the todo app",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 8510916
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 28,
+            "name": "the user focuses the todo input",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 6361207
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 29,
+            "name": "the user enters a todo",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 2386456
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 30,
+            "name": "the user presses Enter",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 2337000
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 31,
+            "name": "the keyboard-created todo appears",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1587666
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 32,
+            "name": "the page has no horizontal overflow",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1615792
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 33,
+            "name": "the completion control is accessible",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 5883208
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 34,
+            "name": "the user deletes the keyboard todo",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 17277999
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 35,
+            "name": "the empty state returns",
+            "match": {
+              "location": "bindings/todo-happy-path.mjs:69"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 1013290
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 4800208
+            }
+          }
+        ],
+        "tags": [
+          {
+            "name": "@appraise_validation_todo-happy-path",
+            "line": 3
+          },
+          {
+            "name": "@ts_ast-836f45b117f2-suite",
+            "line": 3
+          },
+          {
+            "name": "@tc_ast-836f45b117f2-core-todo-workflow",
+            "line": 3
+          }
+        ],
+        "type": "scenario"
+      }
+    ],
+    "id": "todo-application-happy-path",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "Todo application happy path",
+    "tags": [],
+    "uri": "features/todo-happy-path.feature"
+  }
+]

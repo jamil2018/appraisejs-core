@@ -1,0 +1,136 @@
+description: Create a simple todo web app in the registered target workspace with add, complete/incomplete toggle, delete, local persistence, keyboard accessibility, responsive mobile/desktop UI, and end-to-end validation.
+edges:
+  - from: todo-interactions
+    to: scaffold
+    type: depends-on
+  - from: persistence
+    to: todo-interactions
+    type: depends-on
+  - from: accessibility-responsive
+    to: todo-interactions
+    type: depends-on
+  - from: validation
+    to: persistence
+    type: depends-on
+  - from: validation
+    to: accessibility-responsive
+    type: depends-on
+goal: Build a responsive, accessible persistent todo app
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold
+  - id: product
+    taskIds:
+      - todo-interactions
+      - persistence
+      - accessibility-responsive
+  - id: verification
+    taskIds:
+      - validation
+lifecycle: awaiting_validation_review
+planId: pln_01kxep39q4g9yd8q6rpntcqkqk
+requirementAssessment:
+  domainCandidates:
+    - confidence: 1
+      domain: todo
+      evidence:
+        - Explicit simple todo application brief
+  requirements:
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: todo-interactions
+        - surface: acceptanceCriteria
+          taskId: validation
+      id: create
+      kind: functional
+      text: Add todos
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: todo-interactions
+        - surface: acceptanceCriteria
+          taskId: validation
+      id: completion
+      kind: functional
+      text: Toggle todos complete and incomplete
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: todo-interactions
+        - surface: acceptanceCriteria
+          taskId: validation
+      id: delete
+      kind: functional
+      text: Delete todos
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: persistence
+        - surface: acceptanceCriteria
+          taskId: validation
+      id: persistence
+      kind: data
+      text: Persist state locally across reloads
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: accessibility-responsive
+        - surface: acceptanceCriteria
+          taskId: validation
+      id: accessibility
+      kind: quality
+      text: Accessible keyboard controls
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: accessibility-responsive
+        - surface: acceptanceCriteria
+          taskId: validation
+      id: responsive
+      kind: quality
+      text: Responsive mobile and desktop UI
+  selectedDomain: todo
+  uncoveredRequirementIds: []
+  warnings: []
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The app starts locally using a documented package script.
+      - The project has a clear component and styling structure suitable for the todo feature.
+    description: Set up a lightweight web application and development/test scripts in the empty target workspace.
+    id: scaffold
+    title: Scaffold the todo application
+    validationIntent: Start the application and confirm the primary page loads without console errors.
+  - acceptanceCriteria:
+      - Submitting a non-empty todo adds it to the visible list.
+      - Every todo can be toggled complete and incomplete.
+      - Every todo can be deleted without affecting other todos.
+      - Empty or whitespace-only submissions do not create todos.
+    description: Implement adding todos, toggling completion in both directions, and deleting todos.
+    id: todo-interactions
+    title: Implement todo interactions
+    validationIntent: Exercise add, toggle twice, and delete through browser-visible controls.
+  - acceptanceCriteria:
+      - Added todos remain after a page reload.
+      - Completion state remains after a page reload.
+      - Deleted todos do not reappear after a page reload.
+      - Malformed stored data does not prevent the app from loading.
+    description: Save and restore the todo collection using browser-local persistence.
+    id: persistence
+    title: Persist todo state locally
+    validationIntent: Create and modify todos, reload the browser, and verify the exact state is restored.
+  - acceptanceCriteria:
+      - All add, toggle, and delete actions are operable using only the keyboard.
+      - Inputs and controls have accessible names and semantic roles.
+      - Focus is visible and follows a predictable order.
+      - The interface remains readable and operable at 375px mobile and 1280px desktop viewport widths without horizontal overflow.
+    description: Provide semantic labels, visible focus, keyboard operation, and layouts usable at mobile and desktop widths.
+    id: accessibility-responsive
+    title: Deliver accessible responsive UI
+    validationIntent: Run keyboard-only interaction and accessibility checks, then verify mobile and desktop viewport behavior.
+  - acceptanceCriteria:
+      - Validation covers add, toggle complete/incomplete, delete, and reload persistence.
+      - Validation covers keyboard-only operation and named controls.
+      - Validation checks both mobile and desktop viewport usability.
+      - All required managed Appraise validation runs pass with valid evidence.
+    description: Author managed end-to-end scenarios for the complete todo journey, persistence, keyboard access, and responsive behavior.
+    id: validation
+    title: Add end-to-end validation coverage
+    validationIntent: Execute Appraise-managed browser validation and review its TestRun evidence.
+version: "1"
