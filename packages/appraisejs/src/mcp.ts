@@ -293,18 +293,52 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     baselineAttempts
       ?.map(attempt => (attempt && typeof attempt === 'object' ? (attempt as Record<string, unknown>).id : undefined))
       .filter((attemptId): attemptId is string => typeof attemptId === 'string') ?? undefined
+  const implementation =
+    payload.implementation && typeof payload.implementation === 'object'
+      ? (payload.implementation as Record<string, unknown>)
+      : validation?.implementation && typeof validation.implementation === 'object'
+        ? (validation.implementation as Record<string, unknown>)
+        : undefined
+  const readiness =
+    payload.readiness && typeof payload.readiness === 'object'
+      ? (payload.readiness as Record<string, unknown>)
+      : undefined
+  const runs = Array.isArray(payload.runs)
+    ? payload.runs.map(run => {
+        const item = run as Record<string, unknown>
+        return {
+          id: item.id,
+          validationId: item.validationId,
+          testRunId: item.testRunId,
+          status: item.status,
+          fresh: item.fresh,
+          assurance: item.assurance,
+        }
+      })
+    : undefined
+  const taskStates =
+    implementation?.taskStates && typeof implementation.taskStates === 'object'
+      ? (implementation.taskStates as Record<string, unknown>)
+      : undefined
   const common = {
     planId: payload.planId ?? plan?.planId,
     lifecycle: payload.lifecycle ?? plan?.lifecycle,
     revision: payload.revision ?? plan?.revision,
     contentHash: payload.contentHash ?? payload.validationHash,
+    status: payload.status,
     nextAllowedAction: payload.nextAllowedAction,
     nextRecommendedAction: payload.nextRecommendedAction,
     nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
   }
   if (responseMode === 'linksOnly')
     return { ...common, links: payload.links, browserUrl: payload.browserUrl, appraiseUrl: payload.appraiseUrl }
-  if (responseMode === 'blockersOnly') return { ...common, blockers: payload.blockers, warnings: payload.warnings }
+  if (responseMode === 'blockersOnly')
+    return {
+      ...common,
+      blockers: payload.blockers ?? readiness?.blockers ?? payload.blockingReasons,
+      structuredBlockers: payload.structuredBlockers,
+      warnings: payload.warnings,
+    }
   if (responseMode === 'evidenceOnly') {
     return {
       ...common,
@@ -326,8 +360,23 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     testRunIds,
     reused: payload.reused,
     evidence: payload.evidenceSummary ?? payload.evidence ?? baselineAttempts,
-    counts: payload.counts,
-    blockers: payload.blockers,
+    counts:
+      payload.counts ??
+      (taskStates
+        ? {
+            tasks: Object.keys(taskStates).length,
+            verifiedTasks: Object.values(taskStates).filter(status => status === 'verified').length,
+            validationRuns: Array.isArray(implementation?.validationRuns) ? implementation.validationRuns.length : 0,
+          }
+        : undefined),
+    runnableTaskIds: payload.runnableTaskIds,
+    approvedGroupIds: implementation?.approvedGroupIds,
+    checkpoint: payload.checkpoint,
+    runs,
+    receipt: payload.receipt,
+    ready: readiness?.ready,
+    blockers: payload.blockers ?? readiness?.blockers ?? payload.blockingReasons,
+    structuredBlockers: payload.structuredBlockers,
     warnings: payload.warnings,
     manifestPaths: payload.manifestPaths,
     validationArtifactPath: payload.validationArtifactPath,
@@ -1920,13 +1969,25 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
         responseMode: responseModeSchema,
       },
     },
-    async ({ planId, submission, expectedReceiptHash, responseMode }) =>
-      text(
+    async ({ planId, submission, expectedReceiptHash, responseMode }) => {
+      const [result, snapshot] = await Promise.all([
+        api.compileValidationAst(planId, submission as ValidationAstSubmission, expectedReceiptHash),
+        api.readPlan(planId) as Promise<PlanSnapshot>,
+      ])
+      const browserUrl = validationReviewBrowserUrl(linkFromSnapshot(snapshot.links, 'browser'))
+      return text(
         applyAuthoringResponseMode(
-          await api.compileValidationAst(planId, submission as ValidationAstSubmission, expectedReceiptHash),
+          {
+            ...(result as Record<string, unknown>),
+            browserUrl,
+            appraiseUrl: linkFromSnapshot(snapshot.links, 'appraise') ?? `appraise://plans/${planId}`,
+            nextRecommendedAction: 'Open the validation review URL and wait for the Appraise-owned decision.',
+            nextRequiredAgentBehavior: 'standby_for_validation_review',
+          },
           responseMode,
         ),
-      ),
+      )
+    },
   )
   if (providerNativeRunsEnabled()) {
     server.registerResource(
@@ -3501,9 +3562,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
               method: 'POST',
               body: JSON.stringify({ groupIds }),
             }),
-            nextRecommendedAction: 'Call implementation_checkpoint before working on runnable tasks.',
-            nextRequiredAgentBehavior: 'record_implementation_checkpoint',
-            nextAllowedAction: { tool: 'implementation_checkpoint', type: 'before_group' },
+            nextRecommendedAction: 'Start one of the returned runnable tasks.',
+            nextRequiredAgentBehavior: 'start_runnable_task',
+            nextAllowedAction: { tool: 'implementation_task_update', status: 'in_progress' },
           }),
           responseMode,
         ),

@@ -72,6 +72,7 @@ export type PlanReviewDetail = {
   graph: ReturnType<typeof derivePlanGraph>
   executionOrder: ReturnType<typeof analyzeExecutionOrder>
   projection: {
+    targetProjectId: string | null
     slug: string
     legacyPlanId: string | null
     sourceHash: string
@@ -92,7 +93,7 @@ export type PlanReviewDetail = {
     reducedAssurance: boolean
     createdAt: Date
   }>
-  events: Array<{ type: string; payloadJson: string | null; createdAt: Date }>
+  events: Array<{ sequence: number; type: string; payloadJson: string | null; createdAt: Date }>
   delegations: Array<{
     id: string
     parentCoordinatorId: string
@@ -184,6 +185,28 @@ function parsePositions(value: string | null | undefined): LayoutArtifact['posit
 
 function parseValidation(value: string | null | undefined): ValidationArtifact | undefined {
   return value ? (JSON.parse(value) as ValidationArtifact) : undefined
+}
+
+function reviewDetailEvents(
+  events: PlanReviewDetail['events'],
+  input: { ready: boolean; includePendingReviewReady: boolean },
+): PlanReviewDetail['events'] {
+  const projected = events.map(({ sequence, type, payloadJson, createdAt }) => ({
+    sequence,
+    type,
+    payloadJson,
+    createdAt,
+  }))
+  if (input.ready || !input.includePendingReviewReady) return projected
+  return [
+    ...projected,
+    {
+      sequence: (events.at(-1)?.sequence ?? 0) + 1,
+      type: 'plan_review_ready',
+      payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
+      createdAt: new Date(),
+    },
+  ]
 }
 
 function reviewHash(review: ReviewArtifact, storedHash?: string): string {
@@ -358,18 +381,7 @@ export async function getPlanReviewDetail(
     projection,
     issues: projection.issues,
     revisions: projection.revisions,
-    events: readiness.ready
-      ? projection.events.map(({ type, payloadJson, createdAt }) => ({ type, payloadJson, createdAt }))
-      : includePendingReviewReady
-        ? [
-            ...projection.events.map(({ type, payloadJson, createdAt }) => ({ type, payloadJson, createdAt })),
-            {
-              type: 'plan_review_ready',
-              payloadJson: JSON.stringify({ representation: 'graph-and-list' }),
-              createdAt: new Date(),
-            },
-          ]
-        : projection.events.map(({ type, payloadJson, createdAt }) => ({ type, payloadJson, createdAt })),
+    events: reviewDetailEvents(projection.events, { ready: readiness.ready, includePendingReviewReady }),
     delegations: (projection.targetProject?.delegatedCoordinatorReceipts ?? []).map(receipt => ({
       id: receipt.id,
       parentCoordinatorId: receipt.parentCoordinatorId,

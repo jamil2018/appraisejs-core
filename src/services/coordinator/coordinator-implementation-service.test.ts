@@ -533,7 +533,7 @@ describe('implementation coordinator checkpoints', () => {
       { projectDirectory: workspace, client, now: new Date('2026-06-11T00:01:00.000Z') },
     )
     expect(first).toMatchObject({
-      plan: { lifecycle: 'failed_validation' },
+      plan: { lifecycle: 'in_progress' },
       validation: { implementation: { taskStates: { foundation: 'verified' } } },
       receipt: { idempotencyKey: 'verify-foundation-1', verifiedTaskIds: ['foundation'] },
     })
@@ -602,6 +602,26 @@ describe('implementation coordinator checkpoints', () => {
       { planId, taskId: 'foundation', status: 'implemented', commitHash: 'commit-foundation' },
       { projectDirectory: workspace, client, now: new Date('2026-06-11T00:01:00.000Z') },
     )
+    await expect(
+      updateImplementationTask(
+        { planId, taskId: 'api', status: 'in_progress' },
+        { projectDirectory: workspace, client },
+      ),
+    ).rejects.toMatchObject({
+      message: 'Task "api" requires verified predecessors: foundation (implemented).',
+      details: {
+        blockers: [
+          {
+            code: 'PREDECESSOR_NOT_VERIFIED',
+            blockingTaskId: 'api',
+            predecessorTaskId: 'foundation',
+            requiredStatus: 'verified',
+            actualStatus: 'implemented',
+          },
+        ],
+        nextAllowedAction: { tool: 'implementation_task_update', taskId: 'foundation', status: 'verified' },
+      },
+    })
     await expect(
       updateImplementationTask(
         { planId, taskId: 'foundation', status: 'implemented', commitHash: 'commit-foundation' },

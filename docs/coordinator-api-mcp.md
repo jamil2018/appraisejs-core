@@ -281,6 +281,11 @@ Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" |
 "full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,
 blockers, and next action are insufficient.
 
+Lifecycle summary mutations preserve their action result rather than returning an empty object. Implementation
+summaries include runnable task IDs, approved groups, task/run counts, compact run identities, checkpoint or receipt,
+readiness, structured blockers, and exactly one next action when those fields apply. Full task maps and validation
+artifacts remain available only through explicit `full` mode.
+
 Planning creation, plan/validation review loops, validation context, and Validation AST check, preview, and compile
 use the same response-mode vocabulary. Summary responses retain status, lifecycle, task/content hashes, preview and
 receipt hashes, integrity blockers, cursors, and next action while omitting repeated candidate/context payloads. Full
@@ -328,6 +333,9 @@ validation-preparation lifecycle. Preview returns exact `previewHash`, `contextH
 `validation_ast_compile` accepts only that exact receipt and prepares a durable idempotent publish operation before
 writing artifacts or projecting canonical entities.
 
+On success, compile responses include the exact project-scoped `review=validation` browser URL, the Appraise resource
+URL, and validation-review standby guidance. No additional plan read is required to discover the review surface.
+
 Stale plan, target, catalog, locator, environment, extension-policy, preview, projection, or artifact hashes return a
 conflict. Re-read context and preview rather than retrying with an old receipt. A retry with the same exact inputs
 resumes the same operation; changed inputs require a new preview. Recovery advances only through adjacent prepared,
@@ -368,6 +376,11 @@ write those decisions are relays for explicit Appraise/user intent.
 The connected agent owns execution mechanics after each review gate opens the next phase: validation preparation and
 publish, `baseline_start`, `baseline_reconcile`, `implementation_start`, implementation checkpoints, implementation
 task progress, and implementation validation reconciliation.
+
+`implementation_group_approve` is the authoritative group-entry checkpoint. Its response immediately recommends
+`implementation_task_update` for one returned runnable task; clients should not issue a duplicate `before_group`
+checkpoint. Eligibility conflicts return structured `GROUP_APPROVAL_REQUIRED` or `PREDECESSOR_NOT_VERIFIED` blocker
+objects with exact recovery inputs.
 
 Managed implementation validation follows this sequence:
 

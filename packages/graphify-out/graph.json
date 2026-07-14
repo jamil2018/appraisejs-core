@@ -1063,10 +1063,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 83,
+      "community": 6,
       "norm_label": "capsule-diagnostic-response.test.ts",
       "id": "src_capsule_diagnostic_response_test",
-      "community_name": "Community 83"
+      "community_name": "Src Mcp / Src Mcp Applyresponsemode"
     },
     {
       "label": "diagnostic",
@@ -1074,10 +1074,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 83,
+      "community": 6,
       "norm_label": "diagnostic",
       "id": "src_capsule_diagnostic_response_test_diagnostic",
-      "community_name": "Community 83"
+      "community_name": "Src Mcp / Src Mcp Applyresponsemode"
     },
     {
       "label": "cli.ts",
@@ -1085,10 +1085,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "cli.ts",
       "id": "appraisejs_src_cli_ts_src_cli",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "program",
@@ -1096,10 +1096,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "program",
       "id": "appraisejs_src_cli_ts_src_cli_program",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "packageRoot",
@@ -1107,10 +1107,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "packageroot",
       "id": "src_cli_packageroot",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "expectedAgentCapabilities",
@@ -1118,10 +1118,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "expectedagentcapabilities",
       "id": "src_cli_expectedagentcapabilities",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "staleAgentCapabilityRecovery",
@@ -1129,10 +1129,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "staleagentcapabilityrecovery",
       "id": "src_cli_staleagentcapabilityrecovery",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "toolsNotVisibleRecovery",
@@ -1140,10 +1140,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L58",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "toolsnotvisiblerecovery",
       "id": "src_cli_toolsnotvisiblerecovery",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "OnlineOptions",
@@ -1151,10 +1151,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L68",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "onlineoptions",
       "id": "src_cli_onlineoptions",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "resolveMcpEndpoint()",
@@ -1162,10 +1162,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L74",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "resolvemcpendpoint()",
       "id": "src_cli_resolvemcpendpoint",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "addOnlineOptions()",
@@ -1173,10 +1173,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L81",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "addonlineoptions()",
       "id": "src_cli_addonlineoptions",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "onlineClient()",
@@ -1195,10 +1195,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L96",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "locatorgraph",
       "id": "src_cli_locatorgraph",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "printJson()",
@@ -1206,10 +1206,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L123",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "printjson()",
       "id": "src_cli_printjson",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "printErrorJson()",
@@ -1217,10 +1217,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L127",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "printerrorjson()",
       "id": "src_cli_printerrorjson",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "runCommand()",
@@ -1228,10 +1228,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L139",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "runcommand()",
       "id": "src_cli_runcommand",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "parsePort()",
@@ -1239,10 +1239,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L149",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "parseport()",
       "id": "src_cli_parseport",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "agent",
@@ -1250,10 +1250,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L226",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "agent",
       "id": "src_cli_agent",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "plan",
@@ -1261,10 +1261,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L282",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "plan",
       "id": "src_cli_plan",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "project",
@@ -1272,10 +1272,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L331",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "project",
       "id": "src_cli_project",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "test",
@@ -1283,10 +1283,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L352",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "test",
       "id": "src_cli_test",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "testRun",
@@ -1294,10 +1294,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L353",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "testrun",
       "id": "src_cli_testrun",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "validation",
@@ -1305,10 +1305,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L497",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "validation",
       "id": "src_cli_validation",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "actions",
@@ -1316,10 +1316,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L565",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "actions",
       "id": "src_cli_actions",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "coordinator-client.test.ts",
@@ -1360,10 +1360,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "coordinator-client.ts",
       "id": "src_coordinator_client",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "CoordinatorOptions",
@@ -1371,10 +1371,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "coordinatoroptions",
       "id": "src_coordinator_client_coordinatoroptions",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "CoordinatorRequestError",
@@ -1404,10 +1404,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "coordinatorrequesterrorenvelope()",
       "id": "src_coordinator_client_coordinatorrequesterrorenvelope",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "readResponseBody()",
@@ -1415,10 +1415,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L46",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "readresponsebody()",
       "id": "src_coordinator_client_readresponsebody",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "createCoordinatorClient()",
@@ -1580,10 +1580,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "managed-validation-contracts.test.ts",
       "id": "src_managed_validation_contracts_test",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "managed-validation-contracts.ts",
@@ -1591,10 +1591,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "managed-validation-contracts.ts",
       "id": "src_managed_validation_contracts",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ACTION_CATALOG_CONTRACT_VERSION",
@@ -1602,10 +1602,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "action_catalog_contract_version",
       "id": "src_managed_validation_contracts_action_catalog_contract_version",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "LOCATOR_GRAPH_CONTRACT_VERSION",
@@ -1613,10 +1613,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L2",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "locator_graph_contract_version",
       "id": "src_managed_validation_contracts_locator_graph_contract_version",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "VALIDATION_AST_SCHEMA_VERSION",
@@ -1624,10 +1624,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "validation_ast_schema_version",
       "id": "src_managed_validation_contracts_validation_ast_schema_version",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "DELEGATED_AUTHORIZATION_VERSION",
@@ -1635,10 +1635,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "delegated_authorization_version",
       "id": "src_managed_validation_contracts_delegated_authorization_version",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "VALIDATION_AST_JSON_SCHEMA",
@@ -1646,10 +1646,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "validation_ast_json_schema",
       "id": "src_managed_validation_contracts_validation_ast_json_schema",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ActionAssertionConcern",
@@ -1657,10 +1657,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L177",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "actionassertionconcern",
       "id": "src_managed_validation_contracts_actionassertionconcern",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ActionNumericUnit",
@@ -1668,10 +1668,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L178",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "actionnumericunit",
       "id": "src_managed_validation_contracts_actionnumericunit",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ActionInputDescriptor",
@@ -1679,10 +1679,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L179",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "actioninputdescriptor",
       "id": "src_managed_validation_contracts_actioninputdescriptor",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ActionDescriptor",
@@ -1690,10 +1690,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L187",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "actiondescriptor",
       "id": "src_managed_validation_contracts_actiondescriptor",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ValidationAstValue",
@@ -1701,10 +1701,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L200",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "validationastvalue",
       "id": "src_managed_validation_contracts_validationastvalue",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ValidationAst",
@@ -1712,10 +1712,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L209",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "validationast",
       "id": "src_managed_validation_contracts_validationast",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "CustomActionExtensionProposal",
@@ -1723,10 +1723,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L244",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "customactionextensionproposal",
       "id": "src_managed_validation_contracts_customactionextensionproposal",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ValidationAstSubmission",
@@ -1734,10 +1734,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L257",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "validationastsubmission",
       "id": "src_managed_validation_contracts_validationastsubmission",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "CustomExtensionPolicy",
@@ -1745,10 +1745,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L268",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "customextensionpolicy",
       "id": "src_managed_validation_contracts_customextensionpolicy",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "CompiledCustomExtensionReview",
@@ -1756,10 +1756,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L278",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "compiledcustomextensionreview",
       "id": "src_managed_validation_contracts_compiledcustomextensionreview",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "ValidationAstExtensionReviewResult",
@@ -1767,10 +1767,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L292",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "validationastextensionreviewresult",
       "id": "src_managed_validation_contracts_validationastextensionreviewresult",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "DelegatedAuthorizationReceipt",
@@ -1778,10 +1778,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L301",
       "_origin": "ast",
-      "community": 27,
+      "community": 3,
       "norm_label": "delegatedauthorizationreceipt",
       "id": "src_managed_validation_contracts_delegatedauthorizationreceipt",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "mcp.e2e.ts",
@@ -2084,7 +2084,7 @@
       "label": "normalizeOptionalRef()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L150",
+      "source_location": "L159",
       "_origin": "ast",
       "community": 20,
       "norm_label": "normalizeoptionalref()",
@@ -2095,7 +2095,7 @@
       "label": "implementationValidationRunInputSchema",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L154",
+      "source_location": "L163",
       "_origin": "ast",
       "community": 6,
       "norm_label": "implementationvalidationruninputschema",
@@ -2106,7 +2106,7 @@
       "label": "withGuidance()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L188",
+      "source_location": "L197",
       "_origin": "ast",
       "community": 6,
       "norm_label": "withguidance()",
@@ -2117,7 +2117,7 @@
       "label": "responseModeSchema",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L196",
+      "source_location": "L205",
       "_origin": "ast",
       "community": 6,
       "norm_label": "responsemodeschema",
@@ -2128,7 +2128,7 @@
       "label": "MCP_RESPONSE_TOKEN_BUDGETS",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L198",
+      "source_location": "L207",
       "_origin": "ast",
       "community": 20,
       "norm_label": "mcp_response_token_budgets",
@@ -2139,7 +2139,7 @@
       "label": "measureMcpResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L206",
+      "source_location": "L215",
       "_origin": "ast",
       "community": 20,
       "norm_label": "measuremcpresponse()",
@@ -2150,7 +2150,7 @@
       "label": "applyResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L217",
+      "source_location": "L226",
       "_origin": "ast",
       "community": 6,
       "norm_label": "applyresponsemode()",
@@ -2161,7 +2161,7 @@
       "label": "applyLifecycleResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L268",
+      "source_location": "L277",
       "_origin": "ast",
       "community": 20,
       "norm_label": "applylifecycleresponsemode()",
@@ -2172,7 +2172,7 @@
       "label": "applyAuthoringResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L314",
+      "source_location": "L389",
       "_origin": "ast",
       "community": 20,
       "norm_label": "applyauthoringresponsemode()",
@@ -2183,18 +2183,18 @@
       "label": "applyCapsuleDiagnosticMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L351",
+      "source_location": "L458",
       "_origin": "ast",
-      "community": 83,
+      "community": 6,
       "norm_label": "applycapsulediagnosticmode()",
       "id": "src_mcp_applycapsulediagnosticmode",
-      "community_name": "Community 83"
+      "community_name": "Src Mcp / Src Mcp Applyresponsemode"
     },
     {
       "label": "baselineRecoveryForLifecycle()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L382",
+      "source_location": "L489",
       "_origin": "ast",
       "community": 20,
       "norm_label": "baselinerecoveryforlifecycle()",
@@ -2205,7 +2205,7 @@
       "label": "summarizeDiagnostic()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L405",
+      "source_location": "L512",
       "_origin": "ast",
       "community": 6,
       "norm_label": "summarizediagnostic()",
@@ -2216,7 +2216,7 @@
       "label": "planningWorkflow",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L418",
+      "source_location": "L525",
       "_origin": "ast",
       "community": 20,
       "norm_label": "planningworkflow",
@@ -2227,7 +2227,7 @@
       "label": "standbyWorkflow",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L434",
+      "source_location": "L541",
       "_origin": "ast",
       "community": 20,
       "norm_label": "standbyworkflow",
@@ -2238,7 +2238,7 @@
       "label": "validationPreparationWorkflow",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L449",
+      "source_location": "L556",
       "_origin": "ast",
       "community": 20,
       "norm_label": "validationpreparationworkflow",
@@ -2249,7 +2249,7 @@
       "label": "mcpCapabilityMetadata",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L471",
+      "source_location": "L578",
       "_origin": "ast",
       "community": 20,
       "norm_label": "mcpcapabilitymetadata",
@@ -2260,7 +2260,7 @@
       "label": "missingCapabilityRecovery()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L479",
+      "source_location": "L586",
       "_origin": "ast",
       "community": 6,
       "norm_label": "missingcapabilityrecovery()",
@@ -2271,7 +2271,7 @@
       "label": "compactProjectDiagnostic()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L502",
+      "source_location": "L609",
       "_origin": "ast",
       "community": 20,
       "norm_label": "compactprojectdiagnostic()",
@@ -2282,7 +2282,7 @@
       "label": "agentGuide",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L511",
+      "source_location": "L618",
       "_origin": "ast",
       "community": 20,
       "norm_label": "agentguide",
@@ -2293,7 +2293,7 @@
       "label": "diagnosticGuidance()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L529",
+      "source_location": "L636",
       "_origin": "ast",
       "community": 6,
       "norm_label": "diagnosticguidance()",
@@ -2304,7 +2304,7 @@
       "label": "projectPayload()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L539",
+      "source_location": "L646",
       "_origin": "ast",
       "community": 6,
       "norm_label": "projectpayload()",
@@ -2315,7 +2315,7 @@
       "label": "planningSessionTargetRequiredResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L548",
+      "source_location": "L655",
       "_origin": "ast",
       "community": 20,
       "norm_label": "planningsessiontargetrequiredresponse()",
@@ -2326,7 +2326,7 @@
       "label": "BriefPlanTask",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L578",
+      "source_location": "L685",
       "_origin": "ast",
       "community": 6,
       "norm_label": "briefplantask",
@@ -2337,7 +2337,7 @@
       "label": "StructuredBriefPlan",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L586",
+      "source_location": "L693",
       "_origin": "ast",
       "community": 14,
       "norm_label": "structuredbriefplan",
@@ -2348,7 +2348,7 @@
       "label": "includesAny()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L592",
+      "source_location": "L699",
       "_origin": "ast",
       "community": 14,
       "norm_label": "includesany()",
@@ -2359,7 +2359,7 @@
       "label": "createStructuredTasksFromBrief()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L608",
+      "source_location": "L715",
       "_origin": "ast",
       "community": 14,
       "norm_label": "createstructuredtasksfrombrief()",
@@ -2370,7 +2370,7 @@
       "label": "createPlanFromBrief()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1078",
+      "source_location": "L1185",
       "_origin": "ast",
       "community": 14,
       "norm_label": "createplanfrombrief()",
@@ -2381,7 +2381,7 @@
       "label": "planCandidateHash()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1121",
+      "source_location": "L1228",
       "_origin": "ast",
       "community": 80,
       "norm_label": "plancandidatehash()",
@@ -2392,7 +2392,7 @@
       "label": "planTaskShapeHash()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1125",
+      "source_location": "L1232",
       "_origin": "ast",
       "community": 80,
       "norm_label": "plantaskshapehash()",
@@ -2403,7 +2403,7 @@
       "label": "unresolvedCandidateRetryOmissions()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1137",
+      "source_location": "L1244",
       "_origin": "ast",
       "community": 20,
       "norm_label": "unresolvedcandidateretryomissions()",
@@ -2414,18 +2414,18 @@
       "label": "toolError()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1154",
+      "source_location": "L1261",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "toolerror()",
       "id": "src_mcp_toolerror",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "PlanSnapshot",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1169",
+      "source_location": "L1276",
       "_origin": "ast",
       "community": 6,
       "norm_label": "plansnapshot",
@@ -2436,7 +2436,7 @@
       "label": "validationIntegrityBlockedResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1188",
+      "source_location": "L1295",
       "_origin": "ast",
       "community": 6,
       "norm_label": "validationintegrityblockedresponse()",
@@ -2447,7 +2447,7 @@
       "label": "approvalGateStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1202",
+      "source_location": "L1309",
       "_origin": "ast",
       "community": 6,
       "norm_label": "approvalgatestatus()",
@@ -2458,7 +2458,7 @@
       "label": "approvalGateEventStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1209",
+      "source_location": "L1316",
       "_origin": "ast",
       "community": 6,
       "norm_label": "approvalgateeventstatus()",
@@ -2469,7 +2469,7 @@
       "label": "validationGateStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1216",
+      "source_location": "L1323",
       "_origin": "ast",
       "community": 20,
       "norm_label": "validationgatestatus()",
@@ -2480,7 +2480,7 @@
       "label": "validationGateEventStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1224",
+      "source_location": "L1331",
       "_origin": "ast",
       "community": 6,
       "norm_label": "validationgateeventstatus()",
@@ -2491,7 +2491,7 @@
       "label": "CoordinatorToolEvent",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1231",
+      "source_location": "L1338",
       "_origin": "ast",
       "community": 6,
       "norm_label": "coordinatortoolevent",
@@ -2502,7 +2502,7 @@
       "label": "latestGateEvent()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1235",
+      "source_location": "L1342",
       "_origin": "ast",
       "community": 20,
       "norm_label": "latestgateevent()",
@@ -2513,7 +2513,7 @@
       "label": "RecommendedWait",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1242",
+      "source_location": "L1349",
       "_origin": "ast",
       "community": 6,
       "norm_label": "recommendedwait",
@@ -2524,7 +2524,7 @@
       "label": "linkFromSnapshot()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1249",
+      "source_location": "L1356",
       "_origin": "ast",
       "community": 29,
       "norm_label": "linkfromsnapshot()",
@@ -2532,10 +2532,21 @@
       "community_name": "Community 29"
     },
     {
+      "label": "validationReviewBrowserUrl()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp.ts",
+      "source_location": "L1362",
+      "_origin": "ast",
+      "community": 29,
+      "norm_label": "validationreviewbrowserurl()",
+      "id": "src_mcp_validationreviewbrowserurl",
+      "community_name": "Community 29"
+    },
+    {
       "label": "formatReviewHandoff()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1255",
+      "source_location": "L1369",
       "_origin": "ast",
       "community": 29,
       "norm_label": "formatreviewhandoff()",
@@ -2546,7 +2557,7 @@
       "label": "standbyPresentation()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1288",
+      "source_location": "L1402",
       "_origin": "ast",
       "community": 29,
       "norm_label": "standbypresentation()",
@@ -2557,7 +2568,7 @@
       "label": "nextApprovalWaitSequence()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1349",
+      "source_location": "L1463",
       "_origin": "ast",
       "community": 29,
       "norm_label": "nextapprovalwaitsequence()",
@@ -2568,7 +2579,7 @@
       "label": "approvalPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1353",
+      "source_location": "L1467",
       "_origin": "ast",
       "community": 29,
       "norm_label": "approvalpendingresponse()",
@@ -2579,7 +2590,7 @@
       "label": "validationReviewPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1414",
+      "source_location": "L1528",
       "_origin": "ast",
       "community": 29,
       "norm_label": "validationreviewpendingresponse()",
@@ -2590,7 +2601,7 @@
       "label": "orderedEventBatch()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1469",
+      "source_location": "L1583",
       "_origin": "ast",
       "community": 29,
       "norm_label": "orderedeventbatch()",
@@ -2601,7 +2612,7 @@
       "label": "lifecycleToolPayload()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1481",
+      "source_location": "L1595",
       "_origin": "ast",
       "community": 6,
       "norm_label": "lifecycletoolpayload()",
@@ -2612,7 +2623,7 @@
       "label": "reviewReadyPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1504",
+      "source_location": "L1618",
       "_origin": "ast",
       "community": 29,
       "norm_label": "reviewreadypendingresponse()",
@@ -2623,7 +2634,7 @@
       "label": "waitForEvents()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1564",
+      "source_location": "L1678",
       "_origin": "ast",
       "community": 6,
       "norm_label": "waitforevents()",
@@ -2634,7 +2645,7 @@
       "label": "createCoordinatorApiClient()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1586",
+      "source_location": "L1700",
       "_origin": "ast",
       "community": 80,
       "norm_label": "createcoordinatorapiclient()",
@@ -2645,7 +2656,7 @@
       "label": "createAppraiseMcpServer()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L1590",
+      "source_location": "L1704",
       "_origin": "ast",
       "community": 80,
       "norm_label": "createappraisemcpserver()",
@@ -2656,7 +2667,7 @@
       "label": "runAppraiseMcp()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3623",
+      "source_location": "L3834",
       "_origin": "ast",
       "community": 80,
       "norm_label": "runappraisemcp()",
@@ -2667,7 +2678,7 @@
       "label": "AppraiseHttpMcpOptions",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3628",
+      "source_location": "L3839",
       "_origin": "ast",
       "community": 6,
       "norm_label": "appraisehttpmcpoptions",
@@ -2678,7 +2689,7 @@
       "label": "jsonRpcError()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3634",
+      "source_location": "L3845",
       "_origin": "ast",
       "community": 6,
       "norm_label": "jsonrpcerror()",
@@ -2689,12 +2700,12 @@
       "label": "runAppraiseHttpMcp()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp.ts",
-      "source_location": "L3642",
+      "source_location": "L3853",
       "_origin": "ast",
-      "community": 3,
+      "community": 27,
       "norm_label": "runappraisehttpmcp()",
       "id": "src_mcp_runappraisehttpmcp",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "plan-contract-parity.test.ts",
@@ -2735,10 +2746,10 @@
       "source_file": "appraisejs/src/plan-file.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "plan-file.test.ts",
       "id": "src_plan_file_test",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "workspaces",
@@ -2746,10 +2757,10 @@
       "source_file": "appraisejs/src/plan-file.test.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "workspaces",
       "id": "src_plan_file_test_workspaces",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "workspace()",
@@ -2757,10 +2768,10 @@
       "source_file": "appraisejs/src/plan-file.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "workspace()",
       "id": "src_plan_file_test_workspace",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "plan-file.ts",
@@ -2977,10 +2988,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L502",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "assertnoyamlreferences()",
       "id": "src_plan_file_assertnoyamlreferences",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "readPlanFile()",
@@ -2988,10 +2999,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L523",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "readplanfile()",
       "id": "src_plan_file_readplanfile",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "validatePlanFile()",
@@ -2999,10 +3010,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L532",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "validateplanfile()",
       "id": "src_plan_file_validateplanfile",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "createOfflineDraft()",
@@ -3010,10 +3021,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L545",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "createofflinedraft()",
       "id": "src_plan_file_createofflinedraft",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "readValidatedPlan()",
@@ -3021,10 +3032,10 @@
       "source_file": "appraisejs/src/plan-file.ts",
       "source_location": "L561",
       "_origin": "ast",
-      "community": 26,
+      "community": 7,
       "norm_label": "readvalidatedplan()",
       "id": "src_plan_file_readvalidatedplan",
-      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
+      "community_name": "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
     },
     {
       "label": "plan-requirements.ts",
@@ -3175,10 +3186,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 79,
+      "community": 27,
       "norm_label": "plan-source.test.ts",
       "id": "src_plan_source_test",
-      "community_name": "Community 79"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directories",
@@ -3186,10 +3197,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 79,
+      "community": 27,
       "norm_label": "directories",
       "id": "src_plan_source_test_directories",
-      "community_name": "Community 79"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directory()",
@@ -3197,10 +3208,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 79,
+      "community": 27,
       "norm_label": "directory()",
       "id": "src_plan_source_test_directory",
-      "community_name": "Community 79"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "plan-source.ts",
@@ -3208,10 +3219,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 79,
+      "community": 27,
       "norm_label": "plan-source.ts",
       "id": "src_plan_source",
-      "community_name": "Community 79"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "resolvePlanSource()",
@@ -3219,10 +3230,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 79,
+      "community": 27,
       "norm_label": "resolveplansource()",
       "id": "src_plan_source_resolveplansource",
-      "community_name": "Community 79"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "project-identity.ts",
@@ -7949,10 +7960,10 @@
       "source_file": "locator-picker-companion/src/index.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 26,
       "norm_label": "index.ts",
       "id": "locator_picker_companion_src_index_ts_src_index",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
     },
     {
       "label": "injected-picker-script.ts",
@@ -7982,10 +7993,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 26,
       "norm_label": "launcher.ts",
       "id": "src_launcher",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
     },
     {
       "label": "pathExists()",
@@ -7993,10 +8004,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 2,
+      "community": 26,
       "norm_label": "pathexists()",
       "id": "src_launcher_pathexists",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
     },
     {
       "label": "getLatestModifiedTime()",
@@ -8004,10 +8015,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 2,
+      "community": 26,
       "norm_label": "getlatestmodifiedtime()",
       "id": "src_launcher_getlatestmodifiedtime",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
     },
     {
       "label": "getLocatorPickerCompanionPaths()",
@@ -8015,10 +8026,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 2,
+      "community": 26,
       "norm_label": "getlocatorpickercompanionpaths()",
       "id": "src_launcher_getlocatorpickercompanionpaths",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
     },
     {
       "label": "ensureLocatorPickerCompanionBuilt()",
@@ -8026,10 +8037,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 2,
+      "community": 26,
       "norm_label": "ensurelocatorpickercompanionbuilt()",
       "id": "src_launcher_ensurelocatorpickercompanionbuilt",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
     },
     {
       "label": "resolveLocatorPickerCompanionInvocation()",
@@ -8037,10 +8048,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 2,
+      "community": 26,
       "norm_label": "resolvelocatorpickercompanioninvocation()",
       "id": "src_launcher_resolvelocatorpickercompanioninvocation",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version"
     },
     {
       "label": "selector-generator.ts",
@@ -12016,6 +12027,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp.ts",
+      "source_location": "L1362",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_mcp",
+      "target": "src_mcp_validationreviewbrowserurl"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp.ts",
       "source_location": "L1293",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12259,6 +12280,17 @@
       "confidence_score": 1.0,
       "source": "src_mcp_validationreviewpendingresponse",
       "target": "src_mcp_linkfromsnapshot"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp.ts",
+      "source_location": "L1565",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_mcp_validationreviewpendingresponse",
+      "target": "src_mcp_validationreviewbrowserurl"
     },
     {
       "relation": "calls",
@@ -21676,5 +21708,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "786ef64b9b46d3b95e25eb0825346730739cad39"
+  "built_at_commit": "6f0aee1aeb7035531496230906aa34c8b0ea9ac8"
 }

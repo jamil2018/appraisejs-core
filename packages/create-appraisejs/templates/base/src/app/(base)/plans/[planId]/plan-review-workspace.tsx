@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   AlertTriangle,
+  ArrowRight,
   ArrowLeft,
   Check,
   CheckCircle2,
@@ -89,10 +90,12 @@ import { PlanFlowTaskNode, type PlanFlowTaskNode as PlanFlowTaskNodeType } from 
 import { BaselineAttemptCard } from './baseline-attempt-card'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
+import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
 
 type PlanReviewWorkspaceProps = {
   detail: PlanReviewDetail
   initialTab?: 'graph' | 'list' | 'history' | 'validations'
+  initialSidebarTab?: 'remarks' | 'baselines' | 'approval'
 }
 type ActionMessage = { tone: 'success' | 'error'; text: string; recovery?: 'validation-drift' }
 
@@ -260,10 +263,25 @@ function renderLifecycleBadge(lifecycle: string) {
   )
 }
 
+type EvidenceDeltaRow = ReturnType<typeof evidenceDelta>[number]
+
+function EvidenceComparisonRow({ row }: { row: EvidenceDeltaRow }) {
+  return (
+    <tr className="border-t">
+      <td className="max-w-40 truncate px-3 py-2 font-mono" title={row.validationId}>
+        {row.validationId}
+      </td>
+      <td className="px-3 py-2">{row.baselineStatus}</td>
+      <td className="px-3 py-2">{row.finalStatus}</td>
+      <td className="px-3 py-2">{row.assurance}</td>
+    </tr>
+  )
+}
+
 // The graph, list, inspector, and approval controls intentionally share one interaction model.
 // fallow-ignore-next-line complexity
-export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceProps) {
-  const router = useRouter()
+export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: PlanReviewWorkspaceProps) {
+  const { refresh } = useRouter()
   const planSlug = getPlanDisplaySlug({
     planId: detail.plan.planId,
     slug: detail.projection.slug,
@@ -332,11 +350,15 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
   const [regressionJustification, setRegressionJustification] = useState('')
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [isPending, startTransition] = useTransition()
-  const [sidebarTab, setSidebarTab] = useState<'remarks' | 'baselines' | 'approval'>('remarks')
+  const [sidebarTab, setSidebarTab] = useState<'remarks' | 'baselines' | 'approval'>(initialSidebarTab ?? 'remarks')
   const [graphSearchQuery, setGraphSearchQuery] = useState('')
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [continuationCopied, setContinuationCopied] = useState(false)
+  const progress = lifecycleProgress(detail.plan.lifecycle)
+  const nextAction = nextLifecycleAction(detail.plan.lifecycle)
+  const evidenceComparison = evidenceDelta(detail)
 
   const planMarkdown = useMemo(() => {
     const p = detail.plan
@@ -419,6 +441,14 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
     navigator.clipboard.writeText(planMarkdown)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const copyContinuationPackage = () => {
+    const reviewUrl = new URL(window.location.href)
+    if (detail.projection.targetProjectId) reviewUrl.searchParams.set('project', detail.projection.targetProjectId)
+    navigator.clipboard.writeText(continuationPackage(detail, reviewUrl.toString()))
+    setContinuationCopied(true)
+    setTimeout(() => setContinuationCopied(false), 2000)
   }
 
   const selectedTask = semanticFlow.tasks.find(task => task.id === selectedTaskId)
@@ -544,7 +574,7 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
         text: result.success ? successMessage : (result.error ?? 'The action failed.'),
         recovery,
       })
-      if (result.success) router.refresh()
+      if (result.success) refresh()
     })
   }
 
@@ -752,6 +782,49 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
           </Button>
         </div>
       </header>
+
+      <section aria-label="Lifecycle progress" className="space-y-3 border-y py-4">
+        <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          {progress.map((stage, index) => (
+            <li key={stage.id} className="flex min-w-0 items-center gap-2">
+              <span
+                aria-current={stage.state === 'active' ? 'step' : undefined}
+                className={cn(
+                  'flex size-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold',
+                  stage.state === 'complete' && 'border-emerald-600 bg-emerald-600 text-white',
+                  stage.state === 'active' && 'border-primary bg-primary text-primary-foreground',
+                  stage.state === 'upcoming' && 'border-muted-foreground/30 text-muted-foreground',
+                )}
+              >
+                {stage.state === 'complete' ? <Check className="size-3.5" /> : index + 1}
+              </span>
+              <span
+                className={cn('truncate text-xs font-medium', stage.state === 'upcoming' && 'text-muted-foreground')}
+              >
+                {stage.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Badge variant="outline">{nextAction.actor}</Badge>
+            <ArrowRight className="size-3.5" />
+            <span>{nextAction.action}</span>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" size="sm" variant="outline" onClick={copyContinuationPackage}>
+                  {continuationCopied ? <Check className="mr-2 size-3.5" /> : <Copy className="mr-2 size-3.5" />}
+                  {continuationCopied ? 'Copied' : 'Copy continuation'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Copy lifecycle IDs, hashes, cursor, review URL, and next action</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </section>
 
       {detail.projection.stale || detail.projection.conflicted ? (
         <Alert variant="destructive" className="rounded-xl">
@@ -1505,6 +1578,36 @@ export function PlanReviewWorkspace({ detail, initialTab }: PlanReviewWorkspaceP
                         ))
                       )}
                     </div>
+                  )}
+
+                  {evidenceComparison.length > 0 && (
+                    <section aria-labelledby="evidence-delta-heading" className="space-y-2 border-t pt-4">
+                      <div>
+                        <h4 id="evidence-delta-heading" className="text-xs font-semibold">
+                          Baseline to final evidence
+                        </h4>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          Compare the latest pre-implementation observation with final managed validation.
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto rounded-lg border">
+                        <table className="w-full min-w-[420px] text-left text-[11px]">
+                          <thead className="bg-muted/40 text-muted-foreground">
+                            <tr>
+                              <th className="px-3 py-2 font-medium">Validation</th>
+                              <th className="px-3 py-2 font-medium">Baseline</th>
+                              <th className="px-3 py-2 font-medium">Final</th>
+                              <th className="px-3 py-2 font-medium">Evidence</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {evidenceComparison.map(row => (
+                              <EvidenceComparisonRow key={row.validationId} row={row} />
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
                   )}
 
                   <div className="grid gap-2 border-t pt-4">
