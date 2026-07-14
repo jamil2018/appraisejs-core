@@ -1,9 +1,7 @@
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
-import TemplateStepTable from './template-step-table'
-import { LayoutTemplate } from 'lucide-react'
-import { Suspense } from 'react'
-import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
+import TemplateStepLibrary from './template-step-library'
+import { Blocks, LayoutTemplate } from 'lucide-react'
 import { getAllTemplateStepsAction } from '@/actions/template-step/template-step-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import { Metadata } from 'next'
@@ -40,18 +38,16 @@ const TemplateSteps = async () => {
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader>
           <span className="flex items-center">
-            <LayoutTemplate className="mr-2 size-8" />
+            <Blocks className="mr-2 size-8 text-primary" />
             Template Steps
           </span>
         </PageHeader>
-        <HeaderSubtitle>Define reusable test steps for consistent and efficient test authoring</HeaderSubtitle>
+        <HeaderSubtitle>Build a shared vocabulary for clear, consistent test authoring.</HeaderSubtitle>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <TemplateStepTable />
-      </Suspense>
+      <TemplateStepLibrary steps={templateStepsData} />
     </>
   )
 }

@@ -29,10 +29,12 @@ const AppDrawerItem = ({ item }: { item: AppDrawerItemConfig }) => {
   return (
     <button
       onClick={item.onClick}
+      disabled={isHealthy}
+      data-state={isHealthy ? 'disabled' : 'actionable'}
       aria-label={`${item.title}: ${item.count}. ${isHealthy ? item.healthyDescription : item.description}`}
       className={`group relative flex min-h-[116px] w-full flex-col justify-between overflow-hidden rounded-lg border p-3 text-left outline-none transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-primary ${
         isHealthy
-          ? 'border-emerald-500/15 bg-emerald-500/[0.035] hover:border-emerald-500/30 hover:bg-emerald-500/[0.07]'
+          ? 'cursor-not-allowed border-white/[0.06] bg-white/[0.018] opacity-60'
           : `${item.color.border} ${item.color.bg} ${item.color.hoverBorder} ${item.color.hoverBg}`
       }`}
     >
@@ -40,18 +42,22 @@ const AppDrawerItem = ({ item }: { item: AppDrawerItemConfig }) => {
         <div
           className={`flex size-8 items-center justify-center rounded-md border transition-colors duration-200 ${
             isHealthy
-              ? 'border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-400 group-hover:border-emerald-500/30 group-hover:bg-emerald-500/[0.1]'
+              ? 'border-white/[0.08] bg-white/[0.025] text-zinc-500'
               : `border-white/[0.08] bg-white/[0.04] ${item.color.iconColor}`
           }`}
         >
           {isHealthy ? <CheckCircle2 className="size-5" /> : item.icon}
         </div>
 
-        <div className="flex items-center gap-1.5 rounded-full bg-black/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide">
+        <div
+          className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+            isHealthy ? 'bg-white/[0.025]' : 'bg-black/15'
+          }`}
+        >
           {isHealthy ? (
             <>
-              <span className="size-1.5 rounded-full bg-emerald-400" />
-              <span className="text-emerald-400">Healthy</span>
+              <span className="size-1.5 rounded-full bg-zinc-600" />
+              <span className="text-zinc-500">Healthy</span>
             </>
           ) : (
             <>
@@ -71,18 +77,24 @@ const AppDrawerItem = ({ item }: { item: AppDrawerItemConfig }) => {
         <div className="min-w-0">
           <span
             className={`block text-2xl font-bold leading-7 transition-colors duration-200 ${
-              isHealthy ? 'text-emerald-400/90 group-hover:text-emerald-400' : `${item.color.text}`
+              isHealthy ? 'text-zinc-500' : `${item.color.text}`
             }`}
           >
             {item.count}
           </span>
-          <h4 className="mt-1.5 truncate text-xs font-semibold leading-4 text-zinc-100 transition-colors duration-200 group-hover:text-white">
+          <h4
+            className={`mt-1.5 truncate text-xs font-semibold leading-4 text-zinc-100 transition-colors duration-200 ${
+              isHealthy ? 'text-zinc-400' : 'group-hover:text-white'
+            }`}
+          >
             {item.title}
           </h4>
         </div>
-        <div className="mb-0.5 shrink-0 text-zinc-500 transition-colors duration-200 group-hover:text-zinc-300">
-          <ArrowRight className="size-4" />
-        </div>
+        {!isHealthy && (
+          <div className="mb-0.5 shrink-0 text-zinc-500 transition-colors duration-200 group-hover:text-zinc-300">
+            <ArrowRight className="size-4" />
+          </div>
+        )}
       </div>
     </button>
   )
