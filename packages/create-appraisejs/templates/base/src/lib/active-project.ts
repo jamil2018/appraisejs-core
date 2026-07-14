@@ -2,8 +2,9 @@ import { cookies } from 'next/headers'
 import { resolveActiveProject, type ActiveProjectContext } from '@/services/target-project/target-project-service'
 import { ServiceError } from '@/services/shared/errors'
 import prisma from '@/config/db-config'
+import { ACTIVE_PROJECT_COOKIE } from '@/lib/project-scope'
 
-export const ACTIVE_PROJECT_COOKIE = 'appraise-active-project'
+export { ACTIVE_PROJECT_COOKIE } from '@/lib/project-scope'
 
 export async function readActiveProjectCookie(): Promise<string | undefined> {
   const cookieStore = await cookies()
