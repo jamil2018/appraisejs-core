@@ -62,6 +62,7 @@ const baseWorkflowCriticalTools = [
   'validation_ast_preview',
   'validation_ast_compile',
   'validation_review_loop',
+  'validation_review_reconcile',
   'validation_decide',
   'validation_file_approve',
   'validation_feedback_submit',
@@ -3178,6 +3179,21 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       ),
   )
   server.registerTool(
+    'validation_review_reconcile',
+    {
+      description:
+        'Reconcile a review_ready validation after a crash by preserving immutable publication content and refreshing only the exact current review-state receipt.',
+      inputSchema: { planId: z.string() },
+    },
+    async ({ planId }) =>
+      text(
+        await api.request(`plans/${planId}/validations/reconcile`, {
+          method: 'POST',
+          body: '{}',
+        }),
+      ),
+  )
+  server.registerTool(
     'validation_review_submit',
     {
       description:
@@ -3185,6 +3201,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
       inputSchema: {
         planId: z.string(),
         operationHash: z.string().startsWith('sha256:').optional(),
+        reviewStateHash: z.string().startsWith('sha256:').optional(),
         extensionArtifactHashes: z.array(z.string().startsWith('sha256:')).optional(),
       },
     },

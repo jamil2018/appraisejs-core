@@ -274,8 +274,11 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     startPlan: (planId: string) => post(`plans/${planId}/start`, {}),
     submitValidationFeedback: (planId: string, feedback: unknown) =>
       post(`plans/${planId}/validations/feedback`, feedback),
-    submitValidation: (planId: string, binding: { operationHash?: string; extensionArtifactHashes?: string[] } = {}) =>
-      post(`plans/${planId}/validations/submit`, binding),
+    submitValidation: (
+      planId: string,
+      binding: { operationHash?: string; reviewStateHash?: string; extensionArtifactHashes?: string[] } = {},
+    ) => post(`plans/${planId}/validations/submit`, binding),
+    reconcileValidationReview: (planId: string) => post(`plans/${planId}/validations/reconcile`, {}),
     startBaseline: (planId: string) => post(`plans/${planId}/baseline/start`, {}),
     reconcileBaseline: (planId: string) => post(`plans/${planId}/baseline/reconcile`, {}),
     cancelBaseline: (planId: string) => post(`plans/${planId}/baseline/cancel`, {}),

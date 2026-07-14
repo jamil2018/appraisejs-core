@@ -62,13 +62,16 @@ case, step, requested locator, and a corrective locator lookup action.
 
 ## Validation Review
 
-Validation review readiness is receipt-backed. The plan artifact and projection may enter
-`awaiting_validation_review` only when the latest publish journal is `review_ready`, the exact validation/review
-artifact hashes match, the canonical validation projection matches, and the operation owns one
-`validation_review_ready` event. Coordinator waits and the review UI report `integrity_blocked` and hide approval
-controls when any representation disagrees. A staged `prepared`, `artifacts_written`, or `projected` operation may be
-resumed only through the exact `validation_ast_compile` receipt; non-repairable conflicts remain blocked with their
-historical evidence intact.
+Validation review uses two hash domains. The publish operation protects immutable compiled validation, review, and
+projection content. Node decisions, file approvals, and review submission advance a separate current-review-state
+receipt. Validation submission must present the exact current receipt shown in the review UI. A legitimate review
+decision therefore cannot invalidate compile-time publication integrity.
+
+Coordinator waits and the review UI report `integrity_blocked` and hide approval controls when either immutable
+content or the current receipt disagrees. A staged `prepared`, `artifacts_written`, or `projected` operation resumes
+through its exact `validation_ast_compile` receipt. A `review_ready` operation whose immutable content is intact may
+use the idempotent `validation_review_reconcile` action to refresh only its current review-state receipt; history and
+the original publication receipt remain unchanged.
 
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation
 artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
@@ -76,6 +79,10 @@ older `validation_approved` events may exist in in-flight streams, but new event
 The validation review handoff should include the direct validation review URL, `appraise://` URL, lifecycle, revision,
 validation artifact path, validation count, changed-file count, manifest paths, reused registry/template step paths,
 new custom step paths, and the next review action.
+
+Explicit non-deferred requirements must have reviewable coverage mappings. `uncovered` blocks review. `partial`
+requires an exact human acknowledgement describing the missing capability. The standard browser catalog includes
+keyboard/focus, checked/value/text/absence assertions, viewport changes, and horizontal-overflow checks.
 
 ## Baseline
 

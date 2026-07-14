@@ -6,10 +6,10 @@ import { coordinatorError, planLinks, zodCoordinatorError } from './contracts'
 
 describe('coordinator public contracts', () => {
   it('builds stable Appraise, browser, and compatibility routes from the configured base URL', () => {
-    expect(planLinks('planning-experience', 'http://127.0.0.1:3000/')).toEqual({
+    expect(planLinks('planning-experience', 'http://127.0.0.1:3000/', 'project-one')).toEqual({
       appraise: 'appraise://plans/planning-experience',
-      browser: 'http://127.0.0.1:3000/plans/planning-experience',
-      route: '/plans/planning-experience',
+      browser: 'http://localhost:3000/plans/planning-experience?project=project-one',
+      route: '/plans/planning-experience?project=project-one',
     })
   })
 

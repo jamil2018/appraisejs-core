@@ -170,7 +170,14 @@ export async function readCoordinatorPlan(planId: string, options: PlanServiceOp
   const plan = parseYamlArtifact('plan', artifact.content) as PlanArtifact
   const projection = await client.planProjection.findUnique({
     where: { planId: canonicalPlanId },
-    select: { slug: true, legacyPlanId: true, planContentHash: true, planStateHash: true, reviewBindingHash: true },
+    select: {
+      slug: true,
+      legacyPlanId: true,
+      planContentHash: true,
+      planStateHash: true,
+      reviewBindingHash: true,
+      targetProjectId: true,
+    },
   })
   const hashes = resolvedPlanHashes(plan, projection)
   const validationIntegrity = await auditManagedValidationIntegrity(canonicalPlanId, {
@@ -185,6 +192,7 @@ export async function readCoordinatorPlan(planId: string, options: PlanServiceOp
     ...hashes,
     contentHash: hashes.planContentHash,
     reviewUrl: `/plans/${canonicalPlanId}`,
+    targetProjectId: projection?.targetProjectId ?? undefined,
     validationIntegrity,
   }
 }

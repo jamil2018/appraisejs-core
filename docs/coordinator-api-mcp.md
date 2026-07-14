@@ -242,6 +242,7 @@ and response-size-oriented metrics without returning the full validation context
 - `validation_decide`
 - `validation_file_approve`
 - `validation_feedback_submit`
+- `validation_review_reconcile`
 - `validation_review_submit`
 - `validation_review_loop`
 - `baseline_start`
@@ -251,6 +252,14 @@ and response-size-oriented metrics without returning the full validation context
 - `baseline_failure_acknowledge`
 - `baseline_regression_justify`
 - `baseline_accept`
+
+Managed validation submission is bound to both the immutable AST operation hash and the latest `reviewStateHash`.
+`validation_review_reconcile` is the only legal `review_ready` recovery: it verifies immutable compile content and
+idempotently refreshes the current review-state receipt without emitting another review-ready event.
+
+Human-facing links use `APPRAISE_BROWSER_ORIGIN` when configured; otherwise loopback URLs are normalized to
+`localhost`. Plan links include the bound `project` query parameter. Review mutations authorize against the plan's
+stored target-project ownership and reject a conflicting active-project cookie instead of requiring cookie state.
 
 `baseline_retry` requires `reason` and `expectedValidationHash`. It is the supported recovery from invalid
 baseline-review evidence: historical attempts remain immutable and validation approvals/runtime projections are

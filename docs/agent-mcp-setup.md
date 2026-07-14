@@ -118,6 +118,10 @@ After `validation_preparation_started`, agents must create AppraiseJS-native val
 `validation_ast_compile` after exact check and preview receipt review before entering validation review standby. The compile response should include the direct
 validation review URL, `appraise://` URL, `ValidationArtifact` path, validation count, changed-file count, manifest
 paths, reused registry/template step paths, new custom step paths, and the next review action.
+Set `APPRAISE_BROWSER_ORIGIN` to the canonical browser origin when the app is exposed on a non-default host. Returned
+review URLs include the target project. If validation review reports a stale current-state receipt while immutable
+publication content remains valid, call `validation_review_reconcile` once and reread the review before submitting
+the exact refreshed `reviewStateHash`.
 Agents should read `appraise://workflow/validation-preparation` and the managed Validation AST contract for the
 required validation artifact shape instead of inspecting AppraiseJS source files.
 The artifact shape must include AppraiseJS-native modules, test suites, test cases, ordered test steps, locator groups,
