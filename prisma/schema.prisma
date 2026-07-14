@@ -962,6 +962,8 @@ model ValidationAstPublishOperation {
   validationProjectionJson String
   runtimeInputHash         String?
   runtimeInputJson         String?
+  reviewStateHash          String?
+  reviewStateJson          String?
   failure                  String?
   createdAt                DateTime                    @default(now())
   updatedAt                DateTime                    @updatedAt

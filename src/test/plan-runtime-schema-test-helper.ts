@@ -137,6 +137,9 @@ async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
   if (hasTable(databasePath, 'ValidationAstPublishOperation')) {
     await applyMigration(databasePath, '20260713163000_normalize_managed_validation_vocabulary')
   }
+  if (!hasColumn(databasePath, 'ValidationAstPublishOperation', 'reviewStateHash')) {
+    await applyMigration(databasePath, '20260714143000_add_validation_review_state_receipt')
+  }
   if (!hasTable(databasePath, 'RuntimeCapsule')) {
     await applyMigration(databasePath, '20260711220000_add_runtime_capsules')
   }

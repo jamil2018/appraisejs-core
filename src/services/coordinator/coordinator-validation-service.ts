@@ -17,11 +17,13 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { appendPlanEvent, assertPlanNotCancelled } from './coordinator-service'
+import { reconcileManagedValidationReviewState } from './managed-validation-review-state'
 
 type Options = {
   client?: PrismaClient
   projectDirectory?: string
   operationHash?: string
+  reviewStateHash?: string
   extensionArtifactHashes?: string[]
 }
 type ValidationFeedbackScope = 'test_artifact' | 'product_scope'
@@ -354,6 +356,10 @@ export async function decideValidationNode(
     serializeYamlArtifact('validation', next),
   )
   await syncPlans({ projectDirectory: artifacts.projectRoot, client: options.client ?? prisma })
+  await reconcileManagedValidationReviewState(input.planId, {
+    client,
+    projectDirectory: artifacts.projectRoot,
+  })
   return decision
 }
 
@@ -389,6 +395,10 @@ export async function approveValidationFile(
     serializeYamlArtifact('review', next),
   )
   await syncPlans({ projectDirectory: artifacts.projectRoot, client: options.client ?? prisma })
+  await reconcileManagedValidationReviewState(input.planId, {
+    client: options.client ?? prisma,
+    projectDirectory: artifacts.projectRoot,
+  })
   return approval
 }
 
@@ -426,6 +436,7 @@ export async function submitValidationReview(planId: string, options: Options = 
     const expectedExtensions = publishOperation.extensionReviews.map(item => item.artifactHash).sort()
     if (
       options.operationHash !== publishOperation.operationHash ||
+      options.reviewStateHash !== publishOperation.reviewStateHash ||
       JSON.stringify([...(options.extensionArtifactHashes ?? [])].sort()) !== JSON.stringify(expectedExtensions)
     )
       throw new ServiceError('Validation review submission is not bound to the current AST evidence.', 'CONFLICT')
