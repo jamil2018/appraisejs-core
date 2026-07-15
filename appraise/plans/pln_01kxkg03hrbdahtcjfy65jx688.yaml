@@ -1,0 +1,187 @@
+description: Build a polished but simple React and TypeScript todo app supporting add, edit, complete/uncomplete, delete, All/Active/Completed filters, clear completed, persistence of todos and selected filter across reload, keyboard accessibility, global and per-filter empty states, and responsive no-overflow layout, with managed validations for every requirement.
+edges:
+  - from: scaffold-setup
+    to: task-model-ui
+    type: blocks
+  - from: task-model-ui
+    to: crud-completion
+    type: blocks
+  - from: crud-completion
+    to: filtering
+    type: blocks
+  - from: filtering
+    to: persistence
+    type: blocks
+  - from: persistence
+    to: quality
+    type: blocks
+  - from: quality
+    to: validation
+    type: blocks
+goal: Todo Happy Path 2026-07-16
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-setup
+      - task-model-ui
+  - id: behavior
+    taskIds:
+      - crud-completion
+      - filtering
+      - persistence
+      - quality
+  - id: quality
+    taskIds:
+      - validation
+lifecycle: completed
+planId: pln_01kxkg03hrbdahtcjfy65jx688
+requirementAssessment:
+  domainCandidates:
+    - confidence: 0.75
+      domain: todo
+      evidence:
+        - todo noun
+  requirements:
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: crud-completion
+        - surface: validationIntent
+          taskId: crud-completion
+      id: add-delete
+      kind: functional
+      text: Add and delete todo items
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: crud-completion
+        - surface: validationIntent
+          taskId: crud-completion
+      id: edit
+      kind: functional
+      text: Edit existing todo text with keyboard-accessible save and cancel behavior
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: crud-completion
+        - surface: validationIntent
+          taskId: crud-completion
+      id: completion
+      kind: functional
+      text: Complete and reactivate todos
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: filtering
+        - surface: validationIntent
+          taskId: filtering
+      id: filtering
+      kind: functional
+      text: Filter by All, Active, and Completed
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: filtering
+        - surface: validationIntent
+          taskId: filtering
+      id: clear-completed
+      kind: functional
+      text: Clear all completed todos without removing active todos
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: persistence
+        - surface: validationIntent
+          taskId: persistence
+      id: persistence
+      kind: data
+      text: Persist todos, completion state, and selected filter across reload
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: filtering
+        - surface: validationIntent
+          taskId: filtering
+      id: empty-states
+      kind: quality
+      text: Show useful global and per-filter empty states
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: quality
+        - surface: validationIntent
+          taskId: quality
+      id: accessibility
+      kind: quality
+      text: Support keyboard-only operation, visible focus, and accessible names
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: quality
+        - surface: validationIntent
+          taskId: quality
+      id: responsive
+      kind: quality
+      text: Responsive mobile and desktop layout without horizontal overflow
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: validation
+        - surface: validationIntent
+          taskId: validation
+      id: managed-validation
+      kind: validation
+      text: Managed validation covers every required behavior
+  selectedDomain: todo
+  uncoveredRequirementIds: []
+  warnings: []
+revision: 4
+tasks:
+  - acceptanceCriteria:
+      - The app starts locally with React and TypeScript and no missing dependency errors.
+      - Build, lint, test, and preview scripts are available.
+      - The project structure supports a single responsive todo experience.
+    description: Create a Vite React and TypeScript foundation with local scripts, base layout, and styling entry points.
+    id: scaffold-setup
+    title: Scaffold and configure the app shell
+    validationIntent: Run install, typecheck, test, and production build checks for the generated app shell.
+  - acceptanceCriteria:
+      - The add form creates a non-empty todo and returns focus predictably.
+      - Each todo exposes its text, completion control, edit control, and delete control.
+      - A useful global empty state appears when no todos exist.
+    description: Define typed todo state and render the add form, list, controls, counters, and useful empty-state regions.
+    id: task-model-ui
+    title: Model todo data and build the primary UI
+    validationIntent: Managed browser validation adds an item, verifies the list model, and verifies the global empty state before and after deletion.
+  - acceptanceCriteria:
+      - Users can add and delete todo items.
+      - Users can mark todo items complete and incomplete.
+      - Users can edit todo text, save with Enter or an explicit action, and cancel with Escape without losing the prior value.
+      - Blank edited values are rejected without corrupting the todo.
+    description: Implement all requested item mutations with predictable immutable state updates and keyboard-accessible edit semantics.
+    id: crud-completion
+    title: Implement add, edit, completion, and delete behavior
+    validationIntent: Managed browser validation adds, edits, completes, uncompletes, and deletes todos, including Enter-to-save and Escape-to-cancel keyboard paths.
+  - acceptanceCriteria:
+      - All, Active, and Completed filters show the correct subset without mutating stored todos.
+      - Clear completed removes every completed todo and preserves active todos.
+      - The clear-completed control is only actionable when completed todos exist.
+      - Each filter shows a useful filter-specific empty state when its visible subset is empty.
+    description: Add All, Active, and Completed views plus safe bulk removal of completed items.
+    id: filtering
+    title: Implement filters, empty states, and clear completed
+    validationIntent: Managed browser validation uses mixed active/completed data to verify all three filters, every per-filter empty state, and clear-completed preserving active items.
+  - acceptanceCriteria:
+      - Todo text and completion state survive page reload.
+      - The selected All, Active, or Completed filter survives page reload.
+      - Invalid stored data falls back safely without breaking the UI.
+    description: Store and restore todos and UI selection using browser-local persistence with defensive parsing.
+    id: persistence
+    title: Persist todo and filter state
+    validationIntent: Managed browser validation creates mixed state, selects a non-default filter, reloads, and verifies todos, completion state, and selected filter are restored.
+  - acceptanceCriteria:
+      - Add, edit, save, cancel, complete, uncomplete, filter, clear-completed, and delete are operable using only the keyboard.
+      - Inputs and controls have accessible names, semantic states, and visible focus indicators.
+      - The layout is usable at mobile and desktop widths with no horizontal overflow.
+    description: Make every primary operation usable with keyboard and assistive technology across narrow and wide viewports.
+    id: quality
+    title: Polish accessible responsive todo workflows
+    validationIntent: Managed browser validation checks keyboard-only operation and focus, accessible names and checked/selected state, mobile/desktop viewports, and absence of horizontal overflow.
+  - acceptanceCriteria:
+      - Managed validations map explicitly to add, edit, complete/uncomplete, delete, all filters, clear completed, persistence of todos and selected filter, global/per-filter empty states, accessibility keyboard operation, and responsive behavior.
+      - Build, typecheck, lint, and focused tests pass or expose actionable evidence.
+    description: Author and run managed happy-path validations covering every explicit requirement plus static project checks.
+    id: validation
+    title: Validate the complete planned workflow
+    validationIntent: Run the complete Appraise managed browser matrix plus build, typecheck, lint, and focused test checks; require fresh evidence for completion.
+version: "1"

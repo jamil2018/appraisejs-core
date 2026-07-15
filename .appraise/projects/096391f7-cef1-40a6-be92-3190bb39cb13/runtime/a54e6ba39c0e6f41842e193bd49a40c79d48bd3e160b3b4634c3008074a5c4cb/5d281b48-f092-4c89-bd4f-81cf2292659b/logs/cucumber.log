@@ -1,0 +1,9 @@
+[2026-07-15T18:58:14.887Z] [STDOUT] ◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[2026-07-15T18:58:14.897Z] [STDOUT] .................................................{"event":"scenario::end","data":{"featureName":"Complete todo happy path","scenarioName":"Manage todos through the complete happy path","scenarioTags":["@appraise_validation_todo-happy-path","@ts_ast-e583afdc77e1-suite","@tc_ast-e583afdc77e1-complete-todo-workflow"],"status":"passed"}}
+[2026-07-15T18:58:14.907Z] [STDOUT] {"event":"scenario::end","data":{"featureName":"Complete todo happy path","scenarioName":"Manage todos through the complete happy path","scenarioTags":["@appraise_validation_todo-happy-path","@ts_ast-e583afdc77e1-suite","@tc_ast-e583afdc77e1-complete-todo-workflow"],"status":"passed"}}
+[2026-07-15T18:58:14.917Z] [STDOUT] .
+[2026-07-15T18:58:14.927Z] [STDOUT] 1 scenario (1 passed)
+[2026-07-15T18:58:14.937Z] [STDOUT] 48 steps (48 passed)
+[2026-07-15T18:58:14.947Z] [STDOUT] 0m00.884s (executing steps: 0m00.603s)
+[2026-07-15T18:58:14.957Z] [STDERR] This Node.js version (v26.5.0) has not been tested with this version of Cucumber; it should work normally, but please raise an issue if you see anything unexpected.
+[2026-07-15T18:58:16.235Z] [STATUS] Process exited with code 0

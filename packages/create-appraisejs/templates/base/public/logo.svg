@@ -1,13 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <line class="ln" x1="14" y1="64" x2="62" y2="64" stroke-width="4.5" stroke-linecap="round"/>
-  <circle class="dot" cx="16" cy="64" r="6.5" stroke-width="3.5"/>
-  <circle class="dot" cx="42" cy="64" r="8.5" stroke-width="3.5"/>
+  <line class="connector" x1="14" y1="64" x2="62" y2="64" stroke-width="5" stroke-linecap="round"/>
+  <line class="connector-accent" x1="42" y1="64" x2="62" y2="64" stroke-width="5" stroke-linecap="round"/>
+  <circle class="node node-small" cx="16" cy="64" r="6.5" stroke-width="3.5"/>
+  <circle class="node-halo" cx="42" cy="64" r="13" fill="none" stroke-width="2"/>
+  <circle class="node node-large" cx="42" cy="64" r="8.5" stroke-width="3.5"/>
+  <circle class="ring-halo" cx="88" cy="64" r="31" fill="none" stroke-width="2"/>
   <circle class="ring" cx="88" cy="64" r="26" fill="none" stroke-width="7"/>
-  <polyline class="ck" points="76,66 85,76 102,54" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline class="check" points="76,66 85,76 102,54" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
   <style>
-    .ln{stroke:#d4d4d4}
-    .dot{fill:#999;stroke:#d4d4d4}
-    .ring{stroke:#eee}
-    .ck{stroke:#5cb85c}
+    .connector{stroke:#dbe7f3}
+    .connector-accent{stroke:#14b8a6}
+    .node{fill:#0e1b2e;stroke:#dbe7f3}
+    .node-large{fill:#14b8a6;stroke:#5eead4}
+    .node-halo{stroke:#22d3a6;opacity:.32}
+    .ring-halo{stroke:#22d3a6;opacity:.24}
+    .ring{stroke:#dbe7f3}
+    .check{stroke:#22d3a6}
   </style>
 </svg>

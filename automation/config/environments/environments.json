@@ -6,10 +6,10 @@
     "password": "secret"
   },
   "local": {
-    "baseUrl": "http://127.0.0.1:5173",
-    "apiBaseUrl": "",
-    "email": "",
-    "password": ""
+    "baseUrl": "https://localhost:5173",
+    "apiBaseUrl": "https://localhost:5173/api",
+    "email": "john",
+    "password": "test"
   },
   "todo_local": {
     "baseUrl": "http://127.0.0.1:5173",

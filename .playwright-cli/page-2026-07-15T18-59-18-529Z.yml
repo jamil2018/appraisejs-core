@@ -1,0 +1,288 @@
+- generic [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - link "Skip to main content" [ref=f3e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=f3e4]:
+      - link "AppraiseJS dashboard" [ref=f3e6] [cursor=pointer]:
+        - /url: /?project=096391f7-cef1-40a6-be92-3190bb39cb13
+        - generic [ref=f3e7]:
+          - img "AppraiseJS" [ref=f3e8]
+          - generic [ref=f3e9]:
+            - generic [ref=f3e10]: Appraise
+            - generic [ref=f3e11]: JS
+      - generic [ref=f3e12]:
+        - combobox "Active project" [ref=f3e13] [cursor=pointer]:
+          - generic: Todo Happy Path 2026-07-16
+        - button "Open Command Palette" [ref=f3e17] [cursor=pointer]:
+          - generic [ref=f3e18]: Search
+          - generic [ref=f3e19]: K
+      - navigation "Primary navigation" [ref=f3e21]:
+        - generic [ref=f3e22]:
+          - generic [ref=f3e23]:
+            - heading "Control" [level=2] [ref=f3e24]
+            - generic [ref=f3e25]:
+              - link "Dashboard" [ref=f3e26] [cursor=pointer]:
+                - /url: /?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Plans" [ref=f3e33] [cursor=pointer]:
+                - /url: /plans?project=096391f7-cef1-40a6-be92-3190bb39cb13
+          - generic [ref=f3e41]:
+            - heading "Execution" [level=2] [ref=f3e42]
+            - generic [ref=f3e43]:
+              - link "Test Runs" [ref=f3e44] [cursor=pointer]:
+                - /url: /test-runs?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Reports" [ref=f3e49] [cursor=pointer]:
+                - /url: /reports?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Test Suites" [ref=f3e55] [cursor=pointer]:
+                - /url: /test-suites?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Test Cases" [ref=f3e60] [cursor=pointer]:
+                - /url: /test-cases?project=096391f7-cef1-40a6-be92-3190bb39cb13
+          - generic [ref=f3e65]:
+            - heading "Library" [level=2] [ref=f3e66]
+            - generic [ref=f3e67]:
+              - link "Template Steps" [ref=f3e68] [cursor=pointer]:
+                - /url: /template-steps?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Step Groups" [ref=f3e74] [cursor=pointer]:
+                - /url: /template-step-groups?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Step Blocks" [ref=f3e81] [cursor=pointer]:
+                - /url: /step-blocks?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Case Templates" [ref=f3e86] [cursor=pointer]:
+                - /url: /template-test-cases?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Locators" [ref=f3e91] [cursor=pointer]:
+                - /url: /locators?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Locator Groups" [ref=f3e96] [cursor=pointer]:
+                - /url: /locator-groups?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Modules" [ref=f3e105] [cursor=pointer]:
+                - /url: /modules?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Environments" [ref=f3e109] [cursor=pointer]:
+                - /url: /environments?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Tags" [ref=f3e114] [cursor=pointer]:
+                - /url: /tags?project=096391f7-cef1-40a6-be92-3190bb39cb13
+          - generic [ref=f3e119]:
+            - heading "System" [level=2] [ref=f3e120]
+            - generic [ref=f3e121]:
+              - link "Projects" [ref=f3e122] [cursor=pointer]:
+                - /url: /projects?project=096391f7-cef1-40a6-be92-3190bb39cb13
+              - link "Settings" [ref=f3e126] [cursor=pointer]:
+                - /url: /settings?project=096391f7-cef1-40a6-be92-3190bb39cb13
+      - paragraph [ref=f3e132]:
+        - generic [ref=f3e134]: Local-first workspace
+    - main [ref=f3e135]:
+      - main [ref=f3e138]:
+        - generic [ref=f3e139]:
+          - generic [ref=f3e140]:
+            - link "Plans" [ref=f3e141] [cursor=pointer]:
+              - /url: /plans
+            - generic [ref=f3e144]: /
+            - generic [ref=f3e145]: Todo Happy Path 2026-07-16
+          - generic [ref=f3e146]:
+            - generic [ref=f3e147]: validation passed
+            - generic [ref=f3e152]: Approved
+        - generic [ref=f3e154]:
+          - generic [ref=f3e155]:
+            - generic [ref=f3e156]: Rev 4
+            - heading "Todo Happy Path 2026-07-16" [level=1] [ref=f3e161]
+            - paragraph [ref=f3e162]: Build a polished but simple React and TypeScript todo app supporting add, edit, complete/uncomplete, delete, All/Active/Completed filters, clear completed, persistence of todos and selected filter across reload, keyboard accessibility, global and per-filter empty states, and responsive no-overflow layout, with managed validations for every requirement.
+            - generic [ref=f3e163]:
+              - generic "Implementation groups" [ref=f3e164]:
+                - generic [ref=f3e167]: "Groups:"
+                - generic [ref=f3e168]:
+                  - generic [ref=f3e169]: foundation (2)
+                  - generic [ref=f3e170]: behavior (4)
+                  - generic [ref=f3e171]: quality (1)
+              - generic [ref=f3e172]:
+                - generic [ref=f3e177]: todo-happy-path-2026-07-16
+                - generic [ref=f3e178]: "(ID: pln_01kxkg03hrbdahtcjfy65jx688)"
+          - generic [ref=f3e179]:
+            - button "Shortcuts" [ref=f3e180] [cursor=pointer]
+            - button "Export Plan" [ref=f3e181] [cursor=pointer]
+            - button "Hide inspector" [ref=f3e182] [cursor=pointer]
+        - region "Lifecycle progress" [ref=f3e183]:
+          - list [ref=f3e184]:
+            - listitem [ref=f3e185]:
+              - generic [ref=f3e189]: Plan review
+            - listitem [ref=f3e190]:
+              - generic [ref=f3e194]: Validation review
+            - listitem [ref=f3e195]:
+              - generic [ref=f3e199]: Baseline
+            - listitem [ref=f3e200]:
+              - generic [ref=f3e204]: Implementation
+            - listitem [ref=f3e205]:
+              - generic [ref=f3e206]: "5"
+              - generic [ref=f3e207]: Completion
+          - generic [ref=f3e208]:
+            - generic [ref=f3e209]:
+              - generic [ref=f3e210]: Reviewer
+              - generic [ref=f3e213]: Review final evidence and approve completion.
+            - button "Copy continuation" [ref=f3e214] [cursor=pointer]
+        - status [ref=f3e215]:
+          - generic [ref=f3e218]: "Requirement coverage: 10/10"
+          - generic [ref=f3e219]:
+            - paragraph [ref=f3e220]: "Selected domain: todo. Candidates: todo."
+            - paragraph [ref=f3e221]: Every explicit requirement is mapped to a task description, acceptance criterion, or validation intent.
+            - list [ref=f3e222]:
+              - listitem [ref=f3e223]: Add and delete todo items → crud-completion (acceptanceCriteria), crud-completion (validationIntent)
+              - listitem [ref=f3e224]: Edit existing todo text with keyboard-accessible save and cancel behavior → crud-completion (acceptanceCriteria), crud-completion (validationIntent)
+              - listitem [ref=f3e225]: Complete and reactivate todos → crud-completion (acceptanceCriteria), crud-completion (validationIntent)
+              - listitem [ref=f3e226]: Filter by All, Active, and Completed → filtering (acceptanceCriteria), filtering (validationIntent)
+              - listitem [ref=f3e227]: Clear all completed todos without removing active todos → filtering (acceptanceCriteria), filtering (validationIntent)
+              - listitem [ref=f3e228]: Persist todos, completion state, and selected filter across reload → persistence (acceptanceCriteria), persistence (validationIntent)
+              - listitem [ref=f3e229]: Show useful global and per-filter empty states → filtering (acceptanceCriteria), filtering (validationIntent)
+              - listitem [ref=f3e230]: Support keyboard-only operation, visible focus, and accessible names → quality (acceptanceCriteria), quality (validationIntent)
+              - listitem [ref=f3e231]: Responsive mobile and desktop layout without horizontal overflow → quality (acceptanceCriteria), quality (validationIntent)
+              - listitem [ref=f3e232]: Managed validation covers every required behavior → validation (acceptanceCriteria), validation (validationIntent)
+        - alert [ref=f3e233]:
+          - generic [ref=f3e236]: Computed implementation order
+          - generic [ref=f3e237]: scaffold-setup → task-model-ui → crud-completion → filtering → persistence → quality → validation
+        - generic [ref=f3e238]:
+          - generic [ref=f3e239]:
+            - generic [ref=f3e241]:
+              - generic [ref=f3e242]:
+                - generic [ref=f3e243]: Review surface
+                - generic [ref=f3e244]: Steps progress left to right. Tasks in the same stage may proceed in parallel.
+              - generic [ref=f3e245]:
+                - generic [ref=f3e246]: depends-on
+                - generic [ref=f3e248]: blocks
+                - generic [ref=f3e250]: relates-to
+            - generic [ref=f3e253]:
+              - tablist "Plan review representations" [ref=f3e255]:
+                - tab "Graph" [selected] [ref=f3e256] [cursor=pointer]
+                - tab "Accessible list" [ref=f3e262] [cursor=pointer]
+                - tab "Revisions" [ref=f3e264] [cursor=pointer]
+                - tab "Validations" [ref=f3e270] [cursor=pointer]
+              - tabpanel "Graph" [ref=f3e274]:
+                - generic "Plan dependency graph" [ref=f3e275]:
+                  - generic [ref=f3e277]:
+                    - generic:
+                      - generic:
+                        - img:
+                          - button "Edge from scaffold-setup to task-model-ui" [ref=f3e350] [cursor=pointer]:
+                            - generic [ref=f3e353]: blocks
+                        - img:
+                          - button "Edge from task-model-ui to crud-completion" [ref=f3e355] [cursor=pointer]:
+                            - generic [ref=f3e358]: blocks
+                        - img:
+                          - button "Edge from crud-completion to filtering" [ref=f3e360] [cursor=pointer]:
+                            - generic [ref=f3e363]: blocks
+                        - img:
+                          - button "Edge from filtering to persistence" [ref=f3e365] [cursor=pointer]:
+                            - generic [ref=f3e368]: blocks
+                        - img:
+                          - button "Edge from persistence to quality" [ref=f3e370] [cursor=pointer]:
+                            - generic [ref=f3e373]: blocks
+                        - img:
+                          - button "Edge from quality to validation" [ref=f3e375] [cursor=pointer]:
+                            - generic [ref=f3e378]: blocks
+                      - generic:
+                        - button "1 Step 1 Scaffold and configure the app shell ready" [ref=f3e380]:
+                          - generic [ref=f3e383] [cursor=pointer]:
+                            - generic [ref=f3e384]: "1"
+                            - generic [ref=f3e385]:
+                              - generic [ref=f3e386]:
+                                - generic [ref=f3e387]: Step 1
+                                - paragraph [ref=f3e392]: Scaffold and configure the app shell
+                              - generic [ref=f3e393]: ready
+                        - button "2 Step 2 Model todo data and build the primary UI blocked" [ref=f3e396]:
+                          - generic [ref=f3e399] [cursor=pointer]:
+                            - generic [ref=f3e400]: "2"
+                            - generic [ref=f3e401]:
+                              - generic [ref=f3e402]:
+                                - generic [ref=f3e403]: Step 2
+                                - paragraph [ref=f3e407]: Model todo data and build the primary UI
+                              - generic [ref=f3e408]: blocked
+                        - button "3 Step 3 Implement add, edit, completion, and delete behavior blocked" [ref=f3e411]:
+                          - generic [ref=f3e414] [cursor=pointer]:
+                            - generic [ref=f3e415]: "3"
+                            - generic [ref=f3e416]:
+                              - generic [ref=f3e417]:
+                                - generic [ref=f3e418]: Step 3
+                                - paragraph [ref=f3e422]: Implement add, edit, completion, and delete behavior
+                              - generic [ref=f3e423]: blocked
+                        - button "4 Step 4 Implement filters, empty states, and clear completed blocked" [ref=f3e426]:
+                          - generic [ref=f3e429] [cursor=pointer]:
+                            - generic [ref=f3e430]: "4"
+                            - generic [ref=f3e431]:
+                              - generic [ref=f3e432]:
+                                - generic [ref=f3e433]: Step 4
+                                - paragraph [ref=f3e437]: Implement filters, empty states, and clear completed
+                              - generic [ref=f3e438]: blocked
+                        - button "5 Step 5 Persist todo and filter state blocked" [ref=f3e441]:
+                          - generic [ref=f3e444] [cursor=pointer]:
+                            - generic [ref=f3e445]: "5"
+                            - generic [ref=f3e446]:
+                              - generic [ref=f3e447]:
+                                - generic [ref=f3e448]: Step 5
+                                - paragraph [ref=f3e452]: Persist todo and filter state
+                              - generic [ref=f3e453]: blocked
+                        - button "6 Step 6 Polish accessible responsive todo workflows blocked" [ref=f3e456]:
+                          - generic [ref=f3e459] [cursor=pointer]:
+                            - generic [ref=f3e460]: "6"
+                            - generic [ref=f3e461]:
+                              - generic [ref=f3e462]:
+                                - generic [ref=f3e463]: Step 6
+                                - paragraph [ref=f3e467]: Polish accessible responsive todo workflows
+                              - generic [ref=f3e468]: blocked
+                        - button "7 Step 7 Validate the complete planned workflow blocked" [ref=f3e471]:
+                          - generic [ref=f3e474] [cursor=pointer]:
+                            - generic [ref=f3e475]: "7"
+                            - generic [ref=f3e476]:
+                              - generic [ref=f3e477]:
+                                - generic [ref=f3e478]: Step 7
+                                - paragraph [ref=f3e482]: Validate the complete planned workflow
+                              - generic [ref=f3e483]: blocked
+                  - generic "React Flow controls" [ref=f3e278]:
+                    - button "zoom in" [ref=f3e279] [cursor=pointer]
+                    - button "zoom out" [ref=f3e282] [cursor=pointer]
+                    - button "fit view" [ref=f3e285] [cursor=pointer]
+                    - button "toggle interactivity" [ref=f3e288] [cursor=pointer]
+                - generic [ref=f3e292]:
+                  - textbox "Search graph tasks" [ref=f3e294]:
+                    - /placeholder: Search tasks...
+                  - button "Save layout" [ref=f3e296] [cursor=pointer]
+                  - button "Publish shared layout" [ref=f3e297] [cursor=pointer]
+                  - button "Reset view" [ref=f3e298] [cursor=pointer]
+          - complementary [ref=f3e299]:
+            - generic [ref=f3e301]:
+              - tablist [ref=f3e303]:
+                - tab "Discussion" [ref=f3e304] [cursor=pointer]
+                - tab "Baselines" [ref=f3e305] [cursor=pointer]
+                - tab "Approval" [active] [selected] [ref=f3e306] [cursor=pointer]
+              - tabpanel "Approval" [ref=f3e307]:
+                - generic [ref=f3e308]:
+                  - heading "Revision Approval" [level=3] [ref=f3e309]
+                  - paragraph [ref=f3e310]: Approval binds to revision 4 and its exact reviewed-content hash.
+                - generic [ref=f3e311]:
+                  - generic [ref=f3e312]:
+                    - term [ref=f3e313]: Plan content hash
+                    - definition [ref=f3e314]: sha256:f6e64d46207faaec54358416b84c68e02d69caba0d5bc8f6892254887add896b
+                  - generic [ref=f3e315]:
+                    - term [ref=f3e316]: Plan state hash
+                    - definition [ref=f3e317]: sha256:3959714c8cb03d4ffdba7405a68cff3297e8e80e9c04ad09e4f6629e5c08e1c1
+                  - generic [ref=f3e318]:
+                    - term [ref=f3e319]: Review binding hash
+                    - definition [ref=f3e320]: sha256:738e959257a6fe7de2bde78203cbd3192ee5775b00cd3fb6c1795e3d7243f7f1
+                - generic [ref=f3e321]:
+                  - region [ref=f3e322]:
+                    - generic [ref=f3e323]:
+                      - heading "Final completion sign-off" [level=4] [ref=f3e324]
+                      - paragraph [ref=f3e325]: All required tasks and validation evidence are ready. Completion binds permanently to this exact evidence hash.
+                    - paragraph [ref=f3e326]: sha256:6691412331c532abed67ffb39bab9c3c7afd2f5f48ddba373bfa11e71d5a9b30
+                    - generic [ref=f3e327]:
+                      - checkbox "I reviewed the final evidence and explicitly approve completing this plan." [ref=f3e328] [cursor=pointer]
+                      - generic [ref=f3e329] [cursor=pointer]: I reviewed the final evidence and explicitly approve completing this plan.
+                    - button "Approve final completion" [disabled]
+                  - button "Revision approved" [disabled]
+                  - paragraph [ref=f3e330]: This exact revision has already been approved.
+                  - button "Request changes" [disabled]
+                  - paragraph [ref=f3e331]: This exact revision has already been approved.
+                - generic [ref=f3e332]:
+                  - generic [ref=f3e333]:
+                    - heading "Graph Layout Options" [level=4] [ref=f3e334]
+                    - paragraph [ref=f3e335]: Adjust nodes on the canvas and save your personal layout or publish it to Git.
+                  - generic [ref=f3e336]:
+                    - button "Save Personal" [ref=f3e337] [cursor=pointer]
+                    - button "Publish Shared" [ref=f3e338] [cursor=pointer]
+                  - button "Reset to Flow Layout" [ref=f3e339] [cursor=pointer]
+    - region "Notifications (F8)":
+      - list
+  - button "Open Next.js Dev Tools" [ref=f3e345] [cursor=pointer]
+  - alert [ref=f3e486]

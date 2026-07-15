@@ -37,12 +37,12 @@ function MobileNavigationItem({
     <Link
       href={projectScopedHref(item.href, projectId)}
       aria-current={active ? 'page' : undefined}
-      className="focus-visible:ring-sidebar-ring group relative flex min-h-9 items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] text-muted-foreground outline-none transition-colors hover:bg-white/[0.045] hover:text-foreground focus-visible:ring-1 data-[active=true]:bg-white/[0.085] data-[active=true]:font-medium data-[active=true]:text-foreground"
+      className="focus-visible:ring-sidebar-ring group relative flex min-h-9 items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] text-zinc-400 outline-none transition-colors hover:bg-white/[0.045] hover:text-foreground focus-visible:ring-1 data-[active=true]:bg-white/[0.085] data-[active=true]:font-medium data-[active=true]:text-foreground"
       data-active={active}
       onClick={onNavigate}
     >
       <Icon
-        className="text-muted-foreground/75 size-4 group-data-[active=true]:text-primary"
+        className="size-4 text-zinc-400/80 group-data-[active=true]:text-primary"
         strokeWidth={1.9}
         aria-hidden="true"
       />
