@@ -754,22 +754,23 @@ function createStructuredTasksFromBrief(
     validationIntent: 'Run install/build or the closest available scaffold validation for the generated app shell.',
   }
   const asksForPersistence = includesAny(brief, [
-    /\bpersist(?:ence|ed|ing)?\b/,
+    /\bpersist(?:s|ed|ing|ence|ent)?\b/,
     /\bstorage\b/,
     /\blocalstorage\b/,
     /\bdatabase\b/,
     /\bsqlite\b/,
-    /\bsaved?\b/,
+    /\bsav(?:e|es|ed|ing)\b/,
+    /\breloads?\b/,
     /\bhistory\b/,
   ])
   const asksForCrud = includesAny(brief, [
     /\bcrud\b/,
-    /\bcreate\b/,
-    /\badd\b/,
-    /\bedit\b/,
-    /\bupdate\b/,
-    /\bdelete\b/,
-    /\bremove\b/,
+    /\bcreat(?:e|es|ed|ing)\b/,
+    /\badd(?:s|ed|ing)?\b/,
+    /\bedit(?:s|ed|ing)?\b/,
+    /\bupdat(?:e|es|ed|ing)\b/,
+    /\bdelet(?:e|es|ed|ing)\b/,
+    /\bremov(?:e|es|ed|ing)\b/,
   ])
   const asksForCompletion = includesAny(brief, [/\bcomplete\b/, /\bcompleted\b/, /\bdone\b/, /\btoggle\b/])
   const isTodoBrief = includesAny(brief, [/\btodo(?:s)?\b/, /\btask(?:s)?\b/, /\bchecklist\b/])
@@ -838,11 +839,22 @@ function createStructuredTasksFromBrief(
 
   if (isTodoBrief && (asksForCrud || asksForCompletion || asksForPersistence)) {
     const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
-    const asksForEdit = includesAny(brief, [/\bcrud\b/, /\bedit\b/, /\bupdate\b/, /\brename\b/])
+    const asksForEdit = includesAny(brief, [
+      /\bcrud\b/,
+      /\bedit(?:s|ed|ing)?\b/,
+      /\bupdat(?:e|es|ed|ing)\b/,
+      /\brenam(?:e|es|ed|ing)\b/,
+    ])
+    const asksToClearCompleted = includesAny(brief, [/\bclear(?:s|ed|ing)?\s+(?:all\s+)?completed\b/])
+    const asksToPersistFilter = includesAny(brief, [
+      /\b(?:persist(?:s|ed|ing)?|remember(?:s|ed|ing)?)\b[^.\n]{0,80}\b(?:selected|active|current)?\s*filter\b/,
+    ])
+    const asksForEmptyStates = includesAny(brief, [/\bempty\s+states?\b/])
     const behaviorCriteria = [
       `Users can add and delete ${taskNoun} items.`,
       ...(asksForCompletion ? [`Users can mark ${taskNoun} items complete or incomplete.`] : []),
       ...(asksForEdit ? [`Users can edit existing ${taskNoun} items.`] : []),
+      ...(asksToClearCompleted ? [`Users can clear all completed ${taskNoun} items in one action.`] : []),
     ]
     const filteringTasks: BriefPlanTask[] = includesAny(brief, [/\bfilter(?:ing|ed|s)?\b/, /\bactive\b/])
       ? [
@@ -853,8 +865,11 @@ function createStructuredTasksFromBrief(
             acceptanceCriteria: [
               `Users can switch between all, active, and completed ${taskNoun} items.`,
               'Filtering changes only the visible subset and preserves item state.',
+              ...(asksForEmptyStates
+                ? ['The all, active, and completed views each present a useful empty state when they have no items.']
+                : []),
             ],
-            validationIntent: 'Verify each filter against mixed active and completed data.',
+            validationIntent: `Verify each filter against mixed active and completed data${asksForEmptyStates ? ' and verify every filtered empty state' : ''}.`,
           },
         ]
       : []
@@ -866,9 +881,10 @@ function createStructuredTasksFromBrief(
             description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
             acceptanceCriteria: [
               `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
+              ...(asksToPersistFilter ? ['The selected filter persists and restores across page reloads.'] : []),
               'Persistence failures do not corrupt the visible in-memory state.',
             ],
-            validationIntent: 'Verify saved items and completion state reload correctly.',
+            validationIntent: `Verify saved items and completion state reload correctly${asksToPersistFilter ? ', including restoration of the selected filter' : ''}.`,
           },
         ]
       : []
@@ -895,6 +911,7 @@ function createStructuredTasksFromBrief(
         description: `Define the ${taskNoun} shape, app state boundaries, and visible list/form experience for creating, viewing, and organizing items.`,
         acceptanceCriteria: [
           `The UI exposes a clear ${taskNoun} list, empty state, and input flow.`,
+          ...(asksForEmptyStates ? ['The whole-list empty state gives users a useful next action.'] : []),
           `${taskNoun} data includes the fields needed for titles and completion state.`,
         ],
         validationIntent: 'Exercise the main UI states manually or with component-level tests where available.',

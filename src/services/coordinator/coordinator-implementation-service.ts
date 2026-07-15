@@ -24,6 +24,7 @@ import {
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
+import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
 import { ServiceError } from '@/services/shared/errors'
 import { getTestRunLogsService } from '@/services/test-run/test-run-service'
 import { testRunEvidenceLinks } from '@/services/test-run/test-run-evidence-links'
@@ -1291,6 +1292,13 @@ async function evaluateImplementationCompletion(
   const acknowledgedFailures = implementation.validationRuns.filter(
     run => run.failureSignatureHash && run.acknowledgedAt,
   )
+  const blockingRemarks = artifacts.review.threads.filter(thread => thread.blocking && isThreadOpen(thread))
+  const remarkBlockers = blockingRemarks.length ? ['Blocking feedback must be resolved before completion.'] : []
+  const finalReadiness = {
+    ...readiness,
+    ready: readiness.ready && remarkBlockers.length === 0,
+    blockers: [...readiness.blockers, ...remarkBlockers],
+  }
   const receipt = {
     plan: {
       planId: artifacts.plan.planId,
@@ -1303,7 +1311,7 @@ async function evaluateImplementationCompletion(
       hash: artifacts.validationStored.hash,
       requiredValidationIds: artifacts.validation.validations.filter(item => item.required).map(item => item.id),
     },
-    readiness,
+    readiness: finalReadiness,
     tasks,
     commits: implementation.commits,
     validationRuns: implementation.validationRuns,
@@ -1315,10 +1323,10 @@ async function evaluateImplementationCompletion(
           receiptManifestHash: exportJob.receipt?.manifestHash ?? null,
         }
       : { policy: 'disabled', state: 'not_requested' },
-    structuredBlockers: completionNextActions(artifacts.plan.planId, readiness.blockers),
+    structuredBlockers: completionNextActions(artifacts.plan.planId, finalReadiness.blockers),
     optionalFailures,
     acknowledgedFailures,
-    blockingRemarks: artifacts.review.threads.filter(thread => thread.blocking),
+    blockingRemarks,
     nonBlockingRemarks: artifacts.review.threads.filter(thread => !thread.blocking),
     finalSignOff: artifacts.review.finalSignOff,
     eventSequence: await readLatestPlanEventSequence(artifacts.plan.planId, client),

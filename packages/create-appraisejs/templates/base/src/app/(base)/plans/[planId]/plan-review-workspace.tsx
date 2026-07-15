@@ -537,7 +537,9 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
       ? reviewUnavailableReason
       : !detail.reviewReady
         ? 'Approval is disabled until the graph and list review representation is ready.'
-        : null
+        : detail.blockingThreadIds.length > 0
+          ? 'Resolve all blocking remarks before approval.'
+          : null
   const requestChangesDisabledReason = approved
     ? 'This exact revision has already been approved.'
     : reviewUnavailableReason

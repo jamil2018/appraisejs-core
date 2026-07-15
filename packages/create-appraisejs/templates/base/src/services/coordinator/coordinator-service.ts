@@ -364,7 +364,7 @@ export async function ensurePlanReviewReadyEvent(planId: string, client: PrismaC
   const canonicalPlanId = await resolvePlanReference(planId, client)
   const projection = await client.planProjection.findUnique({
     where: { planId: canonicalPlanId },
-    select: { id: true, lifecycle: true },
+    select: { id: true, lifecycle: true, revision: true, planContentHash: true },
   })
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   if (projection.lifecycle !== 'awaiting_plan_review') return undefined
@@ -372,6 +372,8 @@ export async function ensurePlanReviewReadyEvent(planId: string, client: PrismaC
     where: {
       planProjectionId: projection.id,
       type: 'plan_review_ready',
+      revision: projection.revision,
+      planContentHash: projection.planContentHash,
       supersededAt: null,
     },
     orderBy: { sequence: 'desc' },

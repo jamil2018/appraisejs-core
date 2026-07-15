@@ -924,6 +924,26 @@ describe('implementation coordinator checkpoints', () => {
         },
       ],
     }
+    const resolvedBlockingRemark = {
+      id: 'remark-resolved-blocker',
+      target: { type: 'plan' as const },
+      blocking: true,
+      events: [
+        {
+          id: 'remark-blocking-event',
+          action: 'created' as const,
+          actor: 'reviewer',
+          createdAt: completedAt,
+          body: 'Address this before completion.',
+        },
+        {
+          id: 'remark-resolved-event',
+          action: 'resolved' as const,
+          actor: 'reviewer',
+          createdAt: completedAt,
+        },
+      ],
+    }
 
     const crashPhases = [
       'after_validation_write',
@@ -1001,9 +1021,10 @@ describe('implementation coordinator checkpoints', () => {
       planId,
       { lifecycle: 'validation_passed' },
       { implementation },
-      { threads: [nonBlockingRemark] },
+      { threads: [nonBlockingRemark, resolvedBlockingRemark] },
     )
     const completionReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace, client })
+    expect(completionReview).toMatchObject({ readiness: { ready: true }, blockingRemarks: [] })
     expect(completionReview.evidenceHash).not.toBe(beforeValidationReview.evidenceHash)
     await expect(
       approveImplementationCompletion(

@@ -231,6 +231,11 @@ export async function reviseCoordinatorPlan(
     { planId: canonicalPlanId, type: 'plan_revision_submitted', payload: { revision: nextPlan.revision } },
     client,
   )
+  await appendPlanEvent({ planId: canonicalPlanId, type: 'plan_graph_processing_started' }, client)
+  const reviewReadyEvent = await ensurePlanReviewReadyEvent(canonicalPlanId, client)
+  if (!reviewReadyEvent) {
+    throw new ServiceError('The revised plan is not awaiting plan review.', 'CONFLICT')
+  }
   return readCoordinatorPlan(canonicalPlanId, options)
 }
 
