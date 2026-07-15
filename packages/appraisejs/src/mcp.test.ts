@@ -330,6 +330,38 @@ describe('planning retry fidelity', () => {
       ]),
     )
   })
+
+  it('retains gerund requirements and todo-specific secondary behaviors', () => {
+    const projectBrief =
+      'Build a todo app supporting adding, editing, completing and uncompleting, deleting, filtering by All, Active, and Completed, clearing all completed todos, persisting todos and the selected filter across reloads, useful empty states for the whole list and each filter, and automated managed validations.'
+    const plan = createPlanFromBrief({ projectBrief })
+    const assessment = plan.requirementAssessment!
+
+    expect(assessment.requirements.map(requirement => requirement.id)).toEqual(
+      expect.arrayContaining([
+        'create',
+        'edit',
+        'delete',
+        'completion',
+        'filtering',
+        'clear-completed',
+        'filter-persistence',
+        'persistence',
+        'empty-states',
+        'testing',
+      ]),
+    )
+    expect(assessment.uncoveredRequirementIds).toEqual([])
+    expect(plan.tasks.find(task => task.id === 'crud-completion')?.acceptanceCriteria).toEqual(
+      expect.arrayContaining([expect.stringMatching(/edit existing/i), expect.stringMatching(/clear all completed/i)]),
+    )
+    expect(plan.tasks.find(task => task.id === 'filtering')?.acceptanceCriteria).toEqual(
+      expect.arrayContaining([expect.stringMatching(/each present a useful empty state/i)]),
+    )
+    expect(plan.tasks.find(task => task.id === 'persistence')?.acceptanceCriteria).toEqual(
+      expect.arrayContaining([expect.stringMatching(/selected filter persists/i)]),
+    )
+  })
 })
 
 describe('compact lifecycle responses', () => {

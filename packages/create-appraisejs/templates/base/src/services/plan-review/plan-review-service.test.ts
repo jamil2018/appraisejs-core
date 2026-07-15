@@ -565,6 +565,11 @@ describe('requestPlanChanges', () => {
   it('returns an agent-readable review summary and allows revision back to plan review', async () => {
     await writePlan('agent-readable-loop', serializeYamlArtifact('plan', plan('agent-readable-loop')))
     await syncPlans({ projectDirectory: workspace, client })
+    const initialReady = await appendPlanEvent({ planId: 'agent-readable-loop', type: 'plan_review_ready' }, client)
+    await acknowledgePlanEvent(
+      { planId: 'agent-readable-loop', sequence: initialReady!.sequence, actor: 'test-agent' },
+      client,
+    )
     const expectedPlanHash = await readPlanHash('agent-readable-loop')
     await addPlanRemark(
       {
@@ -641,6 +646,13 @@ describe('requestPlanChanges', () => {
     ) as PlanArtifact
     expect(revisedPlan.lifecycle).toBe('awaiting_plan_review')
     expect((await readReview('agent-readable-loop')).threads).toHaveLength(2)
+    await expect(readPlanEvents({ planId: 'agent-readable-loop' }, client)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'plan_revision_submitted', revision: 2 }),
+        expect.objectContaining({ type: 'plan_graph_processing_started', revision: 2 }),
+        expect.objectContaining({ type: 'plan_review_ready', revision: 2 }),
+      ]),
+    )
   })
 })
 

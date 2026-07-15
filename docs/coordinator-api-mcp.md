@@ -439,6 +439,9 @@ After `validation_preparation_started`, agents author a managed Validation AST f
 They call `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and
 call `validation_ast_compile`. Compilation creates canonical database entities and a durable publish operation with exact
 AST, preview, receipt, projection, validation, and runtime-input hashes.
+Exact preview review can be performed from the hash-bound MCP response; the browser validation-review surface is
+created by compilation and is not a prerequisite for compile. Persisted validation approval still occurs only after
+compile through the Appraise-owned validation review gate.
 AST capability availability is derived from the current built-in action catalog for each runtime, so discovered browser
 keyboard and viewport actions remain authorable without custom extensions.
 

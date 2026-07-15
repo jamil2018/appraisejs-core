@@ -37,6 +37,8 @@ agent handoff; durable continuation still uses the snapshot and continuation-pac
 Create or update plans through the Appraise plan surface. Wait for `plan_review_ready`, then use the review URL or
 `plan_review_read` to inspect current remarks and hashes. A `plan_changes_requested` event requires reading review
 remarks, revising against the expected hash, and waiting for the next approval event.
+Each submitted revision emits a revision-bound `plan_review_ready` event for the current content hash. Historical or
+acknowledged review-ready events from earlier revisions do not satisfy this gate.
 
 Agents should use `plan_review_loop` when it is available, because it keeps review readiness, bounded approval waits,
 change requests, and cancellation inside one Appraise-owned loop. Without that tool, agents should actively continue
@@ -54,6 +56,8 @@ not repeat the brief or handoff. Pending review or pending approval is not compl
 transition it permits succeeds. `validation_preparation_started` permits managed Validation AST authoring. Agents call
 `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and call
 `validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
+Preview confirmation may use the exact hash-bound MCP response; a pre-compile browser surface is optional rather than
+required. The Appraise-owned validation approval gate remains the persisted post-compile UI review.
 Managed execution uses only the exact Appraise-owned immutable runtime capsule; it never writes or executes target
 `automation/` files.
 

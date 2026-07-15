@@ -708,6 +708,19 @@ describe('PlanReviewWorkspace', () => {
     })
   })
 
+  it('explains why approval is blocked while review remarks remain unresolved', async () => {
+    const withBlockingRemark: PlanReviewDetail = {
+      ...detail,
+      blockingThreadIds: ['remark-blocker'],
+    }
+
+    render(<PlanReviewWorkspace detail={withBlockingRemark} />)
+    await openApprovalTab()
+
+    expect(screen.getByRole('button', { name: /approve exact revision/i })).toBeDisabled()
+    expect(screen.getByText(/resolve all blocking remarks before approval/i)).toBeInTheDocument()
+  })
+
   it('requires a blocking remark before requesting changes', async () => {
     render(<PlanReviewWorkspace detail={detail} />)
     await openApprovalTab()
