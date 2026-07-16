@@ -114,8 +114,7 @@ async function approveCurrentPlan(revision: number, contentHash: string) {
 }
 
 try {
-  await fs.copyFile(path.join(repoRoot, 'prisma', 'dev.db'), databasePath)
-  run('npx', ['prisma', 'migrate', 'deploy'], { DATABASE_URL: `file:${databasePath}` })
+  run(process.execPath, ['e2e/apply-migrations.mjs'], { DATABASE_URL: `file:${databasePath}` })
   run('npm', ['--prefix', 'packages/appraisejs', 'run', 'build'])
 
   appServer = spawn('npm', ['run', 'dev:web', '--', '-H', '127.0.0.1', '-p', String(port)], {
