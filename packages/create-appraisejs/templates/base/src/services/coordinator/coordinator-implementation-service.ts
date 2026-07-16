@@ -671,6 +671,24 @@ async function failureSignatureHashForRun(testRun: ManagedTestRunEvidence, clien
   return failureText ? completionEvidenceHash(failureText) : undefined
 }
 
+async function failureSignatureHashForStatus(
+  status: ImplementationValidationRun['status'],
+  testRun: ManagedTestRunEvidence,
+  client: PrismaClient,
+  appraiseRoot: string,
+) {
+  if (status !== 'failed' && status !== 'infrastructure_failure') return undefined
+  return failureSignatureHashForRun(testRun, client, appraiseRoot)
+}
+
+function managedRunAssurance(status: ImplementationValidationRun['status'], evidenceHealth: string | null) {
+  return status === 'passed' && evidenceHealth === 'valid' ? ('full' as const) : ('reduced' as const)
+}
+
+function managedRunCompletedAt(status: ImplementationValidationRun['status'], completedAt: Date | null, now: Date) {
+  return status === 'running' ? undefined : (completedAt ?? now).toISOString()
+}
+
 async function loadManagedImplementationRun(
   run: ImplementationValidationRun,
   client: PrismaClient,
@@ -691,15 +709,14 @@ async function loadManagedImplementationRun(
 
   const evidenceSummary = await summarizeRunEvidence(testRun.runId, client, appraiseRoot)
   const status = implementationRunStatus({ ...testRun, evidenceHealth: evidenceSummary.evidenceHealth })
-  const failureSignatureHash = await failureSignatureHashForRun(testRun, client, appraiseRoot)
+  const failureSignatureHash = await failureSignatureHashForStatus(status, testRun, client, appraiseRoot)
   if (!testRun.targetProjectId) throw new ServiceError('Managed test run has no target-project ownership.', 'CONFLICT')
   const evidenceLinks = testRunEvidenceLinks(testRun.runId, testRun.targetProjectId)
 
   return {
     ...run,
     evidenceSource: 'managed' as const,
-    assurance:
-      status === 'passed' && evidenceSummary.evidenceHealth === 'valid' ? ('full' as const) : ('reduced' as const),
+    assurance: managedRunAssurance(status, evidenceSummary.evidenceHealth),
     status,
     testRunId: testRun.runId,
     evidenceUrls: [evidenceLinks.reportUrl, evidenceLinks.logsUrl],
@@ -710,7 +727,7 @@ async function loadManagedImplementationRun(
       screenshotUrls: [],
     },
     failureSignatureHash,
-    completedAt: status === 'running' ? undefined : (testRun.completedAt ?? now).toISOString(),
+    completedAt: managedRunCompletedAt(status, testRun.completedAt, now),
   }
 }
 
@@ -1171,9 +1188,12 @@ export async function reconcileImplementationValidation(
       receipt: existingReceipt,
     }
   }
-  const selectedRunIds = new Set(input.runIds ?? implementation.validationRuns.map(run => run.id))
-  const selectedRuns = implementation.validationRuns.filter(run => selectedRunIds.has(run.id))
-  if (selectedRuns.length !== selectedRunIds.size) {
+  const requestedRunIds = input.runIds ?? implementation.validationRuns.map(run => run.id)
+  const selectedRuns = implementation.validationRuns.filter(
+    run => requestedRunIds.includes(run.id) || Boolean(run.testRunId && requestedRunIds.includes(run.testRunId)),
+  )
+  const resolvedRunIds = new Set(selectedRuns.flatMap(run => [run.id, ...(run.testRunId ? [run.testRunId] : [])]))
+  if (requestedRunIds.some(runId => !resolvedRunIds.has(runId))) {
     throw new ServiceError('One or more implementation validation runs were not found.', 'NOT_FOUND')
   }
   const now = options.now ?? new Date()

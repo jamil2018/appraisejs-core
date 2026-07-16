@@ -1,15 +1,12 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import ErrorMessage from '@/components/form/error-message'
-import { Input } from '@/components/ui/input'
+import { FormSubmitButton, TextFormField } from '@/components/form/form-controls'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { moduleFormOpts, type Module, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
-import { toast } from '@/hooks/use-toast'
 import { useForm } from '@tanstack/react-form'
-import { Save } from 'lucide-react'
 import { TanStackForm } from '@/lib/form/tanstack-form'
+import { handleStandardFormResult } from '@/lib/form/standard-form-result'
 import { useRouter } from 'next/navigation'
 import {
   getActionErrorMessage,
@@ -27,38 +24,7 @@ type ModuleFormProps = {
   onSubmitAction: ModuleFormSubmitAction
 }
 
-type ModuleFieldErrorsProps = {
-  errors: unknown[]
-  isTouched: boolean
-}
-
 const EMPTY_PARENT_OPTIONS: ModuleParentOption[] = []
-
-function getErrorMessage(error: unknown) {
-  if (typeof error === 'string') {
-    return error
-  }
-
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-    return error.message
-  }
-
-  return String(error)
-}
-
-function ModuleFieldErrors({ errors, isTouched }: ModuleFieldErrorsProps) {
-  if (!isTouched) {
-    return null
-  }
-
-  return (
-    <div className="flex flex-col gap-1" aria-live="polite">
-      {errors.map(error => (
-        <ErrorMessage key={getErrorMessage(error)} message={getErrorMessage(error)} visible={true} />
-      ))}
-    </div>
-  )
-}
 
 const ModuleForm = ({
   defaultValues,
@@ -74,27 +40,13 @@ const ModuleForm = ({
     validators: moduleFormOpts.validators,
     onSubmit: async ({ value }) => {
       const res = await onSubmitAction(undefined, value, id)
-      if (res.status === 200) {
-        toast({
-          title: successTitle,
-          description: successMessage,
-        })
-        push('/modules')
-      }
-      if (res.status === 400) {
-        toast({
-          title: 'Error',
-          description: getActionErrorMessage(res),
-          variant: 'destructive',
-        })
-      }
-      if (res.status === 500) {
-        toast({
-          title: 'Error',
-          description: getActionErrorMessage(res),
-          variant: 'destructive',
-        })
-      }
+      handleStandardFormResult({
+        status: res.status,
+        successTitle,
+        successMessage,
+        errorMessage: getActionErrorMessage(res),
+        onSuccess: () => push('/modules'),
+      })
     },
   })
   return (
@@ -105,15 +57,7 @@ const ModuleForm = ({
           onChange: moduleFieldValidators.name,
         }}
       >
-        {field => {
-          return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
-              <Label htmlFor={field.name}>Name</Label>
-              <Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} />
-              <ModuleFieldErrors errors={field.state.meta.errors} isTouched={field.state.meta.isTouched} />
-            </div>
-          )
-        }}
+        {field => <TextFormField field={field} label="Name" />}
       </form.Field>
       <form.Field name="parentId">
         {field => {
@@ -142,12 +86,7 @@ const ModuleForm = ({
         }}
       </form.Field>
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => (
-          <Button type="submit" disabled={!canSubmit}>
-            <Save className="size-4" aria-hidden />
-            <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
-          </Button>
-        )}
+        {([canSubmit, isSubmitting]) => <FormSubmitButton canSubmit={canSubmit} isSubmitting={isSubmitting} />}
       </form.Subscribe>
     </TanStackForm>
   )

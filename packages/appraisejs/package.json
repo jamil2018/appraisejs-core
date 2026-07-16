@@ -42,6 +42,7 @@
     "build": "tsc",
     "test": "vitest run",
     "test:mcp:e2e": "tsx src/mcp.e2e.ts",
+    "test:mcp:http:e2e": "npm run build && tsx src/mcp-http.e2e.ts",
     "publish:alpha": "npm publish --tag alpha",
     "publish:beta": "npm publish --tag beta",
     "bump:alpha": "npm version prerelease --preid alpha",

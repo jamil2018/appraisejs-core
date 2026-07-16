@@ -1,7 +1,6 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { glob } from 'glob'
-import prettier from 'prettier'
 import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
@@ -24,6 +23,7 @@ import {
   type SyncScriptId,
 } from '@/lib/sync/sync-registry'
 import { getTagTypeFromName } from '@/lib/tag-identifiers'
+import { normalizeFunctionDefinition } from '@/lib/sync/normalize-function-definition'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
   determineProjectedStepIcon,
@@ -48,7 +48,7 @@ type EnvironmentConfig = {
   baseUrl: string
   apiBaseUrl: string
   email: string
-  password: string
+  passwordEnvironmentVariable: string
 }
 
 type EnvironmentData = {
@@ -56,7 +56,7 @@ type EnvironmentData = {
   baseUrl: string
   apiBaseUrl: string | null
   username: string | null
-  password: string | null
+  passwordEnvironmentVariable: string | null
 }
 
 type LocatorMapEntry = {
@@ -168,28 +168,6 @@ function getEnvironmentIdentityKey(name: string): string {
     .toLowerCase()
 }
 
-async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
-  const source = functionDefinition?.trim()
-  if (!source) {
-    return ''
-  }
-
-  try {
-    return (
-      await prettier.format(source, {
-        parser: 'typescript',
-        semi: true,
-        singleQuote: true,
-        trailingComma: 'es5',
-        printWidth: 80,
-        tabWidth: 2,
-      })
-    ).trim()
-  } catch {
-    return source
-  }
-}
-
 async function readEnvironmentsFromFile(): Promise<EnvironmentData[]> {
   const filePath = join(getAutomationEnvironmentsDir(), 'environments.json')
 
@@ -202,7 +180,7 @@ async function readEnvironmentsFromFile(): Promise<EnvironmentData[]> {
       baseUrl: config.baseUrl.trim(),
       apiBaseUrl: config.apiBaseUrl?.trim() ? config.apiBaseUrl.trim() : null,
       username: config.email?.trim() ? config.email.trim() : null,
-      password: config.password?.trim() ? config.password.trim() : null,
+      passwordEnvironmentVariable: config.passwordEnvironmentVariable?.trim() || null,
     }))
   } catch (error) {
     console.error('Unable to read environments for sync counts:', error)
@@ -759,7 +737,7 @@ export function countEnvironmentMismatches(
     baseUrl: string
     apiBaseUrl: string | null
     username: string | null
-    password: string | null
+    passwordEnvironmentVariable: string | null
     _count?: { testRuns: number }
   }>,
 ): number {
@@ -787,7 +765,7 @@ export function countEnvironmentMismatches(
       existing.baseUrl !== environment.baseUrl ||
       (existing.apiBaseUrl ?? null) !== environment.apiBaseUrl ||
       (existing.username ?? null) !== environment.username ||
-      (existing.password ?? null) !== environment.password
+      (existing.passwordEnvironmentVariable ?? null) !== environment.passwordEnvironmentVariable
     ) {
       count++
     }
@@ -1240,7 +1218,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
           baseUrl: true,
           apiBaseUrl: true,
           username: true,
-          password: true,
+          passwordEnvironmentVariable: true,
           _count: {
             select: { testRuns: true },
           },

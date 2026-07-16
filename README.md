@@ -19,6 +19,11 @@ Visual test management, orchestration, and execution for modern QA teams.
 
 AppraiseJS is a local-first platform for creating, managing, and running automated tests with a visual workflow.
 
+AppraiseJS 0.5 is a single-user local tool. Supported development, production, and HTTP MCP processes bind only to
+`127.0.0.1`; remote or multi-user exposure is unsupported until a separate authentication and authorization design is
+approved. Environment credentials are configured by process-environment variable name and are resolved only inside
+the execution process—secret values are never stored by AppraiseJS.
+
 - **Visual-first authoring:** build test scenarios without writing framework glue code.
 - **No-code and production-ready:** compose robust test flows through reusable building blocks.
 - **Portable artifacts:** generate standards-based assets such as Gherkin and Playwright-friendly outputs.

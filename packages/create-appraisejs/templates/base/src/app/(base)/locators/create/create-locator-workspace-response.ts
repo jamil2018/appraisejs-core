@@ -45,7 +45,9 @@ function isEnvironmentRow(value: unknown): value is Environment {
   return (
     isRecord(value) &&
     hasStringProps(value, ['id', 'name', 'baseUrl']) &&
-    hasNullableStringProps(value, ['apiBaseUrl', 'username', 'password']) &&
+    hasNullableStringProps(value, ['apiBaseUrl', 'username', 'passwordEnvironmentVariable']) &&
+    hasStringProp(value, 'credentialState') &&
+    (value.legacyCredentialDetectedAt === null || hasDateProp(value, 'legacyCredentialDetectedAt')) &&
     hasDateProps(value)
   )
 }

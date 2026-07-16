@@ -19,7 +19,9 @@ describe('create-locator-workspace response helpers', () => {
       baseUrl: 'https://example.com',
       apiBaseUrl: null,
       username: null,
-      password: null,
+      passwordEnvironmentVariable: null,
+      credentialState: 'NONE',
+      legacyCredentialDetectedAt: null,
       createdAt: now,
       updatedAt: now,
     }

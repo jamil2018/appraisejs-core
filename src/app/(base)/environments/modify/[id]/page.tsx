@@ -36,7 +36,7 @@ const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }
           baseUrl: environmentData.baseUrl,
           apiBaseUrl: environmentData.apiBaseUrl || '',
           username: environmentData.username || '',
-          password: environmentData.password || '',
+          passwordEnvironmentVariable: environmentData.passwordEnvironmentVariable || '',
         }}
         successTitle="Environment updated"
         successMessage="Environment updated successfully"

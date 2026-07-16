@@ -25,6 +25,7 @@ function proposalBindings(
 ) {
   return {
     locatorGroups: proposal.locatorGroups.map(item => ({
+      localKey: item.localKey,
       id: ids.locatorGroups[item.localKey],
       astRef: `group_${ids.locatorGroups[item.localKey]}`,
       version: '1',
@@ -35,6 +36,7 @@ function proposalBindings(
     locators: proposal.locators.map(item => {
       const group = proposal.locatorGroups.find(candidate => candidate.localKey === item.groupKey)!
       return {
+        localKey: item.localKey,
         id: ids.locators[item.localKey],
         astRef: `locator_${ids.locators[item.localKey]}`,
         version: '1',

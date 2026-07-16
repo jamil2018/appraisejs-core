@@ -41,6 +41,12 @@ const tempWorkspaceDir = path.join(repoRoot, '.tmp', 'create-appraisejs-template
 const tempWorkspaceRootDir = path.dirname(tempWorkspaceDir)
 const composedVerifyDir = path.join(repoRoot, '.tmp', 'create-appraisejs-template-verify')
 const templateMetaPath = path.join(baseTemplateDir, '.appraise-template-meta.json')
+const RELEASE_ONLY_SCRIPTS = new Set([
+  'check-generic-planning-boundary.mjs',
+  'check-release-readiness.mjs',
+  'lib/release-readiness.mjs',
+  'lib/release-readiness.test.ts',
+])
 
 type InternalPackageSyncConfig = {
   name: string
@@ -322,7 +328,7 @@ function writeTemplatePackageJson(): void {
     build: 'npm run build:local',
     'build:local':
       'npm run generate-db-client && npm run build:cucumber-runtime && npm run build:locator-picker-companion && next build',
-    start: 'next start',
+    start: 'node scripts/start-local.mjs start',
     'generate-db-client': 'npx prisma generate --schema prisma/schema.prisma',
     'migrate-db': 'npx prisma migrate deploy',
     'install-playwright': 'npx playwright install',
@@ -334,6 +340,9 @@ function writeTemplatePackageJson(): void {
     'appraisejs:setup': 'npm run setup',
     'appraisejs:sync': 'npm run sync-all',
     'appraisejs:install-step': 'npx tsx scripts/install-template-step.ts',
+  }
+  for (const scriptName of Object.keys(rootPkg.scripts)) {
+    if (scriptName.startsWith('release:')) delete rootPkg.scripts[scriptName]
   }
   delete rootPkg.scripts['build:appraisejs']
   delete rootPkg.scripts['build-step-registry']
@@ -378,7 +387,10 @@ function createBaseTemplate(): void {
   console.log('Copying public/...')
   copyDirWithFilter(path.join(repoRoot, 'public'), path.join(baseTemplateDir, 'public'))
   console.log('Copying scripts/...')
-  copyDirWithFilter(path.join(repoRoot, 'scripts'), path.join(baseTemplateDir, 'scripts'))
+  copyDirWithFilter(path.join(repoRoot, 'scripts'), path.join(baseTemplateDir, 'scripts'), {
+    shouldExcludePath: relativePath =>
+      shouldExcludeTemplatePath(relativePath) || RELEASE_ONLY_SCRIPTS.has(relativePath.replace(/\\/g, '/')),
+  })
   console.log('Copying e2e/...')
   copyDirWithFilter(path.join(repoRoot, 'e2e'), path.join(baseTemplateDir, 'e2e'))
 

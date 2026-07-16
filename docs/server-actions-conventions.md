@@ -12,6 +12,13 @@ services must persist the resolved ID rather than accepting ownership from form 
 Template Steps and Template Step Groups are the explicit shared-library exception: their actions and services operate
 globally and do not require active-project resolution. Project-owned entities may reference these shared records.
 
+## Local request boundary
+
+`src/proxy.ts` applies the Appraise 0.5 ingress policy before API or page routing. Requests must arrive from a loopback
+peer with a loopback `Host`. State-changing methods with an `Origin` must use the same origin as `Host`; an absent
+`Origin` remains valid for local CLI and native clients. Keep this policy centralized. Framework-native Server Action
+origin checks remain enabled and should not be reimplemented in individual actions.
+
 ## Layers
 
 1. **Server Action** (`src/actions/**`): `'use server'` entry points. Parse input with Zod, call a **service**, map results to `ActionResponse`, call `revalidatePath` / `redirect` as needed.

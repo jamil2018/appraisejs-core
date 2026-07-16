@@ -17,11 +17,14 @@ async function checkUniqueName(name: string, targetProjectId: string, excludeId?
 }
 
 function normalizeEnvironmentPayload(value: z.infer<typeof environmentSchema>) {
+  const passwordEnvironmentVariable = value.passwordEnvironmentVariable?.trim() || null
   return {
     ...value,
     apiBaseUrl: value.apiBaseUrl === '' ? null : value.apiBaseUrl,
     username: value.username === '' ? null : value.username,
-    password: value.password === '' ? null : value.password,
+    passwordEnvironmentVariable,
+    credentialState: passwordEnvironmentVariable ? ('REFERENCE_CONFIGURED' as const) : ('NONE' as const),
+    legacyCredentialDetectedAt: null,
   }
 }
 

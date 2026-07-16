@@ -23,7 +23,17 @@ import {
   type CoordinatorOptions as McpOptions,
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
+import {
+  assertLoopbackMcpHost,
+  DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES,
+  DEFAULT_HTTP_MCP_MAX_CONCURRENCY,
+  HttpMcpRequestError,
+  readBoundedJsonBody,
+  validateHttpMcpLocality,
+  validateHttpMcpRequest,
+} from './mcp-http-security.js'
 import { planArtifactSchema, planCreateInputSchema } from './plan-file.js'
+import { ensureLocalProjectIdentity } from './project-identity.js'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version?: string }
@@ -3237,6 +3247,8 @@ export type AppraiseHttpMcpOptions = McpOptions & {
   host: string
   port: number
   path: string
+  bodyLimitBytes?: number
+  maxConcurrency?: number
 }
 
 function jsonRpcError(res: http.ServerResponse, status: number, code: number, message: string): void {
@@ -3248,8 +3260,30 @@ function jsonRpcError(res: http.ServerResponse, status: number, code: number, me
 }
 
 export async function runAppraiseHttpMcp(options: AppraiseHttpMcpOptions): Promise<void> {
+  assertLoopbackMcpHost(options.host)
+  const { identity } = await ensureLocalProjectIdentity(options.cwd)
+  const endpointOrigin = `http://${options.host}:${options.port}`
+  const allowedOrigins = new Set([endpointOrigin, new URL(options.baseUrl).origin])
+  const bodyLimit = options.bodyLimitBytes ?? DEFAULT_HTTP_MCP_BODY_LIMIT_BYTES
+  const maxConcurrency = options.maxConcurrency ?? DEFAULT_HTTP_MCP_MAX_CONCURRENCY
+  let activeRequests = 0
+
   const server = http.createServer(async (req, res) => {
-    const requestUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? `${options.host}:${options.port}`}`)
+    const requestUrl = new URL(req.url ?? '/', endpointOrigin)
+    try {
+      validateHttpMcpLocality({
+        host: req.headers.host,
+        port: options.port,
+        origin: req.headers.origin,
+        allowedOrigins,
+        remoteAddress: req.socket.remoteAddress,
+      })
+    } catch (error) {
+      const requestError = error as HttpMcpRequestError
+      jsonRpcError(res, requestError.status ?? 403, requestError.code ?? -32001, requestError.message)
+      return
+    }
+
     if (requestUrl.pathname === '/healthz') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ ok: true, transport: 'streamable-http', path: options.path }))
@@ -3266,24 +3300,52 @@ export async function runAppraiseHttpMcp(options: AppraiseHttpMcpOptions): Promi
       return
     }
 
+    try {
+      validateHttpMcpRequest({
+        authorization: req.headers.authorization,
+        expectedToken: identity.token,
+        host: req.headers.host,
+        port: options.port,
+        origin: req.headers.origin,
+        allowedOrigins,
+        remoteAddress: req.socket.remoteAddress,
+      })
+    } catch (error) {
+      const requestError = error as HttpMcpRequestError
+      jsonRpcError(res, requestError.status ?? 403, requestError.code ?? -32001, requestError.message)
+      return
+    }
+
+    if (activeRequests >= maxConcurrency) {
+      res.setHeader('Retry-After', '1')
+      jsonRpcError(res, 429, -32003, 'HTTP MCP concurrency limit reached; retry later.')
+      return
+    }
+    activeRequests += 1
+
     let mcpServer: McpServer | undefined
     let transport: StreamableHTTPServerTransport | undefined
-    res.on('close', () => {
-      void transport?.close().catch(() => undefined)
-      void mcpServer?.close().catch(() => undefined)
-    })
 
     try {
+      const parsedBody = await readBoundedJsonBody(req, bodyLimit)
       mcpServer = await createAppraiseMcpServer(options)
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
         enableJsonResponse: true,
       })
       await mcpServer.connect(transport)
-      await transport.handleRequest(req, res)
+      await transport.handleRequest(req, res, parsedBody)
     } catch (error) {
-      console.error(formatMcpBootstrapError(error))
-      if (!res.headersSent) jsonRpcError(res, 500, -32603, 'Internal server error.')
+      if (error instanceof HttpMcpRequestError) {
+        if (!res.headersSent) jsonRpcError(res, error.status, error.code, error.message)
+      } else {
+        console.error(formatMcpBootstrapError(error))
+        if (!res.headersSent) jsonRpcError(res, 500, -32603, 'Internal server error.')
+      }
+    } finally {
+      activeRequests -= 1
+      await transport?.close().catch(() => undefined)
+      await mcpServer?.close().catch(() => undefined)
     }
   })
 

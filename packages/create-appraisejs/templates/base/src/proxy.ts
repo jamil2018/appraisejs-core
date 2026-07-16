@@ -1,8 +1,19 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
 import { ACTIVE_PROJECT_COOKIE, shouldRequireProjectSelection } from '@/lib/project-scope'
+import { evaluateLocalRequestBoundary } from '@/lib/local-request-boundary'
 
 export function proxy(request: NextRequest) {
+  const boundary = evaluateLocalRequestBoundary({
+    method: request.method,
+    host: request.headers.get('host'),
+    origin: request.headers.get('origin'),
+    forwardedFor: request.headers.get('x-forwarded-for'),
+  })
+  if (!boundary.allowed) {
+    return NextResponse.json({ error: boundary.message, code: boundary.code }, { status: 403 })
+  }
+
   if (
     !shouldRequireProjectSelection({
       pathname: request.nextUrl.pathname,
@@ -24,5 +35,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|favicon.svg).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|favicon.svg).*)'],
 }

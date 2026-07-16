@@ -221,6 +221,11 @@ legal recovery action.
 
 The local executor sets these important environment variables for child Cucumber runs:
 
+Environment records may name a credential through `passwordEnvironmentVariable`. Appraise persists and projects only
+that reference. The referenced process value is resolved after the execution process starts, is kept in memory only,
+and must not be included in receipts, diagnostics, logs, reports, or UI/API responses. Legacy credential rows are
+disabled until an operator replaces them with a reference.
+
 - `ENVIRONMENT`: selected AppraiseJS environment name.
 - `HEADLESS`: browser headless mode.
 - `BROWSER`: Playwright browser name.

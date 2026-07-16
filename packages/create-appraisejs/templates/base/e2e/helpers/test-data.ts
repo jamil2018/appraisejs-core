@@ -123,7 +123,8 @@ export async function seedCoreData(): Promise<void> {
       baseUrl: 'http://127.0.0.1:3200',
       apiBaseUrl: 'http://127.0.0.1:3200/api',
       username: 'tester',
-      password: 'secret',
+      passwordEnvironmentVariable: 'APPRAISE_E2E_PASSWORD',
+      credentialState: 'REFERENCE_CONFIGURED',
     },
   })
 

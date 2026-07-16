@@ -7,7 +7,7 @@
       "severity": "critical",
       "title": "Local-only web trust boundary",
       "owner": "runtime-security",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:local-boundary"],
       "requiredEvidence": ["Loopback startup and socket-level negative tests"]
@@ -17,7 +17,7 @@
       "severity": "critical",
       "title": "Secret-reference environment model",
       "owner": "environment-domain",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:secrets"],
       "requiredEvidence": ["Migration, runtime resolution, and secret-sentinel tests"]
@@ -27,7 +27,7 @@
       "severity": "high",
       "title": "Authenticated bounded HTTP MCP ingress",
       "owner": "mcp-package",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:mcp-http"],
       "requiredEvidence": ["HTTP negative cases and unchanged stdio contract"]
