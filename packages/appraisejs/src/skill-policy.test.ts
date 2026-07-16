@@ -25,11 +25,14 @@ describe('Appraise workflow skills', () => {
     expect(source).not.toMatch(/sqlite3|prisma\.\w+|git (commit|push)/i)
   })
 
-  it('routes natural-language Appraise project briefs through project registration and plan creation', async () => {
-    const projectFromBrief = await fs.readFile(
-      path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-project-from-brief', 'SKILL.md'),
-      'utf8',
-    )
+  it('routes natural-language briefs through registration and canonical planning ownership', async () => {
+    const [projectFromBrief, planning] = await Promise.all([
+      fs.readFile(
+        path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-project-from-brief', 'SKILL.md'),
+        'utf8',
+      ),
+      fs.readFile(path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-planning', 'SKILL.md'), 'utf8'),
+    ])
 
     expect(projectFromBrief).toContain('use Appraise')
     expect(projectFromBrief).toContain('plan and show it in Appraise')
@@ -42,9 +45,11 @@ describe('Appraise workflow skills', () => {
     expect(projectFromBrief).toContain('.appraisejs/project.json')
     expect(projectFromBrief).toContain('project_diagnostic')
     expect(projectFromBrief).toContain('project_add')
-    expect(projectFromBrief).toContain('plan_create')
     expect(projectFromBrief.indexOf('project_diagnostic')).toBeLessThan(projectFromBrief.indexOf('project_add'))
-    expect(projectFromBrief.indexOf('project_add')).toBeLessThan(projectFromBrief.indexOf('plan_create'))
+    expect(projectFromBrief).toContain('.agents/skills/appraise-planning/SKILL.md')
+    expect(projectFromBrief).toContain('Appraise does not infer the task graph')
+    expect(planning).toContain('plan_create')
+    expect(planning).toContain('Appraise does not infer the task graph')
     expect(projectFromBrief).toMatch(/do not\s+invent a name-derived plan id/i)
   })
 

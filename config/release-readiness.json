@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "blockingSeverities": ["critical", "high"],
+  "findings": [
+    {
+      "id": "A-01",
+      "severity": "critical",
+      "title": "Local-only web trust boundary",
+      "owner": "runtime-security",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:local-boundary"],
+      "requiredEvidence": ["Loopback startup and socket-level negative tests"]
+    },
+    {
+      "id": "A-02",
+      "severity": "critical",
+      "title": "Secret-reference environment model",
+      "owner": "environment-domain",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:secrets"],
+      "requiredEvidence": ["Migration, runtime resolution, and secret-sentinel tests"]
+    },
+    {
+      "id": "A-03",
+      "severity": "high",
+      "title": "Authenticated bounded HTTP MCP ingress",
+      "owner": "mcp-package",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:mcp-http"],
+      "requiredEvidence": ["HTTP negative cases and unchanged stdio contract"]
+    },
+    {
+      "id": "A-04",
+      "severity": "high",
+      "title": "Single-owner test-run terminalization",
+      "owner": "test-run-runtime",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run validate:unit"],
+      "requiredEvidence": ["Fault-injection tests and clean unit-suite exit"]
+    },
+    {
+      "id": "A-05",
+      "severity": "high",
+      "title": "Release branch and package CI coverage",
+      "owner": "release-engineering",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:ci"],
+      "requiredEvidence": ["Workflow validation and required aggregate job"]
+    },
+    {
+      "id": "A-06",
+      "severity": "high",
+      "title": "Declarative MCP operation registry",
+      "owner": "mcp-package",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:mcp-contract"],
+      "requiredEvidence": ["Tool/resource snapshot, parity tests, and package quality report"]
+    },
+    {
+      "id": "A-07",
+      "severity": "high",
+      "title": "Application hotspot decomposition",
+      "owner": "application-architecture",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:architecture"],
+      "requiredEvidence": ["Focused tests and quality ratchet evidence"]
+    },
+    {
+      "id": "A-08",
+      "severity": "high",
+      "title": "Generated and runtime artifact policy",
+      "owner": "release-engineering",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:artifacts"],
+      "requiredEvidence": ["Tracked-file policy and repository secret scan"]
+    },
+    {
+      "id": "A-09",
+      "severity": "medium",
+      "title": "Bounded list and log reads",
+      "owner": "application-runtime",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:bounded-reads"],
+      "requiredEvidence": ["Pagination, log tail, and query-plan evidence"]
+    },
+    {
+      "id": "A-10",
+      "severity": "medium",
+      "title": "Current public documentation",
+      "owner": "developer-experience",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run check:harness"],
+      "requiredEvidence": ["Harness drift checks and command smoke tests"]
+    },
+    {
+      "id": "A-11",
+      "severity": "medium",
+      "title": "Canonical planning skill ownership",
+      "owner": "agent-harness",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:generic-planning"],
+      "requiredEvidence": ["Generic planning source guard and harness tests"]
+    },
+    {
+      "id": "A-12",
+      "severity": "medium",
+      "title": "Evidence-based repository rules",
+      "owner": "application-architecture",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run check:harness"],
+      "requiredEvidence": ["Current component and server-action guidance"]
+    },
+    {
+      "id": "A-13",
+      "severity": "medium",
+      "title": "Explicit package publication boundaries",
+      "owner": "release-engineering",
+      "status": "open",
+      "releaseBlocking": true,
+      "verificationCommands": ["npm run release:check:packages"],
+      "requiredEvidence": ["Root refusal and publishable package tarball inventories"]
+    }
+  ]
+}

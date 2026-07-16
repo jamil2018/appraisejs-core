@@ -17,7 +17,7 @@ AppraiseJS owns lifecycle and business rules. This skill only orchestrates MCP c
    target workspace, or pass `targetMode: "hub"` only when the user knowingly wants a hub-scoped plan.
 5. Author the complete structured plan from the brief and repository context. Prefer `planning_session_create` with
    that explicit `plan` when available; otherwise submit the same plan with `plan_create`. Appraise validates and gates
-   the artifact but does not infer its tasks.
+   the artifact. Appraise does not infer the task graph.
 6. Read pending events at every mandatory checkpoint and capture the returned event sequence.
 7. Acknowledge each handled event, then reread pending events before continuing.
 8. Prefer `plan_review_loop` when the tool is available; it should keep the agent in an active bounded wait across

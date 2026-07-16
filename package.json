@@ -13,6 +13,8 @@
     "setup:mcp": "node scripts/print-mcp-config.mjs",
     "setup:agent": "node scripts/print-agent-config.mjs",
     "check:harness": "node scripts/check-agent-harness.mjs",
+    "release:check": "node scripts/check-release-readiness.mjs",
+    "release:check:generic-planning": "node scripts/check-generic-planning-boundary.mjs",
     "graphify:install": "node scripts/run-graphify.mjs install --project --platform agents",
     "graphify:build": "node scripts/run-graphify.mjs build-scope src",
     "graphify:build:all": "node scripts/update-graphify-graphs.mjs --all",

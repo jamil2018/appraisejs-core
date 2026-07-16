@@ -23,9 +23,9 @@ generate a plan and show it in Appraise. Also use it when continuing feature wor
 5. If the target project is not registered, call `project_add` for the writable target workspace before creating a
    plan. Empty writable directories are valid planning targets.
 6. Treat an existing `.appraisejs/project.json` marker as continuity guidance that future plans go through Appraise.
-7. Author the complete plan tasks, acceptance criteria, validation intent, edges, and implementation groups from the
-   brief and repository context. Prefer `planning_session_create` with that explicit `plan` when available; otherwise
-   submit it with `plan_create`. Appraise does not infer the task graph. Do not invent a name-derived plan id.
+7. Hand the bound target and brief to `.agents/skills/appraise-planning/SKILL.md`. That canonical planning skill owns
+   authoring and review orchestration. Appraise does not infer the task graph. Do not invent a name-derived plan id or
+   add fallback tasks in this discovery skill.
 8. Prefer `plan_review_loop` when the tool is available; otherwise call `plan_wait_for_review`, then present the
    returned `appraise://` plan link, browser link, revision, lifecycle, and content hash only after
    `plan_review_ready`. Pending review is not completion.
