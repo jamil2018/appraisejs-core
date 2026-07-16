@@ -21,7 +21,7 @@
     "release:check:secrets": "npx tsx scripts/check-environment-secrets.ts && npm run validate:unit -- src/lib/environment-secret.test.ts src/lib/environment-file-utils.test.ts src/services/environment/environment-service.test.ts src/lib/sync/sync-pending-counts.test.ts",
     "release:check:mcp-http": "npm --prefix packages/appraisejs run test -- src/mcp-http-security.test.ts && npm --prefix packages/appraisejs run test:mcp:http:e2e && npm --prefix packages/appraisejs run test:mcp:e2e",
     "release:check:mcp-contract": "npm --prefix packages/appraisejs run test -- src/mcp-contract.test.ts && npm --prefix packages/appraisejs run build",
-    "release:check:architecture": "npm run quality:fallow:release && npm run quality:react-doctor:commit",
+    "release:check:architecture": "npm run quality:fallow:release && npm run quality:react-doctor:ci",
     "release:check:bounded-reads": "npm run validate:unit -- src/lib/pagination.test.ts src/lib/test-run/log-tail-reader.test.ts src/app/api/test-runs/[runId]/logs/route.test.ts && npm run benchmark:repository-queries",
     "release:check:artifacts": "node scripts/check-generated-artifacts.mjs",
     "generate:coordinator-reference": "node --import tsx scripts/generate-coordinator-reference.ts",
