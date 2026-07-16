@@ -95,6 +95,11 @@ read `plan_review_read` before revising.
 
 ## Internal API
 
+The HTTP adapter resolves method and path metadata through the typed canonical operation table in
+`src/services/coordinator/coordinator-operation-registry.ts`. Authentication and target-project scope guards run
+before dispatch; registry entries cannot opt out of either boundary. Unknown method/path combinations share the same
+bounded not-found envelope.
+
 All routes are under `/api/internal/coordinator`.
 
 | Method | Path                                                      | Purpose                                                             |
