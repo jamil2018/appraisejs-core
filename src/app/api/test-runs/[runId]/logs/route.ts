@@ -3,7 +3,7 @@ import { processManager } from '@/lib/test-run/process-manager'
 import { taskSpawner } from '@/lib/process/task-spawner'
 import prisma from '@/config/db-config'
 import { TestRunStatus } from '@prisma/client'
-import { getTestRunLogsService } from '@/services/test-run/test-run-service'
+import { getTestRunLogsService, getTestRunLogTailService } from '@/services/test-run/test-run-service'
 import type { LogEntry } from '@/lib/test-run/log-formatter'
 import { ACTIVE_PROJECT_COOKIE } from '@/lib/active-project'
 import { ServiceError } from '@/services/shared/errors'
@@ -34,6 +34,12 @@ function selectLogs(logs: LogEntry[], mode: LogMode, limit: number) {
   return logs
 }
 
+function textLogsResponse(logs: LogEntry[]) {
+  return new Response(logs.map(log => `[${log.type}] ${log.message}`).join('\n'), {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' },
+  })
+}
+
 async function storedLogsResponse(input: {
   runId: string
   status: TestRunStatus
@@ -42,16 +48,28 @@ async function storedLogsResponse(input: {
   limit: number
   expectedTargetProjectId?: string
 }) {
+  if (input.mode === 'tail' && input.expectedTargetProjectId) {
+    const tail = await getTestRunLogTailService(input.runId, input.expectedTargetProjectId, input.limit * 1024)
+    const logs = tail.logs.slice(-input.limit)
+    if (input.wantsText) return textLogsResponse(logs)
+    return Response.json(
+      {
+        runId: input.runId,
+        status: input.status,
+        mode: input.mode,
+        totalLogEntries: tail.endOffset,
+        logs,
+        truncated: tail.truncated,
+        startOffset: tail.startOffset,
+        endOffset: tail.endOffset,
+        partialStart: tail.partialStart,
+      },
+      { headers: { 'Cache-Control': 'no-cache' } },
+    )
+  }
   const allLogs = await getTestRunLogsService(input.runId, input.expectedTargetProjectId)
   const logs = selectLogs(allLogs, input.mode, input.limit)
-  if (input.wantsText) {
-    return new Response(logs.map(log => `[${log.type}] ${log.message}`).join('\n'), {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-      },
-    })
-  }
+  if (input.wantsText) return textLogsResponse(logs)
 
   return Response.json(
     {

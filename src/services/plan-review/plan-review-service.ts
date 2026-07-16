@@ -26,6 +26,7 @@ import {
 import { reviewImplementationCompletion } from '@/services/coordinator/coordinator-implementation-service'
 import { analyzeExecutionOrder } from '@/lib/implementation-checkpoints/protocol'
 import { auditManagedValidationIntegrity } from '@/services/coordinator/managed-validation-integrity-audit'
+import { appliedPageLimit, decodePageCursor, encodePageCursor, pageFromItems, type PageRequest } from '@/lib/pagination'
 
 import {
   canApprovePlan,
@@ -286,6 +287,36 @@ export async function listPlans(options?: ReviewMutationOptions) {
       issues: { where: { resolvedAt: null } },
       revisions: { orderBy: { createdAt: 'desc' }, take: 1 },
     },
+  })
+}
+
+export async function listPlansPage(options?: ReviewMutationOptions & PageRequest) {
+  const client = options?.client ?? prisma
+  const limit = appliedPageLimit(options?.limit)
+  const scope = options?.targetProjectId ?? 'all-projects'
+  const cursor = decodePageCursor(options?.cursor, scope)
+  const cursorWhere = cursor
+    ? {
+        OR: [
+          { updatedAt: { lt: new Date(cursor.sortValue) } },
+          { updatedAt: new Date(cursor.sortValue), id: { lt: cursor.id } },
+        ],
+      }
+    : {}
+  const items = await client.planProjection.findMany({
+    where: { deletedAt: null, targetProjectId: options?.targetProjectId, ...cursorWhere },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    include: {
+      tasks: { orderBy: { position: 'asc' } },
+      issues: { where: { resolvedAt: null } },
+      revisions: { orderBy: { createdAt: 'desc' }, take: 1 },
+    },
+    take: limit + 1,
+  })
+  return pageFromItems({
+    items,
+    limit,
+    encodeCursor: last => encodePageCursor({ scope, id: last.id, sortValue: last.updatedAt.toISOString() }),
   })
 }
 

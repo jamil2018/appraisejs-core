@@ -67,7 +67,7 @@
       "severity": "high",
       "title": "Application hotspot decomposition",
       "owner": "application-architecture",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:architecture"],
       "requiredEvidence": ["Focused tests and quality ratchet evidence"]
@@ -87,7 +87,7 @@
       "severity": "medium",
       "title": "Bounded list and log reads",
       "owner": "application-runtime",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:bounded-reads"],
       "requiredEvidence": ["Pagination, log tail, and query-plan evidence"]

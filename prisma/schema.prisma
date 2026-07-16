@@ -330,6 +330,7 @@ model TestRun {
   @@index([result])
   @@index([evidenceHealth])
   @@index([targetProjectId])
+  @@index([targetProjectId, startedAt, id])
 }
 
 model PlanProjection {
