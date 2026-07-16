@@ -16,6 +16,15 @@ const aggregateNeeds = workflow.jobs?.['release-check']?.needs ?? []
 for (const job of requiredJobs)
   if (!aggregateNeeds.includes(job)) throw new Error(`Release check does not require ${job}.`)
 
+const rootCommands = (workflow.jobs?.['root-app']?.steps ?? [])
+  .map(step => step.run)
+  .filter(command => typeof command === 'string')
+const browserInstallIndex = rootCommands.indexOf('npx playwright install --with-deps chromium')
+const unitValidationIndex = rootCommands.indexOf('npm run validate:unit')
+if (browserInstallIndex === -1 || unitValidationIndex === -1 || browserInstallIndex > unitValidationIndex) {
+  throw new Error('Root CI must install Chromium before running browser-backed unit validation.')
+}
+
 const createPackageCommands = (workflow.jobs?.['create-appraisejs-package']?.steps ?? [])
   .map(step => step.run)
   .filter(command => typeof command === 'string')
