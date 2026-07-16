@@ -193,6 +193,34 @@ describe('online coordinator client', () => {
     }
   })
 
+  it('derives target-bound TestRun scope from the authoritative plan', async () => {
+    const cwd = await workspace()
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ planId: 'plan-one', targetProjectId: 'target-project-id' }))
+      .mockResolvedValueOnce(Response.json({ evidenceHealth: 'valid' }))
+      .mockResolvedValueOnce(Response.json({ planId: 'plan-one', targetProjectId: 'target-project-id' }))
+      .mockResolvedValueOnce(Response.json({ kind: 'capsule', diagnostic: {} }))
+    vi.stubGlobal('fetch', fetchMock)
+    const client = await createCoordinatorClient({ cwd, baseUrl: 'http://localhost:3000', coordinatorId: 'agent' })
+
+    await client.readTestRun('run-one', 'plan-one')
+    await client.diagnoseTestRun('run-one', 'plan-one')
+
+    expect(fetchMock.mock.calls.map(call => String(call[0]))).toEqual([
+      'http://localhost:3000/api/internal/coordinator/plans/plan-one',
+      'http://localhost:3000/api/internal/coordinator/test-runs/run-one',
+      'http://localhost:3000/api/internal/coordinator/plans/plan-one',
+      'http://localhost:3000/api/internal/coordinator/test-runs/run-one/diagnose',
+    ])
+    expect(fetchMock.mock.calls[1]?.[1]?.headers).toMatchObject({
+      'x-appraise-target-project': 'target-project-id',
+    })
+    expect(fetchMock.mock.calls[3]?.[1]?.headers).toMatchObject({
+      'x-appraise-target-project': 'target-project-id',
+    })
+  })
+
   it('preserves project mismatch details separately from wrong-token unauthorized responses', async () => {
     const cwd = await workspace()
     vi.stubGlobal(

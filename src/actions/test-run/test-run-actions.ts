@@ -33,9 +33,9 @@ export async function getAllTestRunsAction(filter?: string): Promise<ActionRespo
   }
 }
 
-export async function getTestRunByIdAction(id: string): Promise<ActionResponse> {
+export async function getTestRunByIdAction(id: string, targetProjectId?: string): Promise<ActionResponse> {
   try {
-    const project = await requireActiveProjectForMutation()
+    const project = await requireActiveProjectForMutation(targetProjectId)
     const testRun = await getTestRunByIdOrThrow(id, project.id)
     return {
       status: 200,
@@ -81,9 +81,9 @@ export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> 
   }
 }
 
-export async function getTestRunLogsAction(testRunId: string): Promise<ActionResponse> {
+export async function getTestRunLogsAction(testRunId: string, targetProjectId?: string): Promise<ActionResponse> {
   try {
-    const project = await requireActiveProjectForMutation()
+    const project = await requireActiveProjectForMutation(targetProjectId)
     await getTestRunByIdOrThrow(testRunId, project.id)
     const logs = await getTestRunLogsService(testRunId, project.id)
 

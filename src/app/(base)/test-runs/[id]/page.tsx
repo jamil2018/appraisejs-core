@@ -13,11 +13,13 @@ export const metadata: Metadata = {
 
 interface TestRunDetailPageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ project?: string }>
 }
 
-export default async function TestRunDetailPage({ params }: TestRunDetailPageProps) {
+export default async function TestRunDetailPage({ params, searchParams }: TestRunDetailPageProps) {
   const { id } = await params
-  const response = await getTestRunByIdAction(id)
+  const { project } = await searchParams
+  const response = await getTestRunByIdAction(id, project)
 
   if (response.error || !response.data) {
     return (
@@ -53,7 +55,7 @@ export default async function TestRunDetailPage({ params }: TestRunDetailPagePro
 
         <Separator />
 
-        <LogViewer testRunId={testRun.runId} status={testRun.status} />
+        <LogViewer testRunId={testRun.runId} targetProjectId={project} status={testRun.status} />
       </div>
     </>
   )

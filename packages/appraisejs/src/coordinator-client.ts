@@ -117,14 +117,22 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     options: { ...options, cwd: local.details.canonicalProjectPath },
     request,
     diagnose: () => request('diagnostic'),
-    diagnoseTestRun: (runId: string) =>
-      request(`test-runs/${encodeURIComponent(runId)}/diagnose`, {
-        headers: { 'x-appraise-target-project': local.details.projectFingerprint },
-      }),
-    readTestRun: (runId: string) =>
-      request(`test-runs/${encodeURIComponent(runId)}`, {
-        headers: { 'x-appraise-target-project': local.details.projectFingerprint },
-      }),
+    diagnoseTestRun: async (runId: string, planId?: string) => {
+      const targetProject = planId
+        ? ((await request(`plans/${encodeURIComponent(planId)}`)) as { targetProjectId?: string }).targetProjectId
+        : local.details.projectFingerprint
+      return request(`test-runs/${encodeURIComponent(runId)}/diagnose`, {
+        headers: { 'x-appraise-target-project': targetProject ?? local.details.projectFingerprint },
+      })
+    },
+    readTestRun: async (runId: string, planId?: string) => {
+      const targetProject = planId
+        ? ((await request(`plans/${encodeURIComponent(planId)}`)) as { targetProjectId?: string }).targetProjectId
+        : local.details.projectFingerprint
+      return request(`test-runs/${encodeURIComponent(runId)}`, {
+        headers: { 'x-appraise-target-project': targetProject ?? local.details.projectFingerprint },
+      })
+    },
     listActionCategories: (parentCategoryId?: string, knownCatalogHash?: string) => {
       const query = new URLSearchParams()
       if (parentCategoryId) query.set('parentCategoryId', parentCategoryId)

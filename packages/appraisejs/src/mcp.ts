@@ -24,7 +24,6 @@ import {
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
 import { planArtifactSchema, planCreateInputSchema } from './plan-file.js'
-import { analyzeBrief, assessPlanRequirements } from './plan-requirements.js'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version?: string }
@@ -399,6 +398,10 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     payload.resources && typeof payload.resources === 'object' && !Array.isArray(payload.resources)
       ? (payload.resources as Record<string, unknown>)
       : undefined
+  const plan =
+    payload.plan && typeof payload.plan === 'object' && !Array.isArray(payload.plan)
+      ? (payload.plan as Record<string, unknown>)
+      : undefined
   const returnedResourceCounts = resources
     ? Object.fromEntries(
         Object.entries(resources).map(([resourceType, entries]) => [
@@ -419,6 +422,7 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     candidateHash: payload.candidateHash,
     taskShapeHash: payload.taskShapeHash,
     contextHash: payload.contextHash,
+    expectedPlanHash: payload.expectedPlanHash ?? plan?.sourceHash,
     previewHash: payload.previewHash,
     receiptHash: payload.receiptHash,
     projectionHash: payload.projectionHash,
@@ -448,6 +452,7 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     requirementAssessment: payload.requirementAssessment,
     taskDiff: payload.taskDiff,
     targetProject: payload.targetProject,
+    bindings: payload.bindings,
     returnedResourceCounts,
     resourceSearchGuidance: resources
       ? 'Use validation_context_read with resourceTypes/query and a small limit, or the dedicated template_step_search, step_block_search, and locator_search tools, before requesting full context.'
@@ -653,7 +658,7 @@ function projectPayload(api: Awaited<ReturnType<typeof createCoordinatorApiClien
 }
 
 export function planningSessionTargetRequiredResponse(input: {
-  projectBrief: string
+  planDescription: string
   targetProjects: unknown
   hubProjectPath: string
 }) {
@@ -662,7 +667,7 @@ export function planningSessionTargetRequiredResponse(input: {
     code: 'planning-target-required',
     message:
       'planning_session_create requires targetWorkspacePath for a new-app brief, or explicit targetMode:"hub" when the plan is intentionally scoped to the Appraise hub checkout.',
-    projectBrief: input.projectBrief,
+    planDescription: input.planDescription,
     targetProjectCandidates: input.targetProjects,
     hubProject: {
       canonicalPath: input.hubProjectPath,
@@ -682,566 +687,6 @@ export function planningSessionTargetRequiredResponse(input: {
   }
 }
 
-type BriefPlanTask = {
-  id: string
-  title: string
-  description: string
-  acceptanceCriteria: string[]
-  validationIntent: string
-}
-
-type StructuredBriefPlan = {
-  tasks: BriefPlanTask[]
-  edges: Array<{ from: string; to: string; type: 'blocks' }>
-  implementationGroups: Array<{ id: string; taskIds: string[] }>
-}
-
-function includesAny(value: string, patterns: RegExp[]) {
-  return patterns.some(pattern => pattern.test(value))
-}
-
-function structuredBriefPlan(tasks: BriefPlanTask[]): StructuredBriefPlan {
-  return {
-    tasks,
-    edges: tasks.slice(0, -1).map((task, index) => ({ from: task.id, to: tasks[index + 1]!.id, type: 'blocks' })),
-    implementationGroups: [
-      { id: 'foundation', taskIds: tasks.slice(0, 2).map(task => task.id) },
-      { id: 'behavior', taskIds: tasks.slice(2, -1).map(task => task.id) },
-      { id: 'quality', taskIds: [tasks[tasks.length - 1]!.id] },
-    ].filter(group => group.taskIds.length > 0),
-  }
-}
-
-function createStructuredTasksFromBrief(
-  projectBrief: string,
-  retryResolutions: string[] = [],
-): StructuredBriefPlan | undefined {
-  const brief = [projectBrief, ...retryResolutions].join('\n').toLowerCase()
-  const briefAnalysis = analyzeBrief(projectBrief)
-  const isAppBrief = includesAny(brief, [
-    /\bapp(?:lication)?\b/,
-    /\bfrontend\b/,
-    /\bweb\b/,
-    /\bui\b/,
-    /\btodo(?:s)?\b/,
-    /\btask(?:s)?\b/,
-    /\bdashboard\b/,
-    /\beditor\b/,
-    /\bnotes?\b/,
-  ])
-
-  if (!isAppBrief) return undefined
-
-  const stack = [
-    includesAny(brief, [/\breact\b/]) ? 'React' : undefined,
-    includesAny(brief, [/\bvite\b/]) ? 'Vite' : undefined,
-    includesAny(brief, [/\btailwind\b/]) ? 'Tailwind' : undefined,
-    includesAny(brief, [/\bshadcn\b/]) ? 'shadcn/ui' : undefined,
-    includesAny(brief, [/\btanstack\b/]) ? 'TanStack' : undefined,
-  ]
-    .filter(Boolean)
-    .join(', ')
-  const stackSummary = stack || 'React 19, TypeScript, Vite, and local browser validation'
-  const setupTask: BriefPlanTask = {
-    id: 'scaffold-setup',
-    title: 'Scaffold and configure the app shell',
-    description: `Create the ${stackSummary} application foundation, install required UI/data dependencies, and wire the base layout, routing, and styling entry points requested by the brief. These defaults are reviewable through Appraise feedback when the brief does not name a stack.`,
-    acceptanceCriteria: [
-      `The app starts locally with ${stackSummary} and no missing dependency errors.`,
-      'Base styling, component primitives, and project structure are in place for the planned UI.',
-      'Stack assumptions are stated clearly in the review-ready plan.',
-    ],
-    validationIntent: 'Run install/build or the closest available scaffold validation for the generated app shell.',
-  }
-  const asksForPersistence = includesAny(brief, [
-    /\bpersist(?:s|ed|ing|ence|ent)?\b/,
-    /\bstorage\b/,
-    /\blocalstorage\b/,
-    /\bdatabase\b/,
-    /\bsqlite\b/,
-    /\bsav(?:e|es|ed|ing)\b/,
-    /\breloads?\b/,
-    /\bhistory\b/,
-  ])
-  const asksForCrud = includesAny(brief, [
-    /\bcrud\b/,
-    /\bcreat(?:e|es|ed|ing)\b/,
-    /\badd(?:s|ed|ing)?\b/,
-    /\bedit(?:s|ed|ing)?\b/,
-    /\bupdat(?:e|es|ed|ing)\b/,
-    /\bdelet(?:e|es|ed|ing)\b/,
-    /\bremov(?:e|es|ed|ing)\b/,
-  ])
-  const asksForCompletion = includesAny(brief, [/\bcomplete\b/, /\bcompleted\b/, /\bdone\b/, /\btoggle\b/])
-  const isTodoBrief = includesAny(brief, [/\btodo(?:s)?\b/, /\btask(?:s)?\b/, /\bchecklist\b/])
-  const isReminderBrief = briefAnalysis.selectedDomain === 'reminder'
-  const isApiInformationBrief = briefAnalysis.selectedDomain === 'api-information'
-  const isNotesBrief = briefAnalysis.selectedDomain === 'notes'
-  const isEditorBrief = briefAnalysis.selectedDomain === 'editor'
-  const isDashboardBrief = includesAny(brief, [
-    /\bdashboard\b/,
-    /\bmetrics?\b/,
-    /\bsummary\b/,
-    /\bfilter(?:ing)?\b/,
-    /\bsort(?:ing)?\b/,
-    /\breport(?:ing)?\b/,
-  ])
-
-  if (isReminderBrief) {
-    return structuredBriefPlan([
-      setupTask,
-      {
-        id: 'reminder-model-ui',
-        title: 'Model reminders and build the primary list',
-        description:
-          'Define reminders with a title, optional notes, due date and time, and an active or completed state in a clear list and input flow.',
-        acceptanceCriteria: [
-          'Users can enter a reminder title, optional notes, and due date/time.',
-          'The primary UI includes accessible empty, active, and completed reminder states.',
-        ],
-        validationIntent: 'Test reminder creation and field validation with focused UI coverage.',
-      },
-      {
-        id: 'reminder-crud-completion',
-        title: 'Implement reminder CRUD and completion',
-        description:
-          'Implement create, edit, delete, complete, and reactivate behavior with predictable accessible controls.',
-        acceptanceCriteria: [
-          'Users can create, edit, and delete reminders without losing unrelated records.',
-          'Users can complete and reactivate a reminder with the updated state reflected immediately.',
-        ],
-        validationIntent: 'Test create, edit, delete, completion, and reactivation workflows.',
-      },
-      {
-        id: 'reminder-filtering-persistence',
-        title: 'Filter and persist reminders',
-        description:
-          'Provide active and completed reminder filters and persist reminder data so it restores after reload.',
-        acceptanceCriteria: [
-          'Users can filter active and completed reminders.',
-          'Persisted reminders, including notes, due date/time, and completion state, restore on reload.',
-        ],
-        validationIntent: 'Test filters and persistence recovery with deterministic saved-data evidence.',
-      },
-      {
-        id: 'reminder-quality-validation',
-        title: 'Validate accessible responsive reminder workflows',
-        description:
-          'Validate the reminder workflow across responsive layouts with keyboard focus management and screen-reader announcements.',
-        acceptanceCriteria: [
-          'Responsive layouts preserve reminder creation, filters, and status controls on small screens.',
-          'Accessible controls expose labels, focus management, and screen-reader status announcements.',
-        ],
-        validationIntent: 'Run responsive and accessibility tests for the complete reminder workflow.',
-      },
-    ])
-  }
-
-  if (isTodoBrief && (asksForCrud || asksForCompletion || asksForPersistence)) {
-    const taskNoun = includesAny(brief, [/\btodo(?:s)?\b/]) ? 'todo' : 'task'
-    const asksForEdit = includesAny(brief, [
-      /\bcrud\b/,
-      /\bedit(?:s|ed|ing)?\b/,
-      /\bupdat(?:e|es|ed|ing)\b/,
-      /\brenam(?:e|es|ed|ing)\b/,
-    ])
-    const asksToClearCompleted = includesAny(brief, [/\bclear(?:s|ed|ing)?\s+(?:all\s+)?completed\b/])
-    const asksToPersistFilter = includesAny(brief, [
-      /\b(?:persist(?:s|ed|ing)?|remember(?:s|ed|ing)?)\b[^.\n]{0,80}\b(?:selected|active|current)?\s*filter\b/,
-    ])
-    const asksForEmptyStates = includesAny(brief, [/\bempty\s+states?\b/])
-    const behaviorCriteria = [
-      `Users can add and delete ${taskNoun} items.`,
-      ...(asksForCompletion ? [`Users can mark ${taskNoun} items complete or incomplete.`] : []),
-      ...(asksForEdit ? [`Users can edit existing ${taskNoun} items.`] : []),
-      ...(asksToClearCompleted ? [`Users can clear all completed ${taskNoun} items in one action.`] : []),
-    ]
-    const filteringTasks: BriefPlanTask[] = includesAny(brief, [/\bfilter(?:ing|ed|s)?\b/, /\bactive\b/])
-      ? [
-          {
-            id: 'filtering',
-            title: `Filter ${taskNoun} items`,
-            description: `Add the requested all, active, and completed views without changing stored ${taskNoun} state.`,
-            acceptanceCriteria: [
-              `Users can switch between all, active, and completed ${taskNoun} items.`,
-              'Filtering changes only the visible subset and preserves item state.',
-              ...(asksForEmptyStates
-                ? ['The all, active, and completed views each present a useful empty state when they have no items.']
-                : []),
-            ],
-            validationIntent: `Verify each filter against mixed active and completed data${asksForEmptyStates ? ' and verify every filtered empty state' : ''}.`,
-          },
-        ]
-      : []
-    const persistenceTasks: BriefPlanTask[] = asksForPersistence
-      ? [
-          {
-            id: 'persistence',
-            title: `Persist ${taskNoun} state`,
-            description: `Store ${taskNoun} data using the persistence approach requested by the brief, and restore saved state on reload.`,
-            acceptanceCriteria: [
-              `${taskNoun} items survive a page reload or app restart according to the selected persistence layer.`,
-              ...(asksToPersistFilter ? ['The selected filter persists and restores across page reloads.'] : []),
-              'Persistence failures do not corrupt the visible in-memory state.',
-            ],
-            validationIntent: `Verify saved items and completion state reload correctly${asksToPersistFilter ? ', including restoration of the selected filter' : ''}.`,
-          },
-        ]
-      : []
-    const qualityTasks: BriefPlanTask[] = includesAny(brief, [/\bresponsive\b/, /\baccessib(?:le|ility)\b/, /\ba11y\b/])
-      ? [
-          {
-            id: 'quality',
-            title: `Polish accessible responsive ${taskNoun} workflows`,
-            description:
-              'Preserve the requested workflow across small screens, keyboard navigation, and assistive technology.',
-            acceptanceCriteria: [
-              'The primary workflow remains usable in responsive layouts at narrow viewport sizes.',
-              'Inputs, toggles, filters, and delete controls have accessible names and keyboard focus states.',
-            ],
-            validationIntent: 'Run responsive viewport and accessibility-focused interaction checks.',
-          },
-        ]
-      : []
-    return structuredBriefPlan([
-      setupTask,
-      {
-        id: 'task-model-ui',
-        title: `Model ${taskNoun} data and build the primary UI`,
-        description: `Define the ${taskNoun} shape, app state boundaries, and visible list/form experience for creating, viewing, and organizing items.`,
-        acceptanceCriteria: [
-          `The UI exposes a clear ${taskNoun} list, empty state, and input flow.`,
-          ...(asksForEmptyStates ? ['The whole-list empty state gives users a useful next action.'] : []),
-          `${taskNoun} data includes the fields needed for titles and completion state.`,
-        ],
-        validationIntent: 'Exercise the main UI states manually or with component-level tests where available.',
-      },
-      {
-        id: 'crud-completion',
-        title: `Implement requested ${taskNoun} behavior`,
-        description: `Add only the item operations explicitly requested by the brief, with predictable state updates.`,
-        acceptanceCriteria: behaviorCriteria,
-        validationIntent: 'Run focused interaction tests or manually verify each CRUD and completion path.',
-      },
-      ...filteringTasks,
-      ...persistenceTasks,
-      ...qualityTasks,
-      {
-        id: 'validation',
-        title: 'Validate the planned user workflow',
-        description:
-          'Add or run validation that covers startup, primary UI rendering, CRUD behavior, completion toggles, and persistence recovery.',
-        acceptanceCriteria: [
-          'The happy path from app launch through persisted completed items is verified.',
-          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
-        ],
-        validationIntent: 'Run the focused test suite plus lint/build checks appropriate for the created app.',
-      },
-    ])
-  }
-
-  if (isNotesBrief) {
-    return structuredBriefPlan([
-      setupTask,
-      {
-        id: 'notes-crud',
-        title: 'Build local notes CRUD',
-        description: 'Create the notes list and editor flows for adding, reading, editing, and deleting local notes.',
-        acceptanceCriteria: [
-          'Users can create, read, edit, and delete notes with accessible labeled controls.',
-          'Empty, selected, editing, and destructive-confirmation states are clear.',
-        ],
-        validationIntent: 'Exercise create, read, edit, and delete note workflows with focused browser validation.',
-      },
-      {
-        id: 'notes-organization',
-        title: 'Persist and organize notes',
-        description: 'Persist notes locally and support the ordering and search behavior requested by the brief.',
-        acceptanceCriteria: [
-          'Notes survive reload and retain deterministic ordering.',
-          'Search narrows notes by their visible content without losing the selected note unexpectedly.',
-        ],
-        validationIntent: 'Verify persistence, ordering, reload recovery, and search results.',
-      },
-      {
-        id: 'notes-quality',
-        title: 'Validate the notes experience',
-        description: 'Cover the complete local notes workflow, responsive behavior, and accessibility states.',
-        acceptanceCriteria: [
-          'Keyboard and screen-reader users can operate note creation, selection, editing, search, and deletion.',
-          'The notes workflow remains usable across responsive layouts.',
-        ],
-        validationIntent: 'Run focused notes CRUD, persistence, search, accessibility, and responsive tests.',
-      },
-    ])
-  }
-
-  if (isApiInformationBrief) {
-    const resultNoun = includesAny(brief, [/\bweather\b/, /\bforecast\b/]) ? 'weather results' : 'API results'
-    const apiName = includesAny(brief, [/\bweather\b/, /\bforecast\b/]) ? 'weather API' : 'external API'
-    return structuredBriefPlan([
-      setupTask,
-      {
-        id: 'input-search',
-        title: 'Build the input and search flow',
-        description:
-          'Create the user input flow for entering a location or query, submitting the lookup, and clearing or revising the search.',
-        acceptanceCriteria: [
-          'Users can enter a location or query and submit it from the primary screen.',
-          'The interface communicates the active query and handles empty input without a broken request.',
-        ],
-        validationIntent: 'Exercise the search/input path with the closest available component or browser check.',
-      },
-      {
-        id: 'api-integration',
-        title: `Integrate the ${apiName}`,
-        description:
-          'Fetch information from the requested API source, normalize the response for the UI, and protect the interface from network or response-shape failures.',
-        acceptanceCriteria: [
-          `Successful responses populate ${resultNoun} without leaking raw transport details to users.`,
-          'Loading, empty, and error states are visible and recoverable from the primary flow.',
-        ],
-        validationIntent:
-          'Use a mocked or deterministic API response in focused tests when live API access is not stable.',
-      },
-      {
-        id: 'result-rendering',
-        title: `Render ${resultNoun}`,
-        description:
-          'Display the fetched information with clear hierarchy, useful metadata, and responsive layout states for desktop and mobile.',
-        acceptanceCriteria: [
-          `${resultNoun} include the user-relevant fields requested by the brief.`,
-          'The result view remains usable across loading, success, empty, and error states.',
-        ],
-        validationIntent: 'Verify the rendered result and state transitions with focused UI or E2E coverage.',
-      },
-      {
-        id: 'validation',
-        title: 'Validate the information workflow',
-        description:
-          'Add or run validation that covers app startup, query submission, API success, loading and error states, and result rendering.',
-        acceptanceCriteria: [
-          'The primary information lookup path is verified with deterministic evidence.',
-          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
-        ],
-        validationIntent: 'Run focused tests with mocked API evidence plus lint/build checks appropriate for the app.',
-      },
-    ])
-  }
-
-  if (isEditorBrief) {
-    return structuredBriefPlan([
-      setupTask,
-      {
-        id: 'editor-state',
-        title: 'Build editor state and controls',
-        description:
-          'Create the document or note editing experience, including editing state, selection affordances, and save-ready UI feedback.',
-        acceptanceCriteria: [
-          'Users can create or update written content through the primary editor.',
-          'Unsaved, saved, empty, and invalid states are represented clearly.',
-        ],
-        validationIntent: 'Exercise editor state transitions with focused component or browser validation.',
-      },
-      {
-        id: 'document-management',
-        title: 'Manage documents or notes',
-        description:
-          'Add the list/detail workflow for creating, selecting, renaming, deleting, or organizing documents as requested by the brief.',
-        acceptanceCriteria: [
-          'Users can move between document list and editor surfaces without losing context.',
-          'Document management actions update the visible state predictably.',
-        ],
-        validationIntent: 'Verify the document/list workflow and destructive action safeguards.',
-      },
-      {
-        id: 'persistence',
-        title: 'Persist editor content',
-        description:
-          'Store document content with the persistence layer requested by the brief and restore it on reload.',
-        acceptanceCriteria: [
-          'Saved content survives a page reload or app restart according to the selected persistence layer.',
-          'Persistence failures surface a recoverable state without corrupting visible content.',
-        ],
-        validationIntent: 'Verify saved content reloads and persistence failures are handled.',
-      },
-      {
-        id: 'validation',
-        title: 'Validate the editor workflow',
-        description:
-          'Add or run validation that covers editing, document management, persistence, and recovery states.',
-        acceptanceCriteria: [
-          'The primary editor workflow is verified with deterministic evidence.',
-          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
-        ],
-        validationIntent: 'Run focused tests plus lint/build checks appropriate for the app.',
-      },
-    ])
-  }
-
-  if (isDashboardBrief) {
-    return structuredBriefPlan([
-      setupTask,
-      {
-        id: 'data-source',
-        title: 'Connect dashboard data sources',
-        description:
-          'Prepare the dashboard data source, fixture, or API integration and normalize data for summaries and tables.',
-        acceptanceCriteria: [
-          'Dashboard data loads from the source requested by the brief or a deterministic fixture when needed.',
-          'Empty and error data-source states are visible and recoverable.',
-        ],
-        validationIntent: 'Validate data loading with deterministic fixture or mocked source evidence.',
-      },
-      {
-        id: 'dashboard-controls',
-        title: 'Add filtering, sorting, and summaries',
-        description:
-          'Implement the dashboard controls, summary metrics, and list/table views needed to inspect and compare the data.',
-        acceptanceCriteria: [
-          'Users can filter or sort the dashboard data where the brief requests comparison or scanning.',
-          'Summary metrics and detailed rows remain consistent after control changes.',
-        ],
-        validationIntent: 'Exercise filters, sorting, summaries, and empty states in focused UI validation.',
-      },
-      {
-        id: 'dashboard-states',
-        title: 'Polish operational states',
-        description:
-          'Cover loading, empty, error, and responsive states so repeated dashboard use remains predictable.',
-        acceptanceCriteria: [
-          'The dashboard remains scannable across loading, empty, success, and error states.',
-          'Responsive layouts preserve key controls and summaries on smaller screens.',
-        ],
-        validationIntent: 'Verify dashboard states with component or E2E checks.',
-      },
-      {
-        id: 'validation',
-        title: 'Validate the dashboard workflow',
-        description: 'Add or run validation that covers data loading, filtering/sorting, summaries, and error states.',
-        acceptanceCriteria: [
-          'The primary dashboard workflow is verified with deterministic evidence.',
-          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
-        ],
-        validationIntent: 'Run focused tests plus lint/build checks appropriate for the app.',
-      },
-    ])
-  }
-
-  if (asksForCrud) {
-    const persistenceTask: BriefPlanTask[] = asksForPersistence
-      ? [
-          {
-            id: 'persistence',
-            title: 'Persist entity state',
-            description:
-              'Store entity data using the persistence approach requested by the brief and restore saved state on reload.',
-            acceptanceCriteria: [
-              'Entity data survives a page reload or app restart according to the selected persistence layer.',
-              'Persistence failures do not corrupt the visible in-memory state.',
-            ],
-            validationIntent:
-              'Verify saved entities reload correctly and cover persistence behavior with the closest available automated test.',
-          },
-        ]
-      : []
-    return structuredBriefPlan([
-      setupTask,
-      {
-        id: 'entity-model',
-        title: 'Model the requested entity data',
-        description:
-          'Define the entity shape, state boundaries, validation rules, and list/detail UI needed by the brief.',
-        acceptanceCriteria: [
-          'The UI exposes the requested entity list, empty state, and input flow.',
-          'Entity fields match the nouns and attributes present in the user brief.',
-        ],
-        validationIntent: 'Exercise the primary model and UI states manually or with component tests.',
-      },
-      {
-        id: 'crud-workflow',
-        title: 'Implement create, edit, delete, and list flows',
-        description:
-          'Add the requested entity operations with predictable state updates, accessible controls, and safe destructive actions.',
-        acceptanceCriteria: [
-          'Users can create, edit, delete, and list the requested entities.',
-          'State changes are reflected immediately without stale UI state.',
-        ],
-        validationIntent: 'Run focused interaction tests or manually verify each requested CRUD path.',
-      },
-      ...persistenceTask,
-      {
-        id: 'validation',
-        title: 'Validate the CRUD workflow',
-        description: 'Add or run validation that covers startup, entity CRUD behavior, and requested persistence.',
-        acceptanceCriteria: [
-          'The primary entity workflow is verified with deterministic evidence.',
-          'Relevant lint, unit, component, or end-to-end checks pass or have documented follow-up gaps.',
-        ],
-        validationIntent: 'Run the focused test suite plus lint/build checks appropriate for the created app.',
-      },
-    ])
-  }
-
-  return structuredBriefPlan([
-    setupTask,
-    {
-      id: 'review-plan',
-      title: 'Clarify the requested app behavior',
-      description:
-        'Keep the first plan concise and reviewable, preserving only behavior that appears in the brief without adding flows the user did not request.',
-      acceptanceCriteria: [
-        'The plan uses nouns and behaviors from the user brief.',
-        'Any missing product decisions are surfaced for Appraise review instead of being assumed.',
-      ],
-      validationIntent: 'Use the Appraise review loop to confirm the intended workflow before implementation starts.',
-    },
-  ])
-}
-
-export function createPlanFromBrief(input: {
-  projectBrief: string
-  displayName?: string
-  sourceFiles?: string[]
-  planContext?: string
-  retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
-}) {
-  const title = (input.displayName ?? input.projectBrief.split(/\r?\n/, 1)[0] ?? 'AppraiseJS planning session')
-    .trim()
-    .slice(0, 120)
-  const context = [
-    input.projectBrief,
-    input.planContext,
-    input.sourceFiles?.length ? `Source files: ${input.sourceFiles.join(', ')}` : undefined,
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-  const structuredPlan = createStructuredTasksFromBrief(
-    input.projectBrief,
-    input.retryFeedback?.addressed.map(item => `${item.omission}: ${item.resolution}`) ?? [],
-  )
-  const tasks = structuredPlan?.tasks ?? [
-    {
-      id: 'plan-from-brief',
-      title: 'Plan from brief',
-      description: input.projectBrief,
-      acceptanceCriteria: ['The Appraise review surface shows the proposed plan for human review.'],
-      validationIntent: 'Wait for AppraiseJS plan review readiness before any implementation starts.',
-    },
-  ]
-  return {
-    version: '1',
-    revision: 1,
-    lifecycle: 'draft',
-    goal: title || 'AppraiseJS planning session',
-    description: context,
-    requirementAssessment: assessPlanRequirements(input.projectBrief, tasks),
-    tasks,
-    edges: structuredPlan?.edges ?? [],
-    implementationGroups: structuredPlan?.implementationGroups ?? [],
-  }
-}
-
 export function planCandidateHash(plan: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(plan)).digest('hex')}`
 }
@@ -1256,23 +701,6 @@ export function planTaskShapeHash(plan: {
     edges: plan.edges ?? [],
     implementationGroups: plan.implementationGroups ?? [],
   })
-}
-
-export function unresolvedCandidateRetryOmissions(input: {
-  candidateHash: string
-  previousCandidateHash?: string
-  taskShapeHash?: string
-  previousTaskShapeHash?: string
-  retryFeedback?: { omissions: string[]; addressed: Array<{ omission: string; resolution: string }> }
-}): string[] {
-  const sameCandidate = input.previousCandidateHash === input.candidateHash
-  const sameTaskShape = Boolean(input.taskShapeHash && input.previousTaskShapeHash === input.taskShapeHash)
-  if (!sameCandidate && !sameTaskShape) return []
-  return (
-    input.retryFeedback?.omissions.filter(
-      omission => !input.retryFeedback?.addressed.some(item => item.omission === omission && item.resolution.trim()),
-    ) ?? []
-  )
 }
 
 function toolError(error: unknown) {
@@ -1827,9 +1255,10 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     {
       description:
         'Transactionally propose target-bound managed-validation resources and receive stable IDs plus a refreshed context hash.',
-      inputSchema: { planId: z.string(), proposal: z.unknown() },
+      inputSchema: { planId: z.string(), proposal: z.unknown(), responseMode: responseModeSchema },
     },
-    async ({ planId, proposal }) => text(await api.proposeValidationResources(planId, proposal)),
+    async ({ planId, proposal, responseMode }) =>
+      text(applyAuthoringResponseMode(await api.proposeValidationResources(planId, proposal), responseMode)),
   )
   server.registerTool(
     'validation_resources_abandon',
@@ -2362,26 +1791,13 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'planning_session_create',
     {
       description:
-        'Normal-agent entry point: diagnose, optionally register a target workspace, create a plan from a brief, wait for review readiness, then return standby instructions.',
+        'Normal-agent entry point: diagnose, optionally register a target workspace, persist an agent-authored plan, wait for review readiness, then return standby instructions. AppraiseJS validates and gates the supplied plan but does not infer tasks from a brief.',
       inputSchema: {
-        projectBrief: z.string().min(1),
+        plan: planCreateInputSchema,
         targetWorkspacePath: z.string().min(1).optional(),
         targetMode: z.enum(['hub']).optional(),
         displayName: z.string().min(1).optional(),
         mode: z.enum(['plan_only', 'plan_then_wait']).default('plan_then_wait'),
-        sourceFiles: z.array(z.string().min(1)).optional(),
-        planContext: z.string().optional(),
-        previousCandidateHash: z.string().startsWith('sha256:').optional(),
-        previousTaskShapeHash: z.string().startsWith('sha256:').optional(),
-        retryFeedback: z
-          .object({
-            omissions: z.array(z.string().min(1)).min(1),
-            addressed: z.array(z.object({ omission: z.string().min(1), resolution: z.string().min(1) })),
-          })
-          .optional(),
-        requirementDeferrals: z
-          .array(z.object({ requirementId: z.string().min(1), reason: z.string().min(1) }))
-          .optional(),
         responseMode: responseModeSchema,
       },
     },
@@ -2392,7 +1808,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           return text(
             applyAuthoringResponseMode(
               planningSessionTargetRequiredResponse({
-                projectBrief: input.projectBrief,
+                planDescription: input.plan.description,
                 targetProjects: await api.listTargetProjects(),
                 hubProjectPath: api.project.canonicalProjectPath,
               }),
@@ -2407,58 +1823,9 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           const targetProject = (targetProjectResult as { targetProject?: { id?: string } }).targetProject
           target = targetProject?.id ?? input.targetWorkspacePath
         }
-        const candidatePlan = createPlanFromBrief(input)
-        const requirementAssessment = assessPlanRequirements(
-          input.projectBrief,
-          candidatePlan.tasks,
-          input.requirementDeferrals,
-        )
-        candidatePlan.requirementAssessment = requirementAssessment
+        const candidatePlan = input.plan
         const candidateHash = planCandidateHash(candidatePlan)
         const taskShapeHash = planTaskShapeHash(candidatePlan)
-        const unresolvedRetryOmissions = unresolvedCandidateRetryOmissions({
-          candidateHash,
-          previousCandidateHash: input.previousCandidateHash,
-          taskShapeHash,
-          previousTaskShapeHash: input.previousTaskShapeHash,
-          retryFeedback: input.retryFeedback,
-        })
-        if (
-          (input.previousTaskShapeHash === taskShapeHash || input.previousCandidateHash === candidateHash) &&
-          unresolvedRetryOmissions.length
-        ) {
-          return text(
-            applyAuthoringResponseMode(
-              {
-                status: 'unchanged_retry_rejected',
-                candidateHash,
-                taskShapeHash,
-                unresolvedRetryOmissions,
-                requiredResolution:
-                  'Report how every omission was addressed or explain explicitly why it remains unresolved before retrying an unchanged candidate.',
-                nextRequiredAgentBehavior: 'explain_or_resolve_retry_omissions',
-              },
-              input.responseMode,
-            ),
-          )
-        }
-        if (requirementAssessment.uncoveredRequirementIds.length) {
-          return text(
-            applyAuthoringResponseMode(
-              {
-                status: 'coverage_review_required',
-                candidatePlan,
-                candidateHash,
-                taskShapeHash,
-                requirementAssessment,
-                nextRecommendedAction:
-                  'Review the uncovered explicit requirements, revise the brief or task shape, then rerun planning_session_create before Appraise publishes a review-ready revision.',
-                nextRequiredAgentBehavior: 'resolve_uncovered_plan_requirements',
-              },
-              input.responseMode,
-            ),
-          )
-        }
         const created = (
           target ? await api.createPlanForTarget(candidatePlan, target) : await api.createPlan(candidatePlan)
         ) as PlanSnapshot & {
@@ -2500,10 +1867,8 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
           applyAuthoringResponseMode(
             {
               diagnostic: summarizeDiagnostic(diagnostic),
-              requirementAssessment,
               candidateHash,
               taskShapeHash,
-              retryResolutionReport: input.retryFeedback?.addressed ?? [],
               targetProject: targetProjectResult,
               created,
               reviewReady,
@@ -2601,11 +1966,11 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'test_run_read',
     {
       description: 'Read bounded status and evidence summary for a managed Appraise test run.',
-      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
+      inputSchema: { runId: z.string().uuid(), planId: z.string().optional(), responseMode: responseModeSchema },
     },
-    async ({ runId, responseMode }) => {
+    async ({ runId, planId, responseMode }) => {
       try {
-        return text(applyResponseMode(await api.readTestRun(runId), responseMode))
+        return text(applyResponseMode(await api.readTestRun(runId, planId), responseMode))
       } catch (error) {
         return toolError(error)
       }
@@ -2615,11 +1980,11 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'test_run_diagnose',
     {
       description: 'Diagnose invalid or suspicious managed test-run evidence with concise blockers and next action.',
-      inputSchema: { runId: z.string().uuid(), responseMode: responseModeSchema },
+      inputSchema: { runId: z.string().uuid(), planId: z.string().optional(), responseMode: responseModeSchema },
     },
-    async ({ runId, responseMode }) => {
+    async ({ runId, planId, responseMode }) => {
       try {
-        const result = (await api.diagnoseTestRun(runId)) as {
+        const result = (await api.diagnoseTestRun(runId, planId)) as {
           kind?: string
           diagnostic?: unknown
           evidence?: unknown
@@ -2929,9 +2294,21 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'plan_start',
     {
       description: 'Start validation preparation for an approved plan revision.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId }) => text(await api.request(`plans/${planId}/start`, { method: 'POST', body: '{}' })),
+    async ({ planId, responseMode }) =>
+      text(
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/start`, { method: 'POST', body: '{}' }),
+            nextRecommendedAction: 'Read validation context and author the managed Validation AST.',
+            nextRequiredAgentBehavior: 'prepare_validation_artifacts',
+            nextAllowedAction: { tool: 'validation_context_read' },
+          }),
+          responseMode,
+        ),
+      ),
   )
   server.registerTool(
     'plan_task_update',
@@ -3517,17 +2894,20 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'implementation_start',
     {
       description: 'Agent-owned execution tool: start implementation after accepted baseline evidence.',
-      inputSchema: { planId: z.string() },
+      inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId }) =>
+    async ({ planId, responseMode }) =>
       text(
-        lifecycleToolPayload({
-          planId,
-          result: await api.request(`plans/${planId}/implementation/start`, { method: 'POST', body: '{}' }),
-          nextRecommendedAction: 'Call implementation_checkpoint before task work, then update runnable tasks.',
-          nextRequiredAgentBehavior: 'record_implementation_checkpoint',
-          nextAllowedAction: { tool: 'implementation_checkpoint', type: 'before_group' },
-        }),
+        applyLifecycleResponseMode(
+          lifecycleToolPayload({
+            planId,
+            result: await api.request(`plans/${planId}/implementation/start`, { method: 'POST', body: '{}' }),
+            nextRecommendedAction: 'Approve the first implementation group, then update a returned runnable task.',
+            nextRequiredAgentBehavior: 'approve_implementation_group',
+            nextAllowedAction: { tool: 'implementation_group_approve' },
+          }),
+          responseMode,
+        ),
       ),
   )
   server.registerTool(
@@ -3666,7 +3046,7 @@ export async function createAppraiseMcpServer(options: McpOptions): Promise<McpS
     'implementation_validation_reconcile',
     {
       description:
-        'Reconcile Appraise-owned validation runs and optionally verify implemented tasks atomically with an idempotency key.',
+        'Reconcile Appraise-owned validation runs by implementation run id or public TestRun id, and optionally verify implemented tasks atomically with an idempotency key.',
       inputSchema: {
         planId: z.string(),
         runIds: z.array(z.string().min(1)).optional(),

@@ -136,6 +136,10 @@ means B must be verified before A can start. `relates-to` never affects task eli
 
 Managed implementation validation starts its runtime capsules automatically. Replaying the start operation reuses
 content-bound active runs; agents reconcile the returned implementation run IDs and do not invoke `test_run` again.
+The reconcile tool accepts either each returned implementation run `id` or its public `testRunId`. Evidence reads for
+target-bound runs include `planId` so the client derives the authoritative target scope rather than the hub scope.
+Reconciliation treats queued and running TestRuns as non-terminal and does not read or parse their final report
+artifacts until evidence finalization has completed.
 
 Tasks move through `pending`, `in_progress`, `implemented`, and `verified`. Dependencies must be verified before a
 dependent task starts. Poll before and after task groups, before validation, and before completion. Blocking feedback

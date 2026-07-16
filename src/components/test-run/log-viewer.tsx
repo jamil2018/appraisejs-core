@@ -16,12 +16,13 @@ import { useLogViewer } from './use-log-viewer'
 
 type LogViewerProps = {
   testRunId: string
+  targetProjectId?: string
   status?: TestRunStatus
   className?: string
 }
 
-export function LogViewer({ testRunId, status, className }: LogViewerProps) {
-  const { logs, connectionStatus, error } = useLogViewer({ testRunId, status })
+export function LogViewer({ testRunId, targetProjectId, status, className }: LogViewerProps) {
+  const { logs, connectionStatus, error } = useLogViewer({ testRunId, targetProjectId, status })
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
 

@@ -8,7 +8,6 @@ import {
   baselineRecoveryForLifecycle,
   compactProjectDiagnostic,
   createAppraiseMcpServer,
-  createPlanFromBrief,
   latestGateEvent,
   mcpCapabilityMetadata,
   MCP_RESPONSE_TOKEN_BUDGETS,
@@ -18,18 +17,14 @@ import {
   nextApprovalWaitSequence,
   orderedEventBatch,
   planningSessionTargetRequiredResponse,
-  planCandidateHash,
-  planTaskShapeHash,
   planningWorkflow,
   reviewReadyPendingResponse,
   standbyWorkflow,
-  unresolvedCandidateRetryOmissions,
   validationGateStatus,
   validationReviewPendingResponse,
   validationPreparationWorkflow,
 } from './mcp.js'
 import { VALIDATION_AST_JSON_SCHEMA } from './managed-validation-contracts.js'
-import { assessPlanRequirements } from './plan-requirements.js'
 
 describe('MCP approval wait helpers', () => {
   it('advances the long-poll cursor past non-gate events that were already delivered', () => {
@@ -251,119 +246,6 @@ describe('MCP approval wait helpers', () => {
   })
 })
 
-describe('planning retry fidelity', () => {
-  it('rejects an unchanged candidate until every reported omission has an explicit resolution', () => {
-    const candidateHash = `sha256:${'a'.repeat(64)}`
-    expect(
-      unresolvedCandidateRetryOmissions({
-        candidateHash,
-        previousCandidateHash: candidateHash,
-        retryFeedback: {
-          omissions: ['filtering', 'responsive'],
-          addressed: [{ omission: 'filtering', resolution: 'Added an acceptance criterion.' }],
-        },
-      }),
-    ).toEqual(['responsive'])
-    expect(
-      unresolvedCandidateRetryOmissions({
-        candidateHash,
-        previousCandidateHash: candidateHash,
-        retryFeedback: {
-          omissions: ['filtering'],
-          addressed: [{ omission: 'filtering', resolution: 'Deferred pending a product decision.' }],
-        },
-      }),
-    ).toEqual([])
-  })
-
-  it('changes todo task shape from normalized retry feedback without inventing edit behavior', () => {
-    const initial = createPlanFromBrief({ projectBrief: 'Build a todo app where users add, toggle, and delete tasks.' })
-    const retried = createPlanFromBrief({
-      projectBrief: 'Build a todo app where users add, toggle, and delete tasks.',
-      retryFeedback: {
-        omissions: ['filtering'],
-        addressed: [{ omission: 'filtering', resolution: 'Add all, active, and completed filters.' }],
-      },
-    })
-    expect(initial.tasks.flatMap(task => task.acceptanceCriteria).join(' ')).not.toMatch(/edit existing/i)
-    expect(retried.tasks.map(task => task.id)).toContain('filtering')
-    expect(planTaskShapeHash(retried)).not.toBe(planTaskShapeHash(initial))
-  })
-
-  it('keeps the task-shape hash stable across prose-only plan context changes', () => {
-    const first = createPlanFromBrief({
-      projectBrief: 'Build a todo app with add and delete.',
-      planContext: 'Blue UI.',
-    })
-    const second = createPlanFromBrief({
-      projectBrief: 'Build a todo app with add and delete.',
-      planContext: 'Red UI.',
-    })
-    expect(planCandidateHash(second)).not.toBe(planCandidateHash(first))
-    expect(planTaskShapeHash(second)).toBe(planTaskShapeHash(first))
-  })
-
-  it.each([
-    ['todo', 'Build a todo app with active and completed filtering and responsive layouts.'],
-    ['recipe', 'Build a recipe organizer with search, favorites, responsive layouts, and tests.'],
-    ['notes', 'Build a local notes app with CRUD, search, persistence, accessibility, and responsive layouts.'],
-    ['inventory', 'Build an inventory app with CRUD, filtering, persistence, responsive layouts, and tests.'],
-  ])('retains explicit filtering and responsive requirements for %s briefs', (_name, projectBrief) => {
-    const plan = createPlanFromBrief({ projectBrief })
-    const assessment = assessPlanRequirements(projectBrief, plan.tasks)
-    const requested = assessment.requirements.map(requirement => requirement.id)
-    if (/filter/i.test(projectBrief)) expect(requested).toContain('filtering')
-    if (/responsive/i.test(projectBrief)) expect(requested).toContain('responsive')
-    expect(planCandidateHash(plan)).toMatch(/^sha256:[a-f0-9]{64}$/)
-  })
-
-  it('covers every explicit requirement in a complete todo brief', () => {
-    const projectBrief =
-      'Build a todo app where users can add, edit, complete and uncomplete, and delete todos; persist across reloads; support active, completed, and all filtering; provide keyboard-accessible controls and a responsive layout; and add automated happy-path validation.'
-    const plan = createPlanFromBrief({ projectBrief })
-
-    expect(plan.requirementAssessment?.selectedDomain).toBe('todo')
-    expect(plan.requirementAssessment?.uncoveredRequirementIds).toEqual([])
-    expect(plan.requirementAssessment?.requirements).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'responsive', coveredBy: expect.arrayContaining([expect.any(Object)]) }),
-      ]),
-    )
-  })
-
-  it('retains gerund requirements and todo-specific secondary behaviors', () => {
-    const projectBrief =
-      'Build a todo app supporting adding, editing, completing and uncompleting, deleting, filtering by All, Active, and Completed, clearing all completed todos, persisting todos and the selected filter across reloads, useful empty states for the whole list and each filter, and automated managed validations.'
-    const plan = createPlanFromBrief({ projectBrief })
-    const assessment = plan.requirementAssessment!
-
-    expect(assessment.requirements.map(requirement => requirement.id)).toEqual(
-      expect.arrayContaining([
-        'create',
-        'edit',
-        'delete',
-        'completion',
-        'filtering',
-        'clear-completed',
-        'filter-persistence',
-        'persistence',
-        'empty-states',
-        'testing',
-      ]),
-    )
-    expect(assessment.uncoveredRequirementIds).toEqual([])
-    expect(plan.tasks.find(task => task.id === 'crud-completion')?.acceptanceCriteria).toEqual(
-      expect.arrayContaining([expect.stringMatching(/edit existing/i), expect.stringMatching(/clear all completed/i)]),
-    )
-    expect(plan.tasks.find(task => task.id === 'filtering')?.acceptanceCriteria).toEqual(
-      expect.arrayContaining([expect.stringMatching(/each present a useful empty state/i)]),
-    )
-    expect(plan.tasks.find(task => task.id === 'persistence')?.acceptanceCriteria).toEqual(
-      expect.arrayContaining([expect.stringMatching(/selected filter persists/i)]),
-    )
-  })
-})
-
 describe('compact lifecycle responses', () => {
   it('keeps planning and validation authoring summaries within their token budgets', () => {
     const compact = applyAuthoringResponseMode(
@@ -441,6 +323,28 @@ describe('compact lifecycle responses', () => {
     })
     expect(compact).not.toHaveProperty('resources')
     expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
+  })
+
+  it('keeps the plan source hash and proposal bindings in validation authoring summaries', () => {
+    const compact = applyAuthoringResponseMode(
+      {
+        plan: { planId: 'plan-1', sourceHash: `sha256:${'a'.repeat(64)}` },
+        contextHash: `sha256:${'b'.repeat(64)}`,
+        ids: { locators: { input: 'locator-row-id' } },
+        bindings: {
+          locators: [{ localKey: 'input', id: 'locator-row-id', astRef: 'locator_locator-row-id' }],
+        },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      expectedPlanHash: `sha256:${'a'.repeat(64)}`,
+      bindings: {
+        locators: [{ localKey: 'input', astRef: 'locator_locator-row-id' }],
+      },
+    })
+    expect(compact).not.toHaveProperty('ids')
   })
 
   it('publishes a versioned self-describing Validation AST schema', () => {
@@ -574,30 +478,6 @@ describe('compact lifecycle responses', () => {
   )
 })
 
-describe('plan requirement extraction', () => {
-  it('ignores lifecycle completion prose while preserving explicit record completion', () => {
-    const lifecycleOnly = assessPlanRequirements(
-      'Build a motivation quotes app, run final validation, and complete the flow.',
-      [],
-    )
-    expect(lifecycleOnly.requirements.map(requirement => requirement.id)).not.toContain('completion')
-
-    const todoCompletion = assessPlanRequirements('Build a todo app where users complete and reactivate tasks.', [])
-    expect(todoCompletion.requirements.map(requirement => requirement.id)).toContain('completion')
-  })
-
-  it('reduces API confidence when API language is negated', () => {
-    const positive = assessPlanRequirements('Build an API app for weather lookup.', [])
-    const negated = assessPlanRequirements('Build a local notes app, not an API app.', [])
-
-    expect(
-      positive.domainCandidates.find(candidate => candidate.domain === 'api-information')?.confidence,
-    ).toBeGreaterThan(0)
-    expect(negated.domainCandidates.find(candidate => candidate.domain === 'api-information')).toBeUndefined()
-    expect(negated.selectedDomain).toBe('notes')
-  })
-})
-
 describe('MCP agent workflow guidance', () => {
   it('describes setup, planning, and standby without collapsing Appraise gates', () => {
     expect(agentGuide.setup.preferredCommand).toBe('appraisejs agent setup')
@@ -608,132 +488,6 @@ describe('MCP agent workflow guidance', () => {
       ]),
     )
     expect(planningWorkflow.standby).toContain('Do not treat chat approval as Appraise approval')
-  })
-
-  it('creates a minimal review plan from a normal project brief', () => {
-    const plan = createPlanFromBrief({
-      projectBrief: 'Review the release checklist and prepare it for Appraise approval.',
-      displayName: 'Release checklist review',
-      sourceFiles: ['src/App.tsx'],
-    })
-
-    expect(plan).toMatchObject({
-      version: '1',
-      lifecycle: 'draft',
-      goal: 'Release checklist review',
-      tasks: [
-        expect.objectContaining({
-          id: 'plan-from-brief',
-          validationIntent: expect.stringContaining('review readiness'),
-        }),
-      ],
-    })
-    expect(plan.description).toContain('src/App.tsx')
-  })
-
-  it('creates structured tasks for a detailed todo app brief', () => {
-    const plan = createPlanFromBrief({
-      projectBrief:
-        'Build a todo app with React, Vite, Tailwind, shadcn/ui, TanStack, persistence, CRUD, and complete/incomplete behavior.',
-      displayName: 'Todo app',
-    })
-
-    expect(plan.tasks.map(task => task.id)).toEqual([
-      'scaffold-setup',
-      'task-model-ui',
-      'crud-completion',
-      'persistence',
-      'validation',
-    ])
-    expect(plan.tasks).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: 'scaffold-setup',
-          description: expect.stringContaining('React, Vite, Tailwind, shadcn/ui, TanStack'),
-        }),
-        expect.objectContaining({
-          id: 'crud-completion',
-          acceptanceCriteria: expect.arrayContaining([expect.stringContaining('edit existing todo items')]),
-        }),
-        expect.objectContaining({
-          id: 'persistence',
-          validationIntent: expect.stringContaining('saved items'),
-        }),
-        expect.objectContaining({
-          id: 'validation',
-          description: expect.stringContaining('CRUD behavior, completion toggles, and persistence recovery'),
-        }),
-      ]),
-    )
-    expect(plan.edges).toEqual(
-      expect.arrayContaining([
-        { from: 'scaffold-setup', to: 'task-model-ui', type: 'blocks' },
-        { from: 'persistence', to: 'validation', type: 'blocks' },
-      ]),
-    )
-    expect(plan.implementationGroups).toEqual(
-      expect.arrayContaining([
-        { id: 'foundation', taskIds: ['scaffold-setup', 'task-model-ui'] },
-        { id: 'quality', taskIds: ['validation'] },
-      ]),
-    )
-  })
-
-  it('creates weather-specific tasks for an API-backed information app brief', () => {
-    const plan = createPlanFromBrief({
-      projectBrief:
-        'Build Weather Guy as a React Vite web app. Users enter a location, search the weather API, see current conditions and forecast details, and get clear loading and error states. Add focused validation.',
-      displayName: 'Weather Guy',
-    })
-
-    const taskText = plan.tasks
-      .map(task =>
-        [task.id, task.title, task.description, task.acceptanceCriteria.join(' '), task.validationIntent].join(' '),
-      )
-      .join(' ')
-
-    expect(plan.tasks.map(task => task.id)).toEqual([
-      'scaffold-setup',
-      'input-search',
-      'api-integration',
-      'result-rendering',
-      'validation',
-    ])
-    expect(taskText).toMatch(/location|query/i)
-    expect(taskText).toMatch(/weather API/i)
-    expect(taskText).toMatch(/weather results|current conditions|forecast/i)
-    expect(taskText).toMatch(/loading.*error|error.*loading/i)
-    expect(taskText).not.toMatch(/\btodo\b|completion-toggle|completed items|CRUD/i)
-    expect(taskText).not.toMatch(/persist/i)
-  })
-
-  it('keeps ambiguous app briefs reviewable instead of inventing todo behavior', () => {
-    const plan = createPlanFromBrief({
-      projectBrief: 'Build a small web app for comparing neighborhood ideas. Use React and make it easy to review.',
-      displayName: 'Ideas app',
-    })
-
-    const taskText = plan.tasks.map(task => `${task.title} ${task.description}`).join(' ')
-    expect(plan.tasks.map(task => task.id)).toEqual(['scaffold-setup', 'review-plan'])
-    expect(taskText).toContain('preserving only behavior that appears in the brief')
-    expect(taskText).not.toMatch(/\btodo\b|completion|CRUD|persistence/i)
-  })
-
-  it('states reviewable defaults for empty frontend app briefs', () => {
-    const plan = createPlanFromBrief({
-      projectBrief: 'Build a small todo web app with saved state.',
-      displayName: 'Saved todo app',
-    })
-
-    expect(plan.tasks[0]).toMatchObject({
-      id: 'scaffold-setup',
-      description: expect.stringContaining('React 19, TypeScript, Vite, and local browser validation'),
-      acceptanceCriteria: expect.arrayContaining([
-        expect.stringContaining('React 19, TypeScript, Vite, and local browser validation'),
-        'Stack assumptions are stated clearly in the review-ready plan.',
-      ]),
-    })
-    expect(plan.tasks.find(task => task.id === 'persistence')?.description).toContain('saved state')
   })
 })
 
@@ -849,7 +603,7 @@ describe('MCP capability and recovery metadata', () => {
 describe('MCP planning session target selection', () => {
   it('returns structured recovery instead of silently creating a hub-scoped plan', () => {
     const response = planningSessionTargetRequiredResponse({
-      projectBrief: 'Build a small recipe organizer app.',
+      planDescription: 'Agent-authored plan for a small recipe organizer app.',
       targetProjects: { targetProjects: [{ id: 'target-1', displayName: 'Recipe app' }] },
       hubProjectPath: '/repo/appraisejs',
     })
@@ -867,93 +621,5 @@ describe('MCP planning session target selection', () => {
     expect(response.targetProjectCandidates).toMatchObject({
       targetProjects: [{ id: 'target-1' }],
     })
-  })
-})
-
-describe('brief requirement fidelity', () => {
-  const reminderBrief =
-    'Build a reminder app with a title, optional notes, due date and time, CRUD, completion and reactivation, active and completed filters, persistence, accessibility, responsive layouts, and automated tests.'
-
-  it('keeps a reminder with optional notes out of the editor template', () => {
-    const plan = createPlanFromBrief({ projectBrief: reminderBrief })
-
-    expect(plan.tasks.map(task => task.id)).toEqual(
-      expect.arrayContaining([
-        'reminder-model-ui',
-        'reminder-crud-completion',
-        'reminder-filtering-persistence',
-        'reminder-quality-validation',
-      ]),
-    )
-    expect(plan.tasks.map(task => task.title).join(' ')).not.toContain('editor')
-  })
-
-  it('maps every explicit reminder requirement to a plan task surface', () => {
-    const plan = createPlanFromBrief({ projectBrief: reminderBrief })
-    const assessment = assessPlanRequirements(reminderBrief, plan.tasks)
-
-    expect(assessment.selectedDomain).toBe('reminder')
-    expect(assessment.uncoveredRequirementIds).toEqual([])
-    expect(assessment.requirements.every(requirement => requirement.coveredBy.length > 0)).toBe(true)
-    expect(assessment.requirements.map(requirement => requirement.id)).toEqual(
-      expect.arrayContaining(['create', 'edit', 'delete']),
-    )
-  })
-
-  it('does not let a notes field override a dominant product noun', () => {
-    const brief = 'Build a recipe organizer with notes, tags, search, favorites, responsive layouts, and tests.'
-    const plan = createPlanFromBrief({ projectBrief: brief })
-
-    expect(plan.requirementAssessment?.selectedDomain).toBe('recipe-organizer')
-    expect(
-      plan.tasks
-        .map(task => task.title)
-        .join(' ')
-        .toLowerCase(),
-    ).not.toContain('editor')
-  })
-
-  it('creates a local notes plan without API or reminder-domain leakage', () => {
-    const brief =
-      'Build a local notes app, not an API app, with CRUD, persistence, deterministic ordering, search, accessibility, responsive layouts, and tests.'
-    const plan = createPlanFromBrief({ projectBrief: brief })
-    const taskText = plan.tasks.map(task => `${task.title} ${task.description} ${task.validationIntent}`).join(' ')
-
-    expect(plan.requirementAssessment?.selectedDomain).toBe('notes')
-    expect(plan.tasks.map(task => task.id)).toEqual([
-      'scaffold-setup',
-      'notes-crud',
-      'notes-organization',
-      'notes-quality',
-    ])
-    expect(taskText).toMatch(/CRUD|persistence|ordering|search|accessibility/i)
-    expect(taskText).not.toMatch(/API integration|location query|weather results/i)
-    expect(plan.requirementAssessment?.requirements.map(requirement => requirement.id)).not.toEqual(
-      expect.arrayContaining(['reminder-title', 'reminder-notes', 'reminder-due-date-time']),
-    )
-  })
-
-  it('does not count a generic brief echo as durable requirement coverage', () => {
-    const brief = 'Create a garden planner with accessible responsive workflows and automated tests.'
-    const plan = createPlanFromBrief({ projectBrief: brief })
-
-    expect(plan.tasks).toHaveLength(1)
-    expect(plan.requirementAssessment?.uncoveredRequirementIds).toEqual(
-      expect.arrayContaining(['accessibility', 'responsive', 'testing']),
-    )
-  })
-
-  it('requires quality requirements in both acceptance and validation surfaces', () => {
-    const assessment = assessPlanRequirements('Build an accessible responsive app with tests.', [
-      {
-        id: 'quality-only-in-acceptance',
-        description: 'Build the interface.',
-        acceptanceCriteria: ['The interface is accessible and responsive.'],
-        validationIntent: 'Run tests for the interface.',
-      },
-    ])
-
-    expect(assessment.uncoveredRequirementIds).toEqual(expect.arrayContaining(['accessibility', 'responsive']))
-    expect(assessment.uncoveredRequirementIds).not.toContain('testing')
   })
 })

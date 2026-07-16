@@ -5,8 +5,8 @@ description: Route natural-language project requests through AppraiseJS project 
 
 # Appraise Project From Brief
 
-AppraiseJS owns lifecycle and business rules. This skill turns a natural-language project brief into an Appraise-owned
-plan without inventing local lifecycle state.
+AppraiseJS owns lifecycle and business rules. The connected agent turns a natural-language project brief into a
+structured plan, then submits it to Appraise without inventing local lifecycle state.
 
 Use this skill when the user asks to use Appraise, create a project using AppraiseJS, build an app with AppraiseJS, or
 generate a plan and show it in Appraise. Also use it when continuing feature work in a project that already has an
@@ -23,8 +23,9 @@ generate a plan and show it in Appraise. Also use it when continuing feature wor
 5. If the target project is not registered, call `project_add` for the writable target workspace before creating a
    plan. Empty writable directories are valid planning targets.
 6. Treat an existing `.appraisejs/project.json` marker as continuity guidance that future plans go through Appraise.
-7. Prefer `planning_session_create` when available; otherwise create the structured plan with `plan_create`. Do not
-   invent a name-derived plan id.
+7. Author the complete plan tasks, acceptance criteria, validation intent, edges, and implementation groups from the
+   brief and repository context. Prefer `planning_session_create` with that explicit `plan` when available; otherwise
+   submit it with `plan_create`. Appraise does not infer the task graph. Do not invent a name-derived plan id.
 8. Prefer `plan_review_loop` when the tool is available; otherwise call `plan_wait_for_review`, then present the
    returned `appraise://` plan link, browser link, revision, lifecycle, and content hash only after
    `plan_review_ready`. Pending review is not completion.

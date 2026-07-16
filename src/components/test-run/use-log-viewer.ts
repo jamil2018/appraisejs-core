@@ -17,10 +17,11 @@ import {
 
 type UseLogViewerParams = {
   testRunId: string
+  targetProjectId?: string
   status?: TestRunStatus
 }
 
-export function useLogViewer({ testRunId, status }: UseLogViewerParams) {
+export function useLogViewer({ testRunId, targetProjectId, status }: UseLogViewerParams) {
   const [logs, setLogs] = useState<LogMessage[]>([])
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +41,7 @@ export function useLogViewer({ testRunId, status }: UseLogViewerParams) {
 
     queueMicrotask(() => setConnectionStatus('loading'))
 
-    getTestRunLogsAction(testRunId)
+    getTestRunLogsAction(testRunId, targetProjectId)
       .then(response => {
         if (response.error) {
           setError(response.error)
@@ -56,14 +57,15 @@ export function useLogViewer({ testRunId, status }: UseLogViewerParams) {
         setError('Failed to load logs from database')
         setConnectionStatus('error')
       })
-  }, [status, testRunId])
+  }, [status, targetProjectId, testRunId])
 
   useEffect(() => {
     if (isTerminalRunStatus(status)) {
       return
     }
 
-    const eventSource = new EventSource(`/api/test-runs/${testRunId}/logs`)
+    const query = targetProjectId ? `?targetProjectId=${encodeURIComponent(targetProjectId)}` : ''
+    const eventSource = new EventSource(`/api/test-runs/${testRunId}/logs${query}`)
 
     eventSource.onopen = () => {
       wasConnectedRef.current = true
@@ -197,7 +199,7 @@ export function useLogViewer({ testRunId, status }: UseLogViewerParams) {
       shouldStopReconnectingRef.current = false
       eventSource.close()
     }
-  }, [status, testRunId])
+  }, [status, targetProjectId, testRunId])
 
   return {
     logs,
