@@ -24,6 +24,11 @@ const unitValidationIndex = rootCommands.indexOf('npm run validate:unit')
 if (browserInstallIndex === -1 || unitValidationIndex === -1 || browserInstallIndex > unitValidationIndex) {
   throw new Error('Root CI must install Chromium before running browser-backed unit validation.')
 }
+const rootAppraisejsInstallIndex = rootCommands.indexOf('npm --prefix packages/appraisejs ci')
+const rootBuildIndex = rootCommands.indexOf('npm run build')
+if (rootAppraisejsInstallIndex === -1 || rootBuildIndex === -1 || rootAppraisejsInstallIndex > rootBuildIndex) {
+  throw new Error('Root CI must install appraisejs package dependencies before the aggregate build.')
+}
 
 const createPackageCommands = (workflow.jobs?.['create-appraisejs-package']?.steps ?? [])
   .map(step => step.run)

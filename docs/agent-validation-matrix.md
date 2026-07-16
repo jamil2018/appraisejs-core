@@ -27,8 +27,9 @@ both public packages, security/quality, dependency audit, and package-content jo
 
 Jobs that invoke package build or test scripts install that package's lockfile first. In particular, the
 security/quality job installs `packages/appraisejs` dependencies before the MCP transport gates so package-local SDK
-and schema-library versions are used instead of incompatible root dependency versions. Root CI installs Playwright's
-Chromium runtime before unit validation because runtime-capsule tests execute frozen browser steps.
+and schema-library versions are used instead of incompatible root dependency versions. Root CI does the same before
+its aggregate build, which compiles the `appraisejs` package. It also installs Playwright's Chromium runtime before
+unit validation because runtime-capsule tests execute frozen browser steps.
 
 For major behavior, architecture, workflow, package, schema, scaffold, lifecycle, or toolchain changes, include the
 current docs that describe that surface in the touched area and validation scope. If an active doc is already stale
