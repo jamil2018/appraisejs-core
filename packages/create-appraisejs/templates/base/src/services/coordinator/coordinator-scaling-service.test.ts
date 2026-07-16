@@ -5,7 +5,10 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import {
+  copyMigratedTestDatabase,
+  prepareCleanCoordinatorPlanRuntimeTestDatabase,
+} from '@/test/plan-runtime-schema-test-helper'
 
 import {
   createContinuationPackage,
@@ -22,7 +25,7 @@ beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-coordination-scaling-'))
   await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"coordination-scaling-test"}')
   const databasePath = path.join(workspace, 'coordinator.db')
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
+  await copyMigratedTestDatabase(databasePath)
   await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
   client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
   for (const [position, planId] of ['plan-one', 'plan-two'].entries()) {

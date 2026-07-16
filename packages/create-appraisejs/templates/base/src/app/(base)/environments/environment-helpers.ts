@@ -10,7 +10,9 @@ export type EnvironmentTableRow = {
   baseUrl: string
   apiBaseUrl: string | null
   username: string | null
-  password: string | null
+  passwordEnvironmentVariable: string | null
+  credentialState: 'NONE' | 'REFERENCE_CONFIGURED' | 'LEGACY_DISABLED'
+  legacyCredentialDetectedAt: Date | null
   createdAt: Date
   updatedAt: Date
 }
@@ -26,7 +28,7 @@ export const environmentFieldValidators = {
   baseUrl: environmentSchema.shape.baseUrl,
   apiBaseUrl: environmentSchema.shape.apiBaseUrl,
   username: environmentSchema.shape.username,
-  password: environmentSchema.shape.password,
+  passwordEnvironmentVariable: environmentSchema.shape.passwordEnvironmentVariable,
 }
 
 export function getActionErrorMessage(response: ActionResponse) {
@@ -47,8 +49,12 @@ function isEnvironmentRow(value: unknown): value is EnvironmentTableRow {
     (typeof value.apiBaseUrl === 'string' || value.apiBaseUrl === null) &&
     'username' in value &&
     (typeof value.username === 'string' || value.username === null) &&
-    'password' in value &&
-    (typeof value.password === 'string' || value.password === null) &&
+    'passwordEnvironmentVariable' in value &&
+    (typeof value.passwordEnvironmentVariable === 'string' || value.passwordEnvironmentVariable === null) &&
+    'credentialState' in value &&
+    ['NONE', 'REFERENCE_CONFIGURED', 'LEGACY_DISABLED'].includes(String(value.credentialState)) &&
+    'legacyCredentialDetectedAt' in value &&
+    (value.legacyCredentialDetectedAt instanceof Date || value.legacyCredentialDetectedAt === null) &&
     'createdAt' in value &&
     value.createdAt instanceof Date &&
     'updatedAt' in value &&

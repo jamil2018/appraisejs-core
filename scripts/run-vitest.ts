@@ -28,21 +28,31 @@ function getTempDirectory(): string | undefined {
   return [...envCandidates, ...fallbackCandidates].find(isUsableDirectory)
 }
 
-function main(): void {
+function getRequiredTempDirectory(): string {
   const tempDirectory = getTempDirectory()
   if (!tempDirectory) {
     console.error('Unable to find a writable temporary directory for Vitest.')
     process.exit(1)
   }
+  return tempDirectory
+}
 
-  const vitestEntry = fileURLToPath(new URL('../node_modules/vitest/vitest.mjs', import.meta.url))
-  const env = {
-    ...process.env,
-    TMPDIR: tempDirectory,
-    TMP: tempDirectory,
-    TEMP: tempDirectory,
+function buildCucumberRuntime(env: NodeJS.ProcessEnv): void {
+  const result = spawnSync('npm', ['run', 'build:cucumber-runtime'], {
+    stdio: 'inherit',
+    env,
+    shell: process.platform === 'win32',
+  })
+  if (result.error) {
+    console.error(result.error)
+    process.exit(1)
   }
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1)
+  }
+}
 
+function runVitest(vitestEntry: string, env: NodeJS.ProcessEnv): number {
   const result = spawnSync(process.execPath, [vitestEntry, 'run', ...process.argv.slice(2)], {
     stdio: 'inherit',
     env,
@@ -53,7 +63,21 @@ function main(): void {
     process.exit(1)
   }
 
-  process.exit(result.status ?? 1)
+  return result.status ?? 1
+}
+
+function main(): void {
+  const tempDirectory = getRequiredTempDirectory()
+  const vitestEntry = fileURLToPath(new URL('../node_modules/vitest/vitest.mjs', import.meta.url))
+  const env = {
+    ...process.env,
+    TMPDIR: tempDirectory,
+    TMP: tempDirectory,
+    TEMP: tempDirectory,
+  }
+
+  buildCucumberRuntime(env)
+  process.exit(runVitest(vitestEntry, env))
 }
 
 main()

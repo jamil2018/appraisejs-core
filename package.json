@@ -1,18 +1,34 @@
 {
   "name": "appraise",
   "version": "0.4.0",
-  "private": false,
+  "private": true,
   "type": "module",
   "engines": {
     "node": ">=20.19"
   },
   "scripts": {
+    "prepublishOnly": "node scripts/refuse-root-publish.mjs",
     "dev": "node scripts/dev-with-mcp.mjs",
-    "dev:web": "next dev",
+    "dev:web": "node scripts/start-local.mjs dev",
     "dev:mcp": "node scripts/dev-with-mcp.mjs --mcp-only",
     "setup:mcp": "node scripts/print-mcp-config.mjs",
     "setup:agent": "node scripts/print-agent-config.mjs",
     "check:harness": "node scripts/check-agent-harness.mjs",
+    "docs:check-links": "node scripts/check-documentation-links.mjs",
+    "release:check": "node scripts/check-release-readiness.mjs",
+    "release:check:generic-planning": "node scripts/check-generic-planning-boundary.mjs",
+    "release:check:local-boundary": "npm run validate:unit -- scripts/lib/local-startup.test.ts src/lib/local-request-boundary.test.ts",
+    "release:check:secrets": "npx tsx scripts/check-environment-secrets.ts && npm run validate:unit -- scripts/lib/environment-secret-check.integration.test.ts src/lib/environment-secret.test.ts src/lib/environment-file-utils.test.ts src/services/environment/environment-service.test.ts src/lib/sync/sync-pending-counts.test.ts",
+    "release:check:mcp-http": "npm --prefix packages/appraisejs run test -- src/mcp-http-security.test.ts && npm --prefix packages/appraisejs run test:mcp:http:e2e && npm --prefix packages/appraisejs run test:mcp:e2e",
+    "release:check:mcp-contract": "npm --prefix packages/appraisejs run test -- src/mcp-contract.test.ts && npm --prefix packages/appraisejs run build",
+    "release:check:architecture": "npm run quality:fallow:release && npm run quality:react-doctor:ci",
+    "release:check:bounded-reads": "npm run validate:unit -- src/lib/pagination.test.ts src/lib/test-run/log-tail-reader.test.ts src/app/api/test-runs/[runId]/logs/route.test.ts && npm run benchmark:repository-queries",
+    "release:check:artifacts": "node scripts/check-generated-artifacts.mjs",
+    "generate:coordinator-reference": "node --import tsx scripts/generate-coordinator-reference.ts",
+    "release:check:coordinator-reference": "node --import tsx scripts/generate-coordinator-reference.ts --check",
+    "release:check:packages": "node scripts/check-package-contents.mjs",
+    "release:check:ci": "node scripts/check-release-ci.mjs",
+    "benchmark:repository-queries": "node scripts/benchmark-repository-queries.mjs",
     "graphify:install": "node scripts/run-graphify.mjs install --project --platform agents",
     "graphify:build": "node scripts/run-graphify.mjs build-scope src",
     "graphify:build:all": "node scripts/update-graphify-graphs.mjs --all",
@@ -29,7 +45,7 @@
     "build:locator-picker-companion": "tsc -p packages/locator-picker-companion/tsconfig.json",
     "build:appraisejs": "npm run build-step-registry && tsc -p packages/appraisejs/tsconfig.json",
     "build": "npm run build:cucumber-runtime && npm run build:locator-picker-companion && npm run build:appraisejs && next build",
-    "start": "ENVIRONMENT=local next start",
+    "start": "node scripts/start-local.mjs start",
     "lint": "eslint .",
     "install-playwright": "tsx scripts/install-playwright.ts",
     "install-dependencies": "npm install --legacy-peer-deps",
@@ -63,6 +79,8 @@
     "validate": "npm run validate:unit && npm run validate:e2e",
     "quality:fallow": "fallow --format json --quiet --explain",
     "quality:fallow:ci": "fallow --format json --quiet --explain --fail-on-issues",
+    "quality:fallow:release": "fallow -r . --format json --quiet --fail-on-regression --regression-baseline config/fallow-baseline-root.json && fallow -r packages/appraisejs --format json --quiet --fail-on-regression --regression-baseline config/fallow-baseline-appraisejs.json && fallow -r packages/create-appraisejs --format json --quiet --fail-on-regression --regression-baseline config/fallow-baseline-create-appraisejs.json",
+    "quality:ratchet": "node scripts/check-quality-ratchet.mjs",
     "quality:fallow:commit": "node ./scripts/run-fallow-commit.mjs",
     "quality:react-doctor": "react-doctor . --project appraise --offline --full",
     "quality:react-doctor:ci": "react-doctor . --project appraise --offline --full --fail-on error",
@@ -163,6 +181,9 @@
     "react-is": "^19.2.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "minimatch": ">=10.2.1"
+    "minimatch": ">=10.2.1",
+    "next": {
+      "postcss": "8.5.19"
+    }
   }
 }

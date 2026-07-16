@@ -15,7 +15,7 @@ const providerNativeRunsEnabled = ['1', 'true', 'yes', 'on'].includes(
   (process.env.APPRAISE_EXPERIMENTAL_PROVIDER_RUNS ?? '').trim().toLowerCase(),
 )
 let planId = requestedPlanId
-let explicitTargetPlanId: string | undefined
+const explicitTargetPlanIds: string[] = []
 const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-mcp-e2e-'))
 const databasePath = path.join(temporaryDirectory, 'mcp-e2e.db')
 process.env.DATABASE_URL = `file:${databasePath}`
@@ -25,23 +25,28 @@ let transport: StdioClientTransport | undefined
 let serverOutput = ''
 let mcpDiagnostics = ''
 
-function agentAuthoredPlan(goal: string, description: string) {
+function agentAuthoredPlan(
+  goal: string,
+  description: string,
+  tasks = [
+    {
+      id: 'agent-authored-task',
+      title: 'Execute the authored plan',
+      description: 'Carry out the task explicitly supplied by the planning agent.',
+      acceptanceCriteria: ['The agent-authored outcome is complete.'],
+      validationIntent: 'Validate the authored outcome with deterministic evidence.',
+    },
+  ],
+  edges: Array<{ from: string; to: string; type: 'depends-on' }> = [],
+) {
   return {
     version: '1',
     revision: 1,
     lifecycle: 'draft',
     goal,
     description,
-    tasks: [
-      {
-        id: 'agent-authored-task',
-        title: 'Execute the authored plan',
-        description: 'Carry out the task explicitly supplied by the planning agent.',
-        acceptanceCriteria: ['The agent-authored outcome is complete.'],
-        validationIntent: 'Validate the authored outcome with deterministic evidence.',
-      },
-    ],
-    edges: [],
+    tasks,
+    edges,
     implementationGroups: [],
   }
 }
@@ -76,6 +81,28 @@ async function waitForServer() {
   throw new Error(`Timed out waiting for AppraiseJS:\n${serverOutput}`)
 }
 
+async function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
+  if (child.exitCode !== null) return true
+  return new Promise(resolve => {
+    const finish = (exited: boolean) => {
+      clearTimeout(timer)
+      child.off('exit', onExit)
+      resolve(exited)
+    }
+    const onExit = () => finish(true)
+    const timer = setTimeout(() => finish(false), timeoutMs)
+    child.once('exit', onExit)
+  })
+}
+
+async function stopAppServer(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null) return
+  child.kill('SIGTERM')
+  if (await waitForExit(child, 5_000)) return
+  child.kill('SIGKILL')
+  await waitForExit(child, 2_000)
+}
+
 function toolJson(result: Awaited<ReturnType<Client['callTool']>>) {
   assert(!result.isError, `MCP tool returned an error: ${JSON.stringify(result)}`)
   const item = result.content[0]
@@ -96,32 +123,23 @@ function reviewPathFor(id: string) {
 }
 
 async function approveCurrentPlan(revision: number, contentHash: string) {
-  const approvalInput = JSON.stringify({
-    planId,
-    displayedRevision: revision,
-    expectedPlanHash: contentHash,
-    actor: 'mcp-e2e-user',
-  })
-  run(
-    'npx',
-    [
-      'tsx',
-      '--tsconfig',
-      'tsconfig.json',
-      '--input-type=module',
-      '-e',
-      `import { approvePlanRevision } from './src/services/plan-review/plan-review-service.ts'; await approvePlanRevision(${approvalInput}, { projectDirectory: ${JSON.stringify(repoRoot)} })`,
-    ],
-    { DATABASE_URL: `file:${databasePath}` },
+  const { approvePlanRevision } = await import('../../../src/services/plan-review/plan-review-service.ts')
+  await approvePlanRevision(
+    {
+      planId,
+      displayedRevision: revision,
+      expectedPlanHash: contentHash,
+      actor: 'mcp-e2e-user',
+    },
+    { projectDirectory: repoRoot },
   )
 }
 
 try {
-  await fs.copyFile(path.join(repoRoot, 'prisma', 'dev.db'), databasePath)
-  run('npx', ['prisma', 'migrate', 'deploy'], { DATABASE_URL: `file:${databasePath}` })
+  run(process.execPath, ['e2e/apply-migrations.mjs'], { DATABASE_URL: `file:${databasePath}` })
   run('npm', ['--prefix', 'packages/appraisejs', 'run', 'build'])
 
-  appServer = spawn('npm', ['run', 'dev:web', '--', '-H', '127.0.0.1', '-p', String(port)], {
+  appServer = spawn(process.execPath, ['scripts/start-local.mjs', 'dev', '-H', '127.0.0.1', '-p', String(port)], {
     cwd: repoRoot,
     env: { ...process.env, DATABASE_URL: `file:${databasePath}` },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -313,8 +331,9 @@ try {
     targetWorkspacePath,
     displayName: 'MCP E2E target workspace',
   })
-  explicitTargetPlanId = String(explicitTargetSession.planId ?? '')
+  const explicitTargetPlanId = String(explicitTargetSession.planId ?? '')
   assert(explicitTargetPlanId, 'Explicit target planning did not create a plan.')
+  explicitTargetPlanIds.push(explicitTargetPlanId)
   assert(explicitTargetSession.targetProject, 'Explicit target planning did not register or return the target project.')
   assert(
     explicitTargetSession.lifecycle === 'awaiting_plan_review' &&
@@ -447,7 +466,18 @@ try {
   const revisedHash = revised.planContentHash as string
   assert(revisedHash !== firstHash, 'Plan revision did not change the content hash.')
 
+  const revisedReady = await callTool('plan_wait_for_review', {
+    planId,
+    afterSequence: ready.nextAfterSequence ?? ready.eventSequence,
+  })
+  assert(
+    revisedReady.planContentHash === revisedHash,
+    'Revised plan did not reach durable review readiness before approval.',
+  )
+
   await approveCurrentPlan(2, revisedHash)
+  const approvedRead = await callTool('plan_read', { planId })
+  const approvedHash = approvedRead.contentHash as string
 
   const approval = await callTool('plan_wait_for_approval', { planId, afterSequence: 0 })
   assert(
@@ -456,14 +486,59 @@ try {
   )
   assert(approval.status === 'approved', `Approval wait did not observe plan approval: ${JSON.stringify(approval)}`)
   assert(approval.lifecycle === 'plan_approved', 'Approval wait did not preserve the approved lifecycle.')
-  assert(approval.planContentHash === revisedHash, 'Approval wait did not return the current approved hash.')
+  assert(
+    approval.contentHash === approvedHash,
+    `Approval wait did not return the current approved hash: ${JSON.stringify({ approvedHash, approvalHash: approval.contentHash, revisedHash })}`,
+  )
 
   const started = await callTool('plan_start', { planId })
-  const startedPlan = started.plan as { lifecycle: string }
-  assert(startedPlan.lifecycle === 'preparing_validations', 'Approved plan did not start validation preparation.')
+  assert(started.lifecycle === 'preparing_validations', 'Approved plan did not start validation preparation.')
 
   const storedPlan = parseYaml(await fs.readFile(planPathFor(planId), 'utf8')) as { lifecycle: string }
   assert(storedPlan.lifecycle === 'preparing_validations', 'Started lifecycle was not persisted.')
+
+  const libraryPlan = agentAuthoredPlan(
+    'Publish a typed parsing library',
+    'Agent-authored plan for a non-UI library with a build dependency.',
+    [
+      {
+        id: 'define-parser-contract',
+        title: 'Define parser contract',
+        description: 'Specify the public parsing input and result types.',
+        acceptanceCriteria: ['The public contract compiles.'],
+        validationIntent: 'Run the package type check.',
+      },
+      {
+        id: 'implement-parser',
+        title: 'Implement parser',
+        description: 'Implement the parser against the authored contract.',
+        acceptanceCriteria: ['Valid and invalid inputs are covered.'],
+        validationIntent: 'Run package unit tests.',
+      },
+    ],
+    [{ from: 'implement-parser', to: 'define-parser-contract', type: 'depends-on' }],
+  )
+  const structurallyDifferentSession = await callTool('planning_session_create', {
+    plan: libraryPlan,
+    targetWorkspacePath,
+    displayName: 'MCP E2E target workspace',
+  })
+  const structurallyDifferentPlanId = String(structurallyDifferentSession.planId ?? '')
+  assert(structurallyDifferentPlanId, 'Structurally different planning session did not create a plan.')
+  explicitTargetPlanIds.push(structurallyDifferentPlanId)
+  const structurallyDifferentRead = await callTool('plan_read', { planId: structurallyDifferentPlanId })
+  const structurallyDifferentPlan = structurallyDifferentRead.plan as {
+    tasks: Array<{ id: string }>
+    edges: Array<{ from: string; to: string; type: string }>
+  }
+  assert(
+    structurallyDifferentPlan.tasks.map(task => task.id).join(',') === 'define-parser-contract,implement-parser',
+    'Appraise did not preserve the structurally different agent-authored task graph.',
+  )
+  assert(
+    structurallyDifferentPlan.edges[0]?.type === 'depends-on',
+    'Appraise did not preserve the agent-authored dependency graph.',
+  )
   assert(!mcpDiagnostics.includes('stdout'), `Unexpected MCP diagnostics: ${mcpDiagnostics}`)
 
   console.log(
@@ -480,13 +555,10 @@ try {
 } finally {
   await client?.close().catch(() => {})
   await transport?.close().catch(() => {})
-  if (appServer && appServer.exitCode === null) {
-    appServer.kill('SIGTERM')
-    await new Promise(resolve => appServer!.once('exit', resolve))
-  }
+  if (appServer) await stopAppServer(appServer)
   await fs.rm(planPathFor(planId), { force: true })
   await fs.rm(reviewPathFor(planId), { force: true })
-  if (explicitTargetPlanId) {
+  for (const explicitTargetPlanId of explicitTargetPlanIds) {
     await fs.rm(planPathFor(explicitTargetPlanId), { force: true })
     await fs.rm(reviewPathFor(explicitTargetPlanId), { force: true })
   }

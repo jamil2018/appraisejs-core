@@ -2,7 +2,7 @@
 
 import '@xyflow/react/dist/style.css'
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   Controls,
@@ -91,13 +91,13 @@ import { BaselineAttemptCard } from './baseline-attempt-card'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
+import { usePlanReviewController } from './use-plan-review-controller'
 
 type PlanReviewWorkspaceProps = {
   detail: PlanReviewDetail
   initialTab?: 'graph' | 'list' | 'history' | 'validations'
   initialSidebarTab?: 'remarks' | 'baselines' | 'approval'
 }
-type ActionMessage = { tone: 'success' | 'error'; text: string; recovery?: 'validation-drift' }
 
 const edgeColors = {
   'depends-on': 'var(--muted-foreground)',
@@ -344,12 +344,11 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(detail.plan.tasks[0]?.id ?? null)
   const [remarkBody, setRemarkBody] = useState('')
   const [blocking, setBlocking] = useState(true)
-  const [message, setMessage] = useState<ActionMessage | null>(null)
+  const { isPending, message, runCommand: run } = usePlanReviewController(refresh)
   const [confirmReplacement, setConfirmReplacement] = useState(false)
   const [confirmCompletion, setConfirmCompletion] = useState(false)
   const [regressionJustification, setRegressionJustification] = useState('')
   const [inspectorOpen, setInspectorOpen] = useState(true)
-  const [isPending, startTransition] = useTransition()
   const [sidebarTab, setSidebarTab] = useState<'remarks' | 'baselines' | 'approval'>(initialSidebarTab ?? 'remarks')
   const [graphSearchQuery, setGraphSearchQuery] = useState('')
   const [exportModalOpen, setExportModalOpen] = useState(false)
@@ -556,29 +555,6 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
 
   const defaultTab = initialTab ?? (detail.listFallback ? 'list' : 'graph')
   const [activeTab, setActiveTab] = useState<string>(defaultTab)
-
-  const run = (
-    operation: () => Promise<{ success?: boolean; error?: string }>,
-    successMessage: string,
-    options?: { recovery?: ActionMessage['recovery'] },
-  ) => {
-    setMessage(null)
-    startTransition(async () => {
-      const result = await operation()
-      const recovery =
-        !result.success &&
-        options?.recovery === 'validation-drift' &&
-        result.error?.includes('Validation files changed after approval or baseline execution')
-          ? options.recovery
-          : undefined
-      setMessage({
-        tone: result.success ? 'success' : 'error',
-        text: result.success ? successMessage : (result.error ?? 'The action failed.'),
-        recovery,
-      })
-      if (result.success) refresh()
-    })
-  }
 
   const reopenValidationReviewAfterDrift = () =>
     run(

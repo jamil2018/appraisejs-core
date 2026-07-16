@@ -626,5 +626,5 @@ describe('reviewed runtime capsule materialization integration', () => {
       /differs from the reviewed publication/,
     )
     await expect(fs.stat(path.join(workspace, 'automation'))).rejects.toMatchObject({ code: 'ENOENT' })
-  })
+  }, 30_000)
 })

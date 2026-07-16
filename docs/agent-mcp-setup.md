@@ -23,6 +23,11 @@ Default HTTP endpoint:
 http://127.0.0.1:3010/mcp
 ```
 
+AppraiseJS 0.5 supports loopback access only. The web server and HTTP MCP sidecar reject non-loopback bind hosts;
+remote forwarding and multi-user exposure are unsupported. HTTP MCP also requires the project coordinator bearer
+identity, validates the peer, `Host`, and optional `Origin` before routing, and applies fixed body and concurrency
+bounds. Health checks are local-only but do not require bearer authentication.
+
 ## Registration
 
 Print current registration details:
@@ -67,6 +72,10 @@ For machine-readable recovery details, use:
 appraisejs agent setup --json
 ```
 
+The JSON output includes the HTTP endpoint and required `Authorization: Bearer ...` header for machine registration.
+Normal human-readable setup output deliberately hides the token. Treat the JSON output as local credential material:
+do not paste it into logs, issues, or committed configuration.
+
 For stdio-only clients, the command shape is:
 
 ```bash
@@ -87,6 +96,10 @@ After reconnect, verify these expected capabilities:
 Provider-native runs are experimental and disabled by default. If `APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true` is set
 before starting AppraiseJS, the MCP server also exposes provider resources and tools such as
 `appraise://provider-runs` and `provider_run_create`.
+
+The complete current coordinator route, MCP tool, resource, and provider-experimental inventory is generated at
+`docs/generated/coordinator-operation-reference.md`. Refresh it with `npm run generate:coordinator-reference`; use
+`npm run release:check:coordinator-reference` to detect registry/documentation drift.
 
 If `project_diagnostic`, `tools/list`, or `resources/list` shows older capabilities, treat the MCP server or client
 registration as stale. Restart or reconnect the MCP client, restart the Appraise MCP sidecar, rerun
@@ -118,7 +131,7 @@ After `validation_preparation_started`, agents must create AppraiseJS-native val
 `validation_ast_compile` after exact check and preview receipt review before entering validation review standby. The compile response should include the direct
 validation review URL, `appraise://` URL, `ValidationArtifact` path, validation count, changed-file count, manifest
 paths, reused registry/template step paths, new custom step paths, and the next review action.
-Set `APPRAISE_BROWSER_ORIGIN` to the canonical browser origin when the app is exposed on a non-default host. Returned
+Set `APPRAISE_BROWSER_ORIGIN` to the canonical loopback browser origin when the app uses a non-default local port. Returned
 review URLs include the target project. If validation review reports a stale current-state receipt while immutable
 publication content remains valid, call `validation_review_reconcile` once and reread the review before submitting
 the exact refreshed `reviewStateHash`.

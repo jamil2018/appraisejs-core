@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
-import { saveForm, expectPageHeading } from './ui'
+import { completeNamedCreate, saveForm, expectPageHeading } from './ui'
 
 function labeledMultiSelectCombobox(page: Page, label: string): Locator {
   return page.getByText(label, { exact: true }).locator('..').getByRole('combobox', { name: 'Select options' })
@@ -68,9 +68,7 @@ export async function createLocatorGroup(
   await page.getByRole('main').getByRole('combobox').first().click()
   await page.getByRole('option', { name: moduleName }).click()
   await page.getByLabel('Route').fill(route)
-  await saveForm(page)
-  await expect(page).toHaveURL(/\/locator-groups$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/locator-groups$/)
 }
 
 export async function createLocator(page: Page, name: string, selector: string, groupName: string): Promise<void> {
@@ -81,18 +79,14 @@ export async function createLocator(page: Page, name: string, selector: string, 
   await page.getByRole('radio', { name: /Use existing group/i }).click()
   await page.getByRole('combobox', { name: 'Locator Group' }).click()
   await page.getByRole('option', { name: groupName }).click()
-  await page.getByRole('button', { name: 'Save Locator' }).click()
-  await expect(page).toHaveURL(/\/locators$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/locators$/, 'Save Locator')
 }
 
 export async function createTemplateStepGroup(page: Page, name: string): Promise<void> {
   await page.goto('/template-step-groups/create')
   await expectPageHeading(page, 'Create Template Step Group')
   await page.getByLabel('Name').fill(name)
-  await saveForm(page)
-  await expect(page).toHaveURL(/\/template-step-groups$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/template-step-groups$/)
 }
 
 export async function createTemplateStep(page: Page, name: string, groupName: string): Promise<void> {
@@ -102,9 +96,7 @@ export async function createTemplateStep(page: Page, name: string, groupName: st
   await page.getByText('Template Step Group').locator('..').getByRole('combobox').click()
   await page.getByRole('option', { name: groupName }).click()
   await page.getByLabel('Signature').fill(`Given I ${name.toLowerCase()}`)
-  await page.getByRole('button', { name: /^Save$/ }).click()
-  await expect(page).toHaveURL(/\/template-steps$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/template-steps$/)
 }
 
 export async function createTemplateTestCase(page: Page, name: string): Promise<void> {
@@ -112,9 +104,7 @@ export async function createTemplateTestCase(page: Page, name: string): Promise<
   await expectPageHeading(page, 'Create Template Test Case')
   await page.getByLabel('Title').fill(name)
   await addTemplateStepToFlow(page)
-  await page.getByRole('button', { name: /^Save$/ }).click()
-  await expect(page).toHaveURL(/\/template-test-cases$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/template-test-cases$/)
 }
 
 export async function createTestSuite(
@@ -139,9 +129,7 @@ export async function createTestSuite(
     await expect(page.getByRole('dialog')).toBeHidden()
     await expect(page.getByText('Selected test case(s)')).toBeVisible()
   }
-  await page.getByRole('button', { name: /^Save$/ }).click()
-  await expect(page).toHaveURL(/\/test-suites$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/test-suites$/)
 }
 
 export async function fillTestCaseDetails(

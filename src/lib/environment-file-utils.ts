@@ -8,7 +8,14 @@ interface EnvironmentConfig {
   baseUrl: string
   apiBaseUrl: string
   email: string
-  password: string
+  passwordEnvironmentVariable: string
+}
+
+type ProjectableEnvironment = {
+  baseUrl: string
+  apiBaseUrl: string | null
+  username: string | null
+  passwordEnvironmentVariable: string | null
 }
 
 const EMPTY_ENVIRONMENTS_FILE_CONTENT = '{}\n'
@@ -32,18 +39,22 @@ async function generateEnvironmentsContent(): Promise<Record<string, Environment
 
     environments.forEach(env => {
       const envKey = env.name.toLowerCase().replace(/\s+/g, '_')
-      environmentsConfig[envKey] = {
-        baseUrl: env.baseUrl,
-        apiBaseUrl: env.apiBaseUrl || '',
-        email: env.username || '',
-        password: env.password || '',
-      }
+      environmentsConfig[envKey] = projectEnvironmentConfig(env)
     })
 
     return environmentsConfig
   } catch (error) {
     console.error('Error generating environments content:', error)
     return {}
+  }
+}
+
+export function projectEnvironmentConfig(environment: ProjectableEnvironment): EnvironmentConfig {
+  return {
+    baseUrl: environment.baseUrl,
+    apiBaseUrl: environment.apiBaseUrl || '',
+    email: environment.username || '',
+    passwordEnvironmentVariable: environment.passwordEnvironmentVariable || '',
   }
 }
 

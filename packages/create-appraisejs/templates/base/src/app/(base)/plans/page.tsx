@@ -6,7 +6,7 @@ import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { listPlans } from '@/services/plan-review/plan-review-service'
+import { listPlans, listPlansPage } from '@/services/plan-review/plan-review-service'
 import { requireActiveProject } from '@/lib/active-project'
 
 import { PlanSummaryCard } from './plan-summary-card'
@@ -29,7 +29,7 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
   const { query, tab, sort } = resolvedParams
 
   const project = await requireActiveProject(rawParams.project)
-  const plans = await listPlans({ targetProjectId: project.id })
+  const { items: plans } = await listPlansPage({ targetProjectId: project.id })
   const stats = computePlanStats(plans)
   const sortedPlans = sortPlans(filterPlans(plans, tab, query), sort)
 

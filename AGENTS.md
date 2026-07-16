@@ -84,6 +84,10 @@ For Appraise lifecycle or MCP work, follow `docs/agent-lifecycle-flow.md`, `docs
 `docs/agent-mcp-setup.md`. Keep lifecycle transitions Appraise-owned; do not replace plan, validation, baseline, or
 completion gates with chat approval.
 
+For shared abstractions, require evidence from multiple real consumers, an independently testable responsibility, or
+repeated state/error behavior. Do not introduce catch-all CRUD frameworks or pass-through layers. Test service
+boundaries and any Server Action behavior that parses, scopes, invalidates caches, or maps error envelopes.
+
 For Graphify setup or repo graph work, follow `docs/agent-graphify.md`. Use the Python package `graphifyy` and CLI
 `graphify`; do not add the unrelated Node package `@sentropic/graphify`. When safe source changes touch committed
 graph scopes, run `npm run graphify:auto` before finishing. When changing Graphify behavior or graph-update logic,
@@ -128,6 +132,8 @@ Common validation commands:
 - `npm run quality:fallow:commit`
 - `npm run quality:react-doctor:commit`
 - `npm run check:harness`
+- `npm run release:check:artifacts`
+- `npm run release:check:packages`
 - `npm run build`
 
 Run related tests when tests exist or are added. Run `npm run build` for broad changes, package/config/schema changes,

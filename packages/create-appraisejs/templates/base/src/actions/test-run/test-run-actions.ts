@@ -19,10 +19,13 @@ import {
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 
-export async function getAllTestRunsAction(filter?: string): Promise<ActionResponse> {
+export async function getAllTestRunsAction(
+  filter?: string,
+  page?: { cursor?: string; limit?: number },
+): Promise<ActionResponse> {
   try {
     const project = await requireActiveProjectForMutation()
-    const testRuns = await listTestRuns(project.id, filter)
+    const testRuns = page ? await listTestRuns(project.id, filter, page) : await listTestRuns(project.id, filter)
     return {
       status: 200,
       success: true,
@@ -33,9 +36,9 @@ export async function getAllTestRunsAction(filter?: string): Promise<ActionRespo
   }
 }
 
-export async function getTestRunByIdAction(id: string): Promise<ActionResponse> {
+export async function getTestRunByIdAction(id: string, targetProjectId?: string): Promise<ActionResponse> {
   try {
-    const project = await requireActiveProjectForMutation()
+    const project = await requireActiveProjectForMutation(targetProjectId)
     const testRun = await getTestRunByIdOrThrow(id, project.id)
     return {
       status: 200,
@@ -81,9 +84,9 @@ export async function getAllTestSuiteTestCasesAction(): Promise<ActionResponse> 
   }
 }
 
-export async function getTestRunLogsAction(testRunId: string): Promise<ActionResponse> {
+export async function getTestRunLogsAction(testRunId: string, targetProjectId?: string): Promise<ActionResponse> {
   try {
-    const project = await requireActiveProjectForMutation()
+    const project = await requireActiveProjectForMutation(targetProjectId)
     await getTestRunByIdOrThrow(testRunId, project.id)
     const logs = await getTestRunLogsService(testRunId, project.id)
 

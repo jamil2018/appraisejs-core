@@ -71,6 +71,10 @@ interaction changes.
 Update component or route organization docs when a UI change establishes a new shared pattern or moves ownership
 between route-local and reusable components.
 
+Extract shared UI only after multiple real consumers, an independent responsibility, or repeated state/error behavior
+provides evidence. For Server Actions, test parsing, scope/authorization mapping, cache invalidation, and error
+envelopes when the action owns those decisions; do not add tests for a pure pass-through wrapper.
+
 ## Automation Sync
 
 Read `docs/automation-sync-rules.md`, then inspect the relevant generator, parser, database sync, and `scripts/sync-*`

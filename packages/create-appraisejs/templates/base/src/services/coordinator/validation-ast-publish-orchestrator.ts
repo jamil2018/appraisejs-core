@@ -247,19 +247,19 @@ async function recoverConcurrentPublish(
   client: PrismaClient,
 ): Promise<{ operation?: PublishOperation; error: unknown }> {
   let error = initialError
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
     const concurrent = await client.validationAstPublishOperation
       .findUnique({ where: { id: operationId }, include: { extensionReviews: true } })
       .catch(() => null)
     if (concurrent?.phase === 'review_ready') return { operation: concurrent, error }
-    if (concurrent?.phase === 'projected') {
+    if (concurrent && ['prepared', 'artifacts_written', 'projected'].includes(concurrent.phase)) {
       try {
         return { operation: await resumeValidationAstPublishInternal(operationId, options), error }
       } catch (retryError) {
         error = retryError
       }
     }
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise(resolve => setTimeout(resolve, attempt + 1))
   }
   return { error }
 }

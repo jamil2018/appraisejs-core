@@ -19,7 +19,7 @@ interface EnvironmentConfig {
   baseUrl: string
   apiBaseUrl: string
   email: string
-  password: string
+  passwordEnvironmentVariable: string
 }
 
 interface EnvironmentData {
@@ -27,7 +27,7 @@ interface EnvironmentData {
   baseUrl: string
   apiBaseUrl: string | null
   username: string | null
-  password: string | null
+  passwordEnvironmentVariable: string | null
 }
 
 interface SyncResult {
@@ -113,7 +113,7 @@ function buildEnvironmentObjects(jsonContent: Record<string, EnvironmentConfig>)
 
     // Convert empty strings to null for optional fields
     const apiBaseUrl = config.apiBaseUrl && config.apiBaseUrl.trim() !== '' ? config.apiBaseUrl.trim() : null
-    const password = config.password && config.password.trim() !== '' ? config.password.trim() : null
+    const passwordEnvironmentVariable = config.passwordEnvironmentVariable?.trim() || null
 
     // Validate required fields
     if (!config.baseUrl || config.baseUrl.trim() === '') {
@@ -125,7 +125,7 @@ function buildEnvironmentObjects(jsonContent: Record<string, EnvironmentConfig>)
       baseUrl: config.baseUrl.trim(),
       apiBaseUrl,
       username,
-      password,
+      passwordEnvironmentVariable,
     })
   }
 
@@ -154,7 +154,14 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
 
   // Get all environments from database
   const allDbEnvironments = await prisma.environment.findMany({
-    select: { id: true, name: true, baseUrl: true, apiBaseUrl: true, username: true, password: true },
+    select: {
+      id: true,
+      name: true,
+      baseUrl: true,
+      apiBaseUrl: true,
+      username: true,
+      passwordEnvironmentVariable: true,
+    },
   })
 
   // Create a case-insensitive map: normalized name -> actual DB name
@@ -166,7 +173,7 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
       baseUrl: string
       apiBaseUrl: string | null
       username: string | null
-      password: string | null
+      passwordEnvironmentVariable: string | null
     }
   >()
   for (const dbEnv of allDbEnvironments) {
@@ -219,7 +226,7 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
           existingDbEnv.baseUrl !== env.baseUrl ||
           (existingDbEnv.apiBaseUrl ?? null) !== env.apiBaseUrl ||
           (existingDbEnv.username ?? null) !== env.username ||
-          (existingDbEnv.password ?? null) !== env.password
+          (existingDbEnv.passwordEnvironmentVariable ?? null) !== env.passwordEnvironmentVariable
 
         if (needsUpdate) {
           await prisma.environment.update({
@@ -228,7 +235,9 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
               baseUrl: env.baseUrl,
               apiBaseUrl: env.apiBaseUrl,
               username: env.username,
-              password: env.password,
+              passwordEnvironmentVariable: env.passwordEnvironmentVariable,
+              credentialState: env.passwordEnvironmentVariable ? 'REFERENCE_CONFIGURED' : 'NONE',
+              legacyCredentialDetectedAt: null,
             },
           })
           console.log(`   🔄 Updated environment '${existingDbEnv.name}'`)
@@ -244,7 +253,8 @@ async function syncEnvironmentsToDatabase(environments: EnvironmentData[]): Prom
             baseUrl: env.baseUrl,
             apiBaseUrl: env.apiBaseUrl,
             username: env.username,
-            password: env.password,
+            passwordEnvironmentVariable: env.passwordEnvironmentVariable,
+            credentialState: env.passwordEnvironmentVariable ? 'REFERENCE_CONFIGURED' : 'NONE',
           },
         })
         result.environmentsCreated++

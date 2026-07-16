@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TestRunStatus } from '@prisma/client'
 import { ServiceError } from '@/services/shared/errors'
 
-const { mockTestRunFindUnique, mockGetTestRunLogsService } = vi.hoisted(() => ({
+const { mockTestRunFindUnique, mockGetTestRunLogsService, mockGetTestRunLogTailService } = vi.hoisted(() => ({
   mockTestRunFindUnique: vi.fn(),
   mockGetTestRunLogsService: vi.fn(),
+  mockGetTestRunLogTailService: vi.fn(),
 }))
 
 vi.mock('@/config/db-config', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/config/db-config', () => ({
 
 vi.mock('@/services/test-run/test-run-service', () => ({
   getTestRunLogsService: mockGetTestRunLogsService,
+  getTestRunLogTailService: mockGetTestRunLogTailService,
 }))
 
 vi.mock('@/lib/test-run/process-manager', () => ({
@@ -51,6 +53,13 @@ describe('test run logs route', () => {
     mockGetTestRunLogsService.mockReset()
     mockTestRunFindUnique.mockResolvedValue({ id: 'db-1', status: TestRunStatus.COMPLETED })
     mockGetTestRunLogsService.mockResolvedValue(logs)
+    mockGetTestRunLogTailService.mockResolvedValue({
+      logs,
+      truncated: false,
+      startOffset: 0,
+      endOffset: logs.length,
+      partialStart: false,
+    })
   })
 
   it('returns only stderr entries for errorsOnly mode', async () => {

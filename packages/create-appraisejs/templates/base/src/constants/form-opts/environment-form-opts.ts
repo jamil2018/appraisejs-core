@@ -5,7 +5,11 @@ export const environmentSchema = z.object({
   baseUrl: z.string().url({ message: 'Base URL must be a valid URL' }),
   apiBaseUrl: z.string().url({ message: 'API Base URL must be a valid URL' }).optional().or(z.literal('')),
   username: z.string().optional().or(z.literal('')),
-  password: z.string().optional().or(z.literal('')),
+  passwordEnvironmentVariable: z
+    .string()
+    .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, { message: 'Use a valid process environment variable name' })
+    .optional()
+    .or(z.literal('')),
 })
 
 export type Environment = z.infer<typeof environmentSchema>
@@ -16,7 +20,7 @@ export const environmentFormOpts = {
     baseUrl: '',
     apiBaseUrl: '',
     username: '',
-    password: '',
+    passwordEnvironmentVariable: '',
   },
   validators: {
     onChange: environmentSchema,

@@ -1,7 +1,6 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { glob } from 'glob'
-import prettier from 'prettier'
 import { parse } from '@babel/parser'
 import * as t from '@babel/types'
 import _traverse from '@babel/traverse'
@@ -24,6 +23,7 @@ import {
   type SyncScriptId,
 } from '@/lib/sync/sync-registry'
 import { getTagTypeFromName } from '@/lib/tag-identifiers'
+import { normalizeFunctionDefinition } from '@/lib/sync/normalize-function-definition'
 import { extractModulePathFromAutomationFile, getAutomationLocatorMapPath } from '@/lib/template-sync-utils'
 import {
   determineProjectedStepIcon,
@@ -33,6 +33,7 @@ import {
 } from '@/lib/sync/projected-feature-utils'
 import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
 import { countPendingPlanSync } from '@/lib/plans/plan-sync-service'
+import { aggregatePendingComparisons, pendingComparison } from '@/lib/sync/pending-comparators'
 import {
   parseGroupJSDocLenient as parseGroupJSDoc,
   parseStepJSDocLenient as parseStepJSDoc,
@@ -48,7 +49,7 @@ type EnvironmentConfig = {
   baseUrl: string
   apiBaseUrl: string
   email: string
-  password: string
+  passwordEnvironmentVariable: string
 }
 
 type EnvironmentData = {
@@ -56,7 +57,9 @@ type EnvironmentData = {
   baseUrl: string
   apiBaseUrl: string | null
   username: string | null
-  password: string | null
+  passwordEnvironmentVariable: string | null
+  credentialState?: string
+  legacyCredentialDetectedAt?: Date | null
 }
 
 type LocatorMapEntry = {
@@ -168,28 +171,6 @@ function getEnvironmentIdentityKey(name: string): string {
     .toLowerCase()
 }
 
-async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
-  const source = functionDefinition?.trim()
-  if (!source) {
-    return ''
-  }
-
-  try {
-    return (
-      await prettier.format(source, {
-        parser: 'typescript',
-        semi: true,
-        singleQuote: true,
-        trailingComma: 'es5',
-        printWidth: 80,
-        tabWidth: 2,
-      })
-    ).trim()
-  } catch {
-    return source
-  }
-}
-
 async function readEnvironmentsFromFile(): Promise<EnvironmentData[]> {
   const filePath = join(getAutomationEnvironmentsDir(), 'environments.json')
 
@@ -202,7 +183,7 @@ async function readEnvironmentsFromFile(): Promise<EnvironmentData[]> {
       baseUrl: config.baseUrl.trim(),
       apiBaseUrl: config.apiBaseUrl?.trim() ? config.apiBaseUrl.trim() : null,
       username: config.email?.trim() ? config.email.trim() : null,
-      password: config.password?.trim() ? config.password.trim() : null,
+      passwordEnvironmentVariable: config.passwordEnvironmentVariable?.trim() || null,
     }))
   } catch (error) {
     console.error('Unable to read environments for sync counts:', error)
@@ -759,7 +740,9 @@ export function countEnvironmentMismatches(
     baseUrl: string
     apiBaseUrl: string | null
     username: string | null
-    password: string | null
+    passwordEnvironmentVariable: string | null
+    credentialState?: string
+    legacyCredentialDetectedAt?: Date | null
     _count?: { testRuns: number }
   }>,
 ): number {
@@ -787,7 +770,7 @@ export function countEnvironmentMismatches(
       existing.baseUrl !== environment.baseUrl ||
       (existing.apiBaseUrl ?? null) !== environment.apiBaseUrl ||
       (existing.username ?? null) !== environment.username ||
-      (existing.password ?? null) !== environment.password
+      (existing.passwordEnvironmentVariable ?? null) !== environment.passwordEnvironmentVariable
     ) {
       count++
     }
@@ -1240,7 +1223,7 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
           baseUrl: true,
           apiBaseUrl: true,
           username: true,
-          password: true,
+          passwordEnvironmentVariable: true,
           _count: {
             select: { testRuns: true },
           },
@@ -1339,33 +1322,43 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]),
     )
 
-    const counts: Record<SyncScriptId, number> = {
-      'sync-plans': pendingPlans,
-      'sync-modules': countModuleMismatches(filesystem.modulePaths, dbModules),
-      'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
-      'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),
-      'sync-template-step-groups': countTemplateStepGroupMismatches(
-        filesystem.templateStepGroups,
-        dbTemplateStepGroups,
+    const comparisons = [
+      pendingComparison('sync-plans', pendingPlans),
+      pendingComparison('sync-modules', countModuleMismatches(filesystem.modulePaths, dbModules)),
+      pendingComparison('sync-environments', countEnvironmentMismatches(filesystem.environments, dbEnvironments)),
+      pendingComparison('sync-tags', countTagMismatches(filesystem.tagObjects, dbTags)),
+      pendingComparison(
+        'sync-template-step-groups',
+        countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
       ),
-      'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
-      'sync-locator-groups': countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
-      'sync-locators': countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups),
-      'sync-test-suites': countTestSuiteMismatches(filesystem.testSuites, dbTestSuites, modulePathMap),
-      'sync-test-cases': countTestCaseMismatches(
-        filesystem.testCases,
-        dbTestCases,
-        modulePathMap,
-        normalizedDbTemplateSteps.map(step => ({
-          signature: step.signature,
-          parameters: step.parameters,
-        })),
+      pendingComparison(
+        'sync-template-steps',
+        countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
       ),
-    }
+      pendingComparison(
+        'sync-locator-groups',
+        countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
+      ),
+      pendingComparison('sync-locators', countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups)),
+      pendingComparison(
+        'sync-test-suites',
+        countTestSuiteMismatches(filesystem.testSuites, dbTestSuites, modulePathMap),
+      ),
+      pendingComparison(
+        'sync-test-cases',
+        countTestCaseMismatches(
+          filesystem.testCases,
+          dbTestCases,
+          modulePathMap,
+          normalizedDbTemplateSteps.map(step => ({ signature: step.signature, parameters: step.parameters })),
+        ),
+      ),
+    ]
+    const aggregate = aggregatePendingComparisons(comparisons)
 
     return {
-      ...counts,
-      [SYNC_ALL_REQUEST_ID]: Object.values(counts).reduce((sum, count) => sum + count, 0),
+      ...aggregate.counts,
+      [SYNC_ALL_REQUEST_ID]: aggregate.total,
     }
   } catch (error) {
     console.error('Unable to compute sync pending counts:', error)

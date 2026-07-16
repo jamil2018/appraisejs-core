@@ -12,9 +12,9 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { glob } from 'glob'
-import prettier from 'prettier'
 
 import prisma from '../src/config/db-config'
+import { normalizeFunctionDefinition } from '../src/lib/sync/normalize-function-definition'
 import { TemplateStepGroupType, TemplateStepType } from '@prisma/client'
 import { parseStepFile, ParsedStep } from './lib/step-file-parser'
 import { printSyncSummary } from './lib/sync-summary'
@@ -35,30 +35,6 @@ interface SyncResult {
 function normalizeOptionalText(value: string | null | undefined): string | null {
   const normalized = value?.trim()
   return normalized ? normalized : null
-}
-
-async function normalizeFunctionDefinition(functionDefinition: string | null | undefined): Promise<string> {
-  const source = functionDefinition?.trim()
-  if (!source) {
-    return ''
-  }
-
-  try {
-    // Persisting a normalized definition avoids false-positive updates caused by
-    // formatting-only drift between source files and stored DB representation.
-    return (
-      await prettier.format(source, {
-        parser: 'typescript',
-        semi: true,
-        singleQuote: true,
-        trailingComma: 'es5',
-        printWidth: 80,
-        tabWidth: 2,
-      })
-    ).trim()
-  } catch {
-    return source
-  }
 }
 
 /**

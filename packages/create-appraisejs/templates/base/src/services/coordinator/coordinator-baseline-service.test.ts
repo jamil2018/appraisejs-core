@@ -17,7 +17,10 @@ import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFailureSignatures } from '@/lib/baseline-execution/baseline'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { readPlanEvents } from '@/services/coordinator/coordinator-service'
-import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import {
+  copyMigratedTestDatabase,
+  prepareCleanCoordinatorPlanRuntimeTestDatabase,
+} from '@/test/plan-runtime-schema-test-helper'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import type { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
@@ -241,7 +244,7 @@ function recordSubmittedRun(
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-baseline-'))
   databasePath = path.join(workspace, 'baseline.db')
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
+  await copyMigratedTestDatabase(databasePath)
   await ensurePlanRuntimeSchema()
   client = sqliteTestClient(databasePath)
   await fs.writeFile(path.join(workspace, 'package.json'), '{}')

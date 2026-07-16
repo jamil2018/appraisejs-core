@@ -8,13 +8,22 @@ export async function expectPageHeading(page: Page, name: string | RegExp): Prom
   await expect(page.getByText(name, { exact: typeof name === 'string' }).first()).toBeVisible()
 }
 
+export async function completeNamedCreate(
+  page: Page,
+  name: string,
+  destination: RegExp,
+  saveButton: string | RegExp = /^Save$/,
+): Promise<void> {
+  await page.getByRole('button', { name: saveButton }).click()
+  await expect(page).toHaveURL(destination)
+  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+}
+
 export async function createModule(page: Page, name: string): Promise<void> {
   await page.goto('/modules/create')
   await expectPageHeading(page, 'Create Module')
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill(name)
-  await saveForm(page)
-  await expect(page).toHaveURL(/\/modules$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/modules$/)
 }
 
 export async function createEnvironment(page: Page, name: string): Promise<void> {
@@ -24,10 +33,8 @@ export async function createEnvironment(page: Page, name: string): Promise<void>
   await page.getByRole('textbox', { name: 'Base URL', exact: true }).fill('https://example.test')
   await page.getByRole('textbox', { name: 'API Base URL (Optional)', exact: true }).fill('https://api.example.test')
   await page.getByRole('textbox', { name: 'Username (Optional)', exact: true }).fill('e2e-user')
-  await page.getByLabel('Password (Optional)', { exact: true }).fill('e2e-secret')
-  await saveForm(page)
-  await expect(page).toHaveURL(/\/environments$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await page.getByLabel('Password environment variable (Optional)', { exact: true }).fill('APPRAISE_E2E_PASSWORD')
+  await completeNamedCreate(page, name, /\/environments$/)
 }
 
 export async function createTag(page: Page, name: string, expression: string): Promise<void> {
@@ -35,7 +42,5 @@ export async function createTag(page: Page, name: string, expression: string): P
   await expectPageHeading(page, 'Create Tag')
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill(name)
   await page.getByRole('textbox', { name: 'Tag Expression', exact: true }).fill(expression)
-  await saveForm(page)
-  await expect(page).toHaveURL(/\/tags$/)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await completeNamedCreate(page, name, /\/tags$/)
 }

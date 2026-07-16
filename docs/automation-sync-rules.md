@@ -1,5 +1,9 @@
 # Automation Sync Rules
 
+Pending-sync inventory is represented as typed family comparisons in `src/lib/sync/pending-comparators.ts`. Each
+family owns its mismatch count and reasons; aggregation is generic and must not inspect entity-specific properties.
+Environment comparisons use credential reference names and state only, never credential values.
+
 > Phase 5 migration: unmarked legacy automation can be inspected through the non-mutating import preview described in
 > `docs/legacy-automation-migration.md`. Direct mutation and bidirectional import of directories containing
 > `.appraise-generated.json` are blocked. Reviewed Validation AST state and immutable runtime capsules remain
@@ -43,6 +47,11 @@ Reviewed managed-validation runs use Appraise-owned capsule projections under
 `.appraise/projects/<TargetProject.id>/runtime/<validationHash>/<runId>/`. These are not automation-sync inputs:
 database ownership plus the sealed manifest/receipt are authoritative, and agents must not hand-edit or import them.
 Legacy runs continue to use `automation/reports`.
+
+Environment projections contain `passwordEnvironmentVariable`, which is only the name of a process environment
+variable. Never place a credential value or a `password` field in database seed data, sync input, generated
+configuration, fixtures, or scaffold source. The Cucumber runtime resolves a configured reference only inside the
+execution process and fails with a redacted configuration error when it is missing or marked as legacy.
 
 Reviewed publications may also be distributed under `automation/appraise/` through the durable workflow in
 `docs/repository-export-runtime.md`. This is a generated projection: do not edit it as canonical source or use it for

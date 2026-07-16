@@ -10,9 +10,11 @@ import {
   createCoordinatorClient,
 } from './coordinator-client.js'
 import { diagnoseProject, formatMcpBootstrapError } from './diagnostics.js'
+import { assertLoopbackMcpHost } from './mcp-http-security.js'
 import { runAppraiseHttpMcp, runAppraiseMcp } from './mcp.js'
 import { createOfflineDraft, readValidatedPlan, validatePlanFile } from './plan-file.js'
 import { resolvePlanSource } from './plan-source.js'
+import { ensureLocalProjectIdentity } from './project-identity.js'
 import { runTestRunDiagnose } from './test-run-diagnose-cli.js'
 
 const program = new Command()
@@ -73,6 +75,7 @@ type OnlineOptions = {
 
 function resolveMcpEndpoint(options?: { host?: string; port?: string; path?: string }): string {
   const host = options?.host ?? process.env.APPRAISE_MCP_HOST ?? '127.0.0.1'
+  assertLoopbackMcpHost(host)
   const port = options?.port ?? process.env.APPRAISE_MCP_PORT ?? '3010'
   const endpointPath = options?.path ?? process.env.APPRAISE_MCP_PATH ?? '/mcp'
   return `http://${host}:${port}${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`
@@ -182,6 +185,8 @@ program
   .option('--host <host>', 'HTTP bind host', process.env.APPRAISE_MCP_HOST ?? '127.0.0.1')
   .option('--port <port>', 'HTTP bind port', process.env.APPRAISE_MCP_PORT ?? '3010')
   .option('--path <path>', 'HTTP MCP endpoint path', process.env.APPRAISE_MCP_PATH ?? '/mcp')
+  .option('--body-limit-bytes <bytes>', 'maximum JSON request size', String(1024 * 1024))
+  .option('--max-concurrency <count>', 'maximum concurrent MCP requests', '16')
   .action(
     async (options: {
       cwd: string
@@ -190,6 +195,8 @@ program
       host: string
       port: string
       path: string
+      bodyLimitBytes: string
+      maxConcurrency: string
     }) => {
       try {
         await runAppraiseHttpMcp({
@@ -199,6 +206,8 @@ program
           host: options.host,
           port: parsePort(options.port),
           path: options.path.startsWith('/') ? options.path : `/${options.path}`,
+          bodyLimitBytes: parsePositiveInteger(options.bodyLimitBytes, '--body-limit-bytes'),
+          maxConcurrency: parsePositiveInteger(options.maxConcurrency, '--max-concurrency'),
         })
       } catch (error) {
         console.error(formatMcpBootstrapError(error))
@@ -206,6 +215,14 @@ program
       }
     },
   )
+
+function parsePositiveInteger(value: string, option: string): number {
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new Error(`${option} must be a positive integer; received "${value}".`)
+  }
+  return parsed
+}
 
 program
   .command('doctor')
@@ -238,10 +255,12 @@ agent
     async (options: { cwd: string; baseUrl: string; host: string; port: string; path: string; json: boolean }) => {
       const cwd = path.resolve(options.cwd)
       const endpoint = resolveMcpEndpoint(options)
+      const { identity } = await ensureLocalProjectIdentity(cwd)
       const stdio = { command: 'appraisejs', args: ['mcp', '--cwd', cwd, '--base-url', options.baseUrl] }
       const skillPath = path.join(packageRoot, 'agent-skills', 'appraise-planning-standby')
       const setup = {
         httpMcpEndpoint: endpoint,
+        httpMcp: { url: endpoint, headers: { Authorization: `Bearer ${identity.token}` } },
         stdioFallback: stdio,
         currentBoundHubProject: cwd,
         globalSkill: {
@@ -263,6 +282,7 @@ agent
       }
       console.log('AppraiseJS agent setup')
       console.log(`\nHTTP MCP endpoint:\n${setup.httpMcpEndpoint}`)
+      console.log('Authorization header: configured in `appraisejs agent setup --json` output (token hidden here).')
       console.log('\nStdio fallback command config:')
       console.log(JSON.stringify({ appraisejs: setup.stdioFallback }, null, 2))
       console.log(`\nCurrent bound hub project:\n${setup.currentBoundHubProject}`)

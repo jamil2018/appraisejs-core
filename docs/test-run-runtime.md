@@ -111,8 +111,12 @@ between the public run ID and the internal TestRun row ID.
 Evidence summaries use the public `runId` for both `testRunPageId` and `executionRunId`. Report pages include
 `?project=<targetProjectId>`, while logs and diagnostics include `?targetProjectId=<targetProjectId>`. Coordinator
 reads never retry without their bound project. A missing managed log or report returns an opaque, bounded 404; an
-integrity failure returns an opaque 409. Managed execution flushes and durably writes its sealed capsule log before
-publishing a terminal TestRun state, so terminal evidence links are immediately readable.
+integrity failure returns an opaque 409. Managed execution durably writes its sealed capsule log before publishing a
+terminal TestRun state, so terminal evidence links are immediately readable. Ordinary and managed runs share one
+terminal-state table. A managed terminal state additionally requires its runtime capsule and log artifact, and a
+passing state always requires a report. Completion, failure, and cancellation use compare-and-set persistence for the
+TestRun and execution attempt. The run-scoped logger remains open through that final write, closes exactly once
+afterward, and treats any late write as a controlled no-op.
 
 The database lease covers the complete preflight, not only materialization. Ownership is renewed before every check,
 and the final dry-run stage renews, repeats complete repository/blob/run-file integrity, securely revalidates output
@@ -128,7 +132,8 @@ ancestors or final paths immediately before filesystem mutation.
 - Evidence summary/finalizer: `src/services/test-run/run-evidence-summary-service.ts`
 - Local execution adapter: `src/lib/executor/local-executor-adapter.ts`
 - Process registry and cancellation: `src/lib/test-run/process-manager.ts`
-- Log formatting and storage: `src/lib/test-run/log-formatter.ts`, `src/lib/test-run/winston-logger.ts`
+- Log formatting, storage, and close ownership: `src/lib/test-run/log-formatter.ts`,
+  `src/lib/test-run/test-run-logger.ts`, `src/lib/test-run/winston-logger.ts`
 - Report parsing: `src/lib/test-run/report-parser.ts`
 - Report persistence: `src/services/report/report-service.ts`
 - Runtime artifact paths: `src/lib/automation/automation-path-roots.ts`
@@ -150,6 +155,11 @@ ancestors or final paths immediately before filesystem mutation.
 
 ## Execution Flow
 
+The test-run service coordinates explicit stages under `src/services/test-run/stages/`: workspace preparation,
+executor launch, and output/evidence collection. These stages return typed results and do not terminalize runs;
+`scheduleTestRunCompletion` alone owns stage ordering, failure recovery, and the call into the canonical terminal-state
+transition.
+
 1. Actions validate user input and call the test run service.
 2. The service resolves selected tags or suites into an executable tag expression and linked test cases.
 3. `local-executor-adapter.ts` prepares the automation workspace, sets runtime environment variables, and starts the
@@ -157,10 +167,11 @@ ancestors or final paths immediately before filesystem mutation.
    `npx cucumber-js` fallback.
 4. `process-manager.ts` tracks active processes for status, logs, and cancellation.
 5. Cucumber writes JSON reports under `automation/reports/<runId>/cucumber.json`.
-6. Logs are persisted and the raw process status is recorded as completed.
-7. Report parsing and persistence update report records, metrics, and linked run test cases.
-8. The evidence finalizer computes `TestRun.evidenceHealth` and derives the trusted `TestRun.result`. A zero exit code
-   is not enough for trusted passing evidence.
+6. Logs are persisted while the run remains non-terminal.
+7. Report parsing and evidence reconciliation update report records, metrics, and linked run test cases.
+8. The terminalizer atomically applies the legal final TestRun/result pair and managed execution-attempt state. A zero
+   exit code is not enough for trusted passing evidence.
+9. Listener cleanup and logger closure run idempotently after terminal persistence.
 
 ## Evidence Health
 
@@ -220,6 +231,11 @@ Diagnosis responses remain bounded and include evidence health, report/log links
 legal recovery action.
 
 The local executor sets these important environment variables for child Cucumber runs:
+
+Environment records may name a credential through `passwordEnvironmentVariable`. Appraise persists and projects only
+that reference. The referenced process value is resolved after the execution process starts, is kept in memory only,
+and must not be included in receipts, diagnostics, logs, reports, or UI/API responses. Legacy credential rows are
+disabled until an operator replaces them with a reference.
 
 - `ENVIRONMENT`: selected AppraiseJS environment name.
 - `HEADLESS`: browser headless mode.

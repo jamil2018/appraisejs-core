@@ -1,21 +1,21 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 51 files from prisma/schema.prisma and migrations
+- 53 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1112 nodes · 2510 edges · 167 communities
+- 1121 nodes · 2523 edges · 171 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
 1. `String` - 440 edges
 2. `TargetProject` - 152 edges
-3. `schema.prisma` - 148 edges
-4. `DateTime` - 122 edges
+3. `schema.prisma` - 151 edges
+4. `DateTime` - 123 edges
 5. `PlanProjection` - 86 edges
-6. `TestRun` - 72 edges
+6. `TestRun` - 73 edges
 7. `ValidationAstPublishOperation` - 62 edges
 8. `ProviderWorkflowRun` - 56 edges
 9. `TestCase` - 52 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (167 total)
+## Communities (171 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -232,317 +232,329 @@ Nodes (8): PlanPersonalLayout, PlanPersonalLayout.id, PlanPersonalLayout.planPro
 ### Community 62 - "TestRunLog"
 Nodes (7): TestRunLog, TestRunLog.id, TestRunLog.testRunId, TestRunLog.logs, TestRunLog.createdAt, TestRunLog.updatedAt, TestRunLog.testRun
 
-### Community 63 - "Environment"
-Nodes (12): Environment, Environment.id, Environment.name, Environment.baseUrl, Environment.apiBaseUrl, Environment.username, Environment.password, Environment.createdAt (+more)
+### Community 63 - "EnvironmentCredentialState"
+Nodes (4): EnvironmentCredentialState, EnvironmentCredentialState.NONE, EnvironmentCredentialState.REFERENCE_CONFIGURED, EnvironmentCredentialState.LEGACY_DISABLED
 
-### Community 64 - "Tag"
+### Community 64 - "Environment"
+Nodes (14): Environment, Environment.id, Environment.name, Environment.baseUrl, Environment.apiBaseUrl, Environment.username, Environment.passwordEnvironmentVariable, Environment.credentialState (+more)
+
+### Community 65 - "Tag"
 Nodes (12): Tag, Tag.id, Tag.name, Tag.tagExpression, Tag.type, Tag.createdAt, Tag.updatedAt, Tag.testRuns (+more)
 
-### Community 65 - "ConflictResolution"
+### Community 66 - "ConflictResolution"
 Nodes (10): ConflictResolution, ConflictResolution.id, ConflictResolution.entityType, ConflictResolution.entityId, ConflictResolution.conflictType, ConflictResolution.conflictingEntityId, ConflictResolution.resolved, ConflictResolution.createdAt (+more)
 
-### Community 66 - "ReportTestCase"
+### Community 67 - "ReportTestCase"
 Nodes (10): ReportTestCase, ReportTestCase.id, ReportTestCase.reportId, ReportTestCase.testCaseId, ReportTestCase.testRunTestCaseId, ReportTestCase.reportScenarioId, ReportTestCase.testRunTestCase, ReportTestCase.report (+more)
 
-### Community 67 - "Report"
+### Community 68 - "Report"
 Nodes (13): Report, Report.id, Report.name, Report.description, Report.reportPath, Report.createdAt, Report.updatedAt, Report.testRunId (+more)
 
-### Community 68 - "ReportFeature"
+### Community 69 - "ReportFeature"
 Nodes (13): ReportFeature, ReportFeature.id, ReportFeature.reportId, ReportFeature.name, ReportFeature.description, ReportFeature.uri, ReportFeature.line, ReportFeature.keyword (+more)
 
-### Community 69 - "ReportFeatureTag"
+### Community 70 - "ReportFeatureTag"
 Nodes (7): ReportFeatureTag, ReportFeatureTag.id, ReportFeatureTag.reportFeatureId, ReportFeatureTag.tagName, ReportFeatureTag.line, ReportFeatureTag.createdAt, ReportFeatureTag.reportFeature
 
-### Community 70 - "ReportScenario"
+### Community 71 - "ReportScenario"
 Nodes (16): ReportScenario, ReportScenario.id, ReportScenario.reportFeatureId, ReportScenario.name, ReportScenario.description, ReportScenario.line, ReportScenario.keyword, ReportScenario.type (+more)
 
-### Community 71 - "ReportScenarioTag"
+### Community 72 - "ReportScenarioTag"
 Nodes (7): ReportScenarioTag, ReportScenarioTag.id, ReportScenarioTag.reportScenarioId, ReportScenarioTag.tagName, ReportScenarioTag.line, ReportScenarioTag.createdAt, ReportScenarioTag.reportScenario
 
-### Community 72 - "ReportStep"
+### Community 73 - "ReportStep"
 Nodes (17): ReportStep, ReportStep.id, ReportStep.reportScenarioId, ReportStep.keyword, ReportStep.line, ReportStep.name, ReportStep.matchLocation, ReportStep.status (+more)
 
-### Community 73 - "ReportHook"
+### Community 74 - "ReportHook"
 Nodes (12): ReportHook, ReportHook.id, ReportHook.reportScenarioId, ReportHook.keyword, ReportHook.status, ReportHook.duration, ReportHook.errorMessage, ReportHook.errorTrace (+more)
 
-### Community 74 - "TestCaseMetrics"
+### Community 75 - "TestCaseMetrics"
 Nodes (17): TestCaseMetrics, TestCaseMetrics.id, TestCaseMetrics.testCaseId, TestCaseMetrics.isRepeatedlyFailing, TestCaseMetrics.isFlaky, TestCaseMetrics.consecutiveFailures, TestCaseMetrics.failureRate, TestCaseMetrics.totalRecentRuns (+more)
 
-### Community 75 - "TestSuiteMetrics"
+### Community 76 - "TestSuiteMetrics"
 Nodes (9): TestSuiteMetrics, TestSuiteMetrics.id, TestSuiteMetrics.testSuiteId, TestSuiteMetrics.lastExecutedAt, TestSuiteMetrics.createdAt, TestSuiteMetrics.updatedAt, TestSuiteMetrics.testSuite, TestSuiteMetrics.targetProjectId (+more)
 
-### Community 76 - "DashboardMetrics"
+### Community 77 - "DashboardMetrics"
 Nodes (10): DashboardMetrics, DashboardMetrics.id, DashboardMetrics.failedRecentRunsCount, DashboardMetrics.repeatedlyFailingTestsCount, DashboardMetrics.flakyTestsCount, DashboardMetrics.suitesNotExecutedRecentlyCount, DashboardMetrics.lastUpdatedAt, DashboardMetrics.createdAt (+more)
 
-### Community 77 - "TagType"
+### Community 78 - "TagType"
 Nodes (3): TagType, TagType.IDENTIFIER, TagType.FILTER
 
-### Community 78 - "TestRunStatus"
+### Community 79 - "TestRunStatus"
 Nodes (6): TestRunStatus, TestRunStatus.QUEUED, TestRunStatus.RUNNING, TestRunStatus.CANCELLING, TestRunStatus.COMPLETED, TestRunStatus.CANCELLED
 
-### Community 79 - "TestRunTestCaseStatus"
+### Community 80 - "TestRunTestCaseStatus"
 Nodes (5): TestRunTestCaseStatus, TestRunTestCaseStatus.PENDING, TestRunTestCaseStatus.RUNNING, TestRunTestCaseStatus.COMPLETED, TestRunTestCaseStatus.CANCELLED
 
-### Community 80 - "TestRunTestCaseResult"
+### Community 81 - "TestRunTestCaseResult"
 Nodes (4): TestRunTestCaseResult, TestRunTestCaseResult.PASSED, TestRunTestCaseResult.FAILED, TestRunTestCaseResult.UNTESTED
 
-### Community 81 - "TestRunResult"
+### Community 82 - "TestRunResult"
 Nodes (5): TestRunResult, TestRunResult.PENDING, TestRunResult.PASSED, TestRunResult.FAILED, TestRunResult.CANCELLED
 
-### Community 82 - "TestRunEvidenceHealth"
+### Community 83 - "TestRunEvidenceHealth"
 Nodes (9): TestRunEvidenceHealth, TestRunEvidenceHealth.valid, TestRunEvidenceHealth.invalid_empty_run, TestRunEvidenceHealth.invalid_missing_test_cases, TestRunEvidenceHealth.invalid_missing_report, TestRunEvidenceHealth.invalid_placeholder_binary, TestRunEvidenceHealth.invalid_unmatched_scenarios, TestRunEvidenceHealth.invalid_stale_runtime (+more)
 
-### Community 83 - "Role"
+### Community 84 - "Role"
 Nodes (4): Role, Role.ADMIN, Role.TESTER, Role.REVIEWER
 
-### Community 84 - "ReviewStatus"
+### Community 85 - "ReviewStatus"
 Nodes (4): ReviewStatus, ReviewStatus.PENDING, ReviewStatus.APPROVED, ReviewStatus.CHANGES_REQUESTED
 
-### Community 85 - "TestCaseStatus"
+### Community 86 - "TestCaseStatus"
 Nodes (4): TestCaseStatus, TestCaseStatus.PENDING, TestCaseStatus.IN_PROGRESS, TestCaseStatus.COMPLETED
 
-### Community 86 - "TestCaseResult"
+### Community 87 - "TestCaseResult"
 Nodes (7): TestCaseResult, TestCaseResult.PASSED, TestCaseResult.FAILED, TestCaseResult.BLOCKED, TestCaseResult.SKIPPED, TestCaseResult.RETEST, TestCaseResult.UNTESTED
 
-### Community 87 - "TemplateStepType"
+### Community 88 - "TemplateStepType"
 Nodes (3): TemplateStepType, TemplateStepType.ACTION, TemplateStepType.ASSERTION
 
-### Community 88 - "StepParameterType"
+### Community 89 - "StepParameterType"
 Nodes (6): StepParameterType, StepParameterType.NUMBER, StepParameterType.STRING, StepParameterType.DATE, StepParameterType.BOOLEAN, StepParameterType.LOCATOR
 
-### Community 89 - "StepParameterValueType"
+### Community 90 - "StepParameterValueType"
 Nodes (4): StepParameterValueType, StepParameterValueType.STRING, StepParameterValueType.NUMBER, StepParameterValueType.LOCATOR
 
-### Community 90 - "TemplateStepIcon"
+### Community 91 - "TemplateStepIcon"
 Nodes (13): TemplateStepIcon, TemplateStepIcon.MOUSE, TemplateStepIcon.NAVIGATION, TemplateStepIcon.INPUT, TemplateStepIcon.DOWNLOAD, TemplateStepIcon.API, TemplateStepIcon.STORE, TemplateStepIcon.FORMAT (+more)
 
-### Community 91 - "BrowserEngine"
+### Community 92 - "BrowserEngine"
 Nodes (4): BrowserEngine, BrowserEngine.CHROMIUM, BrowserEngine.FIREFOX, BrowserEngine.WEBKIT
 
-### Community 92 - "TemplateStepGroupType"
+### Community 93 - "TemplateStepGroupType"
 Nodes (3): TemplateStepGroupType, TemplateStepGroupType.ACTION, TemplateStepGroupType.VALIDATION
 
-### Community 93 - "EntityType"
+### Community 94 - "EntityType"
 Nodes (2): EntityType, EntityType.LOCATOR
 
-### Community 94 - "ConflictType"
+### Community 95 - "ConflictType"
 Nodes (3): ConflictType, ConflictType.DUPLICATE_NAME, ConflictType.DUPLICATE_VALUE
 
-### Community 95 - "StepStatus"
+### Community 96 - "StepStatus"
 Nodes (6): StepStatus, StepStatus.PASSED, StepStatus.FAILED, StepStatus.SKIPPED, StepStatus.PENDING, StepStatus.UNDEFINED
 
-### Community 96 - "StepKeyword"
+### Community 97 - "StepKeyword"
 Nodes (8): StepKeyword, StepKeyword.GIVEN, StepKeyword.WHEN, StepKeyword.THEN, StepKeyword.AND, StepKeyword.BUT, StepKeyword.BEFORE, StepKeyword.AFTER
 
-### Community 97 - "String"
+### Community 98 - "String"
 Nodes (1): String
 
-### Community 98 - "DateTime"
+### Community 99 - "DateTime"
 Nodes (1): DateTime
 
-### Community 99 - "Int"
+### Community 100 - "Int"
 Nodes (1): Int
 
-### Community 100 - "Boolean"
+### Community 101 - "Boolean"
 Nodes (1): Boolean
 
-### Community 101 - "Float"
+### Community 102 - "Float"
 Nodes (1): Float
 
-### Community 102 - "20251026202316_migrate_back_to_sqlite"
+### Community 103 - "20251026202316_migrate_back_to_sqlite"
 Nodes (1): 20251026202316_migrate_back_to_sqlite
 
-### Community 103 - "_TagToTestRun"
+### Community 104 - "_TagToTestRun"
 Nodes (1): _TagToTestRun
 
-### Community 104 - "_TestSuiteTestCases"
+### Community 105 - "_TestSuiteTestCases"
 Nodes (1): _TestSuiteTestCases
 
-### Community 105 - "20251104113456_add_type_for_template_step_groups"
+### Community 106 - "20251104113456_add_type_for_template_step_groups"
 Nodes (1): 20251104113456_add_type_for_template_step_groups
 
-### Community 106 - "new_TemplateStepGroup"
+### Community 107 - "new_TemplateStepGroup"
 Nodes (1): new_TemplateStepGroup
 
-### Community 107 - "20251104170946_add_tags_to_test_suite_and_test_case"
+### Community 108 - "20251104170946_add_tags_to_test_suite_and_test_case"
 Nodes (1): 20251104170946_add_tags_to_test_suite_and_test_case
 
-### Community 108 - "_TagToTestCase"
+### Community 109 - "_TagToTestCase"
 Nodes (1): _TagToTestCase
 
-### Community 109 - "_TagToTestSuite"
+### Community 110 - "_TagToTestSuite"
 Nodes (1): _TagToTestSuite
 
-### Community 110 - "20251112190024_add_cascade_delete_to_test_run_test_case"
+### Community 111 - "20251112190024_add_cascade_delete_to_test_run_test_case"
 Nodes (1): 20251112190024_add_cascade_delete_to_test_run_test_case
 
-### Community 111 - "new_TestRunTestCase"
+### Community 112 - "new_TestRunTestCase"
 Nodes (1): new_TestRunTestCase
 
-### Community 112 - "20251113181100_add_test_run_log"
+### Community 113 - "20251113181100_add_test_run_log"
 Nodes (1): 20251113181100_add_test_run_log
 
-### Community 113 - "20251119191838_add_tag_type"
+### Community 114 - "20251119191838_add_tag_type"
 Nodes (1): 20251119191838_add_tag_type
 
-### Community 114 - "new_Tag"
+### Community 115 - "new_Tag"
 Nodes (1): new_Tag
 
-### Community 115 - "20251121164059_add_conflict_resolution"
+### Community 116 - "20251121164059_add_conflict_resolution"
 Nodes (1): 20251121164059_add_conflict_resolution
 
-### Community 116 - "20251130190737_add_trace_path_to_test_run_test_case"
+### Community 117 - "20251130190737_add_trace_path_to_test_run_test_case"
 Nodes (1): 20251130190737_add_trace_path_to_test_run_test_case
 
-### Community 117 - "20251213074835_add_log_path_to_test_run"
+### Community 118 - "20251213074835_add_log_path_to_test_run"
 Nodes (1): 20251213074835_add_log_path_to_test_run
 
-### Community 118 - "20251213183952_add_name_property_for_the_test_run_entities"
+### Community 119 - "20251213183952_add_name_property_for_the_test_run_entities"
 Nodes (1): 20251213183952_add_name_property_for_the_test_run_entities
 
-### Community 119 - "new_TestRun"
+### Community 120 - "new_TestRun"
 Nodes (1): new_TestRun
 
-### Community 120 - "20251223183400_add_report_model_to_db_schema"
+### Community 121 - "20251223183400_add_report_model_to_db_schema"
 Nodes (1): 20251223183400_add_report_model_to_db_schema
 
-### Community 121 - "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases"
+### Community 122 - "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases"
 Nodes (1): 20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases
 
-### Community 122 - "20251224083549_add_comprehensive_report_storage"
+### Community 123 - "20251224083549_add_comprehensive_report_storage"
 Nodes (1): 20251224083549_add_comprehensive_report_storage
 
-### Community 123 - "new_ReportTestCase"
+### Community 124 - "new_ReportTestCase"
 Nodes (1): new_ReportTestCase
 
-### Community 124 - "20251229194422_migrate_duration_to_string"
+### Community 125 - "20251229194422_migrate_duration_to_string"
 Nodes (1): 20251229194422_migrate_duration_to_string
 
-### Community 125 - "new_ReportHook"
+### Community 126 - "new_ReportHook"
 Nodes (1): new_ReportHook
 
-### Community 126 - "new_ReportStep"
+### Community 127 - "new_ReportStep"
 Nodes (1): new_ReportStep
 
-### Community 127 - "20251230124637_add_unique_constraint_to_test_run_name"
+### Community 128 - "20251230124637_add_unique_constraint_to_test_run_name"
 Nodes (1): 20251230124637_add_unique_constraint_to_test_run_name
 
-### Community 128 - "20260115094436_add_dashboard_metrics"
+### Community 129 - "20260115094436_add_dashboard_metrics"
 Nodes (1): 20260115094436_add_dashboard_metrics
 
-### Community 129 - "20260127172022_add_cascade_delete_to_step_parameters"
+### Community 130 - "20260127172022_add_cascade_delete_to_step_parameters"
 Nodes (1): 20260127172022_add_cascade_delete_to_step_parameters
 
-### Community 130 - "new_TemplateTestCaseStepParameter"
+### Community 131 - "new_TemplateTestCaseStepParameter"
 Nodes (1): new_TemplateTestCaseStepParameter
 
-### Community 131 - "new_TestCaseStepParameter"
+### Community 132 - "new_TestCaseStepParameter"
 Nodes (1): new_TestCaseStepParameter
 
-### Community 132 - "20260313093000_add_report_step_screenshot_path"
+### Community 133 - "20260313093000_add_report_step_screenshot_path"
 Nodes (1): 20260313093000_add_report_step_screenshot_path
 
-### Community 133 - "20260318120000_add_test_suite_context_to_test_run_test_case"
+### Community 134 - "20260318120000_add_test_suite_context_to_test_run_test_case"
 Nodes (1): 20260318120000_add_test_suite_context_to_test_run_test_case
 
-### Community 134 - "20260318173512_add_support_of_test_suite_level_runs"
+### Community 135 - "20260318173512_add_support_of_test_suite_level_runs"
 Nodes (1): 20260318173512_add_support_of_test_suite_level_runs
 
-### Community 135 - "20260507000000_add_flow_builder_node_grouping"
+### Community 136 - "20260507000000_add_flow_builder_node_grouping"
 Nodes (1): 20260507000000_add_flow_builder_node_grouping
 
-### Community 136 - "20260609002500_add_plan_projection_and_sync"
+### Community 137 - "20260609002500_add_plan_projection_and_sync"
 Nodes (1): 20260609002500_add_plan_projection_and_sync
 
-### Community 137 - "20260609090000_add_plan_review_runtime"
+### Community 138 - "20260609090000_add_plan_review_runtime"
 Nodes (1): 20260609090000_add_plan_review_runtime
 
-### Community 138 - "20260609160000_add_coordinator_events_api_mcp"
+### Community 139 - "20260609160000_add_coordinator_events_api_mcp"
 Nodes (1): 20260609160000_add_coordinator_events_api_mcp
 
-### Community 139 - "new_PlanEvent"
+### Community 140 - "new_PlanEvent"
 Nodes (1): new_PlanEvent
 
-### Community 140 - "20260613015000_add_plan_description"
+### Community 141 - "20260613015000_add_plan_description"
 Nodes (1): 20260613015000_add_plan_description
 
-### Community 141 - "20260628090000_add_target_projects"
+### Community 142 - "20260628090000_add_target_projects"
 Nodes (1): 20260628090000_add_target_projects
 
-### Community 142 - "new_PlanProjection"
+### Community 143 - "new_PlanProjection"
 Nodes (1): new_PlanProjection
 
-### Community 143 - "20260628103000_add_plan_slug_legacy_identity"
+### Community 144 - "20260628103000_add_plan_slug_legacy_identity"
 Nodes (1): 20260628103000_add_plan_slug_legacy_identity
 
-### Community 144 - "20260701090000_add_provider_workflow_runs"
+### Community 145 - "20260701090000_add_provider_workflow_runs"
 Nodes (1): 20260701090000_add_provider_workflow_runs
 
-### Community 145 - "20260701120000_add_provider_registration_settings"
+### Community 146 - "20260701120000_add_provider_registration_settings"
 Nodes (1): 20260701120000_add_provider_registration_settings
 
-### Community 146 - "20260708090000_add_test_run_evidence_health"
+### Community 147 - "20260708090000_add_test_run_evidence_health"
 Nodes (1): 20260708090000_add_test_run_evidence_health
 
-### Community 147 - "20260709090000_add_step_blocks"
+### Community 148 - "20260709090000_add_step_blocks"
 Nodes (1): 20260709090000_add_step_blocks
 
-### Community 148 - "20260711120000_add_baseline_attempt_history"
+### Community 149 - "20260711120000_add_baseline_attempt_history"
 Nodes (1): 20260711120000_add_baseline_attempt_history
 
-### Community 149 - "20260711150000_add_delegated_authorization_nonces"
+### Community 150 - "20260711150000_add_delegated_authorization_nonces"
 Nodes (1): 20260711150000_add_delegated_authorization_nonces
 
-### Community 150 - "20260711170000_add_delegated_ast_submissions"
+### Community 151 - "20260711170000_add_delegated_ast_submissions"
 Nodes (1): 20260711170000_add_delegated_ast_submissions
 
-### Community 151 - "20260711190000_add_validation_ast_publish_journal"
+### Community 152 - "20260711190000_add_validation_ast_publish_journal"
 Nodes (1): 20260711190000_add_validation_ast_publish_journal
 
-### Community 152 - "20260711220000_add_runtime_capsules"
+### Community 153 - "20260711220000_add_runtime_capsules"
 Nodes (1): 20260711220000_add_runtime_capsules
 
-### Community 153 - "20260712010000_add_runtime_capsule_execution_attempt"
+### Community 154 - "20260712010000_add_runtime_capsule_execution_attempt"
 Nodes (1): 20260712010000_add_runtime_capsule_execution_attempt
 
-### Community 154 - "20260712020000_add_test_run_preparation_key"
+### Community 155 - "20260712020000_add_test_run_preparation_key"
 Nodes (1): 20260712020000_add_test_run_preparation_key
 
-### Community 155 - "20260712180000_add_repository_exports"
+### Community 156 - "20260712180000_add_repository_exports"
 Nodes (1): 20260712180000_add_repository_exports
 
-### Community 156 - "20260713143000_add_project_resource_ownership"
+### Community 157 - "20260713143000_add_project_resource_ownership"
 Nodes (1): 20260713143000_add_project_resource_ownership
 
-### Community 157 - "20260713153000_add_validation_resource_proposals"
+### Community 158 - "20260713153000_add_validation_resource_proposals"
 Nodes (1): 20260713153000_add_validation_resource_proposals
 
-### Community 158 - "20260713163000_normalize_managed_validation_vocabulary"
+### Community 159 - "20260713163000_normalize_managed_validation_vocabulary"
 Nodes (1): 20260713163000_normalize_managed_validation_vocabulary
 
-### Community 159 - "20260713173000_add_named_plan_hashes"
+### Community 160 - "20260713173000_add_named_plan_hashes"
 Nodes (1): 20260713173000_add_named_plan_hashes
 
-### Community 160 - "20260713183000_add_delegated_coordinator_receipts"
+### Community 161 - "20260713183000_add_delegated_coordinator_receipts"
 Nodes (1): 20260713183000_add_delegated_coordinator_receipts
 
-### Community 161 - "20260713200000_stage_complete_project_ownership"
+### Community 162 - "20260713200000_stage_complete_project_ownership"
 Nodes (1): 20260713200000_stage_complete_project_ownership
 
-### Community 162 - "20260713210000_add_target_project_description"
+### Community 163 - "20260713210000_add_target_project_description"
 Nodes (1): 20260713210000_add_target_project_description
 
-### Community 163 - "20260713211000_scope_test_run_preparation_key"
+### Community 164 - "20260713211000_scope_test_run_preparation_key"
 Nodes (1): 20260713211000_scope_test_run_preparation_key
 
-### Community 164 - "20260714000000_make_template_library_shared"
+### Community 165 - "20260714000000_make_template_library_shared"
 Nodes (1): 20260714000000_make_template_library_shared
 
-### Community 165 - "20260714143000_add_validation_review_state_receipt"
+### Community 166 - "20260714143000_add_validation_review_state_receipt"
 Nodes (1): 20260714143000_add_validation_review_state_receipt
 
-### Community 166 - "20260714160500_scope_environment_names_to_project"
+### Community 167 - "20260714160500_scope_environment_names_to_project"
 Nodes (1): 20260714160500_scope_environment_names_to_project
+
+### Community 168 - "20260716190000_replace_environment_password_with_reference"
+Nodes (1): 20260716190000_replace_environment_password_with_reference
+
+### Community 169 - "new_Environment"
+Nodes (1): new_Environment
+
+### Community 170 - "20260716210000_add_measured_test_run_pagination_index"
+Nodes (1): 20260716210000_add_measured_test_run_pagination_index
 
 ## Suggested Questions
 - Which models are connected to PlanProjection?

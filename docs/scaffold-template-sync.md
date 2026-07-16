@@ -24,6 +24,8 @@ contents when a root/base source change should flow through template preparation
 
 `prepare-template` intentionally resets scaffold artifacts, including report output, the environment file, and the
 locator map starter shape. Preserve those reset rules unless the task explicitly changes scaffold seeding behavior.
+It also copies `.fallowrc.json` and `config/` so scaffolded release and quality scripts always ship with the ratchet
+baselines and release-readiness contract they reference.
 
 Prepared scaffold databases may contain authored starter assets, but they must not contain machine-local coordinator
 credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
@@ -40,6 +42,11 @@ assuming a file is template-only.
 - For root-to-template or scaffold package changes, run `npm --prefix packages/create-appraisejs run prepare-template`.
 - For CLI/package behavior changes, consider `npm --prefix packages/create-appraisejs run test`.
 - For broad template changes, consider `npm --prefix packages/create-appraisejs run build`.
+- In a clean checkout or package CI job, install both root and `packages/create-appraisejs` dependencies before the
+  package build. Template preparation executes the root-owned Prisma migration and sync toolchain because root source
+  remains canonical; it does not fall back to an untracked development database in release CI.
+- Repository secret checks build and inspect a temporary database from canonical migrations. They do not require or
+  mutate an ignored developer database, and they remove the temporary database after inspection.
 - Review prepared database verification whenever a new machine-local or runtime-only Prisma model is added.
 
 ## Never Do

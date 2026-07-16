@@ -16,7 +16,10 @@ import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
-import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import {
+  copyMigratedTestDatabase,
+  prepareCleanCoordinatorPlanRuntimeTestDatabase,
+} from '@/test/plan-runtime-schema-test-helper'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 
@@ -237,10 +240,7 @@ async function readValidation(planId: string) {
 beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-implementation-'))
   databasePath = path.join(workspace, 'implementation.db')
-  await Promise.all([
-    fs.writeFile(path.join(workspace, 'package.json'), '{}'),
-    fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath),
-  ])
+  await Promise.all([fs.writeFile(path.join(workspace, 'package.json'), '{}'), copyMigratedTestDatabase(databasePath)])
   await ensurePlanRuntimeSchema()
   client = sqliteTestClient(databasePath)
 })
@@ -804,7 +804,7 @@ describe('implementation coordinator checkpoints', () => {
       reconcileImplementationValidation(
         {
           planId,
-          runIds: [run.id],
+          runIds: [run.testRunId!],
         },
         { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
       ),

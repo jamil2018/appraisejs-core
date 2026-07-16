@@ -13,6 +13,9 @@ packages/appraisejs/node_modules/
 
 # testing
 /coverage
+/.playwright-cli/
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
@@ -49,13 +52,18 @@ yarn-error.log*
 next-env.d.ts
 
 automation/reports/*
+automation/logs/*
+automation/traces/*
+automation/screenshots/*
 packages/appraisejs/dist/
 packages/cucumber-runtime/dist/*
+packages/locator-picker-companion/dist/*
 
 # temporary files
 .tmp
 .fallow
 .appraisejs/
+.appraise/
 
 # Graphify local-only cache and machine state
 graphify-out/cache/

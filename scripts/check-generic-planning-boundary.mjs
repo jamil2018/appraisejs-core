@@ -1,0 +1,69 @@
+#!/usr/bin/env node
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+const repoRoot = process.cwd()
+const roots = ['src/services/coordinator', 'packages/appraisejs/src']
+const forbiddenProductionPatterns = [
+  { pattern: /\b(?:project|plan)(?:Archetype|TemplateRegistry)\b/g, label: 'project-specific planning registry' },
+  {
+    pattern: /\b(?:create|generate|infer)(?:Tasks|Plan|AcceptanceCriteria)FromBrief\b/g,
+    label: 'brief-driven task synthesis',
+  },
+  { pattern: /\b(?:domain|project)Keyword(?:Map|Router|Tasks)\b/g, label: 'domain keyword routing' },
+  { pattern: /\bfallback(?:Tasks|Plan)\b/g, label: 'fallback task graph' },
+]
+
+function walk(directory) {
+  if (!fs.existsSync(directory)) return []
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => collectEntry(directory, entry))
+}
+
+function collectEntry(directory, entry) {
+  const fullPath = path.join(directory, entry.name)
+  if (entry.isDirectory()) return walk(fullPath)
+  return isProductionSource(entry) ? [fullPath] : []
+}
+
+function isProductionSource(entry) {
+  const supportedExtension = /\.(?:ts|tsx|mjs|js)$/.test(entry.name)
+  const testSource = /\.(?:test|e2e)\./.test(entry.name)
+  return entry.isFile() && supportedExtension && !testSource
+}
+
+const failures = []
+for (const file of roots.flatMap(root => walk(path.join(repoRoot, root)))) {
+  const contents = fs.readFileSync(file, 'utf8')
+  for (const { pattern, label } of forbiddenProductionPatterns) {
+    pattern.lastIndex = 0
+    for (const match of contents.matchAll(pattern)) {
+      const line = contents.slice(0, match.index).split('\n').length
+      failures.push(`${path.relative(repoRoot, file)}:${line} contains ${label} (${match[0]})`)
+    }
+  }
+}
+
+const projectSkill = fs.readFileSync(path.join(repoRoot, '.agents/skills/appraise-project-from-brief/SKILL.md'), 'utf8')
+const planningSkill = fs.readFileSync(path.join(repoRoot, '.agents/skills/appraise-planning/SKILL.md'), 'utf8')
+for (const [file, contents] of [
+  ['.agents/skills/appraise-project-from-brief/SKILL.md', projectSkill],
+  ['.agents/skills/appraise-planning/SKILL.md', planningSkill],
+]) {
+  if (!contents.includes('Appraise does not infer')) {
+    failures.push(`${file}: must state that Appraise does not infer the task graph`)
+  }
+}
+if (!projectSkill.includes('appraise-planning')) {
+  failures.push(
+    '.agents/skills/appraise-project-from-brief/SKILL.md: must hand plan authoring and review to appraise-planning',
+  )
+}
+
+if (failures.length > 0) {
+  console.error('Generic planning boundary check failed:')
+  for (const failure of failures) console.error(`- ${failure}`)
+  process.exit(1)
+}
+
+console.log('Generic planning boundary check passed.')

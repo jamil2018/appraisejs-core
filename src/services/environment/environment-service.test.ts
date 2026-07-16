@@ -36,7 +36,7 @@ const basePayload = environmentSchema.parse({
   baseUrl: 'https://example.com',
   apiBaseUrl: '',
   username: '',
-  password: '',
+  passwordEnvironmentVariable: '',
 })
 
 describe('getEnvironmentByIdOrThrow', () => {
@@ -71,7 +71,9 @@ describe('createEnvironment', () => {
         baseUrl: 'https://example.com',
         apiBaseUrl: null,
         username: null,
-        password: null,
+        passwordEnvironmentVariable: null,
+        credentialState: 'NONE',
+        legacyCredentialDetectedAt: null,
         targetProjectId,
       },
     })
@@ -119,7 +121,7 @@ describe('updateEnvironment', () => {
         baseUrl: 'https://example.com',
         apiBaseUrl: '',
         username: '',
-        password: '',
+        passwordEnvironmentVariable: '',
       }),
       targetProjectId,
     )
@@ -132,7 +134,9 @@ describe('updateEnvironment', () => {
         baseUrl: 'https://example.com',
         apiBaseUrl: null,
         username: null,
-        password: null,
+        passwordEnvironmentVariable: null,
+        credentialState: 'NONE',
+        legacyCredentialDetectedAt: null,
       },
     })
     expect(automationProjectionService.syncEnvironments).toHaveBeenCalled()

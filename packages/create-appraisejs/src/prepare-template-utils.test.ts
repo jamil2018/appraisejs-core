@@ -22,7 +22,7 @@ async function createPreparedTemplateFixture(rootDir: string): Promise<void> {
   await fs.writeFile(path.join(rootDir, 'prisma', 'dev.db'), 'db')
   await fs.writeFile(
     path.join(rootDir, 'automation', 'config', 'environments', 'environments.json'),
-    '{"demo":{"baseUrl":"https://example.com","apiBaseUrl":"","email":"","password":""}}',
+    '{"demo":{"baseUrl":"https://example.com","apiBaseUrl":"","email":"","passwordEnvironmentVariable":""}}',
   )
   await fs.writeFile(path.join(rootDir, 'automation', 'mapping', 'locator-map.json'), '[]')
   await fs.writeFile(path.join(rootDir, 'automation', 'steps', 'actions', 'click.step.ts'), '// bundled step')

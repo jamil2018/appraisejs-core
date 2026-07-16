@@ -330,6 +330,7 @@ model TestRun {
   @@index([result])
   @@index([evidenceHealth])
   @@index([targetProjectId])
+  @@index([targetProjectId, startedAt, id])
 }
 
 model PlanProjection {
@@ -1030,18 +1031,26 @@ model TestRunLog {
   testRun   TestRun  @relation(fields: [testRunId], references: [runId], onDelete: Cascade)
 }
 
+enum EnvironmentCredentialState {
+  NONE
+  REFERENCE_CONFIGURED
+  LEGACY_DISABLED
+}
+
 model Environment {
-  id              String         @id @default(uuid())
-  name            String
-  baseUrl         String
-  apiBaseUrl      String?
-  username        String?
-  password        String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  testRuns        TestRun[]
-  targetProjectId String?
-  targetProject   TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  id                          String                     @id @default(uuid())
+  name                        String
+  baseUrl                     String
+  apiBaseUrl                  String?
+  username                    String?
+  passwordEnvironmentVariable String?
+  credentialState             EnvironmentCredentialState @default(NONE)
+  legacyCredentialDetectedAt  DateTime?
+  createdAt                   DateTime                   @default(now())
+  updatedAt                   DateTime                   @updatedAt
+  testRuns                    TestRun[]
+  targetProjectId             String?
+  targetProject               TargetProject?             @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
   @@unique([targetProjectId, name])
 }

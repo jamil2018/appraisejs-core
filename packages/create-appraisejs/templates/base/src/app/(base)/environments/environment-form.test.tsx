@@ -40,7 +40,7 @@ describe('EnvironmentForm', () => {
     await user.type(screen.getByLabelText('Base URL'), 'https://example.com')
     await user.type(screen.getByLabelText('API Base URL (Optional)'), 'https://api.example.com')
     await user.type(screen.getByLabelText('Username (Optional)'), 'tester')
-    await user.type(screen.getByLabelText('Password (Optional)'), 'secret')
+    await user.type(screen.getByLabelText('Password environment variable (Optional)'), 'APPRAISE_STAGING_PASSWORD')
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
@@ -51,7 +51,7 @@ describe('EnvironmentForm', () => {
           baseUrl: 'https://example.com',
           apiBaseUrl: 'https://api.example.com',
           username: 'tester',
-          password: 'secret',
+          passwordEnvironmentVariable: 'APPRAISE_STAGING_PASSWORD',
         },
         undefined,
       )
@@ -64,7 +64,7 @@ describe('EnvironmentForm', () => {
     expect(push).toHaveBeenCalledWith('/environments')
   })
 
-  it('toggles password visibility and shows validation feedback for an invalid base url', async () => {
+  it('shows validation feedback for invalid base URLs and environment variable names', async () => {
     const user = userEvent.setup()
     const onSubmitAction = vi.fn()
 
@@ -76,16 +76,12 @@ describe('EnvironmentForm', () => {
       />,
     )
 
-    const passwordInput = screen.getByLabelText('Password (Optional)')
-    expect(passwordInput).toHaveAttribute('type', 'password')
-
-    await user.click(screen.getByRole('button', { name: 'Show password' }))
-    expect(passwordInput).toHaveAttribute('type', 'text')
-
     await user.type(screen.getByLabelText('Name'), 'Staging')
     await user.type(screen.getByLabelText('Base URL'), 'not-a-url')
+    await user.type(screen.getByLabelText('Password environment variable (Optional)'), 'not valid')
 
     expect(screen.getByText('Base URL must be a valid URL')).toBeInTheDocument()
+    expect(screen.getByText('Use a valid process environment variable name')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     expect(onSubmitAction).not.toHaveBeenCalled()
   })

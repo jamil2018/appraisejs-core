@@ -5,7 +5,9 @@ These rules are the working baseline for Appraise UI refactors.
 ## Placement
 
 - Keep route-specific UI in `src/app/(base)/<entity>` by default.
-- Move a component into `src/components/<feature>` only when a second route reuses it or when the extraction clearly decouples route code from shared behavior.
+- Move a component into `src/components/<feature>` after evidence shows multiple real consumers, an independently
+  testable responsibility, or repeated state and error behavior. A single route may still extract a focused child or
+  hook when that responsibility is independently coherent.
 - Keep low-level controls and wrappers in `src/components/ui`.
 - Do not let shared components import route-local actions, route-local types, or route-specific navigation assumptions.
 
@@ -20,7 +22,8 @@ These rules are the working baseline for Appraise UI refactors.
 - Extract a child component when the split is mostly visual and prop-driven.
 - Extract a hook when the split owns lifecycle, async orchestration, or state transitions.
 - Extract helpers for pure mapping, payload shaping, formatting, and validation.
-- Do not build generic CRUD abstractions to normalize small forms.
+- Do not build catch-all CRUD frameworks, speculative generic layers, or pass-through wrappers to normalize small
+  forms. Prefer a small domain-named abstraction only after concrete duplication establishes its contract.
 
 ## Testing
 
