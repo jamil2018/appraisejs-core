@@ -393,6 +393,8 @@ function createBaseTemplate(): void {
   })
   console.log('Copying e2e/...')
   copyDirWithFilter(path.join(repoRoot, 'e2e'), path.join(baseTemplateDir, 'e2e'))
+  console.log('Copying config/...')
+  copyDirWithFilter(path.join(repoRoot, 'config'), path.join(baseTemplateDir, 'config'))
 
   const legacyTestsRoot = path.join(baseTemplateDir, 'src', 'tests')
   rmSync(legacyTestsRoot, { recursive: true, force: true })
@@ -401,6 +403,7 @@ function createBaseTemplate(): void {
     '.gitattributes',
     '.gitconfig.appraise',
     '.editorconfig',
+    '.fallowrc.json',
     '.prettierrc',
     '.gitignore',
     'eslint.config.mjs',

@@ -24,6 +24,8 @@ contents when a root/base source change should flow through template preparation
 
 `prepare-template` intentionally resets scaffold artifacts, including report output, the environment file, and the
 locator map starter shape. Preserve those reset rules unless the task explicitly changes scaffold seeding behavior.
+It also copies `.fallowrc.json` and `config/` so scaffolded release and quality scripts always ship with the ratchet
+baselines and release-readiness contract they reference.
 
 Prepared scaffold databases may contain authored starter assets, but they must not contain machine-local coordinator
 credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
