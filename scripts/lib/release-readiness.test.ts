@@ -60,5 +60,9 @@ describe('release-readiness ledger', () => {
       expect.objectContaining({ command: 'npm run shared-check', status: 0 }),
     ])
     expect(runner).toHaveBeenCalledTimes(1)
+    expect(runner).toHaveBeenCalledWith(
+      'npm run shared-check',
+      expect.objectContaining({ maxBuffer: 32 * 1024 * 1024 }),
+    )
   })
 })

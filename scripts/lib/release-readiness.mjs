@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 const FINDING_IDS = Array.from({ length: 13 }, (_, index) => `A-${String(index + 1).padStart(2, '0')}`)
 const SEVERITIES = new Set(['critical', 'high', 'medium', 'low'])
 const STATUSES = new Set(['open', 'verified', 'waived'])
+const COMMAND_OUTPUT_BUFFER_BYTES = 32 * 1024 * 1024
 
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
@@ -123,7 +124,13 @@ export function runVerifiedFindingCommands(ledger, { cwd = process.cwd(), runner
   ]
 
   return commands.map(command => {
-    const result = runner(command, { cwd, encoding: 'utf8', shell: true, stdio: 'pipe' })
+    const result = runner(command, {
+      cwd,
+      encoding: 'utf8',
+      shell: true,
+      stdio: 'pipe',
+      maxBuffer: COMMAND_OUTPUT_BUFFER_BYTES,
+    })
     return {
       command,
       status: result.status ?? 1,
