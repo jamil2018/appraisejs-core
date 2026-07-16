@@ -45,6 +45,8 @@ assuming a file is template-only.
 - In a clean checkout or package CI job, install both root and `packages/create-appraisejs` dependencies before the
   package build. Template preparation executes the root-owned Prisma migration and sync toolchain because root source
   remains canonical; it does not fall back to an untracked development database in release CI.
+- Repository secret checks build and inspect a temporary database from canonical migrations. They do not require or
+  mutate an ignored developer database, and they remove the temporary database after inspection.
 - Review prepared database verification whenever a new machine-local or runtime-only Prisma model is added.
 
 ## Never Do
