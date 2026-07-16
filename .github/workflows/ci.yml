@@ -1,56 +1,125 @@
-name: CI
+name: Release CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, appraise-0.5]
   pull_request:
-    branches: [main]
+    branches: [main, appraise-0.5]
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+  NEXT_TELEMETRY_DISABLED: 1
 
 jobs:
-  lint-and-build:
+  root-app:
+    name: Root app
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: file:./e2e.db
-      NEXT_TELEMETRY_DISABLED: 1
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: 22
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node e2e/apply-migrations.mjs
+      - run: npm run lint
+      - run: npm run validate:unit
+      - run: npm run build
 
-      - name: Install dependencies
-        run: npm ci
+  appraisejs-package:
+    name: appraisejs package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/appraisejs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: packages/appraisejs/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
 
-      - name: Generate Prisma client
-        run: npx prisma generate
+  create-appraisejs-package:
+    name: create-appraisejs package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/create-appraisejs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: packages/create-appraisejs/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
 
-      - name: Apply database migrations
-        run: node e2e/apply-migrations.mjs
+  security-and-quality:
+    name: Security and quality ratchets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run release:check:local-boundary
+      - run: npm run release:check:secrets
+      - run: npm run release:check:mcp-http
+      - run: npm run quality:fallow:release
+      - run: npm run quality:ratchet -- --base "origin/${{ github.base_ref || 'appraise-0.5' }}"
+      - run: npm run quality:react-doctor:ci
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+  dependency-and-package-content:
+    name: Dependencies and package contents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix packages/appraisejs ci
+      - run: npm --prefix packages/create-appraisejs ci
+      - name: Audit production dependencies against the live registry
+        run: |
+          npm audit --omit=dev | tee audit-root.txt
+          npm --prefix packages/appraisejs audit --omit=dev | tee audit-appraisejs.txt
+          npm --prefix packages/create-appraisejs audit --omit=dev | tee audit-create-appraisejs.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-dependency-audits
+          path: audit-*.txt
+      - run: npm run release:check:packages
 
-      - name: Fallow quality gate
-        run: npm run quality:fallow:ci
-
-      - name: React Doctor
-        run: npm run quality:react-doctor:ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Unit validation
-        run: npm run validate:unit
-
-      - name: Build
-        run: npm run build
-
-      - name: E2E validation
-        # Playwright uses one worker (see playwright.config.ts): specs share one SQLite DB.
-        run: npm run validate:e2e
+  release-check:
+    name: Release check
+    if: always()
+    needs:
+      [root-app, appraisejs-package, create-appraisejs-package, security-and-quality, dependency-and-package-content]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every release job
         env:
-          CI: true
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: |
+          node -e 'const jobs=JSON.parse(process.env.NEEDS_JSON); const failed=Object.entries(jobs).filter(([,job])=>job.result!=="success"); if(failed.length){console.error(failed.map(([name,job])=>`${name}: ${job.result}`).join("\n")); process.exit(1)}'

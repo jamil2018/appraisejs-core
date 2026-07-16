@@ -47,7 +47,7 @@
       "severity": "high",
       "title": "Release branch and package CI coverage",
       "owner": "release-engineering",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:ci"],
       "requiredEvidence": ["Workflow validation and required aggregate job"]

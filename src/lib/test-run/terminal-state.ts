@@ -1,7 +1,7 @@
 import { TestRunResult, TestRunStatus } from '@prisma/client'
 
 export type TestRunTerminalOutcome = 'passed' | 'failed' | 'cancelled'
-export type ExecutionAttemptTerminalState = 'COMPLETED' | 'FAILED' | 'CANCELLED'
+type ExecutionAttemptTerminalState = 'COMPLETED' | 'FAILED' | 'CANCELLED'
 
 export type TestRunTerminalArtifacts = {
   logPath?: string | null

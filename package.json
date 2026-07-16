@@ -18,6 +18,8 @@
     "release:check:local-boundary": "npm run validate:unit -- scripts/lib/local-startup.test.ts src/lib/local-request-boundary.test.ts",
     "release:check:secrets": "npx tsx scripts/check-environment-secrets.ts && npm run validate:unit -- src/lib/environment-secret.test.ts src/lib/environment-file-utils.test.ts src/services/environment/environment-service.test.ts src/lib/sync/sync-pending-counts.test.ts",
     "release:check:mcp-http": "npm --prefix packages/appraisejs run test -- src/mcp-http-security.test.ts && npm --prefix packages/appraisejs run test:mcp:http:e2e && npm --prefix packages/appraisejs run test:mcp:e2e",
+    "release:check:packages": "node scripts/check-package-contents.mjs",
+    "release:check:ci": "node scripts/check-release-ci.mjs",
     "graphify:install": "node scripts/run-graphify.mjs install --project --platform agents",
     "graphify:build": "node scripts/run-graphify.mjs build-scope src",
     "graphify:build:all": "node scripts/update-graphify-graphs.mjs --all",
@@ -68,6 +70,8 @@
     "validate": "npm run validate:unit && npm run validate:e2e",
     "quality:fallow": "fallow --format json --quiet --explain",
     "quality:fallow:ci": "fallow --format json --quiet --explain --fail-on-issues",
+    "quality:fallow:release": "fallow -r . --quiet --fail-on-regression --regression-baseline config/fallow-baseline-root.json && fallow -r packages/appraisejs --quiet --fail-on-regression --regression-baseline config/fallow-baseline-appraisejs.json && fallow -r packages/create-appraisejs --quiet --fail-on-regression --regression-baseline config/fallow-baseline-create-appraisejs.json",
+    "quality:ratchet": "node scripts/check-quality-ratchet.mjs",
     "quality:fallow:commit": "node ./scripts/run-fallow-commit.mjs",
     "quality:react-doctor": "react-doctor . --project appraise --offline --full",
     "quality:react-doctor:ci": "react-doctor . --project appraise --offline --full --fail-on error",
@@ -168,6 +172,9 @@
     "react-is": "^19.2.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "minimatch": ">=10.2.1"
+    "minimatch": ">=10.2.1",
+    "next": {
+      "postcss": "8.5.19"
+    }
   }
 }
