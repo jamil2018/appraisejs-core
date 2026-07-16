@@ -53,6 +53,9 @@ import {
   isCancelledOrCancellingStatus,
   normalizeSuiteSelection,
 } from '@/services/test-run/test-run-helpers'
+import { prepareRun } from '@/services/test-run/stages/prepare-run'
+import { executeRun } from '@/services/test-run/stages/execute-run'
+import { collectRunOutput, resolveCollectedRunOutcome } from '@/services/test-run/stages/collect-run-evidence'
 
 export {
   buildOrExpression,
@@ -722,25 +725,29 @@ export async function scheduleTestRunCompletion(args: {
   let cleanupListener = () => {}
 
   try {
-    if (prepareWorkspace !== false) {
-      await ensureFeatureFilesForTestRun(testRunTestCases)
-    }
+    await prepareRun({
+      prepareWorkspace: prepareWorkspace !== false,
+      prepareFeatureFiles: () => ensureFeatureFilesForTestRun(testRunTestCases),
+    })
 
-    const { process: spawnedProcess, reportPath } = launch
-      ? await launch()
-      : await localExecutorAdapter.executeTestRun({
-          testRunId: testRun.runId,
-          environment,
-          tagExpression,
-          testWorkersCount: value.testWorkersCount || 1,
-          browserEngine: value.browserEngine,
-          headless: true,
-          projectRoot,
-          featurePaths,
-          importPaths,
-          supportPaths,
-          prepareWorkspace,
-        })
+    const { process: spawnedProcess, reportPath } = await executeRun({
+      launch:
+        launch ??
+        (() =>
+          localExecutorAdapter.executeTestRun({
+            testRunId: testRun.runId,
+            environment,
+            tagExpression,
+            testWorkersCount: value.testWorkersCount || 1,
+            browserEngine: value.browserEngine,
+            headless: true,
+            projectRoot,
+            featurePaths,
+            importPaths,
+            supportPaths,
+            prepareWorkspace,
+          })),
+    })
 
     await client.testRun.update({
       where: { id: testRun.id },
@@ -796,44 +803,7 @@ export async function scheduleTestRunCompletion(args: {
         const exitCodeRaw = await waitForProcess(proc.name)
         const exitCode = exitCodeRaw ?? 1
 
-        const logEntries: LogEntry[] = []
-
-        if (proc.output.stdout.length > 0) {
-          const stdoutText = proc.output.stdout.join('')
-          const stdoutLines = stdoutText.split('\n').filter(line => line.trim() !== '')
-          stdoutLines.forEach((line, index) => {
-            const timestamp = new Date(proc.startTime.getTime() + index * 10)
-            logEntries.push({
-              type: 'stdout',
-              message: line,
-              timestamp,
-            })
-            runLogger.info(line)
-          })
-        }
-
-        if (proc.output.stderr.length > 0) {
-          const stderrText = proc.output.stderr.join('')
-          const stderrLines = stderrText.split('\n').filter(line => line.trim() !== '')
-          const stdoutCount = logEntries.filter(e => e.type === 'stdout').length
-          stderrLines.forEach((line, index) => {
-            const timestamp = new Date(proc.startTime.getTime() + stdoutCount * 10 + index * 10)
-            logEntries.push({
-              type: 'stderr',
-              message: line,
-              timestamp,
-            })
-            runLogger.error(line)
-          })
-        }
-
-        const exitMessage = `Process exited with code ${exitCode}`
-        logEntries.push({
-          type: 'status',
-          message: exitMessage,
-          timestamp: proc.endTime || new Date(),
-        })
-        runLogger.info(exitMessage)
+        const { logEntries } = collectRunOutput(proc, exitCode, runLogger)
 
         if (executionAttempt) {
           const managedRun = await client.testRun.findUnique({
@@ -862,11 +832,11 @@ export async function scheduleTestRunCompletion(args: {
           where: { id: testRun.id },
           select: { status: true },
         })
-        const outcome = isCancelledOrCancellingStatus(current.status)
-          ? 'cancelled'
-          : exitCode === 0 && evidence.evidenceHealth === 'valid'
-            ? 'passed'
-            : 'failed'
+        const outcome = resolveCollectedRunOutcome({
+          cancelled: isCancelledOrCancellingStatus(current.status),
+          exitCode,
+          evidenceHealth: evidence.evidenceHealth,
+        })
         await terminalizeTestRun({ testRunDbId: testRun.id, outcome, executionAttempt, client })
         if (implementationValidationBinding) {
           await updateImplementationValidationRunFromTestRun({

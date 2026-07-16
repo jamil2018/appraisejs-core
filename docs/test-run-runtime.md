@@ -155,6 +155,11 @@ ancestors or final paths immediately before filesystem mutation.
 
 ## Execution Flow
 
+The test-run service coordinates explicit stages under `src/services/test-run/stages/`: workspace preparation,
+executor launch, and output/evidence collection. These stages return typed results and do not terminalize runs;
+`scheduleTestRunCompletion` alone owns stage ordering, failure recovery, and the call into the canonical terminal-state
+transition.
+
 1. Actions validate user input and call the test run service.
 2. The service resolves selected tags or suites into an executable tag expression and linked test cases.
 3. `local-executor-adapter.ts` prepares the automation workspace, sets runtime environment variables, and starts the
