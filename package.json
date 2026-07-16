@@ -1,12 +1,13 @@
 {
   "name": "appraise",
   "version": "0.4.0",
-  "private": false,
+  "private": true,
   "type": "module",
   "engines": {
     "node": ">=20.19"
   },
   "scripts": {
+    "prepublishOnly": "node scripts/refuse-root-publish.mjs",
     "dev": "node scripts/dev-with-mcp.mjs",
     "dev:web": "node scripts/start-local.mjs dev",
     "dev:mcp": "node scripts/dev-with-mcp.mjs --mcp-only",
@@ -21,6 +22,7 @@
     "release:check:mcp-contract": "npm --prefix packages/appraisejs run test -- src/mcp-contract.test.ts && npm --prefix packages/appraisejs run build && npm run quality:fallow:release",
     "release:check:architecture": "npm run quality:fallow:release && npm run quality:react-doctor:commit",
     "release:check:bounded-reads": "npm run validate:unit -- src/lib/pagination.test.ts src/lib/test-run/log-tail-reader.test.ts src/app/api/test-runs/[runId]/logs/route.test.ts && npm run benchmark:repository-queries",
+    "release:check:artifacts": "node scripts/check-generated-artifacts.mjs",
     "release:check:packages": "node scripts/check-package-contents.mjs",
     "release:check:ci": "node scripts/check-release-ci.mjs",
     "benchmark:repository-queries": "node scripts/benchmark-repository-queries.mjs",

@@ -77,7 +77,7 @@
       "severity": "high",
       "title": "Generated and runtime artifact policy",
       "owner": "release-engineering",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:artifacts"],
       "requiredEvidence": ["Tracked-file policy and repository secret scan"]
@@ -127,7 +127,7 @@
       "severity": "medium",
       "title": "Explicit package publication boundaries",
       "owner": "release-engineering",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:packages"],
       "requiredEvidence": ["Root refusal and publishable package tarball inventories"]

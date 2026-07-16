@@ -1,6 +1,7 @@
 # appraisejs
 
-Install published AppraiseJS template steps into an existing Appraise project.
+AppraiseJS command-line, coordinator client, MCP server, managed-run diagnostics, and published template-step
+registry for an existing Appraise project.
 
 ## Quick Start
 
@@ -29,7 +30,7 @@ and schema are hub-only in Appraise 0.5 and are not copied into scaffold templat
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 20.19+
 - An existing Appraise project generated from a scaffold that includes `scripts/install-template-step.ts`
 - Project dependencies already installed so the local sync scripts can run
 

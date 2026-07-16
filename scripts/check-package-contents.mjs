@@ -1,7 +1,25 @@
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 const packages = ['packages/appraisejs', 'packages/create-appraisejs']
+const rootPackage = JSON.parse(readFileSync(path.resolve('package.json'), 'utf8'))
+if (rootPackage.private !== true) {
+  console.error('The repository root must be private so npm refuses publication.')
+  process.exit(1)
+}
+if (rootPackage.scripts?.prepublishOnly !== 'node scripts/refuse-root-publish.mjs') {
+  console.error('The repository root must retain its explicit publish refusal lifecycle script.')
+  process.exit(1)
+}
+const rootPublishRefusal = spawnSync(process.execPath, ['scripts/refuse-root-publish.mjs'], {
+  cwd: path.resolve('.'),
+  encoding: 'utf8',
+})
+if (rootPublishRefusal.status === 0) {
+  console.error('The repository root publish refusal must exit non-zero.')
+  process.exit(1)
+}
 const denied =
   /(?:^|\/)(?:\.appraise|\.playwright-cli)(?:\/|$)|(?:^|\/)automation\/(?:reports|logs|traces|screenshots)(?:\/|$)/i
 const allowedDatabaseFixtures = new Set([
@@ -13,6 +31,7 @@ for (const packageDirectory of packages) {
   const result = spawnSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
     cwd: path.resolve(packageDirectory),
     encoding: 'utf8',
+    env: { ...process.env, npm_config_cache: path.resolve('.tmp/npm-pack-cache') },
   })
   if (result.status !== 0) {
     process.stderr.write(result.stderr)

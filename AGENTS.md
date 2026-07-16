@@ -128,6 +128,8 @@ Common validation commands:
 - `npm run quality:fallow:commit`
 - `npm run quality:react-doctor:commit`
 - `npm run check:harness`
+- `npm run release:check:artifacts`
+- `npm run release:check:packages`
 - `npm run build`
 
 Run related tests when tests exist or are added. Run `npm run build` for broad changes, package/config/schema changes,

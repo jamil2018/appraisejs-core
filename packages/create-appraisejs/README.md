@@ -108,6 +108,6 @@ The CLI downloads the step fragment, merges it into the correct step group file,
 
 ## Notes
 
-- Node.js `18+` is required.
+- Node.js `20.19+` is required.
 - The CLI rewrites hardcoded `npm` and `npx` usage inside the generated scripts so `pnpm`, `yarn`, and `bun` work correctly after scaffolding.
 - Selecting Playwright browsers in the prompt does not force installation unless you also choose to run setup immediately. If you skip setup, the CLI shows the browser install command in the next steps.
