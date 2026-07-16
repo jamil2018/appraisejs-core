@@ -16,6 +16,20 @@ const aggregateNeeds = workflow.jobs?.['release-check']?.needs ?? []
 for (const job of requiredJobs)
   if (!aggregateNeeds.includes(job)) throw new Error(`Release check does not require ${job}.`)
 
+const createPackageCommands = (workflow.jobs?.['create-appraisejs-package']?.steps ?? [])
+  .map(step => step.run)
+  .filter(command => typeof command === 'string')
+if (createPackageCommands[0] !== 'npm ci') {
+  throw new Error('create-appraisejs CI must install root dependencies before preparing the canonical root template.')
+}
+for (const command of [
+  'npm --prefix packages/create-appraisejs ci',
+  'npm --prefix packages/create-appraisejs test',
+  'npm --prefix packages/create-appraisejs run build',
+]) {
+  if (!createPackageCommands.includes(command)) throw new Error(`create-appraisejs CI is missing: ${command}`)
+}
+
 const dependabot = YAML.parse(await readFile('.github/dependabot.yml', 'utf8'))
 const npmDirectories = dependabot.updates
   .filter(update => update['package-ecosystem'] === 'npm')

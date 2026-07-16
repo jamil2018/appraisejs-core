@@ -54,19 +54,19 @@ jobs:
   create-appraisejs-package:
     name: create-appraisejs package
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/create-appraisejs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: packages/create-appraisejs/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            packages/create-appraisejs/package-lock.json
       - run: npm ci
-      - run: npm test
-      - run: npm run build
+      - run: npm --prefix packages/create-appraisejs ci
+      - run: npm --prefix packages/create-appraisejs test
+      - run: npm --prefix packages/create-appraisejs run build
 
   security-and-quality:
     name: Security and quality ratchets

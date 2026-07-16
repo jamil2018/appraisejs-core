@@ -42,6 +42,9 @@ assuming a file is template-only.
 - For root-to-template or scaffold package changes, run `npm --prefix packages/create-appraisejs run prepare-template`.
 - For CLI/package behavior changes, consider `npm --prefix packages/create-appraisejs run test`.
 - For broad template changes, consider `npm --prefix packages/create-appraisejs run build`.
+- In a clean checkout or package CI job, install both root and `packages/create-appraisejs` dependencies before the
+  package build. Template preparation executes the root-owned Prisma migration and sync toolchain because root source
+  remains canonical; it does not fall back to an untracked development database in release CI.
 - Review prepared database verification whenever a new machine-local or runtime-only Prisma model is added.
 
 ## Never Do
