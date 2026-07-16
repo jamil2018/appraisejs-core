@@ -81,6 +81,28 @@ async function waitForServer() {
   throw new Error(`Timed out waiting for AppraiseJS:\n${serverOutput}`)
 }
 
+async function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
+  if (child.exitCode !== null) return true
+  return new Promise(resolve => {
+    const finish = (exited: boolean) => {
+      clearTimeout(timer)
+      child.off('exit', onExit)
+      resolve(exited)
+    }
+    const onExit = () => finish(true)
+    const timer = setTimeout(() => finish(false), timeoutMs)
+    child.once('exit', onExit)
+  })
+}
+
+async function stopAppServer(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null) return
+  child.kill('SIGTERM')
+  if (await waitForExit(child, 5_000)) return
+  child.kill('SIGKILL')
+  await waitForExit(child, 2_000)
+}
+
 function toolJson(result: Awaited<ReturnType<Client['callTool']>>) {
   assert(!result.isError, `MCP tool returned an error: ${JSON.stringify(result)}`)
   const item = result.content[0]
@@ -117,7 +139,7 @@ try {
   run(process.execPath, ['e2e/apply-migrations.mjs'], { DATABASE_URL: `file:${databasePath}` })
   run('npm', ['--prefix', 'packages/appraisejs', 'run', 'build'])
 
-  appServer = spawn('npm', ['run', 'dev:web', '--', '-H', '127.0.0.1', '-p', String(port)], {
+  appServer = spawn(process.execPath, ['scripts/start-local.mjs', 'dev', '-H', '127.0.0.1', '-p', String(port)], {
     cwd: repoRoot,
     env: { ...process.env, DATABASE_URL: `file:${databasePath}` },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -533,10 +555,7 @@ try {
 } finally {
   await client?.close().catch(() => {})
   await transport?.close().catch(() => {})
-  if (appServer && appServer.exitCode === null) {
-    appServer.kill('SIGTERM')
-    await new Promise(resolve => appServer!.once('exit', resolve))
-  }
+  if (appServer) await stopAppServer(appServer)
   await fs.rm(planPathFor(planId), { force: true })
   await fs.rm(reviewPathFor(planId), { force: true })
   for (const explicitTargetPlanId of explicitTargetPlanIds) {
