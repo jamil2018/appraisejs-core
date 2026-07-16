@@ -15,8 +15,9 @@ AppraiseJS owns lifecycle and business rules. This skill only orchestrates MCP c
 3. Call MCP `project_diagnostic` first and stop on blocking checks. Never silently fall back to CLI.
 4. Before creating a plan for a new app, choose the target explicitly: pass `targetWorkspacePath` for the writable
    target workspace, or pass `targetMode: "hub"` only when the user knowingly wants a hub-scoped plan.
-5. Prefer `planning_session_create` for normal project briefs when available; otherwise create the structured plan with
-   `plan_create`.
+5. Author the complete structured plan from the brief and repository context. Prefer `planning_session_create` with
+   that explicit `plan` when available; otherwise submit the same plan with `plan_create`. Appraise validates and gates
+   the artifact but does not infer its tasks.
 6. Read pending events at every mandatory checkpoint and capture the returned event sequence.
 7. Acknowledge each handled event, then reread pending events before continuing.
 8. Prefer `plan_review_loop` when the tool is available; it should keep the agent in an active bounded wait across

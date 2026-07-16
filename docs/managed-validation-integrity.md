@@ -38,9 +38,9 @@ baseline, or implementation without separate authority and the normal Appraise-o
 
 ## Planning and baseline semantics
 
-Planning extracts atomic brief requirements and maps them to task descriptions, acceptance criteria, validation
-intent, or explicit deferrals. Candidate hashes and structured retry feedback prevent unchanged retries from silently
-dropping omissions. Reviewers see each requirement-to-plan mapping.
+The connected agent authors plan tasks, acceptance criteria, validation intent, dependencies, and implementation
+groups from the brief and repository context. Appraise validates the supplied artifact and references, persists its
+hashes, and exposes it to reviewers; it does not classify the app or infer the task graph.
 
 Pre-implementation baseline outcomes are `expected_product_failure`, `authoring_failure`,
 `infrastructure_failure`, `unrelated_existing_failure`, or `unexpected_pass`. Expected product failures must match

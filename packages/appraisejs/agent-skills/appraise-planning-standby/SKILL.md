@@ -20,7 +20,9 @@ Appraise, build this project using Appraise, or generate a plan and show it in A
    knowingly wants a hub-scoped plan.
 5. For an external target that is not registered, call `project_add`. Empty writable directories are valid planning
    targets; use the returned marker status as routing evidence.
-6. Create the plan with `planning_session_create` when available, or with `plan_create`.
+6. Author the complete structured plan from the brief and repository context. Submit that explicit `plan` with
+   `planning_session_create` when available, or with `plan_create`. Appraise validates and gates the plan but does not
+   infer tasks or product behavior.
 7. Prefer `plan_review_loop` when the tool is available. Otherwise call `plan_wait_for_review`, then present Appraise
    and browser links only after durable `plan_review_ready` evidence. Pending review is not completion.
 8. After review readiness, call `plan_wait_for_approval` with an active bounded wait or poll loop by default, then

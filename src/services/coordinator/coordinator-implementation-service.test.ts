@@ -804,7 +804,7 @@ describe('implementation coordinator checkpoints', () => {
       reconcileImplementationValidation(
         {
           planId,
-          runIds: [run.id],
+          runIds: [run.testRunId!],
         },
         { projectDirectory: workspace, client, now: new Date('2026-06-11T00:02:00.000Z') },
       ),

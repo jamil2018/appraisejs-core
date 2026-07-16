@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 795 nodes · 1233 edges · 79 communities (76 shown, 3 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
+- 777 nodes · 1203 edges · 78 communities (74 shown, 4 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a2dee037`
+- Built from commit: `2d5286ee`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -42,7 +42,6 @@
 - [[_COMMUNITY_Src Locator Util  Src Locator Util Getlocatormapdata|Src Locator Util / Src Locator Util Getlocatormapdata]]
 - [[_COMMUNITY_Src Phase1 Contracts  Src Phase1 Contracts Action Catalog Contract Version|Src Phase1 Contracts / Src Phase1 Contracts Action Catalog Contract Version]]
 - [[_COMMUNITY_Locator Picker Companion Src Index Ts Src Index  Src Launcher|Locator Picker Companion Src Index Ts Src Index / Src Launcher]]
-- [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Community 29|Community 29]]
 - [[_COMMUNITY_Src World  Src World Customworld|Src World / Src World Customworld]]
 - [[_COMMUNITY_Create Appraisejs Package Dependencies  Create Appraisejs Package Dependencies|Create Appraisejs Package Dependencies / Create Appraisejs Package Dependencies ]]
@@ -74,8 +73,8 @@
   appraisejs/src/coordinator-client.test.ts → appraisejs/src/project-identity.ts
 - `toolError()` --calls--> `coordinatorRequestErrorEnvelope()`  [EXTRACTED]
   appraisejs/src/mcp.ts → appraisejs/src/coordinator-client.ts
-- `createCoordinatorApiClient()` --calls--> `createCoordinatorClient()`  [EXTRACTED]
-  appraisejs/src/mcp.ts → appraisejs/src/coordinator-client.ts
+- `CliOptions` --references--> `TemplateId`  [EXTRACTED]
+  create-appraisejs/src/cli-args.ts → create-appraisejs/src/template-catalog.ts
 
 ## Import Cycles
 - None detected.
@@ -83,15 +82,15 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (79 total, 3 thin omitted)
+## Communities (78 total, 4 thin omitted)
 
 ### Community 0 - "Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main"
 Cohesion: 0.05
-Nodes (63): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+55 more)
+Nodes (62): main(), CliOptions, getTemplateFlagValue(), parseCliArgs(), formatBrowserInstallStep(), getSuccessMessageLines(), printSuccessMessage(), Config (+54 more)
 
 ### Community 1 - "Scripts Prepare Template / Scripts Prepare Template Basetemplatedir"
 Cohesion: 0.05
-Nodes (65): baseTemplateDir, cleanupTempWorkspace(), composedVerifyDir, composeTemplateForVerification(), computeTemplateInputHash(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyFallbackSeedDatabase() (+57 more)
+Nodes (66): baseTemplateDir, cleanupTempWorkspace(), composedVerifyDir, composeTemplateForVerification(), computeTemplateInputHash(), copyDirWithFilter(), copyDirWithoutBundledExclusions(), copyFallbackSeedDatabase() (+58 more)
 
 ### Community 2 - "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
 Cohesion: 0.07
@@ -111,7 +110,7 @@ Nodes (25): addStepBySlug(), AddStepDependencies, defaultDependencies, PAYLOAD, 
 
 ### Community 6 - "Src Mcp / Src Mcp Applyresponsemode"
 Cohesion: 0.06
-Nodes (22): diagnostic, applyCapsuleDiagnosticMode(), AppraiseHttpMcpOptions, baseWorkflowCriticalTools, baseWorkflowResourceUris, BriefPlanTask, CoordinatorToolEvent, implementationValidationRunInputSchema (+14 more)
+Nodes (19): AppraiseHttpMcpOptions, baseWorkflowCriticalTools, baseWorkflowResourceUris, CoordinatorToolEvent, implementationValidationRunInputSchema, missingCapabilityRecovery(), packageJson, phase1ContractResourceUris (+11 more)
 
 ### Community 7 - "Src Plan Contract Parity Test / Src Plan Contract Parity Test Validplan"
 Cohesion: 0.09
@@ -141,10 +140,6 @@ Nodes (11): EnvironmentConfig, getAllEnvironments(), getEnvironment(), getAutoma
 Cohesion: 0.29
 Nodes (13): buildJsonReportFormat(), extractReportPathFromFormat(), getAutomationConfigDir(), getAutomationFeaturesDir(), getAutomationReportRunDir(), getAutomationReportRunDirFromReportPath(), getAutomationReportsDir(), getAutomationRoot() (+5 more)
 
-### Community 14 - "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
-Cohesion: 0.14
-Nodes (16): createPlanFromBrief(), createStructuredTasksFromBrief(), includesAny(), StructuredBriefPlan, analyzeBrief(), assessPlanRequirements(), DomainCandidate, domainDefinitions (+8 more)
-
 ### Community 15 - "Locator Picker Companion Package / Locator Picker Companion Package Exports"
 Cohesion: 0.14
 Nodes (13): exports, ./launcher, ./session-file, ./types, main, name, private, scripts (+5 more)
@@ -159,15 +154,15 @@ Nodes (11): compilerOptions, declaration, emitDeclarationOnly, lib, module, modu
 
 ### Community 18 - "Src Mcp E2E / Src Mcp E2E Approvecurrentplan"
 Cohesion: 0.21
-Nodes (8): approveCurrentPlan(), assert(), callTool(), databasePath, providerNativeRunsEnabled, repoRoot, reviewPathFor(), toolJson()
+Nodes (9): approveCurrentPlan(), assert(), callTool(), databasePath, providerNativeRunsEnabled, repoRoot, reviewPathFor(), run() (+1 more)
 
 ### Community 19 - "Src Cache Util / Src Cache Util Locatorcache"
-Cohesion: 0.25
-Nodes (4): LocatorCache, toGlobPath(), getAutomationLocatorsDir(), LocatorCollection
+Cohesion: 0.16
+Nodes (7): LocatorCache, LocatorMapCache, toGlobPath(), getAutomationLocatorMapPath(), getAutomationLocatorsDir(), LocatorCollection, LocatorMap
 
 ### Community 20 - "Src Mcp Agentguide / Src Mcp Latestgateevent"
 Cohesion: 0.12
-Nodes (16): agentGuide, applyAuthoringResponseMode(), applyLifecycleResponseMode(), baselineRecoveryForLifecycle(), compactProjectDiagnostic(), latestGateEvent(), MCP_RESPONSE_TOKEN_BUDGETS, mcpCapabilityMetadata (+8 more)
+Nodes (15): agentGuide, applyAuthoringResponseMode(), applyLifecycleResponseMode(), baselineRecoveryForLifecycle(), compactProjectDiagnostic(), latestGateEvent(), MCP_RESPONSE_TOKEN_BUDGETS, mcpCapabilityMetadata (+7 more)
 
 ### Community 21 - "Appraise Planning Standby Skill Appraise Owned Lifecycle / Appraise Planning Sta"
 Cohesion: 0.20
@@ -195,11 +190,7 @@ Nodes (5): ensureLocatorPickerCompanionBuilt(), getLatestModifiedTime(), getLoca
 
 ### Community 27 - "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
 Cohesion: 0.05
-Nodes (39): program, actions, agent, expectedAgentCapabilities, locatorGraph, onlineClient(), OnlineOptions, packageRoot (+31 more)
-
-### Community 28 - "Community 28"
-Cohesion: 0.38
-Nodes (3): LocatorMapCache, getAutomationLocatorMapPath(), LocatorMap
+Nodes (40): program, actions, agent, expectedAgentCapabilities, locatorGraph, onlineClient(), OnlineOptions, packageRoot (+32 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.28
@@ -218,31 +209,31 @@ Cohesion: 0.50
 Nodes (3): generatedAt, steps, version
 
 ### Community 80 - "Community 80"
-Cohesion: 0.33
-Nodes (6): createAppraiseMcpServer(), createCoordinatorApiClient(), planCandidateHash(), planTaskShapeHash(), providerNativeRunsEnabled(), runAppraiseMcp()
+Cohesion: 0.40
+Nodes (5): createAppraiseMcpServer(), planCandidateHash(), planTaskShapeHash(), providerNativeRunsEnabled(), runAppraiseMcp()
 
 ### Community 82 - "Community 82"
 Cohesion: 0.29
 Nodes (9): boundedText(), DiagnoseDependencies, diagnosticDto(), humanBlocker(), isBlocked(), runTestRunDiagnose(), ready, TestRunDiagnoseResult (+1 more)
 
 ## Knowledge Gaps
-- **286 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+281 more)
+- **276 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+271 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Config` connect `Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main` to `Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Why does `bootstrap()` connect `Cucumber Runtime Src Cli Ts Src Cli / Cucumber Runtime Src Cli Ts Src Cli Cliopt` to `Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `description` to the rest of the system?**
-  _287 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _277 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Create Appraisejs Src Cli Ts Src Cli / Create Appraisejs Src Cli Ts Src Cli Main` be split into smaller, more focused modules?**
-  _Cohesion score 0.05088919288645691 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0515406162464986 - nodes in this community are weakly interconnected._
 - **Should `Scripts Prepare Template / Scripts Prepare Template Basetemplatedir` be split into smaller, more focused modules?**
-  _Cohesion score 0.05369369369369369 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.052982456140350874 - nodes in this community are weakly interconnected._
 - **Should `Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T` be split into smaller, more focused modules?**
   _Cohesion score 0.06526806526806526 - nodes in this community are weakly interconnected._
 - **Should `Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program` be split into smaller, more focused modules?**

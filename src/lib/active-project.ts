@@ -21,7 +21,7 @@ export async function requireActiveProject(urlProjectId?: string | null): Promis
 export async function requireActiveProjectForMutation(
   callerTargetProjectId?: string | null,
 ): Promise<ActiveProjectContext> {
-  const project = await requireActiveProject()
+  const project = await requireActiveProject(callerTargetProjectId)
   if (callerTargetProjectId && callerTargetProjectId !== project.id) {
     throw new ServiceError('Caller project scope conflicts with the active project.', 'CONFLICT', 409)
   }

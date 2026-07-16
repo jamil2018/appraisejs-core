@@ -17,6 +17,10 @@ vi.mock('@/services/locator/locator-service', () => ({
   savePickedLocatorFromRequest: vi.fn(),
 }))
 
+vi.mock('@/lib/active-project', () => ({
+  requireActiveProjectForMutation: vi.fn().mockResolvedValue({ id: 'project-1' }),
+}))
+
 import { revalidatePath } from 'next/cache'
 import { locatorPickerSessionManager } from '@/lib/locator-picker/session-manager'
 import { savePickedLocatorFromRequest } from '@/services/locator/locator-service'

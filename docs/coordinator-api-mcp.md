@@ -290,20 +290,18 @@ Planning creation, plan/validation review loops, validation context, and Validat
 use the same response-mode vocabulary. Summary responses retain status, lifecycle, task/content hashes, preview and
 receipt hashes, integrity blockers, cursors, and next action while omitting repeated candidate/context payloads. Full
 mode remains available for explicit diagnostics. Summary budgets are 2,000 estimated tokens for plan creation or
-coverage retry, 300 for an unchanged wait, and 1,500 for validation context or mutation.
+agent-authored plan creation, 300 for an unchanged wait, and 1,500 for validation context or mutation.
 
 Validation-context summary responses return resource counts and search guidance instead of serializing shared resource
 libraries. Agents should use `resourceTypes`, `query`, and a small `limit`, or the dedicated template-step, Step Block,
 and locator search tools, to fetch only the candidates required for the current AST node. Use `full` only for an
 explicit bounded diagnostic.
 
-`planning_session_create` extracts explicit brief requirements before it creates a durable plan. Its response includes
-`requirementAssessment` with scored domain candidates, task-surface coverage, and warnings. When any explicit
-requirement is uncovered, it returns `status: "coverage_review_required"` with a candidate plan instead of creating a
-review-ready revision. Domain scoring applies local negation scope, so phrases such as `not an API app` suppress the
-negated API signal, and domain-specific requirement IDs are emitted only for the selected domain. Local notes briefs
-use a first-class CRUD, persistence, ordering, search, accessibility, and validation task shape. The initial
-plan-review handoff contains the complete URL/hash/cursor evidence once per
+`planning_session_create` accepts the same complete, agent-authored plan contract as `plan_create`. AppraiseJS validates
+task IDs, dependency references, implementation-group references, and artifact structure, but it does not classify the
+product or infer tasks from brief prose. This keeps planning intelligence with the connected agent while Appraise owns
+durability, review readiness, lifecycle gates, hashes, and project binding. The initial plan-review handoff contains
+the complete URL/hash/cursor evidence once per
 revision. A later `plan_review_loop` or approval wait with no new events returns `status: "pending_unchanged"` and
 only the plan ID, cursors, recommended wait, and next action; `handoffMarkdown` is never duplicated under a second
 field.
@@ -314,6 +312,8 @@ Run evidence tools:
   before creating a run.
 - `test_run_read` returns a bounded `RunEvidenceSummary` with `testRunPageId`, `executionRunId`, `planId`,
   `validationId`, `reportUrl`, `logsUrl`, `evidenceHealth`, blockers, counts, and `nextAllowedAction`.
+- For a target-bound plan, pass `planId` to `test_run_read` and `test_run_diagnose`; the client derives the
+  authoritative target-project scope from that plan instead of incorrectly applying the hub fingerprint.
 - `test_run_diagnose` discriminates legacy evidence from managed capsules. Legacy runs return concise root cause,
   missing artifacts, log excerpt, and next action. Capsule runs return the bounded durable attempt/preflight/evidence
   DTO with fixed recovery actions and selected-target ownership scope; human CLI and exact JSON/MCP modes share it.
@@ -356,17 +356,13 @@ and cover their complete canonical contract payloads. Stale writes report expect
 
 ## Lifecycle Ownership
 
-### Planning requirement fidelity
+### Planning responsibility boundary
 
-`planning_session_create` extracts atomic brief requirements and maps each one to task descriptions, acceptance
-criteria, validation intent, or an explicit `requirementDeferrals` reason. Review-ready publication is blocked while
-requirements remain uncovered. Retry callers provide `previousCandidateHash`, `previousTaskShapeHash`, and structured
-`retryFeedback`. Normalized omission resolutions participate in deterministic task synthesis, while
-`taskShapeHash` covers task IDs, dependency edges, and implementation groups without goal, description, source-file,
-or plan-context prose. An effectively unchanged task shape is rejected with a bounded actionable fallback until every
-reported omission has an explicit resolution or deferral. Todo synthesis adds edit behavior only when the brief or
-normalized retry resolution requests it.
-The plan review UI shows each brief requirement and its exact plan-item mappings.
+The connected agent converts the user brief and repository context into plan tasks, acceptance criteria, validation
+intent, dependency edges, and implementation groups. `planning_session_create` and `plan_create` accept that explicit
+plan and reject malformed references through the plan schema. AppraiseJS does not use product-domain classifiers,
+keyword templates, or deterministic task synthesis. Human reviewers correct omissions through the normal Appraise plan
+review and revision loop.
 
 Use one normal writer for each workflow surface. User/Appraise UI owns review decisions: plan approval and change
 requests, validation node and changed-file decisions, validation review submission, baseline acceptance and
@@ -385,8 +381,12 @@ objects with exact recovery inputs.
 Managed implementation validation follows this sequence:
 
 ```text
-implementation_validation_start -> test_run for each returned bound input -> implementation_validation_reconcile -> implementation_completion_review
+implementation_validation_start -> implementation_validation_reconcile -> implementation_completion_review
 ```
+
+Managed capsules now start automatically, so current callers do not invoke `test_run` again. Start responses expose
+both the implementation validation run `id` and canonical public `testRunId`; `implementation_validation_reconcile`
+accepts either identity and normalizes it to the implementation run before persisting reconciliation evidence.
 
 Required runtime validations pass completion only when a fresh managed Appraise `TestRun` is bound to the
 implementation validation run and has passed. Manual evidence through `implementation_validation_record` is retained as
