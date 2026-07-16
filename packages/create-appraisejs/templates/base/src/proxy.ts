@@ -6,7 +6,7 @@ import { evaluateLocalRequestBoundary } from '@/lib/local-request-boundary'
 export function proxy(request: NextRequest) {
   const boundary = evaluateLocalRequestBoundary({
     method: request.method,
-    host: request.headers.get('host'),
+    host: request.headers.get('host') ?? request.nextUrl.host,
     origin: request.headers.get('origin'),
     forwardedFor: request.headers.get('x-forwarded-for'),
   })

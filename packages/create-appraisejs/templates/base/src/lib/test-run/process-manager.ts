@@ -23,6 +23,7 @@ class ProcessManager extends EventEmitter {
   }
 
   register(testRunId: string, process: SpawnedProcess): void {
+    this.unregister(testRunId)
     this.processes.set(testRunId, process)
     const listeners = new Map<string, () => void>()
 

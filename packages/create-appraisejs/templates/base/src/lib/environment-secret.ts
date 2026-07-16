@@ -14,7 +14,7 @@ export class EnvironmentSecretConfigurationError extends Error {
 
 export function resolveEnvironmentPassword(
   environment: EnvironmentSecretReference,
-  processEnvironment: NodeJS.ProcessEnv = process.env,
+  processEnvironment: Readonly<Record<string, string | undefined>> = process.env,
 ) {
   if (environment.credentialState === 'LEGACY_DISABLED') {
     throw new EnvironmentSecretConfigurationError(

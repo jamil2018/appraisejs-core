@@ -16,6 +16,11 @@ export function assertLoopbackHost(host, source = 'host configuration') {
   )
 }
 
+/**
+ * @param {string} mode
+ * @param {string[]} args
+ * @param {Record<string, string | undefined>} env
+ */
 export function resolveLocalNextArgs(mode, args, env = process.env) {
   if (!['dev', 'start'].includes(mode)) throw new Error(`Unsupported local startup mode "${mode}".`)
   assertLoopbackHost(env.HOST, 'HOST')

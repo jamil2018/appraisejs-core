@@ -6,7 +6,7 @@ import { Save } from 'lucide-react'
 
 export type TextFormFieldState = {
   name: string
-  state: { value: string; meta: { errors: unknown[]; isTouched: boolean } }
+  state: { value: string | undefined; meta: { errors: unknown[]; isTouched: boolean } }
   handleChange(value: string): void
 }
 
@@ -49,7 +49,7 @@ export function TextFormField({
       <Input
         id={field.name}
         name={field.name}
-        value={field.state.value}
+        value={field.state.value ?? ''}
         onChange={event => field.handleChange(event.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}

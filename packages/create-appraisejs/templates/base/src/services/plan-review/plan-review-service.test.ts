@@ -567,7 +567,7 @@ describe('requestPlanChanges', () => {
     await syncPlans({ projectDirectory: workspace, client })
     const initialReady = await appendPlanEvent({ planId: 'agent-readable-loop', type: 'plan_review_ready' }, client)
     await acknowledgePlanEvent(
-      { planId: 'agent-readable-loop', sequence: initialReady!.sequence, actor: 'test-agent' },
+      { planId: 'agent-readable-loop', sequence: initialReady!.sequence, coordinatorId: 'test-agent' },
       client,
     )
     const expectedPlanHash = await readPlanHash('agent-readable-loop')

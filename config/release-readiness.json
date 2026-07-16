@@ -37,7 +37,7 @@
       "severity": "high",
       "title": "Single-owner test-run terminalization",
       "owner": "test-run-runtime",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run validate:unit"],
       "requiredEvidence": ["Fault-injection tests and clean unit-suite exit"]

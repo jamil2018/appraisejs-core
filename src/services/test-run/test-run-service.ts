@@ -16,7 +16,9 @@ import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
 import type { TestRunExecutionRequest, TestRunExecutionResult } from '@/lib/executor/types'
 import { formatLogsForStorage, parseLogsFromStorage, type LogEntry } from '@/lib/test-run/log-formatter'
 import { processManager } from '@/lib/test-run/process-manager'
-import { createTestRunLogger, closeLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
+import { createTestRunLogger, getLogFilePath } from '@/lib/test-run/winston-logger'
+import { TestRunLogger } from '@/lib/test-run/test-run-logger'
+import { resolveTestRunTerminalState, type TestRunTerminalOutcome } from '@/lib/test-run/terminal-state'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { testRunEvidenceLinks } from './test-run-evidence-links'
@@ -435,14 +437,12 @@ export async function updateTestRunTestCaseStatusFromScenario(
   return { kind: 'updated' }
 }
 
-async function persistLogsAndUpdateRunStatus(args: {
-  testRunDbId: string
+async function persistTestRunLogs(args: {
   runId: string
   logEntries: LogEntry[]
-  exitCode: number
   client?: PrismaClient
 }): Promise<void> {
-  const { testRunDbId, runId, logEntries, exitCode, client = prisma } = args
+  const { runId, logEntries, client = prisma } = args
 
   if (logEntries.length > 0) {
     const formattedLogs = formatLogsForStorage(logEntries)
@@ -452,52 +452,16 @@ async function persistLogsAndUpdateRunStatus(args: {
       update: { logs: formattedLogs },
     })
   }
-  const currentTestRun = await client.testRun.findUnique({
-    where: { id: testRunDbId },
-    select: { status: true, result: true },
-  })
-
-  if (currentTestRun && !isCancelledOrCancellingStatus(currentTestRun.status)) {
-    await client.testRun.updateMany({
-      where: { id: testRunDbId, status: currentTestRun.status },
-      data: {
-        status: TestRunStatus.COMPLETED,
-        result: exitCode === 0 ? TestRunResult.PASSED : TestRunResult.FAILED,
-        completedAt: new Date(),
-      },
-    })
-  } else if (currentTestRun && !currentTestRun.result) {
-    await client.testRun.updateMany({
-      where: { id: testRunDbId, status: currentTestRun.status },
-      data: {
-        completedAt: new Date(),
-      },
-    })
-  }
 }
 
 async function reconcileFinalRunEvidence(args: {
   testRunDbId: string
   runId: string
-  exitCode: number
   client?: PrismaClient
   appraiseRoot?: string
 }): Promise<RunEvidenceSummary> {
-  const { testRunDbId, runId, exitCode, client = prisma } = args
-  const summary = await persistRunEvidenceHealth(runId, client, TestRunStatus.COMPLETED, args.appraiseRoot)
-  const result =
-    summary.evidenceHealth === 'valid' && exitCode === 0
-      ? TestRunResult.PASSED
-      : summary.evidenceHealth === 'valid'
-        ? TestRunResult.FAILED
-        : TestRunResult.FAILED
-
-  await client.testRun.updateMany({
-    where: { id: testRunDbId, status: TestRunStatus.COMPLETED },
-    data: {
-      result,
-    },
-  })
+  const { testRunDbId, runId, client = prisma } = args
+  const summary = await persistRunEvidenceHealth(runId, client, undefined, args.appraiseRoot)
 
   try {
     if (client !== prisma) return summary
@@ -511,6 +475,78 @@ async function reconcileFinalRunEvidence(args: {
     evidenceHealth: summary.evidenceHealth,
     grade: summary.evidenceHealth === 'valid' ? 'valid' : summary.grade,
   }
+}
+
+async function terminalizeTestRun(args: {
+  testRunDbId: string
+  outcome: TestRunTerminalOutcome
+  executionAttempt?: { id: string; ownerToken: string }
+  failure?: string
+  evidenceHealth?: 'infrastructure_failure'
+  client?: PrismaClient
+}): Promise<void> {
+  const { testRunDbId, outcome, executionAttempt, failure, evidenceHealth, client = prisma } = args
+  const current = await client.testRun.findUniqueOrThrow({
+    where: { id: testRunDbId },
+    select: {
+      status: true,
+      result: true,
+      logPath: true,
+      reportPath: true,
+      runtimeCapsule: { select: { id: true } },
+      runtimeCapsuleExecutionAttempt: { select: { state: true } },
+    },
+  })
+  const terminal = resolveTestRunTerminalState({
+    currentStatus: current.status,
+    currentResult: current.result,
+    outcome,
+    managed: Boolean(executionAttempt),
+    artifacts: {
+      logPath: current.logPath,
+      reportPath: current.reportPath,
+      runtimeCapsuleId: current.runtimeCapsule?.id,
+    },
+  })
+  if (
+    !terminal.shouldPersist &&
+    (!executionAttempt || current.runtimeCapsuleExecutionAttempt?.state === terminal.attemptState)
+  ) {
+    return
+  }
+  const completedAt = new Date()
+
+  await client.$transaction(async tx => {
+    if (terminal.shouldPersist) {
+      const run = await tx.testRun.updateMany({
+        where: { id: testRunDbId, status: current.status, result: current.result },
+        data: {
+          status: terminal.status,
+          result: terminal.result,
+          completedAt,
+          ...(evidenceHealth ? { evidenceHealth } : {}),
+        },
+      })
+      if (run.count !== 1) throw new Error('TestRun terminal state changed before terminalization CAS.')
+    }
+    if (!executionAttempt) return
+    const attempt = await tx.runtimeCapsuleExecutionAttempt.updateMany({
+      where: {
+        id: executionAttempt.id,
+        ownerToken: executionAttempt.ownerToken,
+        state: { in: ['STARTING', 'RUNNING'] },
+      },
+      data: {
+        state: terminal.attemptState,
+        completedAt,
+        failure: outcome === 'failed' ? (failure ?? 'Test-run execution failed.') : null,
+        version: { increment: 1 },
+      },
+    })
+    if (attempt.count !== 1 && terminal.shouldPersist) {
+      throw new Error('Execution attempt terminal state changed before terminalization CAS.')
+    }
+  })
 }
 
 async function storeReportAfterRunIfNeeded(
@@ -682,7 +718,8 @@ export async function scheduleTestRunCompletion(args: {
     waitForProcess = processName => localExecutorAdapter.waitForProcess(processName),
     appraiseRoot,
   } = args
-  let loggerClosed = false
+  const runLogger = new TestRunLogger(logger)
+  let cleanupListener = () => {}
 
   try {
     if (prepareWorkspace !== false) {
@@ -746,7 +783,7 @@ export async function scheduleTestRunCompletion(args: {
     processManager.on('scenario::end', onScenarioEnd)
     console.log(`[TestRunService] Registered server-side scenario::end listener for testRunId: ${testRun.runId}`)
 
-    const cleanupListener = () => {
+    cleanupListener = () => {
       processManager.removeListener('scenario::end', onScenarioEnd)
       console.log(`[TestRunService] Removed server-side scenario::end listener for testRunId: ${testRun.runId}`)
     }
@@ -771,7 +808,7 @@ export async function scheduleTestRunCompletion(args: {
               message: line,
               timestamp,
             })
-            logger.info(line)
+            runLogger.info(line)
           })
         }
 
@@ -786,7 +823,7 @@ export async function scheduleTestRunCompletion(args: {
               message: line,
               timestamp,
             })
-            logger.error(line)
+            runLogger.error(line)
           })
         }
 
@@ -796,12 +833,8 @@ export async function scheduleTestRunCompletion(args: {
           message: exitMessage,
           timestamp: proc.endTime || new Date(),
         })
-        logger.info(exitMessage)
+        runLogger.info(exitMessage)
 
-        // Capsule logs are managed evidence. Flush and close the file transport before
-        // publishing a terminal TestRun state so every terminal read can resolve them.
-        await closeLogger(logger)
-        loggerClosed = true
         if (executionAttempt) {
           const managedRun = await client.testRun.findUnique({
             where: { id: testRun.id },
@@ -812,45 +845,29 @@ export async function scheduleTestRunCompletion(args: {
           await fs.writeFile(managedRun.logPath, formatLogsForStorage(logEntries), { mode: 0o600 })
         }
 
-        await persistLogsAndUpdateRunStatus({
-          testRunDbId: testRun.id,
+        await persistTestRunLogs({
           runId: testRun.runId,
           logEntries,
-          exitCode,
           client,
         })
 
         await storeReportAfterRunIfNeeded(testRun.id, testRun.runId, reportPath, client, appraiseRoot)
-        await reconcileFinalRunEvidence({
+        const evidence = await reconcileFinalRunEvidence({
           testRunDbId: testRun.id,
           runId: testRun.runId,
-          exitCode,
           client,
           appraiseRoot,
         })
-        if (executionAttempt) {
-          await client.$transaction(async tx => {
-            const finalRun = await tx.testRun.findUniqueOrThrow({
-              where: { id: testRun.id },
-              select: { result: true },
-            })
-            const completedAt = new Date()
-            const attempt = await tx.runtimeCapsuleExecutionAttempt.updateMany({
-              where: { id: executionAttempt.id, ownerToken: executionAttempt.ownerToken, state: 'RUNNING' },
-              data: {
-                state: finalRun.result === TestRunResult.PASSED ? 'COMPLETED' : 'FAILED',
-                completedAt,
-                version: { increment: 1 },
-              },
-            })
-            if (attempt.count !== 1) return
-            const run = await tx.testRun.updateMany({
-              where: { id: testRun.id, status: TestRunStatus.COMPLETED },
-              data: { completedAt },
-            })
-            if (run.count !== 1) throw new Error('TestRun terminal state changed before attempt finalization.')
-          })
-        }
+        const current = await client.testRun.findUniqueOrThrow({
+          where: { id: testRun.id },
+          select: { status: true },
+        })
+        const outcome = isCancelledOrCancellingStatus(current.status)
+          ? 'cancelled'
+          : exitCode === 0 && evidence.evidenceHealth === 'valid'
+            ? 'passed'
+            : 'failed'
+        await terminalizeTestRun({ testRunDbId: testRun.id, outcome, executionAttempt, client })
         if (implementationValidationBinding) {
           await updateImplementationValidationRunFromTestRun({
             ...implementationValidationBinding,
@@ -866,49 +883,46 @@ export async function scheduleTestRunCompletion(args: {
       .catch(async error => {
         console.error(`[TestRunService] Error executing test run for testRunId: ${testRun.runId}:`, error)
 
-        logger.error(`Error executing test run: ${error instanceof Error ? error.message : String(error)}`)
-        if (error instanceof Error && error.stack) logger.error(error.stack)
-
-        await client.$transaction(async tx => {
-          const completedAt = new Date()
-          const run = await tx.testRun.updateMany({
-            where: { id: testRun.id, status: { in: [TestRunStatus.QUEUED, TestRunStatus.RUNNING] } },
-            data: {
-              status: TestRunStatus.COMPLETED,
-              result: TestRunResult.FAILED,
-              evidenceHealth: 'infrastructure_failure',
-              completedAt,
-            },
-          })
-          if (run.count !== 1) return
-          if (executionAttempt) {
-            const attempt = await tx.runtimeCapsuleExecutionAttempt.updateMany({
-              where: {
-                id: executionAttempt.id,
-                ownerToken: executionAttempt.ownerToken,
-                state: { in: ['STARTING', 'RUNNING'] },
-              },
-              data: {
-                state: 'FAILED',
-                completedAt,
-                failure: error instanceof Error ? error.message : String(error),
-                version: { increment: 1 },
-              },
-            })
-            if (attempt.count !== 1) throw new Error('Execution attempt terminal state changed before failure CAS.')
-          }
+        const message = error instanceof Error ? error.message : String(error)
+        runLogger.error(`Error executing test run: ${message}`)
+        if (error instanceof Error && error.stack) runLogger.error(error.stack)
+        const current = await client.testRun.findUniqueOrThrow({
+          where: { id: testRun.id },
+          select: { status: true },
+        })
+        await terminalizeTestRun({
+          testRunDbId: testRun.id,
+          outcome: isCancelledOrCancellingStatus(current.status) ? 'cancelled' : 'failed',
+          executionAttempt,
+          failure: message,
+          evidenceHealth: 'infrastructure_failure',
+          client,
         })
       })
       .finally(async () => {
         cleanupListener()
-        if (!loggerClosed)
-          await closeLogger(logger).catch(error => {
-            console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, error)
-          })
+        await runLogger.close().catch(error => {
+          console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, error)
+        })
       })
   } catch (error) {
     console.error(`[TestRunService] Synchronous error calling executeTestRun for testRunId: ${testRun.runId}:`, error)
     console.error(`[TestRunService] Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
+    const message = error instanceof Error ? error.message : String(error)
+    runLogger.error(`Error executing test run: ${message}`)
+    await terminalizeTestRun({
+      testRunDbId: testRun.id,
+      outcome: 'failed',
+      executionAttempt,
+      failure: message,
+      evidenceHealth: 'infrastructure_failure',
+      client,
+    }).catch(terminalError => {
+      console.error(`[TestRunService] Error terminalizing testRunId: ${testRun.runId}:`, terminalError)
+    })
+    await runLogger.close().catch(closeError => {
+      console.error(`[TestRunService] Error closing logger for testRunId: ${testRun.runId}:`, closeError)
+    })
     throw error
   }
 }

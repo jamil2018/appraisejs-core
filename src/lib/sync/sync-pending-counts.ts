@@ -57,6 +57,8 @@ type EnvironmentData = {
   apiBaseUrl: string | null
   username: string | null
   passwordEnvironmentVariable: string | null
+  credentialState?: string
+  legacyCredentialDetectedAt?: Date | null
 }
 
 type LocatorMapEntry = {
@@ -738,6 +740,8 @@ export function countEnvironmentMismatches(
     apiBaseUrl: string | null
     username: string | null
     passwordEnvironmentVariable: string | null
+    credentialState?: string
+    legacyCredentialDetectedAt?: Date | null
     _count?: { testRuns: number }
   }>,
 ): number {
