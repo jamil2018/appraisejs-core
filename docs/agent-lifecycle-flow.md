@@ -163,9 +163,10 @@ present and reconciles durable attempt/TestRun state. Missing process registrati
 evidence are recovered through bounded `test_run_diagnose` actions rather than raw process or filesystem inspection.
 
 Implementation start is also agent-owned: once baseline evidence is accepted, the connected agent calls
-`implementation_start` through MCP. Required implementation validations should follow
-`implementation_validation_start -> test_run_preflight -> bound test_run -> test_run_read or test_run_diagnose ->
-implementation_validation_reconcile -> implementation_completion_review`.
+`implementation_start` through MCP. Required implementation validations follow
+`implementation_validation_start -> test_run_read or test_run_diagnose -> implementation_validation_reconcile ->
+implementation_completion_review`; start creates and launches the managed capsules, so agents do not issue a second
+`test_run` call.
 `implementation_validation_record` is only for exceptional manual evidence and is reduced assurance; required runtime
 validations need fresh managed Appraise `TestRun` evidence with `evidenceHealth: valid` before completion can pass.
 

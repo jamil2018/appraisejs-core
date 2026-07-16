@@ -141,7 +141,7 @@ export function registerImplementationOperations(context: McpRegistryContext): v
     'implementation_validation_start',
     {
       description:
-        'Create agent-owned, plan-bound implementation validation run records and return bound test_run inputs to execute through Appraise.',
+        'Create plan-bound implementation validation runs, start their managed capsules, and return canonical implementation and TestRun identities for reconciliation.',
       inputSchema: {
         planId: z.string(),
         validationIds: z.array(z.string().min(1)).optional(),

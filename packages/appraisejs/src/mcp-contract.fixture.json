@@ -1241,7 +1241,7 @@
     {
       "kind": "tool",
       "name": "implementation_validation_start",
-      "description": "Create agent-owned, plan-bound implementation validation run records and return bound test_run inputs to execute through Appraise.",
+      "description": "Create plan-bound implementation validation runs, start their managed capsules, and return canonical implementation and TestRun identities for reconciliation.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -4976,7 +4976,7 @@
     {
       "kind": "tool",
       "name": "implementation_validation_start",
-      "description": "Create agent-owned, plan-bound implementation validation run records and return bound test_run inputs to execute through Appraise.",
+      "description": "Create plan-bound implementation validation runs, start their managed capsules, and return canonical implementation and TestRun identities for reconciliation.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",

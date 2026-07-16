@@ -100,52 +100,9 @@ The HTTP adapter resolves method and path metadata through the typed canonical o
 before dispatch; registry entries cannot opt out of either boundary. Unknown method/path combinations share the same
 bounded not-found envelope.
 
-All routes are under `/api/internal/coordinator`.
-
-| Method | Path                                                      | Purpose                                                             |
-| ------ | --------------------------------------------------------- | ------------------------------------------------------------------- |
-| `POST` | `/register`                                               | Acquire, reconnect, or take over a coordinator lease                |
-| `POST` | `/repository-exports`                                     | Enqueue an exact-publication repository export                      |
-| `POST` | `/repository-exports/<job-id>`                            | Run, retry, or explicitly resolve an export conflict                |
-| `GET`  | `/actions/categories`                                     | List progressive action category summaries                          |
-| `GET`  | `/actions`                                                | List bounded, deterministically filtered actions                    |
-| `GET`  | `/actions/read`                                           | Read exact versioned action descriptors                             |
-| `GET`  | `/locator-graph`                                          | Query the bounded read-only locator graph                           |
-| `GET`  | `/locator-graph/visual`                                   | Read the human projection of the locator graph                      |
-| `POST` | `/heartbeat`                                              | Renew a coordinator lease                                           |
-| `POST` | `/plans`                                                  | Create a structured plan                                            |
-| `GET`  | `/plans/:planId`                                          | Read the plan and named content, state, and review-binding hashes   |
-| `GET`  | `/plans/:planId/review`                                   | Read review hash, remarks, links, and recovery guidance             |
-| `PUT`  | `/plans/:planId`                                          | Submit a higher revision with an expected hash                      |
-| `POST` | `/plans/:planId/start`                                    | Start validation preparation after plan approval                    |
-| `POST` | `/plans/:planId/tasks/:taskId`                            | Publish a task progress event                                       |
-| `GET`  | `/plans/:planId/events`                                   | Read events; `after` and `wait=true` are supported                  |
-| `POST` | `/plans/:planId/events/ack`                               | Acknowledge one sequence                                            |
-| `POST` | `/plans/:planId/validations/publish`                      | Persist validation artifacts and enter validation review            |
-| `POST` | `/plans/:planId/validations/feedback`                     | Route validation feedback to validation or plan review              |
-| `POST` | `/plans/:planId/baseline/start`                           | Agent-owned start of required baseline execution                    |
-| `POST` | `/plans/:planId/baseline/reconcile`                       | Agent-owned baseline evidence reconciliation                        |
-| `POST` | `/plans/:planId/baseline/cancel`                          | Cancel active baseline runs                                         |
-| `POST` | `/plans/:planId/baseline/failures/:attemptId/acknowledge` | Acknowledge unrelated baseline failure evidence                     |
-| `POST` | `/plans/:planId/baseline/regressions/:attemptId/justify`  | Justify accepted regression-pass evidence                           |
-| `POST` | `/plans/:planId/baseline/accept`                          | Accept complete baseline evidence                                   |
-| `POST` | `/plans/:planId/implementation/start`                     | Agent-owned implementation unlock after baseline                    |
-| `POST` | `/plans/:planId/implementation/checkpoint`                | Poll a named implementation checkpoint                              |
-| `POST` | `/plans/:planId/implementation/tasks/:taskId`             | Transition a task state                                             |
-| `POST` | `/plans/:planId/implementation/feedback`                  | Analyze or apply confirmed blocking feedback                        |
-| `POST` | `/plans/:planId/implementation/control`                   | Pause, resume, or cancel implementation                             |
-| `POST` | `/plans/:planId/implementation/validations`               | Record exceptional manual reduced-assurance evidence                |
-| `POST` | `/plans/:planId/implementation/validations/start`         | Create managed implementation validation run intents                |
-| `POST` | `/plans/:planId/implementation/validations/reconcile`     | Reconcile managed implementation validations from runs              |
-| `GET`  | `/plans/:planId/completion`                               | Read the final completion review                                    |
-| `POST` | `/plans/:planId/implementation/complete`                  | Apply explicit final user approval                                  |
-| `POST` | `/delegated/validation-ast-submissions`                   | Verify authorization and store a non-compiling AST inbox submission |
-| `POST` | `/delegations`                                            | Issue bounded delegated coordinator authority                       |
-| `GET`  | `/delegations/:id`                                        | Read receipt, consumption, expiry, and revocation history           |
-| `POST` | `/delegations/:id/revoke`                                 | Revoke delegated authority                                          |
-| `POST` | `/plans/:planId/validations/ast/check`                    | Check against authoritative target context                          |
-| `POST` | `/plans/:planId/validations/ast/preview`                  | Return bounded preview and exact context receipt                    |
-| `POST` | `/plans/:planId/validations/ast/compile`                  | Project only the exact successful preview into canonical entities   |
+All routes are under `/api/internal/coordinator`. The generated operation inventory is
+`docs/generated/coordinator-operation-reference.md`; it is the authoritative method/path and MCP availability list and
+must be refreshed with `npm run generate:coordinator-reference`. Do not hand-edit the generated file.
 
 The create response includes coordinator ownership metadata and the stable review URL only after
 `plan_review_ready` is durably appended.
@@ -187,89 +144,15 @@ For stdio-only MCP clients, register:
 appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
 ```
 
-Resources:
-
-- `appraise://actions/catalog`
-- `appraise://actions/category/{categoryId}`
-- `appraise://contracts/action-catalog`
-- `appraise://contracts/locator-graph`
-- `appraise://contracts/validation-ast`
-- `appraise://contracts/delegated-authorization`
-- `appraise://locator-graph/visual`
-
-- `appraise://project`
-- `appraise://target-projects`
-- `appraise://agent-guide`
-- `appraise://workflow/planning`
-- `appraise://workflow/validation-preparation`
-- `appraise://workflow/standby`
-- `appraise://plans/{planId}`
-
-Tools:
-
-- `delegated_validation_ast_submit`
-- `delegation_create`, `delegation_read`, `delegation_revoke`, and `delegated_plan_create`
-- `validation_ast_check`
-- `validation_ast_preview`
-- `validation_ast_compile`
-- `validation_ast_extension_policy` returns the bounded versioned target-project capability/import policy and hash;
-  the same discovery operation is available through HTTP, the package client, and `appraisejs validation ast-policy`.
-- `validation_ast_extension_reviews` returns exact stored extension reviews plus the operation hash a decision must
-  bind. The package exports typed review/result contracts and the CLI exposes `appraisejs validation ast-reviews`.
-  Coordinator authentication is project-wide; an active coordinator lease is not required for compile.
-
-- `action_categories_list`
-- `actions_list`
-- `actions_read`
-- `locator_graph_query`
-- `coordinator_register`
-- `coordinator_heartbeat`
-- `project_diagnostic`
-
-- `project_add`
-- `project_list`
-- `planning_session_create`
-- `plan_review_loop` when available for active bounded review and approval standby
-- `plan_create`
-- `test_run`
-- `test_run_preflight`
-- `test_run_read`
-- `test_run_diagnose`
-- `plan_read`
-- `plan_review_read`
-- `plan_wait_for_review`
-- `plan_wait_for_approval`
-- `plan_revise`
-- `plan_start`
-- `plan_task_update`
-- `plan_events_read`
-- `plan_event_acknowledge`
-- `plan_events_acknowledge_through`
-- `validation_context_read`
-- `appraise_resources_list`
-- `template_step_search`
-- `template_step_match`
-- `step_block_search`
-- `locator_search`
+The generated reference lists every default and provider-experimental resource and tool, with each tool mapped to a
+coordinator operation or an explicitly documented local MCP boundary. Stable workflow resources include
+`appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/validation-preparation`, and
+`appraise://workflow/standby`.
 
 `template_step_search` and `template_step_match` share one server-side ranked
 resolver. It scores semantic intent and parameter compatibility, applies a confidence threshold, returns bounded
 explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
 and response-size-oriented metrics without returning the full validation context.
-
-- `validation_decide`
-- `validation_file_approve`
-- `validation_feedback_submit`
-- `validation_review_reconcile`
-- `validation_review_submit`
-- `validation_review_loop`
-- `baseline_start`
-- `baseline_reconcile`
-- `baseline_cancel`
-- `baseline_retry`
-- `baseline_failure_acknowledge`
-- `baseline_regression_justify`
-- `baseline_accept`
 
 Managed validation submission is bound to both the immutable AST operation hash and the latest `reviewStateHash`.
 `validation_review_reconcile` is the only legal `review_ready` recovery: it verifies immutable compile content and
@@ -286,14 +169,6 @@ invalidated for fresh review.
 `validation_context_read` accepts `resourceTypes`, `query`, `limit`, and `sinceHash`. Search tools use these bounded
 server-side filters instead of fetching the full context; unchanged scoped reads return `notModified` with the same
 `contextHash`.
-
-- `implementation_start`
-- `implementation_checkpoint`
-- `implementation_task_update`
-- `implementation_feedback`
-- `implementation_control`
-- `implementation_completion_review`
-- `implementation_complete`
 
 Large lifecycle and run tools accept `responseMode: "summary" | "evidenceOnly" | "blockersOnly" | "linksOnly" |
 "full"` where supported. The default is `summary`; agents should request `full` only when the bounded IDs, links,

@@ -97,6 +97,10 @@ Provider-native runs are experimental and disabled by default. If `APPRAISE_EXPE
 before starting AppraiseJS, the MCP server also exposes provider resources and tools such as
 `appraise://provider-runs` and `provider_run_create`.
 
+The complete current coordinator route, MCP tool, resource, and provider-experimental inventory is generated at
+`docs/generated/coordinator-operation-reference.md`. Refresh it with `npm run generate:coordinator-reference`; use
+`npm run release:check:coordinator-reference` to detect registry/documentation drift.
+
 If `project_diagnostic`, `tools/list`, or `resources/list` shows older capabilities, treat the MCP server or client
 registration as stale. Restart or reconnect the MCP client, restart the Appraise MCP sidecar, rerun
 `npm run setup:mcp` and `npm run setup:agent`, then call `project_diagnostic` again.

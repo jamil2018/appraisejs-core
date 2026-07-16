@@ -41,8 +41,14 @@ Domains with a `*-service.ts` include: `test-run`, `report`, `test-case`, `test-
 
 ## Tests
 
-- Vitest includes `src/services/**/*.test.ts` (see root `vitest.config.ts`).
-- Test **service** and **pure helpers** (e.g. `test-run-helpers.ts`), not Server Actions.
+- Test service boundaries and pure helpers, including domain rules, scope enforcement, and persistence orchestration.
+- Add focused Server Action tests when the action contains behavior: parsing or normalization, authorization or
+  project-scope mapping, cache invalidation/redirect decisions, or error-envelope translation. A true pass-through
+  wrapper needs no duplicate test.
+- Do not create a generic action/CRUD framework to make testing uniform. Keep mapping tests beside the owning action
+  and service tests beside the owning domain.
+- Canonical examples include the coordinator operation registry boundary and the test-run service staging boundary;
+  both keep transport mapping separate from domain execution without adding pass-through layers.
 - Use `@/` path alias (configured in Vitest `resolve.alias`).
 
 ## Shared constants

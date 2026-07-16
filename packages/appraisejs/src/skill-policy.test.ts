@@ -64,16 +64,20 @@ describe('Appraise workflow skills', () => {
     expect(sources.join('\n')).toContain('non-blocking remarks')
   })
 
-  it('requires diagnostic-first planning and review-ready evidence handling', async () => {
-    const planning = await fs.readFile(
-      path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-planning', 'SKILL.md'),
-      'utf8',
-    )
-    expect(planning).toContain('project_diagnostic')
+  it('requires a bound discovery handoff and keeps review handling in planning', async () => {
+    const [planning, validationPreparation] = await Promise.all([
+      fs.readFile(path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-planning', 'SKILL.md'), 'utf8'),
+      fs.readFile(
+        path.join(process.cwd(), '..', '..', '.agents', 'skills', 'appraise-validation-preparation', 'SKILL.md'),
+        'utf8',
+      ),
+    ])
+    expect(planning).toContain('bound target')
+    expect(planning).toContain('unchanged brief')
     expect(planning).toContain('appraisejs agent setup')
     expect(planning).toContain('appraise://agent-guide')
     expect(planning).toContain('planning_session_create')
-    expect(planning.indexOf('project_diagnostic')).toBeLessThan(planning.indexOf('plan_create'))
+    expect(planning).not.toContain('project_add')
     expect(planning).toContain('plan_wait_for_review')
     expect(planning).toContain('plan_wait_for_approval')
     expect(planning.indexOf('plan_wait_for_review')).toBeLessThan(planning.indexOf('plan_wait_for_approval'))
@@ -86,8 +90,9 @@ describe('Appraise workflow skills', () => {
     expect(planning).toContain('compact continuation state')
     expect(planning).toContain('Pending review is not completion')
     expect(planning).toContain('Pending approval is not completion')
-    expect(planning).toContain('plan_start')
-    expect(planning).toContain('validation_preparation_started')
+    expect(planning).not.toContain('plan_start')
+    expect(validationPreparation).toContain('plan_start')
+    expect(validationPreparation).toContain('validation_preparation_started')
     expect(planning).toContain('plan_review_read')
     expect(planning).toContain('Acknowledge each handled event')
     expect(planning).toContain('only after')
@@ -110,16 +115,17 @@ describe('Appraise workflow skills', () => {
     expect(validationPreparation).not.toContain('automation/features')
   })
 
-  it('keeps packaged standby guidance aligned with active bounded review waits', async () => {
+  it('keeps packaged standby guidance as a single-responsibility router', async () => {
     const standby = await fs.readFile(
       path.join(process.cwd(), 'agent-skills', 'appraise-planning-standby', 'SKILL.md'),
       'utf8',
     )
 
-    expect(standby).toContain('Prefer `plan_review_loop` when the tool is available')
-    expect(standby).toContain('active bounded wait or poll loop by default')
-    expect(standby).toContain('long-review or host-limit fallback')
-    expect(standby).toContain('Pending review is not completion')
-    expect(standby).toContain('Pending approval is not completion')
+    expect(standby).toContain('router, not a second lifecycle specification')
+    expect(standby).toContain('appraise://workflow/planning')
+    expect(standby).toContain('appraise://workflow/validation-preparation')
+    expect(standby).toContain('No wait call before complete URL handoff')
+    expect(standby).not.toContain('baseline_start')
+    expect(standby).not.toContain('implementation_start')
   })
 })

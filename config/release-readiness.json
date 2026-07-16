@@ -97,9 +97,13 @@
       "severity": "medium",
       "title": "Current public documentation",
       "owner": "developer-experience",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
-      "verificationCommands": ["npm run check:harness"],
+      "verificationCommands": [
+        "npm run check:harness",
+        "npm run docs:check-links",
+        "npm run release:check:coordinator-reference"
+      ],
       "requiredEvidence": ["Harness drift checks and command smoke tests"]
     },
     {
@@ -107,7 +111,7 @@
       "severity": "medium",
       "title": "Canonical planning skill ownership",
       "owner": "agent-harness",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:generic-planning"],
       "requiredEvidence": ["Generic planning source guard and harness tests"]
@@ -117,7 +121,7 @@
       "severity": "medium",
       "title": "Evidence-based repository rules",
       "owner": "application-architecture",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run check:harness"],
       "requiredEvidence": ["Current component and server-action guidance"]
