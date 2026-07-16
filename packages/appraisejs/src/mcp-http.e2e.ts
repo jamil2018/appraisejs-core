@@ -112,6 +112,15 @@ async function main(): Promise<void> {
       'missing bearer',
     )
     await expectStatus(
+      await fetch(`${origin}/mcp`, {
+        method: 'POST',
+        headers: { ...validHeaders, Authorization: 'Bearer other-client-token' },
+        body: initializeBody,
+      }),
+      401,
+      'request-scoped bearer isolation',
+    )
+    await expectStatus(
       await rawPost(origin, { ...validHeaders, Host: `127.0.0.1.attacker.test:${port}` }, initializeBody),
       403,
       'invalid Host',
@@ -153,7 +162,7 @@ async function main(): Promise<void> {
     )
 
     if (stderr.includes(identity.token)) throw new Error('HTTP MCP wrote its bearer token to normal logs.')
-    console.log(JSON.stringify({ ok: true, cases: 6 }))
+    console.log(JSON.stringify({ ok: true, cases: 7 }))
   } finally {
     child?.kill('SIGTERM')
     if (child && child.exitCode === null)

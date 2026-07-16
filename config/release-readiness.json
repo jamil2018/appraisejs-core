@@ -57,7 +57,7 @@
       "severity": "high",
       "title": "Declarative MCP operation registry",
       "owner": "mcp-package",
-      "status": "open",
+      "status": "verified",
       "releaseBlocking": true,
       "verificationCommands": ["npm run release:check:mcp-contract"],
       "requiredEvidence": ["Tool/resource snapshot, parity tests, and package quality report"]

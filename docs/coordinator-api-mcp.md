@@ -147,6 +147,19 @@ The create response includes coordinator ownership metadata and the stable revie
 
 ## MCP Surface
 
+The public MCP contract is defined once by `packages/appraisejs/src/mcp/registry.ts` and composed from project,
+planning, validation, baseline, implementation, runtime, diagnostic, and resource domain registries. Both stdio and
+Streamable HTTP create request-scoped servers from that registry; HTTP identity, project binding, abort state, and
+transport objects are never cached. Immutable contract definitions are reused process-wide and duplicate, empty, or
+unknown definitions fail before startup completes.
+
+`packages/appraisejs/src/mcp-contract.fixture.json` is the generated, schema-bearing contract snapshot. The current
+default surface contains 73 tools and 16 resources. Enabling `APPRAISE_EXPERIMENTAL_PROVIDER_RUNS` adds seven tools and
+two resources, for 80 tools and 18 resources. These current counts supersede the earlier audit snapshot because the
+source contract includes the action/locator contract resources and conditional provider surface. Regenerate and verify
+the snapshot with `npm --prefix packages/appraisejs run build:mcp-contract` and the package tests. Use
+`npm --prefix packages/appraisejs run benchmark:mcp-registry` for repeatable registry allocation evidence.
+
 For local development, `npm run dev` starts both the Next.js app and the Streamable HTTP MCP endpoint. The default
 MCP URL is:
 
