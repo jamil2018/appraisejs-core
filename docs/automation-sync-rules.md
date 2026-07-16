@@ -1,5 +1,9 @@
 # Automation Sync Rules
 
+Pending-sync inventory is represented as typed family comparisons in `src/lib/sync/pending-comparators.ts`. Each
+family owns its mismatch count and reasons; aggregation is generic and must not inspect entity-specific properties.
+Environment comparisons use credential reference names and state only, never credential values.
+
 > Phase 5 migration: unmarked legacy automation can be inspected through the non-mutating import preview described in
 > `docs/legacy-automation-migration.md`. Direct mutation and bidirectional import of directories containing
 > `.appraise-generated.json` are blocked. Reviewed Validation AST state and immutable runtime capsules remain
