@@ -18,8 +18,8 @@ import {
   editEnvironment,
   editTag,
 } from './helpers/forms'
-import { createEnvironment, createModule, createTag, expectPageHeading, saveForm } from './helpers/ui'
-import { deleteRowByName, editRowByName, expectRowHidden, filterTableByName } from './helpers/table'
+import { createEnvironment, createModule, createTag, saveForm } from './helpers/ui'
+import { confirmDeleteDialog, deleteRowByName, editRowByName, expectRowHidden, openRowMenu } from './helpers/table'
 
 test.describe('Configuration CRUD @crud', () => {
   test.beforeEach(async () => {
@@ -76,9 +76,12 @@ test.describe('Configuration CRUD @crud', () => {
     await expectRowHidden(page, editedTagName)
 
     await page.goto('/environments')
-    await deleteRowByName(page, editedEnvironmentName)
+    await page.getByRole('searchbox', { name: 'Search environments' }).fill(editedEnvironmentName)
+    await openRowMenu(page)
+    await confirmDeleteDialog(page)
     await page.reload()
-    await expectRowHidden(page, editedEnvironmentName)
+    await page.getByRole('searchbox', { name: 'Search environments' }).fill(editedEnvironmentName)
+    await expect(page.getByText(editedEnvironmentName, { exact: true })).toHaveCount(0)
   })
 
   test('template catalog entities support create edit and delete', async ({ page }) => {
@@ -97,7 +100,9 @@ test.describe('Configuration CRUD @crud', () => {
     await expect(page.getByText(`${groupName} Edited`, { exact: true }).first()).toBeVisible()
 
     await page.goto('/template-steps')
-    await editRowByName(page, stepName)
+    await page.getByRole('searchbox', { name: 'Search template steps' }).fill(stepName)
+    await page.getByRole('link', { name: `Edit ${stepName}` }).click()
+    await expect(page).toHaveURL(/\/modify\//)
     await page.getByLabel('Name').fill(`${stepName} Edited`)
     await page.getByRole('button', { name: /^Save$/ }).click()
     await expect(page.getByText(`${stepName} Edited`, { exact: true }).first()).toBeVisible()
@@ -108,9 +113,10 @@ test.describe('Configuration CRUD @crud', () => {
     await expectRowHidden(page, templateCaseName)
 
     await page.goto('/template-steps')
-    await deleteRowByName(page, `${stepName} Edited`)
-    await page.reload()
-    await expectRowHidden(page, `${stepName} Edited`)
+    await page.getByRole('searchbox', { name: 'Search template steps' }).fill(`${stepName} Edited`)
+    await page.getByRole('button', { name: `Delete ${stepName} Edited` }).click()
+    await page.getByRole('button', { name: /^Delete$/ }).click()
+    await expect(page.getByText(`${stepName} Edited`, { exact: true })).toHaveCount(0)
 
     await page.goto('/template-step-groups')
     await deleteRowByName(page, `${groupName} Edited`)
