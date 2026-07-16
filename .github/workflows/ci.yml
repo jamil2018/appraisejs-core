@@ -79,7 +79,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            packages/appraisejs/package-lock.json
       - run: npm ci
+      - run: npm --prefix packages/appraisejs ci
       - run: npm run release:check:local-boundary
       - run: npm run release:check:secrets
       - run: npm run release:check:mcp-http

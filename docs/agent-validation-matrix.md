@@ -25,6 +25,10 @@ ratchet, not an allowance: issue counts may decrease but cannot increase, and ne
 patch guard. React Doctor remains scoped to React application source. The stable `Release check` job requires the root,
 both public packages, security/quality, dependency audit, and package-content jobs.
 
+Jobs that invoke package build or test scripts install that package's lockfile first. In particular, the
+security/quality job installs `packages/appraisejs` dependencies before the MCP transport gates so package-local SDK
+and schema-library versions are used instead of incompatible root dependency versions.
+
 For major behavior, architecture, workflow, package, schema, scaffold, lifecycle, or toolchain changes, include the
 current docs that describe that surface in the touched area and validation scope. If an active doc is already stale
 against current source or scripts, update it before publishing even when the code change itself is small.

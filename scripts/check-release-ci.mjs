@@ -30,6 +30,15 @@ for (const command of [
   if (!createPackageCommands.includes(command)) throw new Error(`create-appraisejs CI is missing: ${command}`)
 }
 
+const securityCommands = (workflow.jobs?.['security-and-quality']?.steps ?? [])
+  .map(step => step.run)
+  .filter(command => typeof command === 'string')
+const appraisejsInstallIndex = securityCommands.indexOf('npm --prefix packages/appraisejs ci')
+const mcpHttpCheckIndex = securityCommands.indexOf('npm run release:check:mcp-http')
+if (appraisejsInstallIndex === -1 || mcpHttpCheckIndex === -1 || appraisejsInstallIndex > mcpHttpCheckIndex) {
+  throw new Error('Security CI must install appraisejs package dependencies before running MCP HTTP checks.')
+}
+
 const dependabot = YAML.parse(await readFile('.github/dependabot.yml', 'utf8'))
 const npmDirectories = dependabot.updates
   .filter(update => update['package-ecosystem'] === 'npm')
