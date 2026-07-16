@@ -10,6 +10,7 @@ import {
   Tag,
   Environment,
   BrowserEngine,
+  type Prisma,
   type PrismaClient,
 } from '@prisma/client'
 import { localExecutorAdapter } from '@/lib/executor/local-executor-adapter'
@@ -53,6 +54,18 @@ import {
   isCancelledOrCancellingStatus,
   normalizeSuiteSelection,
 } from '@/services/test-run/test-run-helpers'
+import { prepareRun } from '@/services/test-run/stages/prepare-run'
+import { executeRun } from '@/services/test-run/stages/execute-run'
+import { collectRunOutput, resolveCollectedRunOutcome } from '@/services/test-run/stages/collect-run-evidence'
+import {
+  appliedPageLimit,
+  decodePageCursor,
+  encodePageCursor,
+  pageFromItems,
+  type Page,
+  type PageRequest,
+} from '@/lib/pagination'
+import { readLogTail } from '@/lib/test-run/log-tail-reader'
 
 export {
   buildOrExpression,
@@ -72,16 +85,46 @@ export async function isTestRunNameTaken(name: string, targetProjectId: string, 
   return !!existing
 }
 
-export async function listTestRuns(targetProjectId: string, filter?: string) {
+export async function listTestRuns(
+  targetProjectId: string,
+  filter?: string,
+  page: PageRequest = {},
+): Promise<Page<Awaited<ReturnType<typeof getTestRunPageItems>>[number]>> {
   const whereClause = buildTestRunsWhereClause(filter)
+  const limit = appliedPageLimit(page.limit)
+  const cursor = decodePageCursor(page.cursor, targetProjectId)
+  const items = await getTestRunPageItems({ targetProjectId, whereClause, cursor, limit })
+  return pageFromItems({
+    items,
+    limit,
+    encodeCursor: last =>
+      encodePageCursor({ scope: targetProjectId, id: last.id, sortValue: last.startedAt.toISOString() }),
+  })
+}
 
+async function getTestRunPageItems(input: {
+  targetProjectId: string
+  whereClause: Prisma.TestRunWhereInput
+  cursor?: { id: string; sortValue: string }
+  limit: number
+}) {
+  const cursorWhere: Prisma.TestRunWhereInput = input.cursor
+    ? {
+        OR: [
+          { startedAt: { lt: new Date(input.cursor.sortValue) } },
+          { startedAt: new Date(input.cursor.sortValue), id: { lt: input.cursor.id } },
+        ],
+      }
+    : {}
   return prisma.testRun.findMany({
-    where: { AND: [whereClause, { targetProjectId }] },
+    where: { AND: [input.whereClause, { targetProjectId: input.targetProjectId }, cursorWhere] },
     include: {
       testCases: true,
       tags: true,
       environment: true,
     },
+    orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+    take: input.limit + 1,
   })
 }
 
@@ -722,25 +765,29 @@ export async function scheduleTestRunCompletion(args: {
   let cleanupListener = () => {}
 
   try {
-    if (prepareWorkspace !== false) {
-      await ensureFeatureFilesForTestRun(testRunTestCases)
-    }
+    await prepareRun({
+      prepareWorkspace: prepareWorkspace !== false,
+      prepareFeatureFiles: () => ensureFeatureFilesForTestRun(testRunTestCases),
+    })
 
-    const { process: spawnedProcess, reportPath } = launch
-      ? await launch()
-      : await localExecutorAdapter.executeTestRun({
-          testRunId: testRun.runId,
-          environment,
-          tagExpression,
-          testWorkersCount: value.testWorkersCount || 1,
-          browserEngine: value.browserEngine,
-          headless: true,
-          projectRoot,
-          featurePaths,
-          importPaths,
-          supportPaths,
-          prepareWorkspace,
-        })
+    const { process: spawnedProcess, reportPath } = await executeRun({
+      launch:
+        launch ??
+        (() =>
+          localExecutorAdapter.executeTestRun({
+            testRunId: testRun.runId,
+            environment,
+            tagExpression,
+            testWorkersCount: value.testWorkersCount || 1,
+            browserEngine: value.browserEngine,
+            headless: true,
+            projectRoot,
+            featurePaths,
+            importPaths,
+            supportPaths,
+            prepareWorkspace,
+          })),
+    })
 
     await client.testRun.update({
       where: { id: testRun.id },
@@ -796,44 +843,7 @@ export async function scheduleTestRunCompletion(args: {
         const exitCodeRaw = await waitForProcess(proc.name)
         const exitCode = exitCodeRaw ?? 1
 
-        const logEntries: LogEntry[] = []
-
-        if (proc.output.stdout.length > 0) {
-          const stdoutText = proc.output.stdout.join('')
-          const stdoutLines = stdoutText.split('\n').filter(line => line.trim() !== '')
-          stdoutLines.forEach((line, index) => {
-            const timestamp = new Date(proc.startTime.getTime() + index * 10)
-            logEntries.push({
-              type: 'stdout',
-              message: line,
-              timestamp,
-            })
-            runLogger.info(line)
-          })
-        }
-
-        if (proc.output.stderr.length > 0) {
-          const stderrText = proc.output.stderr.join('')
-          const stderrLines = stderrText.split('\n').filter(line => line.trim() !== '')
-          const stdoutCount = logEntries.filter(e => e.type === 'stdout').length
-          stderrLines.forEach((line, index) => {
-            const timestamp = new Date(proc.startTime.getTime() + stdoutCount * 10 + index * 10)
-            logEntries.push({
-              type: 'stderr',
-              message: line,
-              timestamp,
-            })
-            runLogger.error(line)
-          })
-        }
-
-        const exitMessage = `Process exited with code ${exitCode}`
-        logEntries.push({
-          type: 'status',
-          message: exitMessage,
-          timestamp: proc.endTime || new Date(),
-        })
-        runLogger.info(exitMessage)
+        const { logEntries } = collectRunOutput(proc, exitCode, runLogger)
 
         if (executionAttempt) {
           const managedRun = await client.testRun.findUnique({
@@ -862,11 +872,11 @@ export async function scheduleTestRunCompletion(args: {
           where: { id: testRun.id },
           select: { status: true },
         })
-        const outcome = isCancelledOrCancellingStatus(current.status)
-          ? 'cancelled'
-          : exitCode === 0 && evidence.evidenceHealth === 'valid'
-            ? 'passed'
-            : 'failed'
+        const outcome = resolveCollectedRunOutcome({
+          cancelled: isCancelledOrCancellingStatus(current.status),
+          exitCode,
+          evidenceHealth: evidence.evidenceHealth,
+        })
         await terminalizeTestRun({ testRunDbId: testRun.id, outcome, executionAttempt, client })
         if (implementationValidationBinding) {
           await updateImplementationValidationRunFromTestRun({
@@ -1341,6 +1351,48 @@ export async function getTestRunLogsService(
     return []
   }
   return parseLogsFromStorage(testRunLog.logs)
+}
+
+export async function getTestRunLogTailService(
+  testRunId: string,
+  expectedTargetProjectId: string,
+  maxBytes: number,
+  appraiseRoot = path.join(process.cwd(), '.appraise'),
+  client: PrismaClient = prisma,
+) {
+  const capsule = await client.testRun.findUnique({
+    where: { runId: testRunId },
+    select: { runtimeCapsule: { select: { id: true } } },
+  })
+  if (capsule?.runtimeCapsule) {
+    const access = createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client)
+    const artifact = await access.resolve({ runId: testRunId, kind: 'log', expectedTargetProjectId })
+    const tail = await readLogTail(artifact.absolutePath, Math.min(maxBytes, artifact.maxBytes))
+    return {
+      ...tail,
+      logs: tail.text
+        .split('\n')
+        .filter(Boolean)
+        .map((message, index) => ({ type: 'stdout' as const, message, timestamp: new Date(index) })),
+    }
+  }
+  const logs = await getTestRunLogsService(testRunId, expectedTargetProjectId, appraiseRoot, client)
+  const selected: LogEntry[] = []
+  let bytes = 0
+  for (let index = logs.length - 1; index >= 0; index -= 1) {
+    const entryBytes = Buffer.byteLength(logs[index].message, 'utf8')
+    if (selected.length > 0 && bytes + entryBytes > maxBytes) break
+    selected.unshift(logs[index])
+    bytes += entryBytes
+  }
+  return {
+    text: selected.map(log => log.message).join('\n'),
+    logs: selected,
+    truncated: selected.length < logs.length,
+    startOffset: Math.max(0, logs.length - selected.length),
+    endOffset: logs.length,
+    partialStart: false,
+  }
 }
 
 export type CancelTestRunOutcome =

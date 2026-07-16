@@ -5,7 +5,10 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import {
+  copyMigratedTestDatabase,
+  prepareCleanCoordinatorPlanRuntimeTestDatabase,
+} from '@/test/plan-runtime-schema-test-helper'
 import { basicValidationAstSubmission, sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
@@ -124,7 +127,7 @@ beforeEach(async () => {
   workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-ast-operation-'))
   const databasePath = path.join(workspace, 'appraise.db')
   await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"ast-operation-test"}')
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
+  await copyMigratedTestDatabase(databasePath)
   client = sqliteTestClient(databasePath)
   await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
   const target = await client.targetProject.create({

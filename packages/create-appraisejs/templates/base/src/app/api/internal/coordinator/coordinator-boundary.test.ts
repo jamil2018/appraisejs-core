@@ -8,6 +8,7 @@ describe('coordinator adapter boundaries', () => {
     api: path.join(process.cwd(), 'src', 'app', 'api', 'internal', 'coordinator', '[...operation]', 'route.ts'),
     cli: path.join(process.cwd(), 'packages', 'appraisejs', 'src', 'cli.ts'),
     mcp: path.join(process.cwd(), 'packages', 'appraisejs', 'src', 'mcp.ts'),
+    mcpContract: path.join(process.cwd(), 'packages', 'appraisejs', 'src', 'mcp-contract.fixture.json'),
     ui: path.join(process.cwd(), 'src', 'actions', 'plan-review', 'plan-review-actions.ts'),
   }
 
@@ -66,7 +67,7 @@ describe('coordinator adapter boundaries', () => {
         'completionReview',
         'reconnect',
       ],
-      mcp: [
+      mcpContract: [
         'plan_create',
         'planning_session_create',
         'plan_wait_for_approval',

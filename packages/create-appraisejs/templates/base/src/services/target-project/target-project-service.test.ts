@@ -6,7 +6,10 @@ import type { PrismaClient } from '@prisma/client'
 import { PrismaClient as TestPrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import {
+  copyMigratedTestDatabase,
+  prepareCleanCoordinatorPlanRuntimeTestDatabase,
+} from '@/test/plan-runtime-schema-test-helper'
 
 const { mockTargetProjectUpsert, mockTargetProjectFindMany, mockTargetProjectFindUnique, mockTargetProjectUpdate } =
   vi.hoisted(() => ({
@@ -264,7 +267,7 @@ describe('target project service', () => {
   it('deletes persisted authored, lifecycle, and run records with their project', async () => {
     const workspace = await createWorkspace()
     const databasePath = path.join(workspace, 'project-deletion.db')
-    await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
+    await copyMigratedTestDatabase(databasePath)
     await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
     const client = new TestPrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
     const targetProjectId = '00000000-0000-4000-8000-000000000099'

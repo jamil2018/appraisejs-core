@@ -4,7 +4,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import {
+  copyMigratedTestDatabase,
+  prepareCleanCoordinatorPlanRuntimeTestDatabase,
+} from '@/test/plan-runtime-schema-test-helper'
 import { seedReviewedCapsuleLifecycleFixture } from '@/test/reviewed-capsule-lifecycle-fixture'
 import { sqliteTestClient } from '@/test/validation-ast-test-fixtures'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
@@ -25,7 +28,7 @@ describe('reviewed capsule coordinator lifecycle E2E', () => {
   beforeAll(async () => {
     workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-capsule-coordinator-e2e-'))
     const databasePath = path.join(workspace, 'appraise.db')
-    await fs.copyFile(path.join(process.cwd(), 'prisma/dev.db'), databasePath)
+    await copyMigratedTestDatabase(databasePath)
     await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
     client = sqliteTestClient(databasePath)
     server = createServer((_request, response) => {

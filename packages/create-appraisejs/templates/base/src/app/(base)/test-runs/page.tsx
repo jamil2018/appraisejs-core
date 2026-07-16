@@ -23,7 +23,11 @@ const TestRuns = async ({ searchParams }: { searchParams: Promise<{ filter?: str
     return <div>Error: {testRunsError}</div>
   }
 
-  const testRunsData = testRuns as (TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment })[]
+  const testRunsData = (
+    testRuns as {
+      items: (TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment })[]
+    }
+  )?.items
 
   if (!testRunsData || testRunsData.length === 0) {
     return (

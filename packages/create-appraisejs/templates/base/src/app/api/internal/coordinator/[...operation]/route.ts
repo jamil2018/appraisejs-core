@@ -89,6 +89,10 @@ import {
 import { readPlanReviewSummary } from '@/services/plan-review/plan-review-service'
 import { queryLocatorGraph, readLocatorGraphVisualProjection } from '@/services/locator-graph/locator-graph-service'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  coordinatorOperationRegistry,
+  type CoordinatorOperationId,
+} from '@/services/coordinator/coordinator-operation-registry'
 import { enqueueRepositoryExport, runRepositoryExportJob } from '@/services/repository-export/repository-export-service'
 import { submitDelegatedValidationAst } from '@/services/coordinator/delegated-validation-ast-service'
 import {
@@ -308,110 +312,138 @@ async function getValidations(request: Request, operation: string[]) {
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
-// Request routing branches stay in this thin HTTP adapter.
-// fallow-ignore-next-line complexity
-async function dispatchGet(request: Request, operation: string[]) {
-  if (operation[0] === 'delegations' && operation[1]) {
-    return Response.json(await readDelegatedCoordinatorReceipt(z.string().uuid().parse(operation[1])))
-  }
-  if (operation.length === 1 && operation[0] === 'diagnostic') return getDiagnostic(request)
-  if (operation[0] === 'test-runs') return getTestRunEvidence(request, operation)
-  if (operation[0] === 'plans' && operation[1] && operation[2] === 'health') {
-    return Response.json(await readImplementationLifecycleHealth(routePlanIdSchema.parse(operation[1])))
-  }
-  if (operation[0] === 'actions') {
-    const query = new URL(request.url).searchParams
-    if (operation[1] === 'categories') {
-      return Response.json(
-        defaultActionCatalog.listCategories(
-          query.get('parentCategoryId') ?? undefined,
-          query.get('knownCatalogHash') ?? undefined,
-        ),
-      )
-    }
-    if (operation[1] === 'read') {
-      const refs = z
-        .string()
-        .transform((value, context) => {
-          try {
-            return JSON.parse(value) as unknown
-          } catch {
-            context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
-            return z.NEVER
-          }
-        })
-        .pipe(
-          z
-            .array(z.object({ id: z.string(), version: z.string().optional() }))
-            .min(1)
-            .max(50),
-        )
-        .parse(query.get('refs') ?? '[]')
-      return Response.json({
-        catalogHash: defaultActionCatalog.catalogHash,
-        actions: defaultActionCatalog.readActions(refs),
-      })
-    }
-    const filter = {
-      categoryId: query.get('categoryId') ?? undefined,
-      capability: query.get('capability') ?? undefined,
-      inputType: query.get('inputType') ?? undefined,
-      runtime: z
-        .enum(['browser', 'api', 'node', 'database'])
-        .optional()
-        .parse(query.get('runtime') ?? undefined),
-      deprecated: query.has('deprecated')
-        ? z
-            .enum(['true', 'false'])
-            .transform(value => value === 'true')
-            .parse(query.get('deprecated'))
-        : undefined,
-      idPrefix: query.get('idPrefix') ?? undefined,
-    }
-    return Response.json(
-      defaultActionCatalog.listActions(
-        filter,
-        query.has('cursor') ? z.coerce.number().int().nonnegative().parse(query.get('cursor')) : 0,
-        query.has('limit') ? z.coerce.number().int().min(1).max(100).parse(query.get('limit')) : 50,
-      ),
+function getActionCategories(query: URLSearchParams) {
+  return Response.json(
+    defaultActionCatalog.listCategories(
+      query.get('parentCategoryId') ?? undefined,
+      query.get('knownCatalogHash') ?? undefined,
+    ),
+  )
+}
+
+function getActionsByReference(query: URLSearchParams) {
+  const refs = z
+    .string()
+    .transform((value, context) => {
+      try {
+        return JSON.parse(value) as unknown
+      } catch {
+        context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
+        return z.NEVER
+      }
+    })
+    .pipe(
+      z
+        .array(z.object({ id: z.string(), version: z.string().optional() }))
+        .min(1)
+        .max(50),
     )
+    .parse(query.get('refs') ?? '[]')
+  return Response.json({
+    catalogHash: defaultActionCatalog.catalogHash,
+    actions: defaultActionCatalog.readActions(refs),
+  })
+}
+
+function optionalQuery(query: URLSearchParams, key: string) {
+  return query.get(key) ?? undefined
+}
+
+function parseDeprecatedFilter(query: URLSearchParams) {
+  const value = query.get('deprecated')
+  return value === null
+    ? undefined
+    : z
+        .enum(['true', 'false'])
+        .transform(option => option === 'true')
+        .parse(value)
+}
+
+function parseActionCursor(query: URLSearchParams) {
+  return query.has('cursor') ? z.coerce.number().int().nonnegative().parse(query.get('cursor')) : 0
+}
+
+function parseActionLimit(query: URLSearchParams) {
+  return query.has('limit') ? z.coerce.number().int().min(1).max(100).parse(query.get('limit')) : 50
+}
+
+function listActions(query: URLSearchParams) {
+  const filter = {
+    categoryId: optionalQuery(query, 'categoryId'),
+    capability: optionalQuery(query, 'capability'),
+    inputType: optionalQuery(query, 'inputType'),
+    runtime: z
+      .enum(['browser', 'api', 'node', 'database'])
+      .optional()
+      .parse(query.get('runtime') ?? undefined),
+    deprecated: parseDeprecatedFilter(query),
+    idPrefix: optionalQuery(query, 'idPrefix'),
   }
-  if (operation.length === 1 && operation[0] === 'target-projects')
-    return Response.json({ targetProjects: await listTargetProjects() })
-  if (operation[0] === 'locator-graph') {
-    if (operation[1] === 'visual') return Response.json(await readLocatorGraphVisualProjection())
-    const url = new URL(request.url)
-    return Response.json(
-      await queryLocatorGraph({
-        fromId: url.searchParams.get('fromId'),
-        relation: url.searchParams.get('relation') ?? undefined,
-        toType: url.searchParams.get('toType') ?? undefined,
-        cursor: url.searchParams.get('cursor') ?? undefined,
-        limit: z.coerce.number().int().positive().max(100).catch(25).parse(url.searchParams.get('limit')),
-        depth: z.coerce.number().int().positive().max(4).catch(1).parse(url.searchParams.get('depth')),
-      }),
-    )
+  return Response.json(defaultActionCatalog.listActions(filter, parseActionCursor(query), parseActionLimit(query)))
+}
+
+async function getActions(request: Request, operation: string[]) {
+  const query = new URL(request.url).searchParams
+  const handlers: Record<string, () => Response> = {
+    categories: () => getActionCategories(query),
+    read: () => getActionsByReference(query),
+    list: () => listActions(query),
   }
-  if (operation.length === 1 && operation[0] === 'providers') {
-    assertProviderNativeRunsEnabled()
-    return Response.json({ providers: await listProviderRegistrations() })
-  }
-  if (operation[0] === 'provider-runs') {
-    assertProviderNativeRunsEnabled()
-    if (operation.length === 1) return Response.json({ providerRuns: await listProviderWorkflowRuns() })
-    return Response.json(await getProviderWorkflowRun(z.string().uuid().parse(operation[1])))
-  }
-  if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+  return (handlers[operation[1] ?? 'list'] ?? handlers.list)()
+}
+
+async function queryCoordinatorLocatorGraph(request: Request) {
+  const query = new URL(request.url).searchParams
+  return Response.json(
+    await queryLocatorGraph({
+      fromId: query.get('fromId'),
+      relation: query.get('relation') ?? undefined,
+      toType: query.get('toType') ?? undefined,
+      cursor: query.get('cursor') ?? undefined,
+      limit: z.coerce.number().int().positive().max(100).catch(25).parse(query.get('limit')),
+      depth: z.coerce.number().int().positive().max(4).catch(1).parse(query.get('depth')),
+    }),
+  )
+}
+
+async function getLocatorGraph(request: Request, operation: string[]) {
   const handlers: Record<string, () => Promise<Response>> = {
-    plan: () => getPlan(request, operation),
-    events: () => getEvents(request, operation),
-    review: () => getReview(request, operation),
-    validations: () => getValidations(request, operation),
-    completion: async () => Response.json(await reviewImplementationCompletion(routePlanIdSchema.parse(operation[1]))),
+    visual: async () => Response.json(await readLocatorGraphVisualProjection()),
+    query: () => queryCoordinatorLocatorGraph(request),
   }
-  const handler = handlers[operation[2] ?? 'plan']
-  if (!handler) throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
-  return handler()
+  return (handlers[operation[1] ?? 'query'] ?? handlers.query)()
+}
+
+async function dispatchGet(request: Request, operation: string[]) {
+  const id = coordinatorOperationRegistry.resolve('GET', operation)
+  const handlers: Partial<Record<CoordinatorOperationId, () => Promise<Response>>> = {
+    'delegation-read': async () =>
+      Response.json(await readDelegatedCoordinatorReceipt(z.string().uuid().parse(operation[1]))),
+    diagnostic: () => getDiagnostic(request),
+    'test-run-evidence': () => getTestRunEvidence(request, operation),
+    'plan-health': async () =>
+      Response.json(await readImplementationLifecycleHealth(routePlanIdSchema.parse(operation[1]))),
+    actions: () => getActions(request, operation),
+    'target-projects-list': async () => Response.json({ targetProjects: await listTargetProjects() }),
+    'locator-graph': () => getLocatorGraph(request, operation),
+    'providers-list': async () => {
+      assertProviderNativeRunsEnabled()
+      return Response.json({ providers: await listProviderRegistrations() })
+    },
+    'provider-runs-read': async () => {
+      assertProviderNativeRunsEnabled()
+      return operation.length === 1
+        ? Response.json({ providerRuns: await listProviderWorkflowRuns() })
+        : Response.json(await getProviderWorkflowRun(z.string().uuid().parse(operation[1])))
+    },
+    'plan-read': () => getPlan(request, operation),
+    'plan-events-read': () => getEvents(request, operation),
+    'plan-review-read': () => getReview(request, operation),
+    'plan-validations-read': () => getValidations(request, operation),
+    'plan-completion-read': async () =>
+      Response.json(await reviewImplementationCompletion(routePlanIdSchema.parse(operation[1]))),
+  }
+  return handlers[id]!()
 }
 
 // Request parsing branches stay in this thin HTTP adapter.
@@ -874,160 +906,150 @@ async function postValidationOperation(request: Request, operation: string[], bo
   throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
 }
 
-function assertPlanOperation(operation: string[]): void {
-  if (operation[0] !== 'plans') throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
+async function postDelegationCreate(body: unknown) {
+  const value = z
+    .object({
+      parentCoordinatorId: z.string().min(1),
+      delegatedCoordinatorId: z.string().min(1),
+      targetProjectId: z.string().min(1).optional(),
+      targetFingerprint: z.string().startsWith('sha256:'),
+      pathFingerprint: z.string().startsWith('sha256:'),
+      purpose: z.string().min(1),
+      permissions: z.array(z.enum(DELEGATED_COORDINATOR_PERMISSIONS)).min(1),
+      prohibitions: z.array(z.string().min(1)).optional(),
+      briefOrPlanHash: z.string().startsWith('sha256:').optional(),
+      expiresAt: z.string().datetime({ offset: true }),
+    })
+    .parse(body)
+  return Response.json(await createDelegatedCoordinatorReceipt(value), { status: 201 })
 }
 
-// fallow-ignore-next-line complexity
+async function postDelegationRevoke(operation: string[], body: unknown) {
+  const value = z.object({ revokedBy: z.string().min(1), reason: z.string().min(1).optional() }).parse(body)
+  return Response.json(await revokeDelegatedCoordinatorReceipt({ id: z.string().uuid().parse(operation[1]), ...value }))
+}
+
+async function postObjective(body: unknown) {
+  const value = z
+    .object({
+      objectiveId: idSchema.optional(),
+      title: z.string().min(1),
+      milestones: z.array(z.object({ id: idSchema, title: z.string().min(1) })),
+      plans: z.array(
+        z.object({
+          planId: routePlanIdSchema,
+          milestoneId: idSchema,
+          dependsOn: z.array(routePlanIdSchema).optional(),
+          impactedPaths: z.array(z.string().min(1)).optional(),
+        }),
+      ),
+    })
+    .parse(body)
+  return Response.json(await createObjective(value))
+}
+
+function postCoordinationSlo(body: unknown) {
+  const value = z
+    .object({
+      phases: z.array(
+        z.object({
+          phase: z.string().min(1),
+          activeAppraiseMs: z.number().int().nonnegative(),
+          activeAgentMs: z.number().int().nonnegative(),
+          humanReviewMs: z.number().int().nonnegative(),
+        }),
+      ),
+      responseBytes: z.array(z.number().int().nonnegative()),
+      operations: z.number().int().nonnegative(),
+      retries: z.number().int().nonnegative(),
+      approvals: z.number().int().nonnegative(),
+    })
+    .parse(body)
+  return Response.json(evaluateCoordinationSlo(value))
+}
+
+async function postRepositoryExport(operation: string[], body: unknown) {
+  if (operation.length === 1) {
+    const value = z
+      .object({
+        publishOperationId: z.string().min(1),
+        policy: z.enum(['disabled', 'optional', 'required']),
+        destinationPath: z.string().min(1).optional(),
+      })
+      .parse(body)
+    return Response.json(await enqueueRepositoryExport(value))
+  }
+  const value = z.object({ allowReplaceConflicts: z.boolean().optional() }).parse(body)
+  return Response.json(
+    await runRepositoryExportJob(z.string().uuid().parse(operation[1]), {
+      allowReplaceConflicts: value.allowReplaceConflicts,
+    }),
+  )
+}
+
+async function postDelegatedValidation(request: Request, body: unknown) {
+  const value = z.object({ submission: z.unknown(), receipt: z.unknown() }).parse(body)
+  return Response.json(
+    await submitDelegatedValidationAst({
+      submission: value.submission,
+      receipt: value.receipt,
+      targetFingerprint: request.headers.get('x-appraise-project') ?? '',
+    }),
+  )
+}
+
+async function postPlanSnapshot(operation: string[], body: unknown) {
+  const value = z.object({ archiveThroughSequence: z.number().int().nonnegative().optional() }).parse(body)
+  return Response.json(
+    await createLifecycleSnapshot(routePlanIdSchema.parse(operation[1]), {
+      archiveThroughSequence: value.archiveThroughSequence,
+    }),
+  )
+}
+
+async function postPlanContinuation(operation: string[], body: unknown) {
+  const value = z
+    .object({
+      narrative: z.string(),
+      references: z.array(z.string().min(1)).optional(),
+      objectiveReference: z.string().min(1).optional(),
+    })
+    .parse(body)
+  return Response.json(await createContinuationPackage({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
+}
+
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
-  if (operation[0] === 'delegations' && operation.length === 1) {
-    const value = z
-      .object({
-        parentCoordinatorId: z.string().min(1),
-        delegatedCoordinatorId: z.string().min(1),
-        targetProjectId: z.string().min(1).optional(),
-        targetFingerprint: z.string().startsWith('sha256:'),
-        pathFingerprint: z.string().startsWith('sha256:'),
-        purpose: z.string().min(1),
-        permissions: z.array(z.enum(DELEGATED_COORDINATOR_PERMISSIONS)).min(1),
-        prohibitions: z.array(z.string().min(1)).optional(),
-        briefOrPlanHash: z.string().startsWith('sha256:').optional(),
-        expiresAt: z.string().datetime({ offset: true }),
-      })
-      .parse(body)
-    return Response.json(await createDelegatedCoordinatorReceipt(value), { status: 201 })
-  }
-  if (operation[0] === 'delegations' && operation[1] && operation[2] === 'revoke') {
-    const value = z.object({ revokedBy: z.string().min(1), reason: z.string().min(1).optional() }).parse(body)
-    return Response.json(
-      await revokeDelegatedCoordinatorReceipt({ id: z.string().uuid().parse(operation[1]), ...value }),
-    )
-  }
-  if (operation[0] === 'objectives') {
-    const value = z
-      .object({
-        objectiveId: idSchema.optional(),
-        title: z.string().min(1),
-        milestones: z.array(z.object({ id: idSchema, title: z.string().min(1) })),
-        plans: z.array(
-          z.object({
-            planId: routePlanIdSchema,
-            milestoneId: idSchema,
-            dependsOn: z.array(routePlanIdSchema).optional(),
-            impactedPaths: z.array(z.string().min(1)).optional(),
-          }),
-        ),
-      })
-      .parse(body)
-    return Response.json(await createObjective(value))
-  }
-  if (operation[0] === 'coordination-slo') {
-    const value = z
-      .object({
-        phases: z.array(
-          z.object({
-            phase: z.string().min(1),
-            activeAppraiseMs: z.number().int().nonnegative(),
-            activeAgentMs: z.number().int().nonnegative(),
-            humanReviewMs: z.number().int().nonnegative(),
-          }),
-        ),
-        responseBytes: z.array(z.number().int().nonnegative()),
-        operations: z.number().int().nonnegative(),
-        retries: z.number().int().nonnegative(),
-        approvals: z.number().int().nonnegative(),
-      })
-      .parse(body)
-    return Response.json(evaluateCoordinationSlo(value))
-  }
-  if (operation[0] === 'repository-exports') {
-    if (operation.length === 1) {
-      const value = z
-        .object({
-          publishOperationId: z.string().min(1),
-          policy: z.enum(['disabled', 'optional', 'required']),
-          destinationPath: z.string().min(1).optional(),
-        })
-        .parse(body)
-      return Response.json(await enqueueRepositoryExport(value))
-    }
-    const value = z.object({ allowReplaceConflicts: z.boolean().optional() }).parse(body)
-    return Response.json(
-      await runRepositoryExportJob(z.string().uuid().parse(operation[1]), {
-        allowReplaceConflicts: value.allowReplaceConflicts,
-      }),
-    )
-  }
-  if (operation[0] === 'delegated' && operation[1] === 'validation-ast-submissions') {
-    const value = z.object({ submission: z.unknown(), receipt: z.unknown() }).parse(body)
-    return Response.json(
-      await submitDelegatedValidationAst({
-        submission: value.submission,
-        receipt: value.receipt,
-        targetFingerprint: request.headers.get('x-appraise-project') ?? '',
-      }),
-    )
-  }
-  if (operation[0] === 'provider-runs') {
-    assertProviderNativeRunsEnabled()
-    return postProviderRun(operation, body)
-  }
-  if (operation[0] === 'plans' && operation[2] === 'snapshot') {
-    const value = z.object({ archiveThroughSequence: z.number().int().nonnegative().optional() }).parse(body)
-    return Response.json(
-      await createLifecycleSnapshot(routePlanIdSchema.parse(operation[1]), {
-        archiveThroughSequence: value.archiveThroughSequence,
-      }),
-    )
-  }
-  if (operation[0] === 'plans' && operation[2] === 'continuation-package') {
-    const value = z
-      .object({
-        narrative: z.string(),
-        references: z.array(z.string().min(1)).optional(),
-        objectiveReference: z.string().min(1).optional(),
-      })
-      .parse(body)
-    return Response.json(await createContinuationPackage({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
-  }
-  if (operation[0] === 'providers') {
-    assertProviderNativeRunsEnabled()
-    return postProviderRegistration(operation, body)
-  }
-  const handlers: Record<string, () => Promise<Response>> = {
+  const id = coordinatorOperationRegistry.resolve('POST', operation)
+  const handlers: Partial<Record<CoordinatorOperationId, () => Promise<Response>>> = {
+    'delegation-create': () => postDelegationCreate(body),
+    'delegation-revoke': () => postDelegationRevoke(operation, body),
+    'objective-create': () => postObjective(body),
+    'coordination-slo': async () => postCoordinationSlo(body),
+    'repository-export': () => postRepositoryExport(operation, body),
+    'delegated-validation-submit': () => postDelegatedValidation(request, body),
+    'provider-runs-write': () => {
+      assertProviderNativeRunsEnabled()
+      return postProviderRun(operation, body)
+    },
+    'plan-snapshot': () => postPlanSnapshot(operation, body),
+    'plan-continuation': () => postPlanContinuation(operation, body),
+    'providers-write': () => {
+      assertProviderNativeRunsEnabled()
+      return postProviderRegistration(operation, body)
+    },
     register: () => postRegister(body),
     heartbeat: () => postHeartbeat(body),
-    plans: () => postCreatePlan(request, body),
-    'target-projects': () => postTargetProject(body),
-    'test-runs': () => (operation[1] === 'preflight' ? postTestRunPreflight(body) : postStandaloneTestRun(body)),
-    start: () => {
-      assertPlanOperation(operation)
-      return postStartPlan(operation)
-    },
-    tasks: () => {
-      assertPlanOperation(operation)
-      return postTaskUpdate(operation, body)
-    },
-    events: () => {
-      assertPlanOperation(operation)
-      return postEventAcknowledgement(operation, body)
-    },
-    validations: () => {
-      assertPlanOperation(operation)
-      return postValidationOperation(request, operation, body)
-    },
-    baseline: () => {
-      assertPlanOperation(operation)
-      return postBaselineOperation(operation, body)
-    },
-    implementation: () => {
-      assertPlanOperation(operation)
-      return postImplementationOperation(operation, body)
-    },
+    'plan-create': () => postCreatePlan(request, body),
+    'target-project-write': () => postTargetProject(body),
+    'test-run-write': () => (operation[1] === 'preflight' ? postTestRunPreflight(body) : postStandaloneTestRun(body)),
+    'plan-start': () => postStartPlan(operation),
+    'plan-task-update': () => postTaskUpdate(operation, body),
+    'plan-event-acknowledge': () => postEventAcknowledgement(operation, body),
+    'plan-validation-write': () => postValidationOperation(request, operation, body),
+    'plan-baseline-write': () => postBaselineOperation(operation, body),
+    'plan-implementation-write': () => postImplementationOperation(operation, body),
   }
-  const handler = handlers[operation[2] ?? operation[0]]
-  if (!handler) throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
-  return handler()
+  return handlers[id]!()
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -1065,9 +1087,7 @@ export async function PUT(request: Request, context: RouteContext) {
   try {
     await guardCoordinatorRequest(request)
     const operation = (await context.params).operation
-    if (operation[0] !== 'plans' || operation.length !== 2) {
-      throw new ServiceError('Coordinator API operation not found.', 'NOT_FOUND')
-    }
+    coordinatorOperationRegistry.resolve('PUT', operation)
     const body = z
       .object({ plan: planArtifactSchema, expectedHash: z.string().startsWith('sha256:') })
       .parse(await readCoordinatorJson(request))

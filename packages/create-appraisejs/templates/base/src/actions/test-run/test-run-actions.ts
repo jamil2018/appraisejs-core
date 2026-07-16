@@ -19,10 +19,13 @@ import {
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 
-export async function getAllTestRunsAction(filter?: string): Promise<ActionResponse> {
+export async function getAllTestRunsAction(
+  filter?: string,
+  page?: { cursor?: string; limit?: number },
+): Promise<ActionResponse> {
   try {
     const project = await requireActiveProjectForMutation()
-    const testRuns = await listTestRuns(project.id, filter)
+    const testRuns = page ? await listTestRuns(project.id, filter, page) : await listTestRuns(project.id, filter)
     return {
       status: 200,
       success: true,

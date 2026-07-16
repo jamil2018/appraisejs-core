@@ -33,6 +33,7 @@ import {
 } from '@/lib/sync/projected-feature-utils'
 import type { AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode } from '@/lib/appraise-test-case-metadata'
 import { countPendingPlanSync } from '@/lib/plans/plan-sync-service'
+import { aggregatePendingComparisons, pendingComparison } from '@/lib/sync/pending-comparators'
 import {
   parseGroupJSDocLenient as parseGroupJSDoc,
   parseStepJSDocLenient as parseStepJSDoc,
@@ -1321,33 +1322,43 @@ export async function getSyncPendingCounts(): Promise<SyncPendingCounts> {
       dbModules.map(module => [module.id, module.name === 'root' && module.parentId === null ? '/' : module.path]),
     )
 
-    const counts: Record<SyncScriptId, number> = {
-      'sync-plans': pendingPlans,
-      'sync-modules': countModuleMismatches(filesystem.modulePaths, dbModules),
-      'sync-environments': countEnvironmentMismatches(filesystem.environments, dbEnvironments),
-      'sync-tags': countTagMismatches(filesystem.tagObjects, dbTags),
-      'sync-template-step-groups': countTemplateStepGroupMismatches(
-        filesystem.templateStepGroups,
-        dbTemplateStepGroups,
+    const comparisons = [
+      pendingComparison('sync-plans', pendingPlans),
+      pendingComparison('sync-modules', countModuleMismatches(filesystem.modulePaths, dbModules)),
+      pendingComparison('sync-environments', countEnvironmentMismatches(filesystem.environments, dbEnvironments)),
+      pendingComparison('sync-tags', countTagMismatches(filesystem.tagObjects, dbTags)),
+      pendingComparison(
+        'sync-template-step-groups',
+        countTemplateStepGroupMismatches(filesystem.templateStepGroups, dbTemplateStepGroups),
       ),
-      'sync-template-steps': countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
-      'sync-locator-groups': countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
-      'sync-locators': countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups),
-      'sync-test-suites': countTestSuiteMismatches(filesystem.testSuites, dbTestSuites, modulePathMap),
-      'sync-test-cases': countTestCaseMismatches(
-        filesystem.testCases,
-        dbTestCases,
-        modulePathMap,
-        normalizedDbTemplateSteps.map(step => ({
-          signature: step.signature,
-          parameters: step.parameters,
-        })),
+      pendingComparison(
+        'sync-template-steps',
+        countTemplateStepMismatches(filesystem.templateSteps, normalizedDbTemplateSteps),
       ),
-    }
+      pendingComparison(
+        'sync-locator-groups',
+        countLocatorGroupMismatches(filesystem.locatorGroups, dbLocatorGroups, modulePathMap),
+      ),
+      pendingComparison('sync-locators', countLocatorMismatches(filesystem.locatorFiles, dbLocatorGroups)),
+      pendingComparison(
+        'sync-test-suites',
+        countTestSuiteMismatches(filesystem.testSuites, dbTestSuites, modulePathMap),
+      ),
+      pendingComparison(
+        'sync-test-cases',
+        countTestCaseMismatches(
+          filesystem.testCases,
+          dbTestCases,
+          modulePathMap,
+          normalizedDbTemplateSteps.map(step => ({ signature: step.signature, parameters: step.parameters })),
+        ),
+      ),
+    ]
+    const aggregate = aggregatePendingComparisons(comparisons)
 
     return {
-      ...counts,
-      [SYNC_ALL_REQUEST_ID]: Object.values(counts).reduce((sum, count) => sum + count, 0),
+      ...aggregate.counts,
+      [SYNC_ALL_REQUEST_ID]: aggregate.total,
     }
   } catch (error) {
     console.error('Unable to compute sync pending counts:', error)

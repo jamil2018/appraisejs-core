@@ -1,0 +1,26 @@
+import { readFile } from 'node:fs/promises'
+import YAML from 'yaml'
+
+const workflow = YAML.parse(await readFile('.github/workflows/ci.yml', 'utf8'))
+const pullRequestBranches = workflow.on?.pull_request?.branches ?? []
+const requiredJobs = [
+  'root-app',
+  'appraisejs-package',
+  'create-appraisejs-package',
+  'security-and-quality',
+  'dependency-and-package-content',
+]
+if (!pullRequestBranches.includes('appraise-0.5')) throw new Error('CI must run for pull requests to appraise-0.5.')
+for (const job of requiredJobs) if (!workflow.jobs?.[job]) throw new Error(`Release CI is missing the ${job} job.`)
+const aggregateNeeds = workflow.jobs?.['release-check']?.needs ?? []
+for (const job of requiredJobs)
+  if (!aggregateNeeds.includes(job)) throw new Error(`Release check does not require ${job}.`)
+
+const dependabot = YAML.parse(await readFile('.github/dependabot.yml', 'utf8'))
+const npmDirectories = dependabot.updates
+  .filter(update => update['package-ecosystem'] === 'npm')
+  .map(update => update.directory)
+for (const directory of ['/', '/packages/appraisejs', '/packages/create-appraisejs']) {
+  if (!npmDirectories.includes(directory)) throw new Error(`Dependabot does not cover ${directory}.`)
+}
+console.log('Release CI and dependency-update configuration are structurally complete.')

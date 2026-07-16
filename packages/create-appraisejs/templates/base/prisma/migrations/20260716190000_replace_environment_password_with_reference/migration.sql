@@ -1,6 +1,5 @@
 PRAGMA defer_foreign_keys=ON;
 PRAGMA foreign_keys=OFF;
-BEGIN IMMEDIATE;
 
 CREATE TABLE "new_Environment" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -31,7 +30,6 @@ FROM "Environment";
 DROP TABLE "Environment";
 ALTER TABLE "new_Environment" RENAME TO "Environment";
 CREATE UNIQUE INDEX "Environment_targetProjectId_name_key" ON "Environment"("targetProjectId", "name");
-COMMIT;
 
 PRAGMA foreign_keys=ON;
 PRAGMA defer_foreign_keys=OFF;

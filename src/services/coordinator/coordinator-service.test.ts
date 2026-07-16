@@ -4,7 +4,10 @@ import path from 'node:path'
 
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { prepareCleanCoordinatorPlanRuntimeTestDatabase } from '@/test/plan-runtime-schema-test-helper'
+import {
+  copyMigratedTestDatabase,
+  prepareCleanCoordinatorPlanRuntimeTestDatabase,
+} from '@/test/plan-runtime-schema-test-helper'
 
 import { parseYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
@@ -57,7 +60,7 @@ beforeEach(async () => {
   await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"coordinator-test"}')
   // Test databases intentionally mirror the plan sync integration fixture.
   // fallow-ignore-next-line code-duplication
-  await fs.copyFile(path.join(process.cwd(), 'prisma', 'dev.db'), databasePath)
+  await copyMigratedTestDatabase(databasePath)
   await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
 
   client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
