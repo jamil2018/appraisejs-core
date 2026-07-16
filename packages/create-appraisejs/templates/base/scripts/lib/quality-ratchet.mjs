@@ -1,4 +1,4 @@
-const suppressionPattern = /(?:fallow-ignore|eslint-disable|@ts-ignore|@ts-expect-error)/
+const suppressionPattern = /^(?:\/\/|\/\*)\s*(?:fallow-ignore|eslint-disable|@ts-ignore|@ts-expect-error)\b/
 
 export function addedQualitySuppressions(patch) {
   return patch
