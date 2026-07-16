@@ -30,6 +30,7 @@ describe('local request boundary', () => {
   it('allows valid local reads and mutations', () => {
     expect(request()).toEqual({ allowed: true })
     expect(request({ method: 'GET', origin: 'https://attacker.test' })).toEqual({ allowed: true })
+    expect(request({ forwardedFor: '::ffff:127.0.0.1' })).toEqual({ allowed: true })
   })
 
   it('rejects forwarded non-loopback peers', () => {

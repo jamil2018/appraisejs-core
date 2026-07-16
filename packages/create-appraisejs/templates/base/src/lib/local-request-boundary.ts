@@ -20,7 +20,10 @@ function parseHost(value: string | null) {
 }
 
 function isLoopbackHost(value: string | undefined) {
-  return Boolean(value && LOOPBACK_HOSTS.has(value.replace(/^\[|\]$/g, '').toLowerCase()))
+  if (!value) return false
+  const normalized = value.replace(/^\[|\]$/g, '').toLowerCase()
+  const host = normalized.startsWith('::ffff:') ? normalized.slice('::ffff:'.length) : normalized
+  return LOOPBACK_HOSTS.has(host)
 }
 
 function forwardedPeersAreLocal(value: string | null) {
