@@ -121,6 +121,25 @@ When('click {string}', async function () {})
     const repoRoot = path.resolve(import.meta.dirname, '../..')
     const registry = await buildStepRegistry(repoRoot)
 
+    const structuredOperationsSource = await fs.readFile(
+      path.join(repoRoot, 'automation/steps/actions/structured_operations.step.ts'),
+      'utf8',
+    )
+    const structuredOperationsAst = parse(structuredOperationsSource, {
+      sourceType: 'module',
+      plugins: ['typescript'],
+    })
+    const runtimeImport = structuredOperationsAst.program.body.find(
+      node =>
+        node.type === 'ImportDeclaration' && node.source.value === '../../../packages/cucumber-runtime/src/index.js',
+    )
+    const runtimeImportNames =
+      runtimeImport?.type === 'ImportDeclaration' ? runtimeImport.specifiers.map(specifier => specifier.local.name) : []
+
+    expect(runtimeImportNames).toEqual(
+      expect.arrayContaining(['runLocatorTemplateOperation', 'runPageTemplateOperation']),
+    )
+
     expect(registry.manifest.steps.length).toBeGreaterThan(100)
     expect(registry.fragments).toHaveLength(registry.manifest.steps.length)
     expect(new Set(registry.manifest.steps.map(step => step.signature)).size).toBe(registry.manifest.steps.length)

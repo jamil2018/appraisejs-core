@@ -1,4 +1,11 @@
-import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
+import {
+  When,
+  CustomWorld,
+  SelectorName,
+  resolveLocator,
+  runLocatorTemplateOperation,
+  runPageTemplateOperation,
+} from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name structured operations
  * @description Allowlisted Playwright locator and page operations using bounded JSON arguments and options
