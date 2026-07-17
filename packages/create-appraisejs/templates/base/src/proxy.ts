@@ -31,7 +31,7 @@ export function proxy(request: NextRequest) {
   selectionUrl.searchParams.set('selectProject', 'required')
   selectionUrl.searchParams.set('returnTo', returnTo)
 
-  return NextResponse.rewrite(selectionUrl)
+  return NextResponse.redirect(selectionUrl)
 }
 
 export const config = {

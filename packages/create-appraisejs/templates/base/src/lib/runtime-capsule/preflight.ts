@@ -10,7 +10,7 @@ import {
   parseCanonicalCapsuleCommandReceipt,
   type CapsuleCommandReceiptV1,
 } from './command-receipt-contract'
-import { parseAndReconcileCucumberDryRun } from './cucumber-dry-run-report'
+import { CucumberDryRunReconciliationError, parseAndReconcileCucumberDryRun } from './cucumber-dry-run-report'
 import { defaultCapsulePreflightDependencies, type CapsulePreflightDependencies } from './preflight-dependencies'
 import { RuntimeCapsuleRepository } from './repository'
 import { RuntimeCapsuleLeaseRepository } from './lease-repository'
@@ -299,7 +299,9 @@ export class RuntimeCapsulePreflight {
           receipt.selection,
           receipt.outputs.preflight.maxBytes,
         ).selectedScenarioCount
-      } catch {
+      } catch (error) {
+        if (error instanceof CucumberDryRunReconciliationError && error.kind === 'step-status')
+          throw new PreflightFailure('DRY_RUN_FAILED', 'Repair undefined or ambiguous steps.')
         throw new PreflightFailure('EXPECTED_SCENARIO_COUNT_MISMATCH', 'Repair exact dry-run scenario selection.')
       }
     })

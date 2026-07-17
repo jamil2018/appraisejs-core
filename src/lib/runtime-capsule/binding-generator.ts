@@ -47,7 +47,7 @@ const dispatch = async (world, step) => {
       const locator = await target(world, step.parameters.find(item => item.name === 'target'))
       const accessibleName = await locator.evaluate(element => {
         const labelledBy = element.getAttribute('aria-labelledby')
-          ?.split(/\s+/)
+          ?.split(/\\s+/)
           .map(id => document.getElementById(id)?.textContent ?? '')
           .join(' ')
         const labels = 'labels' in element
@@ -70,9 +70,18 @@ const dispatch = async (world, step) => {
     default: throw new Error(\`Frozen action binding is unsupported: \${step.action}\`)
   }
 }
+const registeredExpressions = new Map()
 for (const testCase of cases) for (const step of testCase.steps) {
   const keyword = step.keywordText.slice(0, step.keywordText.indexOf(' '))
-  const expression = step.keywordText.slice(step.keywordText.indexOf(' ') + 1).replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&')
+  const expressionText = step.keywordText.slice(step.keywordText.indexOf(' ') + 1)
+  const signature = JSON.stringify({ action: step.action, parameters: step.parameters })
+  const existingSignature = registeredExpressions.get(expressionText)
+  if (existingSignature !== undefined) {
+    if (existingSignature !== signature) throw new Error(\`Reviewed steps reuse "\${expressionText}" with different bindings.\`)
+    continue
+  }
+  registeredExpressions.set(expressionText, signature)
+  const expression = expressionText.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&')
   registrations[keyword](new RegExp(\`^\${expression}$\`), async function () { await dispatch(this, step) })
 }
 `

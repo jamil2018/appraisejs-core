@@ -179,6 +179,44 @@ describe('Validation AST check and preview', () => {
     expect(second.entities[0]!.stepIds).not.toEqual(first.entities[0]!.stepIds)
   })
 
+  it('projects expected-red last-passing references to stable executable step ids', () => {
+    const expectedRedSubmission = {
+      ...submission,
+      ast: {
+        ...submission.ast,
+        expectedFailures: [
+          {
+            browser: 'chromium' as const,
+            environmentId: 'local',
+            signature: 'AssertionError',
+            order: 0,
+            lastPassingStepId: 'fill-title',
+          },
+        ],
+      },
+    }
+    const preview = previewValidationAst(expectedRedSubmission, context)
+    const compiled = compileValidationAstNode(
+      expectedRedSubmission.ast,
+      [
+        {
+          refId: 'title-input',
+          moduleId: 'todo-module',
+          id: 'title-input',
+          name: 'Title',
+          value: '[name="title"]',
+          groupId: 'form-fields',
+          groupName: 'Fields',
+          route: '/',
+        },
+      ],
+      context.planScope,
+    )
+
+    expect(compiled.expectedFailures[0]!.lastPassingStepId).toBe(preview.entities[0]!.stepIds[0])
+    expect(compiled.expectedFailures[0]!.lastPassingStepId).not.toBe('fill-title')
+  })
+
   it('returns stable blockers for stale plans, missing coverage, references, types, and runtime capabilities', () => {
     const invalid = structuredClone(submission) as unknown as {
       expectedPlanHash: string

@@ -6,13 +6,14 @@ import { ACTIVE_PROJECT_COOKIE } from '@/lib/project-scope'
 import { proxy } from '../proxy'
 
 describe('project scope proxy', () => {
-  it('rewrites an unscoped resource request to project selection', () => {
+  it('redirects an unscoped resource request to project selection', () => {
     const response = proxy(new NextRequest('http://localhost:3000/plans/plan-1?review=validation'))
-    const rewrite = new URL(response.headers.get('x-middleware-rewrite')!)
+    const redirect = new URL(response.headers.get('location')!)
 
-    expect(rewrite.pathname).toBe('/projects')
-    expect(rewrite.searchParams.get('selectProject')).toBe('required')
-    expect(rewrite.searchParams.get('returnTo')).toBe('/plans/plan-1?review=validation')
+    expect(response.status).toBe(307)
+    expect(redirect.pathname).toBe('/projects')
+    expect(redirect.searchParams.get('selectProject')).toBe('required')
+    expect(redirect.searchParams.get('returnTo')).toBe('/plans/plan-1?review=validation')
   })
 
   it('allows project-scoped URLs and cookie-backed requests through', () => {

@@ -1,15 +1,15 @@
-# Graph Report - scripts  (2026-07-17)
+# Graph Report - scripts  (2026-07-18)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 470 nodes · 754 edges · 32 communities (29 shown, 3 thin omitted)
+- 472 nodes · 755 edges · 33 communities (29 shown, 4 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e65e14bb`
+- Built from commit: `9d4cb61c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -42,6 +42,7 @@
 - [[_COMMUNITY_Community 25|Community 25]]
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `printSyncSummary()` - 21 edges
@@ -70,7 +71,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (32 total, 3 thin omitted)
+## Communities (33 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -81,12 +82,12 @@ Cohesion: 0.07
 Nodes (48): addFieldModifiers(), addFieldTypeEdges(), addLink(), addLocalForeignKeys(), addModelConstraint(), addModelField(), addNode(), addReferencedFields() (+40 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.09
-Nodes (30): __dirname, fragmentsRoot, registryRoot, repoRoot, writeRegistry(), extractFunctionDefinition(), extractStepSource(), extractStepSourceRange() (+22 more)
+Cohesion: 0.10
+Nodes (32): CliOptions, detectPackageManager(), main(), parseArgs(), readPayload(), runScript(), buildUpdatedGroupFileContent(), createPlaceholderGroupFile() (+24 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.11
-Nodes (31): CliOptions, detectPackageManager(), main(), parseArgs(), readPayload(), runScript(), buildUpdatedGroupFileContent(), createPlaceholderGroupFile() (+23 more)
+Cohesion: 0.09
+Nodes (29): __dirname, fragmentsRoot, registryRoot, repoRoot, writeRegistry(), extractFunctionDefinition(), extractStepSource(), extractStepSourceRange() (+21 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.12
@@ -122,7 +123,7 @@ Nodes (13): appraisejsInstallIndex, browserInstallIndex, createPackageCommands, 
 
 ### Community 12 - "Community 12"
 Cohesion: 0.22
-Nodes (9): envValue(), normalizeEndpointPath(), resolveMcpConfig(), config, expectedCapabilities, skillExists, staleCapabilityRecovery, toolsNotVisibleRecovery (+1 more)
+Nodes (8): envValue(), normalizeEndpointPath(), resolveMcpConfig(), config, skillExists, staleCapabilityRecovery, toolsNotVisibleRecovery, config
 
 ### Community 13 - "Community 13"
 Cohesion: 0.22
@@ -175,17 +176,17 @@ Nodes (3): databasePath, migrationsRoot, workspace
 ## Knowledge Gaps
 - **152 isolated node(s):** `repoRoot`, `prismaRoot`, `schemaPath`, `migrationsRoot`, `outDir` (+147 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `parseStepFile()` connect `Community 2` to `Community 3`, `Community 15`?**
-  _High betweenness centrality (0.093) - this node is a cross-community bridge._
+- **Why does `parseStepFile()` connect `Community 3` to `Community 2`, `Community 15`?**
+  _High betweenness centrality (0.092) - this node is a cross-community bridge._
 - **Why does `printSyncSummary()` connect `Community 0` to `Community 4`, `Community 5`, `Community 13`, `Community 15`, `Community 17`?**
   _High betweenness centrality (0.092) - this node is a cross-community bridge._
 - **Why does `runSyncScript()` connect `Community 0` to `Community 17`, `Community 4`, `Community 5`, `Community 15`?**
-  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
 - **What connects `repoRoot`, `prismaRoot`, `schemaPath` to the rest of the system?**
   _152 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
@@ -193,4 +194,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.06787330316742081 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.08708708708708708 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10384068278805121 - nodes in this community are weakly interconnected._

@@ -130,7 +130,10 @@ export const validationAstSchema = z
     if (value.scenarios.reduce((total, scenario) => total + scenario.steps.length, 0) > 100)
       context.addIssue({ code: 'custom', message: 'Too many validation steps.' })
     const matrix = new Set(value.matrix.map(item => `${item.browser ?? 'chromium'}:${item.environmentId}`))
-    const stepIds = new Set(value.scenarios.flatMap(scenario => scenario.steps.map(step => step.id)))
+    const allStepIds = value.scenarios.flatMap(scenario => scenario.steps.map(step => step.id))
+    const stepIds = new Set(allStepIds)
+    if (stepIds.size !== allStepIds.length)
+      context.addIssue({ code: 'custom', path: ['scenarios'], message: 'AST step IDs must be globally unique.' })
     value.expectedFailures.forEach((failure, index) => {
       if (!matrix.has(`${failure.browser}:${failure.environmentId}`))
         context.addIssue({

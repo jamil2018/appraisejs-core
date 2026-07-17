@@ -11,6 +11,7 @@ describe('coordinator operation registry', () => {
     ['GET', ['diagnostic'], 'diagnostic'],
     ['GET', ['plans', 'pln_example'], 'plan-read'],
     ['GET', ['plans', 'pln_example', 'validations', 'draft', 'context'], 'plan-validations-read'],
+    ['POST', ['plans', 'pln_example', 'events', 'ack'], 'plan-event-acknowledge'],
     ['POST', ['plans', 'pln_example', 'implementation', 'validations', 'start'], 'plan-implementation-write'],
     ['POST', ['delegations', '7aee2494-01ac-45c4-ada7-528eaba27fe1', 'revoke'], 'delegation-revoke'],
     ['PUT', ['plans', 'pln_example'], 'plan-revise'],
@@ -22,6 +23,7 @@ describe('coordinator operation registry', () => {
     ['GET', []],
     ['GET', ['plans', 'pln_example', 'unknown']],
     ['POST', ['diagnostic']],
+    ['POST', ['plans', 'pln_example', 'events']],
     ['PUT', ['plans']],
   ] satisfies Array<[CoordinatorMethod, string[]]>)('fails closed for %s /%s', (method, operation) => {
     expect(() => coordinatorOperationRegistry.resolve(method, operation)).toThrow('Coordinator API operation not found')

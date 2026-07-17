@@ -6,6 +6,29 @@ import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { generateExecutableBindings } from './binding-generator'
 
+async function expectGeneratedBindingToDryRun(root: string, source: string, feature: string) {
+  await Promise.all([
+    fs.mkdir(path.join(root, 'features')),
+    fs.mkdir(path.join(root, 'bindings')),
+    fs.mkdir(path.join(root, 'reports')),
+  ])
+  await Promise.all([
+    fs.writeFile(path.join(root, 'features/test.feature'), feature),
+    fs.writeFile(path.join(root, 'bindings/test.mjs'), source),
+    fs.writeFile(
+      path.join(root, 'cucumber.mjs'),
+      "export default { paths: ['features/test.feature'], import: ['bindings/test.mjs'], format: ['json:reports/test.json'], publishQuiet: true }\n",
+    ),
+  ])
+  expect(() =>
+    execFileSync(
+      process.execPath,
+      [path.resolve('node_modules/@cucumber/cucumber/bin/cucumber.js'), '--config', 'cucumber.mjs', '--dry-run'],
+      { cwd: root, stdio: 'pipe' },
+    ),
+  ).not.toThrow()
+}
+
 describe('executable binding generator', () => {
   it('registers and dry-runs the frozen generated step independently', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-binding-generator-'))
@@ -23,22 +46,39 @@ describe('executable binding generator', () => {
       })
       expect(source).toContain("'labels' in element")
       expect(source).toContain("element.getAttribute('aria-labelledby')")
-      await fs.mkdir(path.join(root, 'features'))
-      await fs.mkdir(path.join(root, 'bindings'))
-      await fs.mkdir(path.join(root, 'reports'))
-      await fs.writeFile(path.join(root, 'features/test.feature'), 'Feature: Test\n  Scenario: Run\n    When it runs\n')
-      await fs.writeFile(path.join(root, 'bindings/test.mjs'), source)
-      await fs.writeFile(
-        path.join(root, 'cucumber.mjs'),
-        "export default { paths: ['features/test.feature'], import: ['bindings/test.mjs'], format: ['json:reports/test.json'], publishQuiet: true }\n",
+      await expectGeneratedBindingToDryRun(root, source, 'Feature: Test\n  Scenario: Run\n    When it runs\n')
+    } finally {
+      await fs.rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('registers repeated equivalent phrases once so the dry-run remains unambiguous', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-binding-generator-repeated-'))
+    try {
+      const runtimeImport = pathToFileURL(path.resolve('packages/cucumber-runtime/dist/index.js')).href
+      const repeatedStep = {
+        action: 'browser.navigation.reload@1',
+        parameters: [],
+      }
+      const source = generateExecutableBindings({
+        runtimeImport,
+        selectors: {},
+        bindings: [
+          {
+            caseId: 'case',
+            steps: [
+              { id: 'first', keywordText: 'When the page reloads', ...repeatedStep },
+              { id: 'second', keywordText: 'And the page reloads', ...repeatedStep },
+            ],
+          },
+        ],
+      })
+      expect(source).toContain('.split(/\\s+/)')
+      await expectGeneratedBindingToDryRun(
+        root,
+        source,
+        'Feature: Test\n  Scenario: Run\n    When the page reloads\n    And the page reloads\n',
       )
-      expect(() =>
-        execFileSync(
-          process.execPath,
-          [path.resolve('node_modules/@cucumber/cucumber/bin/cucumber.js'), '--config', 'cucumber.mjs', '--dry-run'],
-          { cwd: root, stdio: 'pipe' },
-        ),
-      ).not.toThrow()
     } finally {
       await fs.rm(root, { recursive: true, force: true })
     }

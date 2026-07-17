@@ -81,7 +81,7 @@ export const coordinatorOperationRegistry = createCoordinatorOperationRegistry([
   { id: 'test-run-write', method: 'POST', pattern: ['test-runs', '*'] },
   { id: 'plan-start', method: 'POST', pattern: ['plans', ':planId', 'start'] },
   { id: 'plan-task-update', method: 'POST', pattern: ['plans', ':planId', 'tasks', '*'] },
-  { id: 'plan-event-acknowledge', method: 'POST', pattern: ['plans', ':planId', 'events'] },
+  { id: 'plan-event-acknowledge', method: 'POST', pattern: ['plans', ':planId', 'events', 'ack'] },
   { id: 'plan-validation-write', method: 'POST', pattern: ['plans', ':planId', 'validations', '*'] },
   { id: 'plan-baseline-write', method: 'POST', pattern: ['plans', ':planId', 'baseline', '*'] },
   { id: 'plan-implementation-write', method: 'POST', pattern: ['plans', ':planId', 'implementation', '*'] },

@@ -115,6 +115,15 @@ describe('validation AST contracts', () => {
     ).toBe(false)
   })
 
+  it('rejects step ids reused across scenarios because expected-red references would be ambiguous', () => {
+    expect(
+      validationAstSchema.safeParse({
+        ...ast,
+        scenarios: [ast.scenarios[0], { ...ast.scenarios[0], id: 'second-scenario' }],
+      }).success,
+    ).toBe(false)
+  })
+
   it('rejects multiline, tag, and grammar injection in every Gherkin-authored field', () => {
     for (const injected of ['safe\nScenario: injected', '@injected', 'Scenario: injected', 'Feature: injected']) {
       expect(validationAstSchema.safeParse({ ...ast, title: injected }).success).toBe(false)

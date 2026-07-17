@@ -263,7 +263,7 @@ export async function createTemplateStepGroupFile(
 
     // Generate content with JSDoc at the top, then imports, then placeholder comment
     const groupJSDoc = generateGroupJSDocComment(groupName, description || null, type)
-    const requiredImports = `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js';
+    const requiredImports = `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType, runLocatorTemplateOperation, runPageTemplateOperation } from '../../../packages/cucumber-runtime/src/index.js';
 
 `
     const placeholderComment =

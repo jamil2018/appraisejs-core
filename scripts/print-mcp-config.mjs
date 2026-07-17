@@ -8,7 +8,7 @@ console.log(`AppraiseJS MCP HTTP endpoint:\n${config.endpoint}\n`)
 console.log('Use this URL with MCP clients that support Streamable HTTP.')
 console.log('\nCodex registration or refresh:\n')
 console.log(config.codex.inspectCommand)
-console.log(`# If the URL or transport is stale:\n${config.codex.removeCommand}`)
+console.log(`# If the command or transport is stale:\n${config.codex.removeCommand}`)
 console.log(config.codex.addCommand)
 console.log(config.codex.verifyCommand)
 console.log(
