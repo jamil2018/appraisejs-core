@@ -1,16 +1,4 @@
-import {
-  When,
-  Then,
-  CustomWorld,
-  expect,
-  SelectorName,
-  resolveLocator,
-  getEnvironment,
-  generateRandomData,
-  RandomDataType,
-  runLocatorTemplateOperation,
-  runPageTemplateOperation,
-} from '../../../packages/cucumber-runtime/src/index.js'
+import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name pointer
  * @description Pointer, mouse, drag, focus, scroll, and element screenshot actions

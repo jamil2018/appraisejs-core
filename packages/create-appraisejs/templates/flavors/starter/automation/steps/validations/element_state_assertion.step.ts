@@ -1,16 +1,4 @@
-import {
-  When,
-  Then,
-  CustomWorld,
-  expect,
-  SelectorName,
-  resolveLocator,
-  getEnvironment,
-  generateRandomData,
-  RandomDataType,
-  runLocatorTemplateOperation,
-  runPageTemplateOperation,
-} from '../../../packages/cucumber-runtime/src/index.js'
+import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name element state assertion
  * @description Visibility, attachment, enabled, editable, checked, focused, and empty element assertions

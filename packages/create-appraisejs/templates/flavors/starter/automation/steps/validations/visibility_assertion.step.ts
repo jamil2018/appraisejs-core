@@ -1,14 +1,4 @@
-import {
-  When,
-  Then,
-  CustomWorld,
-  expect,
-  SelectorName,
-  resolveLocator,
-  getEnvironment,
-  generateRandomData,
-  RandomDataType,
-} from '../../../packages/cucumber-runtime/src/index.js'
+import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name visibility assertion
  * @description Template steps that handles the assertion of element visibility states

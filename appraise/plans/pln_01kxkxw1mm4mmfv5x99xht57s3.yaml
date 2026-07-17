@@ -1,0 +1,156 @@
+description: Build a polished browser-based notes app called Notepad with create, edit, delete-confirmation, title/body search, local persistence, clear empty/no-results states, accessible keyboard-friendly controls, responsive presentation, and managed end-to-end validation.
+edges:
+  - from: app-foundation
+    to: notes-crud
+    type: blocks
+  - from: notes-crud
+    to: notes-search
+    type: blocks
+  - from: notes-crud
+    to: notes-persistence
+    type: blocks
+  - from: notes-search
+    to: notes-quality
+    type: blocks
+  - from: notes-persistence
+    to: notes-quality
+    type: blocks
+  - from: notes-quality
+    to: notes-validation
+    type: blocks
+goal: Notepad
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - app-foundation
+      - notes-crud
+  - id: behavior
+    taskIds:
+      - notes-search
+      - notes-persistence
+  - id: quality
+    taskIds:
+      - notes-quality
+      - notes-validation
+lifecycle: completed
+planId: pln_01kxkxw1mm4mmfv5x99xht57s3
+requirementAssessment:
+  domainCandidates:
+    - confidence: 1
+      domain: notes
+      evidence:
+        - Notepad product name
+        - notes CRUD and search brief
+        - local note persistence
+  requirements:
+    - coveredBy:
+        - surface: description
+          taskId: notes-crud
+        - surface: acceptanceCriteria
+          taskId: notes-crud
+      id: create
+      kind: functional
+      text: Create notes with title and body
+    - coveredBy:
+        - surface: description
+          taskId: notes-crud
+        - surface: acceptanceCriteria
+          taskId: notes-crud
+      id: edit
+      kind: functional
+      text: Edit existing notes
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: notes-crud
+      id: delete
+      kind: functional
+      text: Delete notes only after confirmation
+    - coveredBy:
+        - surface: description
+          taskId: notes-search
+        - surface: acceptanceCriteria
+          taskId: notes-search
+      id: search
+      kind: functional
+      text: Search notes by title or body
+    - coveredBy:
+        - surface: description
+          taskId: notes-persistence
+        - surface: acceptanceCriteria
+          taskId: notes-persistence
+      id: persistence
+      kind: data
+      text: Retain notes across reloads with local persistence
+    - coveredBy:
+        - surface: description
+          taskId: notes-quality
+        - surface: acceptanceCriteria
+          taskId: notes-quality
+      id: accessibility
+      kind: quality
+      text: Accessible labels and keyboard-friendly controls
+    - coveredBy:
+        - surface: validationIntent
+          taskId: notes-validation
+        - surface: acceptanceCriteria
+          taskId: notes-validation
+      id: testing
+      kind: validation
+      text: Automated end-to-end validation of the happy path
+  selectedDomain: notes
+  uncoveredRequirementIds: []
+  warnings: []
+revision: 2
+tasks:
+  - acceptanceCriteria:
+      - The app installs, starts, and builds without missing dependencies.
+      - The page identifies the product as Notepad and provides a responsive notes workspace.
+      - The implementation uses browser-local state only; no backend is required.
+    description: Create a React 19, TypeScript, and Vite browser app with a focused responsive Notepad layout and maintainable component/state structure.
+    id: app-foundation
+    title: Scaffold the Notepad application
+    validationIntent: Run dependency installation, TypeScript/build checks, and a browser smoke test.
+  - acceptanceCriteria:
+      - Users can create a note with a title and body and see it in the notes list.
+      - Users can select and edit an existing note and see the saved content immediately.
+      - Deleting a note requires clear confirmation; cancelling preserves it and confirming removes it.
+      - The initial notes list displays a helpful empty state.
+    description: Implement note creation, selection, reading, editing, and deletion using a title and body model, with an explicit destructive confirmation step.
+    id: notes-crud
+    title: Implement notes create, edit, and confirmed delete
+    validationIntent: Exercise create, select/read, edit/save, cancel delete, confirm delete, and empty-state behavior in the browser.
+  - acceptanceCriteria:
+      - Search matches note titles and body content case-insensitively.
+      - Clearing search restores the complete notes list.
+      - A helpful no-results state appears when no notes match.
+      - Search does not discard the selected note or alter persisted note content.
+    description: Add a search field that filters the visible notes list by case-insensitive matches in note titles or bodies without mutating stored data.
+    id: notes-search
+    title: Add title and body search states
+    validationIntent: Create multiple notes, verify title and body matches, verify no-results, and clear search.
+  - acceptanceCriteria:
+      - Created and edited notes survive a page reload.
+      - Deleted notes remain absent after reload.
+      - Malformed or absent stored data falls back to a usable empty state without crashing.
+    description: Store notes and relevant selection state in localStorage with deterministic ordering and safe initialization.
+    id: notes-persistence
+    title: Persist notes across reloads
+    validationIntent: Create and edit notes, reload the page, confirm content and ordering, then delete and reload again.
+  - acceptanceCriteria:
+      - Every input and interactive control has an accessible name and visible keyboard focus.
+      - Creation, selection, editing, search, and delete confirmation are keyboard operable.
+      - The workspace remains usable at desktop and narrow mobile viewports.
+      - Empty, no-results, editing, and destructive states are visually distinct and understandable.
+    description: Provide visible labels, semantic controls, predictable focus, keyboard-operable editing and confirmation, responsive layout, and clear user feedback.
+    id: notes-quality
+    title: Polish accessible responsive interactions
+    validationIntent: Run keyboard, accessible-name, focus, and responsive viewport checks for the primary workflow.
+  - acceptanceCriteria:
+      - Managed browser validation covers the full user journey from an empty app through persisted notes and confirmed deletion.
+      - Required checks produce fresh Appraise-managed evidence with no undefined steps or infrastructure failures.
+      - Build and focused automated checks pass.
+    description: Create managed end-to-end coverage for launch, empty state, create, edit, search, persistence, delete confirmation, and responsive/accessibility-critical behavior.
+    id: notes-validation
+    title: Validate the complete Notepad happy path
+    validationIntent: Run the approved managed validation matrix and project build, then reconcile passing evidence to the implementation tasks.
+version: "1"

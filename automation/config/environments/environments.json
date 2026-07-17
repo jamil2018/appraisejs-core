@@ -4,35 +4,5 @@
     "apiBaseUrl": "http://127.0.0.1:3200/api",
     "email": "tester",
     "passwordEnvironmentVariable": "APPRAISE_E2E_PASSWORD"
-  },
-  "local": {
-    "baseUrl": "https://localhost:5173",
-    "apiBaseUrl": "https://localhost:5173/api",
-    "email": "john",
-    "passwordEnvironmentVariable": "APPRAISE_LOCAL_PASSWORD"
-  },
-  "todo_local": {
-    "baseUrl": "http://127.0.0.1:5173",
-    "apiBaseUrl": "",
-    "email": "",
-    "passwordEnvironmentVariable": ""
-  },
-  "todo_local_preview": {
-    "baseUrl": "http://127.0.0.1:4173",
-    "apiBaseUrl": "",
-    "email": "",
-    "passwordEnvironmentVariable": ""
-  },
-  "notepad_local": {
-    "baseUrl": "http://localhost:4173",
-    "apiBaseUrl": "",
-    "email": "",
-    "passwordEnvironmentVariable": ""
-  },
-  "thoughtless_local": {
-    "baseUrl": "http://localhost:4173",
-    "apiBaseUrl": "",
-    "email": "",
-    "passwordEnvironmentVariable": ""
   }
 }

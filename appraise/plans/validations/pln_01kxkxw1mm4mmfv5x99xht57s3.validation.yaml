@@ -1,0 +1,710 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts:
+  - browser: chromium
+    classification: expected_product_failure
+    completedAt: 2026-07-15T22:27:17.522Z
+    createdAt: 2026-07-15T22:27:09.591Z
+    environment: apr-0d7fd0dbc7c38bde99e45546
+    evidence:
+      logsUrl: /api/test-runs/b1d6b264-e476-4cc4-8dbd-e30fe72d5273/logs?targetProjectId=ea407e12-d413-4828-bfe6-90e8aa71e833
+      reportUrl: /test-runs/b1d6b264-e476-4cc4-8dbd-e30fe72d5273?project=ea407e12-d413-4828-bfe6-90e8aa71e833
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-867ffaca-a565-4407-8f14-0a6621e22a7c
+    signatureHash: sha256:a17bcc7cc1e23817fb4ba95af3b934ae8c5f77a9340df44f991ca7ced9eb6fa2
+    status: completed
+    testRunId: b1d6b264-e476-4cc4-8dbd-e30fe72d5273
+    validationId: notepad-happy-path
+baselineDecision: accepted
+baseRevision:
+  gitCommit: null
+  reducedAssurance: false
+  snapshotHash: sha256:697993fc9d57d9b414c95768a0210fbc937a1bf46efbecf68321d6060e81fb9b
+classificationOverrides: []
+files: []
+implementation:
+  approvedGroupIds:
+    - behavior
+    - foundation
+    - quality
+  checkpoint:
+    queuedFeedbackCount: 0
+    reachedAt: 2026-07-15T22:38:13.881Z
+    taskIds:
+      - app-foundation
+      - notes-crud
+      - notes-search
+      - notes-persistence
+      - notes-quality
+      - notes-validation
+    type: before_completion
+  commits:
+    - createdAt: 2026-07-15T22:33:41.238Z
+      hash: fb76507c62ecd2f0943afe142a411eab38a6750c
+      taskIds:
+        - notes-validation
+    - createdAt: 2026-07-15T22:37:43.473Z
+      hash: 4f9424e9527e92e972c07904d4c11b82ddd1c980
+      taskIds:
+        - notes-validation
+  evidenceProtected: false
+  pausedTaskIds: []
+  reconciliationReceipts:
+    - idempotencyKey: notepad-final-validation-v3
+      reconciledAt: 2026-07-15T22:38:00.998Z
+      runIds:
+        - implementation-validation-notepad-happy-path-chromium-apr-0d7fd0dbc7c38bde99e45546-20260715223747
+      verifiedTaskIds:
+        - notes-validation
+  taskStates:
+    app-foundation: verified
+    notes-crud: verified
+    notes-persistence: verified
+    notes-quality: verified
+    notes-search: verified
+    notes-validation: verified
+  validationRuns:
+    - assurance: reduced
+      browser: chromium
+      commitHash: fb76507c62ecd2f0943afe142a411eab38a6750c
+      completedAt: 2026-07-15T22:33:52.829Z
+      environment: apr-0d7fd0dbc7c38bde99e45546
+      evidence:
+        logsUrl: /api/test-runs/bb500762-1fba-488a-88e2-d91792e2f51f/logs?targetProjectId=ea407e12-d413-4828-bfe6-90e8aa71e833
+        reportUrl: /test-runs/bb500762-1fba-488a-88e2-d91792e2f51f?project=ea407e12-d413-4828-bfe6-90e8aa71e833
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/bb500762-1fba-488a-88e2-d91792e2f51f?project=ea407e12-d413-4828-bfe6-90e8aa71e833
+        - /api/test-runs/bb500762-1fba-488a-88e2-d91792e2f51f/logs?targetProjectId=ea407e12-d413-4828-bfe6-90e8aa71e833
+      failureSignatureHash: sha256:7e2e0915cf80f56fc0c6ac475681ddf1d506db422e33617eb4d394961357fb02
+      fresh: true
+      id: implementation-validation-notepad-happy-path-chromium-apr-0d7fd0dbc7c38bde99e45546-20260715223350
+      required: true
+      status: failed
+      tagExpression: (@ts_ast-235a84970e41-suite and @tc_ast-235a84970e41-notepad-full-journey)
+      taskIds:
+        - app-foundation
+        - notes-crud
+        - notes-search
+        - notes-persistence
+        - notes-quality
+        - notes-validation
+      testRunId: bb500762-1fba-488a-88e2-d91792e2f51f
+      validationId: notepad-happy-path
+    - assurance: reduced
+      browser: chromium
+      commitHash: fb76507c62ecd2f0943afe142a411eab38a6750c
+      environment: apr-0d7fd0dbc7c38bde99e45546
+      evidenceSource: managed
+      evidenceUrls:
+        - /plans/pln_01kxkxw1mm4mmfv5x99xht57s3?review=implementation#notepad-happy-path
+      fresh: true
+      id: implementation-validation-notepad-happy-path-chromium-apr-0d7fd0dbc7c38bde99e45546-20260715223525
+      required: true
+      status: running
+      tagExpression: (@ts_ast-235a84970e41-suite and @tc_ast-235a84970e41-notepad-full-journey)
+      taskIds:
+        - app-foundation
+        - notes-crud
+        - notes-search
+        - notes-persistence
+        - notes-quality
+        - notes-validation
+      testRunId: e655a3c8-ccc2-43bd-abfb-fbe044c2876d
+      validationId: notepad-happy-path
+    - assurance: full
+      browser: chromium
+      commitHash: 4f9424e9527e92e972c07904d4c11b82ddd1c980
+      completedAt: 2026-07-15T22:37:50.072Z
+      environment: apr-0d7fd0dbc7c38bde99e45546
+      evidence:
+        logsUrl: /api/test-runs/2fcfb8dd-b0d5-44e9-b2fe-6118cb2e49cc/logs?targetProjectId=ea407e12-d413-4828-bfe6-90e8aa71e833
+        reportUrl: /test-runs/2fcfb8dd-b0d5-44e9-b2fe-6118cb2e49cc?project=ea407e12-d413-4828-bfe6-90e8aa71e833
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/2fcfb8dd-b0d5-44e9-b2fe-6118cb2e49cc?project=ea407e12-d413-4828-bfe6-90e8aa71e833
+        - /api/test-runs/2fcfb8dd-b0d5-44e9-b2fe-6118cb2e49cc/logs?targetProjectId=ea407e12-d413-4828-bfe6-90e8aa71e833
+      fresh: true
+      id: implementation-validation-notepad-happy-path-chromium-apr-0d7fd0dbc7c38bde99e45546-20260715223747
+      required: true
+      status: passed
+      tagExpression: (@ts_ast-235a84970e41-suite and @tc_ast-235a84970e41-notepad-full-journey)
+      taskIds:
+        - app-foundation
+        - notes-crud
+        - notes-search
+        - notes-persistence
+        - notes-quality
+        - notes-validation
+      testRunId: 2fcfb8dd-b0d5-44e9-b2fe-6118cb2e49cc
+      validationId: notepad-happy-path
+manifestPaths: []
+planId: pln_01kxkxw1mm4mmfv5x99xht57s3
+reviewSubmittedAt: 2026-07-15T22:26:42.604Z
+revision: 2
+validationDecisions:
+  - contentHash: sha256:c72f07831e5219624bb3a0eb98f300a41f592b5d21fa0c98b0327631ba1db76f
+    decidedAt: 2026-07-15T22:26:40.970Z
+    decidedBy: local-user
+    decision: approved
+    validationId: notepad-happy-path
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: apr-280459eb8577ce58967f41e3
+          moduleId: apr-397101518ab37e94515a50ba
+          name: Notepad page
+          route: /
+      locators:
+        - id: apr-07de5d6b1db8270f00752ef7
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Edit note button
+          value: '[data-testid="edit-note"]'
+        - id: apr-185ad014918d569965c5017f
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Note title input
+          value: '[data-testid="note-title"]'
+        - id: apr-20577263424f4e68bd51453d
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Empty state
+          value: '[data-testid="empty-state"]'
+        - id: apr-32f4c2c78c0968a392683eaa
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: New note button
+          value: '[data-testid="new-note"]'
+        - id: apr-397f579bcf6599986cdf9acc
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Delete note button
+          value: '[data-testid="delete-note"]'
+        - id: apr-4bacb4c96aa5053f7c9cfbf5
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Cancel delete button
+          value: '[data-testid="cancel-delete"]'
+        - id: apr-6196f4fb563161c7fd79d365
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Save note button
+          value: '[data-testid="save-note"]'
+        - id: apr-a5b08a5abc5a2362d1c444bf
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Search notes input
+          value: '[data-testid="search-notes"]'
+        - id: apr-bb604dd25884c8f556fd4617
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Note body input
+          value: '[data-testid="note-body"]'
+        - id: apr-cd87d752305541603120c243
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: First note
+          value: '[data-testid="note-item"]'
+        - id: apr-e9afda51bfb328d29dd92ef1
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: No results state
+          value: '[data-testid="no-results"]'
+        - id: apr-ebd0f78e77dcb199a1905ffb
+          locatorGroupId: apr-280459eb8577ce58967f41e3
+          name: Confirm delete button
+          value: '[data-testid="confirm-delete"]'
+      modules:
+        - id: ast-235a84970e41-module
+          name: Notepad complete happy path
+      testCases:
+        - description: Verify the Notepad experience from empty state through CRUD, search, persistence, deletion confirmation, accessibility, and responsive layout.
+          id: ast-235a84970e41-notepad-full-journey
+          steps:
+            - gherkinStep: Given the Notepad app is open
+              id: ast-3504f9f5ec8f113fcc08-step
+              label: the Notepad app is open
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: Then the initial empty state is visible
+              id: ast-d3007f27547e8c0fc957-step
+              label: the initial empty state is visible
+              order: 1
+              parameters:
+                - locatorId: apr-20577263424f4e68bd51453d
+                  locatorName: Empty state
+                  name: target
+                  value: '{"id":"locator_apr-20577263424f4e68bd51453d","version":"1","ref":"locator"}'
+                - name: text
+                  value: No notes yet
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user starts a new note
+              id: ast-a4fc25dd6c0d2aa92ec3-step
+              label: the user starts a new note
+              order: 2
+              parameters:
+                - locatorId: apr-32f4c2c78c0968a392683eaa
+                  locatorName: New note button
+                  name: target
+                  value: '{"id":"locator_apr-32f4c2c78c0968a392683eaa","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user enters a note title
+              id: ast-f686d08a3d6eb46e7eca-step
+              label: the user enters a note title
+              order: 3
+              parameters:
+                - locatorId: apr-185ad014918d569965c5017f
+                  locatorName: Note title input
+                  name: target
+                  value: '{"id":"locator_apr-185ad014918d569965c5017f","version":"1","ref":"locator"}'
+                - name: value
+                  value: Project ideas
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user enters a note body
+              id: ast-d9402f93c50a31bd9ef2-step
+              label: the user enters a note body
+              order: 4
+              parameters:
+                - locatorId: apr-bb604dd25884c8f556fd4617
+                  locatorName: Note body input
+                  name: target
+                  value: '{"id":"locator_apr-bb604dd25884c8f556fd4617","version":"1","ref":"locator"}'
+                - name: value
+                  value: Build a calm notes workspace
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user saves the note
+              id: ast-8a57a0088773c4a8354f-step
+              label: the user saves the note
+              order: 5
+              parameters:
+                - locatorId: apr-6196f4fb563161c7fd79d365
+                  locatorName: Save note button
+                  name: target
+                  value: '{"id":"locator_apr-6196f4fb563161c7fd79d365","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the created note appears
+              id: ast-f4587d3852bf5a6f62d9-step
+              label: the created note appears
+              order: 6
+              parameters:
+                - locatorId: apr-cd87d752305541603120c243
+                  locatorName: First note
+                  name: target
+                  value: '{"id":"locator_apr-cd87d752305541603120c243","version":"1","ref":"locator"}'
+                - name: text
+                  value: Project ideas
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user edits the note
+              id: ast-b24839035901b22493ef-step
+              label: the user edits the note
+              order: 7
+              parameters:
+                - locatorId: apr-07de5d6b1db8270f00752ef7
+                  locatorName: Edit note button
+                  name: target
+                  value: '{"id":"locator_apr-07de5d6b1db8270f00752ef7","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user updates the note body
+              id: ast-b13afd4d51063ec0f055-step
+              label: the user updates the note body
+              order: 8
+              parameters:
+                - locatorId: apr-bb604dd25884c8f556fd4617
+                  locatorName: Note body input
+                  name: target
+                  value: '{"id":"locator_apr-bb604dd25884c8f556fd4617","version":"1","ref":"locator"}'
+                - name: value
+                  value: Build a calm and searchable notes workspace
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user saves the edited note
+              id: ast-298d3761df61741307ca-step
+              label: the user saves the edited note
+              order: 9
+              parameters:
+                - locatorId: apr-6196f4fb563161c7fd79d365
+                  locatorName: Save note button
+                  name: target
+                  value: '{"id":"locator_apr-6196f4fb563161c7fd79d365","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: When the page is reloaded
+              id: ast-aeaafef53f2edd463db9-step
+              label: the page is reloaded
+              order: 10
+              parameters: []
+              templateStepName: browser.navigation.reload@1
+            - gherkinStep: Then the edited note survives reload
+              id: ast-7a5746cc91b7b0430c14-step
+              label: the edited note survives reload
+              order: 11
+              parameters:
+                - locatorId: apr-cd87d752305541603120c243
+                  locatorName: First note
+                  name: target
+                  value: '{"id":"locator_apr-cd87d752305541603120c243","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.persisted@1
+            - gherkinStep: When the user searches by body text
+              id: ast-fe72deaf5d69680be7fd-step
+              label: the user searches by body text
+              order: 12
+              parameters:
+                - locatorId: apr-a5b08a5abc5a2362d1c444bf
+                  locatorName: Search notes input
+                  name: target
+                  value: '{"id":"locator_apr-a5b08a5abc5a2362d1c444bf","version":"1","ref":"locator"}'
+                - name: value
+                  value: searchable
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: Then the matching note remains visible
+              id: ast-db03211b056114475592-step
+              label: the matching note remains visible
+              order: 13
+              parameters:
+                - locatorId: apr-cd87d752305541603120c243
+                  locatorName: First note
+                  name: target
+                  value: '{"id":"locator_apr-cd87d752305541603120c243","version":"1","ref":"locator"}'
+                - name: text
+                  value: Project ideas
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user searches for absent text
+              id: ast-a765906a9d12200e8c97-step
+              label: the user searches for absent text
+              order: 14
+              parameters:
+                - locatorId: apr-a5b08a5abc5a2362d1c444bf
+                  locatorName: Search notes input
+                  name: target
+                  value: '{"id":"locator_apr-a5b08a5abc5a2362d1c444bf","version":"1","ref":"locator"}'
+                - name: value
+                  value: missing value
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: Then the no results state is visible
+              id: ast-a86c2d4c60454797aaf7-step
+              label: the no results state is visible
+              order: 15
+              parameters:
+                - locatorId: apr-e9afda51bfb328d29dd92ef1
+                  locatorName: No results state
+                  name: target
+                  value: '{"id":"locator_apr-e9afda51bfb328d29dd92ef1","version":"1","ref":"locator"}'
+                - name: text
+                  value: No notes match
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user clears search
+              id: ast-79e5e8ee761aa4aa3f2e-step
+              label: the user clears search
+              order: 16
+              parameters:
+                - locatorId: apr-a5b08a5abc5a2362d1c444bf
+                  locatorName: Search notes input
+                  name: target
+                  value: '{"id":"locator_apr-a5b08a5abc5a2362d1c444bf","version":"1","ref":"locator"}'
+                - name: value
+                  value: ""
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user requests deletion
+              id: ast-40ae7892102763f3e157-step
+              label: the user requests deletion
+              order: 17
+              parameters:
+                - locatorId: apr-397f579bcf6599986cdf9acc
+                  locatorName: Delete note button
+                  name: target
+                  value: '{"id":"locator_apr-397f579bcf6599986cdf9acc","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user cancels deletion
+              id: ast-6f631c4f29a73a2ea68e-step
+              label: the user cancels deletion
+              order: 18
+              parameters:
+                - locatorId: apr-4bacb4c96aa5053f7c9cfbf5
+                  locatorName: Cancel delete button
+                  name: target
+                  value: '{"id":"locator_apr-4bacb4c96aa5053f7c9cfbf5","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the cancelled note remains visible
+              id: ast-31ae09dddc8e36d53dc5-step
+              label: the cancelled note remains visible
+              order: 19
+              parameters:
+                - locatorId: apr-cd87d752305541603120c243
+                  locatorName: First note
+                  name: target
+                  value: '{"id":"locator_apr-cd87d752305541603120c243","version":"1","ref":"locator"}'
+                - name: text
+                  value: Project ideas
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user requests deletion again
+              id: ast-c6700930ae38db24b747-step
+              label: the user requests deletion again
+              order: 20
+              parameters:
+                - locatorId: apr-397f579bcf6599986cdf9acc
+                  locatorName: Delete note button
+                  name: target
+                  value: '{"id":"locator_apr-397f579bcf6599986cdf9acc","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user confirms deletion
+              id: ast-cf8800be97d9bb1f52f0-step
+              label: the user confirms deletion
+              order: 21
+              parameters:
+                - locatorId: apr-ebd0f78e77dcb199a1905ffb
+                  locatorName: Confirm delete button
+                  name: target
+                  value: '{"id":"locator_apr-ebd0f78e77dcb199a1905ffb","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the empty state returns
+              id: ast-c56b27c188257c9bb8d3-step
+              label: the empty state returns
+              order: 22
+              parameters:
+                - locatorId: apr-20577263424f4e68bd51453d
+                  locatorName: Empty state
+                  name: target
+                  value: '{"id":"locator_apr-20577263424f4e68bd51453d","version":"1","ref":"locator"}'
+                - name: text
+                  value: No notes yet
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the viewport is set to mobile size
+              id: ast-d462d8860a144b0cde64-step
+              label: the viewport is set to mobile size
+              order: 23
+              parameters:
+                - name: width
+                  value: "390"
+                - name: height
+                  value: "844"
+              templateStepName: browser.viewport.set@1
+            - gherkinStep: Then the page has no horizontal overflow
+              id: ast-7501416a465b604416af-step
+              label: the page has no horizontal overflow
+              order: 24
+              parameters: []
+              templateStepName: browser.assertions.no-horizontal-overflow@1
+            - gherkinStep: Then the new note control exposes accessible semantics
+              id: ast-7ce897aa8511e2681413-step
+              label: the new note control exposes accessible semantics
+              order: 25
+              parameters:
+                - locatorId: apr-32f4c2c78c0968a392683eaa
+                  locatorName: New note button
+                  name: target
+                  value: '{"id":"locator_apr-32f4c2c78c0968a392683eaa","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+          title: Create organize persist and delete a note
+      testSuites:
+        - description: Verify the Notepad experience from empty state through CRUD, search, persistence, deletion confirmation, accessibility, and responsive layout.
+          id: ast-235a84970e41-suite
+          moduleId: ast-235a84970e41-module
+          name: Notepad complete happy path
+          testCaseIds:
+            - ast-235a84970e41-notepad-full-journey
+    astProvenance:
+      astHash: sha256:b66dfff69738d29dec10d86c78cc71eae0ed7e37f5fdefb80a62c03c8ac72006
+      executionAuthority: reviewed_publication
+      publishOperationId: astpub_48cbb2c7dcbadf1495e4c53655da9602baf2d074a3cfcacecd3914dde0d79f76
+      receiptHash: sha256:48cbb2c7dcbadf1495e4c53655da9602baf2d074a3cfcacecd3914dde0d79f76
+      runtimeInputHash: sha256:519e4c4f52058262e8d339398a89833d2915e8317563c2c6f323a1367661f03d
+      schemaVersion: "2"
+    coverageArgument:
+      mappings:
+        - kind: task
+          observationStepIds:
+            - see-empty
+            - see-created
+            - persisted
+            - search-match
+            - no-results
+            - still-there
+            - empty-again
+            - no-overflow
+            - accessible-new
+          rationale: The complete managed browser journey exercises and observes this task in the integrated Notepad workflow.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - new-note
+            - save-note
+            - edit-note
+            - search-body
+            - reload
+            - confirm-delete
+            - mobile
+          targetId: app-foundation
+        - kind: task
+          observationStepIds:
+            - see-empty
+            - see-created
+            - persisted
+            - search-match
+            - no-results
+            - still-there
+            - empty-again
+            - no-overflow
+            - accessible-new
+          rationale: The complete managed browser journey exercises and observes this task in the integrated Notepad workflow.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - new-note
+            - save-note
+            - edit-note
+            - search-body
+            - reload
+            - confirm-delete
+            - mobile
+          targetId: notes-crud
+        - kind: task
+          observationStepIds:
+            - see-empty
+            - see-created
+            - persisted
+            - search-match
+            - no-results
+            - still-there
+            - empty-again
+            - no-overflow
+            - accessible-new
+          rationale: The complete managed browser journey exercises and observes this task in the integrated Notepad workflow.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - new-note
+            - save-note
+            - edit-note
+            - search-body
+            - reload
+            - confirm-delete
+            - mobile
+          targetId: notes-search
+        - kind: task
+          observationStepIds:
+            - see-empty
+            - see-created
+            - persisted
+            - search-match
+            - no-results
+            - still-there
+            - empty-again
+            - no-overflow
+            - accessible-new
+          rationale: The complete managed browser journey exercises and observes this task in the integrated Notepad workflow.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - new-note
+            - save-note
+            - edit-note
+            - search-body
+            - reload
+            - confirm-delete
+            - mobile
+          targetId: notes-persistence
+        - kind: task
+          observationStepIds:
+            - see-empty
+            - see-created
+            - persisted
+            - search-match
+            - no-results
+            - still-there
+            - empty-again
+            - no-overflow
+            - accessible-new
+          rationale: The complete managed browser journey exercises and observes this task in the integrated Notepad workflow.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - new-note
+            - save-note
+            - edit-note
+            - search-body
+            - reload
+            - confirm-delete
+            - mobile
+          targetId: notes-quality
+        - kind: task
+          observationStepIds:
+            - see-empty
+            - see-created
+            - persisted
+            - search-match
+            - no-results
+            - still-there
+            - empty-again
+            - no-overflow
+            - accessible-new
+          rationale: The complete managed browser journey exercises and observes this task in the integrated Notepad workflow.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - new-note
+            - save-note
+            - edit-note
+            - search-body
+            - reload
+            - confirm-delete
+            - mobile
+          targetId: notes-validation
+        - kind: quality-concern
+          observationStepIds:
+            - accessible-new
+          rationale: The primary creation control is checked for accessible semantics.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - new-note
+          targetId: accessibility
+        - kind: quality-concern
+          observationStepIds:
+            - persisted
+          rationale: The edited note is observed after a full page reload.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - save-edit
+            - reload
+          targetId: persistence
+        - kind: quality-concern
+          observationStepIds:
+            - no-overflow
+          rationale: A narrow viewport is observed for horizontal overflow.
+          scenarioIds:
+            - notepad-full-journey
+          state: covered
+          stimulusStepIds:
+            - mobile
+          targetId: responsive
+    executable:
+      path: automation/features/notepad-happy-path.feature
+    expectedFailures:
+      - browser: chromium
+        environment: apr-0d7fd0dbc7c38bde99e45546
+        lastPassingStepId: null
+        order: 0
+        signature: ERR_CONNECTION_REFUSED
+    gherkinPaths:
+      - automation/features/notepad-happy-path.feature
+    id: notepad-happy-path
+    matrix:
+      - browser: chromium
+        environment: apr-0d7fd0dbc7c38bde99e45546
+    required: true
+    stepPaths: []
+    taskIds:
+      - app-foundation
+      - notes-crud
+      - notes-search
+      - notes-persistence
+      - notes-quality
+      - notes-validation
+    testCaseIds:
+      - ast-235a84970e41-notepad-full-journey
+version: "1"

@@ -5020,50 +5020,6 @@
       "id": "lib_template_step_installer_installtemplatesteppayload"
     },
     {
-      "label": "template-step-registry.test.ts",
-      "file_type": "code",
-      "source_file": "lib/template-step-registry.test.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "template-step-registry.test.ts",
-      "community_name": "Community 2",
-      "id": "lib_template_step_registry_test"
-    },
-    {
-      "label": "tempDirs",
-      "file_type": "code",
-      "source_file": "lib/template-step-registry.test.ts",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "tempdirs",
-      "community_name": "Community 2",
-      "id": "lib_template_step_registry_test_tempdirs"
-    },
-    {
-      "label": "createTempWorkspace()",
-      "file_type": "code",
-      "source_file": "lib/template-step-registry.test.ts",
-      "source_location": "L10",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "createtempworkspace()",
-      "community_name": "Community 2",
-      "id": "lib_template_step_registry_test_createtempworkspace"
-    },
-    {
-      "label": "writeFile()",
-      "file_type": "code",
-      "source_file": "lib/template-step-registry.test.ts",
-      "source_location": "L16",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "writefile()",
-      "community_name": "Community 2",
-      "id": "lib_template_step_registry_test_writefile"
-    },
-    {
       "label": "template-step-sync.test.ts",
       "file_type": "code",
       "source_file": "lib/template-step-sync.test.ts",
@@ -5172,6 +5128,50 @@
       "norm_label": "main()",
       "community_name": "Community 15",
       "id": "sync_template_steps_main"
+    },
+    {
+      "label": "template-step-registry.test.ts",
+      "file_type": "code",
+      "source_file": "lib/template-step-registry.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 2,
+      "norm_label": "template-step-registry.test.ts",
+      "id": "lib_template_step_registry_test",
+      "community_name": "Community 2"
+    },
+    {
+      "label": "tempDirs",
+      "file_type": "code",
+      "source_file": "lib/template-step-registry.test.ts",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 2,
+      "norm_label": "tempdirs",
+      "id": "lib_template_step_registry_test_tempdirs",
+      "community_name": "Community 2"
+    },
+    {
+      "label": "createTempWorkspace()",
+      "file_type": "code",
+      "source_file": "lib/template-step-registry.test.ts",
+      "source_location": "L10",
+      "_origin": "ast",
+      "community": 2,
+      "norm_label": "createtempworkspace()",
+      "id": "lib_template_step_registry_test_createtempworkspace",
+      "community_name": "Community 2"
+    },
+    {
+      "label": "writeFile()",
+      "file_type": "code",
+      "source_file": "lib/template-step-registry.test.ts",
+      "source_location": "L16",
+      "_origin": "ast",
+      "community": 2,
+      "norm_label": "writefile()",
+      "id": "lib_template_step_registry_test_writefile",
+      "community_name": "Community 2"
     }
   ],
   "links": [
@@ -12875,36 +12875,6 @@
       "target": "lib_template_step_installer_buildupdatedgroupfilecontent"
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/template-step-registry.test.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_template_step_registry_test",
-      "target": "lib_template_step_registry_test_createtempworkspace"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/template-step-registry.test.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_template_step_registry_test",
-      "target": "lib_template_step_registry_test_tempdirs"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/template-step-registry.test.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_template_step_registry_test",
-      "target": "lib_template_step_registry_test_writefile"
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -13061,8 +13031,38 @@
       "confidence_score": 1.0,
       "source": "sync_template_steps_main",
       "target": "sync_template_steps_syncstepstodatabase"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/template-step-registry.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_template_step_registry_test",
+      "target": "lib_template_step_registry_test_createtempworkspace"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/template-step-registry.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_template_step_registry_test",
+      "target": "lib_template_step_registry_test_tempdirs"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/template-step-registry.test.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_template_step_registry_test",
+      "target": "lib_template_step_registry_test_writefile"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "6946c6942406e642781e401dbb527217c37b8831"
+  "built_at_commit": "e65e14bb0a4ff3ebda787df687efea2c132ee3cb"
 }
