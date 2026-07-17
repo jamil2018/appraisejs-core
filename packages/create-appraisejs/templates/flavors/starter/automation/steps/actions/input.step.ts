@@ -1,4 +1,14 @@
-import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
+import {
+  When,
+  Then,
+  CustomWorld,
+  expect,
+  SelectorName,
+  resolveLocator,
+  getEnvironment,
+  generateRandomData,
+  RandomDataType,
+} from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name input
  * @description Template steps that deal with inputs
@@ -68,9 +78,6 @@ When(
   'the user fills in the {string} input with data from the stored variable {string}',
   async function (this: CustomWorld, fieldName: SelectorName, variableName: string) {
     const value = this.getVar<string>(variableName)
-    if (!value) {
-      throw new Error(`Variable ${variableName} not found`)
-    }
     const selector = await resolveLocator(this.page, fieldName)
     if (!selector) {
       throw new Error(`Selector ${fieldName} not found`)

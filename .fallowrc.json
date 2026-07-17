@@ -9,10 +9,19 @@
     "src/lib/locator-graph/index.ts",
     "src/lib/validation-ast/index.ts"
   ],
-  "ignorePatterns": [".next/**", ".fallow/**", "automation/**", "docs/**", "packages/**", "public/**", "templates/**"],
+  "ignorePatterns": [
+    ".next/**",
+    ".fallow/**",
+    "automation/**",
+    "docs/**",
+    "packages/**",
+    "public/**",
+    "registry/**",
+    "templates/**"
+  ],
   "ignoreDependencies": ["@codemirror/lang-jinja", "@faker-js/faker", "chai", "chai-as-promised", "dotenv"],
   "duplicates": {
-    "ignore": ["automation/**", "packages/**", "templates/**"]
+    "ignore": ["automation/**", "packages/**", "registry/**", "templates/**"]
   },
   "overrides": [
     {

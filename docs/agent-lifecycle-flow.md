@@ -64,8 +64,10 @@ Managed execution uses only the exact Appraise-owned immutable runtime capsule; 
 Successful compilation returns the exact project-scoped `review=validation` browser link and the Appraise resource
 link directly, so the agent can hand off the review gate without another plan read.
 
-Validation authoring is registry-first through the managed action catalog and locator graph. Extensions require exact
-review evidence; target file paths are never managed execution authority.
+Validation authoring is registry-first through the managed action catalog and locator graph. Choose a semantic
+template step first, then the allowlisted structured locator/page fallback, and only then a justified custom step for
+application-specific behavior or a documented catalog gap. See `docs/reusable-playwright-template-steps.md`.
+Extensions require exact review evidence; target file paths are never managed execution authority.
 
 Draft check, publication, and runtime preflight share one locator-binding rule: every locator-bearing parameter must
 resolve to exactly one locator in the projected validation resources, and that locator must belong to a declared

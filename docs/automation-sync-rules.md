@@ -48,6 +48,11 @@ Reviewed managed-validation runs use Appraise-owned capsule projections under
 database ownership plus the sealed manifest/receipt are authoritative, and agents must not hand-edit or import them.
 Legacy runs continue to use `automation/reports`.
 
+The reusable Playwright catalog is authored in `automation/steps/actions` and `automation/steps/validations`. Build
+registry fragments from those files rather than editing `packages/appraisejs/registry/template-steps` directly. For
+validation authoring, prefer a semantic template step, then the structured allowlisted fallback, then a justified
+custom step. See `docs/reusable-playwright-template-steps.md` for the operation and stored-variable contract.
+
 Environment projections contain `passwordEnvironmentVariable`, which is only the name of a process environment
 variable. Never place a credential value or a `password` field in database seed data, sync input, generated
 configuration, fixtures, or scaffold source. The Cucumber runtime resolves a configured reference only inside the
@@ -62,6 +67,8 @@ Appraise-managed execution.
 Use `package.json` as the command source of truth. Common sync commands are:
 
 - `npm run sync-all`: run the database-backed sync flow.
+- `npm run sync-template-step-groups`, then `npm run sync-template-steps`: synchronize canonical reusable groups and
+  steps by stable signature; referenced orphan steps are preserved rather than destructively removed.
 - `npm run sync-features:dry-run`: preview feature/database sync before applying changes.
 - `npm run sync-features`: regenerate feature files from synced data.
 - `npm run sync-locator-groups`, `npm run sync-locators`, `npm run sync-environments`, `npm run sync-modules`,

@@ -1,4 +1,18 @@
-export type TemplateStepIcon = 'MOUSE' | 'KEYBOARD' | 'ASSERTION' | 'NAVIGATION' | 'DATA' | 'VALIDATION'
+export type TemplateStepIcon =
+  | 'MOUSE'
+  | 'KEYBOARD'
+  | 'ASSERTION'
+  | 'NAVIGATION'
+  | 'INPUT'
+  | 'DOWNLOAD'
+  | 'API'
+  | 'STORE'
+  | 'FORMAT'
+  | 'DATA'
+  | 'UPLOAD'
+  | 'WAIT'
+  | 'VALIDATION'
+  | 'DEBUG'
 export type TemplateStepGroupType = 'ACTION' | 'VALIDATION'
 
 export type RegistryStepEntry = {

@@ -1,4 +1,14 @@
-import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
+import {
+  When,
+  Then,
+  CustomWorld,
+  expect,
+  SelectorName,
+  resolveLocator,
+  getEnvironment,
+  generateRandomData,
+  RandomDataType,
+} from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name active state assertion
  * @description Template steps for handling the validation of the active state of an element

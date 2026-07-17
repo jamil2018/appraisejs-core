@@ -180,11 +180,13 @@ export async function resolveLocator(
     },
   }: {
     maxResolvePasses?: number
-    validate?: {
-      timeoutMs?: number
-      requireVisible?: boolean
-      requireUnique?: boolean
-    }
+    validate?:
+      | false
+      | {
+          timeoutMs?: number
+          requireVisible?: boolean
+          requireUnique?: boolean
+        }
   } = {},
 ): Promise<string | null> {
   try {
@@ -218,6 +220,10 @@ export async function resolveLocator(
       const afterPath = new URL(page.url()).pathname
       if (afterPath !== beforePath) {
         continue
+      }
+
+      if (validate === false) {
+        return selector as unknown as string
       }
 
       const isValid = await validateResolvedSelector(page, selector as unknown as string, validate)

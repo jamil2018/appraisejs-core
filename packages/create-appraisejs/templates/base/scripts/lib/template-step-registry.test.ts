@@ -2,6 +2,7 @@ import os from 'os'
 import path from 'path'
 import { promises as fs } from 'fs'
 import { afterEach, describe, expect, it } from 'vitest'
+import { parse } from '@babel/parser'
 import { buildStepRegistry, createContentSha256, slugifyRegistryName } from './template-step-registry'
 
 const tempDirs: string[] = []
@@ -114,5 +115,38 @@ When('click {string}', async function () {})
     )
 
     await expect(buildStepRegistry(workspace)).rejects.toThrow('Duplicate step signature')
+  })
+
+  it('publishes the complete canonical catalog with searchable metadata and installable fragments', async () => {
+    const repoRoot = path.resolve(import.meta.dirname, '../..')
+    const registry = await buildStepRegistry(repoRoot)
+
+    expect(registry.manifest.steps.length).toBeGreaterThan(100)
+    expect(registry.fragments).toHaveLength(registry.manifest.steps.length)
+    expect(new Set(registry.manifest.steps.map(step => step.signature)).size).toBe(registry.manifest.steps.length)
+    expect(registry.manifest.steps.every(step => step.description && step.group.description)).toBe(true)
+
+    const searchTerms = [
+      'upload',
+      'keyboard-shortcut',
+      'popup',
+      'dialog',
+      'download',
+      'storage',
+      'response',
+      'attribute',
+    ]
+    for (const term of searchTerms) {
+      expect(
+        registry.manifest.steps.some(step => `${step.slug} ${step.description}`.toLowerCase().includes(term)),
+        `expected catalog metadata for ${term}`,
+      ).toBe(true)
+    }
+
+    for (const fragment of registry.fragments) {
+      expect(() =>
+        parse(fragment.content, { sourceType: 'module', plugins: ['typescript', 'decorators-legacy'] }),
+      ).not.toThrow()
+    }
   })
 })

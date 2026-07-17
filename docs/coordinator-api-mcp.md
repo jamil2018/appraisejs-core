@@ -152,7 +152,10 @@ coordinator operation or an explicitly documented local MCP boundary. Stable wor
 `template_step_search` and `template_step_match` share one server-side ranked
 resolver. It scores semantic intent and parameter compatibility, applies a confidence threshold, returns bounded
 explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
-and response-size-oriented metrics without returning the full validation context.
+and response-size-oriented metrics without returning the full validation context. Returned template-step candidates
+include descriptions, signatures, ordered parameters, and group metadata. Selection order is semantic template step,
+allowlisted structured operation, then a justified custom step; the fallback contract and allowlists are documented in
+`docs/reusable-playwright-template-steps.md`.
 
 Managed validation submission is bound to both the immutable AST operation hash and the latest `reviewStateHash`.
 `validation_review_reconcile` is the only legal `review_ready` recovery: it verifies immutable compile content and

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-16T11:08:03.659Z",
+  "generatedAt": "2026-07-17T17:10:15.873Z",
   "steps": [
     {
       "slug": "active-state-assertion/assert-element-active",
@@ -15,6 +15,231 @@
         "name": "active state assertion",
         "description": "Template steps for handling the validation of the active state of an element",
         "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "browser-assertion/assert-browser-cookie",
+      "sourcePath": "fragments/browser-assertion/assert-browser-cookie.ts",
+      "sourceSha256": "9f4a13543b6d7596917bf055358d7de4896e21e3678231b80f7ece305be109c8",
+      "signature": "the browser cookie {string} should equal {string}",
+      "name": "assert browser cookie",
+      "description": "Assert a browser cookie value for the current page URL",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "browser-assertion",
+        "name": "browser assertion",
+        "description": "Full URL, page title, cookies, local storage, and session storage assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "browser-assertion/assert-full-url",
+      "sourcePath": "fragments/browser-assertion/assert-full-url.ts",
+      "sourceSha256": "be73934505e423bcd02abb5fa4011a14c184b0390a1c0bfb541123a252017fb1",
+      "signature": "the full page url should equal {string}",
+      "name": "assert full url",
+      "description": "Assert whether the complete current page URL equals an expected URL",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "browser-assertion",
+        "name": "browser assertion",
+        "description": "Full URL, page title, cookies, local storage, and session storage assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "browser-assertion/assert-local-storage-value",
+      "sourcePath": "fragments/browser-assertion/assert-local-storage-value.ts",
+      "sourceSha256": "379db1f389d0fb9ab125edbcf0a5629899004179bd4b0d89278cc85a419ff909",
+      "signature": "local storage key {string} should equal {string}",
+      "name": "assert local storage value",
+      "description": "Assert a localStorage key value for the current page origin",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "browser-assertion",
+        "name": "browser assertion",
+        "description": "Full URL, page title, cookies, local storage, and session storage assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "browser-assertion/assert-page-title",
+      "sourcePath": "fragments/browser-assertion/assert-page-title.ts",
+      "sourceSha256": "60a6bac282ecb98804786c039ad6493c18be451a1acc1fa981fecb4e4261eb41",
+      "signature": "the page title should equal {string}",
+      "name": "assert page title",
+      "description": "Assert the current browser page title exactly",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "browser-assertion",
+        "name": "browser assertion",
+        "description": "Full URL, page title, cookies, local storage, and session storage assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "browser-assertion/assert-session-storage-value",
+      "sourcePath": "fragments/browser-assertion/assert-session-storage-value.ts",
+      "sourceSha256": "a731c04cd8d6d52aa0fca8e037413da70471ba05abfa9f9090b234187672638d",
+      "signature": "session storage key {string} should equal {string}",
+      "name": "assert session storage value",
+      "description": "Assert a sessionStorage key value for the current page origin",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "browser-assertion",
+        "name": "browser assertion",
+        "description": "Full URL, page title, cookies, local storage, and session storage assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "browser-assertion/assert-url-contains",
+      "sourcePath": "fragments/browser-assertion/assert-url-contains.ts",
+      "sourceSha256": "e6ba2a1c835cf46dc2ab85b50d9fb06d4ee9bdd4e74b6f0fdd595d146a80a1d3",
+      "signature": "the full page url should contain {string}",
+      "name": "assert url contains",
+      "description": "Assert whether the complete current page URL contains expected text",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "browser-assertion",
+        "name": "browser assertion",
+        "description": "Full URL, page title, cookies, local storage, and session storage assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "browser-state/clear-browser-cookies",
+      "sourcePath": "fragments/browser-state/clear-browser-cookies.ts",
+      "sourceSha256": "0eab1a660e333e5dafa55e8977c67a07de725c0ed3e7f94be256498a216a3820",
+      "signature": "the user clears all browser cookies",
+      "name": "clear browser cookies",
+      "description": "Clear every cookie in the current browser context",
+      "icon": "DATA",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/clear-web-storage",
+      "sourcePath": "fragments/browser-state/clear-web-storage.ts",
+      "sourceSha256": "5e86453a6a70572ec24ebfba1e44ba2a2942b6f7c3e43d8ab4e539d59ed8affb",
+      "signature": "the user clears local and session storage",
+      "name": "clear web storage",
+      "description": "Clear both localStorage and sessionStorage for the current page origin",
+      "icon": "STORE",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/go-forward",
+      "sourcePath": "fragments/browser-state/go-forward.ts",
+      "sourceSha256": "1d3a901b907ebfdc10fd95ab7efeb068dd0de9e249c3418b9c83242088b301fa",
+      "signature": "the user goes forward to the next page",
+      "name": "go forward",
+      "description": "Navigate forward to the next page in browser history",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/navigate-to-stored-url",
+      "sourcePath": "fragments/browser-state/navigate-to-stored-url.ts",
+      "sourceSha256": "25f413c3f2e1ace960790677c050965609b84f52e79095dc2246a311cdf4fc7c",
+      "signature": "the user navigates to the url in variable {string}",
+      "name": "navigate to stored url",
+      "description": "Navigate to a URL read from a stored runtime variable",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/set-browser-cookie",
+      "sourcePath": "fragments/browser-state/set-browser-cookie.ts",
+      "sourceSha256": "7b9234399637a8cbe8aa7561c1b97cda402ebe2a71a6c22a96c8fb5dde2cb81b",
+      "signature": "the user sets the browser cookie {string} to {string}",
+      "name": "set browser cookie",
+      "description": "Set a cookie for the current page URL",
+      "icon": "DATA",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/set-local-storage-value",
+      "sourcePath": "fragments/browser-state/set-local-storage-value.ts",
+      "sourceSha256": "5b6633f9fbb6be168a90ac1a1e73c576c7e31597598de2b998e7721e8c07264e",
+      "signature": "the user sets local storage key {string} to {string}",
+      "name": "set local storage value",
+      "description": "Set a localStorage key and string value for the current page origin",
+      "icon": "STORE",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/set-session-storage-value",
+      "sourcePath": "fragments/browser-state/set-session-storage-value.ts",
+      "sourceSha256": "21331e9044f9ff278224f354862011d5de76e1d963bac22cb4a3ec02fe3e897a",
+      "signature": "the user sets session storage key {string} to {string}",
+      "name": "set session storage value",
+      "description": "Set a sessionStorage key and string value for the current page origin",
+      "icon": "STORE",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/set-storage-from-variable",
+      "sourcePath": "fragments/browser-state/set-storage-from-variable.ts",
+      "sourceSha256": "e50729d632e40d6fd1a3ede3f6836c3931bd290893a8a32b3cfacb537a156c94",
+      "signature": "the user sets local storage key {string} from variable {string}",
+      "name": "set storage from variable",
+      "description": "Set a localStorage key from a stored runtime variable",
+      "icon": "STORE",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "browser-state/set-viewport-size",
+      "sourcePath": "fragments/browser-state/set-viewport-size.ts",
+      "sourceSha256": "9bb809d4dd4ca276457aac5aa5ddfe9814909c5b4d2faac3dc547f713f852773",
+      "signature": "the user sets the viewport to width {int} and height {int}",
+      "name": "set viewport size",
+      "description": "Set the browser viewport width and height in pixels",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "browser-state",
+        "name": "browser state",
+        "description": "Navigation, viewport, cookies, local storage, session storage, and stored URL actions",
+        "type": "ACTION"
       }
     },
     {
@@ -59,6 +284,486 @@
         "slug": "click",
         "name": "click",
         "description": "Template step for handling element click",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "data-diagnostics/capture-page-screenshot",
+      "sourcePath": "fragments/data-diagnostics/capture-page-screenshot.ts",
+      "sourceSha256": "a9730011119982c15260ade82c4bdb19ef76a25de81bbc9d9393da16eb249785",
+      "signature": "the user captures a full page screenshot in variable {string}",
+      "name": "capture page screenshot",
+      "description": "Capture a full-page screenshot and store its base64 bytes in a variable",
+      "icon": "DEBUG",
+      "group": {
+        "slug": "data-diagnostics",
+        "name": "data diagnostics",
+        "description": "Store attributes, URLs, titles, log variables, and capture diagnostic screenshots",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "data-diagnostics/log-stored-variable",
+      "sourcePath": "fragments/data-diagnostics/log-stored-variable.ts",
+      "sourceSha256": "8e28eadaa0d4d072516ee18e903713b8590cb87cfb7bf473e302ac132a58bed4",
+      "signature": "the user logs the stored variable {string}",
+      "name": "log stored variable",
+      "description": "Log a stored runtime variable as JSON for test diagnostics",
+      "icon": "DEBUG",
+      "group": {
+        "slug": "data-diagnostics",
+        "name": "data diagnostics",
+        "description": "Store attributes, URLs, titles, log variables, and capture diagnostic screenshots",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "data-diagnostics/store-current-url",
+      "sourcePath": "fragments/data-diagnostics/store-current-url.ts",
+      "sourceSha256": "5f4ded06ee397166af003efc4e12eb098de2fcec3309b172c8ff8a34eb4a252e",
+      "signature": "the user stores the current url in variable {string}",
+      "name": "store current url",
+      "description": "Store the current browser page URL in a runtime variable",
+      "icon": "STORE",
+      "group": {
+        "slug": "data-diagnostics",
+        "name": "data diagnostics",
+        "description": "Store attributes, URLs, titles, log variables, and capture diagnostic screenshots",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "data-diagnostics/store-element-attribute",
+      "sourcePath": "fragments/data-diagnostics/store-element-attribute.ts",
+      "sourceSha256": "dfc7dc63b3c0283737b2ebfbb94304c74b102f819409a53dd19e7501a9ae17be",
+      "signature": "the user stores attribute {string} from the {string} element in variable {string}",
+      "name": "store element attribute",
+      "description": "Store an element attribute value in a runtime variable",
+      "icon": "STORE",
+      "group": {
+        "slug": "data-diagnostics",
+        "name": "data diagnostics",
+        "description": "Store attributes, URLs, titles, log variables, and capture diagnostic screenshots",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "data-diagnostics/store-page-title",
+      "sourcePath": "fragments/data-diagnostics/store-page-title.ts",
+      "sourceSha256": "2115263adfdd1855b6a8b219ff180bf768bceeaa9b4ba3c5c5cdd296c72ae31e",
+      "signature": "the user stores the page title in variable {string}",
+      "name": "store page title",
+      "description": "Store the current browser page title in a runtime variable",
+      "icon": "STORE",
+      "group": {
+        "slug": "data-diagnostics",
+        "name": "data diagnostics",
+        "description": "Store attributes, URLs, titles, log variables, and capture diagnostic screenshots",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "download-assertion/assert-download-path-available",
+      "sourcePath": "fragments/download-assertion/assert-download-path-available.ts",
+      "sourceSha256": "4d3078f9c1e7efc82ddd26c8c3e7654d360d7bff534cbe27e317646907884b5c",
+      "signature": "the downloaded path in variable {string} should be available",
+      "name": "assert download path available",
+      "description": "Assert whether a stored local download path is available and non-empty",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "download-assertion",
+        "name": "download assertion",
+        "description": "Suggested filename, saved path, and download failure assertions for stored download results",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "download-assertion/assert-downloaded-filename",
+      "sourcePath": "fragments/download-assertion/assert-downloaded-filename.ts",
+      "sourceSha256": "a58eeb78e8f478ebed3baa334f7cda40ab308f1ffdc4c21abeb892a868c1f5da",
+      "signature": "the downloaded filename in variable {string} should equal {string}",
+      "name": "assert downloaded filename",
+      "description": "Assert a suggested download filename stored by a download action",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "download-assertion",
+        "name": "download assertion",
+        "description": "Suggested filename, saved path, and download failure assertions for stored download results",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "download-assertion/assert-stored-download-filename",
+      "sourcePath": "fragments/download-assertion/assert-stored-download-filename.ts",
+      "sourceSha256": "b5c73eafa0d87b037e8249b914524fb0195446201a5dca8c62ae33908f9eee9c",
+      "signature": "the download in variable {string} should have suggested filename {string}",
+      "name": "assert stored download filename",
+      "description": "Assert the suggested filename on a stored Playwright download handle",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "download-assertion",
+        "name": "download assertion",
+        "description": "Suggested filename, saved path, and download failure assertions for stored download results",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "downloads/click-and-store-download",
+      "sourcePath": "fragments/downloads/click-and-store-download.ts",
+      "sourceSha256": "b72d33a2dfc694d0c142be3b370d4da2c3f4137c15346712bd69171b04501976",
+      "signature": "the user clicks the {string} element and stores the download in {string}",
+      "name": "click and store download",
+      "description": "Click an element, wait for its download, and store the Playwright download handle for later save or assertion",
+      "icon": "DOWNLOAD",
+      "group": {
+        "slug": "downloads",
+        "name": "downloads",
+        "description": "Download event handling, suggested filenames, and stored download paths",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "downloads/click-and-wait-for-download",
+      "sourcePath": "fragments/downloads/click-and-wait-for-download.ts",
+      "sourceSha256": "0b24baea153ca70dfc511654e5af5b36ceffce892fceecda0a8e1133906b6422",
+      "signature": "the user clicks the {string} element and stores the download filename in {string} and path in {string}",
+      "name": "click and wait for download",
+      "description": "Click an element, wait for its download, and store the suggested filename and local path",
+      "icon": "DOWNLOAD",
+      "group": {
+        "slug": "downloads",
+        "name": "downloads",
+        "description": "Download event handling, suggested filenames, and stored download paths",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "downloads/save-download-to-path",
+      "sourcePath": "fragments/downloads/save-download-to-path.ts",
+      "sourceSha256": "1a24887a76d38cd6ba905bcffc2c1f41d2b0366ca3d5ca3f02e34dfd45f361a8",
+      "signature": "the user saves the download in variable {string} to {string}",
+      "name": "save download to path",
+      "description": "Save the most recently captured Playwright download handle to a file path",
+      "icon": "DOWNLOAD",
+      "group": {
+        "slug": "downloads",
+        "name": "downloads",
+        "description": "Download event handling, suggested filenames, and stored download paths",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "downloads/wait-for-download-event",
+      "sourcePath": "fragments/downloads/wait-for-download-event.ts",
+      "sourceSha256": "40a882bb6365bae5d3834c3fc9cedcb2ceebc7a30ddf7add133c345fba46a658",
+      "signature": "the user waits for a download and stores it in {string}",
+      "name": "wait for download event",
+      "description": "Wait for the next download and store its Playwright handle for later save or inspection",
+      "icon": "DOWNLOAD",
+      "group": {
+        "slug": "downloads",
+        "name": "downloads",
+        "description": "Download event handling, suggested filenames, and stored download paths",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "element-property-assertion/assert-element-attribute",
+      "sourcePath": "fragments/element-property-assertion/assert-element-attribute.ts",
+      "sourceSha256": "19af20b160419e4c5451513a05b87105d414f98cb452ff782390a8772308955c",
+      "signature": "the {string} element attribute {string} should equal {string}",
+      "name": "assert element attribute",
+      "description": "Assert an element attribute exactly, using an empty string for a missing attribute",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-property-assertion",
+        "name": "element property assertion",
+        "description": "Input value, attribute, class, CSS, count, and bounding-box assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-property-assertion/assert-element-bounding-box",
+      "sourcePath": "fragments/element-property-assertion/assert-element-bounding-box.ts",
+      "sourceSha256": "90c3de320f150165d1373eeb76e5d324907e3399ba6789ab2149673a3762b657",
+      "signature": "the {string} element bounding box should be x {int} y {int} width {int} height {int}",
+      "name": "assert element bounding box",
+      "description": "Assert an element bounding-box x, y, width, and height using rounded pixels",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-property-assertion",
+        "name": "element property assertion",
+        "description": "Input value, attribute, class, CSS, count, and bounding-box assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-property-assertion/assert-element-class",
+      "sourcePath": "fragments/element-property-assertion/assert-element-class.ts",
+      "sourceSha256": "9d1cb5f00a30bcb5f834e176f49d24922b26bdfc1df1d9a4406b66b3556546b0",
+      "signature": "the {string} element should {boolean} have class {string}",
+      "name": "assert element class",
+      "description": "Assert whether an element class list contains a class name",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-property-assertion",
+        "name": "element property assertion",
+        "description": "Input value, attribute, class, CSS, count, and bounding-box assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-property-assertion/assert-element-count",
+      "sourcePath": "fragments/element-property-assertion/assert-element-count.ts",
+      "sourceSha256": "ffe3b5f0d55e99d4edee06733495786f7af4a9e318c4c03b17e9f9210fc70079",
+      "signature": "the {string} locator should match {int} elements",
+      "name": "assert element count",
+      "description": "Assert the number of elements matched by a locator",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-property-assertion",
+        "name": "element property assertion",
+        "description": "Input value, attribute, class, CSS, count, and bounding-box assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-property-assertion/assert-element-css-property",
+      "sourcePath": "fragments/element-property-assertion/assert-element-css-property.ts",
+      "sourceSha256": "8db3038a1674101046551bd2f672b238d7a010c4d0057fe23c3b62773cd7aced",
+      "signature": "the {string} element css property {string} should equal {string}",
+      "name": "assert element css property",
+      "description": "Assert a computed CSS property value for an element",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-property-assertion",
+        "name": "element property assertion",
+        "description": "Input value, attribute, class, CSS, count, and bounding-box assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-property-assertion/assert-input-value",
+      "sourcePath": "fragments/element-property-assertion/assert-input-value.ts",
+      "sourceSha256": "ef9c79c1d421c43a08d88c7efcbdbd5786ff74420135923afb21dc6b58ee07eb",
+      "signature": "the {string} input value should equal {string}",
+      "name": "assert input value",
+      "description": "Assert an input, textarea, or select value exactly",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-property-assertion",
+        "name": "element property assertion",
+        "description": "Input value, attribute, class, CSS, count, and bounding-box assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-state-assertion/assert-element-attached",
+      "sourcePath": "fragments/element-state-assertion/assert-element-attached.ts",
+      "sourceSha256": "68d632a98338fe164d2e5578612cc3a7f870dfd1f487d9834b51d865128f7b15",
+      "signature": "the {string} element attached status should be {boolean}",
+      "name": "assert element attached",
+      "description": "Assert whether an element is attached to the DOM",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-state-assertion",
+        "name": "element state assertion",
+        "description": "Visibility, attachment, enabled, editable, checked, focused, and empty element assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-state-assertion/assert-element-checked",
+      "sourcePath": "fragments/element-state-assertion/assert-element-checked.ts",
+      "sourceSha256": "336bcd23770d9a612581be5e356e1f15cf888f2685b89468d685243de170e207",
+      "signature": "the {string} element checked status should be {boolean}",
+      "name": "assert element checked",
+      "description": "Assert whether a checkbox or radio control is checked",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-state-assertion",
+        "name": "element state assertion",
+        "description": "Visibility, attachment, enabled, editable, checked, focused, and empty element assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-state-assertion/assert-element-editable",
+      "sourcePath": "fragments/element-state-assertion/assert-element-editable.ts",
+      "sourceSha256": "f590f232326289ba8f7a4a152b5256ce256dda0486cde8d02944984eaea9b2a0",
+      "signature": "the {string} element editable status should be {boolean}",
+      "name": "assert element editable",
+      "description": "Assert whether an input or content-editable element is editable",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-state-assertion",
+        "name": "element state assertion",
+        "description": "Visibility, attachment, enabled, editable, checked, focused, and empty element assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-state-assertion/assert-element-empty",
+      "sourcePath": "fragments/element-state-assertion/assert-element-empty.ts",
+      "sourceSha256": "6f6e97b06e38f853b8f7d03aae4a203406c97c1ba4629e301112acdef60231ad",
+      "signature": "the {string} element empty status should be {boolean}",
+      "name": "assert element empty",
+      "description": "Assert whether an input value or element text is empty",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-state-assertion",
+        "name": "element state assertion",
+        "description": "Visibility, attachment, enabled, editable, checked, focused, and empty element assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-state-assertion/assert-element-enabled",
+      "sourcePath": "fragments/element-state-assertion/assert-element-enabled.ts",
+      "sourceSha256": "9a0b4513861b2feb3f1163b0d4569ba7a869c351b922c60fe2cbe7439ec920ff",
+      "signature": "the {string} element enabled status should be {boolean}",
+      "name": "assert element enabled",
+      "description": "Assert whether an element is enabled for interaction",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-state-assertion",
+        "name": "element state assertion",
+        "description": "Visibility, attachment, enabled, editable, checked, focused, and empty element assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "element-state-assertion/assert-element-focused",
+      "sourcePath": "fragments/element-state-assertion/assert-element-focused.ts",
+      "sourceSha256": "1c43d13fcbd6508fd57990b268f67e4d8c533219c21bb1b569c07a2693efb841",
+      "signature": "the {string} element focused status should be {boolean}",
+      "name": "assert element focused",
+      "description": "Assert whether an element currently has document focus",
+      "icon": "VALIDATION",
+      "group": {
+        "slug": "element-state-assertion",
+        "name": "element state assertion",
+        "description": "Visibility, attachment, enabled, editable, checked, focused, and empty element assertions",
+        "type": "VALIDATION"
+      }
+    },
+    {
+      "slug": "forms/choose-radio-control",
+      "sourcePath": "fragments/forms/choose-radio-control.ts",
+      "sourceSha256": "9aabc39f51612a732a8215d0abc2dca042af65262b440d5593f94db61aa7e66e",
+      "signature": "the user chooses the {string} radio control",
+      "name": "choose radio control",
+      "description": "Check a radio button or radio control element",
+      "icon": "INPUT",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "forms/fill-content-editable-element",
+      "sourcePath": "fragments/forms/fill-content-editable-element.ts",
+      "sourceSha256": "37a535f4615ab7eaf422eea3873744689cc5e7c2970ff7e99b1c24ddeba9685e",
+      "signature": "the user fills the content editable {string} element with {string}",
+      "name": "fill content editable element",
+      "description": "Fill a contenteditable rich-text element with text",
+      "icon": "INPUT",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "forms/fill-date-input",
+      "sourcePath": "fragments/forms/fill-date-input.ts",
+      "sourceSha256": "3ca0e87708882eb7497839cd9717aa92a24eb32a47df5a8709bed3ed7860e3e1",
+      "signature": "the user fills the {string} date input with {string}",
+      "name": "fill date input",
+      "description": "Fill a date or datetime input with an ISO-compatible value",
+      "icon": "INPUT",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "forms/select-dropdown-option-by-index",
+      "sourcePath": "fragments/forms/select-dropdown-option-by-index.ts",
+      "sourceSha256": "a2e01146503f69d9d755a8220cba7a2586407cded33164a57ca1a027574b2fe2",
+      "signature": "the user selects option index {int} from the {string} dropdown",
+      "name": "select dropdown option by index",
+      "description": "Select a dropdown option using its zero-based index",
+      "icon": "INPUT",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "forms/select-dropdown-option-by-label",
+      "sourcePath": "fragments/forms/select-dropdown-option-by-label.ts",
+      "sourceSha256": "9a048df35e787679a202dce57c7cdd0355dafcaefaa06559e12a2aa0afd2956a",
+      "signature": "the user selects label {string} from the {string} dropdown",
+      "name": "select dropdown option by label",
+      "description": "Select a dropdown option using its visible label text",
+      "icon": "INPUT",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "forms/select-dropdown-option-by-value",
+      "sourcePath": "fragments/forms/select-dropdown-option-by-value.ts",
+      "sourceSha256": "55eb6943c73ab684b9359933696bea3b6759e543d894b8809b31d43d2aa16955",
+      "signature": "the user selects value {string} from the {string} dropdown",
+      "name": "select dropdown option by value",
+      "description": "Select a dropdown option using its HTML value",
+      "icon": "INPUT",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "forms/upload-file",
+      "sourcePath": "fragments/forms/upload-file.ts",
+      "sourceSha256": "c8ce40a06834c5a794fbf5c9780b969a9527dc74ef41195947182670b476e565",
+      "signature": "the user uploads the file {string} through the {string} input",
+      "name": "upload file",
+      "description": "Upload a local file path through a file input element",
+      "icon": "UPLOAD",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "forms/upload-stored-file",
+      "sourcePath": "fragments/forms/upload-stored-file.ts",
+      "sourceSha256": "ad75408ae5bc887e62b78d929f9dcf6af4e5e10bd55d2ff95d0dbc43ca3c9544",
+      "signature": "the user uploads the file path in variable {string} through the {string} input",
+      "name": "upload stored file",
+      "description": "Upload a file path read from a stored runtime variable",
+      "icon": "UPLOAD",
+      "group": {
+        "slug": "forms",
+        "name": "forms",
+        "description": "Form controls, radio buttons, dropdowns, dates, content-editable fields, and uploads",
         "type": "ACTION"
       }
     },
@@ -125,7 +830,7 @@
     {
       "slug": "input/fill-input-with-stored-value",
       "sourcePath": "fragments/input/fill-input-with-stored-value.ts",
-      "sourceSha256": "5cb9d62367fd65e6bee1ac6898993aacaeaa6410d7823d22627bc0a1f5ac1d9e",
+      "sourceSha256": "f58387aef6485be9e1aa491d25837266b10cf1c26457a9efefcf755a91d230eb",
       "signature": "the user fills in the {string} input with data from the stored variable {string}",
       "name": "fill input with stored value",
       "description": "Template step for filling an input field with data from a stored variable",
@@ -164,6 +869,81 @@
         "slug": "input",
         "name": "input",
         "description": "Template steps that deal with inputs",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "keyboard/hold-keyboard-key-down",
+      "sourcePath": "fragments/keyboard/hold-keyboard-key-down.ts",
+      "sourceSha256": "43825439d3a2215cb3526869cdf9eb7c76e4b703dc7017ac0e2726a7be0180e6",
+      "signature": "the user holds the {string} keyboard key down",
+      "name": "hold keyboard key down",
+      "description": "Hold a keyboard key down until a matching key-up step is used",
+      "icon": "INPUT",
+      "group": {
+        "slug": "keyboard",
+        "name": "keyboard",
+        "description": "Keyboard keys, shortcuts, sequential typing, and key state actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "keyboard/press-key-on-element",
+      "sourcePath": "fragments/keyboard/press-key-on-element.ts",
+      "sourceSha256": "008a4936d6888a91dbfc1e0a73683c317897db2f47fcfd7f598c2641aaa1cc08",
+      "signature": "the user presses the {string} key on the {string} element",
+      "name": "press key on element",
+      "description": "Press one key or a Playwright key combination while an element is targeted",
+      "icon": "INPUT",
+      "group": {
+        "slug": "keyboard",
+        "name": "keyboard",
+        "description": "Keyboard keys, shortcuts, sequential typing, and key state actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "keyboard/press-keyboard-shortcut",
+      "sourcePath": "fragments/keyboard/press-keyboard-shortcut.ts",
+      "sourceSha256": "bb5ae859a46987530587fd7889767e3fc76931981d047629d08aaa494a6384c5",
+      "signature": "the user presses the keyboard shortcut {string}",
+      "name": "press keyboard shortcut",
+      "description": "Press a page-level keyboard shortcut such as Control+A or Meta+Shift+P",
+      "icon": "INPUT",
+      "group": {
+        "slug": "keyboard",
+        "name": "keyboard",
+        "description": "Keyboard keys, shortcuts, sequential typing, and key state actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "keyboard/release-keyboard-key",
+      "sourcePath": "fragments/keyboard/release-keyboard-key.ts",
+      "sourceSha256": "202898abf5afd7f87e37d7f975ffbaaa56c76ac09d4ce6e4470e0d6bacae279a",
+      "signature": "the user releases the {string} keyboard key",
+      "name": "release keyboard key",
+      "description": "Release a keyboard key that was held down",
+      "icon": "INPUT",
+      "group": {
+        "slug": "keyboard",
+        "name": "keyboard",
+        "description": "Keyboard keys, shortcuts, sequential typing, and key state actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "keyboard/type-text-sequentially",
+      "sourcePath": "fragments/keyboard/type-text-sequentially.ts",
+      "sourceSha256": "600ede06dab93f210a06760e458e23c7b91aad98cee1c6f39dad7001a6f2b5f9",
+      "signature": "the user types {string} sequentially into the {string} element with delay {int} milliseconds",
+      "name": "type text sequentially",
+      "description": "Type text into an element one key at a time with a delay in milliseconds",
+      "icon": "INPUT",
+      "group": {
+        "slug": "keyboard",
+        "name": "keyboard",
+        "description": "Keyboard keys, shortcuts, sequential typing, and key state actions",
         "type": "ACTION"
       }
     },
@@ -239,6 +1019,141 @@
         "slug": "navigation",
         "name": "navigation",
         "description": "Template steps that deals with browser navigation",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/blur-element",
+      "sourcePath": "fragments/pointer/blur-element.ts",
+      "sourceSha256": "6e8f35958aa674208549f4612a6412499a25471b0b62d12be3733f8766c13793",
+      "signature": "the user blurs the {string} element",
+      "name": "blur element",
+      "description": "Remove keyboard focus from an element",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/capture-element-screenshot",
+      "sourcePath": "fragments/pointer/capture-element-screenshot.ts",
+      "sourceSha256": "f0c39fcfcf8c88fc5af6837e4542a9139bdee359cefb2803a1a63c637d53f154",
+      "signature": "the user captures a screenshot of the {string} element in the variable {string}",
+      "name": "capture element screenshot",
+      "description": "Capture an element screenshot and store its base64 bytes in a variable",
+      "icon": "DEBUG",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/click-element-coordinates",
+      "sourcePath": "fragments/pointer/click-element-coordinates.ts",
+      "sourceSha256": "005682fd3c69634ce1146c1ea7523f6ed8b0fcdb81b2bf9ddbca07d4d37c0a7b",
+      "signature": "the user clicks coordinates x {int} and y {int} inside the {string} element",
+      "name": "click element coordinates",
+      "description": "Click an x and y coordinate relative to a locator element",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/click-page-coordinates",
+      "sourcePath": "fragments/pointer/click-page-coordinates.ts",
+      "sourceSha256": "f509f1536df740329ccf2619ea3c51b04e708cf5891a09e60dbb057271e97145",
+      "signature": "the user clicks page coordinates x {int} and y {int}",
+      "name": "click page coordinates",
+      "description": "Click an exact x and y page coordinate with the mouse pointer",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/drag-element-to-element",
+      "sourcePath": "fragments/pointer/drag-element-to-element.ts",
+      "sourceSha256": "e5c39d3cb38da444e04c566a1449149575fe9b75c8c7a712e05f7fdc6acf71bc",
+      "signature": "the user drags the {string} element onto the {string} element",
+      "name": "drag element to element",
+      "description": "Drag a source locator and drop it onto a target locator",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/focus-element",
+      "sourcePath": "fragments/pointer/focus-element.ts",
+      "sourceSha256": "3e7ba93b8378335160d37ea54fe1f3e3751835549ee3bc41a7a446ab430aca7a",
+      "signature": "the user focuses the {string} element",
+      "name": "focus element",
+      "description": "Move keyboard focus to an element",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/force-click-element",
+      "sourcePath": "fragments/pointer/force-click-element.ts",
+      "sourceSha256": "2ccdb27d8a30f5dfb782760a4e9f2af63e8fb7e901c938aa91d9420c18e7d0e3",
+      "signature": "the user force clicks the {string} element",
+      "name": "force click element",
+      "description": "Force click an element when actionability checks must be bypassed deliberately",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/scroll-element-into-view",
+      "sourcePath": "fragments/pointer/scroll-element-into-view.ts",
+      "sourceSha256": "4938e93d6b75c692798a33e020c297d33d344a5a8350f1207e74729f3969806f",
+      "signature": "the user scrolls the {string} element into view",
+      "name": "scroll element into view",
+      "description": "Scroll until the target element is inside the viewport",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "pointer/scroll-page-by-offset",
+      "sourcePath": "fragments/pointer/scroll-page-by-offset.ts",
+      "sourceSha256": "e948987809419014110f583f8ca665de5bd8722856c72647d3909e7a6511b632",
+      "signature": "the user scrolls the page by x {int} and y {int}",
+      "name": "scroll page by offset",
+      "description": "Scroll the page horizontally and vertically by pixel offsets",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "pointer",
+        "name": "pointer",
+        "description": "Pointer, mouse, drag, focus, scroll, and element screenshot actions",
         "type": "ACTION"
       }
     },
@@ -408,9 +1323,294 @@
       }
     },
     {
+      "slug": "structured-operations/run-structured-locator-operation",
+      "sourcePath": "fragments/structured-operations/run-structured-locator-operation.ts",
+      "sourceSha256": "34b576c031eb1b270523f3c5f8d316e0f46d5e4a96980fb65e9e06ddbed0170f",
+      "signature": "the user runs locator operation {string} on the {string} element with arguments {string} and options {string}",
+      "name": "run structured locator operation",
+      "description": "Run an allowlisted uncommon locator operation with JSON argument array, JSON options object, and {\"$stored\":\"name\"} value references; arbitrary JavaScript is forbidden",
+      "icon": "DEBUG",
+      "group": {
+        "slug": "structured-operations",
+        "name": "structured operations",
+        "description": "Allowlisted Playwright locator and page operations using bounded JSON arguments and options",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "structured-operations/run-structured-page-operation",
+      "sourcePath": "fragments/structured-operations/run-structured-page-operation.ts",
+      "sourceSha256": "bd992897846862a5f9ced5602258718de6a9fc2c129e25d6ee351f48809c75d4",
+      "signature": "the user runs page operation {string} with arguments {string} and options {string}",
+      "name": "run structured page operation",
+      "description": "Run an allowlisted uncommon page operation with JSON argument array, JSON options object, and {\"$stored\":\"name\"} value references; arbitrary JavaScript is forbidden",
+      "icon": "DEBUG",
+      "group": {
+        "slug": "structured-operations",
+        "name": "structured operations",
+        "description": "Allowlisted Playwright locator and page operations using bounded JSON arguments and options",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-dialog",
+      "sourcePath": "fragments/synchronization/wait-for-dialog.ts",
+      "sourceSha256": "86a3b08487e122423d7f1a507845a962c87c3b61564524840f00f03fe00fb520",
+      "signature": "the user waits for a dialog and stores its message in {string}",
+      "name": "wait for dialog",
+      "description": "Wait for the next browser dialog and store its message in a runtime variable",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-element-state",
+      "sourcePath": "fragments/synchronization/wait-for-element-state.ts",
+      "sourceSha256": "7ac9147a97f990a7adb0ad29bba7790667807c0a240b142bac9d450cf0e88765",
+      "signature": "the user waits for the {string} element state to be {string}",
+      "name": "wait for element state",
+      "description": "Wait for an element to become attached, detached, visible, or hidden",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-element-text",
+      "sourcePath": "fragments/synchronization/wait-for-element-text.ts",
+      "sourceSha256": "a1177abcfd7fa89a53799e03c51ba409d3c33fc0a25bfc4cfe5100b1aa9311a7",
+      "signature": "the user waits for the {string} element to contain text {string}",
+      "name": "wait for element text",
+      "description": "Wait until an element contains expected text",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-input-value",
+      "sourcePath": "fragments/synchronization/wait-for-input-value.ts",
+      "sourceSha256": "916b1115507d214a22867912a72342cea998c816bb86b24ceed00df2fd1e8a44",
+      "signature": "the user waits for the {string} input value to equal {string}",
+      "name": "wait for input value",
+      "description": "Wait until an input element equals an expected value",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-load-state",
+      "sourcePath": "fragments/synchronization/wait-for-load-state.ts",
+      "sourceSha256": "8fbe1f618210eb6ef366b5b34a3cdc57bbb514dd5bde923a1b2c179c91b476f8",
+      "signature": "the user waits for page load state {string}",
+      "name": "wait for load state",
+      "description": "Wait for load, domcontentloaded, or networkidle page state",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-popup",
+      "sourcePath": "fragments/synchronization/wait-for-popup.ts",
+      "sourceSha256": "fe3dde44bd4bb9f5a0821ef226dfe69da87a8d50c438db1fc875a73e985ed686",
+      "signature": "the user waits for a popup and stores it in {string}",
+      "name": "wait for popup",
+      "description": "Wait for a popup event and store the opened page in a runtime variable",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-request",
+      "sourcePath": "fragments/synchronization/wait-for-request.ts",
+      "sourceSha256": "a32690eea6d03c305234e183d26d9852bf00747fc315c91d5ca9f7f4b348923c",
+      "signature": "the user waits for a request url containing {string}",
+      "name": "wait for request",
+      "description": "Wait for an outgoing HTTP request whose URL contains expected text",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-response",
+      "sourcePath": "fragments/synchronization/wait-for-response.ts",
+      "sourceSha256": "ff8b8c8e1df35f8db744d83990acd57d513b4fbc2a5e61fc1ba48e02124ead5e",
+      "signature": "the user waits for a response url containing {string} with status {int}",
+      "name": "wait for response",
+      "description": "Wait for an HTTP response whose URL contains text and status equals the expected code",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "synchronization/wait-for-url",
+      "sourcePath": "fragments/synchronization/wait-for-url.ts",
+      "sourceSha256": "30bc8531a8e4175733e914421d75f379b7f51894a7197287a3bc06b72c22942e",
+      "signature": "the user waits for the url to contain {string}",
+      "name": "wait for url",
+      "description": "Wait until the current URL contains expected text",
+      "icon": "WAIT",
+      "group": {
+        "slug": "synchronization",
+        "name": "synchronization",
+        "description": "URL, load-state, locator-state, text, value, request, response, popup, and dialog waits",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/accept-next-dialog",
+      "sourcePath": "fragments/tabs-frames-dialogs/accept-next-dialog.ts",
+      "sourceSha256": "194f4ea423ea8caed8f930d9a97566ffe92388abfdb6f973a4d324f4c562bb06",
+      "signature": "the user accepts the next browser dialog",
+      "name": "accept next dialog",
+      "description": "Accept the next browser alert, confirm, or prompt dialog",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/answer-next-prompt-dialog",
+      "sourcePath": "fragments/tabs-frames-dialogs/answer-next-prompt-dialog.ts",
+      "sourceSha256": "55a7dd1b057d9bab0320ab522c690a0b16847095ae64802def9d7409579b034c",
+      "signature": "the user answers the next browser prompt with {string}",
+      "name": "answer next prompt dialog",
+      "description": "Accept the next browser prompt dialog with supplied text",
+      "icon": "INPUT",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/click-and-switch-to-popup",
+      "sourcePath": "fragments/tabs-frames-dialogs/click-and-switch-to-popup.ts",
+      "sourceSha256": "5358a9853c0fdf91bb320b6df02849a925e45f3d1e1c2eaed2aebc9e0e215909",
+      "signature": "the user clicks the {string} element and switches to the opened popup",
+      "name": "click and switch to popup",
+      "description": "Click an element, wait for a popup tab, and switch the active page to it",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/click-element-inside-frame",
+      "sourcePath": "fragments/tabs-frames-dialogs/click-element-inside-frame.ts",
+      "sourceSha256": "7f0df91596391b1d1bae56f577b17c54a3ad8ca1853fbb82448735abc28f276d",
+      "signature": "the user clicks the {string} element inside the {string} frame",
+      "name": "click element inside frame",
+      "description": "Click a locator inside an iframe resolved from the shared locator library",
+      "icon": "MOUSE",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/close-current-browser-tab",
+      "sourcePath": "fragments/tabs-frames-dialogs/close-current-browser-tab.ts",
+      "sourceSha256": "ec3f59eb4a1ffe6013c9ecf2f09654f9c3ae5a6af27a07f79849bc404f6db84d",
+      "signature": "the user closes the current browser tab",
+      "name": "close current browser tab",
+      "description": "Close the current tab and switch to the last remaining browser tab",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/dismiss-next-dialog",
+      "sourcePath": "fragments/tabs-frames-dialogs/dismiss-next-dialog.ts",
+      "sourceSha256": "beb6cd357400a8c139b5bea51a63f394d239af31e991c63deb00c9d00d13b047",
+      "signature": "the user dismisses the next browser dialog",
+      "name": "dismiss next dialog",
+      "description": "Dismiss the next browser alert, confirm, or prompt dialog",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/fill-element-inside-frame",
+      "sourcePath": "fragments/tabs-frames-dialogs/fill-element-inside-frame.ts",
+      "sourceSha256": "4830abda47b7683258cca4acfb12b479c40f561b82435ce8729e690849c8632a",
+      "signature": "the user fills the {string} element inside the {string} frame with {string}",
+      "name": "fill element inside frame",
+      "description": "Fill a locator inside an iframe resolved from the shared locator library",
+      "icon": "INPUT",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
+      "slug": "tabs-frames-dialogs/switch-browser-tab",
+      "sourcePath": "fragments/tabs-frames-dialogs/switch-browser-tab.ts",
+      "sourceSha256": "fbbf3c82160fdcd21d1dd13ef71058236f27513db96d7a7331430ea5f271b6ae",
+      "signature": "the user switches to browser tab {int}",
+      "name": "switch browser tab",
+      "description": "Switch to a browser tab or popup using its zero-based index",
+      "icon": "NAVIGATION",
+      "group": {
+        "slug": "tabs-frames-dialogs",
+        "name": "tabs frames dialogs",
+        "description": "Browser tabs, popups, iframe-scoped actions, and one-shot dialog handling",
+        "type": "ACTION"
+      }
+    },
+    {
       "slug": "text-assertion/assert-element-contains-stored-variable-text",
       "sourcePath": "fragments/text-assertion/assert-element-contains-stored-variable-text.ts",
-      "sourceSha256": "7f81f57b688f514f28948aadbccbe7e7afb40ab22eb26f446b52d4ddb73b309c",
+      "sourceSha256": "7285e186d69d5b8061f2bf13de8aefb5fbf3d9d0720203dc6fc8791d893496dc",
       "signature": "the element {string} should contain the text inside the stored variable {string}",
       "name": "assert element contains stored variable text",
       "description": "Template step to validate whether an element text contains the text inside a stored variable",
@@ -455,7 +1655,7 @@
     {
       "slug": "visibility-assertion/assert-element-visible",
       "sourcePath": "fragments/visibility-assertion/assert-element-visible.ts",
-      "sourceSha256": "a531dc29e319da85740725c876e67ccbf6cf237f4862960cedf4e7620fd851da",
+      "sourceSha256": "5308909a323f3c3b43d979718c9104ab7780070cb72d2d0172c805eed6e26231",
       "signature": "the visibility status of the {string} element should be {boolean}",
       "name": "assert element visible",
       "description": "Template step for validating whether an element should be visible or not",
