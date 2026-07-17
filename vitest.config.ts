@@ -12,6 +12,7 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     include: [
+      'packages/cucumber-runtime/src/**/*.test.ts',
       'scripts/lib/**/*.test.ts',
       'src/services/**/*.test.ts',
       'src/app/**/*.test.ts',

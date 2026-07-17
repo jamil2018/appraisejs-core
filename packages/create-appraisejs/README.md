@@ -29,7 +29,7 @@ package.
 
 Available templates:
 
-- `starter`: opinionated scaffold with bundled core template steps included.
+- `starter`: opinionated scaffold with the complete reusable Playwright template-step catalog included.
 - `blank`: the same app scaffold without bundled template steps; add steps later with `appraisejs add step`.
 
 During scaffolding it:
@@ -105,6 +105,11 @@ npx appraisejs@latest add step <group-slug>/<step-slug>
 ```
 
 The CLI downloads the step fragment, merges it into the correct step group file, and then runs `sync-template-step-groups` followed by `sync-template-steps`.
+
+When authoring validation, select a semantic template step first, use the allowlisted structured locator/page fallback
+for uncommon Playwright mechanics, and add a custom step only for application-specific behavior or a documented gap.
+The structured fallback supports JSON arguments/options and `{"$stored":"variableName"}` references; it does not
+permit arbitrary JavaScript evaluation.
 
 ## Notes
 

@@ -63,6 +63,10 @@ Install additional reusable template steps into an existing AppraiseJS project w
 npx appraisejs@latest add step <group-slug>/<step-slug>
 ```
 
+The starter scaffold includes the complete reusable Playwright browser catalog by default. Validation authors should
+choose a semantic template step first, an allowlisted structured operation second, and a justified custom step last.
+See [Reusable Playwright Template Steps](./docs/reusable-playwright-template-steps.md).
+
 ## How to Contribute
 
 - Read the contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)

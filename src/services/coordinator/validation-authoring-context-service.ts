@@ -13,7 +13,18 @@ import {
 } from '@/services/project-resource/project-resource-ownership-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
-type ReusableRef = { id: string; name?: string; groupId?: string; groupName?: string; path?: string }
+type ReusableRef = {
+  id: string
+  name?: string
+  description?: string | null
+  signature?: string
+  parameters?: Array<{ name: string; type: string; order: number }>
+  groupId?: string
+  groupName?: string
+  groupDescription?: string | null
+  groupType?: string
+  path?: string
+}
 
 function hashContent(content: string) {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
@@ -81,7 +92,8 @@ function rankReusableResources(resources: ReusableResources, intent: string, par
   return {
     templateSteps: rank(
       resources.templateSteps,
-      step => `${step.name} ${step.signature}`,
+      step =>
+        `${step.name} ${step.description ?? ''} ${step.signature} ${step.templateStepGroup.name} ${step.templateStepGroup.description ?? ''}`,
       step => signatureParameters(step.signature),
     ),
     stepBlocks: rank(
@@ -130,9 +142,11 @@ async function readReusableResources(client: PrismaClient, targetProjectId: stri
       select: {
         id: true,
         name: true,
+        description: true,
         signature: true,
         templateStepGroupId: true,
-        templateStepGroup: { select: { id: true, name: true, type: true } },
+        parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
+        templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
       },
       orderBy: { name: 'asc' },
     }),
@@ -149,9 +163,11 @@ async function readReusableResources(client: PrismaClient, targetProjectId: stri
               select: {
                 id: true,
                 name: true,
+                description: true,
                 signature: true,
                 templateStepGroupId: true,
-                templateStepGroup: { select: { id: true, name: true, type: true } },
+                parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
+                templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
               },
             },
           },
@@ -176,8 +192,13 @@ function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
   return {
     id: step.id,
     name: step.name,
+    description: step.description,
+    signature: step.signature,
+    parameters: step.parameters,
     groupId: step.templateStepGroupId,
     groupName: step.templateStepGroup.name,
+    groupDescription: step.templateStepGroup.description,
+    groupType: step.templateStepGroup.type,
     path: templateStepGroupPath(step.templateStepGroup.name, step.templateStepGroup.type),
   }
 }
@@ -273,7 +294,16 @@ export async function readValidationContext(
         orderBy: { title: 'asc' },
       }),
       client.templateStep.findMany({
-        select: { id: true, name: true, signature: true, type: true, templateStepGroupId: true },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          signature: true,
+          type: true,
+          templateStepGroupId: true,
+          parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
+          templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
+        },
         orderBy: { name: 'asc' },
       }),
       client.stepBlock.findMany({

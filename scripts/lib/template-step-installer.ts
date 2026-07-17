@@ -48,6 +48,8 @@ const REQUIRED_RUNTIME_IMPORTS = [
   'getEnvironment',
   'generateRandomData',
   'RandomDataType',
+  'runLocatorTemplateOperation',
+  'runPageTemplateOperation',
 ] as const
 const PLACEHOLDER_COMMENT =
   '// This file is generated automatically. Add template steps to this group to generate content.'

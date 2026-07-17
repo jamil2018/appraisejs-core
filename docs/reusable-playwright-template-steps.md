@@ -1,0 +1,64 @@
+# Reusable Playwright Template Steps
+
+AppraiseJS ships a registry-first browser validation catalog in `automation/steps`. The starter scaffold includes the
+complete catalog and its synchronized database records. The blank scaffold keeps the same application and runtime but
+omits bundled template steps so teams can install only the registry fragments they choose.
+
+## Selection Order
+
+Validation authors and agents should choose browser behavior in this order:
+
+1. Use a semantic template step whose name, description, signature, parameters, and group match the intent.
+2. Use a structured locator or page operation when the Playwright mechanic is uncommon but allowlisted.
+3. Propose a custom step only for application-specific behavior or a documented catalog gap.
+
+Use `template_step_search` or `template_step_match` before proposing a custom step. Resolver results include intent
+scores, parameter compatibility, signatures, descriptions, ordered parameters, group metadata, and the canonical
+group path. `validation_context_read` exposes the same selection metadata for bounded template-step reads.
+
+## Semantic Coverage
+
+The bundled catalog covers pointer and coordinate actions, drag-and-drop, focus and blur, scrolling, keyboard keys and
+shortcuts, sequential typing, form controls, dropdown selection, dates, content-editable fields, uploads, navigation,
+viewport changes, cookies, local and session storage, stored-variable reuse, tabs, popups, frames, dialogs, downloads,
+request and response synchronization, screenshots, stored diagnostics, and browser and element assertions.
+
+Step descriptions intentionally include likely search terms. Prefer the most specific semantic step even when a
+structured operation could perform the same action.
+
+## Structured Operations
+
+The structured fallback accepts an operation name, a JSON argument array, and a JSON options object. Values captured by
+an earlier step can be referenced anywhere inside either JSON value with this exact object shape:
+
+```json
+{ "$stored": "variableName" }
+```
+
+JSON is limited to 20,000 characters, ten nested levels, and fifty items per array. Each operation validates its
+argument count and types plus its own option allowlist before invoking Playwright. Unsupported operations and options
+fail with an explicit error. The fallback never accepts callbacks, regular-expression objects, executable source, or
+arbitrary JavaScript evaluation.
+
+Allowlisted locator operations are:
+
+- `blur`, `check`, `click`, `dblclick`, `dispatchEvent`, `fill`, `focus`, `hover`, `press`, `pressSequentially`
+- `screenshot`, `scrollIntoViewIfNeeded`, `selectOption`, `selectText`, `setInputFiles`, `tap`, `uncheck`
+
+Allowlisted page operations are:
+
+- `goBack`, `goForward`, `goto`, `reload`, `screenshot`, `setViewportSize`
+- `waitForLoadState`, `waitForTimeout`, `waitForURL`
+
+Screenshot fallback options intentionally omit filesystem paths; semantic download and screenshot steps expose
+results through stored variables. `setInputFiles` accepts only a path string or an array of path strings.
+
+## Authoring And Distribution
+
+`automation/steps/actions` and `automation/steps/validations` are the canonical authored sources. Build the public
+registry with `npm run build-step-registry`. Synchronize groups before steps with
+`npm run sync-template-step-groups && npm run sync-template-steps`. Synchronization updates existing rows by stable
+Cucumber signature and preserves an orphaned row when a test case or template test case still references it.
+
+After root changes, run `npm --prefix packages/create-appraisejs run prepare-template`. Do not edit prepared template
+copies or registry fragments directly.

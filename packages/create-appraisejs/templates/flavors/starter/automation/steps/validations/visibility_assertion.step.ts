@@ -1,4 +1,14 @@
-import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'
+import {
+  When,
+  Then,
+  CustomWorld,
+  expect,
+  SelectorName,
+  resolveLocator,
+  getEnvironment,
+  generateRandomData,
+  RandomDataType,
+} from '../../../packages/cucumber-runtime/src/index.js'
 /**
  * @name visibility assertion
  * @description Template steps that handles the assertion of element visibility states
@@ -14,7 +24,9 @@ Then(
   'the visibility status of the {string} element should be {boolean}',
   async function (this: CustomWorld, elementName: SelectorName, isVisible: boolean) {
     try {
-      const selector = await resolveLocator(this.page, elementName)
+      const selector = await resolveLocator(this.page, elementName, {
+        validate: isVisible ? undefined : false,
+      })
       if (!selector) throw new Error(`Selector ${elementName} not found`)
       const elementVisibilityStatus = await this.page.locator(selector).isVisible({ timeout: 10000 })
       expect(elementVisibilityStatus).to.equal(isVisible)

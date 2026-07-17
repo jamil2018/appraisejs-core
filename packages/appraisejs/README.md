@@ -3,6 +3,10 @@
 AppraiseJS command-line, coordinator client, MCP server, managed-run diagnostics, and published template-step
 registry for an existing Appraise project.
 
+The bundled registry is a broad Playwright browser toolkit. Prefer semantic steps first, the documented structured
+operation fallback second, and custom steps only for application-specific behavior or a justified catalog gap. See
+[`docs/reusable-playwright-template-steps.md`](../../docs/reusable-playwright-template-steps.md).
+
 ## Quick Start
 
 ```bash

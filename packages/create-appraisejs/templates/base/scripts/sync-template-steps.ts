@@ -19,6 +19,7 @@ import { TemplateStepGroupType, TemplateStepType } from '@prisma/client'
 import { parseStepFile, ParsedStep } from './lib/step-file-parser'
 import { printSyncSummary } from './lib/sync-summary'
 import { runSyncScript } from './lib/sync-script-runner'
+import { hasTemplateStepReferences } from './lib/template-step-sync'
 
 interface SyncResult {
   stepsScanned: number
@@ -26,10 +27,12 @@ interface SyncResult {
   stepsCreated: number
   stepsUpdated: number
   stepsDeleted: number
+  stepsPreserved: number
   errors: string[]
   createdSteps: Array<{ name: string; signature: string; group: string }>
   updatedSteps: Array<{ name: string; signature: string; group: string }>
   deletedSteps: Array<{ name: string; signature: string; group: string }>
+  preservedSteps: Array<{ name: string; signature: string; group: string }>
 }
 
 function normalizeOptionalText(value: string | null | undefined): string | null {
@@ -66,10 +69,12 @@ async function syncStepsToDatabase(
     stepsCreated: 0,
     stepsUpdated: 0,
     stepsDeleted: 0,
+    stepsPreserved: 0,
     errors: [],
     createdSteps: [],
     updatedSteps: [],
     deletedSteps: [],
+    preservedSteps: [],
   }
 
   // Signature is treated as the stable sync identity for template steps.
@@ -198,6 +203,17 @@ async function syncStepsToDatabase(
   for (const dbStep of allDbSteps) {
     if (!fsSignatures.has(dbStep.signature)) {
       try {
+        if (await hasTemplateStepReferences(prisma, dbStep.id)) {
+          result.stepsPreserved++
+          result.preservedSteps.push({
+            name: dbStep.name,
+            signature: dbStep.signature,
+            group: dbStep.templateStepGroup.name,
+          })
+          console.warn(`   ⚠️  Preserved referenced step '${dbStep.name}' (${dbStep.signature})`)
+          continue
+        }
+
         // Delete in order: child records first. TemplateTestCaseStepParameter and
         // TestCaseStepParameter have no onDelete cascade, so they must be removed
         // before TemplateTestCaseStep/TestCaseStep (which are cascade-deleted from TemplateStep).
@@ -338,6 +354,7 @@ async function main(): Promise<SyncResult | void> {
       { label: '➕ Steps created', value: result.stepsCreated },
       { label: '🔄 Steps updated', value: result.stepsUpdated },
       { label: '🗑️  Steps deleted', value: result.stepsDeleted },
+      { label: '🛡️  Referenced steps preserved', value: result.stepsPreserved },
       { label: '❌ Errors', value: result.errors.length },
     ],
     [
@@ -352,6 +369,10 @@ async function main(): Promise<SyncResult | void> {
       {
         title: 'Deleted steps',
         items: result.deletedSteps.map(step => `${step.name} (${step.signature}) [${step.group}]`),
+      },
+      {
+        title: 'Referenced steps preserved',
+        items: result.preservedSteps.map(step => `${step.name} (${step.signature}) [${step.group}]`),
       },
       { title: 'Errors', items: result.errors },
     ],
