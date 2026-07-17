@@ -1254,18 +1254,33 @@ export async function readImplementationLifecycleHealth(planId: string, options:
   const client = options.client ?? prisma
   const artifacts = await readArtifacts(planId, options.projectDirectory)
   const implementation = implementationState(artifacts.validation)
+  const implementationRunIds = implementation.validationRuns.flatMap(run => (run.testRunId ? [run.testRunId] : []))
+  const baselineRunIds = artifacts.validation.baselineAttempts.map(attempt => attempt.testRunId)
   const [events, managedRuns] = await Promise.all([
     client.planEvent.findMany({ where: { plan: { planId } }, select: { type: true }, orderBy: { sequence: 'asc' } }),
     client.testRun.findMany({
-      where: { runId: { in: implementation.validationRuns.flatMap(run => (run.testRunId ? [run.testRunId] : [])) } },
-      select: { runId: true },
+      where: { runId: { in: [...implementationRunIds, ...baselineRunIds] } },
+      select: { runId: true, status: true },
     }),
   ])
   const eventTypes = new Set(events.map(event => event.type))
   const knownRunIds = new Set(managedRuns.map(run => run.runId))
-  const orphanedRunIds = implementation.validationRuns
+  const runStatusById = new Map(managedRuns.map(run => [run.runId, run.status]))
+  const orphanedImplementationRunIds = implementation.validationRuns
     .filter(run => run.testRunId && !knownRunIds.has(run.testRunId))
     .map(run => run.id)
+  const orphanedBaselineAttemptIds = artifacts.validation.baselineAttempts
+    .filter(attempt => !knownRunIds.has(attempt.testRunId))
+    .map(attempt => attempt.id)
+  const unreconciledBaselineAttemptIds = artifacts.validation.baselineAttempts
+    .filter(attempt => {
+      const runStatus = runStatusById.get(attempt.testRunId)
+      return (
+        ['scheduled', 'running', 'interrupted'].includes(attempt.status) &&
+        (runStatus === TestRunStatus.COMPLETED || runStatus === TestRunStatus.CANCELLED)
+      )
+    })
+    .map(attempt => attempt.id)
   const issues = [
     ...(artifacts.plan.lifecycle === 'completed' && !artifacts.review.finalSignOff
       ? [{ code: 'MISSING_FINAL_SIGN_OFF', recoveryAction: 'RETRY_COMPLETION_WITH_REVIEWED_RECEIPT' }]
@@ -1279,10 +1294,20 @@ export async function readImplementationLifecycleHealth(planId: string, options:
     ...(artifacts.plan.lifecycle !== 'completed' && !implementation.evidenceProtected
       ? [{ code: 'EVIDENCE_PROTECTION_RELEASED_EARLY', recoveryAction: 'RESTORE_EVIDENCE_PROTECTION' }]
       : []),
-    ...orphanedRunIds.map(runId => ({
+    ...orphanedImplementationRunIds.map(runId => ({
       code: 'ORPHANED_IMPLEMENTATION_RUN',
       runId,
       recoveryAction: 'RETRY_MANAGED_VALIDATION',
+    })),
+    ...orphanedBaselineAttemptIds.map(attemptId => ({
+      code: 'ORPHANED_BASELINE_RUN',
+      attemptId,
+      recoveryAction: 'RETRY_BASELINE',
+    })),
+    ...unreconciledBaselineAttemptIds.map(attemptId => ({
+      code: 'BASELINE_RECONCILIATION_REQUIRED',
+      attemptId,
+      recoveryAction: 'RECONCILE_BASELINE_EVIDENCE',
     })),
   ]
   return {
@@ -1293,7 +1318,9 @@ export async function readImplementationLifecycleHealth(planId: string, options:
     issues,
     finalSignOffId: artifacts.review.finalSignOff?.id,
     evidenceProtected: implementation.evidenceProtected,
-    managedRunCount: implementation.validationRuns.length,
+    managedRunCount: implementation.validationRuns.length + artifacts.validation.baselineAttempts.length,
+    implementationRunCount: implementation.validationRuns.length,
+    baselineRunCount: artifacts.validation.baselineAttempts.length,
   }
 }
 
@@ -1313,6 +1340,25 @@ function staleCompletionReceipt(
   )
 }
 
+function replayCompletedSignOff(
+  input: { planId: string; contentHash: string },
+  artifacts: Awaited<ReturnType<typeof readArtifacts>>,
+) {
+  if (artifacts.plan.lifecycle !== 'completed' || !artifacts.review.finalSignOff) return undefined
+  if (input.contentHash !== artifacts.review.finalSignOff.contentHash)
+    throw new ServiceError(
+      'The plan is already completed with a different final evidence hash.',
+      'CONFLICT',
+      undefined,
+      {
+        suppliedEvidenceHash: input.contentHash,
+        completedEvidenceHash: artifacts.review.finalSignOff.contentHash,
+        finalSignOffId: artifacts.review.finalSignOff.id,
+      },
+    )
+  return { plan: artifacts.plan, review: artifacts.review, validation: artifacts.validation }
+}
+
 // Completion deliberately keeps all final gates adjacent to the sign-off write.
 // fallow-ignore-next-line complexity
 export async function approveImplementationCompletion(
@@ -1327,6 +1373,8 @@ export async function approveImplementationCompletion(
     return { plan: completed.plan, review: completed.review, validation: completed.validation }
   }
   let artifacts = restorePartialCompletionEvidence(await readArtifacts(input.planId, options.projectDirectory))
+  const completedReplay = replayCompletedSignOff(input, artifacts)
+  if (completedReplay) return completedReplay
   let receipt = await evaluateImplementationCompletion(artifacts, client)
   if (input.contentHash !== receipt.evidenceHash) throw staleCompletionReceipt(input.contentHash, receipt)
   const recoverablePartialCompletion =
@@ -1344,6 +1392,8 @@ export async function approveImplementationCompletion(
       // remains the final artifact CAS for non-event artifact mutations.
       artifacts = await readArtifacts(input.planId, options.projectDirectory)
       artifacts = restorePartialCompletionEvidence(artifacts)
+      const lockedCompletedReplay = replayCompletedSignOff(input, artifacts)
+      if (lockedCompletedReplay) return lockedCompletedReplay
       receipt = await evaluateImplementationCompletion(artifacts, client)
       if (input.contentHash !== receipt.evidenceHash) throw staleCompletionReceipt(input.contentHash, receipt)
       const review = {

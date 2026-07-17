@@ -1102,6 +1102,15 @@ describe('implementation coordinator checkpoints', () => {
       },
       validation: { implementation: { evidenceProtected: false } },
     })
+    await expect(
+      approveImplementationCompletion(
+        { planId, approvedBy: 'coordinator-relay', contentHash: currentCompletionReview.evidenceHash },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'completed' },
+      review: { finalSignOff: { approvedBy: 'user', contentHash: currentCompletionReview.evidenceHash } },
+    })
     await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 1, type: 'implementation_checkpoint_reached' }),
       expect.objectContaining({ sequence: 2, type: 'plan_completed', payload: { approvedBy: 'user' } }),
@@ -1112,6 +1121,54 @@ describe('implementation coordinator checkpoints', () => {
       lifecycle: 'completed',
       healthy: false,
       issues: expect.arrayContaining([expect.objectContaining({ code: 'MISSING_VALIDATION_PASSED_EVENT' })]),
+    })
+  })
+
+  it('reports terminal baseline runs that still require lifecycle reconciliation', async () => {
+    const planId = 'baseline-lifecycle-health'
+    await writeArtifacts(planId, { lifecycle: 'baseline_running' })
+    const environment = await client.environment.findFirstOrThrow({ where: { name: 'local' } })
+    const run = await client.testRun.create({
+      data: {
+        name: 'Terminal baseline run',
+        environmentId: environment.id,
+        planId,
+        status: 'COMPLETED',
+        result: 'FAILED',
+      },
+    })
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+    const artifact = parseYamlArtifact('validation', stored.content) as ValidationArtifact
+    artifact.baselineAttempts = [
+      {
+        id: 'baseline-attempt-one',
+        validationId: 'core-validation',
+        browser: 'chromium',
+        environment: 'local',
+        testRunId: run.runId,
+        status: 'running',
+        evidence: { logsUrl: '/logs', reportUrl: '/report', traceUrls: [], screenshotUrls: [] },
+        createdAt: '2026-06-11T00:00:00.000Z',
+      },
+    ]
+    await repository.compareAndWrite('validation', planId, stored.hash, serializeYamlArtifact('validation', artifact))
+
+    await expect(
+      readImplementationLifecycleHealth(planId, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      lifecycle: 'baseline_running',
+      healthy: false,
+      managedRunCount: 1,
+      implementationRunCount: 0,
+      baselineRunCount: 1,
+      issues: [
+        expect.objectContaining({
+          code: 'BASELINE_RECONCILIATION_REQUIRED',
+          attemptId: 'baseline-attempt-one',
+          recoveryAction: 'RECONCILE_BASELINE_EVIDENCE',
+        }),
+      ],
     })
   })
 })

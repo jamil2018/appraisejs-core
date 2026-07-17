@@ -151,6 +151,16 @@ describe('baseline execution contract', () => {
     ).toBe('expected_product_failure')
   })
 
+  it('matches a projected AST last-passing step through its Cucumber identity', () => {
+    expect(
+      classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
+        result: 'failed',
+        failureSignatures: ['Then checkout succeeds: expected enabled to be true'],
+        completedStepIds: ['When I submit checkout'],
+      }).classification,
+    ).toBe('expected_product_failure')
+  })
+
   it('blocks harness failures and classifies unmatched failures as unrelated', () => {
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {

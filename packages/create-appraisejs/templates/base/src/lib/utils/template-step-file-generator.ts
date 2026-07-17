@@ -10,7 +10,7 @@ import {
 import { ensureAutomationWorkspaceReady } from '@/lib/automation/automation-workspace'
 
 const RUNTIME_IMPORT = '../../../packages/cucumber-runtime/src/index.js'
-const REQUIRED_RUNTIME_IMPORT = `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '${RUNTIME_IMPORT}';\n\n`
+const REQUIRED_RUNTIME_IMPORT = `import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType, runLocatorTemplateOperation, runPageTemplateOperation } from '${RUNTIME_IMPORT}';\n\n`
 
 function generateStepJSDoc(templateStep: Pick<TemplateStep, 'name' | 'description' | 'icon'>): string {
   const lines = ['/**']

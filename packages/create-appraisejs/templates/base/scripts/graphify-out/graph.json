@@ -581,9 +581,9 @@
       "source_file": "build-step-registry.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "build-step-registry.ts",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "build_step_registry"
     },
     {
@@ -592,9 +592,9 @@
       "source_file": "build-step-registry.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "__dirname",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "build_step_registry_dirname"
     },
     {
@@ -603,9 +603,9 @@
       "source_file": "build-step-registry.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "reporoot",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "build_step_registry_reporoot"
     },
     {
@@ -614,9 +614,9 @@
       "source_file": "build-step-registry.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "registryroot",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "build_step_registry_registryroot"
     },
     {
@@ -625,9 +625,9 @@
       "source_file": "build-step-registry.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "fragmentsroot",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "build_step_registry_fragmentsroot"
     },
     {
@@ -636,9 +636,9 @@
       "source_file": "build-step-registry.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "writeregistry()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "build_step_registry_writeregistry"
     },
     {
@@ -801,9 +801,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "install-template-step.ts",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step"
     },
     {
@@ -812,9 +812,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "clioptions",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step_clioptions"
     },
     {
@@ -823,9 +823,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "parseargs()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step_parseargs"
     },
     {
@@ -834,9 +834,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L47",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "detectpackagemanager()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step_detectpackagemanager"
     },
     {
@@ -845,9 +845,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L60",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "getrunargs()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step_getrunargs"
     },
     {
@@ -856,9 +856,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L68",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "runscript()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step_runscript"
     },
     {
@@ -867,9 +867,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L92",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "readpayload()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step_readpayload"
     },
     {
@@ -878,9 +878,9 @@
       "source_file": "install-template-step.ts",
       "source_location": "L97",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "main()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "install_template_step_main"
     },
     {
@@ -966,9 +966,9 @@
       "source_file": "lib/step-file-parser.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "step-file-parser.test.ts",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_test"
     },
     {
@@ -977,9 +977,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "step-file-parser.ts",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser"
     },
     {
@@ -988,9 +988,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "stepparameter",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_stepparameter"
     },
     {
@@ -1010,9 +1010,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "stepdata",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_stepdata"
     },
     {
@@ -1021,9 +1021,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "stepkeyword",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_stepkeyword"
     },
     {
@@ -1032,9 +1032,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "findstepjsdocstartoffset()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_findstepjsdocstartoffset"
     },
     {
@@ -1043,9 +1043,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L62",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "maptypetoparametertype()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_maptypetoparametertype"
     },
     {
@@ -1054,9 +1054,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L77",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "extractfunctiondefinition()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_extractfunctiondefinition"
     },
     {
@@ -1065,9 +1065,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L93",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "extractstepsource()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_extractstepsource"
     },
     {
@@ -1076,9 +1076,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L101",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "extractstepsourcerange()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_extractstepsourcerange"
     },
     {
@@ -1087,9 +1087,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L125",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "getstepkeyword()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_getstepkeyword"
     },
     {
@@ -1098,9 +1098,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L132",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "getstepsignature()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_getstepsignature"
     },
     {
@@ -1109,9 +1109,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L137",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "getstepfunction()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_getstepfunction"
     },
     {
@@ -1120,9 +1120,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L142",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "iscucumberworldparam()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_iscucumberworldparam"
     },
     {
@@ -1131,9 +1131,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L155",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "getidentifierparamtype()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_getidentifierparamtype"
     },
     {
@@ -1142,9 +1142,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L171",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "parsestepparameters()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_parsestepparameters"
     },
     {
@@ -1153,9 +1153,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L194",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "parsestepcall()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_parsestepcall"
     },
     {
@@ -1164,9 +1164,9 @@
       "source_file": "lib/step-file-parser.ts",
       "source_location": "L224",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "parsestepfile()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_step_file_parser_parsestepfile"
     },
     {
@@ -1373,9 +1373,9 @@
       "source_file": "lib/template-step-installer.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "template-step-installer.test.ts",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_test"
     },
     {
@@ -1384,9 +1384,9 @@
       "source_file": "lib/template-step-installer.test.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "tempdirs",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_test_tempdirs"
     },
     {
@@ -1395,9 +1395,9 @@
       "source_file": "lib/template-step-installer.test.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "createtempworkspace()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_test_createtempworkspace"
     },
     {
@@ -1406,9 +1406,9 @@
       "source_file": "lib/template-step-installer.test.ts",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "writefile()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_test_writefile"
     },
     {
@@ -1417,9 +1417,9 @@
       "source_file": "lib/template-step-installer.test.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "createregistryentry()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_test_createregistryentry"
     },
     {
@@ -1428,9 +1428,9 @@
       "source_file": "lib/template-step-installer.test.ts",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "createpayload()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_test_createpayload"
     },
     {
@@ -1439,9 +1439,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "template-step-registry.ts",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry"
     },
     {
@@ -1450,9 +1450,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "registrystepentry",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_registry_registrystepentry"
     },
     {
@@ -1461,9 +1461,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "stepregistrymanifest",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry_stepregistrymanifest"
     },
     {
@@ -1472,9 +1472,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "stepregistryfragment",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry_stepregistryfragment"
     },
     {
@@ -1483,9 +1483,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "builtstepregistry",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry_builtstepregistry"
     },
     {
@@ -1494,9 +1494,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "step_file_patterns",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry_step_file_patterns"
     },
     {
@@ -1505,9 +1505,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L45",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "slugifyregistryname()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry_slugifyregistryname"
     },
     {
@@ -1516,9 +1516,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "renderstepsourcefragment()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry_renderstepsourcefragment"
     },
     {
@@ -1538,9 +1538,9 @@
       "source_file": "lib/template-step-registry.ts",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "buildstepregistry()",
-      "community_name": "Community 2",
+      "community_name": "Community 3",
       "id": "lib_template_step_registry_buildstepregistry"
     },
     {
@@ -1549,9 +1549,9 @@
       "source_file": "lib/template-sync-utils.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "template-sync-utils.test.ts",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "lib_template_sync_utils_test"
     },
     {
@@ -1615,9 +1615,9 @@
       "source_file": "regenerate-features.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 29,
       "norm_label": "regenerate-features.ts",
-      "community_name": "Community 28",
+      "community_name": "Community 29",
       "id": "regenerate_features"
     },
     {
@@ -1626,9 +1626,9 @@
       "source_file": "regenerate-features.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 28,
+      "community": 29,
       "norm_label": "main()",
-      "community_name": "Community 28",
+      "community_name": "Community 29",
       "id": "regenerate_features_main"
     },
     {
@@ -1714,9 +1714,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 29,
+      "community": 30,
       "norm_label": "setup-env.ts",
-      "community_name": "Community 29",
+      "community_name": "Community 30",
       "id": "setup_env"
     },
     {
@@ -1725,9 +1725,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 29,
+      "community": 30,
       "norm_label": "main()",
-      "community_name": "Community 29",
+      "community_name": "Community 30",
       "id": "setup_env_main"
     },
     {
@@ -3513,149 +3513,6 @@
       "id": "lib_dev_startup_test"
     },
     {
-      "label": "mcp-config.mjs",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "mcp-config.mjs",
-      "community_name": "Community 12",
-      "id": "mcp_config"
-    },
-    {
-      "label": "envValue()",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L3",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "envvalue()",
-      "community_name": "Community 12",
-      "id": "mcp_config_envvalue"
-    },
-    {
-      "label": "normalizeEndpointPath()",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L7",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "normalizeendpointpath()",
-      "community_name": "Community 12",
-      "id": "mcp_config_normalizeendpointpath"
-    },
-    {
-      "label": "resolveMcpConfig()",
-      "file_type": "code",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L11",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "resolvemcpconfig()",
-      "community_name": "Community 12",
-      "id": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "label": "mcp-config.test.mjs",
-      "file_type": "code",
-      "source_file": "mcp-config.test.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "mcp-config.test.mjs",
-      "community_name": "Community 12",
-      "id": "mcp_config_test"
-    },
-    {
-      "label": "print-agent-config.mjs",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "print-agent-config.mjs",
-      "community_name": "Community 12",
-      "id": "print_agent_config"
-    },
-    {
-      "label": "config",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L7",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "config",
-      "community_name": "Community 12",
-      "id": "print_agent_config_config"
-    },
-    {
-      "label": "skillExists",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L8",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "skillexists",
-      "community_name": "Community 12",
-      "id": "print_agent_config_skillexists"
-    },
-    {
-      "label": "expectedCapabilities",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L9",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "expectedcapabilities",
-      "community_name": "Community 12",
-      "id": "print_agent_config_expectedcapabilities"
-    },
-    {
-      "label": "staleCapabilityRecovery",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L25",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "stalecapabilityrecovery",
-      "community_name": "Community 12",
-      "id": "print_agent_config_stalecapabilityrecovery"
-    },
-    {
-      "label": "toolsNotVisibleRecovery",
-      "file_type": "code",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L30",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "toolsnotvisiblerecovery",
-      "community_name": "Community 12",
-      "id": "print_agent_config_toolsnotvisiblerecovery"
-    },
-    {
-      "label": "print-mcp-config.mjs",
-      "file_type": "code",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "print-mcp-config.mjs",
-      "community_name": "Community 12",
-      "id": "print_mcp_config"
-    },
-    {
-      "label": "config",
-      "file_type": "code",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L5",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "config",
-      "community_name": "Community 12",
-      "id": "print_mcp_config_config"
-    },
-    {
       "label": "sync-environments.ts",
       "file_type": "code",
       "source_file": "sync-environments.ts",
@@ -4739,9 +4596,9 @@
       "source_file": "lib/environment-secret-check.integration.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "environment-secret-check.integration.test.ts",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "lib_environment_secret_check_integration_test"
     },
     {
@@ -4783,9 +4640,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "template-step-installer.ts",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer"
     },
     {
@@ -4794,9 +4651,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "templatestepinstallpayload",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_templatestepinstallpayload"
     },
     {
@@ -4805,9 +4662,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "installtemplatestepoptions",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_installtemplatestepoptions"
     },
     {
@@ -4816,9 +4673,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "installtemplatestepresult",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_installtemplatestepresult"
     },
     {
@@ -4827,9 +4684,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L31",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "existingstepmatch",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_existingstepmatch"
     },
     {
@@ -4838,9 +4695,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "step_file_patterns",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_step_file_patterns"
     },
     {
@@ -4849,9 +4706,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "required_runtime_imports",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_required_runtime_imports"
     },
     {
@@ -4860,9 +4717,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L57",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "parsetypescriptmodule()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_parsetypescriptmodule"
     },
     {
@@ -4871,9 +4728,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L64",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "getgroupfilename()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_getgroupfilename"
     },
     {
@@ -4882,9 +4739,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "getgroupdirectoryname()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_getgroupdirectoryname"
     },
     {
@@ -4893,9 +4750,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L76",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "getgroupfilepath()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_getgroupfilepath"
     },
     {
@@ -4904,9 +4761,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L86",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "generategroupjsdoc()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_generategroupjsdoc"
     },
     {
@@ -4915,9 +4772,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L95",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "extractgroupjsdocrange()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_extractgroupjsdocrange"
     },
     {
@@ -4926,9 +4783,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L107",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "renderrequiredruntimeimport()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_renderrequiredruntimeimport"
     },
     {
@@ -4937,9 +4794,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L118",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "mergeimports()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_mergeimports"
     },
     {
@@ -4948,9 +4805,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L159",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "normalizetypescriptsource()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_normalizetypescriptsource"
     },
     {
@@ -4959,9 +4816,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L181",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "ensuredirectoryexists()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_ensuredirectoryexists"
     },
     {
@@ -4970,9 +4827,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L185",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "createplaceholdergroupfile()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_createplaceholdergroupfile"
     },
     {
@@ -4981,9 +4838,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L207",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "findexistingsignaturematches()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_findexistingsignaturematches"
     },
     {
@@ -4992,9 +4849,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L234",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "validatepayload()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_validatepayload"
     },
     {
@@ -5003,9 +4860,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L249",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "buildupdatedgroupfilecontent()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_buildupdatedgroupfilecontent"
     },
     {
@@ -5014,9 +4871,9 @@
       "source_file": "lib/template-step-installer.ts",
       "source_location": "L329",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "installtemplatesteppayload()",
-      "community_name": "Community 3",
+      "community_name": "Community 2",
       "id": "lib_template_step_installer_installtemplatesteppayload"
     },
     {
@@ -5135,10 +4992,10 @@
       "source_file": "lib/template-step-registry.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "template-step-registry.test.ts",
-      "id": "lib_template_step_registry_test",
-      "community_name": "Community 2"
+      "community_name": "Community 3",
+      "id": "lib_template_step_registry_test"
     },
     {
       "label": "tempDirs",
@@ -5146,10 +5003,10 @@
       "source_file": "lib/template-step-registry.test.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "tempdirs",
-      "id": "lib_template_step_registry_test_tempdirs",
-      "community_name": "Community 2"
+      "community_name": "Community 3",
+      "id": "lib_template_step_registry_test_tempdirs"
     },
     {
       "label": "createTempWorkspace()",
@@ -5157,10 +5014,10 @@
       "source_file": "lib/template-step-registry.test.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "createtempworkspace()",
-      "id": "lib_template_step_registry_test_createtempworkspace",
-      "community_name": "Community 2"
+      "community_name": "Community 3",
+      "id": "lib_template_step_registry_test_createtempworkspace"
     },
     {
       "label": "writeFile()",
@@ -5168,10 +5025,175 @@
       "source_file": "lib/template-step-registry.test.ts",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "writefile()",
-      "id": "lib_template_step_registry_test_writefile",
-      "community_name": "Community 2"
+      "community_name": "Community 3",
+      "id": "lib_template_step_registry_test_writefile"
+    },
+    {
+      "label": "agent-setup-capabilities.test.ts",
+      "file_type": "code",
+      "source_file": "lib/agent-setup-capabilities.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "agent-setup-capabilities.test.ts",
+      "id": "lib_agent_setup_capabilities_test",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "repoRoot",
+      "file_type": "code",
+      "source_file": "lib/agent-setup-capabilities.test.ts",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 28,
+      "norm_label": "reporoot",
+      "id": "lib_agent_setup_capabilities_test_reporoot",
+      "community_name": "Community 28"
+    },
+    {
+      "label": "mcp-config.test.ts",
+      "file_type": "code",
+      "source_file": "lib/mcp-config.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "mcp-config.test.ts",
+      "id": "lib_mcp_config_test",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "mcp-config.mjs",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "mcp-config.mjs",
+      "id": "mcp_config",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "envValue()",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "envvalue()",
+      "id": "mcp_config_envvalue",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "normalizeEndpointPath()",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "normalizeendpointpath()",
+      "id": "mcp_config_normalizeendpointpath",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "shellQuote()",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L11",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "shellquote()",
+      "id": "mcp_config_shellquote",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "resolveMcpConfig()",
+      "file_type": "code",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L15",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "resolvemcpconfig()",
+      "id": "mcp_config_resolvemcpconfig",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "print-agent-config.mjs",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "print-agent-config.mjs",
+      "id": "print_agent_config",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "config",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L8",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "config",
+      "id": "print_agent_config_config",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "skillExists",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "skillexists",
+      "id": "print_agent_config_skillexists",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "staleCapabilityRecovery",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L10",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "stalecapabilityrecovery",
+      "id": "print_agent_config_stalecapabilityrecovery",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "toolsNotVisibleRecovery",
+      "file_type": "code",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L15",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "toolsnotvisiblerecovery",
+      "id": "print_agent_config_toolsnotvisiblerecovery",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "print-mcp-config.mjs",
+      "file_type": "code",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "print-mcp-config.mjs",
+      "id": "print_mcp_config",
+      "community_name": "Community 12"
+    },
+    {
+      "label": "config",
+      "file_type": "code",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L5",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "config",
+      "id": "print_mcp_config_config",
+      "community_name": "Community 12"
     }
   ],
   "links": [
@@ -10994,184 +11016,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config",
-      "target": "mcp_config_envvalue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config",
-      "target": "mcp_config_normalizeendpointpath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config",
-      "target": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.test.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_test",
-      "target": "mcp_config"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "mcp_config"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_mcp_config",
-      "target": "mcp_config"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_resolvemcpconfig",
-      "target": "mcp_config_envvalue"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.mjs",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_resolvemcpconfig",
-      "target": "mcp_config_normalizeendpointpath"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "mcp-config.test.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "mcp_config_test",
-      "target": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_mcp_config",
-      "target": "mcp_config_resolvemcpconfig"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_config"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_expectedcapabilities"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_skillexists"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_stalecapabilityrecovery"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-agent-config.mjs",
-      "source_location": "L30",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_agent_config",
-      "target": "print_agent_config_toolsnotvisiblerecovery"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "print-mcp-config.mjs",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "print_mcp_config",
-      "target": "print_mcp_config_config"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "sync-environments.ts",
       "source_location": "L104",
       "weight": 1.0,
@@ -13061,8 +12905,196 @@
       "confidence_score": 1.0,
       "source": "lib_template_step_registry_test",
       "target": "lib_template_step_registry_test_writefile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/agent-setup-capabilities.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_agent_setup_capabilities_test",
+      "target": "lib_agent_setup_capabilities_test_reporoot"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/mcp-config.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_mcp_config_test",
+      "target": "mcp_config"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/mcp-config.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_mcp_config_test",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config",
+      "target": "mcp_config_envvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config",
+      "target": "mcp_config_normalizeendpointpath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config",
+      "target": "mcp_config_shellquote"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "mcp_config"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_mcp_config",
+      "target": "mcp_config"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config_resolvemcpconfig",
+      "target": "mcp_config_envvalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "mcp-config.mjs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_config_resolvemcpconfig",
+      "target": "mcp_config_normalizeendpointpath"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_mcp_config",
+      "target": "mcp_config_resolvemcpconfig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_config"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_skillexists"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_stalecapabilityrecovery"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-agent-config.mjs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_agent_config",
+      "target": "print_agent_config_toolsnotvisiblerecovery"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print-mcp-config.mjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "print_mcp_config",
+      "target": "print_mcp_config_config"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "e65e14bb0a4ff3ebda787df687efea2c132ee3cb"
+  "built_at_commit": "9d4cb61c43b0cf44e30cba4e5593ee60389f216c"
 }

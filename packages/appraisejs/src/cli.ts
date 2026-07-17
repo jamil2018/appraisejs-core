@@ -4,6 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { Command } from 'commander'
 import { addStepBySlug } from './add-step.js'
+import { expectedAgentCapabilities } from './agent-setup-capabilities.js'
 import {
   CoordinatorRequestError,
   coordinatorRequestErrorEnvelope,
@@ -19,39 +20,6 @@ import { runTestRunDiagnose } from './test-run-diagnose-cli.js'
 
 const program = new Command()
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const expectedAgentCapabilities = {
-  tools: [
-    'action_categories_list',
-    'actions_list',
-    'actions_read',
-    'planning_session_create',
-    'plan_review_loop',
-    'validation_ast_check',
-    'validation_ast_preview',
-    'validation_ast_compile',
-    'validation_review_loop',
-    'baseline_start',
-    'baseline_reconcile',
-    'baseline_accept',
-    'implementation_start',
-    'delegated_validation_ast_submit',
-    'validation_ast_check',
-    'validation_ast_preview',
-    'validation_ast_compile',
-    'validation_ast_extension_policy',
-    'validation_ast_extension_reviews',
-  ],
-  resources: [
-    'appraise://actions/catalog',
-    'appraise://actions/category/{categoryId}',
-    'appraise://agent-guide',
-    'appraise://workflow/planning',
-    'appraise://workflow/validation-preparation',
-    'appraise://workflow/standby',
-    'appraise://contracts/validation-ast',
-    'appraise://contracts/delegated-authorization',
-  ],
-}
 const staleAgentCapabilityRecovery = [
   'Restart or reconnect the MCP/agent client.',
   'Restart the Appraise MCP sidecar.',

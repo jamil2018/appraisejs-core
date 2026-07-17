@@ -1,0 +1,813 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts:
+  - browser: chromium
+    completedAt: 2026-07-17T19:45:24.014Z
+    createdAt: 2026-07-17T19:40:35.234Z
+    environment: apr-b804d75eda4071dda7ba6c9a
+    evidence:
+      logsUrl: /api/test-runs/6abbf84c-94e1-4806-8448-a5132bf41159/logs?targetProjectId=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      reportUrl: /test-runs/6abbf84c-94e1-4806-8448-a5132bf41159?project=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-6d8746ea-9fab-4a61-923c-30b64a316dce
+    status: cancelled
+    testRunId: 6abbf84c-94e1-4806-8448-a5132bf41159
+    validationId: forgotsomething-happy-path
+  - browser: chromium
+    classification: authoring_failure
+    completedAt: 2026-07-17T19:46:10.019Z
+    createdAt: 2026-07-17T19:46:01.298Z
+    environment: apr-b804d75eda4071dda7ba6c9a
+    evidence:
+      logsUrl: /api/test-runs/59884138-8943-4d3e-9eb4-b0898d778948/logs?targetProjectId=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      reportUrl: /test-runs/59884138-8943-4d3e-9eb4-b0898d778948?project=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-d06cd943-8a9f-4e15-9900-3361c8622be3
+    signatureHash: sha256:a9faa04dfabe329ab2d23876d150092f3fecea7ddde4426ab854f4e48b9eb2ab
+    status: completed
+    testRunId: 59884138-8943-4d3e-9eb4-b0898d778948
+    validationId: forgotsomething-happy-path
+  - browser: chromium
+    classification: authoring_failure
+    completedAt: 2026-07-17T19:52:39.061Z
+    createdAt: 2026-07-17T19:51:08.890Z
+    environment: apr-b804d75eda4071dda7ba6c9a
+    evidence:
+      logsUrl: /api/test-runs/dfff695a-43be-4ba4-b122-10a3b01fd37a/logs?targetProjectId=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      reportUrl: /test-runs/dfff695a-43be-4ba4-b122-10a3b01fd37a?project=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-aef3e03c-65d2-489c-9c56-afd49f883822
+    signatureHash: sha256:a9faa04dfabe329ab2d23876d150092f3fecea7ddde4426ab854f4e48b9eb2ab
+    status: completed
+    testRunId: dfff695a-43be-4ba4-b122-10a3b01fd37a
+    validationId: forgotsomething-happy-path
+  - browser: chromium
+    classification: expected_product_failure
+    completedAt: 2026-07-17T19:57:36.401Z
+    createdAt: 2026-07-17T19:57:25.891Z
+    environment: apr-b804d75eda4071dda7ba6c9a
+    evidence:
+      logsUrl: /api/test-runs/0a72f63b-0102-45e5-8f50-2a1005dd8ca6/logs?targetProjectId=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      reportUrl: /test-runs/0a72f63b-0102-45e5-8f50-2a1005dd8ca6?project=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-5920d7da-a01b-4332-a1ca-0217a060293f
+    signatureHash: sha256:a9faa04dfabe329ab2d23876d150092f3fecea7ddde4426ab854f4e48b9eb2ab
+    status: completed
+    testRunId: 0a72f63b-0102-45e5-8f50-2a1005dd8ca6
+    validationId: forgotsomething-happy-path
+baselineDecision: accepted
+baseRevision:
+  gitCommit: null
+  reducedAssurance: false
+  snapshotHash: sha256:7c538a1305e3640f77cf2450360959240c6e6b142bfbd0785e52248b90579b6d
+classificationOverrides: []
+files: []
+implementation:
+  approvedGroupIds:
+    - group-experience
+    - group-foundation
+    - group-hardening
+  checkpoint:
+    queuedFeedbackCount: 0
+    reachedAt: 2026-07-17T20:10:13.828Z
+    taskIds:
+      - task-1
+      - task-2
+      - task-3
+      - task-4
+      - task-5
+    type: before_completion
+  commits:
+    - createdAt: 2026-07-17T20:06:37.519Z
+      hash: df63549
+      taskIds:
+        - task-1
+        - task-2
+        - task-3
+        - task-4
+        - task-5
+  evidenceProtected: false
+  pausedTaskIds: []
+  reconciliationReceipts:
+    - idempotencyKey: forgotsomething-task1-verify-df63549
+      reconciledAt: 2026-07-17T20:07:54.833Z
+      runIds:
+        - implementation-validation-forgotsomething-happy-path-chromium-apr-b804d75eda4071dda7ba6c9a-20260717200739
+      verifiedTaskIds:
+        - task-1
+    - idempotencyKey: forgotsomething-task2-verify-df63549
+      reconciledAt: 2026-07-17T20:08:25.221Z
+      runIds:
+        - implementation-validation-forgotsomething-happy-path-chromium-apr-b804d75eda4071dda7ba6c9a-20260717200739
+      verifiedTaskIds:
+        - task-2
+    - idempotencyKey: forgotsomething-experience-verify-df63549
+      reconciledAt: 2026-07-17T20:09:27.342Z
+      runIds:
+        - implementation-validation-forgotsomething-happy-path-chromium-apr-b804d75eda4071dda7ba6c9a-20260717200739
+      verifiedTaskIds:
+        - task-3
+        - task-4
+    - idempotencyKey: forgotsomething-task5-verify-df63549
+      reconciledAt: 2026-07-17T20:10:03.749Z
+      runIds:
+        - implementation-validation-forgotsomething-happy-path-chromium-apr-b804d75eda4071dda7ba6c9a-20260717200739
+      verifiedTaskIds:
+        - task-5
+  taskStates:
+    task-1: verified
+    task-2: verified
+    task-3: verified
+    task-4: verified
+    task-5: verified
+  validationRuns:
+    - assurance: full
+      browser: chromium
+      commitHash: df63549
+      completedAt: 2026-07-17T20:07:42.826Z
+      environment: apr-b804d75eda4071dda7ba6c9a
+      evidence:
+        logsUrl: /api/test-runs/aaa6395b-0024-4e15-8296-f402bb1c1a94/logs?targetProjectId=0ea0171e-63d7-440d-9885-1acbe1b5641e
+        reportUrl: /test-runs/aaa6395b-0024-4e15-8296-f402bb1c1a94?project=0ea0171e-63d7-440d-9885-1acbe1b5641e
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/aaa6395b-0024-4e15-8296-f402bb1c1a94?project=0ea0171e-63d7-440d-9885-1acbe1b5641e
+        - /api/test-runs/aaa6395b-0024-4e15-8296-f402bb1c1a94/logs?targetProjectId=0ea0171e-63d7-440d-9885-1acbe1b5641e
+      fresh: true
+      id: implementation-validation-forgotsomething-happy-path-chromium-apr-b804d75eda4071dda7ba6c9a-20260717200739
+      required: true
+      status: passed
+      tagExpression: (@ts_ast-81196c894e21-suite and @tc_ast-81196c894e21-manage-reminders)
+      taskIds:
+        - task-1
+        - task-2
+        - task-3
+        - task-4
+        - task-5
+      testRunId: aaa6395b-0024-4e15-8296-f402bb1c1a94
+      validationId: forgotsomething-happy-path
+manifestPaths: []
+planId: pln_01kxrs2jb8epgttw3eardbn6xp
+reviewSubmittedAt: 2026-07-17T19:57:16.349Z
+revision: 1
+validationDecisions:
+  - contentHash: sha256:b7c9a8a3b9867cdcb74c1f272b1df3de8133f0b815270f60e3fdbc1f517a5319
+    decidedAt: 2026-07-17T19:57:14.557Z
+    decidedBy: local-user
+    decision: approved
+    validationId: forgotsomething-happy-path
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: apr-2a74d0303704f822431c8fb3
+          moduleId: apr-fdaa18a16c9c5db32495143b
+          name: ForgotSomething reminder page
+          route: /
+      locators:
+        - id: apr-03814ef62d0bad130043e75d
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Application shell
+          value: '[data-testid="app-shell"]'
+        - id: apr-10ed458dc41b488f885af52c
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Reminder title input
+          value: '[data-testid="title-input"]'
+        - id: apr-16d57e6ee1afe6fed94335be
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Edit passport reminder button
+          value: '[data-reminder-title="Renew passport"] [data-testid="edit-reminder"]'
+        - id: apr-20e4336ae9e62655151a5dcd
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Delete confirmation dialog
+          value: '[data-testid="delete-dialog"]'
+        - id: apr-3fbdc092bb435f25311d3664
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Reminder form
+          value: '[data-testid="reminder-form"]'
+        - id: apr-63dbd14082163fd34e0bab5a
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Upcoming reminders section
+          value: '[data-testid="upcoming-section"]'
+        - id: apr-6b1a260440d77438161cf00e
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Save reminder button
+          value: '[data-testid="save-reminder"]'
+        - id: apr-8991ecd21cb1ca291b73d30f
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Completed reminders section
+          value: '[data-testid="completed-section"]'
+        - id: apr-cae369679b4955e486446812
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Required title error
+          value: '[data-testid="title-error"]'
+        - id: apr-cdfca0a67ecc9b8206c1f762
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Reminder notes input
+          value: '[data-testid="notes-input"]'
+        - id: apr-ce898df1608679361eefb760
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Updated passport reminder card
+          value: '[data-reminder-title="Renew passport today"]'
+        - id: apr-e09e57b2143516ad2106135b
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Overdue reminders section
+          value: '[data-testid="overdue-section"]'
+        - id: apr-e2f4e427cc17112ecf68db4f
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Complete updated passport reminder checkbox
+          value: '[data-reminder-title="Renew passport today"] [data-testid="complete-reminder"]'
+        - id: apr-e63cc7ebdca3595bdd436b7c
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Confirm delete button
+          value: '[data-testid="confirm-delete"]'
+        - id: apr-e906ef1d98ba1d51ecc81fe3
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Reminder due date and time input
+          value: '[data-testid="due-input"]'
+        - id: apr-f056eae8b94d43e6beac1b2b
+          locatorGroupId: apr-2a74d0303704f822431c8fb3
+          name: Delete updated passport reminder button
+          value: '[data-reminder-title="Renew passport today"] [data-testid="delete-reminder"]'
+      modules:
+        - id: ast-81196c894e21-module
+          name: Manage a reminder from creation through deletion
+      testCases:
+        - description: Verify ForgotSomething's complete local-first reminder lifecycle, time-based organization, persistence, accessibility, and responsive behavior.
+          id: ast-81196c894e21-manage-reminders
+          steps:
+            - gherkinStep: Given the ForgotSomething home page is opened
+              id: ast-d968564ed0e7ce34068b-step
+              label: the ForgotSomething home page is opened
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: And the page is ready
+              id: ast-798490446e5dd6ec65d9-step
+              label: the page is ready
+              order: 1
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+            - gherkinStep: Then the application shell is visible
+              id: ast-ddb00efa65133b505229-step
+              label: the application shell is visible
+              order: 2
+              parameters:
+                - locatorId: apr-03814ef62d0bad130043e75d
+                  locatorName: Application shell
+                  name: target
+                  value: '{"id":"locator_apr-03814ef62d0bad130043e75d","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+            - gherkinStep: And the title field exposes accessible semantics
+              id: ast-acfa409a9372d8c5fb38-step
+              label: the title field exposes accessible semantics
+              order: 3
+              parameters:
+                - locatorId: apr-10ed458dc41b488f885af52c
+                  locatorName: Reminder title input
+                  name: target
+                  value: '{"id":"locator_apr-10ed458dc41b488f885af52c","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+            - gherkinStep: When the user attempts to save an empty reminder
+              id: ast-2f16e5f5aab9749f474d-step
+              label: the user attempts to save an empty reminder
+              order: 4
+              parameters:
+                - locatorId: apr-6b1a260440d77438161cf00e
+                  locatorName: Save reminder button
+                  name: target
+                  value: '{"id":"locator_apr-6b1a260440d77438161cf00e","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then a required title error is visible
+              id: ast-c9935301a426fb3c3b81-step
+              label: a required title error is visible
+              order: 5
+              parameters:
+                - locatorId: apr-cae369679b4955e486446812
+                  locatorName: Required title error
+                  name: target
+                  value: '{"id":"locator_apr-cae369679b4955e486446812","version":"1","ref":"locator"}'
+                - name: text
+                  value: Title is required
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user enters a future reminder title
+              id: ast-3ef512dcd6ff7f0b7394-step
+              label: the user enters a future reminder title
+              order: 6
+              parameters:
+                - locatorId: apr-10ed458dc41b488f885af52c
+                  locatorName: Reminder title input
+                  name: target
+                  value: '{"id":"locator_apr-10ed458dc41b488f885af52c","version":"1","ref":"locator"}'
+                - name: value
+                  value: Renew passport
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user enters future reminder notes
+              id: ast-0996d310ecd5bbf37fc3-step
+              label: the user enters future reminder notes
+              order: 7
+              parameters:
+                - locatorId: apr-cdfca0a67ecc9b8206c1f762
+                  locatorName: Reminder notes input
+                  name: target
+                  value: '{"id":"locator_apr-cdfca0a67ecc9b8206c1f762","version":"1","ref":"locator"}'
+                - name: value
+                  value: Bring a new photo
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user enters a future due date and time
+              id: ast-1742801f855a54ed06cd-step
+              label: the user enters a future due date and time
+              order: 8
+              parameters:
+                - locatorId: apr-e906ef1d98ba1d51ecc81fe3
+                  locatorName: Reminder due date and time input
+                  name: target
+                  value: '{"id":"locator_apr-e906ef1d98ba1d51ecc81fe3","version":"1","ref":"locator"}'
+                - name: value
+                  value: 2099-12-31T09:00
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user saves the future reminder
+              id: ast-16676525a5194fa9b436-step
+              label: the user saves the future reminder
+              order: 9
+              parameters:
+                - locatorId: apr-6b1a260440d77438161cf00e
+                  locatorName: Save reminder button
+                  name: target
+                  value: '{"id":"locator_apr-6b1a260440d77438161cf00e","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the future reminder appears in Upcoming
+              id: ast-d4a8f501d44a157ae46a-step
+              label: the future reminder appears in Upcoming
+              order: 10
+              parameters:
+                - locatorId: apr-63dbd14082163fd34e0bab5a
+                  locatorName: Upcoming reminders section
+                  name: target
+                  value: '{"id":"locator_apr-63dbd14082163fd34e0bab5a","version":"1","ref":"locator"}'
+                - name: text
+                  value: Renew passport
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user enters an overdue reminder title
+              id: ast-0facb116d06352f12ee2-step
+              label: the user enters an overdue reminder title
+              order: 11
+              parameters:
+                - locatorId: apr-10ed458dc41b488f885af52c
+                  locatorName: Reminder title input
+                  name: target
+                  value: '{"id":"locator_apr-10ed458dc41b488f885af52c","version":"1","ref":"locator"}'
+                - name: value
+                  value: Return library book
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user enters overdue reminder notes
+              id: ast-afa2d7c80d153b6ee311-step
+              label: the user enters overdue reminder notes
+              order: 12
+              parameters:
+                - locatorId: apr-cdfca0a67ecc9b8206c1f762
+                  locatorName: Reminder notes input
+                  name: target
+                  value: '{"id":"locator_apr-cdfca0a67ecc9b8206c1f762","version":"1","ref":"locator"}'
+                - name: value
+                  value: Drop it at the main desk
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user enters a past due date and time
+              id: ast-10ac08136bd4ac17de53-step
+              label: the user enters a past due date and time
+              order: 13
+              parameters:
+                - locatorId: apr-e906ef1d98ba1d51ecc81fe3
+                  locatorName: Reminder due date and time input
+                  name: target
+                  value: '{"id":"locator_apr-e906ef1d98ba1d51ecc81fe3","version":"1","ref":"locator"}'
+                - name: value
+                  value: 2000-01-01T09:00
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user saves the overdue reminder
+              id: ast-dd696f792496bc6714c7-step
+              label: the user saves the overdue reminder
+              order: 14
+              parameters:
+                - locatorId: apr-6b1a260440d77438161cf00e
+                  locatorName: Save reminder button
+                  name: target
+                  value: '{"id":"locator_apr-6b1a260440d77438161cf00e","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the past reminder appears in Overdue
+              id: ast-5f2fc2ddc7b11ae24379-step
+              label: the past reminder appears in Overdue
+              order: 15
+              parameters:
+                - locatorId: apr-e09e57b2143516ad2106135b
+                  locatorName: Overdue reminders section
+                  name: target
+                  value: '{"id":"locator_apr-e09e57b2143516ad2106135b","version":"1","ref":"locator"}'
+                - name: text
+                  value: Return library book
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user opens the future reminder for editing
+              id: ast-7777f390928f3c85ac17-step
+              label: the user opens the future reminder for editing
+              order: 16
+              parameters:
+                - locatorId: apr-16d57e6ee1afe6fed94335be
+                  locatorName: Edit passport reminder button
+                  name: target
+                  value: '{"id":"locator_apr-16d57e6ee1afe6fed94335be","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the edit form contains the authored title
+              id: ast-15c01662c540e8214126-step
+              label: the edit form contains the authored title
+              order: 17
+              parameters:
+                - locatorId: apr-10ed458dc41b488f885af52c
+                  locatorName: Reminder title input
+                  name: target
+                  value: '{"id":"locator_apr-10ed458dc41b488f885af52c","version":"1","ref":"locator"}'
+                - name: value
+                  value: Renew passport
+              templateStepName: browser.assertions.value@1
+            - gherkinStep: When the user updates the reminder title
+              id: ast-3d59c15daf57e23dce07-step
+              label: the user updates the reminder title
+              order: 18
+              parameters:
+                - locatorId: apr-10ed458dc41b488f885af52c
+                  locatorName: Reminder title input
+                  name: target
+                  value: '{"id":"locator_apr-10ed458dc41b488f885af52c","version":"1","ref":"locator"}'
+                - name: value
+                  value: Renew passport today
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user updates the reminder notes
+              id: ast-38827397270cd7d67a4a-step
+              label: the user updates the reminder notes
+              order: 19
+              parameters:
+                - locatorId: apr-cdfca0a67ecc9b8206c1f762
+                  locatorName: Reminder notes input
+                  name: target
+                  value: '{"id":"locator_apr-cdfca0a67ecc9b8206c1f762","version":"1","ref":"locator"}'
+                - name: value
+                  value: Bring the photo and old passport
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user saves the edited reminder
+              id: ast-801b684fb0cbd80245e0-step
+              label: the user saves the edited reminder
+              order: 20
+              parameters:
+                - locatorId: apr-6b1a260440d77438161cf00e
+                  locatorName: Save reminder button
+                  name: target
+                  value: '{"id":"locator_apr-6b1a260440d77438161cf00e","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the edited title appears in Upcoming
+              id: ast-65b20a4ba908f858107c-step
+              label: the edited title appears in Upcoming
+              order: 21
+              parameters:
+                - locatorId: apr-63dbd14082163fd34e0bab5a
+                  locatorName: Upcoming reminders section
+                  name: target
+                  value: '{"id":"locator_apr-63dbd14082163fd34e0bab5a","version":"1","ref":"locator"}'
+                - name: text
+                  value: Renew passport today
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user marks the updated reminder complete
+              id: ast-14afa22c3087f18bed0b-step
+              label: the user marks the updated reminder complete
+              order: 22
+              parameters:
+                - locatorId: apr-e2f4e427cc17112ecf68db4f
+                  locatorName: Complete updated passport reminder checkbox
+                  name: target
+                  value: '{"id":"locator_apr-e2f4e427cc17112ecf68db4f","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the reminder appears in Completed
+              id: ast-808895d3d32c2f300979-step
+              label: the reminder appears in Completed
+              order: 23
+              parameters:
+                - locatorId: apr-8991ecd21cb1ca291b73d30f
+                  locatorName: Completed reminders section
+                  name: target
+                  value: '{"id":"locator_apr-8991ecd21cb1ca291b73d30f","version":"1","ref":"locator"}'
+                - name: text
+                  value: Renew passport today
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And the completion control is checked
+              id: ast-2e2556975fe60996dc8f-step
+              label: the completion control is checked
+              order: 24
+              parameters:
+                - locatorId: apr-e2f4e427cc17112ecf68db4f
+                  locatorName: Complete updated passport reminder checkbox
+                  name: target
+                  value: '{"id":"locator_apr-e2f4e427cc17112ecf68db4f","version":"1","ref":"locator"}'
+                - name: checked
+                  value: "true"
+              templateStepName: browser.assertions.checked@1
+            - gherkinStep: When the user reopens the completed reminder
+              id: ast-a91831142ee07b30d498-step
+              label: the user reopens the completed reminder
+              order: 25
+              parameters:
+                - locatorId: apr-e2f4e427cc17112ecf68db4f
+                  locatorName: Complete updated passport reminder checkbox
+                  name: target
+                  value: '{"id":"locator_apr-e2f4e427cc17112ecf68db4f","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the reopened reminder returns to Upcoming
+              id: ast-08c7143c99261d980bfe-step
+              label: the reopened reminder returns to Upcoming
+              order: 26
+              parameters:
+                - locatorId: apr-63dbd14082163fd34e0bab5a
+                  locatorName: Upcoming reminders section
+                  name: target
+                  value: '{"id":"locator_apr-63dbd14082163fd34e0bab5a","version":"1","ref":"locator"}'
+                - name: text
+                  value: Renew passport today
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And the completion control is unchecked
+              id: ast-0936be46fad6640c8610-step
+              label: the completion control is unchecked
+              order: 27
+              parameters:
+                - locatorId: apr-e2f4e427cc17112ecf68db4f
+                  locatorName: Complete updated passport reminder checkbox
+                  name: target
+                  value: '{"id":"locator_apr-e2f4e427cc17112ecf68db4f","version":"1","ref":"locator"}'
+                - name: checked
+                  value: "false"
+              templateStepName: browser.assertions.checked@1
+            - gherkinStep: When the user reloads the page
+              id: ast-135ab4780cdc2aa828ec-step
+              label: the user reloads the page
+              order: 28
+              parameters: []
+              templateStepName: browser.navigation.reload@1
+            - gherkinStep: And the reloaded page is ready
+              id: ast-1c8884cebd506ad84654-step
+              label: the reloaded page is ready
+              order: 29
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+            - gherkinStep: Then the reopened reminder survives reload
+              id: ast-84344c2620c95b4fc72e-step
+              label: the reopened reminder survives reload
+              order: 30
+              parameters:
+                - locatorId: apr-ce898df1608679361eefb760
+                  locatorName: Updated passport reminder card
+                  name: target
+                  value: '{"id":"locator_apr-ce898df1608679361eefb760","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.persisted@1
+            - gherkinStep: When the user requests deletion
+              id: ast-a1c96b42ae7729f392e1-step
+              label: the user requests deletion
+              order: 31
+              parameters:
+                - locatorId: apr-f056eae8b94d43e6beac1b2b
+                  locatorName: Delete updated passport reminder button
+                  name: target
+                  value: '{"id":"locator_apr-f056eae8b94d43e6beac1b2b","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the confirmation dialog exposes accessible semantics
+              id: ast-b8f43e151cdd4451286f-step
+              label: the confirmation dialog exposes accessible semantics
+              order: 32
+              parameters:
+                - locatorId: apr-20e4336ae9e62655151a5dcd
+                  locatorName: Delete confirmation dialog
+                  name: target
+                  value: '{"id":"locator_apr-20e4336ae9e62655151a5dcd","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+            - gherkinStep: When the user confirms deletion
+              id: ast-b5eba6d734161b1bee72-step
+              label: the user confirms deletion
+              order: 33
+              parameters:
+                - locatorId: apr-e63cc7ebdca3595bdd436b7c
+                  locatorName: Confirm delete button
+                  name: target
+                  value: '{"id":"locator_apr-e63cc7ebdca3595bdd436b7c","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the deleted reminder is absent
+              id: ast-645d5ba1e7f9c24eba3b-step
+              label: the deleted reminder is absent
+              order: 34
+              parameters:
+                - locatorId: apr-ce898df1608679361eefb760
+                  locatorName: Updated passport reminder card
+                  name: target
+                  value: '{"id":"locator_apr-ce898df1608679361eefb760","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.hidden@1
+            - gherkinStep: Given the ForgotSomething home page is opened
+              id: ast-16aec4714a803b7e3f49-step
+              label: the ForgotSomething home page is opened
+              order: 35
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: When the viewport is set to a narrow mobile size
+              id: ast-025f804d561f6176b7e7-step
+              label: the viewport is set to a narrow mobile size
+              order: 36
+              parameters:
+                - name: width
+                  value: "390"
+                - name: height
+                  value: "844"
+              templateStepName: browser.viewport.set@1
+            - gherkinStep: Then the page has no horizontal overflow
+              id: ast-1fd7b8aa50c1124330c4-step
+              label: the page has no horizontal overflow
+              order: 37
+              parameters: []
+              templateStepName: browser.assertions.no-horizontal-overflow@1
+            - gherkinStep: And the reminder form remains visible
+              id: ast-286079d3819ec6c38229-step
+              label: the reminder form remains visible
+              order: 38
+              parameters:
+                - locatorId: apr-3fbdc092bb435f25311d3664
+                  locatorName: Reminder form
+                  name: target
+                  value: '{"id":"locator_apr-3fbdc092bb435f25311d3664","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+            - gherkinStep: And the save control exposes accessible semantics
+              id: ast-19255aafbf53a0e7f693-step
+              label: the save control exposes accessible semantics
+              order: 39
+              parameters:
+                - locatorId: apr-6b1a260440d77438161cf00e
+                  locatorName: Save reminder button
+                  name: target
+                  value: '{"id":"locator_apr-6b1a260440d77438161cf00e","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+          title: Create, edit, organize, persist, complete, reopen, and delete reminders
+      testSuites:
+        - description: Verify ForgotSomething's complete local-first reminder lifecycle, time-based organization, persistence, accessibility, and responsive behavior.
+          id: ast-81196c894e21-suite
+          moduleId: ast-81196c894e21-module
+          name: Manage a reminder from creation through deletion
+          testCaseIds:
+            - ast-81196c894e21-manage-reminders
+    astProvenance:
+      astHash: sha256:1b38a835e0298778463469643cfcb5120a403712b2c5cf12971e1b8519bd65ba
+      executionAuthority: reviewed_publication
+      publishOperationId: astpub_51570520ba781dba489bfc670d83de23365b5f355ce8221e6a3d31daf764d346
+      receiptHash: sha256:51570520ba781dba489bfc670d83de23365b5f355ce8221e6a3d31daf764d346
+      runtimeInputHash: sha256:552f143b39c0963229b0e21f796342ea7f2e85097d729adac4f0b79d1225d3ac
+      schemaVersion: "2"
+    coverageArgument:
+      mappings:
+        - kind: task
+          observationStepIds:
+            - see-shell
+            - mobile-no-overflow
+          rationale: The runnable shell and responsive foundation are observed at desktop and mobile sizes.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - open-home
+            - set-mobile
+          targetId: task-1
+        - kind: task
+          observationStepIds:
+            - future-is-upcoming
+            - completion-checked
+            - completion-unchecked
+            - persisted-reminder
+          rationale: Domain state changes and durable reload persistence are directly observed.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - save-future
+            - complete-reminder
+            - reopen-reminder
+            - reload-home
+          targetId: task-2
+        - kind: task
+          observationStepIds:
+            - see-title-error
+            - updated-visible
+            - completed-visible
+            - reopened-upcoming
+            - deleted-hidden
+            - dialog-accessible
+          rationale: The full accessible CRUD and completion workflow has observable outcomes.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - attempt-empty-save
+            - save-future
+            - edit-future
+            - complete-reminder
+            - reopen-reminder
+            - delete-reminder
+            - confirm-delete
+          targetId: task-3
+        - kind: task
+          observationStepIds:
+            - future-is-upcoming
+            - past-is-overdue
+            - completed-visible
+            - reopened-upcoming
+          rationale: Upcoming, overdue, and completed organization is directly asserted.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - save-future
+            - save-past
+            - complete-reminder
+            - reopen-reminder
+          targetId: task-4
+        - kind: task
+          observationStepIds:
+            - persisted-reminder
+            - mobile-no-overflow
+            - mobile-save-accessible
+          rationale: End-to-end persistence, responsive layout, and accessible controls are exercised.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - reload-home
+            - set-mobile
+          targetId: task-5
+        - kind: quality-concern
+          observationStepIds:
+            - check-title-accessible
+            - dialog-accessible
+            - mobile-save-accessible
+          rationale: Core form and dialog controls expose accessible names and roles.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - open-home
+            - delete-reminder
+            - set-mobile
+          targetId: accessibility
+        - kind: quality-concern
+          observationStepIds:
+            - persisted-reminder
+          rationale: The edited reminder remains observable after a full reload.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - save-update
+            - reload-home
+          targetId: persistence
+        - kind: quality-concern
+          observationStepIds:
+            - mobile-no-overflow
+            - mobile-form-visible
+          rationale: The narrow viewport explicitly verifies no overflow and a usable visible form.
+          scenarioIds:
+            - manage-reminders
+          state: covered
+          stimulusStepIds:
+            - set-mobile
+          targetId: responsive
+    executable:
+      path: automation/features/forgotsomething-happy-path.feature
+    expectedFailures:
+      - browser: chromium
+        environment: apr-b804d75eda4071dda7ba6c9a
+        lastPassingStepId: ast-798490446e5dd6ec65d9-step
+        order: 0
+        signature: AssertionError
+    gherkinPaths:
+      - automation/features/forgotsomething-happy-path.feature
+    id: forgotsomething-happy-path
+    matrix:
+      - browser: chromium
+        environment: apr-b804d75eda4071dda7ba6c9a
+    required: true
+    stepPaths: []
+    taskIds:
+      - task-1
+      - task-2
+      - task-3
+      - task-4
+      - task-5
+    testCaseIds:
+      - ast-81196c894e21-manage-reminders
+version: "1"

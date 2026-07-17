@@ -36,16 +36,17 @@ Print current registration details:
 npm run setup:mcp
 ```
 
-For Codex, that command now prints the exact inspect and refresh commands for the resolved endpoint. The supported
-user flow is:
+For Codex, that command prints exact inspect and refresh commands. The refresh command uses the package's stdio
+transport so the project coordinator bearer token stays inside AppraiseJS instead of requiring a long-lived token in
+the Codex process environment. The supported user flow is:
 
 1. Start AppraiseJS with `npm run dev` (or only the sidecar with `npm run dev:mcp`).
    Both commands deploy pending Prisma migrations before starting services and stop immediately if database readiness
    fails. Use these entry points instead of starting the web and MCP processes separately.
 2. Run `npm run setup:mcp`.
 3. Inspect the active entry with `codex mcp get appraisejs`.
-4. If its URL or transport differs from the printed configuration, run the printed `codex mcp remove appraisejs`
-   and `codex mcp add appraisejs --url <resolved-endpoint>` commands.
+4. If its command or transport differs from the printed configuration, run the printed `codex mcp remove appraisejs`
+   and `codex mcp add appraisejs -- <resolved-stdio-command>` commands.
 5. Restart or reconnect Codex, then start a new task. MCP capabilities are discovered when a task connects and an
    already-running task keeps its original tool snapshot.
 6. Verify `codex mcp get appraisejs`, endpoint reachability, `project_diagnostic`, and the expected resources/tools.
@@ -76,11 +77,14 @@ The JSON output includes the HTTP endpoint and required `Authorization: Bearer .
 Normal human-readable setup output deliberately hides the token. Treat the JSON output as local credential material:
 do not paste it into logs, issues, or committed configuration.
 
-For stdio-only clients, the command shape is:
+For other stdio-only clients, the installed-package command shape is:
 
 ```bash
 appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
 ```
+
+The repo-local setup output uses the current Node executable plus `packages/appraisejs/dist/cli.js`, which remains
+reliable when the `appraisejs` binary is not installed globally or is not on the agent host's `PATH`.
 
 Tool visibility requires registering the current endpoint or stdio command and restarting or reconnecting the MCP
 client. Do not report tools as available until the client has completed that refresh.

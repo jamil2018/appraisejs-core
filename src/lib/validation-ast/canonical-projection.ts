@@ -83,6 +83,11 @@ export function createValidationAstCanonicalProjection(
       parameters: Object.entries(step.action.inputs).map(([name, input]) => parameter(name, input, bindings)),
     })),
   }))
+  const projectedStepIds = new Map(
+    ast.scenarios.flatMap(scenario =>
+      scenario.steps.map(step => [step.id, validationAstStepId(planScope, ast.id, scenario.id, step.id)] as const),
+    ),
+  )
   const validationNode = {
     id: ast.id,
     taskIds: ast.coversTaskIds,
@@ -130,7 +135,7 @@ export function createValidationAstCanonicalProjection(
       environment: item.environmentId,
       signature: item.signature,
       order: item.order,
-      lastPassingStepId: item.lastPassingStepId,
+      lastPassingStepId: item.lastPassingStepId ? projectedStepIds.get(item.lastPassingStepId)! : null,
     })),
   } satisfies ValidationArtifact['validations'][number]
   const gherkin = ast.scenarios.map(scenario =>

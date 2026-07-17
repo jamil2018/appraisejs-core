@@ -68,6 +68,14 @@ export function baselineCombinationKey(combination: BaselineCombination): string
   return `${combination.validationId}:${combination.browser}:${combination.environment}`
 }
 
+function completedExecutableStepIds(validation: ValidationArtifact['validations'][number], evidence: BaselineEvidence) {
+  const completed = new Set(evidence.completedStepIds)
+  for (const testCase of validation.appraiseArtifacts.testCases)
+    for (const step of testCase.steps)
+      if (completed.has(step.label) || completed.has(step.gherkinStep)) completed.add(step.id)
+  return completed
+}
+
 export function classifyBaselineResult(
   validation: ValidationArtifact['validations'][number],
   combination: BaselineCombination,
@@ -113,7 +121,7 @@ export function classifyBaselineResult(
     }
   }
   const lastExpectedStep = expected.at(-1)?.lastPassingStepId
-  if (lastExpectedStep && !evidence.completedStepIds.includes(lastExpectedStep)) {
+  if (lastExpectedStep && !completedExecutableStepIds(validation, evidence).has(lastExpectedStep)) {
     return {
       classification: 'authoring_failure',
       signatureHash,

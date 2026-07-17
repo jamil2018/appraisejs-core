@@ -130,7 +130,11 @@ export default async function PlanReviewPage({ params, searchParams }: PageProps
         detail={detail}
         initialTab={reviewMode === 'validation' ? 'validations' : undefined}
         initialSidebarTab={
-          reviewMode === 'baseline' ? 'baselines' : reviewMode === 'implementation' ? 'approval' : undefined
+          reviewMode === 'baseline'
+            ? 'baselines'
+            : reviewMode === 'implementation' || reviewMode === 'completion'
+              ? 'approval'
+              : undefined
         }
       />
     )

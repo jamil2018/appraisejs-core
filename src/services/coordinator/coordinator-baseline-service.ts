@@ -387,20 +387,20 @@ async function loadAppraiseEvidence(testRunId: string, client: PrismaClient, app
     .map(log => log.message.trim())
     .filter(Boolean)
   const evidenceSummary = await summarizeRunEvidence(testRunId, client, appraiseRoot)
+  if (evidenceSummary.evidenceHealth !== 'valid') {
+    return invalidBaselineEvidence({
+      evidenceHealth: evidenceSummary.evidenceHealth,
+      blockers: evidenceSummary.blockers,
+      logFailureSignatures,
+      completedStepIds: [],
+    })
+  }
   const report = run.runtimeCapsule
     ? await createTestRunArtifactAccess(createTestRunArtifactContext(appraiseRoot), client)
         .readText({ runId: testRunId, kind: 'report' })
         .then(JSON.parse)
     : await readStoredJsonReport(run.reportPath)
   const reportEvidence = extractCucumberEvidence(report)
-  if (evidenceSummary.evidenceHealth !== 'valid') {
-    return invalidBaselineEvidence({
-      evidenceHealth: evidenceSummary.evidenceHealth,
-      blockers: evidenceSummary.blockers,
-      logFailureSignatures,
-      completedStepIds: reportEvidence.completedStepIds,
-    })
-  }
   return completedBaselineEvidence(run.result, evidenceSummary, reportEvidence, logFailureSignatures)
 }
 

@@ -21,26 +21,49 @@ const reportSchema = z.array(
     .passthrough(),
 )
 
+export class CucumberDryRunReconciliationError extends Error {
+  constructor(
+    message: string,
+    readonly kind: 'selection' | 'step-status',
+  ) {
+    super(message)
+    this.name = 'CucumberDryRunReconciliationError'
+  }
+}
+
 export function parseAndReconcileCucumberDryRun(
   bytes: Buffer,
   selection: CapsuleCommandReceiptV1['selection'],
   maxBytes: number,
 ) {
-  if (bytes.byteLength > maxBytes) throw new Error('Dry-run report exceeds its sealed byte limit.')
+  if (bytes.byteLength > maxBytes)
+    throw new CucumberDryRunReconciliationError('Dry-run report exceeds its sealed byte limit.', 'selection')
   const scenarios = reportSchema.parse(JSON.parse(bytes.toString('utf8'))).flatMap(feature => feature.elements)
   const expected = new Map(selection.expectedCases.map(item => [`@tc_${item.caseId}`, item]))
   const matched = new Set<string>()
   for (const scenario of scenarios) {
     const tags = new Set(scenario.tags.map(tag => tag.name))
     const caseTags = [...tags].filter(tag => expected.has(tag))
-    if (caseTags.length !== 1) throw new Error('Dry-run scenario does not have exactly one expected case tag.')
+    if (caseTags.length !== 1)
+      throw new CucumberDryRunReconciliationError(
+        'Dry-run scenario does not have exactly one expected case tag.',
+        'selection',
+      )
     const caseTag = caseTags[0]!
-    if (matched.has(caseTag)) throw new Error('Dry-run contains a duplicate expected scenario.')
+    if (matched.has(caseTag))
+      throw new CucumberDryRunReconciliationError('Dry-run contains a duplicate expected scenario.', 'selection')
     const item = expected.get(caseTag)!
     for (const required of [`@appraise_validation_${item.validationId}`, `@ts_${item.suiteId}`, caseTag])
-      if (!tags.has(required)) throw new Error('Dry-run scenario identifier tags do not match expected evidence.')
+      if (!tags.has(required))
+        throw new CucumberDryRunReconciliationError(
+          'Dry-run scenario identifier tags do not match expected evidence.',
+          'selection',
+        )
     if (scenario.steps.some(step => ['ambiguous', 'failed', 'undefined'].includes(step.result.status.toLowerCase())))
-      throw new Error('Dry-run contains undefined, ambiguous, or failed steps.')
+      throw new CucumberDryRunReconciliationError(
+        'Dry-run contains undefined, ambiguous, or failed steps.',
+        'step-status',
+      )
     matched.add(caseTag)
   }
   if (
@@ -49,6 +72,9 @@ export function parseAndReconcileCucumberDryRun(
     matched.size !== selection.expectedScenarioCount ||
     matched.size !== selection.expectedCaseCount
   )
-    throw new Error('Dry-run selected scenario count or expected case set differs.')
+    throw new CucumberDryRunReconciliationError(
+      'Dry-run selected scenario count or expected case set differs.',
+      'selection',
+    )
   return { selectedScenarioCount: matched.size }
 }

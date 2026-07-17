@@ -122,6 +122,11 @@ pass before the expected product failure. Use `null` only
 when the expected failure occurs at the first scenario step. Expected red evidence remains review-bound and must not be
 converted into an unrelated-failure acknowledgement.
 
+Compilation projects `lastPassingStepId` to the stable executable step identity sealed into the validation artifact.
+Baseline reconciliation maps passed Cucumber step names back to that identity before classification. AST step IDs are
+therefore globally unique within a validation, including across scenarios; duplicate IDs fail validation instead of
+creating an ambiguous expected-red boundary.
+
 Baseline TestRun display names include the durable attempt ordinal. Replaying an active content-bound preparation
 reuses its existing TestRun, while a repaired and reapproved validation advances the ordinal and receives a distinct
 name without deleting or renaming historical evidence.
@@ -130,6 +135,10 @@ Baseline start responses report whether execution was newly created or idempoten
 canonical TestRun IDs, state whether reconciliation is legal, and provide the exact next allowed action. Legacy name
 conflicts may reuse only a TestRun already bound to the same plan and target project. Unsafe legacy collisions return
 the existing run identity and an Appraise-owned repair action instead of a generic name-validation error.
+
+Lifecycle health includes both baseline and implementation managed-run counts. A baseline attempt that remains active
+after its TestRun becomes terminal is unhealthy with a baseline-reconciliation recovery action; missing baseline rows
+are reported as orphaned instead of being omitted from an otherwise healthy response.
 
 ## Implementation
 
@@ -183,7 +192,9 @@ or later verification step satisfies completion readiness. `failed_validation` i
 
 Project-scoped review URLs use `review=validation`, `review=baseline`, and `review=implementation` to open the exact
 validation, baseline, and final-completion review panels respectively. Agents should hand off those returned deep
-links instead of requiring users to locate the gate manually.
+links instead of requiring users to locate the gate manually. The UI also accepts `review=completion` as a defensive
+alias for completion handoffs, while coordinator responses should continue returning the canonical
+`review=implementation` form.
 
 Once final implementation evidence exists, the baseline panel shows a per-validation delta from the latest baseline
 attempt to the final managed run, including baseline classification, final status, and assurance. This comparison is
@@ -227,6 +238,10 @@ The plan review Approval tab renders **Approve final completion** only while lif
 current completion receipt is ready. The user must explicitly confirm intent, and the server action submits the exact
 displayed evidence hash. A concurrent event or artifact change rejects the stale hash and leaves the plan incomplete
 until the refreshed receipt is reviewed and confirmed again.
+
+If the UI records final sign-off before a connected agent relays `implementation_complete`, replaying the exact signed
+completion evidence hash is idempotent and returns the existing terminal artifacts without duplicating events or
+changing the original approver. A different hash fails with the already-completed sign-off identity and hash.
 
 Repository export is independently policy-controlled. Disabled and optional exports never block completion. Required
 export blocks only until a project-bound receipt exists for the exact reviewed validation hash; managed TestRun
