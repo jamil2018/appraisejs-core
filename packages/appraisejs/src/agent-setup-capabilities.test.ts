@@ -8,4 +8,10 @@ describe('agent setup capabilities', () => {
 
     expect(new Set(capabilities).size).toBe(capabilities.length)
   })
+
+  it('advertises release-critical lifecycle tools', () => {
+    expect(expectedAgentCapabilities.tools).toEqual(
+      expect.arrayContaining(['baseline_start', 'baseline_reconcile', 'baseline_accept', 'implementation_start']),
+    )
+  })
 })
