@@ -1,6 +1,7 @@
 import type { McpRegistryContext } from '../registry.js'
 import {
   buildAgentPreflight,
+  canonicalExpectedTargetWorkspacePath,
   compactProjectDiagnostic,
   compactMcpCapabilityMetadata,
   diagnoseProject,
@@ -25,15 +26,30 @@ export function registerDiagnosticOperations(context: McpRegistryContext): void 
     },
     async ({ observedTools, observedResources, expectedTargetWorkspacePath }) => {
       const diagnostic = await diagnoseProject(options)
+      const canonicalTargetWorkspacePath = await canonicalExpectedTargetWorkspacePath(expectedTargetWorkspacePath)
+      const agentPreflight = buildAgentPreflight(diagnostic, {
+        observedTools,
+        observedResources,
+        expectedTargetWorkspacePath: canonicalTargetWorkspacePath,
+      })
+      const preflightReceipt = await api.request('diagnostic/preflight', {
+        method: 'POST',
+        body: JSON.stringify({
+          coordinatorId: options.coordinatorId,
+          expectedTargetWorkspacePath: canonicalTargetWorkspacePath,
+          preflight: agentPreflight,
+          capabilities: {
+            mcpSurfaceVersion: compactMcpCapabilityMetadata.mcpSurfaceVersion,
+            serverStartedAt: compactMcpCapabilityMetadata.serverStartedAt,
+          },
+        }),
+      })
       return text(
         withGuidance(
           {
             ...compactProjectDiagnostic(diagnostic),
-            agentPreflight: buildAgentPreflight(diagnostic, {
-              observedTools,
-              observedResources,
-              expectedTargetWorkspacePath,
-            }),
+            agentPreflight,
+            preflightReceipt,
             capabilities: compactMcpCapabilityMetadata,
             capabilityStatus: 'available',
           },

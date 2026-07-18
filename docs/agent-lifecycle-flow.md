@@ -15,6 +15,11 @@ the current hash and receipt so the coordinator can reread and relay a fresh dec
 Agents must use Appraise-owned lifecycle gates. Chat approval can clarify intent, but it does not replace plan,
 validation, baseline, implementation, completion, or cancellation transitions.
 
+Before planning, call `project_diagnostic` with the current task's observed tools and resources plus the intended
+workspace. Appraise records the resulting four-layer preflight as a content-addressed receipt and exposes it from the
+Projects UI. Only a receipt whose application/identity, active transport, current-task capabilities, and target
+binding are all ready certifies lifecycle entry; a browser view never fills in observations the MCP client omitted.
+
 ## Bounded Objectives And Handoffs
 
 Large work is segmented into objectives, milestones, and independently reviewable plans. A plan may contain at most

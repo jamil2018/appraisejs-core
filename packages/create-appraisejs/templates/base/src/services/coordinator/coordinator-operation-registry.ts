@@ -64,6 +64,7 @@ export const coordinatorOperationRegistry = createCoordinatorOperationRegistry([
   { id: 'delegation-revoke', method: 'POST', pattern: ['delegations', ':id', 'revoke'] },
   { id: 'objective-create', method: 'POST', pattern: ['objectives'] },
   { id: 'coordination-slo', method: 'POST', pattern: ['coordination-slo'] },
+  { id: 'diagnostic-preflight-write', method: 'POST', pattern: ['diagnostic', 'preflight'] },
   { id: 'repository-export', method: 'POST', pattern: ['repository-exports', '*'] },
   {
     id: 'delegated-validation-submit',

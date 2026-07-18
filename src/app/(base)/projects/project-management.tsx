@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, FolderGit2, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ArrowRight, CircleCheck, CircleHelp, CircleX, FolderGit2, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -11,6 +11,7 @@ import {
   selectTargetProjectAction,
 } from '@/actions/target-project/target-project-actions'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
@@ -25,6 +26,7 @@ import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
+import type { AgentPreflightReceiptSummary } from '@/lib/agent-preflight/contracts'
 
 type Project = {
   id: string
@@ -32,11 +34,18 @@ type Project = {
   description: string | null
   canonicalPath: string
   lastDetectedAt: Date
+  preflight?: AgentPreflightReceiptSummary
 }
 
 const projectDateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
 
-export default function ProjectManagement({ projects }: { projects: Project[] }) {
+export default function ProjectManagement({
+  projects,
+  highlightedPreflightId,
+}: {
+  projects: Project[]
+  highlightedPreflightId?: string
+}) {
   const [query, setQuery] = useState('')
   const filteredProjects = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase()
@@ -90,12 +99,17 @@ export default function ProjectManagement({ projects }: { projects: Project[] })
                 <TableHead>Project</TableHead>
                 <TableHead>Workspace path</TableHead>
                 <TableHead>Last detected</TableHead>
+                <TableHead>Agent readiness</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProjects.map(project => (
-                <ProjectRow key={project.id} project={project} />
+                <ProjectRow
+                  key={project.id}
+                  project={project}
+                  highlightPreflight={project.preflight?.id === highlightedPreflightId}
+                />
               ))}
             </TableBody>
           </Table>
@@ -183,7 +197,7 @@ function RegisterProjectDialog() {
   )
 }
 
-function ProjectRow({ project }: { project: Project }) {
+function ProjectRow({ project, highlightPreflight }: { project: Project; highlightPreflight: boolean }) {
   const { push } = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -200,6 +214,9 @@ function ProjectRow({ project }: { project: Project }) {
       </TableCell>
       <TableCell className="whitespace-nowrap text-muted-foreground">
         {projectDateFormatter.format(new Date(project.lastDetectedAt))}
+      </TableCell>
+      <TableCell>
+        <AgentPreflightDialog receipt={project.preflight} initiallyOpen={highlightPreflight} />
       </TableCell>
       <TableCell>
         <div className="flex justify-end gap-2">
@@ -223,6 +240,109 @@ function ProjectRow({ project }: { project: Project }) {
         </div>
       </TableCell>
     </TableRow>
+  )
+}
+
+const preflightLayerLabels = {
+  applicationAndIdentity: 'Application and identity',
+  activeMcpTransport: 'Active MCP transport',
+  currentTaskCapabilities: 'Current task capabilities',
+  targetProjectBinding: 'Target project binding',
+} as const
+
+function PreflightStatus({
+  status,
+}: {
+  status: AgentPreflightReceiptSummary['preflight']['layers'][keyof AgentPreflightReceiptSummary['preflight']['layers']]['status']
+}) {
+  if (status === 'ready')
+    return (
+      <Badge className="gap-1 border-emerald-500/35 bg-emerald-500/10 text-emerald-200" variant="outline">
+        <CircleCheck aria-hidden="true" className="size-3.5" /> Ready
+      </Badge>
+    )
+  if (status === 'blocked')
+    return (
+      <Badge className="gap-1 border-red-500/35 bg-red-500/10 text-red-200" variant="outline">
+        <CircleX aria-hidden="true" className="size-3.5" /> Blocked
+      </Badge>
+    )
+  return (
+    <Badge className="gap-1" variant="outline">
+      <CircleHelp aria-hidden="true" className="size-3.5" />
+      {status === 'unverified' ? 'Unverified' : 'Not applicable'}
+    </Badge>
+  )
+}
+
+function AgentPreflightDialog({
+  receipt,
+  initiallyOpen,
+}: {
+  receipt?: AgentPreflightReceiptSummary
+  initiallyOpen: boolean
+}) {
+  const [open, setOpen] = useState(initiallyOpen)
+  if (!receipt)
+    return (
+      <Badge className="gap-1" variant="outline">
+        <CircleHelp aria-hidden="true" className="size-3.5" /> Not observed
+      </Badge>
+    )
+
+  const capabilityLayer = receipt.preflight.layers.currentTaskCapabilities
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button className="h-auto p-0" variant="ghost" onClick={() => setOpen(true)}>
+        <PreflightStatus
+          status={receipt.preflight.status === 'needs_observation' ? 'unverified' : receipt.preflight.status}
+        />
+      </Button>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Agent preflight receipt</DialogTitle>
+          <DialogDescription>
+            Durable evidence recorded by project_diagnostic at {new Date(receipt.observedAt).toLocaleString()}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          {Object.entries(receipt.preflight.layers).map(([key, layer]) => (
+            <div
+              className="flex items-start justify-between gap-4 rounded-lg border border-white/10 bg-white/[0.03] p-3"
+              key={key}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{preflightLayerLabels[key as keyof typeof preflightLayerLabels]}</p>
+                {'message' in layer ? (
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{layer.message}</p>
+                ) : null}
+              </div>
+              <PreflightStatus status={layer.status} />
+            </div>
+          ))}
+        </div>
+        {capabilityLayer.tools.missing.length || capabilityLayer.resources.missing.length ? (
+          <div className="rounded-lg border border-red-500/25 bg-red-500/5 p-3 text-xs">
+            <p className="font-medium text-red-200">Missing from the current task snapshot</p>
+            {capabilityLayer.tools.missing.length ? (
+              <p className="mt-2 break-words text-muted-foreground">
+                Tools: {capabilityLayer.tools.missing.join(', ')}
+              </p>
+            ) : null}
+            {capabilityLayer.resources.missing.length ? (
+              <p className="mt-1 break-words text-muted-foreground">
+                Resources: {capabilityLayer.resources.missing.join(', ')}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="grid gap-1 font-mono text-[11px] text-muted-foreground">
+          <p>Receipt: {receipt.snapshotHash}</p>
+          <p>MCP surface: {receipt.mcpSurfaceVersion}</p>
+          <p>Server started: {new Date(receipt.mcpServerStartedAt).toLocaleString()}</p>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

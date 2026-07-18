@@ -450,9 +450,31 @@ model TargetProject {
   testCaseMetrics                TestCaseMetrics[]
   testSuiteMetrics               TestSuiteMetrics[]
   dashboardMetrics               DashboardMetrics?
+  agentPreflightReceipts         AgentPreflightReceipt[]
 
   @@index([displayName])
   @@index([fingerprint])
+}
+
+model AgentPreflightReceipt {
+  id                    String         @id @default(cuid())
+  coordinatorId         String
+  schemaVersion         String
+  status                String
+  ready                 Boolean
+  snapshotHash          String
+  snapshotJson          String
+  expectedCanonicalPath String?
+  targetProjectId       String?
+  mcpSurfaceVersion     String
+  mcpServerStartedAt    DateTime
+  observedAt            DateTime       @default(now())
+  createdAt             DateTime       @default(now())
+  targetProject         TargetProject? @relation(fields: [targetProjectId], references: [id], onDelete: Cascade)
+
+  @@unique([coordinatorId, snapshotHash])
+  @@index([targetProjectId, observedAt])
+  @@index([observedAt])
 }
 
 model ValidationResourceProposal {

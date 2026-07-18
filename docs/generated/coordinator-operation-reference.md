@@ -27,6 +27,7 @@ the canonical MCP registry. Human-owned lifecycle meaning and examples remain in
 | `delegation-revoke`           | POST   | `/api/internal/coordinator/delegations/:id/revoke`               |
 | `objective-create`            | POST   | `/api/internal/coordinator/objectives`                           |
 | `coordination-slo`            | POST   | `/api/internal/coordinator/coordination-slo`                     |
+| `diagnostic-preflight-write`  | POST   | `/api/internal/coordinator/diagnostic/preflight`                 |
 | `repository-export`           | POST   | `/api/internal/coordinator/repository-exports/*`                 |
 | `delegated-validation-submit` | POST   | `/api/internal/coordinator/delegated/validation-ast-submissions` |
 | `provider-runs-write`         | POST   | `/api/internal/coordinator/provider-runs/*`                      |

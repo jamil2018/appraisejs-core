@@ -14,15 +14,15 @@ features by user impact and lifecycle risk.
 
 ## P0 - Reliability, recovery, and completion confidence
 
-| Order | Feature                                  | Status                               | Impact   | Implementation direction                                                                                                                                                                        |
-| ----: | ---------------------------------------- | ------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|     1 | Unified agent preflight                  | In progress: first slice implemented | Critical | Extend `project_diagnostic` across App/API identity, active MCP transport, current-task capability visibility, and target-project binding. Add UI presentation and certification coverage next. |
-|     2 | Guided expected-red capture              | Planned                              | Critical | Turn baseline failures into a guided classification flow with exact evidence, expected regression acknowledgement, and safe retry actions.                                                      |
-|     3 | Guided baseline recovery                 | Planned                              | Critical | Present durable attempt state, root cause, allowed recovery action, and retry consequences without requiring raw log or database inspection.                                                    |
-|     4 | Lifecycle command center                 | Planned                              | High     | Provide one project-scoped surface for current gate, owner, blockers, active attempt, exact next action, review URLs, and recovery controls.                                                    |
-|     5 | Exact validation and execution preview   | Planned                              | High     | Show the canonical AST projection, selected actions and locators, scenarios, runtime inputs, and immutable execution identity before publication or execution.                                  |
-|     6 | Golden lifecycle certification harness   | Planned                              | High     | Continuously execute representative greenfield and existing-project lifecycles through every Appraise-owned gate and retain durable certification evidence.                                     |
-|     7 | Per-plan timing and efficiency telemetry | Planned                              | High     | Record duration, wait time, retries, tool calls, response size, and recovery cost per phase while keeping local-first privacy and bounded retention.                                            |
+| Order | Feature                                  | Status      | Impact   | Implementation direction                                                                                                                                                                       |
+| ----: | ---------------------------------------- | ----------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     1 | Unified agent preflight                  | Implemented | Critical | `project_diagnostic` separates all four readiness layers, stores content-addressed project receipts, links their Projects UI presentation, and certifies hub and target paths in live MCP E2E. |
+|     2 | Guided expected-red capture              | Planned     | Critical | Turn baseline failures into a guided classification flow with exact evidence, expected regression acknowledgement, and safe retry actions.                                                     |
+|     3 | Guided baseline recovery                 | Planned     | Critical | Present durable attempt state, root cause, allowed recovery action, and retry consequences without requiring raw log or database inspection.                                                   |
+|     4 | Lifecycle command center                 | Planned     | High     | Provide one project-scoped surface for current gate, owner, blockers, active attempt, exact next action, review URLs, and recovery controls.                                                   |
+|     5 | Exact validation and execution preview   | Planned     | High     | Show the canonical AST projection, selected actions and locators, scenarios, runtime inputs, and immutable execution identity before publication or execution.                                 |
+|     6 | Golden lifecycle certification harness   | Planned     | High     | Continuously execute representative greenfield and existing-project lifecycles through every Appraise-owned gate and retain durable certification evidence.                                    |
+|     7 | Per-plan timing and efficiency telemetry | Planned     | High     | Record duration, wait time, retries, tool calls, response size, and recovery cost per phase while keeping local-first privacy and bounded retention.                                           |
 
 ## P1 - Authoring leverage, observability, and auditability
 
@@ -63,12 +63,16 @@ new roadmap items unless a regression is found:
 
 ## Current implementation checkpoint
 
-The first P0 slice is implemented in the current worktree:
+Unified preflight is complete in the roadmap implementation branch:
 
 - `project_diagnostic` accepts observed tools, observed resources, and an expected target workspace.
 - It reports App/API identity, active MCP transport, current-task capabilities, and target binding as separate layers.
 - It returns `needs_observation` rather than claiming client readiness when the immutable task snapshot is unavailable.
 - Missing capability sentinels and target mismatches produce bounded recovery guidance.
+- Every diagnostic stores an idempotent, project-scoped receipt and returns its direct Projects URL.
+- The Projects UI displays the four exact layers, missing capabilities, MCP surface identity, and observation time.
+- Live MCP E2E certification covers a hub-bound ready receipt and a registered-target ready receipt rendered by the
+  UI.
 - Agent setup sentinels, MCP contract fixtures, generated coordinator reference, tests, docs, and Graphify outputs are
   aligned with the new contract.
 
@@ -84,6 +88,5 @@ The first P0 slice is implemented in the current worktree:
 
 ## Approval boundary
 
-Prioritization and the unified-preflight first slice are approved by the request to begin implementation. Remaining
-features in this document are proposals and should be implemented in priority order only when the user authorizes the
-next implementation tranche.
+The current implementation request authorizes P0 and P1 in priority order. Provider-native P2 remains explicitly
+deferred and must not be implemented in this branch.

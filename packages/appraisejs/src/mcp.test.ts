@@ -1,3 +1,5 @@
+import { realpath } from 'node:fs/promises'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -7,6 +9,7 @@ import {
   applyLifecycleResponseMode,
   baselineRecoveryForLifecycle,
   buildAgentPreflight,
+  canonicalExpectedTargetWorkspacePath,
   compactMcpCapabilityMetadata,
   compactProjectDiagnostic,
   createAppraiseMcpServer,
@@ -567,6 +570,10 @@ describe('MCP capability and recovery metadata', () => {
     recoveryActions: [],
     links: { application: 'http://127.0.0.1:3000' },
   }
+
+  it('canonicalizes filesystem aliases before comparing target bindings', async () => {
+    await expect(canonicalExpectedTargetWorkspacePath('/var')).resolves.toBe(await realpath('/var'))
+  })
 
   it('does not claim the immutable current-task capability snapshot without caller observations', () => {
     expect(buildAgentPreflight(diagnostic)).toMatchObject({

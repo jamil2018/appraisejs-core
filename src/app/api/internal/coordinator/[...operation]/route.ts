@@ -127,6 +127,7 @@ import {
   resolveTargetProject,
   writeTargetProjectMarker,
 } from '@/services/target-project/target-project-service'
+import { recordAgentPreflightReceipt } from '@/services/agent-preflight/agent-preflight-service'
 
 export const runtime = 'nodejs'
 
@@ -1018,6 +1019,20 @@ async function postPlanContinuation(operation: string[], body: unknown) {
   return Response.json(await createContinuationPackage({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
 }
 
+async function postDiagnosticPreflight(request: Request, body: unknown) {
+  const receipt = await recordAgentPreflightReceipt(body)
+  const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
+  const query = new URLSearchParams({ preflight: receipt.id })
+  if (receipt.targetProjectId) query.set('project', receipt.targetProjectId)
+  return Response.json({
+    id: receipt.id,
+    status: receipt.status,
+    snapshotHash: receipt.snapshotHash,
+    observedAt: receipt.observedAt,
+    browserUrl: `${baseUrl}/projects?${query}`,
+  })
+}
+
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
   const id = coordinatorOperationRegistry.resolve('POST', operation)
   const handlers: Partial<Record<CoordinatorOperationId, () => Promise<Response>>> = {
@@ -1025,6 +1040,7 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     'delegation-revoke': () => postDelegationRevoke(operation, body),
     'objective-create': () => postObjective(body),
     'coordination-slo': async () => postCoordinationSlo(body),
+    'diagnostic-preflight-write': () => postDiagnosticPreflight(request, body),
     'repository-export': () => postRepositoryExport(operation, body),
     'delegated-validation-submit': () => postDelegatedValidation(request, body),
     'provider-runs-write': () => {

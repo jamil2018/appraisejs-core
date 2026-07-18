@@ -233,6 +233,12 @@ version, server start time, capability counts, workflow sentinel tools/resources
 link. `appraise://project` retains the complete workflow-critical tool and resource lists. Recovery text identifies
 missing or stale native MCP capabilities.
 
+Each diagnostic call writes its exact preflight snapshot through the authenticated `POST /diagnostic/preflight`
+coordinator operation. Receipts are append-only and idempotent by coordinator plus content hash, optionally bound to
+the registered target project, and returned with a direct `/projects?preflight=<receipt>` URL. The Projects UI renders
+the four layers without recomputing or inferring the immutable client snapshot. The MCP E2E certification exercises
+both hub-bound and registered-target ready receipts against the real server and UI.
+
 ### Validation AST recovery
 
 `validation_ast_check` and `validation_ast_preview` are read-only and require the authoritative plan to remain in a
