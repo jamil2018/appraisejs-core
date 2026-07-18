@@ -89,8 +89,8 @@ export type PlanReviewDetail = {
     matrix: Array<{ browser: string; environment: string }>
     gherkin: string[]
   }
-  efficiencyTelemetry: Awaited<ReturnType<typeof readPlanEfficiencyTelemetry>>
-  lifecycleCertification: Awaited<ReturnType<typeof readLatestLifecycleCertification>>
+  efficiencyTelemetry?: Awaited<ReturnType<typeof readPlanEfficiencyTelemetry>>
+  lifecycleCertification?: Awaited<ReturnType<typeof readLatestLifecycleCertification>>
   validationIntegrity: Awaited<ReturnType<typeof auditManagedValidationIntegrity>>
   completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>

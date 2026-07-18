@@ -1,129 +1,62 @@
-import { promises as fs } from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
-import type { PrismaClient } from '@prisma/client'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { serializeYamlArtifact } from '@/lib/plan-contract'
-import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
-import { readValidationContext, resolveReusableValidationSteps } from './validation-authoring-context-service'
+import type { PlanArtifact } from '@/lib/plan-contract'
 
-let workspace: string
+import { buildValidationAuthoringKit } from './validation-authoring-context-service'
 
-beforeAll(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'validation-context-'))
-  await fs.writeFile(path.join(workspace, 'package.json'), '{}')
-  await new PlanArtifactRepository(workspace).create(
-    'plan',
-    'plan-template-search',
-    serializeYamlArtifact('plan', {
-      version: '1',
-      planId: 'plan-template-search',
-      revision: 1,
-      lifecycle: 'preparing_validations',
-      goal: 'Resolve reusable browser steps',
-      description: 'Exercise agent-facing template-step discovery.',
-      tasks: [
-        {
-          id: 'task-search',
-          title: 'Search reusable steps',
-          description: 'Search reusable steps',
-          acceptanceCriteria: ['Search succeeds'],
-          validationIntent: 'Use reusable steps',
-        },
-      ],
-      edges: [],
-      implementationGroups: [],
-    }),
-  )
-})
-
-afterAll(async () => {
-  await fs.rm(workspace, { recursive: true, force: true })
-})
-
-const entries = [
-  ['upload-file', 'upload file', 'Upload a local file path through a file input element', 'upload {string}'],
-  ['keyboard-shortcut', 'press keyboard shortcut', 'Press a page-level keyboard shortcut', 'shortcut {string}'],
-  ['popup', 'click and switch to popup', 'Click an element and switch to its popup', 'popup {string}'],
-  ['dialog', 'accept next dialog', 'Accept the next browser dialog', 'accept dialog'],
-  ['download', 'click and wait for download', 'Capture filename and download path', 'download {string}'],
-  ['storage', 'set local storage value', 'Set a localStorage key and value', 'storage {string} {string}'],
-  ['response', 'wait for response', 'Wait for a response URL and status', 'response {string} {int}'],
-  ['attribute', 'assert element attribute', 'Assert an element attribute value', 'attribute {string} {string}'],
-] as const
-
-function client() {
-  const templateSteps = entries.map(([id, name, description, signature]) => ({
-    id,
-    name,
-    description,
-    signature,
-    type: name.startsWith('assert') ? 'ASSERTION' : 'ACTION',
-    templateStepGroupId: 'browser-group',
-    parameters: [],
-    templateStepGroup: {
-      id: 'browser-group',
-      name: 'browser workflow',
-      description: 'Reusable browser mechanics',
-      type: name.startsWith('assert') ? 'VALIDATION' : 'ACTION',
+const plan = {
+  version: '1',
+  planId: 'plan-one',
+  revision: 1,
+  lifecycle: 'approved',
+  goal: 'Create todos',
+  description: 'Create and retain a todo.',
+  tasks: [
+    {
+      id: 'create-todo',
+      title: 'Create todo',
+      description: 'Add a todo.',
+      acceptanceCriteria: ['Todo appears.'],
+      validationIntent: 'Create a todo and observe it.',
     },
-  }))
+  ],
+  edges: [],
+  implementationGroups: [{ id: 'core', taskIds: ['create-todo'] }],
+} as unknown as PlanArtifact
 
-  return {
-    planProjection: {
-      findUnique: async () => ({
-        sourceHash: `sha256:${'a'.repeat(64)}`,
-        targetProjectId: 'project-a',
-        targetProject: {
-          id: 'project-a',
-          displayName: 'Project A',
-          canonicalPath: '/tmp/project-a',
-          fingerprint: `sha256:${'b'.repeat(64)}`,
-        },
-        tasks: [],
-      }),
-    },
-    templateStep: { findMany: async () => templateSteps },
-    stepBlock: { findMany: async () => [] },
-    projectResourceOwnership: { findMany: async () => [] },
-    module: { findMany: async () => [] },
-    testSuite: { findMany: async () => [] },
-    testCase: { findMany: async () => [] },
-    locatorGroup: { findMany: async () => [] },
-    locator: { findMany: async () => [] },
-    environment: { findMany: async () => [] },
-  } as unknown as PrismaClient
-}
-
-describe('template-step discovery', () => {
-  it.each(entries.map(([id, name]) => [name, id]))('resolves the representative intent %s', async (intent, id) => {
-    const result = await resolveReusableValidationSteps(
-      'plan-template-search',
-      { intent },
-      { client: client(), projectDirectory: workspace },
-    )
-    expect(result.selected).toMatchObject({ id, name: intent })
-    expect(result.nextRecommendedAction).toContain('validation_ast_check')
-    expect(result.nextRecommendedAction).not.toContain('validation_test_shape_propose')
+describe('validation authoring kit', () => {
+  it('creates a deterministic editable starter without claiming coverage', () => {
+    const input = {
+      plan,
+      sourceHash: `sha256:${'a'.repeat(64)}`,
+      targetProject: null,
+      resources: { templateSteps: [], stepBlocks: [], locatorGroups: [], locators: [], environments: [] },
+    }
+    const first = buildValidationAuthoringKit(input)
+    const second = buildValidationAuthoringKit(input)
+    expect(first.astExchange).toEqual(second.astExchange)
+    expect(first.astStarter.submission.ast.coverageArgument?.mappings[0]).toMatchObject({ state: 'uncovered' })
+    expect(first.runtimePreparationProposal).toMatchObject({
+      status: 'review_required',
+      targetWorkspaceMutation: 'none',
+    })
   })
 
-  it('returns descriptions, ordered parameters, and group metadata in validation context', async () => {
-    const context = await readValidationContext('plan-template-search', {
-      client: client(),
-      projectDirectory: workspace,
-      resourceTypes: ['templateSteps'],
-    })
-    if (!context.resources) throw new Error('Expected validation resources')
-
-    expect(context.resources.templateSteps[0]).toMatchObject({
-      description: expect.any(String),
-      parameters: [],
-      templateStepGroup: {
-        name: 'browser workflow',
-        description: 'Reusable browser mechanics',
+  it('packages bounded approved intent, reusable summaries, and registry-first recipes', () => {
+    const kit = buildValidationAuthoringKit({
+      plan,
+      sourceHash: `sha256:${'b'.repeat(64)}`,
+      targetProject: { id: 'project-one', displayName: 'One', canonicalPath: '/tmp/one', fingerprint: 'sha256:one' },
+      resources: {
+        templateSteps: [{ id: 'step-one', name: 'Click', signature: 'click {target}' }],
+        stepBlocks: [],
+        locatorGroups: [],
+        locators: [],
+        environments: [{ id: 'local', name: 'Local', baseUrl: 'http://localhost:3000', apiBaseUrl: null }],
       },
-      scope: 'shared_library',
     })
+    expect(kit.contextPack.reusableResourceSummary).toMatchObject({ templateSteps: 1, environments: 1 })
+    expect(kit.recipes[0]?.actionIds[0]).toBe('browser.navigation.goto')
+    expect(kit.runtimePreparationProposal.status).toBe('ready')
   })
 })

@@ -366,6 +366,13 @@ files are never managed execution authority; optional repository export is a sep
 Validation AST authoring is target-project scoped. Shared resources are returned only by explicit bounded search and
 include provenance. Ambiguous locator or action matches block check/preview until the AST binds exact catalog identities.
 
+`validation_context_read` also returns a bounded authoring bundle: approved intent and constraints, requirement and
+task IDs, target metadata, reusable-resource counts, task/requirement coverage, registry-first recipes, an editable
+AST starter, and a deterministic content-addressed JSON export accepted by `validation_ast_check`. Starter coverage is
+deliberately `uncovered`; the agent remains the semantic author and must replace placeholder observations before
+check/preview. Missing greenfield environment identity produces a review-required Appraise-resource proposal with no
+target-workspace mutation.
+
 Lifecycle and diagnostic tools support `summary`, `blockersOnly`, `evidenceOnly`, and explicit `full` modes. Default
 mutations return lifecycle delta, critical IDs and hashes, counts, links, blockers, cursor state, and exactly one legal
 next action. Contract tests enforce initial ceilings of 1,000 estimated tokens for diagnostics, 2,000 for plan creation,

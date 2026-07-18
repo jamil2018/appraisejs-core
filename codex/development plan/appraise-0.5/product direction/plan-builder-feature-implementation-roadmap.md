@@ -19,25 +19,25 @@ features by user impact and lifecycle risk.
 |     1 | Unified agent preflight                  | Implemented | Critical | `project_diagnostic` separates all four readiness layers, stores content-addressed project receipts, links their Projects UI presentation, and certifies hub and target paths in live MCP E2E. |
 |     2 | Guided expected-red capture              | Implemented | Critical | Baseline cards show the approved ordered signatures and exact evidence hash, and expected regressions require a signature-bound acknowledgement before acceptance.                             |
 |     3 | Guided baseline recovery                 | Implemented | Critical | Every current and historical attempt presents its durable state, classified root cause, only safe next action, immutable evidence links, and retry consequences.                               |
-|     4 | Lifecycle command center                 | Implemented | High     | The project-bound plan surface now consolidates the current gate, owner, blockers, active attempt, exact next action, scoped review URL, and recovery entry point.                               |
-|     5 | Exact validation and execution preview   | Implemented | High     | Validation review renders the canonical Gherkin projection, selected actions and locators, scenarios, runtime matrix, and all immutable publication/execution hashes.                            |
+|     4 | Lifecycle command center                 | Implemented | High     | The project-bound plan surface now consolidates the current gate, owner, blockers, active attempt, exact next action, scoped review URL, and recovery entry point.                             |
+|     5 | Exact validation and execution preview   | Implemented | High     | Validation review renders the canonical Gherkin projection, selected actions and locators, scenarios, runtime matrix, and all immutable publication/execution hashes.                          |
 |     6 | Golden lifecycle certification harness   | Implemented | High     | `npm run certify:plan-builder` executes representative greenfield publication and existing-project managed-capsule lifecycles and retains a content-addressed local certification receipt.     |
 |     7 | Per-plan timing and efficiency telemetry | Implemented | High     | The coordinator boundary records duration, wait time, retries, tool calls, response size, and recovery cost per phase with local-only storage and bounded per-plan retention.                  |
 
 ## P1 - Authoring leverage, observability, and auditability
 
-| Order | Feature                                   | Status  | Impact      | Implementation direction                                                                                                                                               |
-| ----: | ----------------------------------------- | ------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|     8 | Validation coverage explorer              | Planned | High        | Map plan requirements and tasks to scenarios, steps, actions, locators, and uncovered intent before validation review.                                                 |
-|     9 | Live agent activity view                  | Planned | High        | Display the agent's current phase, latest durable operation, wait state, and bounded progress without exposing private reasoning.                                      |
-|    10 | Event-driven lifecycle notifications      | Planned | High        | Notify on review readiness, requested changes, approvals, blocked attempts, recovery readiness, and completion-signoff requirements.                                   |
-|    11 | Validation AST starter and export         | Planned | High        | Generate an editable starter from plan intent and registered resources, then support deterministic import/export without shifting semantic ownership back to Appraise. |
-|    12 | Plan-intent context pack                  | Planned | Medium-high | Provide a bounded agent resource containing approved intent, constraints, requirement IDs, target metadata, and relevant reusable actions/resources.                   |
-|    13 | Reusable validation recipes               | Planned | Medium-high | Package common, registry-first validation patterns that agents can adapt while preserving explicit review of selected actions and locators.                            |
-|    14 | Greenfield runtime preparation proposal   | Planned | Medium-high | Detect missing runtime prerequisites and propose reviewable setup changes before baseline instead of mutating the target workspace silently.                           |
-|    15 | Evidence provenance timeline              | Planned | Medium-high | Correlate plan revisions, validation receipts, runtime capsules, attempts, TestRuns, checkpoints, and completion evidence in one immutable timeline.                   |
-|    16 | Revision-impact analysis                  | Planned | Medium-high | Identify which validations, resources, baselines, approvals, and implementation groups become stale after a plan or validation revision.                               |
-|    17 | Automatic delegated-authorization receipt | Planned | Medium      | Generate and attach a bounded receipt whenever an authorized worker or subagent performs lifecycle work on behalf of the coordinator.                                  |
+| Order | Feature                                   | Status      | Impact      | Implementation direction                                                                                                                                                                |
+| ----: | ----------------------------------------- | ----------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     8 | Validation coverage explorer              | Implemented | High        | The validation surface maps task intent through validation nodes, scenarios, steps, reviewed actions and locators, and keeps uncovered intent explicit before review.                   |
+|     9 | Live agent activity view                  | Planned     | High        | Display the agent's current phase, latest durable operation, wait state, and bounded progress without exposing private reasoning.                                                       |
+|    10 | Event-driven lifecycle notifications      | Planned     | High        | Notify on review readiness, requested changes, approvals, blocked attempts, recovery readiness, and completion-signoff requirements.                                                    |
+|    11 | Validation AST starter and export         | Implemented | High        | `validation_context_read` returns an editable uncovered starter plus content-addressed canonical JSON importable through `validation_ast_check`; semantic ownership remains agent-held. |
+|    12 | Plan-intent context pack                  | Implemented | Medium-high | The bounded authoring resource includes approved intent, constraints, requirement IDs, target metadata, task validation intent, and reusable-resource counts.                           |
+|    13 | Reusable validation recipes               | Implemented | Medium-high | The authoring resource packages registry-first navigation, form-outcome, and persistence recipes while requiring exact action and locator review.                                       |
+|    14 | Greenfield runtime preparation proposal   | Implemented | Medium-high | Missing project environments produce a review-required Appraise-resource proposal with `targetWorkspaceMutation: none`; ready projects proceed without mutation.                        |
+|    15 | Evidence provenance timeline              | Planned     | Medium-high | Correlate plan revisions, validation receipts, runtime capsules, attempts, TestRuns, checkpoints, and completion evidence in one immutable timeline.                                    |
+|    16 | Revision-impact analysis                  | Planned     | Medium-high | Identify which validations, resources, baselines, approvals, and implementation groups become stale after a plan or validation revision.                                                |
+|    17 | Automatic delegated-authorization receipt | Planned     | Medium      | Generate and attach a bounded receipt whenever an authorized worker or subagent performs lifecycle work on behalf of the coordinator.                                                   |
 
 ## P2 - Provider-native operations
 
@@ -98,6 +98,15 @@ The lifecycle confidence layer is complete:
 - The plan review surface displays the latest certification receipt and locally retained per-phase efficiency totals.
 - Coordinator POST operations record bounded timing, wait, retry, response-size, tool-call, and recovery-cost metrics
   without allowing telemetry failure to alter the lifecycle response.
+
+The first P1 authoring tranche is complete:
+
+- `validation_context_read` now returns a bounded plan-intent context pack, deterministic editable AST starter and
+  canonical export, registry-first recipes, a task/requirement coverage explorer, and a review-only runtime proposal.
+- Starters label every mapping uncovered and require agent editing plus Appraise check/preview/review, so Appraise
+  does not infer validation semantics from plan prose.
+- The validation UI maps task intent to validation nodes, scenarios, stimulus/observation steps, selected actions,
+  locators, and uncovered intent before review.
 
 ## Recommended implementation sequence
 

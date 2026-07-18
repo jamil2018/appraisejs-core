@@ -91,6 +91,7 @@ import { BaselineAttemptCard } from './baseline-attempt-card'
 import { ExactExecutionPreview } from './exact-execution-preview'
 import { LifecycleCommandCenter } from './lifecycle-command-center'
 import { PlanObservabilityPanel } from './plan-observability-panel'
+import { ValidationCoverageExplorer } from './validation-coverage-explorer'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
@@ -1238,6 +1239,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                 </div>
               </TabsContent>
               <TabsContent value="validations" className="m-0 space-y-4">
+                <ValidationCoverageExplorer detail={detail} />
                 {detail.exactExecutionPreview ? <ExactExecutionPreview preview={detail.exactExecutionPreview} /> : null}
                 <ValidationReviewPanel
                   detail={detail}
