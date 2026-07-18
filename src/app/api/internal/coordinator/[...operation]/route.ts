@@ -128,6 +128,7 @@ import {
   writeTargetProjectMarker,
 } from '@/services/target-project/target-project-service'
 import { recordAgentPreflightReceipt } from '@/services/agent-preflight/agent-preflight-service'
+import { recordCoordinatorResponseMetric } from '@/services/coordinator/plan-observability-service'
 
 export const runtime = 'nodejs'
 
@@ -1069,13 +1070,24 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const startedAt = Date.now()
+  let operation: string[] = []
+  let body: unknown
   try {
-    const operation = (await context.params).operation
-    const body = await readCoordinatorJson(request)
+    operation = (await context.params).operation
+    body = await readCoordinatorJson(request)
     await guardPostRequest(request, operation, body)
-    return await dispatchPost(request, operation, body)
+    const response = await dispatchPost(request, operation, body)
+    await recordCoordinatorResponseMetric({ operation, body, response, startedAt }).catch(error =>
+      console.warn('Plan operation telemetry could not be recorded.', error),
+    )
+    return response
   } catch (error) {
-    return responseError(error)
+    const response = responseError(error)
+    await recordCoordinatorResponseMetric({ operation, body, response, startedAt }).catch(error =>
+      console.warn('Plan operation telemetry could not be recorded.', error),
+    )
+    return response
   }
 }
 

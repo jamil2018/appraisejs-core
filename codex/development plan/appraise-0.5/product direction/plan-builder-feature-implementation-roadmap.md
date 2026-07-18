@@ -21,8 +21,8 @@ features by user impact and lifecycle risk.
 |     3 | Guided baseline recovery                 | Implemented | Critical | Every current and historical attempt presents its durable state, classified root cause, only safe next action, immutable evidence links, and retry consequences.                               |
 |     4 | Lifecycle command center                 | Implemented | High     | The project-bound plan surface now consolidates the current gate, owner, blockers, active attempt, exact next action, scoped review URL, and recovery entry point.                               |
 |     5 | Exact validation and execution preview   | Implemented | High     | Validation review renders the canonical Gherkin projection, selected actions and locators, scenarios, runtime matrix, and all immutable publication/execution hashes.                            |
-|     6 | Golden lifecycle certification harness   | Planned     | High     | Continuously execute representative greenfield and existing-project lifecycles through every Appraise-owned gate and retain durable certification evidence.                                    |
-|     7 | Per-plan timing and efficiency telemetry | Planned     | High     | Record duration, wait time, retries, tool calls, response size, and recovery cost per phase while keeping local-first privacy and bounded retention.                                           |
+|     6 | Golden lifecycle certification harness   | Implemented | High     | `npm run certify:plan-builder` executes representative greenfield publication and existing-project managed-capsule lifecycles and retains a content-addressed local certification receipt.     |
+|     7 | Per-plan timing and efficiency telemetry | Implemented | High     | The coordinator boundary records duration, wait time, retries, tool calls, response size, and recovery cost per phase with local-only storage and bounded per-plan retention.                  |
 
 ## P1 - Authoring leverage, observability, and auditability
 
@@ -90,6 +90,14 @@ The command and preview surfaces are complete:
   active managed attempt, exact next action, and scoped review/recovery links.
 - The validation review surface reads the immutable publish journal and shows canonical Gherkin, actions, locators,
   scenarios, runtime matrix, and AST/context/preview/receipt/projection/runtime-input hashes before execution.
+
+The lifecycle confidence layer is complete:
+
+- The golden certification command exercises greenfield validation publication and an existing-project managed
+  runtime capsule through Appraise-owned gates, then stores an immutable matrix hash, outcome, duration, and commit.
+- The plan review surface displays the latest certification receipt and locally retained per-phase efficiency totals.
+- Coordinator POST operations record bounded timing, wait, retry, response-size, tool-call, and recovery-cost metrics
+  without allowing telemetry failure to alter the lifecycle response.
 
 ## Recommended implementation sequence
 

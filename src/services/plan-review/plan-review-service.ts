@@ -27,6 +27,10 @@ import { reviewImplementationCompletion } from '@/services/coordinator/coordinat
 import { analyzeExecutionOrder } from '@/lib/implementation-checkpoints/protocol'
 import { auditManagedValidationIntegrity } from '@/services/coordinator/managed-validation-integrity-audit'
 import { appliedPageLimit, decodePageCursor, encodePageCursor, pageFromItems, type PageRequest } from '@/lib/pagination'
+import {
+  readLatestLifecycleCertification,
+  readPlanEfficiencyTelemetry,
+} from '@/services/coordinator/plan-observability-service'
 
 import {
   canApprovePlan,
@@ -85,6 +89,8 @@ export type PlanReviewDetail = {
     matrix: Array<{ browser: string; environment: string }>
     gherkin: string[]
   }
+  efficiencyTelemetry: Awaited<ReturnType<typeof readPlanEfficiencyTelemetry>>
+  lifecycleCertification: Awaited<ReturnType<typeof readLatestLifecycleCertification>>
   validationIntegrity: Awaited<ReturnType<typeof auditManagedValidationIntegrity>>
   completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>
@@ -447,9 +453,11 @@ export async function getPlanReviewDetail(
   ])
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
-  const [validationReview, exactExecutionPreview] = await Promise.all([
+  const [validationReview, exactExecutionPreview, efficiencyTelemetry, lifecycleCertification] = await Promise.all([
     readValidationReviewEvidence(canonicalPlanId, validation, review, client),
     readExactExecutionPreview(canonicalPlanId, client),
+    readPlanEfficiencyTelemetry(canonicalPlanId, client),
+    readLatestLifecycleCertification(client),
   ])
   const validationIntegrity = await auditManagedValidationIntegrity(canonicalPlanId, {
     client,
@@ -481,6 +489,8 @@ export async function getPlanReviewDetail(
     validationContentHash: validation ? hashContent(serializeYamlArtifact('validation', validation)) : undefined,
     validationReview,
     exactExecutionPreview,
+    efficiencyTelemetry,
+    lifecycleCertification,
     validationIntegrity,
     completionReview,
     graph,

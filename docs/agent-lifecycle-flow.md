@@ -275,6 +275,19 @@ The completion event keeps the prior event hash in `previousStateHash` and binds
 Reports should distinguish backend/service approval from browser/UI approval. If a run used API or service calls only,
 say that plainly and do not imply a human used the browser flow.
 
+## Certification and local efficiency evidence
+
+Run `npm run certify:plan-builder` to execute the representative greenfield-publication and existing-project managed
+runtime-capsule lifecycle cases. The command writes a content-addressed `LifecycleCertificationReceipt` containing
+the matrix, outcome, duration, and current Git commit. Both passing and failing runs are retained so the latest state
+does not erase earlier certification evidence.
+
+The coordinator POST boundary records plan-scoped operation metrics after producing the lifecycle response. Metrics
+include phase, duration, wait time, retry count, tool-call count, request and response size, and recovery cost. Storage
+is local-only and bounded to the latest 500 operations per plan; telemetry errors are logged but never replace the
+Appraise-owned operation response. The plan review command center presents the latest certification and aggregated
+per-phase metrics.
+
 ## Project-scoped authored resources
 
 Agent-authored project resources inherit the plan projection's `targetProjectId`. Context discovery returns only

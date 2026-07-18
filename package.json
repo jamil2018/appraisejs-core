@@ -73,6 +73,7 @@
     "build-step-registry": "npx tsx scripts/build-step-registry.ts",
     "appraisejs:install-step": "npx tsx scripts/install-template-step.ts",
     "test": "cucumber-js",
+    "certify:plan-builder": "node scripts/certify-plan-builder-lifecycle.mjs",
     "validate:unit": "node --import tsx scripts/run-vitest.ts",
     "validate:e2e": "playwright test",
     "validate:e2e:smoke": "playwright test --grep @smoke",

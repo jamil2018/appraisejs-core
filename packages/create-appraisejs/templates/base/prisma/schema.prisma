@@ -367,6 +367,7 @@ model PlanProjection {
   providerRuns                   ProviderWorkflowRun[]
   baselineAttempts               BaselineAttempt[]
   validationAstPublishOperations ValidationAstPublishOperation[]
+  operationMetrics               PlanOperationMetric[]
   targetProjectId                String?
   targetProject                  TargetProject?                  @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
 
@@ -475,6 +476,40 @@ model AgentPreflightReceipt {
   @@unique([coordinatorId, snapshotHash])
   @@index([targetProjectId, observedAt])
   @@index([observedAt])
+}
+
+model PlanOperationMetric {
+  id               String         @id @default(cuid())
+  planProjectionId String
+  phase            String
+  operation        String
+  statusCode       Int
+  durationMs       Int
+  waitMs           Int            @default(0)
+  retryCount       Int            @default(0)
+  toolCallCount    Int            @default(1)
+  requestBytes     Int
+  responseBytes    Int
+  recoveryCost     Int            @default(0)
+  recordedAt       DateTime       @default(now())
+  plan             PlanProjection @relation(fields: [planProjectionId], references: [id], onDelete: Cascade)
+
+  @@index([planProjectionId, recordedAt])
+  @@index([recordedAt])
+}
+
+model LifecycleCertificationReceipt {
+  id            String   @id @default(cuid())
+  schemaVersion String
+  status        String
+  matrixHash    String
+  matrixJson    String
+  durationMs    Int
+  gitCommit     String?
+  recordedAt    DateTime @default(now())
+
+  @@index([recordedAt])
+  @@index([status, recordedAt])
 }
 
 model ValidationResourceProposal {

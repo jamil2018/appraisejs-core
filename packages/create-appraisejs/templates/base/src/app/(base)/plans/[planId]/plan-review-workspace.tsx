@@ -90,6 +90,7 @@ import { PlanFlowTaskNode, type PlanFlowTaskNode as PlanFlowTaskNodeType } from 
 import { BaselineAttemptCard } from './baseline-attempt-card'
 import { ExactExecutionPreview } from './exact-execution-preview'
 import { LifecycleCommandCenter } from './lifecycle-command-center'
+import { PlanObservabilityPanel } from './plan-observability-panel'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
@@ -810,6 +811,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
       </section>
 
       <LifecycleCommandCenter detail={detail} />
+      <PlanObservabilityPanel detail={detail} />
 
       {detail.projection.stale || detail.projection.conflicted ? (
         <Alert variant="destructive" className="rounded-xl">
