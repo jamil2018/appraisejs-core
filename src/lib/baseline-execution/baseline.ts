@@ -148,8 +148,9 @@ export function classifyBaselineResult(
 
 function matchesApprovedFailureSequence(expected: string[], observed: string[]): boolean {
   if (expected.length === 0 || observed.length === 0) return false
+  if (!observed[0]!.includes(expected[0]!)) return false
   let expectedIndex = 0
-  for (const signature of observed) {
+  for (const signature of observed.slice(1)) {
     if (signature.includes(expected[expectedIndex]!)) continue
     const nextIndex = expectedIndex + 1
     if (nextIndex >= expected.length || !signature.includes(expected[nextIndex]!)) return false

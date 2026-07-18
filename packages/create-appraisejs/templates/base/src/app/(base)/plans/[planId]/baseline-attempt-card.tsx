@@ -101,6 +101,7 @@ function buildBaselineEvidenceLinks(attempt: BaselineAttempt) {
 
 export function BaselineAttemptCard({
   attempt,
+  isCurrent,
   planId,
   isPending,
   run,
@@ -108,6 +109,7 @@ export function BaselineAttemptCard({
   onRegressionJustificationChange,
 }: {
   attempt: BaselineAttempt
+  isCurrent: boolean
   planId: string
   isPending: boolean
   run: PlanActionRunner
@@ -141,6 +143,7 @@ export function BaselineAttemptCard({
         >
           {attempt.classification?.replaceAll('_', ' ') ?? attempt.status}
         </Badge>
+        {!isCurrent && <Badge variant="secondary">Historical</Badge>}
       </div>
 
       <p className="text-muted-foreground/80 flex items-center justify-between font-mono text-[10px]">
@@ -149,14 +152,16 @@ export function BaselineAttemptCard({
       </p>
 
       <BaselineEvidenceLinks links={evidenceLinks} />
-      <BaselineAttemptFollowUp
-        attempt={attempt}
-        planId={planId}
-        isPending={isPending}
-        run={run}
-        regressionJustification={regressionJustification}
-        onRegressionJustificationChange={onRegressionJustificationChange}
-      />
+      {isCurrent && (
+        <BaselineAttemptFollowUp
+          attempt={attempt}
+          planId={planId}
+          isPending={isPending}
+          run={run}
+          regressionJustification={regressionJustification}
+          onRegressionJustificationChange={onRegressionJustificationChange}
+        />
+      )}
     </div>
   )
 }

@@ -253,7 +253,7 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
         {
           uri: uri.href,
           mimeType: 'application/json',
-          text: JSON.stringify(await api.request(`plans/${String(variables.planId)}/validations/draft`)),
+          text: JSON.stringify(await api.request(`plans/${String(variables.planId)}/validations/draft/context`)),
         },
       ],
     }),

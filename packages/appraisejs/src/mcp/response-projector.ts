@@ -82,15 +82,15 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     payload.validation && typeof payload.validation === 'object'
       ? (payload.validation as Record<string, unknown>)
       : undefined
-  const baselineAttempts = Array.isArray(validation?.baselineAttempts) ? validation.baselineAttempts : undefined
-  const testRunIds =
-    baselineAttempts
+  const allBaselineAttempts = Array.isArray(validation?.baselineAttempts) ? validation.baselineAttempts : undefined
+  const allTestRunIds =
+    allBaselineAttempts
       ?.map(attempt =>
         attempt && typeof attempt === 'object' ? (attempt as Record<string, unknown>).testRunId : undefined,
       )
       .filter((testRunId): testRunId is string => typeof testRunId === 'string') ?? payload.testRunIds
-  const attemptIds =
-    baselineAttempts
+  const allAttemptIds =
+    allBaselineAttempts
       ?.map(attempt => (attempt && typeof attempt === 'object' ? (attempt as Record<string, unknown>).id : undefined))
       .filter((attemptId): attemptId is string => typeof attemptId === 'string') ?? undefined
   const implementation =
@@ -122,6 +122,9 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     implementation?.taskStates && typeof implementation.taskStates === 'object'
       ? (implementation.taskStates as Record<string, unknown>)
       : undefined
+  const baselineAttempts = implementation ? undefined : allBaselineAttempts
+  const testRunIds = implementation ? payload.testRunIds : allTestRunIds
+  const attemptIds = implementation ? undefined : allAttemptIds
   const common = {
     planId: payload.planId ?? plan?.planId,
     lifecycle: payload.lifecycle ?? plan?.lifecycle,
@@ -214,6 +217,27 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
         ]),
       )
     : undefined
+  const bindings =
+    payload.bindings && typeof payload.bindings === 'object' && !Array.isArray(payload.bindings)
+      ? Object.fromEntries(
+          Object.entries(payload.bindings as Record<string, unknown>).map(([resourceType, entries]) => [
+            resourceType,
+            Array.isArray(entries)
+              ? entries.map(entry => {
+                  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return entry
+                  const binding = entry as Record<string, unknown>
+                  return {
+                    localKey: binding.localKey,
+                    id: binding.id,
+                    astRef: binding.astRef,
+                    version: binding.version,
+                    reference: binding.reference,
+                  }
+                })
+              : entries,
+          ]),
+        )
+      : undefined
   const common = {
     status: payload.status,
     planId: payload.planId ?? reviewReady?.planId ?? created?.planId,
@@ -256,7 +280,7 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     requirementAssessment: payload.requirementAssessment,
     taskDiff: payload.taskDiff,
     targetProject: payload.targetProject,
-    bindings: payload.bindings,
+    bindings,
     returnedResourceCounts,
     resourceSearchGuidance: resources
       ? 'Use validation_context_read with resourceTypes/query and a small limit, or the dedicated template_step_search, step_block_search, and locator_search tools, before requesting full context.'

@@ -6,6 +6,7 @@ import {
   applyAuthoringResponseMode,
   applyLifecycleResponseMode,
   baselineRecoveryForLifecycle,
+  buildAgentPreflight,
   compactMcpCapabilityMetadata,
   compactProjectDiagnostic,
   createAppraiseMcpServer,
@@ -331,9 +332,19 @@ describe('compact lifecycle responses', () => {
       {
         plan: { planId: 'plan-1', sourceHash: `sha256:${'a'.repeat(64)}` },
         contextHash: `sha256:${'b'.repeat(64)}`,
-        ids: { locators: { input: 'locator-row-id' } },
+        ids: { locators: { input: 'locator-row-id' }, environments: { local: 'environment-row-id' } },
         bindings: {
-          locators: [{ localKey: 'input', id: 'locator-row-id', astRef: 'locator_locator-row-id' }],
+          locators: [
+            {
+              localKey: 'input',
+              id: 'locator-row-id',
+              astRef: 'locator_locator-row-id',
+              version: '1',
+              targetProjectId: 'project-1',
+              moduleId: 'module-1',
+            },
+          ],
+          environments: [{ localKey: 'local', id: 'environment-row-id', reference: 'environment-row-id' }],
         },
       },
       'summary',
@@ -342,10 +353,20 @@ describe('compact lifecycle responses', () => {
     expect(compact).toMatchObject({
       expectedPlanHash: `sha256:${'a'.repeat(64)}`,
       bindings: {
-        locators: [{ localKey: 'input', astRef: 'locator_locator-row-id' }],
+        locators: [
+          {
+            localKey: 'input',
+            id: 'locator-row-id',
+            astRef: 'locator_locator-row-id',
+            version: '1',
+          },
+        ],
+        environments: [{ localKey: 'local', id: 'environment-row-id', reference: 'environment-row-id' }],
       },
     })
     expect(compact).not.toHaveProperty('ids')
+    expect(JSON.stringify(compact)).not.toContain('targetProjectId')
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
   })
 
   it('publishes a versioned self-describing Validation AST schema', () => {
@@ -438,6 +459,27 @@ describe('compact lifecycle responses', () => {
     })
   })
 
+  it('does not repeat baseline attempts in implementation mutation summaries', () => {
+    const compact = applyLifecycleResponseMode(
+      {
+        validation: {
+          baselineAttempts: [{ id: 'baseline-attempt', testRunId: 'baseline-run', details: 'x'.repeat(10_000) }],
+          implementation: {
+            taskStates: { foundation: 'pending' },
+            approvedGroupIds: ['core'],
+            validationRuns: [],
+          },
+        },
+        runs: [{ id: 'implementation-run', testRunId: 'current-run', status: 'running' }],
+      },
+      'summary',
+    )
+
+    expect(compact).toHaveProperty('evidence', undefined)
+    expect(compact).toMatchObject({ runs: [{ id: 'implementation-run', testRunId: 'current-run' }] })
+    expect(JSON.stringify(compact)).not.toContain('baseline-run')
+  })
+
   it('projects direct implementation task updates without a stale checkpoint', () => {
     const compact = applyLifecycleResponseMode(
       {
@@ -512,6 +554,71 @@ describe('MCP agent workflow guidance', () => {
 })
 
 describe('MCP capability and recovery metadata', () => {
+  const diagnostic = {
+    ok: true,
+    hubProject: { cwd: '/hub', fingerprint: 'hub', canonicalPath: '/hub' },
+    project: { cwd: '/hub', fingerprint: 'hub' },
+    targetProjects: [{ canonicalPath: '/targets/secondwife' }],
+    contractVersion: '1',
+    baseUrl: 'http://127.0.0.1:3000',
+    checks: [{ id: 'application', status: 'ok' as const, message: 'reachable' }],
+    warnings: [],
+    recommendedValidationBaseRevision: undefined,
+    recoveryActions: [],
+    links: { application: 'http://127.0.0.1:3000' },
+  }
+
+  it('does not claim the immutable current-task capability snapshot without caller observations', () => {
+    expect(buildAgentPreflight(diagnostic)).toMatchObject({
+      status: 'needs_observation',
+      ready: false,
+      layers: {
+        activeMcpTransport: { status: 'ready' },
+        currentTaskCapabilities: { status: 'unverified' },
+        targetProjectBinding: { status: 'not_applicable' },
+      },
+    })
+  })
+
+  it('reports ready when the current task sees all sentinels and the expected target is registered', () => {
+    expect(
+      buildAgentPreflight(diagnostic, {
+        observedTools: compactMcpCapabilityMetadata.workflowSentinelTools,
+        observedResources: compactMcpCapabilityMetadata.workflowSentinelResources,
+        expectedTargetWorkspacePath: '/targets/secondwife',
+      }),
+    ).toMatchObject({
+      status: 'ready',
+      ready: true,
+      layers: {
+        currentTaskCapabilities: { status: 'ready' },
+        targetProjectBinding: { status: 'ready', matchedScope: 'target' },
+      },
+    })
+  })
+
+  it('blocks with exact missing capabilities before lifecycle work begins', () => {
+    expect(
+      buildAgentPreflight(diagnostic, {
+        observedTools: ['project_diagnostic'],
+        observedResources: [],
+        expectedTargetWorkspacePath: '/targets/missing',
+      }),
+    ).toMatchObject({
+      status: 'blocked',
+      ready: false,
+      layers: {
+        currentTaskCapabilities: {
+          status: 'blocked',
+          tools: { missing: expect.arrayContaining(['planning_session_create']) },
+          resources: { missing: expect.arrayContaining(['appraise://agent-guide']) },
+        },
+        targetProjectBinding: { status: 'blocked' },
+      },
+      recovery: { status: 'missing_or_stale' },
+    })
+  })
+
   it('registers contract and visual resources at distinct URIs', async () => {
     await expect(
       createAppraiseMcpServer({ cwd: process.cwd(), baseUrl: 'http://127.0.0.1:3000' }),
@@ -546,6 +653,7 @@ describe('MCP capability and recovery metadata', () => {
         'implementation_completion_review',
       ]),
     )
+    expect(mcpCapabilityMetadata.workflowCriticalTools).not.toContain('validation_decide')
     expect(mcpCapabilityMetadata.workflowResourceUris).toEqual(
       expect.arrayContaining([
         'appraise://actions/catalog',
@@ -554,8 +662,9 @@ describe('MCP capability and recovery metadata', () => {
         'appraise://workflow/planning',
         'appraise://workflow/validation-preparation',
         'appraise://workflow/standby',
-        'appraise://resources/template-steps',
-        'appraise://resources/locators',
+        'appraise://plans/{planId}',
+        'appraise://plans/{planId}/validation-context',
+        'appraise://plans/{planId}/validation-draft',
       ]),
     )
   })

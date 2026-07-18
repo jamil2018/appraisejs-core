@@ -118,6 +118,9 @@ passing state always requires a report. Completion, failure, and cancellation us
 TestRun and execution attempt. The run-scoped logger remains open through that final write, closes exactly once
 afterward, and treats any late write as a controlled no-op.
 
+Evidence counts report authored Cucumber `steps` separately from runtime `hooks`; setup and teardown hooks never
+inflate the authored-step total.
+
 The database lease covers the complete preflight, not only materialization. Ownership is renewed before every check,
 and the final dry-run stage renews, repeats complete repository/blob/run-file integrity, securely revalidates output
 ancestors, renews again, and only then spawns. Controlled mutation therefore blocks without invoking Cucumber. Config

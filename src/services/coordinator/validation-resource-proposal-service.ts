@@ -24,6 +24,12 @@ function proposalBindings(
   targetProjectId: string,
 ) {
   return {
+    environments: proposal.environments.map(item => ({
+      localKey: item.localKey,
+      id: ids.environments[item.localKey],
+      reference: ids.environments[item.localKey],
+      disposition: 'reused_or_created' as const,
+    })),
     locatorGroups: proposal.locatorGroups.map(item => ({
       localKey: item.localKey,
       id: ids.locatorGroups[item.localKey],
