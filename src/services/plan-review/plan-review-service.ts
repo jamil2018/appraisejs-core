@@ -68,6 +68,23 @@ export type PlanReviewDetail = {
     reviewStateHash?: string
     extensionArtifactHashes: string[]
   }
+  exactExecutionPreview?: {
+    operationId: string
+    phase: string
+    hashes: {
+      astHash: string
+      contextHash: string
+      previewHash: string
+      receiptHash: string
+      projectionHash: string
+      runtimeInputHash?: string
+    }
+    actions: Array<{ id: string; version: string }>
+    locators: Array<{ id: string; version: string }>
+    scenarios: Array<{ scenarioId: string; stepIds: string[] }>
+    matrix: Array<{ browser: string; environment: string }>
+    gherkin: string[]
+  }
   validationIntegrity: Awaited<ReturnType<typeof auditManagedValidationIntegrity>>
   completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>
@@ -342,6 +359,61 @@ async function readValidationReviewEvidence(
   }
 }
 
+type ExactPreviewRuntime = {
+  actions?: Array<{ id?: unknown; version?: unknown }>
+  locators?: Array<{ id?: unknown; version?: unknown }>
+  expected?: { scenarios?: Array<{ scenarioId?: unknown; stepIds?: unknown }> }
+  matrix?: Array<{ browser?: unknown; environment?: unknown }>
+}
+
+async function readExactExecutionPreview(
+  planId: string,
+  client: PrismaClient,
+): Promise<PlanReviewDetail['exactExecutionPreview']> {
+  const operation = await client.validationAstPublishOperation.findFirst({
+    where: { planId },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!operation?.runtimeInputJson) return undefined
+  const runtime = JSON.parse(operation.runtimeInputJson) as ExactPreviewRuntime
+  const projection = JSON.parse(operation.projectionJson) as { gherkin?: unknown }
+  const strings = (value: unknown) =>
+    Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return {
+    operationId: operation.id,
+    phase: operation.phase,
+    hashes: {
+      astHash: operation.astHash,
+      contextHash: operation.contextHash,
+      previewHash: operation.previewHash,
+      receiptHash: operation.receiptHash,
+      projectionHash: operation.projectionHash,
+      runtimeInputHash: operation.runtimeInputHash ?? undefined,
+    },
+    actions: (runtime.actions ?? []).flatMap(action =>
+      typeof action.id === 'string' && typeof action.version === 'string'
+        ? [{ id: action.id, version: action.version }]
+        : [],
+    ),
+    locators: (runtime.locators ?? []).flatMap(locator =>
+      typeof locator.id === 'string' && typeof locator.version === 'string'
+        ? [{ id: locator.id, version: locator.version }]
+        : [],
+    ),
+    scenarios: (runtime.expected?.scenarios ?? []).flatMap(scenario =>
+      typeof scenario.scenarioId === 'string'
+        ? [{ scenarioId: scenario.scenarioId, stepIds: strings(scenario.stepIds) }]
+        : [],
+    ),
+    matrix: (runtime.matrix ?? []).flatMap(entry =>
+      typeof entry.browser === 'string' && typeof entry.environment === 'string'
+        ? [{ browser: entry.browser, environment: entry.environment }]
+        : [],
+    ),
+    gherkin: strings(projection.gherkin),
+  }
+}
+
 export async function getPlanReviewDetail(
   planId: string,
   owner = DEFAULT_REVIEWER,
@@ -375,7 +447,10 @@ export async function getPlanReviewDetail(
   ])
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
-  const validationReview = await readValidationReviewEvidence(canonicalPlanId, validation, review, client)
+  const [validationReview, exactExecutionPreview] = await Promise.all([
+    readValidationReviewEvidence(canonicalPlanId, validation, review, client),
+    readExactExecutionPreview(canonicalPlanId, client),
+  ])
   const validationIntegrity = await auditManagedValidationIntegrity(canonicalPlanId, {
     client,
     projectDirectory: projectRoot,
@@ -405,6 +480,7 @@ export async function getPlanReviewDetail(
     validation,
     validationContentHash: validation ? hashContent(serializeYamlArtifact('validation', validation)) : undefined,
     validationReview,
+    exactExecutionPreview,
     validationIntegrity,
     completionReview,
     graph,

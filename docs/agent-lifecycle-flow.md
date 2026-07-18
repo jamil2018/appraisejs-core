@@ -33,6 +33,8 @@ Continuation packages never replace lifecycle events or approval receipts. Coord
 Appraise time, active agent time, and human-review time separately.
 
 The plan review workspace shows the same lifecycle as a five-stage progress rail and names the next actor and action.
+Its project-bound command center also consolidates blocking issues, active baseline identity, the exact review URL,
+and the recovery surface, so operators do not need to infer the current gate from raw events.
 Its copy-continuation control emits a compact JSON handoff with the target project, plan ID, lifecycle, revision,
 current hashes, latest event cursor, scoped review URL, and next action. This clipboard package is a convenience for
 agent handoff; durable continuation still uses the snapshot and continuation-package MCP tools.
@@ -63,6 +65,9 @@ transition it permits succeeds. `validation_preparation_started` permits managed
 `validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
 Preview confirmation may use the exact hash-bound MCP response; a pre-compile browser surface is optional rather than
 required. The Appraise-owned validation approval gate remains the persisted post-compile UI review.
+That persisted review renders the canonical Gherkin projection, selected action and locator identities, scenarios,
+runtime matrix, and the immutable AST, context, preview, receipt, projection, and runtime-input hashes before any
+managed execution begins.
 Managed execution uses only the exact Appraise-owned immutable runtime capsule; it never writes or executes target
 `automation/` files.
 

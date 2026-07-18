@@ -19,8 +19,8 @@ features by user impact and lifecycle risk.
 |     1 | Unified agent preflight                  | Implemented | Critical | `project_diagnostic` separates all four readiness layers, stores content-addressed project receipts, links their Projects UI presentation, and certifies hub and target paths in live MCP E2E. |
 |     2 | Guided expected-red capture              | Implemented | Critical | Baseline cards show the approved ordered signatures and exact evidence hash, and expected regressions require a signature-bound acknowledgement before acceptance.                             |
 |     3 | Guided baseline recovery                 | Implemented | Critical | Every current and historical attempt presents its durable state, classified root cause, only safe next action, immutable evidence links, and retry consequences.                               |
-|     4 | Lifecycle command center                 | Planned     | High     | Provide one project-scoped surface for current gate, owner, blockers, active attempt, exact next action, review URLs, and recovery controls.                                                   |
-|     5 | Exact validation and execution preview   | Planned     | High     | Show the canonical AST projection, selected actions and locators, scenarios, runtime inputs, and immutable execution identity before publication or execution.                                 |
+|     4 | Lifecycle command center                 | Implemented | High     | The project-bound plan surface now consolidates the current gate, owner, blockers, active attempt, exact next action, scoped review URL, and recovery entry point.                               |
+|     5 | Exact validation and execution preview   | Implemented | High     | Validation review renders the canonical Gherkin projection, selected actions and locators, scenarios, runtime matrix, and all immutable publication/execution hashes.                            |
 |     6 | Golden lifecycle certification harness   | Planned     | High     | Continuously execute representative greenfield and existing-project lifecycles through every Appraise-owned gate and retain durable certification evidence.                                    |
 |     7 | Per-plan timing and efficiency telemetry | Planned     | High     | Record duration, wait time, retries, tool calls, response size, and recovery cost per phase while keeping local-first privacy and bounded retention.                                           |
 
@@ -83,6 +83,13 @@ The baseline recovery epic is also complete:
   attempt and signature hash.
 - Each attempt explains its classified root cause, allowed recovery action, and the consequences of retrying.
 - Repair clears review/runtime projections while preserving immutable attempt and TestRun history.
+
+The command and preview surfaces are complete:
+
+- The project-bound lifecycle command center projects the current Appraise-owned gate, responsible actor, blockers,
+  active managed attempt, exact next action, and scoped review/recovery links.
+- The validation review surface reads the immutable publish journal and shows canonical Gherkin, actions, locators,
+  scenarios, runtime matrix, and AST/context/preview/receipt/projection/runtime-input hashes before execution.
 
 ## Recommended implementation sequence
 
