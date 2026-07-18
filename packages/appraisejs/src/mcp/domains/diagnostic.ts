@@ -1,5 +1,6 @@
 import type { McpRegistryContext } from '../registry.js'
 import {
+  buildAgentPreflight,
   compactProjectDiagnostic,
   compactMcpCapabilityMetadata,
   diagnoseProject,
@@ -15,15 +16,24 @@ export function registerDiagnosticOperations(context: McpRegistryContext): void 
     'project_diagnostic',
     {
       description:
-        'Verify application/API reachability, authentication, project identity, Git reproducibility, and contract compatibility.',
-      inputSchema: {},
+        'Unified agent preflight for application reachability, authentication, project identity, current-task MCP capabilities, target binding, Git reproducibility, and contract compatibility.',
+      inputSchema: {
+        observedTools: z.array(z.string()).optional(),
+        observedResources: z.array(z.string()).optional(),
+        expectedTargetWorkspacePath: z.string().optional(),
+      },
     },
-    async () => {
+    async ({ observedTools, observedResources, expectedTargetWorkspacePath }) => {
       const diagnostic = await diagnoseProject(options)
       return text(
         withGuidance(
           {
             ...compactProjectDiagnostic(diagnostic),
+            agentPreflight: buildAgentPreflight(diagnostic, {
+              observedTools,
+              observedResources,
+              expectedTargetWorkspacePath,
+            }),
             capabilities: compactMcpCapabilityMetadata,
             capabilityStatus: 'available',
           },

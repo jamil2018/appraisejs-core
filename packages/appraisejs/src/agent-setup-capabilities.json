@@ -1,5 +1,6 @@
 {
   "tools": [
+    "project_diagnostic",
     "action_categories_list",
     "actions_list",
     "actions_read",
@@ -9,6 +10,8 @@
     "validation_ast_preview",
     "validation_ast_compile",
     "validation_review_loop",
+    "test_run_read",
+    "test_run_diagnose",
     "baseline_start",
     "baseline_reconcile",
     "baseline_accept",
@@ -18,6 +21,7 @@
     "validation_ast_extension_reviews"
   ],
   "resources": [
+    "appraise://project",
     "appraise://actions/catalog",
     "appraise://actions/category/{categoryId}",
     "appraise://agent-guide",

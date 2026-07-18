@@ -287,6 +287,29 @@ describe('implementation coordinator checkpoints', () => {
     })
   }
 
+  it('projects every plan task as pending when implementation groups are first approved', async () => {
+    const planId = 'implementation-initial-task-states'
+    await writeArtifacts(planId, undefined, {
+      implementation: {
+        taskStates: {},
+        approvedGroupIds: [],
+        pausedTaskIds: [],
+        validationRuns: [],
+        commits: [],
+        reconciliationReceipts: [],
+        evidenceProtected: true,
+      },
+    })
+
+    await expect(
+      approveImplementationGroups({ planId, groupIds: ['core'] }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      implementation: {
+        taskStates: { foundation: 'pending', api: 'pending', docs: 'pending' },
+      },
+    })
+  })
+
   it('binds reviewed managed implementation validation to a capsule TestRun without target automation inputs', async () => {
     const planId = 'implementation-capsule-run'
     await writeArtifacts(planId, undefined, {
@@ -755,7 +778,10 @@ describe('implementation coordinator checkpoints', () => {
     await expect(
       approveImplementationGroups({ planId, groupIds: ['core'] }, { projectDirectory: workspace, client }),
     ).resolves.toMatchObject({
-      implementation: { approvedGroupIds: ['core'] },
+      implementation: {
+        approvedGroupIds: ['core'],
+        taskStates: { foundation: 'verified', api: 'verified', docs: 'verified' },
+      },
     })
 
     const repository = new PlanArtifactRepository(workspace)

@@ -49,6 +49,13 @@ describe('simple happy-path authoring profile', () => {
     expect(checkValidationAstAuthoringProfile(ast, profile, actions)).toEqual([])
   })
 
+  it('treats And steps after Then as assertions using effective Gherkin semantics', () => {
+    const inheritedThenAst = structuredClone(ast)
+    inheritedThenAst.scenarios[0]!.steps[2]!.keyword = 'And'
+
+    expect(checkValidationAstAuthoringProfile(inheritedThenAst, profile, actions)).toEqual([])
+  })
+
   it('returns stable blockers and permits explicit advanced matrix/timing opt-in', () => {
     const advancedAst = structuredClone(ast)
     advancedAst.matrix.push({ browser: 'firefox', environmentId: 'local' })

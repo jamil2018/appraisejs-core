@@ -128,10 +128,10 @@ export function classifyBaselineResult(
       reason: `Required setup step "${lastExpectedStep}" did not pass before the failure.`,
     }
   }
-  const orderedMatch =
-    expected.length > 0 &&
-    expected.length === evidence.failureSignatures.length &&
-    expected.every((item, index) => evidence.failureSignatures[index]?.includes(item.signature))
+  const orderedMatch = matchesApprovedFailureSequence(
+    expected.map(item => item.signature),
+    evidence.failureSignatures,
+  )
   if (orderedMatch) {
     return {
       classification: 'expected_product_failure',
@@ -144,6 +144,19 @@ export function classifyBaselineResult(
     signatureHash,
     reason: 'The failure is outside the approved expected signatures and requires acknowledgement.',
   }
+}
+
+function matchesApprovedFailureSequence(expected: string[], observed: string[]): boolean {
+  if (expected.length === 0 || observed.length === 0) return false
+  if (!observed[0]!.includes(expected[0]!)) return false
+  let expectedIndex = 0
+  for (const signature of observed.slice(1)) {
+    if (signature.includes(expected[expectedIndex]!)) continue
+    const nextIndex = expectedIndex + 1
+    if (nextIndex >= expected.length || !signature.includes(expected[nextIndex]!)) return false
+    expectedIndex = nextIndex
+  }
+  return expectedIndex === expected.length - 1
 }
 
 export function hashFailureSignatures(signatures: string[]): string {

@@ -13,6 +13,7 @@ import {
   type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { planStateHash } from '@/lib/plans/plan-hashes'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
@@ -285,6 +286,29 @@ describe('implementation coordinator checkpoints', () => {
       return { testRunId: row.id, runId: row.runId, attemptId: `attempt-${row.id}`, state: 'RUNNING' } as never
     })
   }
+
+  it('projects every plan task as pending when implementation groups are first approved', async () => {
+    const planId = 'implementation-initial-task-states'
+    await writeArtifacts(planId, undefined, {
+      implementation: {
+        taskStates: {},
+        approvedGroupIds: [],
+        pausedTaskIds: [],
+        validationRuns: [],
+        commits: [],
+        reconciliationReceipts: [],
+        evidenceProtected: true,
+      },
+    })
+
+    await expect(
+      approveImplementationGroups({ planId, groupIds: ['core'] }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      implementation: {
+        taskStates: { foundation: 'pending', api: 'pending', docs: 'pending' },
+      },
+    })
+  })
 
   it('binds reviewed managed implementation validation to a capsule TestRun without target automation inputs', async () => {
     const planId = 'implementation-capsule-run'
@@ -754,7 +778,10 @@ describe('implementation coordinator checkpoints', () => {
     await expect(
       approveImplementationGroups({ planId, groupIds: ['core'] }, { projectDirectory: workspace, client }),
     ).resolves.toMatchObject({
-      implementation: { approvedGroupIds: ['core'] },
+      implementation: {
+        approvedGroupIds: ['core'],
+        taskStates: { foundation: 'verified', api: 'verified', docs: 'verified' },
+      },
     })
 
     const repository = new PlanArtifactRepository(workspace)
@@ -1082,12 +1109,11 @@ describe('implementation coordinator checkpoints', () => {
     })
     expect(currentCompletionReview.evidenceHash).not.toBe(completionReview.evidenceHash)
 
-    await expect(
-      approveImplementationCompletion(
-        { planId, approvedBy: 'user', contentHash: currentCompletionReview.evidenceHash },
-        { projectDirectory: workspace, client, now: new Date('2026-06-11T00:06:00.000Z') },
-      ),
-    ).resolves.toMatchObject({
+    const completed = await approveImplementationCompletion(
+      { planId, approvedBy: 'user', contentHash: currentCompletionReview.evidenceHash },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T00:06:00.000Z') },
+    )
+    expect(completed).toMatchObject({
       plan: { lifecycle: 'completed' },
       review: {
         finalSignOff: {
@@ -1113,7 +1139,12 @@ describe('implementation coordinator checkpoints', () => {
     })
     await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 1, type: 'implementation_checkpoint_reached' }),
-      expect.objectContaining({ sequence: 2, type: 'plan_completed', payload: { approvedBy: 'user' } }),
+      expect.objectContaining({
+        sequence: 2,
+        type: 'plan_completed',
+        payload: { approvedBy: 'user' },
+        stateHash: planStateHash(completed.plan),
+      }),
     ])
     await expect(
       readImplementationLifecycleHealth(planId, { projectDirectory: workspace, client }),

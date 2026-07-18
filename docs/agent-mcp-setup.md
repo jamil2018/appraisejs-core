@@ -49,7 +49,10 @@ the Codex process environment. The supported user flow is:
    and `codex mcp add appraisejs -- <resolved-stdio-command>` commands.
 5. Restart or reconnect Codex, then start a new task. MCP capabilities are discovered when a task connects and an
    already-running task keeps its original tool snapshot.
-6. Verify `codex mcp get appraisejs`, endpoint reachability, `project_diagnostic`, and the expected resources/tools.
+6. Verify `codex mcp get appraisejs`, endpoint reachability, and the expected resources/tools. Then call
+   `project_diagnostic` with the tools and resources visible to the current task plus the intended target workspace.
+   A zero-input call remains valid, but returns `agentPreflight.status: needs_observation` because the server cannot
+   inspect the client's immutable task capability snapshot.
 
 Do not repeatedly edit `~/.codex/config.toml` by hand. Use `codex mcp get/add/remove` so Codex owns the config shape.
 Re-register only when the endpoint or transport changes; a server-side tool change normally requires restarting the
@@ -96,6 +99,13 @@ After reconnect, verify these expected capabilities:
   `test_run_read`, `test_run_diagnose`
 - Resources: `appraise://agent-guide`, `appraise://workflow/planning`,
   `appraise://workflow/validation-preparation`, `appraise://workflow/standby`
+
+`project_diagnostic` is the unified preflight. Agents should pass `observedTools`, `observedResources`, and
+`expectedTargetWorkspacePath` before starting planning. Its `agentPreflight.layers` report application and identity,
+active MCP transport, current-task capability visibility, and target-project binding separately. A successful tool
+call proves the active transport, but does not claim that Appraise inspected the client's persisted registration.
+Missing sentinels block lifecycle work with exact recovery steps; an unregistered expected target directs the agent
+to `project_add`.
 
 Provider-native runs are experimental and disabled by default. If `APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true` is set
 before starting AppraiseJS, the MCP server also exposes provider resources and tools such as

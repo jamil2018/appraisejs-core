@@ -38,7 +38,7 @@ function registrationTarget(server: McpServer, definitions: McpContractDefinitio
       definitions.push({
         kind: 'tool',
         name,
-        description: config.description,
+        ...(config.description ? { description: config.description } : {}),
         inputSchema: z.toJSONSchema(z.object(config.inputSchema ?? {})),
       })
       return server.registerTool(name, config as never, handler as never)
@@ -49,7 +49,12 @@ function registrationTarget(server: McpServer, definitions: McpContractDefinitio
       names.add(`resource:${name}`)
       const normalizedUri =
         typeof uri === 'string' ? uri : String((uri as { uriTemplate?: unknown }).uriTemplate ?? uri)
-      definitions.push({ kind: 'resource', name, description: config.description, uri: normalizedUri })
+      definitions.push({
+        kind: 'resource',
+        name,
+        ...(config.description ? { description: config.description } : {}),
+        uri: normalizedUri,
+      })
       return server.registerResource(name, uri as never, config, handler as never)
     },
   } as McpServer

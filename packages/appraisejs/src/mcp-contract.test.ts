@@ -58,6 +58,7 @@ describe('canonical MCP contract registry', () => {
     expect(Object.isFrozen(contract)).toBe(true)
     expect(contract.every(Object.isFrozen)).toBe(true)
     expect(mcpContractForServer(secondServer)).toBe(contract)
+    expect(contract.every(definition => !Object.values(definition).includes(undefined))).toBe(true)
     await server.close()
     await secondServer.close()
   })

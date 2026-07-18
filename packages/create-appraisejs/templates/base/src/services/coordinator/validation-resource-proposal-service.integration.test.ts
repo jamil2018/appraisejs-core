@@ -78,6 +78,11 @@ describe('validation resource proposals', () => {
     )
     expect(first).toMatchObject({ replayed: false, contextHash: expect.stringMatching(/^sha256:/) })
     expect(first.ids.environments.local).toMatch(/^apr-/)
+    expect(first.bindings.environments[0]).toMatchObject({
+      localKey: 'local',
+      id: first.ids.environments.local,
+      reference: first.ids.environments.local,
+    })
     expect(first.bindings.locators[0]).toMatchObject({
       localKey: 'todo-input',
       id: first.ids.locators['todo-input'],

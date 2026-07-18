@@ -305,7 +305,10 @@ function validateReferences(
   const locators = new Map(
     context.locatorGraph.nodes
       .filter((node): node is LocatorDescriptor => node.type === 'locator')
-      .map(node => [`${node.id}@${node.version}`, node]),
+      .flatMap(node => [
+        [`${node.id}@${node.version}`, node] as const,
+        ...(node.persistentId ? [[`${node.persistentId}@${node.version}`, node] as const] : []),
+      ]),
   )
   const extensions = new Map(proposals.map(proposal => [`${proposal.id}@${proposal.version}`, proposal]))
   const stored = new Map<string, string>()

@@ -18,7 +18,13 @@ const SIMPLE_CONCERNS = ['accessibility', 'persistence'] as const
 const actionKey = (action: { id: string; version: string }) => `${action.id}@${action.version}`
 
 function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDescriptor>): AuthoringProfileIssue[] {
-  const thenSteps = ast.scenarios.flatMap(scenario => scenario.steps.filter(step => step.keyword === 'Then'))
+  const thenSteps = ast.scenarios.flatMap(scenario => {
+    let effectiveKeyword: 'Given' | 'When' | 'Then' | undefined
+    return scenario.steps.filter(step => {
+      if (step.keyword !== 'And') effectiveKeyword = step.keyword
+      return effectiveKeyword === 'Then'
+    })
+  })
   const assertedConcerns = new Set(
     thenSteps.flatMap(step => descriptors.get(actionKey(step.action))?.assertionConcerns ?? []),
   )

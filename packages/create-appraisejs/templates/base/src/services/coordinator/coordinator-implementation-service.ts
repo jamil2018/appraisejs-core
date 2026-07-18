@@ -21,6 +21,7 @@ import {
   type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { planStateHash } from '@/lib/plans/plan-hashes'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
@@ -104,6 +105,7 @@ async function appendCompletionEventOnce(transaction: CompletionTransaction, cli
       planId: transaction.planId,
       type: 'plan_completed',
       payload: { approvedBy: transaction.approvedBy },
+      resultingStateHash: planStateHash(parseYamlArtifact('plan', transaction.contents.plan) as PlanArtifact),
     },
     client,
   )
@@ -469,7 +471,10 @@ export async function approveImplementationGroups(
     throw new ServiceError(`Implementation groups were not found: ${unknownGroupIds.join(', ')}.`, 'NOT_FOUND')
   }
   const approvedGroupIds = Array.from(new Set([...implementation.approvedGroupIds, ...input.groupIds])).sort()
-  const validation = { ...artifacts.validation, implementation: { ...implementation, approvedGroupIds } }
+  const taskStates = Object.fromEntries(
+    artifacts.plan.tasks.map(task => [task.id, implementation.taskStates[task.id] ?? 'pending']),
+  ) as Record<string, TaskState>
+  const validation = { ...artifacts.validation, implementation: { ...implementation, approvedGroupIds, taskStates } }
   await writeArtifacts(artifacts, artifacts.plan, validation, artifacts.review, client)
   const runnableTaskIds = runnableTasks(
     artifacts.plan,

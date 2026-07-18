@@ -765,11 +765,16 @@ export async function retryBaselineAfterRepair(
   if (artifacts.plan.lifecycle !== 'baseline_review') {
     throw new ServiceError('Only baseline review evidence can be returned for validation repair.', 'CONFLICT')
   }
-  const hasInvalidEvidence = artifacts.validation.baselineAttempts.some(
-    attempt => attempt.status === 'completed' && attempt.classification === 'authoring_failure',
+  const hasRepairableEvidence = artifacts.validation.baselineAttempts.some(
+    attempt =>
+      attempt.status === 'completed' &&
+      ['authoring_failure', 'unrelated_existing_failure'].includes(attempt.classification ?? ''),
   )
-  if (!hasInvalidEvidence) {
-    throw new ServiceError('Baseline repair is only available when current evidence is invalid.', 'CONFLICT')
+  if (!hasRepairableEvidence) {
+    throw new ServiceError(
+      'Baseline repair is only available when current evidence requires validation changes.',
+      'CONFLICT',
+    )
   }
   const plan = { ...artifacts.plan, lifecycle: 'validation_changes_requested' as const }
   const validation = {

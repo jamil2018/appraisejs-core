@@ -24,7 +24,7 @@ const packageJson = require('../../package.json') as {
 
 const serverStartedAt = new Date().toISOString()
 
-const mcpSurfaceVersion = '2026-07-02.lifecycle-hardening'
+const mcpSurfaceVersion = '2026-07-18.unified-agent-preflight'
 
 const truthyFeatureValues = new Set(['1', 'true', 'yes', 'on'])
 
@@ -59,7 +59,6 @@ const baseWorkflowCriticalTools = [
   'validation_ast_compile',
   'validation_review_loop',
   'validation_review_reconcile',
-  'validation_decide',
   'validation_file_approve',
   'validation_feedback_submit',
   'validation_review_submit',
@@ -115,13 +114,9 @@ const baseWorkflowResourceUris = [
   'appraise://workflow/planning',
   'appraise://workflow/validation-preparation',
   'appraise://workflow/standby',
-  'appraise://resources/modules',
-  'appraise://resources/test-suites',
-  'appraise://resources/test-cases',
-  'appraise://resources/template-steps',
-  'appraise://resources/locator-groups',
-  'appraise://resources/locators',
-  'appraise://resources/environments',
+  'appraise://plans/{planId}',
+  'appraise://plans/{planId}/validation-context',
+  'appraise://plans/{planId}/validation-draft',
 ] as const
 
 const providerNativeWorkflowResourceUris = ['appraise://providers', 'appraise://provider-runs'] as const
@@ -327,6 +322,110 @@ export const compactMcpCapabilityMetadata = {
     'appraise://workflow/standby',
   ],
   fullCapabilityResource: 'appraise://project',
+}
+
+type AgentPreflightObservation = {
+  observedTools?: string[]
+  observedResources?: string[]
+  expectedTargetWorkspacePath?: string
+}
+
+type PreflightLayerStatus = 'ready' | 'blocked' | 'unverified' | 'not_applicable'
+
+function observedCapabilityState(observed: string[] | undefined, expected: string[]) {
+  if (!observed) return { status: 'unverified' as const, missing: [] as string[] }
+  const visible = new Set(observed)
+  const missing = expected.filter(capability => !visible.has(capability))
+  return { status: missing.length === 0 ? ('ready' as const) : ('blocked' as const), missing }
+}
+
+export function buildAgentPreflight(
+  diagnostic: Awaited<ReturnType<typeof diagnoseProject>>,
+  observation: AgentPreflightObservation = {},
+) {
+  const tools = observedCapabilityState(observation.observedTools, compactMcpCapabilityMetadata.workflowSentinelTools)
+  const resources = observedCapabilityState(
+    observation.observedResources,
+    compactMcpCapabilityMetadata.workflowSentinelResources,
+  )
+  const capabilityStatus: PreflightLayerStatus =
+    tools.status === 'blocked' || resources.status === 'blocked'
+      ? 'blocked'
+      : tools.status === 'unverified' || resources.status === 'unverified'
+        ? 'unverified'
+        : 'ready'
+
+  const expectedTargetPath = observation.expectedTargetWorkspacePath?.trim()
+  const registeredTarget = expectedTargetPath
+    ? diagnostic.targetProjects.find(project => {
+        if (!project || typeof project !== 'object') return false
+        const canonicalPath = (project as { canonicalPath?: unknown }).canonicalPath
+        return typeof canonicalPath === 'string' && canonicalPath === expectedTargetPath
+      })
+    : undefined
+  const hubMatches = expectedTargetPath === diagnostic.hubProject.canonicalPath
+  const targetStatus: PreflightLayerStatus = !expectedTargetPath
+    ? 'not_applicable'
+    : registeredTarget || hubMatches
+      ? 'ready'
+      : 'blocked'
+
+  const layers = {
+    applicationAndIdentity: {
+      status: diagnostic.ok ? ('ready' as const) : ('blocked' as const),
+      checks: diagnostic.checks.map(check => ({ id: check.id, status: check.status, code: check.code })),
+    },
+    activeMcpTransport: {
+      status: 'ready' as const,
+      message:
+        'This response proves the current Appraise MCP server is reachable. Persisted client registration is not inspected.',
+      serverStartedAt: compactMcpCapabilityMetadata.serverStartedAt,
+      mcpSurfaceVersion: compactMcpCapabilityMetadata.mcpSurfaceVersion,
+    },
+    currentTaskCapabilities: {
+      status: capabilityStatus,
+      tools,
+      resources,
+      message:
+        capabilityStatus === 'unverified'
+          ? 'Pass the tools and resources visible to the current task; server capability metadata alone cannot prove the immutable client snapshot.'
+          : capabilityStatus === 'blocked'
+            ? 'The current task snapshot is missing workflow capabilities and must reconnect before lifecycle work starts.'
+            : 'The current task reports every workflow sentinel capability.',
+    },
+    targetProjectBinding: {
+      status: targetStatus,
+      expectedCanonicalPath: expectedTargetPath,
+      matchedScope: hubMatches ? 'hub' : registeredTarget ? 'target' : undefined,
+      message:
+        targetStatus === 'not_applicable'
+          ? 'No expected target workspace was supplied.'
+          : targetStatus === 'ready'
+            ? 'The expected workspace is registered with this Appraise hub.'
+            : 'The expected workspace is not registered with this Appraise hub.',
+    },
+  }
+  const statuses = Object.values(layers).map(layer => layer.status)
+  const status = statuses.includes('blocked')
+    ? 'blocked'
+    : statuses.includes('unverified')
+      ? 'needs_observation'
+      : 'ready'
+
+  return {
+    schemaVersion: 'appraise.agent-preflight/v1',
+    status,
+    ready: status === 'ready',
+    layers,
+    recovery:
+      capabilityStatus === 'blocked'
+        ? missingCapabilityRecovery({ tools: tools.missing, resources: resources.missing })
+        : targetStatus === 'blocked'
+          ? {
+              action: 'Call project_add with the expected target workspace, then rerun project_diagnostic.',
+            }
+          : undefined,
+  }
 }
 
 export function missingCapabilityRecovery(

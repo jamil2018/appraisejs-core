@@ -471,7 +471,10 @@ export async function approveImplementationGroups(
     throw new ServiceError(`Implementation groups were not found: ${unknownGroupIds.join(', ')}.`, 'NOT_FOUND')
   }
   const approvedGroupIds = Array.from(new Set([...implementation.approvedGroupIds, ...input.groupIds])).sort()
-  const validation = { ...artifacts.validation, implementation: { ...implementation, approvedGroupIds } }
+  const taskStates = Object.fromEntries(
+    artifacts.plan.tasks.map(task => [task.id, implementation.taskStates[task.id] ?? 'pending']),
+  ) as Record<string, TaskState>
+  const validation = { ...artifacts.validation, implementation: { ...implementation, approvedGroupIds, taskStates } }
   await writeArtifacts(artifacts, artifacts.plan, validation, artifacts.review, client)
   const runnableTaskIds = runnableTasks(
     artifacts.plan,

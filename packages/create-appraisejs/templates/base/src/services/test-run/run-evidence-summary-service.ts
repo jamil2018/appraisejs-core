@@ -40,6 +40,7 @@ export type RunEvidenceSummary = {
     features: number
     scenarios: number
     steps: number
+    hooks: number
     matchedScenarios: number
     unmatchedScenarios: number
     unexecutedExpectedTestCases: number
@@ -67,6 +68,7 @@ function emptyCounts(): RunEvidenceSummary['counts'] {
     features: 0,
     scenarios: 0,
     steps: 0,
+    hooks: 0,
     matchedScenarios: 0,
     unmatchedScenarios: 0,
     unexecutedExpectedTestCases: 0,
@@ -87,7 +89,11 @@ function flattenScenarios(report: ParsedReport): ScenarioForEvidence[] {
 }
 
 function countSteps(scenarios: ScenarioForEvidence[]) {
-  return scenarios.reduce((total, scenario) => total + scenario.steps.length + scenario.hooks.length, 0)
+  return scenarios.reduce((total, scenario) => total + scenario.steps.length, 0)
+}
+
+function countHooks(scenarios: ScenarioForEvidence[]) {
+  return scenarios.reduce((total, scenario) => total + scenario.hooks.length, 0)
 }
 
 function hasInfrastructureFailure(logExcerpt: string[]) {
@@ -174,6 +180,7 @@ function classifyReportEvidence(testRun: TestRunForEvidence, report: ParsedRepor
     features: report.features.length,
     scenarios: scenarios.length,
     steps: countSteps(scenarios),
+    hooks: countHooks(scenarios),
   }
 
   if (hasPlaceholderBinary(logExcerpt)) {

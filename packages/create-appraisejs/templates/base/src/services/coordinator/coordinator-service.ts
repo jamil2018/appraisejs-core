@@ -295,7 +295,7 @@ export async function heartbeatCoordinator(
 }
 
 export async function appendPlanEvent(
-  input: { planId: string; type: string; payload?: unknown; actor?: string },
+  input: { planId: string; type: string; payload?: unknown; actor?: string; resultingStateHash?: string },
   client: PrismaClient = prisma,
 ) {
   return withPlanEventStreamLock(
@@ -309,7 +309,7 @@ export async function appendPlanEvent(
 // fallow-ignore-next-line complexity
 async function appendPlanEventInTransaction(
   transaction: Prisma.TransactionClient,
-  input: { planId: string; type: string; payload?: unknown; actor?: string },
+  input: { planId: string; type: string; payload?: unknown; actor?: string; resultingStateHash?: string },
 ) {
   const projection = await getProjection(transaction as PrismaClient, input.planId)
   const lastEvent = await transaction.planEvent.findFirst({
@@ -319,7 +319,8 @@ async function appendPlanEventInTransaction(
   })
   if (input.type === 'plan_review_ready' && projection.lifecycle !== 'awaiting_plan_review') return undefined
   const stateHash =
-    input.type === 'plan_cancelled' ? await cancelPlanTransition(transaction, projection) : projection.planStateHash
+    input.resultingStateHash ??
+    (input.type === 'plan_cancelled' ? await cancelPlanTransition(transaction, projection) : projection.planStateHash)
   return transaction.planEvent.create({
     data: {
       planProjectionId: projection.id,

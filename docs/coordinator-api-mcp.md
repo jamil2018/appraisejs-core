@@ -147,7 +147,9 @@ appraisejs mcp --cwd <project> --base-url http://127.0.0.1:3000
 The generated reference lists every default and provider-experimental resource and tool, with each tool mapped to a
 coordinator operation or an explicitly documented local MCP boundary. Stable workflow resources include
 `appraise://agent-guide`, `appraise://workflow/planning`, `appraise://workflow/validation-preparation`, and
-`appraise://workflow/standby`.
+`appraise://workflow/standby`. Plan-bound templates include `appraise://plans/{planId}`,
+`appraise://plans/{planId}/validation-context`, and `appraise://plans/{planId}/validation-draft`; the validation-draft
+template resolves through the bounded draft-context coordinator operation.
 
 `template_step_search` and `template_step_match` share one server-side ranked
 resolver. It scores semantic intent and parameter compatibility, applies a confidence threshold, returns bounded
@@ -181,6 +183,10 @@ Lifecycle summary mutations preserve their action result rather than returning a
 summaries include runnable task IDs, approved groups, task/run counts, compact run identities, checkpoint or receipt,
 readiness, structured blockers, and exactly one next action when those fields apply. Full task maps and validation
 artifacts remain available only through explicit `full` mode.
+
+Validation-resource proposal summaries return compact AST-ready locator bindings and explicit environment references
+without repeating target, module, or locator-group metadata. Implementation mutations omit historical baseline
+attempt bodies when current implementation-run identities are available.
 
 Planning creation, plan/validation review loops, validation context, and Validation AST check, preview, and compile
 use the same response-mode vocabulary. Summary responses retain status, lifecycle, task/content hashes, preview and
@@ -218,7 +224,11 @@ Run evidence tools:
 The bounded hub route is `GET /api/test-runs/:runId/diagnostics`; it is intentionally outside the coordinator lease
 route table and is hub-only in Appraise 0.5.
 
-`project_diagnostic` includes bounded capability metadata for stale-server checks: package version, MCP surface
+`project_diagnostic` is also the unified agent preflight. Its optional `observedTools`, `observedResources`, and
+`expectedTargetWorkspacePath` inputs compare the immutable current-task snapshot and intended target binding against
+the running Appraise server. The response keeps application/identity, active MCP transport, current-task capability,
+and target-binding layers distinct. With no observed snapshot it returns `needs_observation` instead of claiming the
+client is ready. It also includes bounded capability metadata for stale-server checks: package version, MCP surface
 version, server start time, capability counts, workflow sentinel tools/resources, and the full capability resource
 link. `appraise://project` retains the complete workflow-critical tool and resource lists. Recovery text identifies
 missing or stale native MCP capabilities.

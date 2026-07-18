@@ -198,6 +198,24 @@ describe('baseline execution contract', () => {
     ).toBe('unrelated_existing_failure')
   })
 
+  it('rejects a later approved signature when the first approved signature never occurred', () => {
+    const orderedValidation = {
+      ...validation.validations[0],
+      expectedFailures: [
+        validation.validations[0].expectedFailures[0],
+        { signature: 'Checkout total is wrong', lastPassingStepId: 'when-submit' },
+      ],
+    }
+
+    expect(
+      classifyBaselineResult(orderedValidation, requiredBaselineCombinations(validation)[0], {
+        result: 'failed',
+        failureSignatures: ['Checkout total is wrong'],
+        completedStepIds: ['when-submit'],
+      }).classification,
+    ).toBe('unrelated_existing_failure')
+  })
+
   it('blocks harness failures and classifies unmatched failures as unrelated', () => {
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {

@@ -104,6 +104,8 @@ describe('template-step discovery', () => {
       { client: client(), projectDirectory: workspace },
     )
     expect(result.selected).toMatchObject({ id, name: intent })
+    expect(result.nextRecommendedAction).toContain('validation_ast_check')
+    expect(result.nextRecommendedAction).not.toContain('validation_test_shape_propose')
   })
 
   it('returns descriptions, ordered parameters, and group metadata in validation context', async () => {

@@ -42,7 +42,11 @@ function baseRun(overrides: Record<string, unknown> = {}) {
   }
 }
 
-function reportWithScenario(name = 'Login succeeds', tags = [{ name: '@tc_login', line: 1 }]) {
+function reportWithScenario(
+  name = 'Login succeeds',
+  tags = [{ name: '@tc_login', line: 1 }],
+  hooks: Array<{ name: string }> = [],
+) {
   return {
     features: [
       {
@@ -52,7 +56,7 @@ function reportWithScenario(name = 'Login succeeds', tags = [{ name: '@tc_login'
             name,
             tags,
             steps: [{ name: 'open app' }],
-            hooks: [],
+            hooks,
           },
         ],
       },
@@ -142,6 +146,17 @@ describe('run evidence summary service', () => {
       where: { runId: '11111111-1111-4111-8111-111111111111' },
       data: { evidenceHealth: 'valid' },
     })
+  })
+
+  it('reports authored steps separately from runtime hooks', async () => {
+    mockTestRunFindUnique.mockResolvedValue(baseRun({ planId: 'plan-1', testCases: [expectedTestCase()] }))
+    mockParseCucumberReport.mockResolvedValue(
+      reportWithScenario('Login succeeds', [{ name: '@tc_login', line: 1 }], [{ name: 'Before' }, { name: 'After' }]),
+    )
+
+    const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
+
+    expect(summary.counts).toMatchObject({ steps: 1, hooks: 2 })
   })
 
   it('preflights plan-bound run inputs before creation', async () => {
