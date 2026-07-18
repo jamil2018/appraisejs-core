@@ -286,7 +286,9 @@ function starterSubmission(
   plan: PlanArtifact,
   sourceHash: string,
   resources: AuthoringResources,
-): ValidationAstSubmission {
+): ValidationAstSubmission | null {
+  if (plan.tasks.length === 0) return null
+
   const environmentId = resources.environments[0]?.id ?? 'replace-environment-id'
   const scenarios = plan.tasks.map((task, index) => {
     const scenarioId = portableId(task.id, `scenario-${index + 1}`)
@@ -349,7 +351,7 @@ export function buildValidationAuthoringKit(input: {
   runtimeInputJson?: string | null
 }) {
   const starter = starterSubmission(input.plan, input.sourceHash, input.resources)
-  const canonicalJson = JSON.stringify(starter)
+  const canonicalJson = starter ? JSON.stringify(starter) : null
   const validation = input.validationJson ? validationArtifactSchema.parse(JSON.parse(input.validationJson)) : undefined
   const runtime = input.runtimeInputJson ? (JSON.parse(input.runtimeInputJson) as Record<string, unknown>) : undefined
   const mappings = validation?.validations.flatMap(node => node.coverageArgument?.mappings ?? []) ?? []
@@ -428,17 +430,20 @@ export function buildValidationAuthoringKit(input: {
         requirementCoverage.filter(item => item.state === 'uncovered').length,
     },
     astStarter: {
-      editable: true,
+      editable: starter !== null,
       semanticOwner: 'agent',
-      readiness: 'requires_agent_editing_and_appraise_review',
+      readiness: starter ? 'requires_agent_editing_and_appraise_review' : 'unavailable_no_plan_tasks',
       submission: starter,
+      reason: starter ? null : 'The plan has no tasks from which to build a validation starter.',
     },
-    astExchange: {
-      mediaType: 'application/vnd.appraise.validation-ast+json;version=1',
-      contentHash: hashContent(canonicalJson),
-      canonicalJson,
-      importTool: 'validation_ast_check',
-    },
+    astExchange: canonicalJson
+      ? {
+          mediaType: 'application/vnd.appraise.validation-ast+json;version=1',
+          contentHash: hashContent(canonicalJson),
+          canonicalJson,
+          importTool: 'validation_ast_check',
+        }
+      : null,
     recipes,
     runtimePreparationProposal: {
       status: runtimeChanges.length ? 'review_required' : 'ready',

@@ -59,4 +59,20 @@ describe('validation authoring kit', () => {
     expect(kit.recipes[0]?.actionIds[0]).toBe('browser.navigation.goto')
     expect(kit.runtimePreparationProposal.status).toBe('ready')
   })
+
+  it('keeps resource authoring available when a legacy plan has no tasks', () => {
+    const kit = buildValidationAuthoringKit({
+      plan: { ...plan, tasks: [], implementationGroups: [] } as unknown as PlanArtifact,
+      sourceHash: `sha256:${'c'.repeat(64)}`,
+      targetProject: null,
+      resources: { templateSteps: [], stepBlocks: [], locatorGroups: [], locators: [], environments: [] },
+    })
+
+    expect(kit.astStarter).toMatchObject({
+      editable: false,
+      readiness: 'unavailable_no_plan_tasks',
+      submission: null,
+    })
+    expect(kit.astExchange).toBeNull()
+  })
 })

@@ -370,8 +370,9 @@ include provenance. Ambiguous locator or action matches block check/preview unti
 task IDs, target metadata, reusable-resource counts, task/requirement coverage, registry-first recipes, an editable
 AST starter, and a deterministic content-addressed JSON export accepted by `validation_ast_check`. Starter coverage is
 deliberately `uncovered`; the agent remains the semantic author and must replace placeholder observations before
-check/preview. Missing greenfield environment identity produces a review-required Appraise-resource proposal with no
-target-workspace mutation.
+check/preview. A legacy or resource-only plan with no tasks keeps the surrounding authoring context available but
+returns `astStarter.readiness: unavailable_no_plan_tasks`, a null submission, and no AST exchange. Missing greenfield
+environment identity produces a review-required Appraise-resource proposal with no target-workspace mutation.
 
 Plan event responses contain both the canonical `events` array and a derived `notifications` array. Each notification
 keeps its source event sequence and identifies the responsible actor; event acknowledgement remains the only durable
