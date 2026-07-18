@@ -13,8 +13,22 @@ describe('lifecycleCommandCenterState', () => {
       blockingThreadIds: [],
       orphanedThreadIds: [],
       validation: {
+        validations: [
+          {
+            id: 'validation-one',
+            required: true,
+            matrix: [{ browser: 'chromium', environment: 'local' }],
+          },
+        ],
         baselineAttempts: [
-          { id: 'attempt-one', validationId: 'validation-one', testRunId: 'run-one', status: 'running' },
+          {
+            id: 'attempt-one',
+            validationId: 'validation-one',
+            testRunId: 'run-one',
+            status: 'running',
+            browser: 'chromium',
+            environment: 'local',
+          },
         ],
       },
     } as unknown as PlanReviewDetail

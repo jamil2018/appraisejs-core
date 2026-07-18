@@ -9700,8 +9700,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/shared.ts": {
-    "mtime": 1784380801.3309772,
-    "ast_hash": "ea7b8067accba9c8d16b819d2814af79",
+    "mtime": 1784395814.5056167,
+    "ast_hash": "dc3cadd50aad0046441f9b541dbd799b",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/stdio-server.ts": {

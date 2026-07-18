@@ -552,7 +552,7 @@ export function diagnosticGuidance(diagnostic: unknown, preflight?: { status?: s
   if (ok && preflight?.ready) {
     return {
       nextRecommendedAction:
-        'The current task capabilities and expected target binding are ready. Continue with planning_session_create.',
+        'The current task capabilities and expected target workspace binding are ready. Continue with planning_session_create.',
       nextRequiredAgentBehavior: 'start_explicit_target_planning',
     }
   }

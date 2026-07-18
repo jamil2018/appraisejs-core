@@ -4759,10 +4759,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 27,
+      "community": 171,
       "norm_label": "plan-source.test.ts",
       "id": "src_plan_source_test",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Community 171"
     },
     {
       "label": "directories",
@@ -4770,10 +4770,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 27,
+      "community": 171,
       "norm_label": "directories",
       "id": "src_plan_source_test_directories",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Community 171"
     },
     {
       "label": "directory()",
@@ -4781,10 +4781,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 27,
+      "community": 171,
       "norm_label": "directory()",
       "id": "src_plan_source_test_directory",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Community 171"
     },
     {
       "label": "plan-source.ts",
@@ -4792,10 +4792,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 27,
+      "community": 171,
       "norm_label": "plan-source.ts",
       "id": "src_plan_source",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Community 171"
     },
     {
       "label": "resolvePlanSource()",
@@ -4803,10 +4803,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 27,
+      "community": 171,
       "norm_label": "resolveplansource()",
       "id": "src_plan_source_resolveplansource",
-      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
+      "community_name": "Community 171"
     },
     {
       "label": "project-identity.ts",
@@ -26980,5 +26980,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "e66cbd90e9b3f63370beffccdfa2a6d546a08319"
+  "built_at_commit": "d44ac5d3486857e4ba1243b699f5f9c1db1f5ffd"
 }
