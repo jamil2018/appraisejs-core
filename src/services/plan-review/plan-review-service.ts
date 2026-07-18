@@ -91,6 +91,15 @@ export type PlanReviewDetail = {
   }
   efficiencyTelemetry?: Awaited<ReturnType<typeof readPlanEfficiencyTelemetry>>
   lifecycleCertification?: Awaited<ReturnType<typeof readLatestLifecycleCertification>>
+  runtimeCapsules?: Array<{
+    id: string
+    testRunId: string
+    capsuleHash: string
+    manifestHash: string
+    integrityState: string
+    createdAt: Date
+    executionAttempt: { id: string; receiptHash: string; state: string } | null
+  }>
   validationIntegrity: Awaited<ReturnType<typeof auditManagedValidationIntegrity>>
   completionReview?: Awaited<ReturnType<typeof reviewImplementationCompletion>>
   graph: ReturnType<typeof derivePlanGraph>
@@ -453,12 +462,26 @@ export async function getPlanReviewDetail(
   ])
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
-  const [validationReview, exactExecutionPreview, efficiencyTelemetry, lifecycleCertification] = await Promise.all([
-    readValidationReviewEvidence(canonicalPlanId, validation, review, client),
-    readExactExecutionPreview(canonicalPlanId, client),
-    readPlanEfficiencyTelemetry(canonicalPlanId, client),
-    readLatestLifecycleCertification(client),
-  ])
+  const [validationReview, exactExecutionPreview, efficiencyTelemetry, lifecycleCertification, runtimeCapsules] =
+    await Promise.all([
+      readValidationReviewEvidence(canonicalPlanId, validation, review, client),
+      readExactExecutionPreview(canonicalPlanId, client),
+      readPlanEfficiencyTelemetry(canonicalPlanId, client),
+      readLatestLifecycleCertification(client),
+      client.runtimeCapsule?.findMany({
+          where: { testRun: { is: { planId: canonicalPlanId } } },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          testRunId: true,
+          capsuleHash: true,
+          manifestHash: true,
+          integrityState: true,
+          createdAt: true,
+          executionAttempt: { select: { id: true, receiptHash: true, state: true } },
+        },
+      }) ?? [],
+    ])
   const validationIntegrity = await auditManagedValidationIntegrity(canonicalPlanId, {
     client,
     projectDirectory: projectRoot,
@@ -491,6 +514,7 @@ export async function getPlanReviewDetail(
     exactExecutionPreview,
     efficiencyTelemetry,
     lifecycleCertification,
+    runtimeCapsules,
     validationIntegrity,
     completionReview,
     graph,

@@ -288,6 +288,23 @@ is local-only and bounded to the latest 500 operations per plan; telemetry error
 Appraise-owned operation response. The plan review command center presents the latest certification and aggregated
 per-phase metrics.
 
+## Activity, notifications, provenance, and revision impact
+
+The plan surface derives live activity only from durable lifecycle state: current phase, latest event sequence and
+type, bounded five-stage progress, wait owner, and exact next action. It never displays or persists private agent
+reasoning. Coordinator event reads also include notification projections for review readiness, requested changes,
+approvals, blocked attempts, recovery/review readiness, and required completion sign-off. Notifications retain their
+source event sequence, so clients acknowledge the event rather than a parallel notification state.
+
+The evidence timeline correlates plan revisions and events, Validation AST publication receipts, baseline attempts,
+implementation TestRuns, checkpoints, completion evidence, and delegated operation receipts. Revision-impact analysis
+compares the current plan revision/source identity with validation revision/base identity and marks validations,
+selected resources, approvals, baseline evidence, implementation groups, or orphaned remarks stale as appropriate.
+
+Delegated coordinator verification writes a replay-safe `DelegatedCoordinatorConsumption` for every bounded
+operation. The plan surface deterministically content-addresses each consumption with its signed parent authorization,
+recipient, permission, operation key, and consumption time; this is the attached delegated operation receipt.
+
 ## Project-scoped authored resources
 
 Agent-authored project resources inherit the plan projection's `targetProjectId`. Context discovery returns only

@@ -128,6 +128,7 @@ import {
   writeTargetProjectMarker,
 } from '@/services/target-project/target-project-service'
 import { recordAgentPreflightReceipt } from '@/services/agent-preflight/agent-preflight-service'
+import { projectLifecycleNotifications } from '@/lib/plans/plan-lifecycle-insights'
 import { recordCoordinatorResponseMetric } from '@/services/coordinator/plan-observability-service'
 
 export const runtime = 'nodejs'
@@ -222,9 +223,10 @@ async function getEvents(request: Request, operation: string[]) {
   if (wait && events.length === 0) {
     await ensurePlanReviewReadyEvent(planId)
     const repairedEvents = await readPlanEvents(input)
-    if (repairedEvents.length > 0) return Response.json({ events: repairedEvents })
+    if (repairedEvents.length > 0)
+      return Response.json({ events: repairedEvents, notifications: projectLifecycleNotifications(repairedEvents) })
   }
-  return Response.json({ events })
+  return Response.json({ events, notifications: projectLifecycleNotifications(events) })
 }
 
 async function getDiagnostic(request: Request) {

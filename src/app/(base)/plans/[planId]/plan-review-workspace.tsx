@@ -92,6 +92,7 @@ import { ExactExecutionPreview } from './exact-execution-preview'
 import { LifecycleCommandCenter } from './lifecycle-command-center'
 import { PlanObservabilityPanel } from './plan-observability-panel'
 import { ValidationCoverageExplorer } from './validation-coverage-explorer'
+import { LifecycleInsightsPanel } from './lifecycle-insights-panel'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
@@ -813,6 +814,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
 
       <LifecycleCommandCenter detail={detail} />
       <PlanObservabilityPanel detail={detail} />
+      <LifecycleInsightsPanel detail={detail} />
 
       {detail.projection.stale || detail.projection.conflicted ? (
         <Alert variant="destructive" className="rounded-xl">

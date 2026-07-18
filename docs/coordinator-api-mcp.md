@@ -373,6 +373,11 @@ deliberately `uncovered`; the agent remains the semantic author and must replace
 check/preview. Missing greenfield environment identity produces a review-required Appraise-resource proposal with no
 target-workspace mutation.
 
+Plan event responses contain both the canonical `events` array and a derived `notifications` array. Each notification
+keeps its source event sequence and identifies the responsible actor; event acknowledgement remains the only durable
+consumption mechanism. The projection covers review readiness, requested changes, approvals, blocked attempts,
+recovery or review readiness, and completion-signoff requirements without creating parallel lifecycle state.
+
 Lifecycle and diagnostic tools support `summary`, `blockersOnly`, `evidenceOnly`, and explicit `full` modes. Default
 mutations return lifecycle delta, critical IDs and hashes, counts, links, blockers, cursor state, and exactly one legal
 next action. Contract tests enforce initial ceilings of 1,000 estimated tokens for diagnostics, 2,000 for plan creation,

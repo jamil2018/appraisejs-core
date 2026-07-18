@@ -29,15 +29,15 @@ features by user impact and lifecycle risk.
 | Order | Feature                                   | Status      | Impact      | Implementation direction                                                                                                                                                                |
 | ----: | ----------------------------------------- | ----------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |     8 | Validation coverage explorer              | Implemented | High        | The validation surface maps task intent through validation nodes, scenarios, steps, reviewed actions and locators, and keeps uncovered intent explicit before review.                   |
-|     9 | Live agent activity view                  | Planned     | High        | Display the agent's current phase, latest durable operation, wait state, and bounded progress without exposing private reasoning.                                                       |
-|    10 | Event-driven lifecycle notifications      | Planned     | High        | Notify on review readiness, requested changes, approvals, blocked attempts, recovery readiness, and completion-signoff requirements.                                                    |
+|     9 | Live agent activity view                  | Implemented | High        | The plan surface projects current phase, latest durable event, human/agent wait state, exact next action, and bounded five-stage progress without private reasoning.                    |
+|    10 | Event-driven lifecycle notifications      | Implemented | High        | Event reads and the UI project review readiness, change requests, approvals, blocked attempts, recovery/review readiness, and completion sign-off notifications.                        |
 |    11 | Validation AST starter and export         | Implemented | High        | `validation_context_read` returns an editable uncovered starter plus content-addressed canonical JSON importable through `validation_ast_check`; semantic ownership remains agent-held. |
 |    12 | Plan-intent context pack                  | Implemented | Medium-high | The bounded authoring resource includes approved intent, constraints, requirement IDs, target metadata, task validation intent, and reusable-resource counts.                           |
 |    13 | Reusable validation recipes               | Implemented | Medium-high | The authoring resource packages registry-first navigation, form-outcome, and persistence recipes while requiring exact action and locator review.                                       |
 |    14 | Greenfield runtime preparation proposal   | Implemented | Medium-high | Missing project environments produce a review-required Appraise-resource proposal with `targetWorkspaceMutation: none`; ready projects proceed without mutation.                        |
-|    15 | Evidence provenance timeline              | Planned     | Medium-high | Correlate plan revisions, validation receipts, runtime capsules, attempts, TestRuns, checkpoints, and completion evidence in one immutable timeline.                                    |
-|    16 | Revision-impact analysis                  | Planned     | Medium-high | Identify which validations, resources, baselines, approvals, and implementation groups become stale after a plan or validation revision.                                                |
-|    17 | Automatic delegated-authorization receipt | Planned     | Medium      | Generate and attach a bounded receipt whenever an authorized worker or subagent performs lifecycle work on behalf of the coordinator.                                                   |
+|    15 | Evidence provenance timeline              | Implemented | Medium-high | One immutable timeline correlates revisions/events, validation receipts, baseline and implementation TestRuns, checkpoints, completion evidence, and delegation.                        |
+|    16 | Revision-impact analysis                  | Implemented | Medium-high | Revision/base identities identify stale validations, selected resources, approvals, baselines, implementation groups, and remarks.                                                      |
+|    17 | Automatic delegated-authorization receipt | Implemented | Medium      | Each durable delegation consumption is automatically content-addressed and attached to its signed authorization and the plan provenance timeline.                                       |
 
 ## P2 - Provider-native operations
 
@@ -107,6 +107,15 @@ The first P1 authoring tranche is complete:
   does not infer validation semantics from plan prose.
 - The validation UI maps task intent to validation nodes, scenarios, stimulus/observation steps, selected actions,
   locators, and uncovered intent before review.
+
+The P1 observability and audit tranche is complete:
+
+- The plan surface shows bounded live activity, actionable event-driven notifications, revision impact, and an
+  immutable evidence-provenance timeline without exposing private agent reasoning.
+- Coordinator event reads include notification projections for review readiness, changes, approvals, blocked and
+  recovery-ready attempts, and final completion sign-off.
+- Every replay-safe delegated authorization consumption has a deterministic operation receipt hash and is attached
+  to the plan provenance timeline beside its signed parent authorization.
 
 ## Recommended implementation sequence
 
