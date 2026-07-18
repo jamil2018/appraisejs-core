@@ -87,9 +87,6 @@ const baseWorkflowCriticalTools = [
   'delegation_read',
   'delegation_revoke',
   'delegated_plan_create',
-  'validation_ast_check',
-  'validation_ast_preview',
-  'validation_ast_compile',
   'validation_ast_extension_policy',
   'validation_ast_extension_reviews',
   'test_run_read',
@@ -306,6 +303,30 @@ export const mcpCapabilityMetadata = {
   serverStartedAt,
   workflowCriticalTools: [...workflowCriticalTools],
   workflowResourceUris: [...workflowResourceUris],
+}
+
+export const compactMcpCapabilityMetadata = {
+  packageVersion: mcpCapabilityMetadata.packageVersion,
+  mcpSurfaceVersion: mcpCapabilityMetadata.mcpSurfaceVersion,
+  serverStartedAt: mcpCapabilityMetadata.serverStartedAt,
+  workflowCriticalToolCount: mcpCapabilityMetadata.workflowCriticalTools.length,
+  workflowResourceCount: mcpCapabilityMetadata.workflowResourceUris.length,
+  workflowSentinelTools: [
+    'project_diagnostic',
+    'planning_session_create',
+    'plan_review_loop',
+    'validation_ast_compile',
+    'baseline_start',
+    'implementation_start',
+    'implementation_complete',
+  ],
+  workflowSentinelResources: [
+    'appraise://agent-guide',
+    'appraise://workflow/planning',
+    'appraise://workflow/validation-preparation',
+    'appraise://workflow/standby',
+  ],
+  fullCapabilityResource: 'appraise://project',
 }
 
 export function missingCapabilityRecovery(

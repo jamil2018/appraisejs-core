@@ -89,22 +89,26 @@ export function registerBaselineOperations(context: McpRegistryContext): void {
         planId: z.string(),
         reason: z.string().trim().min(1),
         expectedValidationHash: z.string().startsWith('sha256:'),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, reason, expectedValidationHash }) => {
+    async ({ planId, reason, expectedValidationHash, responseMode }) => {
       try {
         return text(
-          lifecycleToolPayload({
-            planId,
-            result: await api.request(`plans/${planId}/baseline/retry`, {
-              method: 'POST',
-              body: JSON.stringify({ reason, expectedValidationHash }),
+          applyLifecycleResponseMode(
+            lifecycleToolPayload({
+              planId,
+              result: await api.request(`plans/${planId}/baseline/retry`, {
+                method: 'POST',
+                body: JSON.stringify({ reason, expectedValidationHash }),
+              }),
+              nextRecommendedAction:
+                'Repair the managed Validation AST and submit it through check, preview, and compile for fresh review.',
+              nextRequiredAgentBehavior: 'revise_validation_artifacts',
+              nextAllowedAction: { tool: 'validation_context_read' },
             }),
-            nextRecommendedAction:
-              'Repair the managed Validation AST and submit it through check, preview, and compile for fresh review.',
-            nextRequiredAgentBehavior: 'revise_validation_artifacts',
-            nextAllowedAction: { tool: 'validation_context_read' },
-          }),
+            responseMode,
+          ),
         )
       } catch (error) {
         if (error instanceof CoordinatorRequestError) return toolError(error)

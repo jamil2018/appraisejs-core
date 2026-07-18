@@ -40,7 +40,11 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
         schema: VALIDATION_AST_JSON_SCHEMA,
         phases: ['check', 'preview', 'compile'],
         resourceBinding: {
-          locator: ['id', 'astRef', 'version', 'targetProjectId', 'moduleId', 'locatorGroupId'],
+          locator: {
+            astReference: 'astRef',
+            acceptedAlias: 'id',
+            fields: ['id', 'astRef', 'version', 'targetProjectId', 'moduleId', 'locatorGroupId'],
+          },
           templateStepScope: 'shared_library',
         },
       },

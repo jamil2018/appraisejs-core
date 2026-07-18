@@ -21,6 +21,7 @@ import {
   type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { planStateHash } from '@/lib/plans/plan-hashes'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
@@ -104,6 +105,7 @@ async function appendCompletionEventOnce(transaction: CompletionTransaction, cli
       planId: transaction.planId,
       type: 'plan_completed',
       payload: { approvedBy: transaction.approvedBy },
+      resultingStateHash: planStateHash(parseYamlArtifact('plan', transaction.contents.plan) as PlanArtifact),
     },
     client,
   )

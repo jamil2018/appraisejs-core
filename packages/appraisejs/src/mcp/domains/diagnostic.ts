@@ -1,9 +1,9 @@
 import type { McpRegistryContext } from '../registry.js'
 import {
   compactProjectDiagnostic,
+  compactMcpCapabilityMetadata,
   diagnoseProject,
   diagnosticGuidance,
-  mcpCapabilityMetadata,
   text,
   withGuidance,
   z,
@@ -24,7 +24,7 @@ export function registerDiagnosticOperations(context: McpRegistryContext): void 
         withGuidance(
           {
             ...compactProjectDiagnostic(diagnostic),
-            capabilities: mcpCapabilityMetadata,
+            capabilities: compactMcpCapabilityMetadata,
             capabilityStatus: 'available',
           },
           diagnosticGuidance(diagnostic),

@@ -202,7 +202,8 @@ export function registerPlanningOperations(context: McpRegistryContext): void {
       description: 'Read the current plan artifact and content hash.',
       inputSchema: { planId: z.string(), responseMode: responseModeSchema },
     },
-    async ({ planId }) => text(await api.request(`plans/${planId}`)),
+    async ({ planId, responseMode }) =>
+      text(applyLifecycleResponseMode(await api.request(`plans/${planId}`), responseMode)),
   )
 
   server.registerTool(

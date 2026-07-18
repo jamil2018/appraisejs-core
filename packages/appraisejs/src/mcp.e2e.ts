@@ -298,16 +298,21 @@ try {
   assert(diagnostic.ok === true, `Project diagnostic failed: ${JSON.stringify(diagnostic)}`)
   assert(diagnostic.contractVersion === '1', 'Project diagnostic did not return the contract version.')
   const diagnosticCapabilities = diagnostic.capabilities as {
-    workflowCriticalTools?: string[]
-    workflowResourceUris?: string[]
+    workflowSentinelTools?: string[]
+    workflowSentinelResources?: string[]
+    fullCapabilityResource?: string
   }
   assert(
-    diagnosticCapabilities.workflowCriticalTools?.includes('planning_session_create'),
+    diagnosticCapabilities.workflowSentinelTools?.includes('planning_session_create'),
     'Project diagnostic did not expose planning_session_create capability metadata.',
   )
   assert(
-    diagnosticCapabilities.workflowResourceUris?.includes('appraise://workflow/planning'),
+    diagnosticCapabilities.workflowSentinelResources?.includes('appraise://workflow/planning'),
     'Project diagnostic did not expose workflow resource metadata.',
+  )
+  assert(
+    diagnosticCapabilities.fullCapabilityResource === 'appraise://project',
+    'Project diagnostic did not link to the complete capability resource.',
   )
   assert(
     String(diagnostic.nextRecommendedAction).includes('target workspace'),
@@ -437,9 +442,11 @@ try {
   const planListHtml = await planListResponse.text()
   assert(planListHtml.includes(planId), 'Plan list did not discover the created review-ready plan.')
 
-  const firstRead = await callTool('plan_read', { planId })
+  const firstRead = await callTool('plan_read', { planId, responseMode: 'summary' })
   const firstHash = firstRead.contentHash as string
   assert(firstHash.startsWith('sha256:'), 'Plan read did not return a content hash.')
+  assert(!('plan' in firstRead), 'Summary plan read unexpectedly returned the full plan artifact.')
+  assert(JSON.stringify(firstRead).length < 2_000, 'Summary plan read exceeded 2,000 characters.')
   const firstReview = await callTool('plan_review_read', { planId })
   assert(firstReview.reviewHash && typeof firstReview.reviewHash === 'string', 'Plan review read missed review hash.')
   assert((firstReview.blockingThreads as unknown[]).length === 0, 'New plan unexpectedly has blocking review threads.')
@@ -526,7 +533,10 @@ try {
   const structurallyDifferentPlanId = String(structurallyDifferentSession.planId ?? '')
   assert(structurallyDifferentPlanId, 'Structurally different planning session did not create a plan.')
   explicitTargetPlanIds.push(structurallyDifferentPlanId)
-  const structurallyDifferentRead = await callTool('plan_read', { planId: structurallyDifferentPlanId })
+  const structurallyDifferentRead = await callTool('plan_read', {
+    planId: structurallyDifferentPlanId,
+    responseMode: 'full',
+  })
   const structurallyDifferentPlan = structurallyDifferentRead.plan as {
     tasks: Array<{ id: string }>
     edges: Array<{ from: string; to: string; type: string }>

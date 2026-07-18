@@ -104,8 +104,8 @@ Baseline execution evidence must be visible and accepted before implementation s
 that unlocks task implementation. File hash drift or stale validation evidence should block progression until rerun or
 explicitly resolved.
 
-Invalid baseline evidence is repairable without accepting or deleting history. `baseline_retry` is hash-bound to the
-current validation artifact, rejects active runs, preserves prior attempts and TestRun links, and returns
+Invalid baseline evidence and expected-signature mismatches are repairable without accepting or deleting history.
+`baseline_retry` is hash-bound to the current validation artifact, rejects active runs, preserves prior attempts and TestRun links, and returns
 `baseline_review` to `validation_changes_requested` for a fresh exact review. The UI exposes the same operation as
 "Repair validation and rerun baseline" and disables baseline acceptance while invalid evidence is present.
 
@@ -252,6 +252,8 @@ validation, review, projection-sync, completion-event, and terminal-plan writes 
 or repeated approval resume interrupted work. The terminal `completed` plan write happens only after the exact final
 sign-off and `plan_completed` event exist. Evidence protection may then be released: immutable managed TestRun
 identities, evidence URLs, artifact hashes, and sign-off hashes remain the signed-off completion proof.
+The completion event keeps the prior event hash in `previousStateHash` and binds `stateHash` to the resulting
+`completed` plan state, even though the crash-safe journal event is written before the terminal plan artifact.
 
 ## Reporting Evidence
 

@@ -13,6 +13,7 @@ import {
   type ValidationArtifact,
 } from '@/lib/plan-contract'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
+import { planStateHash } from '@/lib/plans/plan-hashes'
 import { syncPlans } from '@/lib/plans/plan-sync-service'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { appendPlanEvent, readPlanEvents, withPlanEventStreamLock } from '@/services/coordinator/coordinator-service'
@@ -1082,12 +1083,11 @@ describe('implementation coordinator checkpoints', () => {
     })
     expect(currentCompletionReview.evidenceHash).not.toBe(completionReview.evidenceHash)
 
-    await expect(
-      approveImplementationCompletion(
-        { planId, approvedBy: 'user', contentHash: currentCompletionReview.evidenceHash },
-        { projectDirectory: workspace, client, now: new Date('2026-06-11T00:06:00.000Z') },
-      ),
-    ).resolves.toMatchObject({
+    const completed = await approveImplementationCompletion(
+      { planId, approvedBy: 'user', contentHash: currentCompletionReview.evidenceHash },
+      { projectDirectory: workspace, client, now: new Date('2026-06-11T00:06:00.000Z') },
+    )
+    expect(completed).toMatchObject({
       plan: { lifecycle: 'completed' },
       review: {
         finalSignOff: {
@@ -1113,7 +1113,12 @@ describe('implementation coordinator checkpoints', () => {
     })
     await expect(readPlanEvents({ planId }, client)).resolves.toEqual([
       expect.objectContaining({ sequence: 1, type: 'implementation_checkpoint_reached' }),
-      expect.objectContaining({ sequence: 2, type: 'plan_completed', payload: { approvedBy: 'user' } }),
+      expect.objectContaining({
+        sequence: 2,
+        type: 'plan_completed',
+        payload: { approvedBy: 'user' },
+        stateHash: planStateHash(completed.plan),
+      }),
     ])
     await expect(
       readImplementationLifecycleHealth(planId, { projectDirectory: workspace, client }),

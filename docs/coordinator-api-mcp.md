@@ -218,8 +218,9 @@ Run evidence tools:
 The bounded hub route is `GET /api/test-runs/:runId/diagnostics`; it is intentionally outside the coordinator lease
 route table and is hub-only in Appraise 0.5.
 
-`project_diagnostic` and `appraise://project` include capability metadata for stale-server checks: package version,
-MCP surface version, server start time, workflow-critical tool names, workflow resource URIs, and recovery text for
+`project_diagnostic` includes bounded capability metadata for stale-server checks: package version, MCP surface
+version, server start time, capability counts, workflow sentinel tools/resources, and the full capability resource
+link. `appraise://project` retains the complete workflow-critical tool and resource lists. Recovery text identifies
 missing or stale native MCP capabilities.
 
 ### Validation AST recovery

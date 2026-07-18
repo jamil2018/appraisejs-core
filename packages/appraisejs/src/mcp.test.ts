@@ -6,6 +6,7 @@ import {
   applyAuthoringResponseMode,
   applyLifecycleResponseMode,
   baselineRecoveryForLifecycle,
+  compactMcpCapabilityMetadata,
   compactProjectDiagnostic,
   createAppraiseMcpServer,
   latestGateEvent,
@@ -437,6 +438,25 @@ describe('compact lifecycle responses', () => {
     })
   })
 
+  it('projects direct implementation task updates without a stale checkpoint', () => {
+    const compact = applyLifecycleResponseMode(
+      {
+        taskStates: { foundation: 'verified', ui: 'implemented' },
+        approvedGroupIds: ['core'],
+        checkpoint: { type: 'after_task', taskIds: ['foundation'] },
+        validationRuns: [],
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      taskStates: { foundation: 'verified', ui: 'implemented' },
+      approvedGroupIds: ['core'],
+      counts: { tasks: 2, verifiedTasks: 1, validationRuns: 0 },
+    })
+    expect(compact).not.toHaveProperty('checkpoint')
+  })
+
   it('normalizes empty optional validation references without hiding invalid values', () => {
     expect(normalizeOptionalRef('')).toBeUndefined()
     expect(normalizeOptionalRef('   ')).toBeUndefined()
@@ -597,6 +617,14 @@ describe('MCP capability and recovery metadata', () => {
       targetProjectCount: 30,
       targetProjectDiscovery: expect.stringContaining('project_list'),
     })
+    const response = {
+      ...diagnostic,
+      capabilities: compactMcpCapabilityMetadata,
+      capabilityStatus: 'available',
+      nextRecommendedAction: 'Choose an explicit target before planning.',
+      nextRequiredAgentBehavior: 'choose_explicit_target_before_planning',
+    }
+    expect(measureMcpResponse(response).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.diagnostic)
   })
 })
 
