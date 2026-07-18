@@ -63,6 +63,21 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
         {field => <TextFormField field={field} label="API Base URL (Optional)" placeholder="https://api.example.com" />}
       </form.Field>
       <form.Field
+        name="expectedPageTitle"
+        validators={{
+          onChange: environmentFieldValidators.expectedPageTitle,
+        }}
+      >
+        {field => (
+          <TextFormField
+            field={field}
+            label="Expected page title (Optional)"
+            placeholder="HomeChores"
+            description="Before baseline execution, Appraise verifies that this title is served at the base URL."
+          />
+        )}
+      </form.Field>
+      <form.Field
         name="username"
         validators={{
           onChange: environmentFieldValidators.username,

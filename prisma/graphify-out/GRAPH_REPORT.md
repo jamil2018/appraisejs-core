@@ -1,18 +1,18 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 55 files from prisma/schema.prisma and migrations
+- 56 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1164 nodes · 2618 edges · 176 communities
+- 1166 nodes · 2622 edges · 177 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 459 edges
-2. `TargetProject` - 157 edges
-3. `schema.prisma` - 156 edges
+1. `String` - 460 edges
+2. `schema.prisma` - 157 edges
+3. `TargetProject` - 157 edges
 4. `DateTime` - 128 edges
 5. `PlanProjection` - 91 edges
 6. `TestRun` - 73 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (176 total)
+## Communities (177 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -245,7 +245,7 @@ Nodes (7): TestRunLog, TestRunLog.id, TestRunLog.testRunId, TestRunLog.logs, Tes
 Nodes (4): EnvironmentCredentialState, EnvironmentCredentialState.NONE, EnvironmentCredentialState.REFERENCE_CONFIGURED, EnvironmentCredentialState.LEGACY_DISABLED
 
 ### Community 67 - "Environment"
-Nodes (14): Environment, Environment.id, Environment.name, Environment.baseUrl, Environment.apiBaseUrl, Environment.username, Environment.passwordEnvironmentVariable, Environment.credentialState (+more)
+Nodes (15): Environment, Environment.id, Environment.name, Environment.baseUrl, Environment.expectedPageTitle, Environment.apiBaseUrl, Environment.username, Environment.passwordEnvironmentVariable (+more)
 
 ### Community 68 - "Tag"
 Nodes (12): Tag, Tag.id, Tag.name, Tag.tagExpression, Tag.type, Tag.createdAt, Tag.updatedAt, Tag.testRuns (+more)
@@ -570,6 +570,9 @@ Nodes (1): 20260718110000_add_agent_preflight_receipts
 
 ### Community 175 - "20260718160000_add_plan_observability"
 Nodes (1): 20260718160000_add_plan_observability
+
+### Community 176 - "20260718193000_add_environment_identity_expectation"
+Nodes (1): 20260718193000_add_environment_identity_expectation
 
 ## Suggested Questions
 - Which models are connected to PlanProjection?

@@ -501,6 +501,110 @@ function validateCoverageArgument(ast: ValidationAst, actions: ActionDescriptor[
   return { blockers, warnings }
 }
 
+const SEMANTIC_TOKEN_STOP_WORDS = new Set([
+  'after',
+  'assert',
+  'before',
+  'button',
+  'click',
+  'element',
+  'item',
+  'page',
+  'result',
+  'should',
+  'state',
+  'target',
+  'that',
+  'then',
+  'this',
+  'user',
+  'with',
+])
+
+function semanticTokens(step: ValidationAst['scenarios'][number]['steps'][number]) {
+  const inputText = Object.values(step.action.inputs)
+    .flatMap(value => {
+      if (typeof value === 'string') return [value]
+      if (value && typeof value === 'object' && 'id' in value && typeof value.id === 'string') return [value.id]
+      return []
+    })
+    .join(' ')
+  return new Set(
+    `${step.description} ${inputText}`
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(token => token.length > 2 && !SEMANTIC_TOKEN_STOP_WORDS.has(token)),
+  )
+}
+
+function hasSharedSemanticToken(
+  left: ValidationAst['scenarios'][number]['steps'][number],
+  right: ValidationAst['scenarios'][number]['steps'][number],
+) {
+  const rightTokens = semanticTokens(right)
+  return [...semanticTokens(left)].some(token => rightTokens.has(token))
+}
+
+type ValidationScenario = ValidationAst['scenarios'][number]
+
+function persistenceObservationWarnings(
+  mapping: CoverageMapping,
+  scenario: ValidationScenario,
+  observationStepId: string,
+) {
+  const observationIndex = scenario.steps.findIndex(step => step.id === observationStepId)
+  if (observationIndex < 0) return []
+  const observation = scenario.steps[observationIndex]!
+  const warnings: ValidationAstIssue[] = []
+  const reloadIndex = scenario.steps.findIndex(step => step.action.id === 'browser.navigation.reload')
+  if (reloadIndex < 0 || observationIndex <= reloadIndex) {
+    warnings.push(
+      issue(
+        'semantic-persistence-observation-before-reload',
+        `Persistence observation ${observation.id} is not performed after a page reload.`,
+        { scenarioId: scenario.id, stepId: observation.id, referenceId: mapping.targetId },
+      ),
+    )
+  }
+  const destructive = scenario.steps
+    .slice(0, observationIndex)
+    .find(
+      step =>
+        /\b(delete(?:s|d|ing)?|remove(?:s|d|ing)?|discard(?:s|ed|ing)?|clear(?:s|ed|ing)?)\b/i.test(step.description) &&
+        hasSharedSemanticToken(step, observation),
+    )
+  if (destructive) {
+    warnings.push(
+      issue(
+        'semantic-persistence-target-destroyed',
+        `Persistence observation ${observation.id} appears to inspect an entity already removed by ${destructive.id}.`,
+        { scenarioId: scenario.id, stepId: observation.id, referenceId: destructive.id },
+      ),
+    )
+  }
+  return warnings
+}
+
+function persistenceMappingWarnings(ast: ValidationAst, mapping: CoverageMapping) {
+  return mapping.scenarioIds.flatMap(scenarioId => {
+    const scenario = ast.scenarios.find(candidate => candidate.id === scenarioId)
+    return scenario
+      ? mapping.observationStepIds.flatMap(stepId => persistenceObservationWarnings(mapping, scenario, stepId))
+      : []
+  })
+}
+
+function validateSemanticConsistency(ast: ValidationAst) {
+  return (ast.coverageArgument?.mappings ?? [])
+    .filter(
+      mapping =>
+        mapping.kind === 'quality-concern' &&
+        mapping.targetId === 'persistence' &&
+        ['covered', 'partial'].includes(mapping.state),
+    )
+    .flatMap(mapping => persistenceMappingWarnings(ast, mapping))
+}
+
 function referencedExtensionIds(ast: ValidationAst) {
   return new Set(validationAstExtensionReferences(ast).map(value => value.id))
 }
@@ -538,7 +642,7 @@ export function checkValidationAst(value: unknown, context: ValidationAstCompile
   return {
     valid: blockers.length === 0,
     blockers,
-    warnings: [...references.warnings, ...coverage.warnings],
+    warnings: [...references.warnings, ...coverage.warnings, ...validateSemanticConsistency(submission.ast)],
     submission,
     extensionPolicy: context.extensionPolicy,
     resolved: { ...references, compiledExtensions },

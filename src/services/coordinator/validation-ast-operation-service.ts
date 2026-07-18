@@ -19,9 +19,11 @@ import {
   createCustomExtensionPolicy,
   compiledCustomExtensionSchema,
   previewValidationAst,
+  validationAstSubmissionSchema,
   type ValidationAstCompilerContext,
 } from '@/lib/validation-ast'
 import { ServiceError } from '@/services/shared/errors'
+import { buildValidationAstReviewPreview } from '@/lib/validation-ast/review-preview'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { buildLocatorGraph } from '@/services/locator-graph/locator-graph-service'
 import {
@@ -32,6 +34,7 @@ import {
 import { prepareValidationAstPublish } from './validation-ast-publish-journal-service'
 import { validateStoredValidationAstPublish } from './validation-ast-publish-journal-service'
 import { resumeValidationAstPublish } from './validation-ast-publish-orchestrator'
+import { appendPlanEvent } from './coordinator-service'
 
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
@@ -130,6 +133,32 @@ export async function readValidationAstExtensionReviewsForPlan(
 export async function previewValidationAstForPlan(planId: string, submission: unknown, client: PrismaClient = prisma) {
   const context = await loadValidationAstContext(planId, client)
   const preview = bindPublishProvenance(previewValidationAst(submission, context.compilerContext), context)
+  const eventPayload = buildValidationAstReviewPreview({
+    submission: validationAstSubmissionSchema.parse(submission),
+    valid: preview.valid,
+    previewHash: preview.previewHash,
+    receiptHash: preview.receiptHash,
+    warnings: preview.warnings,
+    blockers: preview.blockers,
+  })
+  if (client.planEvent?.findFirst) {
+    const latest = await client.planEvent.findFirst({
+      where: { plan: { planId }, type: 'validation_ast_previewed' },
+      orderBy: { sequence: 'desc' },
+      select: { payloadJson: true },
+    })
+    let latestPreviewHash: unknown
+    try {
+      latestPreviewHash = latest?.payloadJson
+        ? (JSON.parse(latest.payloadJson) as { previewHash?: unknown }).previewHash
+        : undefined
+    } catch {
+      latestPreviewHash = undefined
+    }
+    if (latestPreviewHash !== preview.previewHash) {
+      await appendPlanEvent({ planId, type: 'validation_ast_previewed', payload: eventPayload }, client)
+    }
+  }
   return {
     ...preview,
     contextHash: context.contextHash,

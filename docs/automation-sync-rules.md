@@ -58,6 +58,9 @@ variable. Never place a credential value or a `password` field in database seed 
 configuration, fixtures, or scaffold source. The Cucumber runtime resolves a configured reference only inside the
 execution process and fails with a redacted configuration error when it is missing or marked as legacy.
 
+`expectedPageTitle` is Appraise-owned environment identity metadata used by baseline preflight. It is not exported into
+the target runtime environment file because it does not configure the application under test.
+
 Reviewed publications may also be distributed under `automation/appraise/` through the durable workflow in
 `docs/repository-export-runtime.md`. This is a generated projection: do not edit it as canonical source or use it for
 Appraise-managed execution.

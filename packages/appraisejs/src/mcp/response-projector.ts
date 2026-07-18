@@ -42,6 +42,7 @@ export function applyResponseMode(value: unknown, responseMode: z.infer<typeof r
       executionRunId: payload.executionRunId,
       evidenceHealth: payload.evidenceHealth,
       blockers: payload.blockers,
+      failureSignatures: payload.failureSignatures,
       missingArtifacts: payload.missingArtifacts,
       nextAllowedAction: payload.nextAllowedAction,
     }
@@ -54,6 +55,7 @@ export function applyResponseMode(value: unknown, responseMode: z.infer<typeof r
       grade: payload.grade,
       counts: payload.counts,
       blockers: payload.blockers,
+      failureSignatures: payload.failureSignatures,
       missingArtifacts: payload.missingArtifacts,
       reportUrl: payload.reportUrl,
       logsUrl: payload.logsUrl,
@@ -68,6 +70,7 @@ export function applyResponseMode(value: unknown, responseMode: z.infer<typeof r
     evidenceHealth: payload.evidenceHealth,
     grade: payload.grade,
     blockers: payload.blockers,
+    failureSignatures: payload.failureSignatures,
     reportUrl: payload.reportUrl,
     logsUrl: payload.logsUrl,
     nextAllowedAction: payload.nextAllowedAction,
@@ -82,7 +85,13 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     payload.validation && typeof payload.validation === 'object'
       ? (payload.validation as Record<string, unknown>)
       : undefined
-  const allBaselineAttempts = Array.isArray(validation?.baselineAttempts) ? validation.baselineAttempts : undefined
+  const baselineExecution =
+    payload.baselineExecution && typeof payload.baselineExecution === 'object'
+      ? (payload.baselineExecution as Record<string, unknown>)
+      : undefined
+  const activeBaselineAttempts = Array.isArray(baselineExecution?.attempts) ? baselineExecution.attempts : undefined
+  const allBaselineAttempts =
+    activeBaselineAttempts ?? (Array.isArray(validation?.baselineAttempts) ? validation.baselineAttempts : undefined)
   const allTestRunIds =
     allBaselineAttempts
       ?.map(attempt =>
@@ -91,7 +100,11 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
       .filter((testRunId): testRunId is string => typeof testRunId === 'string') ?? payload.testRunIds
   const allAttemptIds =
     allBaselineAttempts
-      ?.map(attempt => (attempt && typeof attempt === 'object' ? (attempt as Record<string, unknown>).id : undefined))
+      ?.map(attempt => {
+        if (!attempt || typeof attempt !== 'object') return undefined
+        const item = attempt as Record<string, unknown>
+        return item.attemptId ?? item.id
+      })
       .filter((attemptId): attemptId is string => typeof attemptId === 'string') ?? undefined
   const implementation =
     payload.implementation && typeof payload.implementation === 'object'

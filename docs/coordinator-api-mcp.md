@@ -188,6 +188,12 @@ Validation-resource proposal summaries return compact AST-ready locator bindings
 without repeating target, module, or locator-group metadata. Implementation mutations omit historical baseline
 attempt bodies when current implementation-run identities are available.
 
+Environment proposals may include `expectedPageTitle`. Loopback origins are logically reserved across target projects,
+so another project cannot silently reuse the same local port. Immediately before baseline preparation, Appraise probes
+loopback environments: an unavailable origin remains legal for an expected-red baseline, a matching target/title is
+verified, and a conflicting title or registered target fails with a bounded `ENVIRONMENT_IDENTITY_MISMATCH` diagnostic
+and an available replacement base URL when one can be reserved.
+
 Planning creation, plan/validation review loops, validation context, and Validation AST check, preview, and compile
 use the same response-mode vocabulary. Summary responses retain status, lifecycle, task/content hashes, preview and
 receipt hashes, integrity blockers, cursors, and next action while omitting repeated candidate/context payloads. Full
@@ -231,7 +237,9 @@ and target-binding layers distinct. With no observed snapshot it returns `needs_
 client is ready. It also includes bounded capability metadata for stale-server checks: package version, MCP surface
 version, server start time, capability counts, workflow sentinel tools/resources, and the full capability resource
 link. `appraise://project` retains the complete workflow-critical tool and resource lists. Recovery text identifies
-missing or stale native MCP capabilities.
+missing or stale native MCP capabilities. The tool response projects compact layer statuses and missing sentinels;
+when all layers and the explicit target binding are ready, its next action advances directly to
+`planning_session_create` instead of asking the agent to choose the already-bound target again.
 
 Each diagnostic call writes its exact preflight snapshot through the authenticated `POST /diagnostic/preflight`
 coordinator operation. Receipts are append-only and idempotent by coordinator plus content hash, optionally bound to
@@ -241,10 +249,17 @@ both hub-bound and registered-target ready receipts against the real server and 
 
 ### Validation AST recovery
 
-`validation_ast_check` and `validation_ast_preview` are read-only and require the authoritative plan to remain in a
-validation-preparation lifecycle. Preview returns exact `previewHash`, `contextHash`, and `receiptHash` values.
+`validation_ast_check` is read-only and both check and preview require the authoritative plan to remain in a
+validation-preparation lifecycle. Preview returns exact `previewHash`, `contextHash`, and `receiptHash` values and
+records one deduplicated, bounded `validation_ast_previewed` plan event. The plan review UI renders that event's
+scenario steps, actions, coverage claims, blockers, and semantic warnings before compilation; it never treats the
+event as approval or executable authority.
 `validation_ast_compile` accepts only that exact receipt and prepares a durable idempotent publish operation before
 writing artifacts or projecting canonical entities.
+
+Preview semantic checks add advisory warnings for contradictory persistence claims, including observations performed
+before reload and observations of an entity that an earlier step appears to remove. Warnings remain reviewable and do
+not replace deterministic compiler blockers or human approval.
 
 On success, compile responses include the exact project-scoped `review=validation` browser URL, the Appraise resource
 URL, and validation-review standby guidance. No additional plan read is required to discover the review surface.

@@ -106,6 +106,16 @@ describe('run evidence summary service', () => {
     })
   })
 
+  it('treats an in-progress report as pending instead of a missing-artifact blocker', async () => {
+    mockTestRunFindUnique.mockResolvedValue(
+      baseRun({ status: TestRunStatus.RUNNING, result: TestRunResult.PENDING, reportPath: null }),
+    )
+
+    const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
+
+    expect(summary).toMatchObject({ grade: 'pending', blockers: [], missingArtifacts: [] })
+  })
+
   it('classifies empty Cucumber reports as invalid empty run', async () => {
     mockTestRunFindUnique.mockResolvedValue(baseRun())
     mockParseCucumberReport.mockResolvedValue({ features: [] })
@@ -157,6 +167,23 @@ describe('run evidence summary service', () => {
     const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
 
     expect(summary.counts).toMatchObject({ steps: 1, hooks: 2 })
+  })
+
+  it('returns bounded first-line failure signatures from the report', async () => {
+    mockTestRunFindUnique.mockResolvedValue(baseRun({ planId: 'plan-1', testCases: [expectedTestCase()] }))
+    const report = reportWithScenario()
+    report.features[0]!.scenarios[0]!.steps = [
+      {
+        name: 'open app',
+        status: 'failed',
+        errorMessage: `Expected HomeChores but found SecondWife\n${'stack detail '.repeat(40)}`,
+      },
+    ]
+    mockParseCucumberReport.mockResolvedValue(report)
+
+    const summary = await summarizeRunEvidence('11111111-1111-4111-8111-111111111111')
+
+    expect(summary.failureSignatures).toEqual(['Expected HomeChores but found SecondWife'])
   })
 
   it('preflights plan-bound run inputs before creation', async () => {

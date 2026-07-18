@@ -28,9 +28,10 @@ these capsules; legacy validations continue using `automation/reports/<runId>`.
 
 Runtime capsule diagnostics are a bounded projection, not an artifact export. The durable execution attempt stores
 the canonical predictive-preflight result, its hash, and check timestamp before spawn so restart diagnostics do not
-depend on process memory. Readers may expose stable status/failure codes, package versions and content hashes,
-evidence counts and owned links, and a fixed recovery action. They must never expose command arguments, absolute
-paths, environment values, owner tokens, raw failure text, complete receipts/manifests, or artifact contents.
+depend on process memory. Readers may expose stable status/failure codes, bounded first-line failure signatures,
+package versions and content hashes, evidence counts and owned links, and a fixed recovery action. They must never
+expose command arguments, absolute paths, environment values, owner tokens, raw stack traces, complete
+receipts/manifests, or artifact contents.
 
 Appraise 0.5 assumes a local loopback hub-admin boundary: the person controlling the local hub can administer every
 registered target. A `targetProjectId` query parameter is an explicit ownership filter and prevents accidental
@@ -101,6 +102,11 @@ Baseline start applies the same recovery contract to legacy runs. Replaying an a
 canonical attempt/TestRun identities, reconciliation legality, and `baseline_reconcile` as the next action. A legacy
 display-name collision is reusable only when the existing TestRun is bound to the same plan and target; otherwise the
 conflict includes the existing run identity and an Appraise-owned repair action.
+
+Before any new baseline attempt is prepared, Appraise reserves project-owned loopback origins at environment creation
+or validation-resource proposal time and performs a bounded live identity probe. Unreachable loopback origins remain
+valid for expected-red baselines. Reachable origins are verified by the configured expected page title or target
+identity; a mismatch fails before TestRun creation with the observed title and, when available, a free replacement URL.
 
 Lifecycle responses, MCP evidence tools, report pages, log routes, and capsule diagnostics use `TestRun.runId` as the
 canonical public TestRun identity. The database primary key remains internal. A `runId` emitted by baseline or
@@ -191,7 +197,10 @@ transition.
 
 `RunEvidenceSummary` is the bounded service result for UI, coordinator, and MCP callers. It includes stable ids
 (`testRunPageId`, `executionRunId`, `planId`, optional `validationId`), evidence links (`reportUrl`, `logsUrl`),
-counts, blockers, missing artifacts, log excerpts, `evidenceHealth`, and `nextAllowedAction`.
+counts, blockers, missing artifacts, bounded first-line `failureSignatures`, log excerpts, `evidenceHealth`, and
+`nextAllowedAction`.
+While a run is active, an unmaterialized report is a pending artifact rather than a missing-artifact blocker; the
+summary keeps `grade: pending` and directs callers to poll `test_run_read`.
 
 The stored logs API supports `mode=summary`, `mode=errorsOnly`, `mode=tail`, and `mode=aroundFailure` for bounded
 agent recovery. Live `text/event-stream` requests still use SSE streaming.
@@ -230,8 +239,8 @@ same capsule and receipt hashes consumed by execution.
 
 Every managed attempt creates its canonical `TestRun.runId` before preflight or process registration. UI details,
 logs, reports, MCP reads, and diagnosis resolve that same public ID, including blocked preflight and spawn failures.
-Diagnosis responses remain bounded and include evidence health, report/log links, the failed capsule component, and one
-legal recovery action.
+Diagnosis responses remain bounded and include evidence health, report/log links, first-line failure signatures, the
+failed capsule component, and one legal recovery action.
 
 The local executor sets these important environment variables for child Cucumber runs:
 

@@ -1098,6 +1098,7 @@ model Environment {
   id                          String                     @id @default(uuid())
   name                        String
   baseUrl                     String
+  expectedPageTitle           String?
   apiBaseUrl                  String?
   username                    String?
   passwordEnvironmentVariable String?

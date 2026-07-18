@@ -612,6 +612,110 @@ describe('baseline execution and implementation gate', () => {
     })
   })
 
+  it('ignores historical authoring failures outside the current required baseline matrix', async () => {
+    const planId = 'baseline-current-matrix'
+    await writeArtifacts(planId)
+    const repository = new PlanArtifactRepository(workspace)
+    const initialStored = await repository.read('validation', planId)
+    const initialValidation = parseYamlArtifact('validation', initialStored.content) as ValidationArtifact
+    initialValidation.validations[0]!.matrix = [{ browser: 'chromium', environment: 'local' }]
+    await repository.compareAndWrite(
+      'validation',
+      planId,
+      initialStored.hash,
+      serializeYamlArtifact('validation', initialValidation),
+    )
+
+    await startBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      submitRun: async () => ({ testRunId: 'run-old-environment' }),
+    })
+    await reconcileBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      loadEvidence: async () => ({
+        status: 'completed',
+        result: 'failed',
+        failureSignatures: ['Undefined step: Given the old environment is ready'],
+        completedStepIds: [],
+      }),
+    })
+
+    const failedPlanStored = await repository.read('plan', planId)
+    const failedValidationStored = await repository.read('validation', planId)
+    const currentPlan = parseYamlArtifact('plan', failedPlanStored.content) as PlanArtifact
+    const currentValidation = parseYamlArtifact('validation', failedValidationStored.content) as ValidationArtifact
+    currentValidation.validations[0]!.matrix = [{ browser: 'chromium', environment: 'replacement' }]
+    currentValidation.validations[0]!.expectedFailures = [
+      {
+        browser: 'chromium',
+        environment: 'replacement',
+        signature: 'Expected first implementation run to fail before product work.',
+        order: 0,
+        lastPassingStepId: 'first-task',
+      },
+    ]
+    await repository.compareAndWrite(
+      'plan',
+      planId,
+      failedPlanStored.hash,
+      serializeYamlArtifact('plan', { ...currentPlan, lifecycle: 'validations_approved' }),
+    )
+    await repository.compareAndWrite(
+      'validation',
+      planId,
+      failedValidationStored.hash,
+      serializeYamlArtifact('validation', currentValidation),
+    )
+    const projection = await client.planProjection.findUniqueOrThrow({ where: { planId } })
+    await client.environment.create({
+      data: {
+        targetProjectId: projection.targetProjectId!,
+        name: 'replacement',
+        baseUrl: 'http://localhost:4317',
+      },
+    })
+
+    await startBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      submitRun: async () => ({ testRunId: 'run-current-environment' }),
+    })
+    const reconciled = await reconcileBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      loadEvidence: async testRunId =>
+        testRunId === 'run-current-environment'
+          ? {
+              status: 'completed',
+              result: 'failed',
+              failureSignatures: ['Expected first implementation run to fail before product work.'],
+              completedStepIds: ['first-task'],
+            }
+          : {
+              status: 'completed',
+              result: 'failed',
+              failureSignatures: ['Undefined step: Given the old environment is ready'],
+              completedStepIds: [],
+            },
+    })
+
+    expect(reconciled.plan.lifecycle).toBe('baseline_review')
+    expect(reconciled.validation.baselineAttempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          testRunId: 'run-old-environment',
+          classification: 'authoring_failure',
+        }),
+        expect.objectContaining({
+          testRunId: 'run-current-environment',
+          classification: 'expected_product_failure',
+        }),
+      ]),
+    )
+  })
+
   // fallow-ignore-next-line code-duplication
   it('reopens invalid baseline review with an exact validation hash and preserves attempts', async () => {
     const planId = 'baseline-repair'

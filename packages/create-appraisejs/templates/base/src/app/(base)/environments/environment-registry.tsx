@@ -23,8 +23,27 @@ function includesQuery(environment: EnvironmentTableRow, query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   if (!normalizedQuery) return true
 
-  return [environment.name, environment.baseUrl, environment.apiBaseUrl, environment.username].some(value =>
-    value?.toLowerCase().includes(normalizedQuery),
+  return [
+    environment.name,
+    environment.baseUrl,
+    environment.expectedPageTitle,
+    environment.apiBaseUrl,
+    environment.username,
+  ].some(value => value?.toLowerCase().includes(normalizedQuery))
+}
+
+function ExpectedPageTitle({ value }: { value: string | null }) {
+  const configured = Boolean(value)
+  return (
+    <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3">
+      <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-500">Expected page title</p>
+      <p
+        className={`mt-2 truncate text-xs ${configured ? 'text-zinc-300' : 'text-zinc-500'}`}
+        title={value || undefined}
+      >
+        {value || 'Automatic target identity'}
+      </p>
+    </div>
   )
 }
 
@@ -187,6 +206,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                 </div>
 
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ExpectedPageTitle value={environment.expectedPageTitle} />
                   <div className="min-w-0 rounded-md border border-white/[0.06] bg-white/[0.018] px-3.5 py-3">
                     <div className="flex items-center gap-2 text-zinc-500">
                       <Braces className="size-3.5" aria-hidden="true" />

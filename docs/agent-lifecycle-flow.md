@@ -63,8 +63,9 @@ not repeat the brief or handoff. Pending review or pending approval is not compl
 transition it permits succeeds. `validation_preparation_started` permits managed Validation AST authoring. Agents call
 `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and call
 `validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
-Preview confirmation may use the exact hash-bound MCP response; a pre-compile browser surface is optional rather than
-required. The Appraise-owned validation approval gate remains the persisted post-compile UI review.
+Preview records a bounded, hash-bound plan event, and the browser review surface shows proposed scenarios, actions,
+coverage claims, and semantic warnings before compile. This preview is advisory: the Appraise-owned validation approval
+gate remains the persisted post-compile UI review.
 That persisted review renders the canonical Gherkin projection, selected action and locator identities, scenarios,
 runtime matrix, and the immutable AST, context, preview, receipt, projection, and runtime-input hashes before any
 managed execution begins.
@@ -124,6 +125,11 @@ Normal baseline execution is agent-owned through MCP: after `validations_approve
 read-only guidance for those mechanical transitions rather than competing buttons. Human/Appraise UI ownership remains
 with baseline decisions and interrupts: cancelling active baseline runs, acknowledging unrelated failures, justifying
 accepted regression-pass evidence, and accepting complete baseline evidence.
+
+Before creating baseline TestRuns, `baseline_start` checks loopback environment reservations and probes the served page
+identity. An explicitly configured expected page title must match. A title matching a different registered target is a
+conflict even without an explicit title. The diagnostic offers a free replacement local port when available; agents
+must update or repropose the environment rather than running against an unrelated application.
 
 When a baseline is intentionally red before implementation, the managed Validation AST must declare `expectedFailures`
 for the exact browser/environment matrix entry. Entries preserve legacy baseline semantics: each approved `signature`

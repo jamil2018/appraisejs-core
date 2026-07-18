@@ -440,6 +440,43 @@ export function buildAgentPreflight(
   }
 }
 
+export function compactAgentPreflight(preflight: ReturnType<typeof buildAgentPreflight>) {
+  const capabilities = preflight.layers.currentTaskCapabilities
+  const target = preflight.layers.targetProjectBinding
+  const recovery = preflight.recovery
+  return {
+    schemaVersion: preflight.schemaVersion,
+    status: preflight.status,
+    ready: preflight.ready,
+    layers: {
+      applicationAndIdentity: { status: preflight.layers.applicationAndIdentity.status },
+      activeMcpTransport: {
+        status: preflight.layers.activeMcpTransport.status,
+        serverStartedAt: preflight.layers.activeMcpTransport.serverStartedAt,
+        mcpSurfaceVersion: preflight.layers.activeMcpTransport.mcpSurfaceVersion,
+      },
+      currentTaskCapabilities: {
+        status: capabilities.status,
+        missingTools: capabilities.tools.missing,
+        missingResources: capabilities.resources.missing,
+      },
+      targetProjectBinding: {
+        status: target.status,
+        expectedCanonicalPath: target.expectedCanonicalPath,
+        matchedScope: target.matchedScope,
+      },
+    },
+    recovery:
+      recovery && 'status' in recovery
+        ? {
+            status: recovery.status,
+            missing: recovery.missing,
+            recoveryActions: recovery.recoveryActions,
+          }
+        : recovery,
+  }
+}
+
 export function missingCapabilityRecovery(
   missing: {
     tools?: string[]
@@ -469,10 +506,19 @@ export function missingCapabilityRecovery(
 }
 
 export function compactProjectDiagnostic(diagnostic: Awaited<ReturnType<typeof diagnoseProject>>) {
-  const { targetProjects, ...rest } = diagnostic
   return {
-    ...rest,
-    targetProjectCount: targetProjects.length,
+    ok: diagnostic.ok,
+    hubProject: {
+      fingerprint: diagnostic.hubProject.fingerprint,
+      canonicalPath: diagnostic.hubProject.canonicalPath,
+    },
+    contractVersion: diagnostic.contractVersion,
+    baseUrl: diagnostic.baseUrl,
+    checks: diagnostic.checks.map(check => ({ id: check.id, status: check.status, code: check.code })),
+    warnings: diagnostic.warnings,
+    recoveryActions: diagnostic.recoveryActions,
+    links: diagnostic.links,
+    targetProjectCount: diagnostic.targetProjects.length,
     targetProjectDiscovery: 'Call project_list only when target selection requires the registered-project list.',
   }
 }
@@ -495,7 +541,7 @@ export const agentGuide = {
   validationPreparationWorkflow,
 }
 
-export function diagnosticGuidance(diagnostic: unknown) {
+export function diagnosticGuidance(diagnostic: unknown, preflight?: { status?: string; ready?: boolean }) {
   const ok = Boolean(
     (
       diagnostic as {
@@ -503,6 +549,13 @@ export function diagnosticGuidance(diagnostic: unknown) {
       }
     )?.ok,
   )
+  if (ok && preflight?.ready) {
+    return {
+      nextRecommendedAction:
+        'The current task capabilities and expected target workspace binding are ready. Continue with planning_session_create.',
+      nextRequiredAgentBehavior: 'start_explicit_target_planning',
+    }
+  }
   return {
     nextRecommendedAction: ok
       ? 'For an existing app, register or select the target workspace with project_add before planning. For hub checkout work, call planning_session_create with targetMode:"hub". If expected MCP tools or resources are missing, restart/reconnect the MCP client and sidecar.'

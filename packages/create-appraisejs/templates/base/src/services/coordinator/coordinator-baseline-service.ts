@@ -36,6 +36,10 @@ import {
 
 import { appendPlanEvent } from './coordinator-service'
 import { assertValidationEnvironmentsReady } from './validation-canonical-projection-service'
+import {
+  preflightBaselineEnvironments,
+  type EnvironmentRuntimePreflight,
+} from './environment-runtime-preflight-service'
 
 type BaselineOptions = {
   client?: PrismaClient
@@ -52,6 +56,7 @@ type BaselineOptions = {
   loadEvidence?: (testRunId: string) => Promise<BaselineEvidence & { status: 'running' | 'completed' }>
   capsuleService?: RuntimeCapsuleTestRunService
   appraiseRoot?: string
+  preflightEnvironments?: typeof preflightBaselineEnvironments
 }
 
 export function baselineCapsulePreparationKey(input: {
@@ -291,7 +296,12 @@ function browserEngine(browser: string): BrowserEngine {
   throw new ServiceError(`Unsupported baseline browser "${browser}".`, 'VALIDATION')
 }
 
-function baselineStartResult(plan: PlanArtifact, validation: ValidationArtifact, reused: boolean) {
+function baselineStartResult(
+  plan: PlanArtifact,
+  validation: ValidationArtifact,
+  reused: boolean,
+  environmentPreflight: EnvironmentRuntimePreflight[] = [],
+) {
   const activeAttempts = validation.baselineAttempts.filter(attempt =>
     ['scheduled', 'running', 'interrupted'].includes(attempt.status),
   )
@@ -310,6 +320,7 @@ function baselineStartResult(plan: PlanArtifact, validation: ValidationArtifact,
         environment: attempt.environment,
         status: attempt.status,
       })),
+      environmentPreflight,
       nextAllowedAction: {
         tool: 'baseline_reconcile',
         reason: reused
@@ -536,6 +547,13 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
     throw new ServiceError('The plan is not ready for baseline execution.', 'CONFLICT')
   }
   const runtimeValidation = await baselineRuntimeValidation(planId, artifacts, client)
+  if (!artifacts.targetProject)
+    throw new ServiceError('Reviewed AST baseline requires a registered target project.', 'CONFLICT')
+  const environmentPreflight = await (options.preflightEnvironments ?? preflightBaselineEnvironments)(
+    runtimeValidation,
+    artifacts.targetProject,
+    client,
+  )
   const capsuleService = options.capsuleService ?? new RuntimeCapsuleTestRunService(client)
   const submitRun =
     options.submitRun ??
@@ -565,7 +583,7 @@ export async function startBaselineExecution(planId: string, options: BaselineOp
       },
       client,
     )
-  return baselineStartResult(plan, validation, false)
+  return baselineStartResult(plan, validation, false, environmentPreflight)
 }
 
 export async function reconcileBaselineExecution(planId: string, options: BaselineOptions = {}) {
@@ -609,9 +627,17 @@ export async function reconcileBaselineExecution(planId: string, options: Baseli
       }
     }),
   )
-  const stillRunning = attempts.some(attempt => ['scheduled', 'running', 'interrupted'].includes(attempt.status))
+  const requiredCombinationKeys = new Set(
+    requiredBaselineCombinations(artifacts.validation).map(baselineCombinationKey),
+  )
   const latestAttempts = new Map<string, (typeof attempts)[number]>()
-  attempts.forEach(attempt => latestAttempts.set(baselineCombinationKey(attempt), attempt))
+  attempts.forEach(attempt => {
+    const key = baselineCombinationKey(attempt)
+    if (requiredCombinationKeys.has(key)) latestAttempts.set(key, attempt)
+  })
+  const stillRunning = [...latestAttempts.values()].some(attempt =>
+    ['scheduled', 'running', 'interrupted'].includes(attempt.status),
+  )
   const hasHarnessFailure = [...latestAttempts.values()].some(
     attempt => attempt.status === 'completed' && attempt.classification === 'authoring_failure',
   )

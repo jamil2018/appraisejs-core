@@ -36,6 +36,22 @@ describe('plan lifecycle insights', () => {
     expect(revisionImpact(detail)).toMatchObject({ status: 'stale', impacted: expect.arrayContaining(['validations']) })
   })
 
+  it('keeps validation current across normal lifecycle source-hash transitions', () => {
+    const detail = {
+      plan: { lifecycle: 'completed', revision: 1, implementationGroups: [] },
+      projection: { sourceHash: 'sha256:completed' },
+      revisions: [{ sourceHash: 'sha256:validation-base' }, { sourceHash: 'sha256:completed' }],
+      validation: {
+        revision: 1,
+        baseRevision: { snapshotHash: 'sha256:validation-base' },
+        baselineAttempts: [],
+      },
+      orphanedThreadIds: [],
+    } as unknown as PlanReviewDetail
+
+    expect(revisionImpact(detail)).toMatchObject({ status: 'current', changedSinceValidation: false, impacted: [] })
+  })
+
   it('content-addresses every automatic delegated authorization consumption', () => {
     const detail = {
       delegations: [

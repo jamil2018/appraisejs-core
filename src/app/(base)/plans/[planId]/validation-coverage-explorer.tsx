@@ -44,14 +44,14 @@ export function ValidationCoverageExplorer({ detail }: { detail: PlanReviewDetai
         <div className="grid gap-2 md:grid-cols-2">
           {rows.map(row => (
             <div key={row.taskId} className="bg-muted/20 rounded-md border p-2.5">
-              <p className="flex items-center gap-2 font-semibold">
+              <div className="flex items-center gap-2 font-semibold">
                 {row.state === 'covered' ? (
                   <CircleCheck className="size-3.5 text-emerald-600" />
                 ) : (
                   <CircleAlert className="size-3.5 text-amber-600" />
                 )}
                 {row.title} <Badge variant="outline">{row.state}</Badge>
-              </p>
+              </div>
               <p className="mt-1 text-muted-foreground">{row.intent}</p>
               <p className="mt-1 text-muted-foreground">
                 Validations: {row.validationIds.join(', ') || 'none'} · scenarios:{' '}

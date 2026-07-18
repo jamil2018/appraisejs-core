@@ -47,6 +47,7 @@ const diagnostic = {
     expectedCaseCount: 1,
     matchedCaseCount: 0,
     scenarioCount: 0,
+    failureSignatures: [],
     links: { run: '/test-runs/run', logs: '/logs/run' },
   },
   nextRecoveryAction: { code: 'WAIT_FOR_RUN', tool: 'test_run_read', reason: 'The managed run is still active.' },

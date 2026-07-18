@@ -8,6 +8,7 @@ export type EnvironmentTableRow = {
   id: string
   name: string
   baseUrl: string
+  expectedPageTitle: string | null
   apiBaseUrl: string | null
   username: string | null
   passwordEnvironmentVariable: string | null
@@ -26,6 +27,7 @@ export type EnvironmentFormSubmitAction = (
 export const environmentFieldValidators = {
   name: environmentSchema.shape.name,
   baseUrl: environmentSchema.shape.baseUrl,
+  expectedPageTitle: environmentSchema.shape.expectedPageTitle,
   apiBaseUrl: environmentSchema.shape.apiBaseUrl,
   username: environmentSchema.shape.username,
   passwordEnvironmentVariable: environmentSchema.shape.passwordEnvironmentVariable,
@@ -45,6 +47,8 @@ function isEnvironmentRow(value: unknown): value is EnvironmentTableRow {
     typeof value.name === 'string' &&
     'baseUrl' in value &&
     typeof value.baseUrl === 'string' &&
+    'expectedPageTitle' in value &&
+    (typeof value.expectedPageTitle === 'string' || value.expectedPageTitle === null) &&
     'apiBaseUrl' in value &&
     (typeof value.apiBaseUrl === 'string' || value.apiBaseUrl === null) &&
     'username' in value &&

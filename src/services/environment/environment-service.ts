@@ -4,6 +4,7 @@ import { automationProjectionService } from '@/lib/automation/projection-service
 import { ServiceError } from '@/services/shared/errors'
 import type { Environment } from '@prisma/client'
 import type { z } from 'zod'
+import { assertLoopbackOriginReservation } from './environment-origin-reservation'
 
 async function checkUniqueName(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
   const existing = await prisma.environment.findFirst({
@@ -21,6 +22,7 @@ function normalizeEnvironmentPayload(value: z.infer<typeof environmentSchema>) {
   return {
     ...value,
     apiBaseUrl: value.apiBaseUrl === '' ? null : value.apiBaseUrl,
+    expectedPageTitle: value.expectedPageTitle?.trim() || null,
     username: value.username === '' ? null : value.username,
     passwordEnvironmentVariable,
     credentialState: passwordEnvironmentVariable ? ('REFERENCE_CONFIGURED' as const) : ('NONE' as const),
@@ -54,6 +56,7 @@ export async function createEnvironment(
       400,
     )
   }
+  await assertLoopbackOriginReservation({ baseUrl: value.baseUrl, targetProjectId }, prisma)
   const newEnvironment = await prisma.environment.create({
     data: { ...normalizeEnvironmentPayload(value), targetProjectId },
   })
@@ -95,6 +98,8 @@ export async function updateEnvironment(
       )
     }
   }
+
+  await assertLoopbackOriginReservation({ baseUrl: value.baseUrl, targetProjectId, excludeEnvironmentId: id }, prisma)
 
   const updatedEnvironment = await prisma.environment.update({
     where: { id },

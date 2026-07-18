@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   description: 'Update the environment configuration',
 }
 
+function optionalField(value: string | null) {
+  return value || ''
+}
+
 const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const { data: environmentToBeEditedData, error: environmentToBeEditedError } = await getEnvironmentByIdAction(id)
@@ -34,9 +38,10 @@ const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }
         defaultValues={{
           name: environmentData.name,
           baseUrl: environmentData.baseUrl,
-          apiBaseUrl: environmentData.apiBaseUrl || '',
-          username: environmentData.username || '',
-          passwordEnvironmentVariable: environmentData.passwordEnvironmentVariable || '',
+          expectedPageTitle: optionalField(environmentData.expectedPageTitle),
+          apiBaseUrl: optionalField(environmentData.apiBaseUrl),
+          username: optionalField(environmentData.username),
+          passwordEnvironmentVariable: optionalField(environmentData.passwordEnvironmentVariable),
         }}
         successTitle="Environment updated"
         successMessage="Environment updated successfully"

@@ -7,12 +7,15 @@ import {
   approvalPendingResponse,
   applyAuthoringResponseMode,
   applyLifecycleResponseMode,
+  applyResponseMode,
   baselineRecoveryForLifecycle,
   buildAgentPreflight,
   canonicalExpectedTargetWorkspacePath,
+  compactAgentPreflight,
   compactMcpCapabilityMetadata,
   compactProjectDiagnostic,
   createAppraiseMcpServer,
+  diagnosticGuidance,
   latestGateEvent,
   mcpCapabilityMetadata,
   MCP_RESPONSE_TOKEN_BUDGETS,
@@ -403,6 +406,20 @@ describe('compact lifecycle responses', () => {
     )
   })
 
+  it('keeps bounded failure signatures in compact test-run evidence', () => {
+    expect(
+      applyResponseMode(
+        {
+          executionRunId: 'run-1',
+          evidenceHealth: 'valid',
+          failureSignatures: ['Expected HomeChores but found SecondWife'],
+          logExcerpt: Array.from({ length: 20 }, (_, index) => `unhelpful tail ${index}`),
+        },
+        'summary',
+      ),
+    ).toMatchObject({ failureSignatures: ['Expected HomeChores but found SecondWife'] })
+  })
+
   it('preserves nested baseline attempt and test run evidence in compact lifecycle responses', () => {
     const compact = applyLifecycleResponseMode(
       {
@@ -434,6 +451,39 @@ describe('compact lifecycle responses', () => {
         }),
       ],
     })
+  })
+
+  it('projects the active baseline execution instead of historical attempt identities', () => {
+    const compact = applyLifecycleResponseMode(
+      {
+        plan: { planId: 'plan-1', lifecycle: 'baseline_running', revision: 1 },
+        validation: {
+          baselineAttempts: [
+            { id: 'historical-attempt', testRunId: 'historical-run', status: 'completed' },
+            { id: 'current-attempt', testRunId: 'current-run', status: 'running' },
+          ],
+        },
+        baselineExecution: {
+          attempts: [
+            {
+              attemptId: 'current-attempt',
+              testRunId: 'current-run',
+              validationId: 'validation',
+              status: 'running',
+            },
+          ],
+        },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      attemptId: 'current-attempt',
+      attemptIds: ['current-attempt'],
+      testRunIds: ['current-run'],
+      evidence: [expect.objectContaining({ attemptId: 'current-attempt', testRunId: 'current-run' })],
+    })
+    expect(JSON.stringify(compact)).not.toContain('historical-attempt')
   })
 
   it('keeps implementation mutation results actionable in summary mode', () => {
@@ -604,6 +654,24 @@ describe('MCP capability and recovery metadata', () => {
     })
   })
 
+  it('keeps the ready agent preflight compact without losing layer status', () => {
+    const preflight = buildAgentPreflight(diagnostic, {
+      observedTools: compactMcpCapabilityMetadata.workflowSentinelTools,
+      observedResources: compactMcpCapabilityMetadata.workflowSentinelResources,
+      expectedTargetWorkspacePath: '/targets/secondwife',
+    })
+
+    expect(compactAgentPreflight(preflight)).toMatchObject({
+      status: 'ready',
+      ready: true,
+      layers: {
+        currentTaskCapabilities: { status: 'ready', missingTools: [], missingResources: [] },
+        targetProjectBinding: { status: 'ready', matchedScope: 'target' },
+      },
+    })
+    expect(measureMcpResponse(compactAgentPreflight(preflight)).estimatedTokens).toBeLessThan(300)
+  })
+
   it('blocks with exact missing capabilities before lifecycle work begins', () => {
     expect(
       buildAgentPreflight(diagnostic, {
@@ -711,7 +779,7 @@ describe('MCP capability and recovery metadata', () => {
   })
 
   it('keeps healthy project diagnostics bounded and routes target enumeration to project_list', () => {
-    const diagnostic = compactProjectDiagnostic({
+    const fullDiagnostic = {
       ok: true,
       hubProject: { cwd: '/repo', fingerprint: 'sha256:hub', canonicalPath: '/repo' },
       project: { cwd: '/repo', fingerprint: 'sha256:hub' },
@@ -726,20 +794,28 @@ describe('MCP capability and recovery metadata', () => {
       recommendedValidationBaseRevision: undefined,
       recoveryActions: [],
       links: { application: 'http://127.0.0.1:3000' },
+    }
+    const compactDiagnostic = compactProjectDiagnostic(fullDiagnostic)
+    const preflight = buildAgentPreflight(fullDiagnostic, {
+      observedTools: compactMcpCapabilityMetadata.workflowSentinelTools,
+      observedResources: compactMcpCapabilityMetadata.workflowSentinelResources,
+      expectedTargetWorkspacePath: '/repo',
     })
 
-    expect(diagnostic).not.toHaveProperty('targetProjects')
-    expect(diagnostic).toMatchObject({
+    expect(compactDiagnostic).not.toHaveProperty('targetProjects')
+    expect(compactDiagnostic).toMatchObject({
       targetProjectCount: 30,
       targetProjectDiscovery: expect.stringContaining('project_list'),
     })
     const response = {
-      ...diagnostic,
+      ...compactDiagnostic,
+      agentPreflight: compactAgentPreflight(preflight),
+      preflightReceipt: { id: 'receipt', status: 'ready', snapshotHash: 'sha256:receipt' },
       capabilities: compactMcpCapabilityMetadata,
       capabilityStatus: 'available',
-      nextRecommendedAction: 'Choose an explicit target before planning.',
-      nextRequiredAgentBehavior: 'choose_explicit_target_before_planning',
+      ...diagnosticGuidance(fullDiagnostic, preflight),
     }
+    expect(response).toMatchObject({ nextRequiredAgentBehavior: 'start_explicit_target_planning' })
     expect(measureMcpResponse(response).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.diagnostic)
   })
 })

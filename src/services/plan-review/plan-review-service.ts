@@ -31,6 +31,7 @@ import {
   readLatestLifecycleCertification,
   readPlanEfficiencyTelemetry,
 } from '@/services/coordinator/plan-observability-service'
+import { parseValidationAstReviewPreview, type ValidationAstReviewPreview } from '@/lib/validation-ast/review-preview'
 
 import {
   canApprovePlan,
@@ -89,6 +90,7 @@ export type PlanReviewDetail = {
     matrix: Array<{ browser: string; environment: string }>
     gherkin: string[]
   }
+  validationAstPreview?: ValidationAstReviewPreview
   efficiencyTelemetry?: Awaited<ReturnType<typeof readPlanEfficiencyTelemetry>>
   lifecycleCertification?: Awaited<ReturnType<typeof readLatestLifecycleCertification>>
   runtimeCapsules?: Array<{
@@ -462,6 +464,9 @@ export async function getPlanReviewDetail(
   ])
   if (!projection) throw new ServiceError('Plan not found.', 'NOT_FOUND')
   const validation = parseValidation(projection.validationJson)
+  const validationAstPreview = parseValidationAstReviewPreview(
+    [...projection.events].reverse().find(event => event.type === 'validation_ast_previewed')?.payloadJson,
+  )
   const [validationReview, exactExecutionPreview, efficiencyTelemetry, lifecycleCertification, runtimeCapsules] =
     await Promise.all([
       readValidationReviewEvidence(canonicalPlanId, validation, review, client),
@@ -469,7 +474,7 @@ export async function getPlanReviewDetail(
       readPlanEfficiencyTelemetry(canonicalPlanId, client),
       readLatestLifecycleCertification(client),
       client.runtimeCapsule?.findMany({
-          where: { testRun: { is: { planId: canonicalPlanId } } },
+        where: { testRun: { is: { planId: canonicalPlanId } } },
         orderBy: { createdAt: 'asc' },
         select: {
           id: true,
@@ -512,6 +517,7 @@ export async function getPlanReviewDetail(
     validationContentHash: validation ? hashContent(serializeYamlArtifact('validation', validation)) : undefined,
     validationReview,
     exactExecutionPreview,
+    validationAstPreview,
     efficiencyTelemetry,
     lifecycleCertification,
     runtimeCapsules,

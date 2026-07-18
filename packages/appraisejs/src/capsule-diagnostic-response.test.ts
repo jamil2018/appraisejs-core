@@ -10,7 +10,10 @@ const diagnostic = {
   identities: { node: { version: '1' } },
   preflight: { status: 'blocked' },
   blockers: [{ code: 'FILE_MISSING', recoveryAction: 'RETRY_PREFLIGHT' }],
-  evidence: { links: { run: '/test-runs/run', logs: '/api/test-runs/run/logs' } },
+  evidence: {
+    failureSignatures: ['Expected HomeChores but found SecondWife'],
+    links: { run: '/test-runs/run', logs: '/api/test-runs/run/logs' },
+  },
   nextRecoveryAction: { code: 'RETRY_PREFLIGHT' },
   storedPath: '/must/not/escape',
   rawReceipt: { executable: '/secret/node' },
