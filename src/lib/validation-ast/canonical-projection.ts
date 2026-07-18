@@ -43,7 +43,7 @@ export function locatorBindingsForAst(
   return graph.nodes
     .filter(
       (node): node is Extract<LocatorGraph['nodes'][number], { type: 'locator' }> =>
-        node.type === 'locator' && refs.has(node.id),
+        node.type === 'locator' && (refs.has(node.id) || Boolean(node.persistentId && refs.has(node.persistentId))),
     )
     .map(locator => {
       const group = groups.get(locator.groupId)
@@ -52,7 +52,7 @@ export function locatorBindingsForAst(
         locator.strategy.value.selector ?? Object.values(locator.strategy.value).find(item => typeof item === 'string')
       if (!group || typeof value !== 'string') throw new Error(`Locator ${locator.id} cannot be projected.`)
       return {
-        refId: locator.id,
+        refId: refs.has(locator.id) ? locator.id : locator.persistentId!,
         id: locator.id.replace(/^locator_/, ''),
         name: locator.title,
         value,

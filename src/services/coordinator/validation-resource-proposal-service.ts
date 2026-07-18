@@ -363,7 +363,8 @@ export async function proposeValidationResources(
   return {
     ...result,
     contextHash: context.contextHash,
-    nextRecommendedAction: 'Use the returned stable IDs and refreshed context to author the managed Validation AST.',
+    nextRecommendedAction:
+      'Use each returned binding.astRef (preferred) or binding.id alias with its version to author the managed Validation AST.',
   }
 }
 

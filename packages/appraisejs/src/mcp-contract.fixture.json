@@ -348,12 +348,24 @@
           "expectedValidationHash": {
             "type": "string",
             "pattern": "^sha256:.*"
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
         "required": [
           "planId",
           "reason",
-          "expectedValidationHash"
+          "expectedValidationHash",
+          "responseMode"
         ],
         "additionalProperties": false
       }
@@ -4083,12 +4095,24 @@
           "expectedValidationHash": {
             "type": "string",
             "pattern": "^sha256:.*"
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
         "required": [
           "planId",
           "reason",
-          "expectedValidationHash"
+          "expectedValidationHash",
+          "responseMode"
         ],
         "additionalProperties": false
       }

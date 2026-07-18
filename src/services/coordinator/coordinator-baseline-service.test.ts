@@ -664,6 +664,47 @@ describe('baseline execution and implementation gate', () => {
     ])
   })
 
+  it('reopens unmatched expected-red baseline evidence for validation repair', async () => {
+    const planId = 'baseline-signature-repair'
+    await writeArtifacts(planId)
+    await startBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      submitRun: async input => ({ testRunId: `run-${input.browser}-${input.environment}` }),
+    })
+    await reconcileBaselineExecution(planId, {
+      projectDirectory: workspace,
+      client,
+      loadEvidence: async () => ({
+        status: 'completed',
+        result: 'failed',
+        failureSignatures: ['A different product failure'],
+        completedStepIds: ['first-task'],
+      }),
+    })
+    const repository = new PlanArtifactRepository(workspace)
+    const stored = await repository.read('validation', planId)
+
+    await expect(
+      retryBaselineAfterRepair(
+        {
+          planId,
+          reason: 'The approved expected-failure signature must be corrected.',
+          expectedValidationHash: stored.hash,
+        },
+        { projectDirectory: workspace, client },
+      ),
+    ).resolves.toMatchObject({
+      plan: { lifecycle: 'validation_changes_requested' },
+      validation: {
+        baselineDecision: 'changes-requested',
+        baselineAttempts: expect.arrayContaining([
+          expect.objectContaining({ classification: 'unrelated_existing_failure' }),
+        ]),
+      },
+    })
+  })
+
   it('checks validation files against a bound target project and reports structured drift', async () => {
     const planId = 'target-bound-baseline'
     const targetWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-target-'))

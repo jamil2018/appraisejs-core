@@ -80,7 +80,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { getPlanDisplaySlug } from '@/lib/plans/plan-display'
-import { hasInvalidLatestBaselineEvidence } from './baseline-attempt-summary'
+import { hasInvalidLatestBaselineEvidence, latestBaselineAttempts } from './baseline-attempt-summary'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
@@ -529,6 +529,9 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
   const hasInvalidBaselineEvidence = hasInvalidLatestBaselineEvidence(detail.validation?.baselineAttempts ?? [])
+  const latestBaselineAttemptIds = new Set(
+    latestBaselineAttempts(detail.validation?.baselineAttempts ?? []).map(attempt => attempt.id),
+  )
   const reviewUnavailableReason = getReviewUnavailableReason(detail.plan.lifecycle)
   const approvalDisabledReason = approved
     ? 'This exact revision has already been approved.'
@@ -1547,6 +1550,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                           <BaselineAttemptCard
                             key={attempt.id}
                             attempt={attempt}
+                            isCurrent={latestBaselineAttemptIds.has(attempt.id)}
                             planId={detail.plan.planId}
                             isPending={isPending}
                             run={run}

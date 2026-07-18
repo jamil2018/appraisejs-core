@@ -161,6 +161,43 @@ describe('baseline execution contract', () => {
     ).toBe('expected_product_failure')
   })
 
+  it('accepts one approved matrix signature repeated by multiple scenarios', () => {
+    expect(
+      classifyBaselineResult(
+        {
+          ...validation.validations[0],
+          expectedFailures: [
+            {
+              ...validation.validations[0].expectedFailures[0],
+              signature: 'ERR_CONNECTION_REFUSED',
+              lastPassingStepId: null,
+            },
+          ],
+        },
+        requiredBaselineCombinations(validation)[0],
+        {
+          result: 'failed',
+          failureSignatures: [
+            'page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/',
+            'page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/',
+            'page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/',
+          ],
+          completedStepIds: [],
+        },
+      ).classification,
+    ).toBe('expected_product_failure')
+  })
+
+  it('rejects an extra observed failure outside the approved ordered signatures', () => {
+    expect(
+      classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {
+        result: 'failed',
+        failureSignatures: ['Then checkout succeeds: expected enabled to be true', 'Existing search test failed'],
+        completedStepIds: ['when-submit'],
+      }).classification,
+    ).toBe('unrelated_existing_failure')
+  })
+
   it('blocks harness failures and classifies unmatched failures as unrelated', () => {
     expect(
       classifyBaselineResult(validation.validations[0], requiredBaselineCombinations(validation)[0], {

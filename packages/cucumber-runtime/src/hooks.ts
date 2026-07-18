@@ -92,7 +92,6 @@ After(async function (this: CustomWorld, scenario) {
     },
   })
 
-  console.log(eventJson)
   process.stdout.write(eventJson + '\n')
 
   currentScenarioStatus = 'unknown'

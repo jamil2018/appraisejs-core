@@ -31,6 +31,7 @@ const catalog = createActionCatalog({
 })
 const locator = {
   id: 'title-input',
+  persistentId: 'title-input-row',
   version: '1' as const,
   title: 'Title',
   type: 'locator' as const,
@@ -170,6 +171,15 @@ describe('Validation AST check and preview', () => {
         .map(line => line.trim())
         .join('\n'),
     )
+  })
+
+  it('accepts a persistent locator id as an alias for its AST graph reference', () => {
+    const aliased = structuredClone(submission) as unknown as ValidationAstSubmission
+    const target = aliased.ast.scenarios[0]!.steps[0]!.action.inputs.target as { id: string }
+    target.id = 'title-input-row'
+
+    expect(checkValidationAst(aliased, context)).toMatchObject({ valid: true, blockers: [] })
+    expect(previewValidationAst(aliased, context).locators).toEqual([expect.objectContaining({ id: 'title-input' })])
   })
 
   it('scopes canonical entity IDs so identical ASTs in different plans cannot collide', () => {

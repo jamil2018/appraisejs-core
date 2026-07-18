@@ -248,7 +248,7 @@ export async function resolveReusableValidationSteps(
       durationMs: Date.now() - startedAt,
     },
     nextRecommendedAction: selected
-      ? 'Use the selected reusable reference in validation_test_shape_propose.'
+      ? 'Use the selected reusable reference while authoring the managed Validation AST, then call validation_ast_check.'
       : 'Review the bounded alternatives, then propose a justified custom step only if none is compatible.',
   }
 }

@@ -98,7 +98,9 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
       ? (payload.implementation as Record<string, unknown>)
       : validation?.implementation && typeof validation.implementation === 'object'
         ? (validation.implementation as Record<string, unknown>)
-        : undefined
+        : payload.taskStates && typeof payload.taskStates === 'object'
+          ? payload
+          : undefined
   const readiness =
     payload.readiness && typeof payload.readiness === 'object'
       ? (payload.readiness as Record<string, unknown>)
@@ -171,7 +173,8 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
         : undefined),
     runnableTaskIds: payload.runnableTaskIds,
     approvedGroupIds: implementation?.approvedGroupIds,
-    checkpoint: payload.checkpoint,
+    taskStates,
+    ...(payload.taskStates ? {} : { checkpoint: payload.checkpoint }),
     runs,
     receipt: payload.receipt,
     ready: readiness?.ready,
