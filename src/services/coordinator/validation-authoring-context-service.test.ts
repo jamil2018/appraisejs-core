@@ -52,7 +52,15 @@ describe('validation authoring kit', () => {
         stepBlocks: [],
         locatorGroups: [],
         locators: [],
-        environments: [{ id: 'local', name: 'Local', baseUrl: 'http://localhost:3000', apiBaseUrl: null }],
+        environments: [
+          {
+            id: 'local',
+            name: 'Local',
+            baseUrl: 'http://localhost:3000',
+            apiBaseUrl: null,
+            expectedPageTitle: null,
+          },
+        ],
       },
     })
     expect(kit.contextPack.reusableResourceSummary).toMatchObject({ templateSteps: 1, environments: 1 })

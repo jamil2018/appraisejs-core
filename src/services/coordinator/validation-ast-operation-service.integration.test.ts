@@ -259,6 +259,10 @@ describe('Validation AST SQLite preview to compile', () => {
     expect(preview.actions).toHaveLength(4)
     expect(preview.locators).toHaveLength(2)
     expect(preview.customExtensions.length).toBeLessThanOrEqual(1)
+    await previewValidationAstForPlan('plan-one', proposal, client)
+    expect(
+      await client.planEvent.count({ where: { plan: { planId: 'plan-one' }, type: 'validation_ast_previewed' } }),
+    ).toBe(1)
     const published = await compileValidationAstForPlan(
       {
         planId: 'plan-one',
@@ -461,7 +465,7 @@ describe('Validation AST SQLite preview to compile', () => {
     expect(second.publishOperationId).not.toBe(first.publishOperationId)
   })
 
-  it('rejects a tampered receipt without entities or events and cannot bypass lifecycle', async () => {
+  it('rejects a tampered receipt without entities or publish events and cannot bypass lifecycle', async () => {
     const preview = await previewValidationAstForPlan('plan-one', submission(), client)
     expect(preview.blockers).toEqual([])
     const initialCaseCount = await client.testCase.count()
@@ -471,7 +475,12 @@ describe('Validation AST SQLite preview to compile', () => {
         client,
       ),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
-    expect(await client.planEvent.count({ where: { plan: { planId: 'plan-one' } } })).toBe(0)
+    expect(
+      await client.planEvent.findMany({
+        where: { plan: { planId: 'plan-one' } },
+        select: { type: true },
+      }),
+    ).toEqual([{ type: 'validation_ast_previewed' }])
     expect(await client.testCase.count()).toBe(initialCaseCount)
     await client.planProjection.update({ where: { planId: 'plan-one' }, data: { lifecycle: 'validation_review' } })
     await expect(

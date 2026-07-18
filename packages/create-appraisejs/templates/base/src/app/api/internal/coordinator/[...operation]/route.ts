@@ -280,6 +280,16 @@ async function getTestRunEvidence(request: Request, operation: string[]) {
 // fallow-ignore-next-line complexity
 async function getValidations(request: Request, operation: string[]) {
   const planId = routePlanIdSchema.parse(operation[1])
+  if (operation[3] === 'draft' && operation[4] === 'context') {
+    const context = await readValidationContext(planId, { resourceTypes: [], limit: 1 })
+    return Response.json({
+      plan: context.plan,
+      targetProject: context.targetProject,
+      contextHash: context.contextHash,
+      authoring: context.authoring,
+      nextRecommendedAction: context.nextRecommendedAction,
+    })
+  }
   if (operation[3] === 'context') {
     const url = new URL(request.url)
     const resourceTypes = url.searchParams.get('resourceTypes')?.split(',').filter(Boolean) as

@@ -49,6 +49,7 @@ describe('EnvironmentForm', () => {
         {
           name: 'Staging',
           baseUrl: 'https://example.com',
+          expectedPageTitle: '',
           apiBaseUrl: 'https://api.example.com',
           username: 'tester',
           passwordEnvironmentVariable: 'APPRAISE_STAGING_PASSWORD',

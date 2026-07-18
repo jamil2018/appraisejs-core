@@ -12,7 +12,7 @@ import { lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidanc
 export function lifecycleCommandCenterState(detail: PlanReviewDetail) {
   const activeStage = lifecycleProgress(detail.plan.lifecycle).find(stage => stage.state === 'active')
   const nextAction = nextLifecycleAction(detail.plan.lifecycle)
-  const attempts = latestBaselineAttempts(detail.validation?.baselineAttempts ?? [])
+  const attempts = latestBaselineAttempts(detail.validation?.baselineAttempts ?? [], detail.validation)
   const activeAttempt = attempts.find(attempt => ['scheduled', 'running', 'interrupted'].includes(attempt.status))
   const blockers = [
     ...detail.issues.filter(issue => issue.blocking).map(issue => issue.message),

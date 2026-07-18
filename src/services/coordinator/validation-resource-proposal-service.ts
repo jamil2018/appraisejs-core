@@ -7,6 +7,7 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { registerProjectResourceOwnership } from '@/services/project-resource/project-resource-ownership-service'
 import { ServiceError } from '@/services/shared/errors'
 import { readValidationContext } from './validation-authoring-context-service'
+import { assertLoopbackOriginReservation } from '@/services/environment/environment-origin-reservation'
 
 const key = z
   .string()
@@ -78,6 +79,7 @@ const validationResourceProposalSchema = z
           localKey: key,
           name: text,
           baseUrl: z.string().url(),
+          expectedPageTitle: z.string().trim().max(200).optional(),
           apiBaseUrl: z.string().url().optional(),
         }),
       )
@@ -179,12 +181,17 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
     ids.locators[item.localKey] = matches[0].id
   }
   for (const item of proposal.environments) {
+    await assertLoopbackOriginReservation({ baseUrl: item.baseUrl, targetProjectId }, tx)
     const existing = await tx.environment.findFirst({
       where: { targetProjectId, name: item.name },
-      select: { id: true, baseUrl: true, apiBaseUrl: true },
+      select: { id: true, baseUrl: true, apiBaseUrl: true, expectedPageTitle: true },
     })
     if (!existing) continue
-    if (existing.baseUrl !== item.baseUrl || existing.apiBaseUrl !== (item.apiBaseUrl ?? null))
+    if (
+      existing.baseUrl !== item.baseUrl ||
+      existing.apiBaseUrl !== (item.apiBaseUrl ?? null) ||
+      existing.expectedPageTitle !== (item.expectedPageTitle ?? null)
+    )
       throw new ServiceError(`Environment "${item.name}" already exists with different URLs.`, 'CONFLICT')
     ids.environments[item.localKey] = existing.id
   }
@@ -271,12 +278,18 @@ async function persistProposalGraph(proposal: Proposal, targetProjectId: string,
       name: item.name,
       baseUrl: item.baseUrl,
       apiBaseUrl: item.apiBaseUrl,
+      expectedPageTitle: item.expectedPageTitle,
       targetProjectId,
     }
     await tx.environment.upsert({
       where: { id: data.id },
       create: data,
-      update: { name: data.name, baseUrl: data.baseUrl, apiBaseUrl: data.apiBaseUrl },
+      update: {
+        name: data.name,
+        baseUrl: data.baseUrl,
+        apiBaseUrl: data.apiBaseUrl,
+        expectedPageTitle: data.expectedPageTitle,
+      },
     })
     await registerProjectResourceOwnership(
       {

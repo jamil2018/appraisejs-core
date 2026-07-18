@@ -270,7 +270,13 @@ type AuthoringResources = {
   stepBlocks: Array<{ id: string; name: string; intent?: string | null }>
   locatorGroups: Array<{ id: string; name: string; route: string }>
   locators: Array<{ id: string; name: string; value: string; locatorGroupId: string | null }>
-  environments: Array<{ id: string; name: string; baseUrl: string | null; apiBaseUrl: string | null }>
+  environments: Array<{
+    id: string
+    name: string
+    baseUrl: string | null
+    apiBaseUrl: string | null
+    expectedPageTitle: string | null
+  }>
 }
 
 const portableId = (value: string, fallback: string) => {
@@ -529,7 +535,7 @@ export async function readValidationContext(
       }),
       client.environment.findMany({
         where: { targetProjectId },
-        select: { id: true, name: true, baseUrl: true, apiBaseUrl: true },
+        select: { id: true, name: true, baseUrl: true, apiBaseUrl: true, expectedPageTitle: true },
         orderBy: { name: 'asc' },
       }),
     ])

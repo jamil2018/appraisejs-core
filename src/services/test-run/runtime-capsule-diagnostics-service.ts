@@ -175,6 +175,7 @@ export async function readRuntimeCapsuleDiagnostic(
       expectedCaseCount: evidence.counts.expectedTestCases,
       matchedCaseCount: evidence.counts.matchedScenarios,
       scenarioCount: evidence.counts.scenarios,
+      failureSignatures: evidence.failureSignatures,
       links: {
         run: evidenceLinks.reportUrl,
         logs: evidenceLinks.logsUrl,

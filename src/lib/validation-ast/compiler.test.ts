@@ -189,6 +189,62 @@ describe('Validation AST check and preview', () => {
     expect(second.entities[0]!.stepIds).not.toEqual(first.entities[0]!.stepIds)
   })
 
+  it('warns when claimed persistence is observed before reload or after deleting the same entity', () => {
+    const persistenceSubmission = structuredClone(submission) as unknown as ValidationAstSubmission
+    persistenceSubmission.ast.qualityConcerns = ['persistence']
+    persistenceSubmission.ast.scenarios[0]!.steps = [
+      {
+        id: 'delete-bread',
+        keyword: 'When',
+        description: 'the user deletes Bread',
+        action: {
+          id: 'browser.forms.fill',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Bread' },
+        },
+      },
+      {
+        id: 'observe-bread',
+        keyword: 'Then',
+        description: 'Bread should retain its purchased state',
+        action: {
+          id: 'browser.forms.fill',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Bread' },
+        },
+      },
+    ]
+    persistenceSubmission.ast.coverageArgument = {
+      mappings: [
+        {
+          kind: 'task',
+          targetId: 'task-one',
+          scenarioIds: ['create-todo'],
+          stimulusStepIds: ['delete-bread'],
+          observationStepIds: ['observe-bread'],
+          rationale: 'Exercises the task.',
+          state: 'covered',
+        },
+        {
+          kind: 'quality-concern',
+          targetId: 'persistence',
+          scenarioIds: ['create-todo'],
+          stimulusStepIds: ['delete-bread'],
+          observationStepIds: ['observe-bread'],
+          rationale: 'Claims the Bread state survives reload.',
+          state: 'covered',
+        },
+      ],
+    }
+
+    expect(checkValidationAst(persistenceSubmission, context).warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'semantic-persistence-observation-before-reload' }),
+        expect.objectContaining({ code: 'semantic-persistence-target-destroyed', referenceId: 'delete-bread' }),
+      ]),
+    )
+  })
+
   it('projects expected-red last-passing references to stable executable step ids', () => {
     const expectedRedSubmission = {
       ...submission,

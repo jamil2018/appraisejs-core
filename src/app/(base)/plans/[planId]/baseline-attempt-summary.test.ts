@@ -29,4 +29,41 @@ describe('baseline attempt UI summary', () => {
     expect(latestBaselineAttempts(attempts).map(attempt => attempt.id)).toEqual(['latest'])
     expect(hasInvalidLatestBaselineEvidence(attempts)).toBe(false)
   })
+
+  it('ignores attempts for combinations removed from the current validation matrix', () => {
+    const attempts = [
+      {
+        id: 'old-environment',
+        validationId: 'validation',
+        browser: 'chromium',
+        environment: 'old',
+        testRunId: 'run-old',
+        status: 'completed',
+        classification: 'authoring_failure',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'current-environment',
+        validationId: 'validation',
+        browser: 'chromium',
+        environment: 'current',
+        testRunId: 'run-current',
+        status: 'completed',
+        classification: 'expected_product_failure',
+        createdAt: '2026-01-01T00:01:00.000Z',
+      },
+    ] as never
+    const validation = {
+      validations: [
+        {
+          id: 'validation',
+          required: true,
+          matrix: [{ browser: 'chromium', environment: 'current' }],
+        },
+      ],
+    } as never
+
+    expect(latestBaselineAttempts(attempts, validation).map(attempt => attempt.id)).toEqual(['current-environment'])
+    expect(hasInvalidLatestBaselineEvidence(attempts, validation)).toBe(false)
+  })
 })

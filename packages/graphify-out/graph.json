@@ -2064,10 +2064,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "capsule-diagnostic-response.test.ts",
       "id": "src_capsule_diagnostic_response_test",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "diagnostic",
@@ -2075,10 +2075,10 @@
       "source_file": "appraisejs/src/capsule-diagnostic-response.test.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "diagnostic",
       "id": "src_capsule_diagnostic_response_test_diagnostic",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "cli.ts",
@@ -2361,10 +2361,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 3,
+      "community": 33,
       "norm_label": "coordinator-client.ts",
       "id": "src_coordinator_client",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Community 33"
     },
     {
       "label": "CoordinatorOptions",
@@ -2383,10 +2383,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 79,
+      "community": 33,
       "norm_label": "coordinatorrequesterror",
       "id": "src_coordinator_client_coordinatorrequesterror",
-      "community_name": "Community 79"
+      "community_name": "Community 33"
     },
     {
       "label": ".constructor()",
@@ -2394,10 +2394,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 79,
+      "community": 33,
       "norm_label": ".constructor()",
       "id": "src_coordinator_client_coordinatorrequesterror_constructor",
-      "community_name": "Community 79"
+      "community_name": "Community 33"
     },
     {
       "label": "coordinatorRequestErrorEnvelope()",
@@ -2405,10 +2405,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 79,
+      "community": 27,
       "norm_label": "coordinatorrequesterrorenvelope()",
       "id": "src_coordinator_client_coordinatorrequesterrorenvelope",
-      "community_name": "Community 79"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "readResponseBody()",
@@ -2416,10 +2416,10 @@
       "source_file": "appraisejs/src/coordinator-client.ts",
       "source_location": "L46",
       "_origin": "ast",
-      "community": 3,
+      "community": 33,
       "norm_label": "readresponsebody()",
       "id": "src_coordinator_client_readresponsebody",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Community 33"
     },
     {
       "label": "createCoordinatorClient()",
@@ -2603,10 +2603,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 3,
       "norm_label": "action_catalog_contract_version",
       "id": "src_managed_validation_contracts_action_catalog_contract_version",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
     },
     {
       "label": "LOCATOR_GRAPH_CONTRACT_VERSION",
@@ -2636,10 +2636,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 3,
+      "community": 14,
       "norm_label": "delegated_authorization_version",
       "id": "src_managed_validation_contracts_delegated_authorization_version",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
       "label": "VALIDATION_AST_JSON_SCHEMA",
@@ -2735,10 +2735,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L257",
       "_origin": "ast",
-      "community": 3,
+      "community": 33,
       "norm_label": "validationastsubmission",
       "id": "src_managed_validation_contracts_validationastsubmission",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Community 33"
     },
     {
       "label": "CustomExtensionPolicy",
@@ -2779,10 +2779,10 @@
       "source_file": "appraisejs/src/managed-validation-contracts.ts",
       "source_location": "L301",
       "_origin": "ast",
-      "community": 3,
+      "community": 33,
       "norm_label": "delegatedauthorizationreceipt",
       "id": "src_managed_validation_contracts_delegatedauthorizationreceipt",
-      "community_name": "Appraisejs Src Cli Ts Src Cli / Appraisejs Src Cli Ts Src Cli Program"
+      "community_name": "Community 33"
     },
     {
       "label": "mcp-contract.test.ts",
@@ -3274,10 +3274,10 @@
       "source_file": "appraisejs/src/mcp.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "mcp.test.ts",
       "id": "src_mcp_test",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "mcp.ts",
@@ -3296,10 +3296,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 79,
+      "community": 33,
       "norm_label": "coordinator-call.ts",
       "id": "mcp_coordinator_call",
-      "community_name": "Community 79"
+      "community_name": "Community 33"
     },
     {
       "label": "createCoordinatorApiClient()",
@@ -3307,10 +3307,10 @@
       "source_file": "appraisejs/src/mcp/coordinator-call.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 28,
+      "community": 33,
       "norm_label": "createcoordinatorapiclient()",
       "id": "mcp_coordinator_call_createcoordinatorapiclient",
-      "community_name": "Community 28"
+      "community_name": "Community 33"
     },
     {
       "label": "toolError()",
@@ -3329,10 +3329,10 @@
       "source_file": "appraisejs/src/mcp/domains/baseline.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "baseline.ts",
       "id": "domains_baseline",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "registerBaselineOperations()",
@@ -3340,10 +3340,10 @@
       "source_file": "appraisejs/src/mcp/domains/baseline.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registerbaselineoperations()",
       "id": "domains_baseline_registerbaselineoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "diagnostic.ts",
@@ -3351,21 +3351,21 @@
       "source_file": "appraisejs/src/mcp/domains/diagnostic.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "diagnostic.ts",
       "id": "domains_diagnostic",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "registerDiagnosticOperations()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/domains/diagnostic.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registerdiagnosticoperations()",
       "id": "domains_diagnostic_registerdiagnosticoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "implementation.ts",
@@ -3373,10 +3373,10 @@
       "source_file": "appraisejs/src/mcp/domains/implementation.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "implementation.ts",
       "id": "domains_implementation",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "registerImplementationOperations()",
@@ -3384,10 +3384,10 @@
       "source_file": "appraisejs/src/mcp/domains/implementation.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registerimplementationoperations()",
       "id": "domains_implementation_registerimplementationoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "planning.ts",
@@ -3395,10 +3395,10 @@
       "source_file": "appraisejs/src/mcp/domains/planning.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "planning.ts",
       "id": "domains_planning",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "registerPlanningOperations()",
@@ -3406,10 +3406,10 @@
       "source_file": "appraisejs/src/mcp/domains/planning.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registerplanningoperations()",
       "id": "domains_planning_registerplanningoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "project.ts",
@@ -3417,10 +3417,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "project.ts",
       "id": "domains_project",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "registerProjectOperations()",
@@ -3428,10 +3428,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registerprojectoperations()",
       "id": "domains_project_registerprojectoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "resources.ts",
@@ -3461,10 +3461,10 @@
       "source_file": "appraisejs/src/mcp/domains/runtime.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "runtime.ts",
       "id": "domains_runtime",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "registerRuntimeOperations()",
@@ -3472,10 +3472,10 @@
       "source_file": "appraisejs/src/mcp/domains/runtime.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registerruntimeoperations()",
       "id": "domains_runtime_registerruntimeoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "validation.ts",
@@ -3483,10 +3483,10 @@
       "source_file": "appraisejs/src/mcp/domains/validation.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "validation.ts",
       "id": "domains_validation",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "registerValidationOperations()",
@@ -3494,10 +3494,10 @@
       "source_file": "appraisejs/src/mcp/domains/validation.ts",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registervalidationoperations()",
       "id": "domains_validation_registervalidationoperations",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "http-server.ts",
@@ -3549,10 +3549,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "registry.ts",
       "id": "mcp_registry",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "McpRegistryContext",
@@ -3560,10 +3560,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "mcpregistrycontext",
       "id": "mcp_registry_mcpregistrycontext",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "McpContractDefinition",
@@ -3582,10 +3582,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "contracts",
       "id": "mcp_registry_contracts",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "canonicalContracts",
@@ -3593,10 +3593,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "canonicalcontracts",
       "id": "mcp_registry_canonicalcontracts",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "registrationTarget()",
@@ -3615,10 +3615,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L63",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "domainregistries",
       "id": "mcp_registry_domainregistries",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "assertUniqueMcpDefinitions()",
@@ -3659,10 +3659,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "response-projector.ts",
       "id": "mcp_response_projector",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "responseModeSchema",
@@ -3670,10 +3670,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "responsemodeschema",
       "id": "mcp_response_projector_responsemodeschema",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "MCP_RESPONSE_TOKEN_BUDGETS",
@@ -3681,10 +3681,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "mcp_response_token_budgets",
       "id": "mcp_response_projector_mcp_response_token_budgets",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "measureMcpResponse()",
@@ -3692,10 +3692,10 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "measuremcpresponse()",
       "id": "mcp_response_projector_measuremcpresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "applyResponseMode()",
@@ -3703,43 +3703,43 @@
       "source_file": "appraisejs/src/mcp/response-projector.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "applyresponsemode()",
       "id": "mcp_response_projector_applyresponsemode",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "applyLifecycleResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L77",
+      "source_location": "L80",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "applylifecycleresponsemode()",
       "id": "mcp_response_projector_applylifecycleresponsemode",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "applyAuthoringResponseMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L195",
+      "source_location": "L208",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "applyauthoringresponsemode()",
       "id": "mcp_response_projector_applyauthoringresponsemode",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "applyCapsuleDiagnosticMode()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/response-projector.ts",
-      "source_location": "L291",
+      "source_location": "L304",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "applycapsulediagnosticmode()",
       "id": "mcp_response_projector_applycapsulediagnosticmode",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "server-factory.ts",
@@ -3824,10 +3824,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L33",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "providernativerunsenabled()",
       "id": "mcp_shared_providernativerunsenabled",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "baseWorkflowCriticalTools",
@@ -3912,10 +3912,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L142",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "text()",
       "id": "mcp_shared_text",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "normalizeOptionalRef()",
@@ -3923,10 +3923,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L155",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "normalizeoptionalref()",
       "id": "mcp_shared_normalizeoptionalref",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "implementationValidationRunInputSchema",
@@ -3934,10 +3934,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L159",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "implementationvalidationruninputschema",
       "id": "mcp_shared_implementationvalidationruninputschema",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "withGuidance()",
@@ -3945,10 +3945,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L194",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "withguidance()",
       "id": "mcp_shared_withguidance",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "baselineRecoveryForLifecycle()",
@@ -3956,10 +3956,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L208",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "baselinerecoveryforlifecycle()",
       "id": "mcp_shared_baselinerecoveryforlifecycle",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "summarizeDiagnostic()",
@@ -3967,10 +3967,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L231",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "summarizediagnostic()",
       "id": "mcp_shared_summarizediagnostic",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "planningWorkflow",
@@ -4011,10 +4011,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L297",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "mcpcapabilitymetadata",
       "id": "mcp_shared_mcpcapabilitymetadata",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "compactMcpCapabilityMetadata",
@@ -4022,10 +4022,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L305",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "compactmcpcapabilitymetadata",
       "id": "mcp_shared_compactmcpcapabilitymetadata",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "AgentPreflightObservation",
@@ -4055,10 +4055,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L337",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "canonicalexpectedtargetworkspacepath()",
       "id": "mcp_shared_canonicalexpectedtargetworkspacepath",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "observedCapabilityState()",
@@ -4083,10 +4083,21 @@
       "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
     },
     {
-      "label": "missingCapabilityRecovery()",
+      "label": "compactAgentPreflight()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L443",
+      "_origin": "ast",
+      "community": 80,
+      "norm_label": "compactagentpreflight()",
+      "id": "mcp_shared_compactagentpreflight",
+      "community_name": "Community 80"
+    },
+    {
+      "label": "missingCapabilityRecovery()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/shared.ts",
+      "source_location": "L480",
       "_origin": "ast",
       "community": 14,
       "norm_label": "missingcapabilityrecovery()",
@@ -4097,18 +4108,18 @@
       "label": "compactProjectDiagnostic()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L471",
+      "source_location": "L508",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "compactprojectdiagnostic()",
       "id": "mcp_shared_compactprojectdiagnostic",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "agentGuide",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L480",
+      "source_location": "L526",
       "_origin": "ast",
       "community": 14,
       "norm_label": "agentguide",
@@ -4119,18 +4130,18 @@
       "label": "diagnosticGuidance()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L498",
+      "source_location": "L544",
       "_origin": "ast",
-      "community": 14,
+      "community": 80,
       "norm_label": "diagnosticguidance()",
       "id": "mcp_shared_diagnosticguidance",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 80"
     },
     {
       "label": "projectPayload()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L514",
+      "source_location": "L567",
       "_origin": "ast",
       "community": 14,
       "norm_label": "projectpayload()",
@@ -4141,18 +4152,18 @@
       "label": "planningSessionTargetRequiredResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L523",
+      "source_location": "L576",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "planningsessiontargetrequiredresponse()",
       "id": "mcp_shared_planningsessiontargetrequiredresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "planCandidateHash()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L553",
+      "source_location": "L606",
       "_origin": "ast",
       "community": 14,
       "norm_label": "plancandidatehash()",
@@ -4163,7 +4174,7 @@
       "label": "planTaskShapeHash()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L557",
+      "source_location": "L610",
       "_origin": "ast",
       "community": 14,
       "norm_label": "plantaskshapehash()",
@@ -4174,221 +4185,221 @@
       "label": "PlanSnapshot",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L578",
+      "source_location": "L631",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "plansnapshot",
       "id": "mcp_shared_plansnapshot",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "validationIntegrityBlockedResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L602",
+      "source_location": "L655",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "validationintegrityblockedresponse()",
       "id": "mcp_shared_validationintegrityblockedresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "approvalGateStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L616",
+      "source_location": "L669",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "approvalgatestatus()",
       "id": "mcp_shared_approvalgatestatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "approvalGateEventStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L623",
+      "source_location": "L676",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "approvalgateeventstatus()",
       "id": "mcp_shared_approvalgateeventstatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "validationGateStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L630",
+      "source_location": "L683",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "validationgatestatus()",
       "id": "mcp_shared_validationgatestatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "validationGateEventStatus()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L638",
+      "source_location": "L691",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "validationgateeventstatus()",
       "id": "mcp_shared_validationgateeventstatus",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "CoordinatorToolEvent",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L645",
+      "source_location": "L698",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "coordinatortoolevent",
       "id": "mcp_shared_coordinatortoolevent",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "latestGateEvent()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L652",
+      "source_location": "L705",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "latestgateevent()",
       "id": "mcp_shared_latestgateevent",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "RecommendedWait",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L659",
+      "source_location": "L712",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "recommendedwait",
       "id": "mcp_shared_recommendedwait",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "linkFromSnapshot()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L666",
+      "source_location": "L719",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "linkfromsnapshot()",
       "id": "mcp_shared_linkfromsnapshot",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "validationReviewBrowserUrl()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L672",
+      "source_location": "L725",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "validationreviewbrowserurl()",
       "id": "mcp_shared_validationreviewbrowserurl",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "formatReviewHandoff()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L679",
+      "source_location": "L732",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "formatreviewhandoff()",
       "id": "mcp_shared_formatreviewhandoff",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "standbyPresentation()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L712",
+      "source_location": "L765",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "standbypresentation()",
       "id": "mcp_shared_standbypresentation",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "nextApprovalWaitSequence()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L773",
+      "source_location": "L826",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "nextapprovalwaitsequence()",
       "id": "mcp_shared_nextapprovalwaitsequence",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "approvalPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L777",
+      "source_location": "L830",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "approvalpendingresponse()",
       "id": "mcp_shared_approvalpendingresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "validationReviewPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L838",
+      "source_location": "L891",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "validationreviewpendingresponse()",
       "id": "mcp_shared_validationreviewpendingresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "orderedEventBatch()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L893",
+      "source_location": "L946",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "orderedeventbatch()",
       "id": "mcp_shared_orderedeventbatch",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "lifecycleToolPayload()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L905",
+      "source_location": "L958",
       "_origin": "ast",
-      "community": 14,
+      "community": 79,
       "norm_label": "lifecycletoolpayload()",
       "id": "mcp_shared_lifecycletoolpayload",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 79"
     },
     {
       "label": "reviewReadyPendingResponse()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L928",
+      "source_location": "L981",
       "_origin": "ast",
-      "community": 14,
+      "community": 168,
       "norm_label": "reviewreadypendingresponse()",
       "id": "mcp_shared_reviewreadypendingresponse",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 168"
     },
     {
       "label": "waitForEvents()",
       "file_type": "code",
       "source_file": "appraisejs/src/mcp/shared.ts",
-      "source_location": "L988",
+      "source_location": "L1041",
       "_origin": "ast",
-      "community": 14,
+      "community": 169,
       "norm_label": "waitforevents()",
       "id": "mcp_shared_waitforevents",
-      "community_name": "Src Mcp Createplanfrombrief / Src Mcp Createstructuredtasksfrombrief"
+      "community_name": "Community 169"
     },
     {
       "label": "stdio-server.ts",
@@ -4748,10 +4759,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 80,
+      "community": 27,
       "norm_label": "plan-source.test.ts",
       "id": "src_plan_source_test",
-      "community_name": "Community 80"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directories",
@@ -4759,10 +4770,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 80,
+      "community": 27,
       "norm_label": "directories",
       "id": "src_plan_source_test_directories",
-      "community_name": "Community 80"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "directory()",
@@ -4770,10 +4781,10 @@
       "source_file": "appraisejs/src/plan-source.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 80,
+      "community": 27,
       "norm_label": "directory()",
       "id": "src_plan_source_test_directory",
-      "community_name": "Community 80"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "plan-source.ts",
@@ -4781,10 +4792,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 80,
+      "community": 27,
       "norm_label": "plan-source.ts",
       "id": "src_plan_source",
-      "community_name": "Community 80"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "resolvePlanSource()",
@@ -4792,10 +4803,10 @@
       "source_file": "appraisejs/src/plan-source.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 80,
+      "community": 27,
       "norm_label": "resolveplansource()",
       "id": "src_plan_source_resolveplansource",
-      "community_name": "Community 80"
+      "community_name": "Locator Picker Companion Src Index Ts Src Index / Src Launcher"
     },
     {
       "label": "project-identity.ts",
@@ -9775,10 +9786,10 @@
       "source_file": "locator-picker-companion/src/index.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 170,
       "norm_label": "index.ts",
       "id": "locator_picker_companion_src_index_ts_src_index",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Community 170"
     },
     {
       "label": "injected-picker-script.ts",
@@ -9808,10 +9819,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 170,
       "norm_label": "launcher.ts",
       "id": "src_launcher",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Community 170"
     },
     {
       "label": "pathExists()",
@@ -9819,10 +9830,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 2,
+      "community": 170,
       "norm_label": "pathexists()",
       "id": "src_launcher_pathexists",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Community 170"
     },
     {
       "label": "getLatestModifiedTime()",
@@ -9830,10 +9841,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 2,
+      "community": 170,
       "norm_label": "getlatestmodifiedtime()",
       "id": "src_launcher_getlatestmodifiedtime",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Community 170"
     },
     {
       "label": "getLocatorPickerCompanionPaths()",
@@ -9841,10 +9852,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 2,
+      "community": 170,
       "norm_label": "getlocatorpickercompanionpaths()",
       "id": "src_launcher_getlocatorpickercompanionpaths",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Community 170"
     },
     {
       "label": "ensureLocatorPickerCompanionBuilt()",
@@ -9852,10 +9863,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 2,
+      "community": 170,
       "norm_label": "ensurelocatorpickercompanionbuilt()",
       "id": "src_launcher_ensurelocatorpickercompanionbuilt",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Community 170"
     },
     {
       "label": "resolveLocatorPickerCompanionInvocation()",
@@ -9863,10 +9874,10 @@
       "source_file": "locator-picker-companion/src/launcher.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 2,
+      "community": 170,
       "norm_label": "resolvelocatorpickercompanioninvocation()",
       "id": "src_launcher_resolvelocatorpickercompanioninvocation",
-      "community_name": "Locator Picker Companion Src Cli Ts Src Cli / Locator Picker Companion Src Cli T"
+      "community_name": "Community 170"
     },
     {
       "label": "selector-generator.ts",
@@ -14289,6 +14300,17 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_mcp_test",
+      "target": "mcp_response_projector_applyresponsemode"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp.test.ts",
       "source_location": "L3",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -14377,6 +14399,17 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_mcp_test",
+      "target": "mcp_shared_compactagentpreflight"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp.test.ts",
       "source_location": "L3",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -14393,6 +14426,17 @@
       "confidence_score": 1.0,
       "source": "src_mcp_test",
       "target": "mcp_shared_compactprojectdiagnostic"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_mcp_test",
+      "target": "mcp_shared_diagnosticguidance"
     },
     {
       "relation": "imports",
@@ -15005,6 +15049,17 @@
       "confidence_score": 1.0,
       "source": "domains_diagnostic",
       "target": "mcp_shared_canonicalexpectedtargetworkspacepath"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/domains/diagnostic.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "domains_diagnostic",
+      "target": "mcp_shared_compactagentpreflight"
     },
     {
       "relation": "imports",
@@ -16586,6 +16641,16 @@
       "confidence_score": 1.0,
       "source": "mcp_shared",
       "target": "mcp_shared_canonicalexpectedtargetworkspacepath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/shared.ts",
+      "source_location": "L443",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_shared",
+      "target": "mcp_shared_compactagentpreflight"
     },
     {
       "relation": "contains",
@@ -26915,5 +26980,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "709857edf602a9da5af5ecb21a3ad8d999700c6d"
+  "built_at_commit": "e66cbd90e9b3f63370beffccdfa2a6d546a08319"
 }

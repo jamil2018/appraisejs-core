@@ -132,6 +132,7 @@ export const runtimeCapsuleDiagnosticV1Schema = z
         expectedCaseCount: z.number().int().nonnegative(),
         matchedCaseCount: z.number().int().nonnegative(),
         scenarioCount: z.number().int().nonnegative(),
+        failureSignatures: z.array(bounded).max(16),
         links: z.object({ run: bounded, logs: bounded, report: bounded.optional() }).strict(),
       })
       .strict(),

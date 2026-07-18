@@ -95,6 +95,7 @@ import { ValidationCoverageExplorer } from './validation-coverage-explorer'
 import { LifecycleInsightsPanel } from './lifecycle-insights-panel'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
+import { ValidationAstPreview } from './validation-ast-preview'
 import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
 import { usePlanReviewController } from './use-plan-review-controller'
 
@@ -533,9 +534,12 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
     approval => approval.revision === detail.plan.revision && approval.relevantHashes.plan,
   )
   const suspiciousReplacement = detail.issues.some(issue => issue.code === 'suspicious-node-replacement')
-  const hasInvalidBaselineEvidence = hasInvalidLatestBaselineEvidence(detail.validation?.baselineAttempts ?? [])
+  const hasInvalidBaselineEvidence = hasInvalidLatestBaselineEvidence(
+    detail.validation?.baselineAttempts ?? [],
+    detail.validation,
+  )
   const latestBaselineAttemptIds = new Set(
-    latestBaselineAttempts(detail.validation?.baselineAttempts ?? []).map(attempt => attempt.id),
+    latestBaselineAttempts(detail.validation?.baselineAttempts ?? [], detail.validation).map(attempt => attempt.id),
   )
   const reviewUnavailableReason = getReviewUnavailableReason(detail.plan.lifecycle)
   const approvalDisabledReason = approved
@@ -1242,6 +1246,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
               </TabsContent>
               <TabsContent value="validations" className="m-0 space-y-4">
                 <ValidationCoverageExplorer detail={detail} />
+                {detail.validationAstPreview ? <ValidationAstPreview preview={detail.validationAstPreview} /> : null}
                 {detail.exactExecutionPreview ? <ExactExecutionPreview preview={detail.exactExecutionPreview} /> : null}
                 <ValidationReviewPanel
                   detail={detail}

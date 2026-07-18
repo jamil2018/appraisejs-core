@@ -4355,188 +4355,188 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/active-state-assertion/assert-element-active.ts": {
-    "mtime": 1784374642.5002086,
+    "mtime": 1784383521.5070484,
     "ast_hash": "6cf6911351e233c59b214e3b9d0af10b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/click/click.ts": {
-    "mtime": 1784374642.5023773,
+    "mtime": 1784383521.50986,
     "ast_hash": "1fa2ba9af3d5c2e94b3077f727c630d3",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/click/double-click.ts": {
-    "mtime": 1784374642.5024817,
+    "mtime": 1784383521.5099735,
     "ast_hash": "cf4b011c19ca8ef4656c9168b4e7cb7b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/click/right-click.ts": {
-    "mtime": 1784374642.502602,
+    "mtime": 1784383521.510083,
     "ast_hash": "5f783ba91974da2cdebd24cb6ac9a5f0",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/hover/hover.ts": {
-    "mtime": 1784374642.5068529,
+    "mtime": 1784383521.5143044,
     "ast_hash": "bf1f4ec6fb9c330fa2dbee1399394d98",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/check.ts": {
-    "mtime": 1784374642.5070214,
+    "mtime": 1784383521.5144637,
     "ast_hash": "b607767ebaae76dd00e76deed677e84e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/clear.ts": {
-    "mtime": 1784374642.5071452,
+    "mtime": 1784383521.514565,
     "ast_hash": "6ba52edaa0913cd970ae5c0f2a70f576",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/fill-input-with-stored-value.ts": {
-    "mtime": 1784374642.5072637,
+    "mtime": 1784383521.5146697,
     "ast_hash": "36b0d3f28a476ab4bead0c9d6acfd6d3",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/fill.ts": {
-    "mtime": 1784374642.5074775,
+    "mtime": 1784383521.5147872,
     "ast_hash": "c284e1c7e001870b8a82decfd8076203",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/select-dropdown-option.ts": {
-    "mtime": 1784374642.507627,
+    "mtime": 1784383521.5149055,
     "ast_hash": "fd3973f7ff66370e449550ec4bb1770b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/input/uncheck.ts": {
-    "mtime": 1784374642.507763,
+    "mtime": 1784383521.5150442,
     "ast_hash": "72cd25e33a49dcd8e2c3ac116ae5dd6a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation-assertion/assert-url-route-equals.ts": {
-    "mtime": 1784374642.5087328,
+    "mtime": 1784383521.5159187,
     "ast_hash": "e54b9ed2dd63c73d7d03df0edfba9f6e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/go-back.ts": {
-    "mtime": 1784374642.5088768,
+    "mtime": 1784383521.5160778,
     "ast_hash": "6e894fe0a4bca2865934e78b28f9690a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/navigate-to-environment-base-url.ts": {
-    "mtime": 1784374642.5089896,
+    "mtime": 1784383521.5162075,
     "ast_hash": "2c741a828535a7d02d56a6968292cfe9",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/navigate-to-url.ts": {
-    "mtime": 1784374642.5090911,
+    "mtime": 1784383521.5163257,
     "ast_hash": "704eedae75f2f5a6faecd5e5dc4e08fd",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/navigation/reload.ts": {
-    "mtime": 1784374642.509212,
+    "mtime": 1784383521.5165017,
     "ast_hash": "95f6b9acba00a68270f730cbbcdd8ea7",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-address-and-save-in-variable.ts": {
-    "mtime": 1784374642.5104606,
+    "mtime": 1784383521.5179398,
     "ast_hash": "d2dbeea51db1f5513e84a7d9502b94d7",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-email-and-save-in-variable.ts": {
-    "mtime": 1784374642.5105827,
+    "mtime": 1784383521.5180845,
     "ast_hash": "3338f8cd5117ef48886cc71cd2e25bb0",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-first-name-and-save-in-variable.ts": {
-    "mtime": 1784374642.510697,
+    "mtime": 1784383521.5182009,
     "ast_hash": "7baec43f57ec2b5c138eb0926c8b0a7e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-full-name-and-save-in-variable.ts": {
-    "mtime": 1784374642.5108206,
+    "mtime": 1784383521.518318,
     "ast_hash": "40f1c1d9cd50e36c329b5808d4cd41cf",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-last-name-and-save-in-variable.ts": {
-    "mtime": 1784374642.5109317,
+    "mtime": 1784383521.5184352,
     "ast_hash": "2b78c8ae2382dbabcd800514ae71e60c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-password-and-save-in-variable.ts": {
-    "mtime": 1784374642.5110545,
+    "mtime": 1784383521.51857,
     "ast_hash": "a521a27d8fa3a1d6aeef660297bf4916",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-phone-and-save-in-variable.ts": {
-    "mtime": 1784374642.5111728,
+    "mtime": 1784383521.5187216,
     "ast_hash": "df6ab59f864c1c3f30f53363551f82e2",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/random-data/generate-random-unique-text-and-save-in-variable.ts": {
-    "mtime": 1784374642.5113006,
+    "mtime": 1784383521.518847,
     "ast_hash": "c49345394876a0444daeb717a9024c41",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/store/store-element-text.ts": {
-    "mtime": 1784374642.5114682,
+    "mtime": 1784383521.519037,
     "ast_hash": "6c6aed9cb51f5912f60cbdd6e7e7a32e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/store/store-text-input-text.ts": {
-    "mtime": 1784374642.5115938,
+    "mtime": 1784383521.5191734,
     "ast_hash": "e10849f1f89dce1bba83bc37368e8803",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/store/store-textarea-text.ts": {
-    "mtime": 1784374642.5117106,
+    "mtime": 1784383521.5193014,
     "ast_hash": "26d19f7af1f408df970d52758b5ced5a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/text-assertion/assert-element-contains-stored-variable-text.ts": {
-    "mtime": 1784374642.5140178,
+    "mtime": 1784383521.5219824,
     "ast_hash": "51381731744082ff2f14b5da67ba732e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/text-assertion/assert-element-contains-text.ts": {
-    "mtime": 1784374642.5141098,
+    "mtime": 1784383521.522104,
     "ast_hash": "a825ae77ae6a35e3d210ff0277e65889",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/text-assertion/assert-element-equals-text.ts": {
-    "mtime": 1784374642.5142035,
+    "mtime": 1784383521.5222073,
     "ast_hash": "68cf066c9cd88a295ee894e9f7d7bbef",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/visibility-assertion/assert-element-visible.ts": {
-    "mtime": 1784374642.5143325,
+    "mtime": 1784383521.522362,
     "ast_hash": "6f1a8257bb3f02ea867f4f7f5bc1e40c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-element-to-disappear.ts": {
-    "mtime": 1784374642.5144656,
+    "mtime": 1784383521.522502,
     "ast_hash": "615a2ad757cef3406058a0e5c43ea7c5",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-element.ts": {
-    "mtime": 1784374642.5145645,
+    "mtime": 1784383521.522611,
     "ast_hash": "8426f2af71fbf9347a8164c252e273b6",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-page-load.ts": {
-    "mtime": 1784374642.5147548,
+    "mtime": 1784383521.5227146,
     "ast_hash": "66b56546a59bd02d9b84d653e5cccf43",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-specific-amount-of-seconds.ts": {
-    "mtime": 1784374642.5149264,
+    "mtime": 1784383521.5228403,
     "ast_hash": "8ae101cc28924f37946958cf167cd448",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/wait/wait-for-url-route.ts": {
-    "mtime": 1784374642.5150423,
+    "mtime": 1784383521.5229418,
     "ast_hash": "9fc16693f65e10e37513f167fa7bfcea",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/manifest.json": {
-    "mtime": 1784374686.2649493,
-    "ast_hash": "cfa0b3679e20ea44937aafd31acf07cf",
+    "mtime": 1784383521.5067773,
+    "ast_hash": "0d509f3f9c9acc750421f0ff63d8f366",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/add-step.test.ts": {
@@ -4580,13 +4580,13 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp.e2e.ts": {
-    "mtime": 1784372319.249242,
+    "mtime": 1784377233.4147363,
     "ast_hash": "0d73151d7e08157dfb64b5a3c78d3781",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp.test.ts": {
-    "mtime": 1784372291.1331632,
-    "ast_hash": "65c278d3b2461132eb2faf8238b0f33d",
+    "mtime": 1784380604.3275,
+    "ast_hash": "dda5c3a003455a379ec66c80f00e9a84",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp.ts": {
@@ -9575,8 +9575,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/capsule-diagnostic-response.test.ts": {
-    "mtime": 1783842720.546256,
-    "ast_hash": "1e75181fb7e118f3c48dd43e18f867a3",
+    "mtime": 1784379950.8693306,
+    "ast_hash": "b9885df267eccd87018984fc0a7f82b3",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/test-run-diagnose-cli.test.ts": {
@@ -9610,7 +9610,7 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp-contract.fixture.json": {
-    "mtime": 1784375163.7584767,
+    "mtime": 1784377233.4144914,
     "ast_hash": "02a28546fc02e83142e915cd69eef24e",
     "semantic_hash": ""
   },
@@ -9645,8 +9645,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/domains/diagnostic.ts": {
-    "mtime": 1784372284.565369,
-    "ast_hash": "7b7f710a31cc4cfe0d9f97404ed992ed",
+    "mtime": 1784380582.0754135,
+    "ast_hash": "685f2dc98dff186632da7b1feca67e7e",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/domains/implementation.ts": {
@@ -9675,7 +9675,7 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/domains/validation.ts": {
-    "mtime": 1784375109.9301877,
+    "mtime": 1784377233.4154198,
     "ast_hash": "2fea97a6c41613eae3038f987f56b1a0",
     "semantic_hash": ""
   },
@@ -9690,8 +9690,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/response-projector.ts": {
-    "mtime": 1784371509.990793,
-    "ast_hash": "62d207625bd9a2fe4535317d8adc3de9",
+    "mtime": 1784380009.4218388,
+    "ast_hash": "b800e09b7f3780b50b511a79fc120b9b",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/server-factory.ts": {
@@ -9700,8 +9700,8 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/shared.ts": {
-    "mtime": 1784372284.4240756,
-    "ast_hash": "f224df0099031286f06367160e89e40f",
+    "mtime": 1784380801.3309772,
+    "ast_hash": "ea7b8067accba9c8d16b819d2814af79",
     "semantic_hash": ""
   },
   "packages/appraisejs/src/mcp/stdio-server.ts": {
@@ -9710,402 +9710,402 @@
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-assertion/assert-browser-cookie.ts": {
-    "mtime": 1784374642.5003595,
+    "mtime": 1784383521.507265,
     "ast_hash": "ec74fc6f0548a6c44d665531c922b51b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-assertion/assert-full-url.ts": {
-    "mtime": 1784374642.5004785,
+    "mtime": 1784383521.5074604,
     "ast_hash": "f46b0271bb7e9cbb74b06191fbf47e6d",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-assertion/assert-local-storage-value.ts": {
-    "mtime": 1784374642.50069,
+    "mtime": 1784383521.5077937,
     "ast_hash": "3483d5243723dbb6d3780c36b2d0f4cf",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-assertion/assert-page-title.ts": {
-    "mtime": 1784374642.5008137,
+    "mtime": 1784383521.5080638,
     "ast_hash": "2d65d0b3b786e1d31eb841b853db1c7a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-assertion/assert-session-storage-value.ts": {
-    "mtime": 1784374642.5009437,
+    "mtime": 1784383521.5082552,
     "ast_hash": "e3bf37fcdc04c5df6a7f287e84c79047",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-assertion/assert-url-contains.ts": {
-    "mtime": 1784374642.5010903,
+    "mtime": 1784383521.5084417,
     "ast_hash": "2e6c377cdc8c7caaccdf4a629bcfe0f4",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/clear-browser-cookies.ts": {
-    "mtime": 1784374642.5013387,
+    "mtime": 1784383521.508679,
     "ast_hash": "8a36c01f41be0d6d9a7252ce7d07b44a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/clear-web-storage.ts": {
-    "mtime": 1784374642.5014925,
+    "mtime": 1784383521.5088475,
     "ast_hash": "a6fbfe866cf9a6479155979ad43f6adc",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/go-forward.ts": {
-    "mtime": 1784374642.5016124,
+    "mtime": 1784383521.5090013,
     "ast_hash": "fad50568f6985d59991d66d5f0c774ee",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/navigate-to-stored-url.ts": {
-    "mtime": 1784374642.5017118,
+    "mtime": 1784383521.50914,
     "ast_hash": "ea94116f61670bde5e9b568be91cb68d",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/set-browser-cookie.ts": {
-    "mtime": 1784374642.5018134,
+    "mtime": 1784383521.5092692,
     "ast_hash": "7614a276ead174d2c65982ca282c036c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/set-local-storage-value.ts": {
-    "mtime": 1784374642.501913,
+    "mtime": 1784383521.509406,
     "ast_hash": "50db7ca2990d27497e3df7dba55a4fbe",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/set-session-storage-value.ts": {
-    "mtime": 1784374642.5020158,
+    "mtime": 1784383521.509512,
     "ast_hash": "efa76d55657e1684c88e5ac360d887d8",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/set-storage-from-variable.ts": {
-    "mtime": 1784374642.502126,
+    "mtime": 1784383521.5096176,
     "ast_hash": "adfdaf3df4f8d90ade71e5ac46becacc",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/browser-state/set-viewport-size.ts": {
-    "mtime": 1784374642.5022266,
+    "mtime": 1784383521.509725,
     "ast_hash": "a0034b6079b5e4a38f85067eb1bf5957",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/data-diagnostics/capture-page-screenshot.ts": {
-    "mtime": 1784374642.5027452,
+    "mtime": 1784383521.5102549,
     "ast_hash": "40376e5aac7eeac406abaca9d51006a8",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/data-diagnostics/log-stored-variable.ts": {
-    "mtime": 1784374642.5028539,
+    "mtime": 1784383521.5103736,
     "ast_hash": "63eacb5a25aa8cd577e52b7a82bf8598",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/data-diagnostics/store-current-url.ts": {
-    "mtime": 1784374642.5029533,
+    "mtime": 1784383521.5104833,
     "ast_hash": "1eb116feb0e0215b8fcf2baae702ddab",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/data-diagnostics/store-element-attribute.ts": {
-    "mtime": 1784374642.5030565,
+    "mtime": 1784383521.510586,
     "ast_hash": "d6b579041f9137cdf3f9fb5060749a92",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/data-diagnostics/store-page-title.ts": {
-    "mtime": 1784374642.5031943,
+    "mtime": 1784383521.5106876,
     "ast_hash": "617dc1a1fa3ab3cadeae177c09a8164c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/download-assertion/assert-download-path-available.ts": {
-    "mtime": 1784374642.503369,
+    "mtime": 1784383521.5108309,
     "ast_hash": "42b169f239a8ecb91b890c971b3958ff",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/download-assertion/assert-downloaded-filename.ts": {
-    "mtime": 1784374642.5034854,
+    "mtime": 1784383521.510981,
     "ast_hash": "f8bf019500772768aaff5aa6e2ab8c04",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/download-assertion/assert-stored-download-filename.ts": {
-    "mtime": 1784374642.5036018,
+    "mtime": 1784383521.5111306,
     "ast_hash": "2fd2b957ebeafa5f3a727ccf5260ea26",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/downloads/click-and-store-download.ts": {
-    "mtime": 1784374642.5037365,
+    "mtime": 1784383521.5112855,
     "ast_hash": "5896bb07edfcb70bd551a2eb356b4d1c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/downloads/click-and-wait-for-download.ts": {
-    "mtime": 1784374642.5038753,
+    "mtime": 1784383521.5113952,
     "ast_hash": "7135cfecd502fe26d4b49910b364fb22",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/downloads/save-download-to-path.ts": {
-    "mtime": 1784374642.5040138,
+    "mtime": 1784383521.5114982,
     "ast_hash": "167c5c0b0eb08ccf441d686b00375ed3",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/downloads/wait-for-download-event.ts": {
-    "mtime": 1784374642.5041218,
+    "mtime": 1784383521.5116162,
     "ast_hash": "f90c60f446892dd7355269c93fd355d0",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-attribute.ts": {
-    "mtime": 1784374642.5042815,
+    "mtime": 1784383521.5118554,
     "ast_hash": "37c15f3ab86be80c888b37ea1b555cea",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-bounding-box.ts": {
-    "mtime": 1784374642.504395,
+    "mtime": 1784383521.5119674,
     "ast_hash": "ca39653269ae521dfda37a1fc1ceb184",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-class.ts": {
-    "mtime": 1784374642.5045066,
+    "mtime": 1784383521.5120704,
     "ast_hash": "decd6caf865e890e36ddc5ba07441197",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-count.ts": {
-    "mtime": 1784374642.5046287,
+    "mtime": 1784383521.5121906,
     "ast_hash": "ff751f0362b6beae92e53a9cf18785d4",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-property-assertion/assert-element-css-property.ts": {
-    "mtime": 1784374642.5047495,
+    "mtime": 1784383521.5123086,
     "ast_hash": "a9a4f87f146b319b1dee861239b12b7b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-property-assertion/assert-input-value.ts": {
-    "mtime": 1784374642.5048797,
+    "mtime": 1784383521.5124285,
     "ast_hash": "2cbd62b3af412c4580a7bc24d444b336",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-attached.ts": {
-    "mtime": 1784374642.5050504,
+    "mtime": 1784383521.512581,
     "ast_hash": "66c12035bfdbbacd3c6d9f5b6837eefd",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-checked.ts": {
-    "mtime": 1784374642.505178,
+    "mtime": 1784383521.5126944,
     "ast_hash": "1f319d463623bcf76eb69bb216d6476b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-editable.ts": {
-    "mtime": 1784374642.5053067,
+    "mtime": 1784383521.5128133,
     "ast_hash": "52f70b18effc57c602b1027270b8e80e",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-empty.ts": {
-    "mtime": 1784374642.505446,
+    "mtime": 1784383521.5129318,
     "ast_hash": "6efc2bc28d70121dcce6dc14aacb0eb5",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-enabled.ts": {
-    "mtime": 1784374642.5055645,
+    "mtime": 1784383521.5130455,
     "ast_hash": "cae98849dec3f1f77cb552cb14666e4b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/element-state-assertion/assert-element-focused.ts": {
-    "mtime": 1784374642.5056813,
+    "mtime": 1784383521.5131648,
     "ast_hash": "0c41ed6490946be378593c2b4584ef83",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/choose-radio-control.ts": {
-    "mtime": 1784374642.5058463,
+    "mtime": 1784383521.513311,
     "ast_hash": "b5805d9282f85ddbf1ae9f98609c2d8c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/fill-content-editable-element.ts": {
-    "mtime": 1784374642.505972,
+    "mtime": 1784383521.5134382,
     "ast_hash": "53766ab101504c4318f239335c77a440",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/fill-date-input.ts": {
-    "mtime": 1784374642.506091,
+    "mtime": 1784383521.5135581,
     "ast_hash": "4a79b50bc644ce076c2f4f18e0d04e6c",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/select-dropdown-option-by-index.ts": {
-    "mtime": 1784374642.5062122,
+    "mtime": 1784383521.5136814,
     "ast_hash": "78f0f2b5669ff865fef332de518758fe",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/select-dropdown-option-by-label.ts": {
-    "mtime": 1784374642.506334,
+    "mtime": 1784383521.5138106,
     "ast_hash": "1f2b5ec9b4fbe85e546a45989a7c8069",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/select-dropdown-option-by-value.ts": {
-    "mtime": 1784374642.5064616,
+    "mtime": 1784383521.5139396,
     "ast_hash": "408e975a6ff95cbd65826e54d7031dd1",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/upload-file.ts": {
-    "mtime": 1784374642.5065784,
+    "mtime": 1784383521.514037,
     "ast_hash": "68afe38962b0b5b48cb6fac8cfd01de1",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/forms/upload-stored-file.ts": {
-    "mtime": 1784374642.5066977,
+    "mtime": 1784383521.5141485,
     "ast_hash": "6940e195920138d2b2e555dc26a7ae69",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/keyboard/hold-keyboard-key-down.ts": {
-    "mtime": 1784374642.5079195,
+    "mtime": 1784383521.5152605,
     "ast_hash": "bae76d0dc59204658941c32dce06181b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/keyboard/press-key-on-element.ts": {
-    "mtime": 1784374642.5080614,
+    "mtime": 1784383521.51544,
     "ast_hash": "a3d5595cb24c543b70daffcb53f228e1",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/keyboard/press-keyboard-shortcut.ts": {
-    "mtime": 1784374642.5082095,
+    "mtime": 1784383521.5155475,
     "ast_hash": "408b6372b7184f6537db4651d6187a3a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/keyboard/release-keyboard-key.ts": {
-    "mtime": 1784374642.5084093,
+    "mtime": 1784383521.515675,
     "ast_hash": "cb857474802559eab35cd46f9b273860",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/keyboard/type-text-sequentially.ts": {
-    "mtime": 1784374642.5085785,
+    "mtime": 1784383521.5157747,
     "ast_hash": "202805fadcc8271f962b7a743ff8362a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/blur-element.ts": {
-    "mtime": 1784374642.509354,
+    "mtime": 1784383521.5167208,
     "ast_hash": "7bf7d29ac45d7d1eb513cce584291aa2",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/capture-element-screenshot.ts": {
-    "mtime": 1784374642.5094707,
+    "mtime": 1784383521.5168445,
     "ast_hash": "dc48035049ed24460799d9b945ab9cda",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/click-element-coordinates.ts": {
-    "mtime": 1784374642.50959,
+    "mtime": 1784383521.5169635,
     "ast_hash": "fe542b2a9034332193b9ec9ba9f2194a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/click-page-coordinates.ts": {
-    "mtime": 1784374642.5096946,
+    "mtime": 1784383521.5170949,
     "ast_hash": "b5e1d01253371a1d9534498990955e1a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/drag-element-to-element.ts": {
-    "mtime": 1784374642.5098057,
+    "mtime": 1784383521.5172496,
     "ast_hash": "9c68a81863714d97f4ffc46e746e533f",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/focus-element.ts": {
-    "mtime": 1784374642.509926,
+    "mtime": 1784383521.517392,
     "ast_hash": "0a183b16937686b722adab52fc91e3ed",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/force-click-element.ts": {
-    "mtime": 1784374642.5100472,
+    "mtime": 1784383521.5175343,
     "ast_hash": "46147fb937c48f91f1e241b683838801",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/scroll-element-into-view.ts": {
-    "mtime": 1784374642.5101666,
+    "mtime": 1784383521.5176685,
     "ast_hash": "3aa59ace993df709a6e546d681067587",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/pointer/scroll-page-by-offset.ts": {
-    "mtime": 1784374642.510285,
+    "mtime": 1784383521.517786,
     "ast_hash": "9051212f7070979a97152c267a207094",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/structured-operations/run-structured-locator-operation.ts": {
-    "mtime": 1784374642.5118654,
+    "mtime": 1784383521.5194778,
     "ast_hash": "e0ab8fbc87eb8d9a938f28a1e34d2599",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/structured-operations/run-structured-page-operation.ts": {
-    "mtime": 1784374642.5119798,
+    "mtime": 1784383521.5195954,
     "ast_hash": "54e6dc62223c01a6fddf3dd273a48b14",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-dialog.ts": {
-    "mtime": 1784374642.5121212,
+    "mtime": 1784383521.5197618,
     "ast_hash": "011b7929dc717cf339f5b7bcb7532e4a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-element-state.ts": {
-    "mtime": 1784374642.512232,
+    "mtime": 1784383521.519885,
     "ast_hash": "66e51c550e15b01d478ec64fcc1ea351",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-element-text.ts": {
-    "mtime": 1784374642.5123343,
+    "mtime": 1784383521.5200052,
     "ast_hash": "cdc052e8a91ef245a30949c31b09bc0d",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-input-value.ts": {
-    "mtime": 1784374642.5124483,
+    "mtime": 1784383521.5201402,
     "ast_hash": "32561fb06ce4ee2f09dd84c715881f24",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-load-state.ts": {
-    "mtime": 1784374642.512546,
+    "mtime": 1784383521.5202892,
     "ast_hash": "df393dc1023ad81a391526308584c198",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-popup.ts": {
-    "mtime": 1784374642.5126715,
+    "mtime": 1784383521.5204117,
     "ast_hash": "e1e54d295157ca350f1c907d75f46a50",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-request.ts": {
-    "mtime": 1784374642.512788,
+    "mtime": 1784383521.5205724,
     "ast_hash": "11d677766f8b32d452a2504031dd8eb9",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-response.ts": {
-    "mtime": 1784374642.512901,
+    "mtime": 1784383521.5206964,
     "ast_hash": "bca95db92f45450023ff4f4873d8501b",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/synchronization/wait-for-url.ts": {
-    "mtime": 1784374642.5130022,
+    "mtime": 1784383521.52081,
     "ast_hash": "5ea8974ed00306f6755a45892c7375f1",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/accept-next-dialog.ts": {
-    "mtime": 1784374642.5131276,
+    "mtime": 1784383521.5209572,
     "ast_hash": "60aefcecf9c87db6c18664db511f799a",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/answer-next-prompt-dialog.ts": {
-    "mtime": 1784374642.5132284,
+    "mtime": 1784383521.5210874,
     "ast_hash": "511ab9c9af61ea7aa610aee6974cfa78",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/click-and-switch-to-popup.ts": {
-    "mtime": 1784374642.5133374,
+    "mtime": 1784383521.521215,
     "ast_hash": "bef522a5adf1a9e058eb0c6a41f3d8fc",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/click-element-inside-frame.ts": {
-    "mtime": 1784374642.5134346,
+    "mtime": 1784383521.521334,
     "ast_hash": "452eefb7cfafc376fb0523cf3f8d6171",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/close-current-browser-tab.ts": {
-    "mtime": 1784374642.5135522,
+    "mtime": 1784383521.521451,
     "ast_hash": "a1a8bd5e9a5b8794cf04cf1e1acdc9a6",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/dismiss-next-dialog.ts": {
-    "mtime": 1784374642.5136743,
+    "mtime": 1784383521.5215933,
     "ast_hash": "f7b24c4496f6bc140635e40b70e9b55d",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/fill-element-inside-frame.ts": {
-    "mtime": 1784374642.5137818,
+    "mtime": 1784383521.5217283,
     "ast_hash": "fba4894e226e10741d5cb1c24cebb4e5",
     "semantic_hash": ""
   },
   "packages/appraisejs/registry/template-steps/fragments/tabs-frames-dialogs/switch-browser-tab.ts": {
-    "mtime": 1784374642.5138845,
+    "mtime": 1784383521.5218337,
     "ast_hash": "7f89b02441c47f653c3bd2f90c27aed9",
     "semantic_hash": ""
   },

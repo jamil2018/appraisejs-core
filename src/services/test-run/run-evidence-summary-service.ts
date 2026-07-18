@@ -47,6 +47,7 @@ export type RunEvidenceSummary = {
   }
   blockers: string[]
   missingArtifacts: string[]
+  failureSignatures: string[]
   logExcerpt: string[]
   completed: boolean
 }
@@ -94,6 +95,15 @@ function countSteps(scenarios: ScenarioForEvidence[]) {
 
 function countHooks(scenarios: ScenarioForEvidence[]) {
   return scenarios.reduce((total, scenario) => total + scenario.hooks.length, 0)
+}
+
+function failureSignatures(report: ParsedReport) {
+  const signatures = flattenScenarios(report).flatMap(scenario =>
+    [...scenario.steps, ...scenario.hooks]
+      .filter(item => item.status?.toLowerCase() === 'failed' && item.errorMessage)
+      .map(item => item.errorMessage!.trim().split(/\r?\n/, 1)[0]!.slice(0, 256)),
+  )
+  return [...new Set(signatures)].slice(0, 16)
 }
 
 function hasInfrastructureFailure(logExcerpt: string[]) {
@@ -215,6 +225,7 @@ function summaryFromClassification(
     counts: RunEvidenceSummary['counts']
   },
   logExcerpt: string[],
+  failures: string[] = [],
 ): RunEvidenceSummary {
   const completed = testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED
   const grade: RunEvidenceGrade =
@@ -246,6 +257,7 @@ function summaryFromClassification(
     counts: classification.counts,
     blockers: classification.blockers,
     missingArtifacts: classification.missingArtifacts,
+    failureSignatures: failures,
     logExcerpt,
     completed,
   }
@@ -275,8 +287,11 @@ export async function summarizeRunEvidence(
   }
 
   if (!testRun.reportPath) {
-    missingArtifacts.push('cucumber.json')
-    blockers.push('No Cucumber JSON report path was recorded for this test run.')
+    const completed = testRun.status === TestRunStatus.COMPLETED || testRun.status === TestRunStatus.CANCELLED
+    if (completed) {
+      missingArtifacts.push('cucumber.json')
+      blockers.push('No Cucumber JSON report path was recorded for this test run.')
+    }
     return summaryFromClassification(
       testRun,
       {
@@ -298,7 +313,12 @@ export async function summarizeRunEvidence(
           ).readText({ runId, kind: 'report' }),
         )
       : await parseCucumberReport(resolveStoredPath(testRun.reportPath, testRun.targetProject?.canonicalPath))
-    return summaryFromClassification(testRun, classifyReportEvidence(testRun, report, logExcerpt), logExcerpt)
+    return summaryFromClassification(
+      testRun,
+      classifyReportEvidence(testRun, report, logExcerpt),
+      logExcerpt,
+      failureSignatures(report),
+    )
   } catch (error) {
     missingArtifacts.push(testRun.reportPath)
     blockers.push(

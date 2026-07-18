@@ -2,6 +2,7 @@ import type { McpRegistryContext } from '../registry.js'
 import {
   buildAgentPreflight,
   canonicalExpectedTargetWorkspacePath,
+  compactAgentPreflight,
   compactProjectDiagnostic,
   compactMcpCapabilityMetadata,
   diagnoseProject,
@@ -48,12 +49,12 @@ export function registerDiagnosticOperations(context: McpRegistryContext): void 
         withGuidance(
           {
             ...compactProjectDiagnostic(diagnostic),
-            agentPreflight,
+            agentPreflight: compactAgentPreflight(agentPreflight),
             preflightReceipt,
             capabilities: compactMcpCapabilityMetadata,
             capabilityStatus: 'available',
           },
-          diagnosticGuidance(diagnostic),
+          diagnosticGuidance(diagnostic, agentPreflight),
         ),
       )
     },

@@ -69,6 +69,7 @@ describe('createEnvironment', () => {
       data: {
         name: 'Dev',
         baseUrl: 'https://example.com',
+        expectedPageTitle: null,
         apiBaseUrl: null,
         username: null,
         passwordEnvironmentVariable: null,
@@ -119,6 +120,7 @@ describe('updateEnvironment', () => {
       environmentSchema.parse({
         name: 'Dev',
         baseUrl: 'https://example.com',
+        expectedPageTitle: '',
         apiBaseUrl: '',
         username: '',
         passwordEnvironmentVariable: '',
@@ -132,6 +134,7 @@ describe('updateEnvironment', () => {
       data: {
         name: 'Dev',
         baseUrl: 'https://example.com',
+        expectedPageTitle: null,
         apiBaseUrl: null,
         username: null,
         passwordEnvironmentVariable: null,

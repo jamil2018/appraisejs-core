@@ -198,10 +198,14 @@ export function evidenceProvenanceTimeline(detail: PlanReviewDetail) {
 }
 
 export function revisionImpact(detail: PlanReviewDetail) {
+  const validationSnapshotHash = detail.validation?.baseRevision.snapshotHash
+  const validationSnapshotKnown = Boolean(
+    validationSnapshotHash &&
+      (validationSnapshotHash === detail.projection.sourceHash ||
+        detail.revisions?.some(revision => revision.sourceHash === validationSnapshotHash)),
+  )
   const validationStale = Boolean(
-    detail.validation &&
-      (detail.validation.revision !== detail.plan.revision ||
-        detail.validation.baseRevision.snapshotHash !== detail.projection.sourceHash),
+    detail.validation && (detail.validation.revision !== detail.plan.revision || !validationSnapshotKnown),
   )
   const impacted = []
   if (validationStale) impacted.push('validations', 'validation approvals', 'selected resources')
@@ -215,7 +219,7 @@ export function revisionImpact(detail: PlanReviewDetail) {
     changedSinceValidation: validationStale,
     impacted: [...new Set(impacted)],
     reasons: [
-      ...(validationStale ? ['Validation revision or base snapshot does not match the current plan.'] : []),
+      ...(validationStale ? ['Validation revision or base snapshot is outside the current plan lineage.'] : []),
       ...(detail.orphanedThreadIds.length ? ['Open remarks target nodes removed by the revision.'] : []),
     ],
   }
