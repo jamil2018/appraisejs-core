@@ -233,6 +233,12 @@ version, server start time, capability counts, workflow sentinel tools/resources
 link. `appraise://project` retains the complete workflow-critical tool and resource lists. Recovery text identifies
 missing or stale native MCP capabilities.
 
+Each diagnostic call writes its exact preflight snapshot through the authenticated `POST /diagnostic/preflight`
+coordinator operation. Receipts are append-only and idempotent by coordinator plus content hash, optionally bound to
+the registered target project, and returned with a direct `/projects?preflight=<receipt>` URL. The Projects UI renders
+the four layers without recomputing or inferring the immutable client snapshot. The MCP E2E certification exercises
+both hub-bound and registered-target ready receipts against the real server and UI.
+
 ### Validation AST recovery
 
 `validation_ast_check` and `validation_ast_preview` are read-only and require the authoritative plan to remain in a
@@ -359,6 +365,19 @@ files are never managed execution authority; optional repository export is a sep
 
 Validation AST authoring is target-project scoped. Shared resources are returned only by explicit bounded search and
 include provenance. Ambiguous locator or action matches block check/preview until the AST binds exact catalog identities.
+
+`validation_context_read` also returns a bounded authoring bundle: approved intent and constraints, requirement and
+task IDs, target metadata, reusable-resource counts, task/requirement coverage, registry-first recipes, an editable
+AST starter, and a deterministic content-addressed JSON export accepted by `validation_ast_check`. Starter coverage is
+deliberately `uncovered`; the agent remains the semantic author and must replace placeholder observations before
+check/preview. A legacy or resource-only plan with no tasks keeps the surrounding authoring context available but
+returns `astStarter.readiness: unavailable_no_plan_tasks`, a null submission, and no AST exchange. Missing greenfield
+environment identity produces a review-required Appraise-resource proposal with no target-workspace mutation.
+
+Plan event responses contain both the canonical `events` array and a derived `notifications` array. Each notification
+keeps its source event sequence and identifies the responsible actor; event acknowledgement remains the only durable
+consumption mechanism. The projection covers review readiness, requested changes, approvals, blocked attempts,
+recovery or review readiness, and completion-signoff requirements without creating parallel lifecycle state.
 
 Lifecycle and diagnostic tools support `summary`, `blockersOnly`, `evidenceOnly`, and explicit `full` modes. Default
 mutations return lifecycle delta, critical IDs and hashes, counts, links, blockers, cursor state, and exactly one legal

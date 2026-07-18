@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
+import { realpath } from 'node:fs/promises'
+import path from 'node:path'
 import { z } from 'zod'
 import { diagnoseProject } from '../diagnostics.js'
 import type { createCoordinatorApiClient } from './coordinator-call.js'
@@ -331,6 +333,16 @@ type AgentPreflightObservation = {
 }
 
 type PreflightLayerStatus = 'ready' | 'blocked' | 'unverified' | 'not_applicable'
+
+export async function canonicalExpectedTargetWorkspacePath(value: string | undefined): Promise<string | undefined> {
+  const candidate = value?.trim()
+  if (!candidate) return undefined
+  try {
+    return await realpath(path.resolve(candidate))
+  } catch {
+    return path.resolve(candidate)
+  }
+}
 
 function observedCapabilityState(observed: string[] | undefined, expected: string[]) {
   if (!observed) return { status: 'unverified' as const, missing: [] as string[] }

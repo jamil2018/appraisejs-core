@@ -105,7 +105,9 @@ After reconnect, verify these expected capabilities:
 active MCP transport, current-task capability visibility, and target-project binding separately. A successful tool
 call proves the active transport, but does not claim that Appraise inspected the client's persisted registration.
 Missing sentinels block lifecycle work with exact recovery steps; an unregistered expected target directs the agent
-to `project_add`.
+to `project_add`. Every call stores an idempotent, content-addressed receipt. The response includes its direct Projects
+URL, where the four layers, observation time, MCP server identity, and exact missing capabilities are visible. A
+zero-input receipt remains `needs_observation`; opening it in the UI does not upgrade unobserved client state.
 
 Provider-native runs are experimental and disabled by default. If `APPRAISE_EXPERIMENTAL_PROVIDER_RUNS=true` is set
 before starting AppraiseJS, the MCP server also exposes provider resources and tools such as

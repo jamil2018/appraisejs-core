@@ -137,7 +137,7 @@ export function registerValidationOperations(context: McpRegistryContext): void 
     'validation_context_read',
     {
       description:
-        'Read live Appraise validation-preparation context: current plan tasks, target project metadata, reusable modules, suites, cases, template steps, locators, and environments.',
+        'Read a bounded plan-intent context pack with coverage exploration, an editable deterministic AST starter/export, registry-first recipes, runtime preparation proposals, target metadata, and reusable resources.',
       inputSchema: {
         planId: z.string(),
         resourceTypes: z.array(z.string()).optional(),

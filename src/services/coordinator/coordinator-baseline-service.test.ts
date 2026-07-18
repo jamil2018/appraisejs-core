@@ -515,7 +515,7 @@ describe('baseline execution and implementation gate', () => {
 
     await expect(acceptBaseline(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
       code: 'CONFLICT',
-      message: expect.stringContaining('needs unrelated-failure acknowledgement'),
+      message: expect.stringContaining('needs exact baseline-failure acknowledgement'),
     })
     await expect(acceptBaseline(planId, { projectDirectory: workspace, client })).rejects.toMatchObject({
       message: expect.stringContaining('needs regression-coverage justification'),
@@ -524,9 +524,16 @@ describe('baseline execution and implementation gate', () => {
     const unrelatedAttempt = reviewed.baselineAttempts.find(
       attempt => attempt.classification === 'unrelated_existing_failure',
     )!
+    const expectedAttempt = reviewed.baselineAttempts.find(
+      attempt => attempt.classification === 'expected_product_failure',
+    )!
     const passingAttempt = reviewed.baselineAttempts.find(attempt => attempt.classification === 'unexpected_pass')!
     await acknowledgeBaselineFailure(
       { planId, attemptId: unrelatedAttempt.id, acknowledgedBy: 'reviewer' },
+      { projectDirectory: workspace, client, now: new Date('2026-06-10T00:03:00.000Z') },
+    )
+    await acknowledgeBaselineFailure(
+      { planId, attemptId: expectedAttempt.id, acknowledgedBy: 'reviewer' },
       { projectDirectory: workspace, client, now: new Date('2026-06-10T00:03:00.000Z') },
     )
     await justifyBaselineRegressionPass(

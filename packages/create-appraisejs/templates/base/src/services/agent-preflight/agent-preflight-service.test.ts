@@ -1,0 +1,109 @@
+import type { PrismaClient } from '@prisma/client'
+import { describe, expect, it, vi } from 'vitest'
+
+import type { AgentPreflightReceiptInput } from '@/lib/agent-preflight/contracts'
+
+import { listLatestAgentPreflightReceipts, recordAgentPreflightReceipt } from './agent-preflight-service'
+
+function readyInput(): AgentPreflightReceiptInput {
+  return {
+    coordinatorId: 'codex-task',
+    expectedTargetWorkspacePath: '/targets/notes',
+    capabilities: {
+      mcpSurfaceVersion: '2026-07-18.unified-agent-preflight',
+      serverStartedAt: '2026-07-18T03:00:00.000Z',
+    },
+    preflight: {
+      schemaVersion: 'appraise.agent-preflight/v1',
+      status: 'ready',
+      ready: true,
+      layers: {
+        applicationAndIdentity: { status: 'ready', checks: [{ id: 'application', status: 'ok' }] },
+        activeMcpTransport: {
+          status: 'ready',
+          message: 'The MCP request reached this server.',
+          serverStartedAt: '2026-07-18T03:00:00.000Z',
+          mcpSurfaceVersion: '2026-07-18.unified-agent-preflight',
+        },
+        currentTaskCapabilities: {
+          status: 'ready',
+          tools: { status: 'ready', missing: [] },
+          resources: { status: 'ready', missing: [] },
+          message: 'All sentinels are visible.',
+        },
+        targetProjectBinding: {
+          status: 'ready',
+          expectedCanonicalPath: '/targets/notes',
+          matchedScope: 'target',
+          message: 'The target is registered.',
+        },
+      },
+    },
+  }
+}
+
+function storedReceipt(input = readyInput(), id = 'receipt-1') {
+  return {
+    id,
+    coordinatorId: input.coordinatorId,
+    schemaVersion: input.preflight.schemaVersion,
+    status: input.preflight.status,
+    ready: input.preflight.ready,
+    snapshotHash: 'sha256:receipt',
+    snapshotJson: JSON.stringify(input.preflight),
+    expectedCanonicalPath: input.expectedTargetWorkspacePath ?? null,
+    targetProjectId: 'target-1',
+    mcpSurfaceVersion: input.capabilities.mcpSurfaceVersion,
+    mcpServerStartedAt: new Date(input.capabilities.serverStartedAt),
+    observedAt: new Date('2026-07-18T03:01:00.000Z'),
+    createdAt: new Date('2026-07-18T03:01:00.000Z'),
+  }
+}
+
+describe('agent preflight receipts', () => {
+  it('persists an idempotent, target-scoped receipt for UI presentation', async () => {
+    const input = readyInput()
+    const upsert = vi.fn().mockImplementation(({ create }) => storedReceipt(input, create.id))
+    const client = {
+      targetProject: { findUnique: vi.fn().mockResolvedValue({ id: 'target-1' }) },
+      agentPreflightReceipt: { upsert },
+    } as unknown as PrismaClient
+
+    const receipt = await recordAgentPreflightReceipt(input, client)
+
+    expect(receipt).toMatchObject({ status: 'ready', ready: true, targetProjectId: 'target-1' })
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ targetProjectId: 'target-1', expectedCanonicalPath: '/targets/notes' }),
+        update: {},
+      }),
+    )
+  })
+
+  it('rejects a receipt whose claimed binding differs from the request', async () => {
+    const input = readyInput()
+    input.expectedTargetWorkspacePath = '/targets/other'
+
+    await expect(recordAgentPreflightReceipt(input, {} as PrismaClient)).rejects.toThrow(
+      'target binding does not match',
+    )
+  })
+
+  it('projects only the latest receipt for each requested project', async () => {
+    const latest = storedReceipt(readyInput(), 'latest')
+    const older = {
+      ...latest,
+      id: 'older',
+      targetProjectId: 'target-2',
+      observedAt: new Date('2026-07-18T02:00:00.000Z'),
+    }
+    const client = {
+      agentPreflightReceipt: { findFirst: vi.fn().mockResolvedValueOnce(latest).mockResolvedValueOnce(older) },
+    } as unknown as PrismaClient
+
+    await expect(listLatestAgentPreflightReceipts(['target-1', 'target-2'], client)).resolves.toMatchObject({
+      'target-1': { id: 'latest' },
+      'target-2': { id: 'older' },
+    })
+  })
+})

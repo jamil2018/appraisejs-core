@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 
+import { baselineRecoveryGuidance } from './baseline-recovery-guidance'
+
 type PlanActionRunner = (
   operation: () => Promise<{ success?: boolean; error?: string }>,
   successMessage: string,
@@ -107,6 +109,7 @@ export function BaselineAttemptCard({
   run,
   regressionJustification,
   onRegressionJustificationChange,
+  validation,
 }: {
   attempt: BaselineAttempt
   isCurrent: boolean
@@ -115,9 +118,11 @@ export function BaselineAttemptCard({
   run: PlanActionRunner
   regressionJustification: string
   onRegressionJustificationChange: (value: string) => void
+  validation: NonNullable<PlanReviewDetail['validation']>
 }) {
   const visualStyle = getBaselineAttemptVisualStyle(attempt)
   const evidenceLinks = buildBaselineEvidenceLinks(attempt)
+  const guidance = baselineRecoveryGuidance(validation, attempt)
 
   return (
     <div
@@ -152,6 +157,36 @@ export function BaselineAttemptCard({
       </p>
 
       <BaselineEvidenceLinks links={evidenceLinks} />
+      <div className="bg-background/60 space-y-2 rounded-lg border p-2.5 text-[11px] leading-normal">
+        <p className="font-semibold">{guidance.title}</p>
+        <dl className="space-y-1 text-muted-foreground">
+          <div>
+            <dt className="inline font-medium text-foreground">Root cause: </dt>
+            <dd className="inline">{guidance.rootCause}</dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-foreground">Allowed action: </dt>
+            <dd className="inline">{guidance.allowedAction}</dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-foreground">Retry consequence: </dt>
+            <dd className="inline">{guidance.retryConsequence}</dd>
+          </div>
+        </dl>
+        {guidance.expectedSignatures.length > 0 && (
+          <div>
+            <p className="font-medium">Approved expected-red signatures</p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-4 font-mono text-[10px] text-muted-foreground">
+              {guidance.expectedSignatures.map(signature => (
+                <li key={signature}>{signature}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {attempt.signatureHash && (
+          <p className="break-all font-mono text-[9px] text-muted-foreground">Evidence: {attempt.signatureHash}</p>
+        )}
+      </div>
       {isCurrent && (
         <BaselineAttemptFollowUp
           attempt={attempt}
@@ -160,6 +195,7 @@ export function BaselineAttemptCard({
           run={run}
           regressionJustification={regressionJustification}
           onRegressionJustificationChange={onRegressionJustificationChange}
+          acknowledged={guidance.acknowledged}
         />
       )}
     </div>
@@ -228,6 +264,7 @@ function BaselineAttemptFollowUp({
   run,
   regressionJustification,
   onRegressionJustificationChange,
+  acknowledged,
 }: {
   attempt: BaselineAttempt
   planId: string
@@ -235,8 +272,12 @@ function BaselineAttemptFollowUp({
   run: PlanActionRunner
   regressionJustification: string
   onRegressionJustificationChange: (value: string) => void
+  acknowledged: boolean
 }) {
-  if (attempt.classification === 'unrelated_existing_failure') {
+  if (
+    ['expected_product_failure', 'unrelated_existing_failure'].includes(attempt.classification ?? '') &&
+    !acknowledged
+  ) {
     return (
       <Button
         className="mt-1 h-8 w-full text-xs font-semibold"
@@ -250,11 +291,15 @@ function BaselineAttemptFollowUp({
                 planId,
                 attemptId: attempt.id,
               }),
-            'Unrelated failure acknowledged.',
+            attempt.classification === 'expected_product_failure'
+              ? 'Expected regression acknowledged.'
+              : 'Unrelated failure acknowledged.',
           )
         }
       >
-        Acknowledge unchanged failure
+        {attempt.classification === 'expected_product_failure'
+          ? 'Acknowledge expected regression'
+          : 'Acknowledge unchanged failure'}
       </Button>
     )
   }

@@ -24,7 +24,10 @@ Each attempt preserves its Appraise test-run ID and links to logs, the run repor
 attempts append new records; they never replace old evidence.
 
 An unrelated-failure acknowledgement binds to the attempt ID and the SHA-256 hash of its ordered failure signatures.
-A changed signature therefore requires a new acknowledgement. Changes to reviewed validation files block baseline
+A changed signature therefore requires a new acknowledgement. Both approved expected-product failures and unrelated
+existing failures require this exact acknowledgement before baseline acceptance. The baseline review surface displays
+the ordered approved signatures, observed signature hash, classified root cause, allowed action, and retry consequence
+without requiring raw database inspection. Changes to reviewed validation files block baseline
 reconciliation, acceptance, and implementation until validation review is repeated.
 
 ## Implementation Unlock

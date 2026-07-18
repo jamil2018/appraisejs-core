@@ -294,7 +294,12 @@ try {
     validationPreparation.contents[0]?.text?.includes('appraise.validation-ast'),
     'Validation preparation resource missed artifact contract guidance.',
   )
-  const diagnostic = await callTool('project_diagnostic', {})
+  const observedResourceUris = resources.resources.map(resource => resource.uri)
+  const diagnostic = await callTool('project_diagnostic', {
+    observedTools: toolNames,
+    observedResources: observedResourceUris,
+    expectedTargetWorkspacePath: repoRoot,
+  })
   assert(diagnostic.ok === true, `Project diagnostic failed: ${JSON.stringify(diagnostic)}`)
   assert(diagnostic.contractVersion === '1', 'Project diagnostic did not return the contract version.')
   const diagnosticCapabilities = diagnostic.capabilities as {
@@ -317,6 +322,14 @@ try {
   assert(
     String(diagnostic.nextRecommendedAction).includes('target workspace'),
     'Project diagnostic did not return next-action guidance.',
+  )
+  assert(
+    (diagnostic.agentPreflight as { status?: string }).status === 'ready',
+    'Project diagnostic did not certify the live MCP task snapshot.',
+  )
+  assert(
+    typeof (diagnostic.preflightReceipt as { browserUrl?: unknown }).browserUrl === 'string',
+    'Project diagnostic did not persist a browser-visible preflight receipt.',
   )
 
   const missingTarget = await callTool('planning_session_create', {
@@ -349,6 +362,29 @@ try {
   assert(
     explicitTargetSession.nextRequiredAgentBehavior === 'standby_for_appraise_review',
     'Explicit target planning did not enter approval standby.',
+  )
+  const targetDiagnostic = await callTool('project_diagnostic', {
+    observedTools: toolNames,
+    observedResources: observedResourceUris,
+    expectedTargetWorkspacePath: targetWorkspacePath,
+  })
+  assert(
+    (
+      targetDiagnostic.agentPreflight as {
+        status?: string
+        layers?: { targetProjectBinding?: { matchedScope?: string } }
+      }
+    ).layers?.targetProjectBinding?.matchedScope === 'target',
+    'Project diagnostic did not certify the registered target binding.',
+  )
+  const targetReceiptUrl = (targetDiagnostic.preflightReceipt as { browserUrl?: string }).browserUrl
+  assert(targetReceiptUrl, 'Target preflight did not return its browser receipt URL.')
+  const targetReceiptPage = await fetch(targetReceiptUrl)
+  assert(targetReceiptPage.ok, 'Target preflight browser receipt was not reachable.')
+  const targetReceiptHtml = await targetReceiptPage.text()
+  assert(
+    targetReceiptHtml.includes('Agent readiness') && targetReceiptHtml.includes('MCP E2E target workspace'),
+    'Target preflight receipt was not projected into the Projects UI.',
   )
 
   const initialPlan = {

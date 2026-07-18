@@ -88,6 +88,11 @@ import { isThreadOpen } from '@/services/plan-review/plan-review-helpers'
 import { projectPlanFlow } from './plan-flow-projection'
 import { PlanFlowTaskNode, type PlanFlowTaskNode as PlanFlowTaskNodeType } from './plan-flow-task-node'
 import { BaselineAttemptCard } from './baseline-attempt-card'
+import { ExactExecutionPreview } from './exact-execution-preview'
+import { LifecycleCommandCenter } from './lifecycle-command-center'
+import { PlanObservabilityPanel } from './plan-observability-panel'
+import { ValidationCoverageExplorer } from './validation-coverage-explorer'
+import { LifecycleInsightsPanel } from './lifecycle-insights-panel'
 import { PlanRemarkThreadItem } from './plan-remark-thread-item'
 import { ValidationReviewPanel } from './validation-review-panel'
 import { continuationPackage, evidenceDelta, lifecycleProgress, nextLifecycleAction } from './plan-lifecycle-guidance'
@@ -807,6 +812,10 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
         </div>
       </section>
 
+      <LifecycleCommandCenter detail={detail} />
+      <PlanObservabilityPanel detail={detail} />
+      <LifecycleInsightsPanel detail={detail} />
+
       {detail.projection.stale || detail.projection.conflicted ? (
         <Alert variant="destructive" className="rounded-xl">
           <AlertTriangle className="size-4" />
@@ -1231,7 +1240,9 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                   ))}
                 </div>
               </TabsContent>
-              <TabsContent value="validations" className="m-0">
+              <TabsContent value="validations" className="m-0 space-y-4">
+                <ValidationCoverageExplorer detail={detail} />
+                {detail.exactExecutionPreview ? <ExactExecutionPreview preview={detail.exactExecutionPreview} /> : null}
                 <ValidationReviewPanel
                   detail={detail}
                   isPending={isPending}
@@ -1556,6 +1567,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                             run={run}
                             regressionJustification={regressionJustification}
                             onRegressionJustificationChange={setRegressionJustification}
+                            validation={detail.validation!}
                           />
                         ))
                       )}

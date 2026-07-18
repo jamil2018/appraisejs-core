@@ -768,9 +768,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 25,
+      "community": 26,
       "norm_label": "install-playwright.ts",
-      "community_name": "Community 25",
+      "community_name": "Community 26",
       "id": "install_playwright"
     },
     {
@@ -779,9 +779,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 25,
+      "community": 26,
       "norm_label": "require",
-      "community_name": "Community 25",
+      "community_name": "Community 26",
       "id": "install_playwright_require"
     },
     {
@@ -790,9 +790,9 @@
       "source_file": "install-playwright.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 25,
+      "community": 26,
       "norm_label": "main()",
-      "community_name": "Community 25",
+      "community_name": "Community 26",
       "id": "install_playwright_main"
     },
     {
@@ -1549,9 +1549,9 @@
       "source_file": "lib/template-sync-utils.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 32,
+      "community": 33,
       "norm_label": "template-sync-utils.test.ts",
-      "community_name": "Community 32",
+      "community_name": "Community 33",
       "id": "lib_template_sync_utils_test"
     },
     {
@@ -1560,9 +1560,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 23,
+      "community": 24,
       "norm_label": "protect-seeded-files.ts",
-      "community_name": "Community 23",
+      "community_name": "Community 24",
       "id": "protect_seeded_files"
     },
     {
@@ -1571,9 +1571,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 23,
+      "community": 24,
       "norm_label": "seeded_template_paths",
-      "community_name": "Community 23",
+      "community_name": "Community 24",
       "id": "protect_seeded_files_seeded_template_paths"
     },
     {
@@ -1582,9 +1582,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 23,
+      "community": 24,
       "norm_label": "trimtrailingblanklines()",
-      "community_name": "Community 23",
+      "community_name": "Community 24",
       "id": "protect_seeded_files_trimtrailingblanklines"
     },
     {
@@ -1593,9 +1593,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 23,
+      "community": 24,
       "norm_label": "setseededtemplatefilestracked()",
-      "community_name": "Community 23",
+      "community_name": "Community 24",
       "id": "protect_seeded_files_setseededtemplatefilestracked"
     },
     {
@@ -1604,9 +1604,9 @@
       "source_file": "protect-seeded-files.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 23,
+      "community": 24,
       "norm_label": "main()",
-      "community_name": "Community 23",
+      "community_name": "Community 24",
       "id": "protect_seeded_files_main"
     },
     {
@@ -1615,9 +1615,9 @@
       "source_file": "regenerate-features.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 29,
+      "community": 30,
       "norm_label": "regenerate-features.ts",
-      "community_name": "Community 29",
+      "community_name": "Community 30",
       "id": "regenerate_features"
     },
     {
@@ -1626,9 +1626,9 @@
       "source_file": "regenerate-features.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 29,
+      "community": 30,
       "norm_label": "main()",
-      "community_name": "Community 29",
+      "community_name": "Community 30",
       "id": "regenerate_features_main"
     },
     {
@@ -1714,9 +1714,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "setup-env.ts",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "setup_env"
     },
     {
@@ -1725,9 +1725,9 @@
       "source_file": "setup-env.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 30,
+      "community": 31,
       "norm_label": "main()",
-      "community_name": "Community 30",
+      "community_name": "Community 31",
       "id": "setup_env_main"
     },
     {
@@ -1736,9 +1736,9 @@
       "source_file": "smoke-coordinator.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 27,
+      "community": 28,
       "norm_label": "smoke-coordinator.ts",
-      "community_name": "Community 27",
+      "community_name": "Community 28",
       "id": "smoke_coordinator"
     },
     {
@@ -1747,9 +1747,9 @@
       "source_file": "smoke-coordinator.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 27,
+      "community": 28,
       "norm_label": "headers",
-      "community_name": "Community 27",
+      "community_name": "Community 28",
       "id": "smoke_coordinator_headers"
     },
     {
@@ -1758,9 +1758,9 @@
       "source_file": "smoke-coordinator.ts",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 27,
+      "community": 28,
       "norm_label": "result",
-      "community_name": "Community 27",
+      "community_name": "Community 28",
       "id": "smoke_coordinator_result"
     },
     {
@@ -2880,9 +2880,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 24,
+      "community": 25,
       "norm_label": "validate-prisma-migrations.mjs",
-      "community_name": "Community 24",
+      "community_name": "Community 25",
       "id": "validate_prisma_migrations"
     },
     {
@@ -2891,9 +2891,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 24,
+      "community": 25,
       "norm_label": "workspace",
-      "community_name": "Community 24",
+      "community_name": "Community 25",
       "id": "validate_prisma_migrations_workspace"
     },
     {
@@ -2902,9 +2902,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 24,
+      "community": 25,
       "norm_label": "databasepath",
-      "community_name": "Community 24",
+      "community_name": "Community 25",
       "id": "validate_prisma_migrations_databasepath"
     },
     {
@@ -2913,9 +2913,9 @@
       "source_file": "validate-prisma-migrations.mjs",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 24,
+      "community": 25,
       "norm_label": "migrationsroot",
-      "community_name": "Community 24",
+      "community_name": "Community 25",
       "id": "validate_prisma_migrations_migrationsroot"
     },
     {
@@ -3628,9 +3628,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 22,
+      "community": 23,
       "norm_label": "check-package-contents.mjs",
-      "community_name": "Community 22",
+      "community_name": "Community 23",
       "id": "check_package_contents"
     },
     {
@@ -3639,9 +3639,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 22,
+      "community": 23,
       "norm_label": "packages",
-      "community_name": "Community 22",
+      "community_name": "Community 23",
       "id": "check_package_contents_packages"
     },
     {
@@ -3650,9 +3650,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 22,
+      "community": 23,
       "norm_label": "rootpackage",
-      "community_name": "Community 22",
+      "community_name": "Community 23",
       "id": "check_package_contents_rootpackage"
     },
     {
@@ -3661,9 +3661,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 22,
+      "community": 23,
       "norm_label": "rootpublishrefusal",
-      "community_name": "Community 22",
+      "community_name": "Community 23",
       "id": "check_package_contents_rootpublishrefusal"
     },
     {
@@ -3672,9 +3672,9 @@
       "source_file": "check-package-contents.mjs",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 22,
+      "community": 23,
       "norm_label": "alloweddatabasefixtures",
-      "community_name": "Community 22",
+      "community_name": "Community 23",
       "id": "check_package_contents_alloweddatabasefixtures"
     },
     {
@@ -3936,9 +3936,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 21,
+      "community": 22,
       "norm_label": "check-documentation-links.mjs",
-      "community_name": "Community 21",
+      "community_name": "Community 22",
       "id": "check_documentation_links"
     },
     {
@@ -3947,9 +3947,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 21,
+      "community": 22,
       "norm_label": "roots",
-      "community_name": "Community 21",
+      "community_name": "Community 22",
       "id": "check_documentation_links_roots"
     },
     {
@@ -3958,9 +3958,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 21,
+      "community": 22,
       "norm_label": "ignoreddirectories",
-      "community_name": "Community 21",
+      "community_name": "Community 22",
       "id": "check_documentation_links_ignoreddirectories"
     },
     {
@@ -3969,9 +3969,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 21,
+      "community": 22,
       "norm_label": "markdownfiles()",
-      "community_name": "Community 21",
+      "community_name": "Community 22",
       "id": "check_documentation_links_markdownfiles"
     },
     {
@@ -3980,9 +3980,9 @@
       "source_file": "check-documentation-links.mjs",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 21,
+      "community": 22,
       "norm_label": "failures",
-      "community_name": "Community 21",
+      "community_name": "Community 22",
       "id": "check_documentation_links_failures"
     },
     {
@@ -4596,9 +4596,9 @@
       "source_file": "lib/environment-secret-check.integration.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 31,
+      "community": 32,
       "norm_label": "environment-secret-check.integration.test.ts",
-      "community_name": "Community 31",
+      "community_name": "Community 32",
       "id": "lib_environment_secret_check_integration_test"
     },
     {
@@ -4607,9 +4607,9 @@
       "source_file": "lib/quality-ratchet.mjs",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 26,
+      "community": 27,
       "norm_label": "quality-ratchet.mjs",
-      "community_name": "Community 26",
+      "community_name": "Community 27",
       "id": "lib_quality_ratchet"
     },
     {
@@ -4618,9 +4618,9 @@
       "source_file": "lib/quality-ratchet.mjs",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 26,
+      "community": 27,
       "norm_label": "addedqualitysuppressions()",
-      "community_name": "Community 26",
+      "community_name": "Community 27",
       "id": "lib_quality_ratchet_addedqualitysuppressions"
     },
     {
@@ -4629,9 +4629,9 @@
       "source_file": "lib/quality-ratchet.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 26,
+      "community": 27,
       "norm_label": "quality-ratchet.test.ts",
-      "community_name": "Community 26",
+      "community_name": "Community 27",
       "id": "lib_quality_ratchet_test"
     },
     {
@@ -5036,10 +5036,10 @@
       "source_file": "lib/agent-setup-capabilities.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 29,
       "norm_label": "agent-setup-capabilities.test.ts",
-      "id": "lib_agent_setup_capabilities_test",
-      "community_name": "Community 28"
+      "community_name": "Community 29",
+      "id": "lib_agent_setup_capabilities_test"
     },
     {
       "label": "repoRoot",
@@ -5047,10 +5047,10 @@
       "source_file": "lib/agent-setup-capabilities.test.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 28,
+      "community": 29,
       "norm_label": "reporoot",
-      "id": "lib_agent_setup_capabilities_test_reporoot",
-      "community_name": "Community 28"
+      "community_name": "Community 29",
+      "id": "lib_agent_setup_capabilities_test_reporoot"
     },
     {
       "label": "mcp-config.test.ts",
@@ -5060,8 +5060,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "mcp-config.test.ts",
-      "id": "lib_mcp_config_test",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "lib_mcp_config_test"
     },
     {
       "label": "mcp-config.mjs",
@@ -5071,8 +5071,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "mcp-config.mjs",
-      "id": "mcp_config",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "mcp_config"
     },
     {
       "label": "envValue()",
@@ -5082,8 +5082,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "envvalue()",
-      "id": "mcp_config_envvalue",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "mcp_config_envvalue"
     },
     {
       "label": "normalizeEndpointPath()",
@@ -5093,8 +5093,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "normalizeendpointpath()",
-      "id": "mcp_config_normalizeendpointpath",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "mcp_config_normalizeendpointpath"
     },
     {
       "label": "shellQuote()",
@@ -5104,8 +5104,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "shellquote()",
-      "id": "mcp_config_shellquote",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "mcp_config_shellquote"
     },
     {
       "label": "resolveMcpConfig()",
@@ -5115,8 +5115,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "resolvemcpconfig()",
-      "id": "mcp_config_resolvemcpconfig",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "mcp_config_resolvemcpconfig"
     },
     {
       "label": "print-agent-config.mjs",
@@ -5126,8 +5126,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "print-agent-config.mjs",
-      "id": "print_agent_config",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "print_agent_config"
     },
     {
       "label": "config",
@@ -5137,8 +5137,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "config",
-      "id": "print_agent_config_config",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "print_agent_config_config"
     },
     {
       "label": "skillExists",
@@ -5148,8 +5148,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "skillexists",
-      "id": "print_agent_config_skillexists",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "print_agent_config_skillexists"
     },
     {
       "label": "staleCapabilityRecovery",
@@ -5159,8 +5159,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "stalecapabilityrecovery",
-      "id": "print_agent_config_stalecapabilityrecovery",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "print_agent_config_stalecapabilityrecovery"
     },
     {
       "label": "toolsNotVisibleRecovery",
@@ -5170,8 +5170,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "toolsnotvisiblerecovery",
-      "id": "print_agent_config_toolsnotvisiblerecovery",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "print_agent_config_toolsnotvisiblerecovery"
     },
     {
       "label": "print-mcp-config.mjs",
@@ -5181,8 +5181,8 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "print-mcp-config.mjs",
-      "id": "print_mcp_config",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "print_mcp_config"
     },
     {
       "label": "config",
@@ -5192,8 +5192,74 @@
       "_origin": "ast",
       "community": 12,
       "norm_label": "config",
-      "id": "print_mcp_config_config",
-      "community_name": "Community 12"
+      "community_name": "Community 12",
+      "id": "print_mcp_config_config"
+    },
+    {
+      "label": "certify-plan-builder-lifecycle.mjs",
+      "file_type": "code",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 21,
+      "norm_label": "certify-plan-builder-lifecycle.mjs",
+      "community_name": "Community 21",
+      "id": "certify_plan_builder_lifecycle"
+    },
+    {
+      "label": "matrix",
+      "file_type": "code",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 21,
+      "norm_label": "matrix",
+      "community_name": "Community 21",
+      "id": "certify_plan_builder_lifecycle_matrix"
+    },
+    {
+      "label": "startedAt",
+      "file_type": "code",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L17",
+      "_origin": "ast",
+      "community": 21,
+      "norm_label": "startedat",
+      "community_name": "Community 21",
+      "id": "certify_plan_builder_lifecycle_startedat"
+    },
+    {
+      "label": "result",
+      "file_type": "code",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L18",
+      "_origin": "ast",
+      "community": 21,
+      "norm_label": "result",
+      "community_name": "Community 21",
+      "id": "certify_plan_builder_lifecycle_result"
+    },
+    {
+      "label": "matrixJson",
+      "file_type": "code",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L20",
+      "_origin": "ast",
+      "community": 21,
+      "norm_label": "matrixjson",
+      "community_name": "Community 21",
+      "id": "certify_plan_builder_lifecycle_matrixjson"
+    },
+    {
+      "label": "client",
+      "file_type": "code",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L21",
+      "_origin": "ast",
+      "community": 21,
+      "norm_label": "client",
+      "community_name": "Community 21",
+      "id": "certify_plan_builder_lifecycle_client"
     }
   ],
   "links": [
@@ -13093,8 +13159,58 @@
       "confidence_score": 1.0,
       "source": "print_mcp_config",
       "target": "print_mcp_config_config"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "certify_plan_builder_lifecycle",
+      "target": "certify_plan_builder_lifecycle_client"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "certify_plan_builder_lifecycle",
+      "target": "certify_plan_builder_lifecycle_matrix"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "certify_plan_builder_lifecycle",
+      "target": "certify_plan_builder_lifecycle_matrixjson"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "certify_plan_builder_lifecycle",
+      "target": "certify_plan_builder_lifecycle_result"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "certify-plan-builder-lifecycle.mjs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "certify_plan_builder_lifecycle",
+      "target": "certify_plan_builder_lifecycle_startedat"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "9d4cb61c43b0cf44e30cba4e5593ee60389f216c"
+  "built_at_commit": "d92d2abf6df0942ab6a34551bb75f57c9b30546b"
 }

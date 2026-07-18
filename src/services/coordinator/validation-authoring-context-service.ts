@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
-import { parseYamlArtifact, type PlanArtifact } from '@/lib/plan-contract'
+import { parseYamlArtifact, validationArtifactSchema, type PlanArtifact } from '@/lib/plan-contract'
+import { validationAstSubmissionSchema, type ValidationAstSubmission } from '@/lib/validation-ast/schemas'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
 import { templateStepGroupPath } from './template-step-group-path'
@@ -115,6 +116,7 @@ async function readPlanContext(planId: string, options: Options = {}) {
       where: { planId },
       select: {
         sourceHash: true,
+        validationJson: true,
         targetProjectId: true,
         targetProject: {
           select: { id: true, displayName: true, canonicalPath: true, fingerprint: true },
@@ -263,6 +265,195 @@ type ValidationResourceType =
   | 'locators'
   | 'environments'
 
+type AuthoringResources = {
+  templateSteps: Array<{ id: string; name: string; signature: string }>
+  stepBlocks: Array<{ id: string; name: string; intent?: string | null }>
+  locatorGroups: Array<{ id: string; name: string; route: string }>
+  locators: Array<{ id: string; name: string; value: string; locatorGroupId: string | null }>
+  environments: Array<{ id: string; name: string; baseUrl: string | null; apiBaseUrl: string | null }>
+}
+
+const portableId = (value: string, fallback: string) => {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 64)
+  return normalized || fallback
+}
+
+function starterSubmission(
+  plan: PlanArtifact,
+  sourceHash: string,
+  resources: AuthoringResources,
+): ValidationAstSubmission | null {
+  if (plan.tasks.length === 0) return null
+
+  const environmentId = resources.environments[0]?.id ?? 'replace-environment-id'
+  const scenarios = plan.tasks.map((task, index) => {
+    const scenarioId = portableId(task.id, `scenario-${index + 1}`)
+    return {
+      id: scenarioId,
+      title: task.title,
+      description: task.validationIntent,
+      steps: [
+        {
+          id: `${scenarioId}-navigate`,
+          keyword: 'Given' as const,
+          description: 'the agent opens the target application',
+          action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+        },
+        {
+          id: `${scenarioId}-observe`,
+          keyword: 'Then' as const,
+          description: 'the agent waits for the application to become ready',
+          action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+        },
+      ],
+    }
+  })
+  return validationAstSubmissionSchema.parse({
+    expectedPlanHash: sourceHash,
+    ast: {
+      schemaVersion: 1,
+      id: portableId(`${plan.planId}-validation`, 'plan-validation'),
+      title: `${plan.goal} validation`,
+      purpose: `Editable starter for the approved intent: ${plan.description}`,
+      coversTaskIds: plan.tasks.map(task => task.id),
+      matrix: [{ browser: 'chromium', environmentId }],
+      scenarios,
+      coverageArgument: {
+        mappings: plan.tasks.map((task, index) => {
+          const scenarioId = portableId(task.id, `scenario-${index + 1}`)
+          return {
+            kind: 'task' as const,
+            targetId: task.id,
+            scenarioIds: [scenarioId],
+            stimulusStepIds: [`${scenarioId}-navigate`],
+            observationStepIds: [],
+            rationale: `Starter mapping for ${task.validationIntent}`,
+            state: 'uncovered' as const,
+            limitation: 'Replace the placeholder observation with an explicit reviewed assertion before preview.',
+          }
+        }),
+      },
+    },
+    customExtensionProposals: [],
+  })
+}
+
+export function buildValidationAuthoringKit(input: {
+  plan: PlanArtifact
+  sourceHash: string
+  targetProject: { id: string; displayName: string; canonicalPath: string; fingerprint: string } | null
+  resources: AuthoringResources
+  validationJson?: string | null
+  runtimeInputJson?: string | null
+}) {
+  const starter = starterSubmission(input.plan, input.sourceHash, input.resources)
+  const canonicalJson = starter ? JSON.stringify(starter) : null
+  const validation = input.validationJson ? validationArtifactSchema.parse(JSON.parse(input.validationJson)) : undefined
+  const runtime = input.runtimeInputJson ? (JSON.parse(input.runtimeInputJson) as Record<string, unknown>) : undefined
+  const mappings = validation?.validations.flatMap(node => node.coverageArgument?.mappings ?? []) ?? []
+  const coveredTargets = new Set(
+    mappings.filter(mapping => mapping.state === 'covered').map(mapping => mapping.targetId),
+  )
+  const taskCoverage = input.plan.tasks.map(task => ({
+    taskId: task.id,
+    title: task.title,
+    validationIntent: task.validationIntent,
+    state: coveredTargets.has(task.id) ? ('covered' as const) : ('uncovered' as const),
+    mappings: mappings.filter(mapping => mapping.targetId === task.id),
+  }))
+  const requirementCoverage = (input.plan.requirementAssessment?.requirements ?? []).map(requirement => ({
+    ...requirement,
+    state:
+      requirement.deferredReason !== undefined
+        ? ('deferred' as const)
+        : requirement.coveredBy.some(binding => coveredTargets.has(binding.taskId))
+          ? ('covered' as const)
+          : ('uncovered' as const),
+  }))
+  const recipes = [
+    {
+      id: 'navigation-visible-outcome',
+      intent: 'Navigate, stimulate one behavior, and assert a visible outcome.',
+      actionIds: ['browser.navigation.goto', 'browser.mouse.click', 'browser.assertions.visible'],
+      resourceHint: 'Prefer an existing project locator and a shared-library action.',
+    },
+    {
+      id: 'form-submit-outcome',
+      intent: 'Fill a form, submit it, and assert user-visible feedback.',
+      actionIds: ['browser.forms.fill', 'browser.mouse.click', 'browser.assertions.text'],
+      resourceHint: 'Bind exact input, submit, and outcome locators before preview.',
+    },
+    {
+      id: 'persistence-reload',
+      intent: 'Create state, reload, and assert the state remains observable.',
+      actionIds: ['browser.navigation.reload', 'browser.assertions.visible'],
+      resourceHint: 'Use only when persistence is explicit approved intent.',
+    },
+  ]
+  const runtimeChanges = input.resources.environments.length
+    ? []
+    : [
+        {
+          kind: 'register_environment',
+          owner: 'user_or_agent_after_review',
+          target: 'Appraise project resources',
+          targetFilesChanged: false,
+          reason: 'The AST matrix needs a project-scoped environment identity.',
+        },
+      ]
+  return {
+    contextPack: {
+      schemaVersion: '1',
+      approvedIntent: { goal: input.plan.goal, description: input.plan.description },
+      constraints: input.plan.requirementAssessment?.requirements.filter(item => item.kind === 'constraint') ?? [],
+      requirementIds: input.plan.requirementAssessment?.requirements.map(item => item.id) ?? [],
+      tasks: input.plan.tasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        validationIntent: task.validationIntent,
+      })),
+      targetProject: input.targetProject,
+      reusableResourceSummary: Object.fromEntries(
+        Object.entries(input.resources).map(([kind, values]) => [kind, values.length]),
+      ),
+    },
+    coverageExplorer: {
+      taskCoverage,
+      requirementCoverage,
+      selectedRuntime: runtime ?? null,
+      uncoveredIntentCount:
+        taskCoverage.filter(item => item.state === 'uncovered').length +
+        requirementCoverage.filter(item => item.state === 'uncovered').length,
+    },
+    astStarter: {
+      editable: starter !== null,
+      semanticOwner: 'agent',
+      readiness: starter ? 'requires_agent_editing_and_appraise_review' : 'unavailable_no_plan_tasks',
+      submission: starter,
+      reason: starter ? null : 'The plan has no tasks from which to build a validation starter.',
+    },
+    astExchange: canonicalJson
+      ? {
+          mediaType: 'application/vnd.appraise.validation-ast+json;version=1',
+          contentHash: hashContent(canonicalJson),
+          canonicalJson,
+          importTool: 'validation_ast_check',
+        }
+      : null,
+    recipes,
+    runtimePreparationProposal: {
+      status: runtimeChanges.length ? 'review_required' : 'ready',
+      targetWorkspaceMutation: 'none',
+      changes: runtimeChanges,
+      nextAllowedAction: runtimeChanges.length ? 'Review and register the missing environment.' : 'Edit the starter.',
+    },
+  }
+}
+
 // fallow-ignore-next-line complexity
 export async function readValidationContext(
   planId: string,
@@ -396,7 +587,20 @@ export async function readValidationContext(
         .slice(0, limit),
     ]),
   )
-  const contextHash = hashContent(JSON.stringify({ planId, sourceHash: projection?.sourceHash, resources }))
+  const latestOperation = await client.validationAstPublishOperation?.findFirst({
+    where: { planId },
+    orderBy: { createdAt: 'desc' },
+    select: { runtimeInputJson: true },
+  })
+  const contextHash = hashContent(
+    JSON.stringify({
+      planId,
+      sourceHash: projection?.sourceHash,
+      validationJson: projection.validationJson,
+      runtimeInputJson: latestOperation?.runtimeInputJson,
+      resources,
+    }),
+  )
   if (options.sinceHash === contextHash) {
     return { plan: { planId, revision: plan.revision, lifecycle: plan.lifecycle }, contextHash, notModified: true }
   }
@@ -412,6 +616,14 @@ export async function readValidationContext(
     targetProject: projection?.targetProject ?? null,
     contextHash,
     resources,
+    authoring: buildValidationAuthoringKit({
+      plan,
+      sourceHash: projection?.sourceHash ?? hashContent(JSON.stringify(plan)),
+      targetProject: projection?.targetProject ?? null,
+      resources: allResources,
+      validationJson: projection.validationJson,
+      runtimeInputJson: latestOperation?.runtimeInputJson,
+    }),
     proposalSchemas: [
       'appraise.resource/module-proposal/v1',
       'appraise.resource/environment-proposal/v1',

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { listTargetProjects } from '@/services/target-project/target-project-service'
+import { listLatestAgentPreflightReceipts } from '@/services/agent-preflight/agent-preflight-service'
 import { FolderGit2 } from 'lucide-react'
 
 import ProjectManagement from './project-management'
@@ -10,12 +11,26 @@ import ProjectSelectionDialog from './project-selection-dialog'
 
 export const metadata: Metadata = { title: 'Projects' }
 
-export default async function ProjectsPage({
+type ProjectSearchParams = { selectProject?: string; returnTo?: string; preflight?: string }
+
+function preflightHighlight(searchParams: ProjectSearchParams | undefined): string | undefined {
+  return searchParams?.preflight
+}
+
+function ProjectSelectionPrompt({
   searchParams,
+  projects,
 }: {
-  searchParams?: Promise<{ selectProject?: string; returnTo?: string }>
+  searchParams?: ProjectSearchParams
+  projects: Array<{ id: string; displayName: string; canonicalPath: string }>
 }) {
+  if (searchParams?.selectProject !== 'required') return null
+  return <ProjectSelectionDialog projects={projects} returnTo={searchParams.returnTo ?? '/'} />
+}
+
+export default async function ProjectsPage({ searchParams }: { searchParams?: Promise<ProjectSearchParams> }) {
   const [resolvedSearchParams, projects] = await Promise.all([searchParams, listTargetProjects()])
+  const preflightReceipts = await listLatestAgentPreflightReceipts(projects.map(project => project.id))
   const projectOptions = projects.map(({ id, displayName, canonicalPath }) => ({ id, displayName, canonicalPath }))
 
   return (
@@ -36,11 +51,11 @@ export default async function ProjectsPage({
           description,
           canonicalPath,
           lastDetectedAt,
+          preflight: preflightReceipts[id],
         }))}
+        highlightedPreflightId={preflightHighlight(resolvedSearchParams)}
       />
-      {resolvedSearchParams?.selectProject === 'required' ? (
-        <ProjectSelectionDialog projects={projectOptions} returnTo={resolvedSearchParams.returnTo ?? '/'} />
-      ) : null}
+      <ProjectSelectionPrompt searchParams={resolvedSearchParams} projects={projectOptions} />
     </div>
   )
 }

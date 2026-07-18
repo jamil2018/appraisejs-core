@@ -15,6 +15,11 @@ the current hash and receipt so the coordinator can reread and relay a fresh dec
 Agents must use Appraise-owned lifecycle gates. Chat approval can clarify intent, but it does not replace plan,
 validation, baseline, implementation, completion, or cancellation transitions.
 
+Before planning, call `project_diagnostic` with the current task's observed tools and resources plus the intended
+workspace. Appraise records the resulting four-layer preflight as a content-addressed receipt and exposes it from the
+Projects UI. Only a receipt whose application/identity, active transport, current-task capabilities, and target
+binding are all ready certifies lifecycle entry; a browser view never fills in observations the MCP client omitted.
+
 ## Bounded Objectives And Handoffs
 
 Large work is segmented into objectives, milestones, and independently reviewable plans. A plan may contain at most
@@ -28,6 +33,8 @@ Continuation packages never replace lifecycle events or approval receipts. Coord
 Appraise time, active agent time, and human-review time separately.
 
 The plan review workspace shows the same lifecycle as a five-stage progress rail and names the next actor and action.
+Its project-bound command center also consolidates blocking issues, active baseline identity, the exact review URL,
+and the recovery surface, so operators do not need to infer the current gate from raw events.
 Its copy-continuation control emits a compact JSON handoff with the target project, plan ID, lifecycle, revision,
 current hashes, latest event cursor, scoped review URL, and next action. This clipboard package is a convenience for
 agent handoff; durable continuation still uses the snapshot and continuation-package MCP tools.
@@ -58,6 +65,9 @@ transition it permits succeeds. `validation_preparation_started` permits managed
 `validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
 Preview confirmation may use the exact hash-bound MCP response; a pre-compile browser surface is optional rather than
 required. The Appraise-owned validation approval gate remains the persisted post-compile UI review.
+That persisted review renders the canonical Gherkin projection, selected action and locator identities, scenarios,
+runtime matrix, and the immutable AST, context, preview, receipt, projection, and runtime-input hashes before any
+managed execution begins.
 Managed execution uses only the exact Appraise-owned immutable runtime capsule; it never writes or executes target
 `automation/` files.
 
@@ -126,6 +136,11 @@ Compilation projects `lastPassingStepId` to the stable executable step identity 
 Baseline reconciliation maps passed Cucumber step names back to that identity before classification. AST step IDs are
 therefore globally unique within a validation, including across scenarios; duplicate IDs fail validation instead of
 creating an ambiguous expected-red boundary.
+
+An observed expected-product failure is not accepted implicitly. The reviewer acknowledges the exact attempt and
+signature hash after comparing its evidence with the ordered approved signatures. Changed evidence invalidates that
+acknowledgement. The review UI also states the classified root cause, only allowed next action, and retry consequences;
+repair keeps prior attempts and TestRuns immutable while reopening validation approval and runtime projection.
 
 Baseline TestRun display names include the durable attempt ordinal. Replaying an active content-bound preparation
 reuses its existing TestRun, while a repaired and reapproved validation advances the ordinal and receives a distinct
@@ -259,6 +274,36 @@ The completion event keeps the prior event hash in `previousStateHash` and binds
 
 Reports should distinguish backend/service approval from browser/UI approval. If a run used API or service calls only,
 say that plainly and do not imply a human used the browser flow.
+
+## Certification and local efficiency evidence
+
+Run `npm run certify:plan-builder` to execute the representative greenfield-publication and existing-project managed
+runtime-capsule lifecycle cases. The command writes a content-addressed `LifecycleCertificationReceipt` containing
+the matrix, outcome, duration, and current Git commit. Both passing and failing runs are retained so the latest state
+does not erase earlier certification evidence.
+
+The coordinator POST boundary records plan-scoped operation metrics after producing the lifecycle response. Metrics
+include phase, duration, wait time, retry count, tool-call count, request and response size, and recovery cost. Storage
+is local-only and bounded to the latest 500 operations per plan; telemetry errors are logged but never replace the
+Appraise-owned operation response. The plan review command center presents the latest certification and aggregated
+per-phase metrics.
+
+## Activity, notifications, provenance, and revision impact
+
+The plan surface derives live activity only from durable lifecycle state: current phase, latest event sequence and
+type, bounded five-stage progress, wait owner, and exact next action. It never displays or persists private agent
+reasoning. Coordinator event reads also include notification projections for review readiness, requested changes,
+approvals, blocked attempts, recovery/review readiness, and required completion sign-off. Notifications retain their
+source event sequence, so clients acknowledge the event rather than a parallel notification state.
+
+The evidence timeline correlates plan revisions and events, Validation AST publication receipts, baseline attempts,
+implementation TestRuns, checkpoints, completion evidence, and delegated operation receipts. Revision-impact analysis
+compares the current plan revision/source identity with validation revision/base identity and marks validations,
+selected resources, approvals, baseline evidence, implementation groups, or orphaned remarks stale as appropriate.
+
+Delegated coordinator verification writes a replay-safe `DelegatedCoordinatorConsumption` for every bounded
+operation. The plan surface deterministically content-addresses each consumption with its signed parent authorization,
+recipient, permission, operation key, and consumption time; this is the attached delegated operation receipt.
 
 ## Project-scoped authored resources
 

@@ -127,6 +127,9 @@ import {
   resolveTargetProject,
   writeTargetProjectMarker,
 } from '@/services/target-project/target-project-service'
+import { recordAgentPreflightReceipt } from '@/services/agent-preflight/agent-preflight-service'
+import { projectLifecycleNotifications } from '@/lib/plans/plan-lifecycle-insights'
+import { recordCoordinatorResponseMetric } from '@/services/coordinator/plan-observability-service'
 
 export const runtime = 'nodejs'
 
@@ -220,9 +223,10 @@ async function getEvents(request: Request, operation: string[]) {
   if (wait && events.length === 0) {
     await ensurePlanReviewReadyEvent(planId)
     const repairedEvents = await readPlanEvents(input)
-    if (repairedEvents.length > 0) return Response.json({ events: repairedEvents })
+    if (repairedEvents.length > 0)
+      return Response.json({ events: repairedEvents, notifications: projectLifecycleNotifications(repairedEvents) })
   }
-  return Response.json({ events })
+  return Response.json({ events, notifications: projectLifecycleNotifications(events) })
 }
 
 async function getDiagnostic(request: Request) {
@@ -1018,6 +1022,20 @@ async function postPlanContinuation(operation: string[], body: unknown) {
   return Response.json(await createContinuationPackage({ planId: routePlanIdSchema.parse(operation[1]), ...value }))
 }
 
+async function postDiagnosticPreflight(request: Request, body: unknown) {
+  const receipt = await recordAgentPreflightReceipt(body)
+  const baseUrl = request.headers.get('x-appraise-base-url') ?? new URL(request.url).origin
+  const query = new URLSearchParams({ preflight: receipt.id })
+  if (receipt.targetProjectId) query.set('project', receipt.targetProjectId)
+  return Response.json({
+    id: receipt.id,
+    status: receipt.status,
+    snapshotHash: receipt.snapshotHash,
+    observedAt: receipt.observedAt,
+    browserUrl: `${baseUrl}/projects?${query}`,
+  })
+}
+
 async function dispatchPost(request: Request, operation: string[], body: unknown) {
   const id = coordinatorOperationRegistry.resolve('POST', operation)
   const handlers: Partial<Record<CoordinatorOperationId, () => Promise<Response>>> = {
@@ -1025,6 +1043,7 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
     'delegation-revoke': () => postDelegationRevoke(operation, body),
     'objective-create': () => postObjective(body),
     'coordination-slo': async () => postCoordinationSlo(body),
+    'diagnostic-preflight-write': () => postDiagnosticPreflight(request, body),
     'repository-export': () => postRepositoryExport(operation, body),
     'delegated-validation-submit': () => postDelegatedValidation(request, body),
     'provider-runs-write': () => {
@@ -1053,13 +1072,24 @@ async function dispatchPost(request: Request, operation: string[], body: unknown
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const startedAt = Date.now()
+  let operation: string[] = []
+  let body: unknown
   try {
-    const operation = (await context.params).operation
-    const body = await readCoordinatorJson(request)
+    operation = (await context.params).operation
+    body = await readCoordinatorJson(request)
     await guardPostRequest(request, operation, body)
-    return await dispatchPost(request, operation, body)
+    const response = await dispatchPost(request, operation, body)
+    await recordCoordinatorResponseMetric({ operation, body, response, startedAt }).catch(error =>
+      console.warn('Plan operation telemetry could not be recorded.', error),
+    )
+    return response
   } catch (error) {
-    return responseError(error)
+    const response = responseError(error)
+    await recordCoordinatorResponseMetric({ operation, body, response, startedAt }).catch(error =>
+      console.warn('Plan operation telemetry could not be recorded.', error),
+    )
+    return response
   }
 }
 

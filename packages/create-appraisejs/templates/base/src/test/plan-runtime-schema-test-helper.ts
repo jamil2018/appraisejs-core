@@ -179,6 +179,9 @@ async function ensureCoordinatorPlanRuntimeTestSchema(databasePath: string) {
   if (!hasIndex(databasePath, 'TestRun_targetProjectId_preparationKey_key')) {
     await applyMigration(databasePath, '20260713211000_scope_test_run_preparation_key')
   }
+  if (!hasTable(databasePath, 'PlanOperationMetric')) {
+    await applyMigration(databasePath, '20260718160000_add_plan_observability')
+  }
 }
 
 export async function prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath: string) {
