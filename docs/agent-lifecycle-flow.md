@@ -132,6 +132,11 @@ Baseline reconciliation maps passed Cucumber step names back to that identity be
 therefore globally unique within a validation, including across scenarios; duplicate IDs fail validation instead of
 creating an ambiguous expected-red boundary.
 
+An observed expected-product failure is not accepted implicitly. The reviewer acknowledges the exact attempt and
+signature hash after comparing its evidence with the ordered approved signatures. Changed evidence invalidates that
+acknowledgement. The review UI also states the classified root cause, only allowed next action, and retry consequences;
+repair keeps prior attempts and TestRuns immutable while reopening validation approval and runtime projection.
+
 Baseline TestRun display names include the durable attempt ordinal. Replaying an active content-bound preparation
 reuses its existing TestRun, while a repaired and reapproved validation advances the ordinal and receives a distinct
 name without deleting or renaming historical evidence.

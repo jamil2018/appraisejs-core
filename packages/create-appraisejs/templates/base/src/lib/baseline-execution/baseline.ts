@@ -196,13 +196,20 @@ function baselineCombinationBlockers(
   if (latest.classification === 'unexpected_pass' && !latest.regressionJustification?.trim()) {
     return [`${key} needs regression-coverage justification.`]
   }
-  const acknowledged =
-    latest.classification !== 'unrelated_existing_failure' ||
-    validation.baselineAcknowledgements.some(
-      acknowledgement =>
-        acknowledgement.attemptId === latest.id && acknowledgement.signatureHash === latest.signatureHash,
-    )
-  return acknowledged ? [] : [`${key} needs unrelated-failure acknowledgement.`]
+  return hasRequiredBaselineAcknowledgement(validation, latest)
+    ? []
+    : [`${key} needs exact baseline-failure acknowledgement.`]
+}
+
+function hasRequiredBaselineAcknowledgement(
+  validation: ValidationArtifact,
+  attempt: ValidationArtifact['baselineAttempts'][number],
+) {
+  if (!['expected_product_failure', 'unrelated_existing_failure'].includes(attempt.classification ?? '')) return true
+  return validation.baselineAcknowledgements.some(
+    acknowledgement =>
+      acknowledgement.attemptId === attempt.id && acknowledgement.signatureHash === attempt.signatureHash,
+  )
 }
 
 function isBlockingFailure(signature: string): boolean {

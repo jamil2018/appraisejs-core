@@ -1556,6 +1556,7 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
                             run={run}
                             regressionJustification={regressionJustification}
                             onRegressionJustificationChange={setRegressionJustification}
+                            validation={detail.validation!}
                           />
                         ))
                       )}

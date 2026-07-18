@@ -684,10 +684,13 @@ export async function acknowledgeBaselineFailure(
   options: BaselineOptions = {},
 ) {
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
-  const attempt = artifacts.validation.baselineAttempts.find(item => item.id === input.attemptId)
-  if (attempt?.classification !== 'unrelated_existing_failure' || !attempt.signatureHash) {
-    throw new ServiceError('Only current unrelated failures can be acknowledged.', 'CONFLICT')
+  const { artifacts, attempt } = await readBaselineAttempt(input, options, client)
+  if (
+    !attempt?.classification ||
+    !['expected_product_failure', 'unrelated_existing_failure'].includes(attempt.classification) ||
+    !attempt.signatureHash
+  ) {
+    throw new ServiceError('Only current expected or unrelated baseline failures can be acknowledged.', 'CONFLICT')
   }
   const acknowledgement = {
     attemptId: attempt.id,
@@ -712,8 +715,7 @@ export async function justifyBaselineRegressionPass(
 ) {
   if (!input.justification.trim()) throw new ServiceError('Regression justification is required.', 'VALIDATION')
   const client = options.client ?? prisma
-  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
-  const attempt = artifacts.validation.baselineAttempts.find(item => item.id === input.attemptId)
+  const { artifacts, attempt } = await readBaselineAttempt(input, options, client)
   if (attempt?.classification !== 'unexpected_pass') {
     throw new ServiceError('Only passing baselines accept regression justification.', 'CONFLICT')
   }
@@ -724,6 +726,18 @@ export async function justifyBaselineRegressionPass(
     ),
   }
   await writeBaselineArtifacts(artifacts, artifacts.plan, validation, client)
+}
+
+async function readBaselineAttempt(
+  input: { planId: string; attemptId: string },
+  options: BaselineOptions,
+  client: PrismaClient,
+) {
+  const artifacts = await readBaselineArtifacts(input.planId, options.projectDirectory, client)
+  return {
+    artifacts,
+    attempt: artifacts.validation.baselineAttempts.find(item => item.id === input.attemptId),
+  }
 }
 
 export async function retryBaselineAfterRepair(

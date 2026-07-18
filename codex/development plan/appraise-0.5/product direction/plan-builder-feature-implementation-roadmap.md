@@ -17,8 +17,8 @@ features by user impact and lifecycle risk.
 | Order | Feature                                  | Status      | Impact   | Implementation direction                                                                                                                                                                       |
 | ----: | ---------------------------------------- | ----------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |     1 | Unified agent preflight                  | Implemented | Critical | `project_diagnostic` separates all four readiness layers, stores content-addressed project receipts, links their Projects UI presentation, and certifies hub and target paths in live MCP E2E. |
-|     2 | Guided expected-red capture              | Planned     | Critical | Turn baseline failures into a guided classification flow with exact evidence, expected regression acknowledgement, and safe retry actions.                                                     |
-|     3 | Guided baseline recovery                 | Planned     | Critical | Present durable attempt state, root cause, allowed recovery action, and retry consequences without requiring raw log or database inspection.                                                   |
+|     2 | Guided expected-red capture              | Implemented | Critical | Baseline cards show the approved ordered signatures and exact evidence hash, and expected regressions require a signature-bound acknowledgement before acceptance.                             |
+|     3 | Guided baseline recovery                 | Implemented | Critical | Every current and historical attempt presents its durable state, classified root cause, only safe next action, immutable evidence links, and retry consequences.                               |
 |     4 | Lifecycle command center                 | Planned     | High     | Provide one project-scoped surface for current gate, owner, blockers, active attempt, exact next action, review URLs, and recovery controls.                                                   |
 |     5 | Exact validation and execution preview   | Planned     | High     | Show the canonical AST projection, selected actions and locators, scenarios, runtime inputs, and immutable execution identity before publication or execution.                                 |
 |     6 | Golden lifecycle certification harness   | Planned     | High     | Continuously execute representative greenfield and existing-project lifecycles through every Appraise-owned gate and retain durable certification evidence.                                    |
@@ -75,6 +75,14 @@ Unified preflight is complete in the roadmap implementation branch:
   UI.
 - Agent setup sentinels, MCP contract fixtures, generated coordinator reference, tests, docs, and Graphify outputs are
   aligned with the new contract.
+
+The baseline recovery epic is also complete:
+
+- Expected-red evidence is displayed beside its approved ordered signatures and signature hash.
+- Expected product failures and unrelated existing failures both require an acknowledgement bound to the exact
+  attempt and signature hash.
+- Each attempt explains its classified root cause, allowed recovery action, and the consequences of retrying.
+- Repair clears review/runtime projections while preserving immutable attempt and TestRun history.
 
 ## Recommended implementation sequence
 
