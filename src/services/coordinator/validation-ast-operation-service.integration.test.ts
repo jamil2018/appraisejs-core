@@ -80,6 +80,18 @@ const meditationSubmission = () => ({
               inputs: { target: { ref: 'locator', id: 'locator_completion', version: '1' } },
             },
           },
+          {
+            id: 'confirm-console-clean',
+            keyword: 'And',
+            description: 'the browser reports no console errors',
+            action: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+          },
+          {
+            id: 'confirm-network-clean',
+            keyword: 'And',
+            description: 'the browser reports no failed network activity',
+            action: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+          },
         ],
       },
     ],
@@ -91,7 +103,12 @@ const meditationSubmission = () => ({
           targetId: 'task-one',
           scenarioIds: ['complete-meditation'],
           stimulusStepIds: ['start-meditation'],
-          observationStepIds: ['confirm-accessibility', 'confirm-persistence'],
+          observationStepIds: [
+            'confirm-accessibility',
+            'confirm-persistence',
+            'confirm-console-clean',
+            'confirm-network-clean',
+          ],
           rationale: 'Starting meditation is followed by observable accessibility and persistence assertions.',
           state: 'covered',
         },
@@ -256,7 +273,7 @@ describe('Validation AST SQLite preview to compile', () => {
       valid: true,
       authoringProfile: { id: 'simple-happy-path', version: '1' },
     })
-    expect(preview.actions).toHaveLength(4)
+    expect(preview.actions).toHaveLength(6)
     expect(preview.locators).toHaveLength(2)
     expect(preview.customExtensions.length).toBeLessThanOrEqual(1)
     await previewValidationAstForPlan('plan-one', proposal, client)
@@ -314,6 +331,12 @@ describe('Validation AST SQLite preview to compile', () => {
       },
       { client, projectDirectory: workspace },
     )
+    expect(firstDecision.reviewBinding).toMatchObject({
+      operationId: published.id,
+      operationHash: published.operationHash,
+      reviewStateHash: expect.stringMatching(/^sha256:/),
+      extensionArtifactHashes: [],
+    })
     await new Promise(resolve => setTimeout(resolve, 5))
     const retriedDecision = await decideValidationNode(
       {
@@ -353,7 +376,13 @@ describe('Validation AST SQLite preview to compile', () => {
         },
       },
     })
-    expect(JSON.parse(decisionEvent.payloadJson!)).toMatchObject(firstDecision)
+    expect(JSON.parse(decisionEvent.payloadJson!)).toMatchObject({
+      validationId: firstDecision.validationId,
+      decision: firstDecision.decision,
+      contentHash: firstDecision.contentHash,
+      decidedBy: firstDecision.decidedBy,
+      decidedAt: firstDecision.decidedAt,
+    })
     await expect(
       auditManagedValidationIntegrity('plan-one', { client, projectDirectory: workspace }),
     ).resolves.toMatchObject({

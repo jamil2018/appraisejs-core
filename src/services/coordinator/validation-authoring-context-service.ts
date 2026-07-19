@@ -31,22 +31,39 @@ function hashContent(content: string) {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
 }
 
+function normalizedWords(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+}
+
 function scoreIntent(candidate: string, intent: string) {
   const ignored = new Set(['and', 'the', 'then', 'when', 'with', 'from', 'into', 'that', 'this', 'step', 'user'])
   const tokens = (value: string) =>
-    new Set(
-      value
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter(part => part.length > 2 && !ignored.has(part)),
-    )
+    new Set(normalizedWords(value).filter(part => part.length > 2 && !ignored.has(part)))
+  const normalizedCandidate = normalizedWords(candidate).join(' ')
+  const normalizedIntent = normalizedWords(intent).join(' ')
   const candidateTokens = tokens(candidate)
   const intentTokens = tokens(intent)
   const matchedTerms = [...intentTokens].filter(token => candidateTokens.has(token))
+  const intentWords = [...intentTokens]
+  const matchedPhrases = intentWords
+    .slice(0, -1)
+    .map((word, index) => `${word} ${intentWords[index + 1]}`)
+    .filter(phrase => normalizedCandidate.includes(phrase))
+  const exactPhrase = normalizedCandidate === normalizedIntent
+  const containedPhrase = !exactPhrase && normalizedIntent.length > 0 && normalizedCandidate.includes(normalizedIntent)
+  const phraseScore = exactPhrase ? 8 : containedPhrase ? 5 : matchedPhrases.length * 2
   return {
-    score: matchedTerms.length,
-    confidence: intentTokens.size === 0 ? 0 : matchedTerms.length / intentTokens.size,
+    score: matchedTerms.length + phraseScore,
+    confidence:
+      intentTokens.size === 0
+        ? 0
+        : Math.min(1, matchedTerms.length / intentTokens.size + (exactPhrase ? 0.4 : containedPhrase ? 0.25 : 0)),
     matchedTerms,
+    matchedPhrases,
+    exactPhrase,
   }
 }
 
@@ -54,7 +71,7 @@ function signatureParameters(signature: string) {
   return Array.from(signature.matchAll(/\{([^}]+)\}/g), match => match[1]!.trim().toLowerCase())
 }
 
-function rankReusableResources(resources: ReusableResources, intent: string, parameterNames: string[] = []) {
+export function rankReusableResources(resources: ReusableResources, intent: string, parameterNames: string[] = []) {
   const requestedParameters = new Set(parameterNames.map(name => name.trim().toLowerCase()).filter(Boolean))
   const rank = <T extends { id: string; name: string }>(
     values: T[],
@@ -66,20 +83,21 @@ function rankReusableResources(resources: ReusableResources, intent: string, par
         const match = scoreIntent(searchable(value), intent)
         const availableParameters = parameters(value)
         const namedMatches = [...requestedParameters].filter(name => availableParameters.includes(name)).length
-        const compatibleParameterCount = Math.min(
-          requestedParameters.size,
-          Math.max(namedMatches, availableParameters.length),
-        )
+        const positionalFallback =
+          requestedParameters.size > 0 && namedMatches === 0 && availableParameters.length >= requestedParameters.size
+            ? 0.25
+            : 0
+        const compatibleParameterCount = namedMatches + positionalFallback
         const parameterCompatibility =
           requestedParameters.size === 0 ? 1 : compatibleParameterCount / requestedParameters.size
         const confidence = Math.min(1, match.confidence * 0.8 + parameterCompatibility * 0.2)
         return {
           value,
-          score: match.score + compatibleParameterCount,
+          score: match.score + namedMatches * 2 + positionalFallback,
           confidence,
           matchedTerms: match.matchedTerms,
           parameterCompatibility,
-          explanation: `Matched ${match.matchedTerms.length} intent term(s); ${compatibleParameterCount}/${requestedParameters.size} requested parameter(s) fit the reusable signature.`,
+          explanation: `Matched ${match.matchedTerms.length} intent term(s) and ${match.matchedPhrases.length} ordered phrase(s); ${namedMatches}/${requestedParameters.size} requested parameter name(s) match the reusable signature.`,
         }
       })
       .filter(candidate => candidate.score > 0)
@@ -311,9 +329,21 @@ function starterSubmission(
         },
         {
           id: `${scenarioId}-observe`,
-          keyword: 'Then' as const,
+          keyword: 'When' as const,
           description: 'the agent waits for the application to become ready',
           action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+        },
+        {
+          id: `${scenarioId}-console-clean`,
+          keyword: 'Then' as const,
+          description: 'the browser reports no console or page errors',
+          action: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+        },
+        {
+          id: `${scenarioId}-network-clean`,
+          keyword: 'And' as const,
+          description: 'the browser reports no failed network activity',
+          action: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
         },
       ],
     }
@@ -336,10 +366,11 @@ function starterSubmission(
             targetId: task.id,
             scenarioIds: [scenarioId],
             stimulusStepIds: [`${scenarioId}-navigate`],
-            observationStepIds: [],
+            observationStepIds: [`${scenarioId}-console-clean`, `${scenarioId}-network-clean`],
             rationale: `Starter mapping for ${task.validationIntent}`,
             state: 'uncovered' as const,
-            limitation: 'Replace the placeholder observation with an explicit reviewed assertion before preview.',
+            limitation:
+              'Add product-outcome assertions before preview; runtime cleanliness alone does not prove behavior.',
           }
         }),
       },

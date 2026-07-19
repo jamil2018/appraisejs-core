@@ -2,6 +2,7 @@ import { World, IWorldOptions, setWorldConstructor, setDefaultTimeout } from '@c
 import * as chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import { BrowserContext, Page } from 'playwright'
+import { BrowserRuntimeDiagnostics, type BrowserRuntimeIssue } from './browser-runtime-diagnostics.js'
 
 setDefaultTimeout(120 * 1000)
 
@@ -16,6 +17,7 @@ export class CustomWorld extends World {
   data: ScenarioData = {
     vars: {},
   }
+  private browserRuntimeDiagnostics = new BrowserRuntimeDiagnostics()
 
   constructor(options: IWorldOptions) {
     super(options)
@@ -35,6 +37,18 @@ export class CustomWorld extends World {
 
   clearVars(): void {
     this.data.vars = {}
+  }
+
+  clearBrowserRuntimeIssues(): void {
+    this.browserRuntimeDiagnostics.clear()
+  }
+
+  recordBrowserRuntimeIssue(issue: BrowserRuntimeIssue): void {
+    this.browserRuntimeDiagnostics.record(issue)
+  }
+
+  browserRuntimeIssuesFor(source: BrowserRuntimeIssue['source'] | 'console-and-page'): BrowserRuntimeIssue[] {
+    return this.browserRuntimeDiagnostics.read(source)
   }
 }
 

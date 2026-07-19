@@ -547,6 +547,13 @@ function hasSharedSemanticToken(
   return [...semanticTokens(left)].some(token => rightTokens.has(token))
 }
 
+function describesEntityDestruction(description: string) {
+  return (
+    /\b(delete(?:s|d|ing)?|remove(?:s|d|ing)?|discard(?:s|ed|ing)?)\b/i.test(description) ||
+    /\bclear(?:s|ed|ing)?\s+(?:all\b|stored\b|saved\b|persisted\b|local\s+(?:data|state)\b)/i.test(description)
+  )
+}
+
 type ValidationScenario = ValidationAst['scenarios'][number]
 
 function persistenceObservationWarnings(
@@ -570,11 +577,7 @@ function persistenceObservationWarnings(
   }
   const destructive = scenario.steps
     .slice(0, observationIndex)
-    .find(
-      step =>
-        /\b(delete(?:s|d|ing)?|remove(?:s|d|ing)?|discard(?:s|ed|ing)?|clear(?:s|ed|ing)?)\b/i.test(step.description) &&
-        hasSharedSemanticToken(step, observation),
-    )
+    .find(step => describesEntityDestruction(step.description) && hasSharedSemanticToken(step, observation))
   if (destructive) {
     warnings.push(
       issue(

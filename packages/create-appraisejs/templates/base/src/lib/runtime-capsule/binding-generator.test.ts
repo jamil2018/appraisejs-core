@@ -46,6 +46,8 @@ describe('executable binding generator', () => {
       })
       expect(source).toContain("'labels' in element")
       expect(source).toContain("element.getAttribute('aria-labelledby')")
+      expect(source).toContain('browser.assertions.no-console-errors@1')
+      expect(source).toContain('browser.assertions.no-failed-network-requests@1')
       await expectGeneratedBindingToDryRun(root, source, 'Feature: Test\n  Scenario: Run\n    When it runs\n')
     } finally {
       await fs.rm(root, { recursive: true, force: true })

@@ -193,6 +193,24 @@ const actions: ActionDescriptorDefinition[] = [
     requirements: { runtime: 'browser', capabilities: ['assertions'] },
     examples: [{ description: 'Verify result text.', inputs: { target: 'result', text: 'Meditate' } }],
   }),
+  browserAction({
+    id: 'browser.assertions.no-console-errors',
+    title: 'Assert no browser errors',
+    description: 'Assert that the page emitted no console errors or uncaught page errors during the scenario.',
+    categories: ['browser.assertions'],
+    inputs: [],
+    requirements: { runtime: 'browser', capabilities: ['assertions', 'console-observation'] },
+    examples: [{ description: 'Verify a clean browser console.', inputs: {} }],
+  }),
+  browserAction({
+    id: 'browser.assertions.no-failed-network-requests',
+    title: 'Assert no failed network requests',
+    description: 'Assert that the page emitted no failed requests or HTTP error responses during the scenario.',
+    categories: ['browser.assertions'],
+    inputs: [],
+    requirements: { runtime: 'browser', capabilities: ['assertions', 'network-observation'] },
+    examples: [{ description: 'Verify clean network activity.', inputs: {} }],
+  }),
   {
     ...browserAction({
       id: 'browser.assertions.no-horizontal-overflow',

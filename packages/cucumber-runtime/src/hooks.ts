@@ -33,6 +33,7 @@ BeforeAll(async function () {
 
 Before(async function (this: CustomWorld) {
   this.clearVars()
+  this.clearBrowserRuntimeIssues()
   this.context = await browser.newContext()
   await this.context.tracing.start({
     screenshots: true,
@@ -40,6 +41,28 @@ Before(async function (this: CustomWorld) {
     sources: true,
   })
   this.page = await this.context.newPage()
+  this.page.on('console', message => {
+    if (message.type() === 'error')
+      this.recordBrowserRuntimeIssue({ source: 'console', message: message.text(), url: message.location().url })
+  })
+  this.page.on('pageerror', error => {
+    this.recordBrowserRuntimeIssue({ source: 'page', message: error.message })
+  })
+  this.page.on('requestfailed', request => {
+    this.recordBrowserRuntimeIssue({
+      source: 'network',
+      message: request.failure()?.errorText ?? 'Request failed',
+      url: request.url(),
+    })
+  })
+  this.page.on('response', response => {
+    if (response.status() >= 400)
+      this.recordBrowserRuntimeIssue({
+        source: 'network',
+        message: `HTTP ${response.status()} ${response.statusText()}`,
+        url: response.url(),
+      })
+  })
 })
 
 AfterStep(async function (this: CustomWorld, result) {

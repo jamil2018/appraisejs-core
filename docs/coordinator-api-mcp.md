@@ -15,6 +15,8 @@ and do not register directly.
 - Request bodies are limited to 1 MiB.
 - MCP supports stdio and Streamable HTTP. Stdout is reserved for stdio MCP protocol traffic; diagnostics go to stderr.
 - MCP failures are returned to the MCP client and never invoke a CLI fallback.
+- Every coordinator-backed MCP tool preserves the bounded public error envelope, including status, recovery guidance,
+  and structured details such as conflict codes and exact retry inputs. Unknown internal errors remain private.
 - A coordinator is bound to one canonical project. A different project fingerprint returns `project-mismatch`
   with the requested and server fingerprints; an invalid token for the matching project remains `UNAUTHORIZED`.
 - Local diagnostic and ownership responses may include the canonical project path. Tokens are never returned.
@@ -152,7 +154,8 @@ coordinator operation or an explicitly documented local MCP boundary. Stable wor
 template resolves through the bounded draft-context coordinator operation.
 
 `template_step_search` and `template_step_match` share one server-side ranked
-resolver. It scores semantic intent and parameter compatibility, applies a confidence threshold, returns bounded
+resolver. It scores exact and ordered intent phrases, semantic token overlap, and exact parameter-name compatibility,
+applies a confidence threshold, returns bounded
 explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
 and response-size-oriented metrics without returning the full validation context. Returned template-step candidates
 include descriptions, signatures, ordered parameters, and group metadata. Selection order is semantic template step,
@@ -160,8 +163,10 @@ allowlisted structured operation, then a justified custom step; the fallback con
 `docs/reusable-playwright-template-steps.md`.
 
 Managed validation submission is bound to both the immutable AST operation hash and the latest `reviewStateHash`.
-`validation_review_reconcile` is the only legal `review_ready` recovery: it verifies immutable compile content and
-idempotently refreshes the current review-state receipt without emitting another review-ready event.
+The validation-node decision response atomically returns the refreshed `reviewBinding` produced after persisting the
+decision, removing the normal decision-then-reconcile round trip for API/UI callers. `validation_review_reconcile`
+remains the recovery-only MCP operation for a crash-interrupted `review_ready` state: it verifies immutable compile
+content and idempotently refreshes the current review-state receipt without emitting another review-ready event.
 
 Human-facing links use `APPRAISE_BROWSER_ORIGIN` when configured; otherwise loopback URLs are normalized to
 `localhost`. Plan links include the bound `project` query parameter. Review mutations authorize against the plan's
@@ -193,6 +198,8 @@ so another project cannot silently reuse the same local port. Immediately before
 loopback environments: an unavailable origin remains legal for an expected-red baseline, a matching target/title is
 verified, and a conflicting title or registered target fails with a bounded `ENVIRONMENT_IDENTITY_MISMATCH` diagnostic
 and an available replacement base URL when one can be reserved.
+Proposal-time `ENVIRONMENT_ORIGIN_RESERVED` conflicts use the same reservation-aware port selection and return
+`suggestedBaseUrl` plus an exact reproposal action when a replacement is available.
 
 Planning creation, plan/validation review loops, validation context, and Validation AST check, preview, and compile
 use the same response-mode vocabulary. Summary responses retain status, lifecycle, task/content hashes, preview and
@@ -259,7 +266,9 @@ writing artifacts or projecting canonical entities.
 
 Preview semantic checks add advisory warnings for contradictory persistence claims, including observations performed
 before reload and observations of an entity that an earlier step appears to remove. Warnings remain reviewable and do
-not replace deterministic compiler blockers or human approval.
+not replace deterministic compiler blockers or human approval. Clearing a search or form field is not classified as
+entity destruction; only explicit delete/remove/discard language or clearing all/stored/persisted state triggers that
+warning.
 
 On success, compile responses include the exact project-scoped `review=validation` browser URL, the Appraise resource
 URL, and validation-review standby guidance. No additional plan read is required to discover the review surface.
@@ -331,6 +340,9 @@ created atomically with the run before scheduling. Implementation reconciliation
 
 Completion receipts include the latest event sequence in their evidence hash. A stale completion mutation responds
 with `staleEvidenceHash`, `currentEvidenceHash`, and `currentReceipt`; callers must obtain a new explicit final sign-off.
+They also export bounded phase-level efficiency telemetry for duration, wait time, retries, calls, response bytes, and
+recovery cost. The telemetry includes its capture event sequence but is not part of the approval evidence hash, so
+metric collection cannot create self-invalidating completion receipts.
 
 Completion approval journals a private transaction record before changing final artifacts. Each write is
 idempotent and completion reads or approval replays recover interrupted validation, review, projection sync,

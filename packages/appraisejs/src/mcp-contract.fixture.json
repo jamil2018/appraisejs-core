@@ -3716,7 +3716,7 @@
     {
       "kind": "tool",
       "name": "validation_review_reconcile",
-      "description": "Reconcile a review_ready validation after a crash by preserving immutable publication content and refreshing only the exact current review-state receipt.",
+      "description": "Recovery-only reconciliation for a review_ready validation after a crash. Normal validation decisions return the refreshed review binding atomically.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7726,7 +7726,7 @@
     {
       "kind": "tool",
       "name": "validation_review_reconcile",
-      "description": "Reconcile a review_ready validation after a crash by preserving immutable publication content and refreshing only the exact current review-state receipt.",
+      "description": "Recovery-only reconciliation for a review_ready validation after a crash. Normal validation decisions return the refreshed review binding atomically.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",

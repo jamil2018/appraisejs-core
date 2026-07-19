@@ -33,6 +33,18 @@ const ast = validationAstSchema.parse({
           description: 'the result is persisted',
           action: { id: 'browser.assertions.persisted', version: '1', inputs: { target: 'result' } },
         },
+        {
+          id: 'assert-console-clean',
+          keyword: 'And',
+          description: 'the browser has no runtime errors',
+          action: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+        },
+        {
+          id: 'assert-network-clean',
+          keyword: 'And',
+          description: 'the browser has no failed network activity',
+          action: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+        },
       ],
     },
   ],
@@ -54,6 +66,17 @@ describe('simple happy-path authoring profile', () => {
     inheritedThenAst.scenarios[0]!.steps[2]!.keyword = 'And'
 
     expect(checkValidationAstAuthoringProfile(inheritedThenAst, profile, actions)).toEqual([])
+  })
+
+  it('requires runtime cleanliness checks to be observations, not setup steps', () => {
+    const setupOnlyAst = structuredClone(ast)
+    setupOnlyAst.scenarios[0]!.steps[3]!.keyword = 'When'
+    setupOnlyAst.scenarios[0]!.steps[4]!.keyword = 'And'
+
+    expect(checkValidationAstAuthoringProfile(setupOnlyAst, profile, actions).map(issue => issue.referenceId)).toEqual([
+      'browser.assertions.no-console-errors@1',
+      'browser.assertions.no-failed-network-requests@1',
+    ])
   })
 
   it('returns stable blockers and permits explicit advanced matrix/timing opt-in', () => {
@@ -103,6 +126,8 @@ describe('simple happy-path authoring profile', () => {
     expect(checkValidationAstAuthoringProfile(bypass, profile, bypassActions).map(issue => issue.code)).toEqual([
       'simple-profile-assertion-concern-missing',
       'simple-profile-assertion-concern-missing',
+      'simple-profile-runtime-cleanliness-missing',
+      'simple-profile-runtime-cleanliness-missing',
       'simple-profile-wait-out-of-bounds',
     ])
   })

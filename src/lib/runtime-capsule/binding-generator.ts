@@ -42,6 +42,8 @@ const dispatch = async (world, step) => {
     case 'browser.assertions.checked@1': expect(await (await target(world, step.parameters.find(item => item.name === 'target'))).isChecked()).to.equal(Boolean(inputs.checked)); return
     case 'browser.assertions.value@1': expect(await (await target(world, step.parameters.find(item => item.name === 'target'))).inputValue()).to.equal(String(inputs.value)); return
     case 'browser.assertions.text@1': expect((await (await target(world, step.parameters.find(item => item.name === 'target'))).textContent()) ?? '').to.contain(String(inputs.text)); return
+    case 'browser.assertions.no-console-errors@1': expect(world.browserRuntimeIssuesFor('console-and-page'), 'Browser console or page errors').to.deep.equal([]); return
+    case 'browser.assertions.no-failed-network-requests@1': expect(world.browserRuntimeIssuesFor('network'), 'Failed browser network activity').to.deep.equal([]); return
     case 'browser.assertions.no-horizontal-overflow@1': expect(await world.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).to.equal(true); return
     case 'browser.assertions.accessible@1': {
       const locator = await target(world, step.parameters.find(item => item.name === 'target'))

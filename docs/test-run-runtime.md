@@ -213,6 +213,11 @@ Reviewed managed validations use capsule execution for baseline and implementati
 on the legacy runtime while routing reviewed managed nodes through their exact publish operation. Both paths reconcile into
 the same evidence-health contract; only valid managed evidence provides full assurance.
 
+The browser runtime records console errors, uncaught page errors, failed requests, and HTTP responses with status 400
+or greater for each scenario. Managed actions `browser.assertions.no-console-errors@1` and
+`browser.assertions.no-failed-network-requests@1` expose those observations as explicit evidence. The simple
+happy-path authoring profile requires both actions; product-outcome assertions remain independently required.
+
 Projected baseline scenarios carry plan, validation, suite, and case identifier tags. Partial-suite selection uses the
 same `@ts_<suiteId> and @tc_<caseId>` identifiers; a zero-scenario report is invalid evidence, never a passing or
 unrelated product result.

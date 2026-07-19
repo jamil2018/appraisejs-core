@@ -260,6 +260,63 @@ describe('Validation AST check and preview', () => {
     )
   })
 
+  it('does not treat clearing a search field as destroying persisted entities', () => {
+    const persistenceSubmission = structuredClone(submission) as unknown as ValidationAstSubmission
+    persistenceSubmission.ast.qualityConcerns = ['persistence']
+    persistenceSubmission.ast.scenarios[0]!.steps = [
+      {
+        id: 'reload-notes',
+        keyword: 'When',
+        description: 'the user reloads the notes app',
+        action: { id: 'browser.navigation.reload', version: '1', inputs: {} },
+      },
+      {
+        id: 'clear-note-search',
+        keyword: 'And',
+        description: 'the user clears the note search field',
+        action: {
+          id: 'browser.forms.fill',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: '' },
+        },
+      },
+      {
+        id: 'observe-note',
+        keyword: 'Then',
+        description: 'the persisted note remains visible',
+        action: {
+          id: 'browser.assertions.text',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Bread' },
+        },
+      },
+    ]
+    persistenceSubmission.ast.coverageArgument = {
+      mappings: [
+        {
+          kind: 'quality-concern',
+          targetId: 'persistence',
+          scenarioIds: ['create-todo'],
+          stimulusStepIds: ['reload-notes'],
+          observationStepIds: ['observe-note'],
+          rationale: 'Claims the note survives reload.',
+          state: 'covered',
+        },
+      ],
+    }
+
+    expect(checkValidationAst(persistenceSubmission, context).warnings).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'semantic-persistence-target-destroyed' })]),
+    )
+
+    persistenceSubmission.ast.scenarios[0]!.steps[1]!.description = 'the user clears all persisted notes'
+    expect(checkValidationAst(persistenceSubmission, context).warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'semantic-persistence-target-destroyed', referenceId: 'clear-note-search' }),
+      ]),
+    )
+  })
+
   it('projects expected-red last-passing references to stable executable step ids', () => {
     const expectedRedSubmission = {
       ...submission,

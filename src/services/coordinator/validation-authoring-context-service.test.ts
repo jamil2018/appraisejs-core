@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { PlanArtifact } from '@/lib/plan-contract'
 
-import { buildValidationAuthoringKit } from './validation-authoring-context-service'
+import { buildValidationAuthoringKit, rankReusableResources } from './validation-authoring-context-service'
 
 const plan = {
   version: '1',
@@ -25,6 +25,46 @@ const plan = {
 } as unknown as PlanArtifact
 
 describe('validation authoring kit', () => {
+  it('prefers exact ordered intent and named parameters over loose token overlap', () => {
+    const group = { id: 'browser', name: 'Browser actions', description: null, type: 'WHEN' }
+    const templateStep = (
+      id: string,
+      name: string,
+      signature: string,
+      description: string,
+      parameters: Array<{ name: string; type: string; order: number }> = [],
+    ) => ({
+      id,
+      name,
+      signature,
+      description,
+      templateStepGroupId: group.id,
+      templateStepGroup: group,
+      parameters,
+    })
+    const resources = {
+      templateSteps: [
+        templateStep('forward', 'Browser forward', 'navigate browser forward', 'Navigate to the next history entry.'),
+        templateStep('goto', 'Navigate to URL', 'navigate to {url}', 'Open an absolute or relative URL.', [
+          { name: 'url', type: 'string', order: 0 },
+        ]),
+        templateStep('cookie', 'Set cookie', 'set cookie {name}', 'Set a browser cookie.', [
+          { name: 'name', type: 'string', order: 0 },
+        ]),
+        templateStep('viewport', 'Set viewport size', 'set viewport {width} by {height}', 'Set viewport dimensions.', [
+          { name: 'width', type: 'number', order: 0 },
+          { name: 'height', type: 'number', order: 1 },
+        ]),
+      ],
+      stepBlocks: [],
+    }
+
+    expect(rankReusableResources(resources, 'navigate to url', ['url']).templateSteps[0]?.value.id).toBe('goto')
+    expect(rankReusableResources(resources, 'set viewport size', ['width', 'height']).templateSteps[0]?.value.id).toBe(
+      'viewport',
+    )
+  })
+
   it('creates a deterministic editable starter without claiming coverage', () => {
     const input = {
       plan,

@@ -15,16 +15,24 @@ export type ValidationAstAuthoringProfile = z.infer<typeof validationAstAuthorin
 export type AuthoringProfileIssue = { code: string; message: string; referenceId?: string }
 
 const SIMPLE_CONCERNS = ['accessibility', 'persistence'] as const
+const SIMPLE_RUNTIME_CLEANLINESS_ACTIONS = [
+  'browser.assertions.no-console-errors@1',
+  'browser.assertions.no-failed-network-requests@1',
+] as const
 const actionKey = (action: { id: string; version: string }) => `${action.id}@${action.version}`
 
-function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDescriptor>): AuthoringProfileIssue[] {
-  const thenSteps = ast.scenarios.flatMap(scenario => {
+function effectiveThenSteps(ast: ValidationAst) {
+  return ast.scenarios.flatMap(scenario => {
     let effectiveKeyword: 'Given' | 'When' | 'Then' | undefined
     return scenario.steps.filter(step => {
       if (step.keyword !== 'And') effectiveKeyword = step.keyword
       return effectiveKeyword === 'Then'
     })
   })
+}
+
+function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDescriptor>): AuthoringProfileIssue[] {
+  const thenSteps = effectiveThenSteps(ast)
   const assertedConcerns = new Set(
     thenSteps.flatMap(step => descriptors.get(actionKey(step.action))?.assertionConcerns ?? []),
   )
@@ -65,6 +73,17 @@ function timingIssues(ast: ValidationAst, descriptors: Map<string, ActionDescrip
   )
 }
 
+function runtimeCleanlinessIssues(ast: ValidationAst): AuthoringProfileIssue[] {
+  const actionIds = new Set(effectiveThenSteps(ast).map(step => actionKey(step.action)))
+  return SIMPLE_RUNTIME_CLEANLINESS_ACTIONS.filter(requiredAction => !actionIds.has(requiredAction)).map(
+    requiredAction => ({
+      code: 'simple-profile-runtime-cleanliness-missing',
+      message: `Simple happy-path authoring requires ${requiredAction} as explicit completion evidence.`,
+      referenceId: requiredAction,
+    }),
+  )
+}
+
 export function checkValidationAstAuthoringProfile(
   ast: ValidationAst,
   profile: ValidationAstAuthoringProfile,
@@ -84,6 +103,7 @@ export function checkValidationAstAuthoringProfile(
     })
   const descriptors = new Map(actions.map(action => [actionKey(action), action]))
   issues.push(...assertionIssues(ast, descriptors))
+  issues.push(...runtimeCleanlinessIssues(ast))
   if (!profile.advanced.timing) issues.push(...timingIssues(ast, descriptors))
   return issues
 }
