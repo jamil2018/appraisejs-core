@@ -243,6 +243,21 @@ describe('Validation AST check and preview', () => {
         expect.objectContaining({ code: 'semantic-persistence-target-destroyed', referenceId: 'delete-bread' }),
       ]),
     )
+
+    const unrelatedOpaqueLocators = structuredClone(persistenceSubmission)
+    unrelatedOpaqueLocators.ast.scenarios[0]!.steps[0]!.action.inputs = {
+      target: { ref: 'locator', id: 'locator_apr-12fd248e34355b56e2a60a13', version: '1' },
+      value: 'Bread',
+    }
+    unrelatedOpaqueLocators.ast.scenarios[0]!.steps[1]!.description = 'Milk should retain its purchased state'
+    unrelatedOpaqueLocators.ast.scenarios[0]!.steps[1]!.action.inputs = {
+      target: { ref: 'locator', id: 'locator_apr-42344f112428bbecd2bc9567', version: '1' },
+      value: 'Milk',
+    }
+
+    expect(checkValidationAst(unrelatedOpaqueLocators, context).warnings).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'semantic-persistence-target-destroyed' })]),
+    )
   })
 
   it('projects expected-red last-passing references to stable executable step ids', () => {

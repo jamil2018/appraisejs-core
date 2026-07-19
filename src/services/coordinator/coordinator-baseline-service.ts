@@ -669,7 +669,11 @@ export async function reconcileBaselineExecution(planId: string, options: Baseli
       client,
     )
   } else if (!stillRunning) await appendPlanEvent({ planId, type: 'baseline_review_ready' }, client)
-  return { plan, validation }
+  return {
+    plan,
+    validation,
+    currentValidationHash: hashFileContent(serializeYamlArtifact('validation', validation)),
+  }
 }
 
 export async function cancelBaselineExecution(planId: string, options: BaselineOptions = {}) {

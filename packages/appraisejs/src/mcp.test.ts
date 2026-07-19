@@ -6,6 +6,7 @@ import {
   agentGuide,
   approvalPendingResponse,
   applyAuthoringResponseMode,
+  applyEventResponseMode,
   applyLifecycleResponseMode,
   applyResponseMode,
   baselineRecoveryForLifecycle,
@@ -451,6 +452,32 @@ describe('compact lifecycle responses', () => {
         }),
       ],
     })
+  })
+
+  it('keeps the current validation hash required by baseline repair in summary mode', () => {
+    const currentValidationHash = `sha256:${'b'.repeat(64)}`
+    expect(
+      applyLifecycleResponseMode({ planId: 'plan-1', lifecycle: 'baseline_review', currentValidationHash }, 'summary'),
+    ).toMatchObject({ currentValidationHash })
+  })
+
+  it('compacts event payloads by default while preserving cursor metadata', () => {
+    const batch = {
+      planId: 'plan-1',
+      events: [{ sequence: 7, type: 'validation_published', payload: { ast: 'x'.repeat(20_000) } }],
+      latestEvent: { sequence: 7, type: 'validation_published', payload: { ast: 'x'.repeat(20_000) } },
+      currentAfterSequence: 6,
+      nextAfterSequence: 7,
+    }
+
+    expect(applyEventResponseMode(batch, 'summary')).toEqual({
+      planId: 'plan-1',
+      events: [{ sequence: 7, type: 'validation_published' }],
+      latestEvent: { sequence: 7, type: 'validation_published' },
+      currentAfterSequence: 6,
+      nextAfterSequence: 7,
+    })
+    expect(applyEventResponseMode(batch, 'full')).toBe(batch)
   })
 
   it('projects the active baseline execution instead of historical attempt identities', () => {

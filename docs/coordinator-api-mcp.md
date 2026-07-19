@@ -301,6 +301,11 @@ The connected agent owns execution mechanics after each review gate opens the ne
 publish, `baseline_start`, `baseline_reconcile`, `implementation_start`, implementation checkpoints, implementation
 task progress, and implementation validation reconciliation.
 
+Bounded catalog and event reads are explicit: `actions_list.limit` accepts 1-100, and `plan_events_read` defaults to
+compact event envelopes containing sequence/type plus cursor metadata. Request `responseMode: "full"` only when an
+event payload is required for a bounded diagnostic. Baseline reconciliation summaries retain `currentValidationHash`
+so a repair can call `baseline_retry` without a stale-hash discovery round trip.
+
 `implementation_group_approve` is the authoritative group-entry checkpoint. Its response immediately recommends
 `implementation_task_update` for one returned runnable task; clients should not issue a duplicate `before_group`
 checkpoint. Eligibility conflicts return structured `GROUP_APPROVAL_REQUIRED` or `PREDECESSOR_NOT_VERIFIED` blocker

@@ -16,10 +16,15 @@ AppraiseJS owns lifecycle and business rules. This skill coordinates test prepar
 5. Call `validation_ast_check`, then `validation_ast_preview`, and bind compilation to the exact reviewed receipt.
 6. Call `validation_ast_compile` only for the exact successful preview and present the returned review URL, operation
    hash, receipt hash, projection hash, and `appraise://` links.
-7. Treat canonical entity projection as control-plane data and the immutable runtime capsule as the only managed
+7. For an intentionally red greenfield baseline, declare the exact reviewed `expectedFailures` entry before preview.
+   Use `lastPassingStepId: null` only when the expected product failure occurs at the first scenario step. Never accept
+   an undeclared startup failure as an unrelated existing failure.
+8. Keep lifecycle calls in the default summary response mode. Request `full` only for a bounded diagnostic whose
+   required artifact is unavailable through a content-addressed read or focused search.
+9. Treat canonical entity projection as control-plane data and the immutable runtime capsule as the only managed
    execution authority.
-8. Do not implement while approval is pending.
-9. Route validation feedback back to validation review and product-scope feedback back to plan review.
-10. Proceed toward baseline only after `validations_approved`.
+10. Do not implement while approval is pending.
+11. Route validation feedback back to validation review and product-scope feedback back to plan review.
+12. Proceed toward baseline only after `validations_approved`.
 
 Flag production or `requires_review` files for exact hash-bound approval. Never write lifecycle artifacts or SQLite directly.

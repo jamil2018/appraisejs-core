@@ -143,6 +143,7 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     lifecycle: payload.lifecycle ?? plan?.lifecycle,
     revision: payload.revision ?? plan?.revision,
     contentHash: payload.contentHash ?? payload.validationHash,
+    currentValidationHash: payload.currentValidationHash,
     status: payload.status,
     nextAllowedAction: payload.nextAllowedAction,
     nextRecommendedAction: payload.nextRecommendedAction,
@@ -202,6 +203,21 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     links: payload.links,
     browserUrl: payload.browserUrl,
     appraiseUrl: payload.appraiseUrl,
+  }
+}
+
+export function applyEventResponseMode(value: unknown, responseMode: z.infer<typeof responseModeSchema>) {
+  if (responseMode === 'full' || !value || typeof value !== 'object' || Array.isArray(value)) return value
+  const payload = value as Record<string, unknown>
+  const summarizeEvent = (event: unknown) => {
+    if (!event || typeof event !== 'object' || Array.isArray(event)) return event
+    const item = event as Record<string, unknown>
+    return { sequence: item.sequence, type: item.type }
+  }
+  return {
+    ...payload,
+    events: Array.isArray(payload.events) ? payload.events.map(summarizeEvent) : payload.events,
+    latestEvent: summarizeEvent(payload.latestEvent),
   }
 }
 

@@ -413,7 +413,7 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   server.registerTool(
     'actions_list',
     {
-      description: 'List deterministic bounded action summaries using exact filters.',
+      description: 'List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.',
       inputSchema: {
         categoryId: z.string().optional(),
         capability: z.string().optional(),
