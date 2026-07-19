@@ -702,6 +702,8 @@ describe('baseline execution and implementation gate', () => {
     })
 
     expect(reconciled.plan.lifecycle).toBe('baseline_review')
+    expect(reconciled.currentValidationHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+    expect((await repository.read('validation', planId)).hash).toBe(reconciled.currentValidationHash)
     expect(reconciled.validation.baselineAttempts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

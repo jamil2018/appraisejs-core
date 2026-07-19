@@ -102,7 +102,7 @@
     {
       "kind": "tool",
       "name": "actions_list",
-      "description": "List deterministic bounded action summaries using exact filters.",
+      "description": "List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -1861,12 +1861,24 @@
             "type": "integer",
             "exclusiveMinimum": 0,
             "maximum": 100
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
         "required": [
           "planId",
           "afterSequence",
-          "limit"
+          "limit",
+          "responseMode"
         ],
         "additionalProperties": false
       }
@@ -3865,7 +3877,7 @@
     {
       "kind": "tool",
       "name": "actions_list",
-      "description": "List deterministic bounded action summaries using exact filters.",
+      "description": "List deterministic bounded action summaries using exact filters; limit must be between 1 and 100.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -5624,12 +5636,24 @@
             "type": "integer",
             "exclusiveMinimum": 0,
             "maximum": 100
+          },
+          "responseMode": {
+            "default": "summary",
+            "type": "string",
+            "enum": [
+              "summary",
+              "evidenceOnly",
+              "blockersOnly",
+              "linksOnly",
+              "full"
+            ]
           }
         },
         "required": [
           "planId",
           "afterSequence",
-          "limit"
+          "limit",
+          "responseMode"
         ],
         "additionalProperties": false
       }

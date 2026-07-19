@@ -14,8 +14,18 @@ import {
   getLegacyTestsRoot,
 } from './automation-path-roots'
 
-const runtimeImport =
-  "import { When, Then, CustomWorld, expect, SelectorName, resolveLocator, getEnvironment, generateRandomData, RandomDataType } from '../../../packages/cucumber-runtime/src/index.js'"
+const requiredRuntimeImports = [
+  'When',
+  'Then',
+  'CustomWorld',
+  'expect',
+  'SelectorName',
+  'resolveLocator',
+  'getEnvironment',
+  'generateRandomData',
+  'RandomDataType',
+] as const
+const structuredRuntimeImports = ['runLocatorTemplateOperation', 'runPageTemplateOperation'] as const
 const runtimeImportPattern =
   /^import\s*\{[\s\S]*?\}\s*from\s*['"]\.\.\/\.\.\/\.\.\/packages\/cucumber-runtime\/src\/index(?:\.js)?['"];?\r?\n*/gm
 
@@ -32,6 +42,46 @@ async function pathExists(targetPath: string): Promise<boolean> {
   }
 }
 
+export function rewriteLegacyStepRuntimeImports(content: string): string {
+  const existingRuntimeImport = content.match(runtimeImportPattern)?.[0] ?? null
+  const existingRuntimeImportNames = existingRuntimeImport
+    ?.match(/\{([\s\S]*?)\}/)?.[1]
+    ?.split(',')
+    .map(importName => importName.trim())
+    .filter(Boolean)
+  const missingStructuredImport = structuredRuntimeImports.some(
+    importName => content.includes(importName) && !existingRuntimeImportNames?.includes(importName),
+  )
+
+  if (existingRuntimeImport && !missingStructuredImport) {
+    return content
+  }
+
+  const runtimeImports = [
+    ...(existingRuntimeImportNames?.length ? existingRuntimeImportNames : requiredRuntimeImports),
+    ...structuredRuntimeImports.filter(
+      importName => content.includes(importName) && !existingRuntimeImportNames?.includes(importName),
+    ),
+  ]
+  const migratedContent = content
+    .replace(runtimeImportPattern, '')
+    .replace(/^import \{ (When|Then) \} from '@cucumber\/cucumber';?\r?\n/gm, '')
+    .replace(/^import \{ CustomWorld(?:, expect)? \} from '\.\.\/\.\.\/config\/executor\/world\.js';?\r?\n/gm, '')
+    .replace(
+      /^import \{ SelectorName \} from '(?:@\/types\/locator\/locator\.type|\.\.\/\.\.\/\.\.\/types\/locator\/locator\.type)';?\r?\n/gm,
+      '',
+    )
+    .replace(/^import \{ resolveLocator \} from '\.\.\/\.\.\/utils\/locator\.util\.js';?\r?\n/gm, '')
+    .replace(/^import \{ getEnvironment \} from '\.\.\/\.\.\/utils\/environment\.util\.js';?\r?\n/gm, '')
+    .replace(
+      /^import \{ generateRandomData, RandomDataType \} from '\.\.\/\.\.\/utils\/random-data\.util\.js';?\r?\n/gm,
+      '',
+    )
+    .trimStart()
+
+  return `import { ${runtimeImports.join(', ')} } from '../../../packages/cucumber-runtime/src/index.js'\n${migratedContent}`
+}
+
 async function rewriteLegacyStepImports(): Promise<void> {
   const stepsDir = getAutomationStepsDir()
 
@@ -46,27 +96,8 @@ async function rewriteLegacyStepImports(): Promise<void> {
     }
 
     const filePath = path.join(stepsDir, entry)
-    let content = await fs.readFile(filePath, 'utf8')
-
-    content = content
-      .replace(runtimeImportPattern, '')
-      .replace(/^import \{ (When|Then) \} from '@cucumber\/cucumber';?\r?\n/gm, '')
-      .replace(/^import \{ CustomWorld(?:, expect)? \} from '\.\.\/\.\.\/config\/executor\/world\.js';?\r?\n/gm, '')
-      .replace(
-        /^import \{ SelectorName \} from '(?:@\/types\/locator\/locator\.type|\.\.\/\.\.\/\.\.\/types\/locator\/locator\.type)';?\r?\n/gm,
-        '',
-      )
-      .replace(/^import \{ resolveLocator \} from '\.\.\/\.\.\/utils\/locator\.util\.js';?\r?\n/gm, '')
-      .replace(/^import \{ getEnvironment \} from '\.\.\/\.\.\/utils\/environment\.util\.js';?\r?\n/gm, '')
-      .replace(
-        /^import \{ generateRandomData, RandomDataType \} from '\.\.\/\.\.\/utils\/random-data\.util\.js';?\r?\n/gm,
-        '',
-      )
-      .trimStart()
-
-    content = `${runtimeImport}\n${content}`
-
-    await fs.writeFile(filePath, content)
+    const content = await fs.readFile(filePath, 'utf8')
+    await fs.writeFile(filePath, rewriteLegacyStepRuntimeImports(content))
   }
 }
 

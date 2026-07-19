@@ -2,6 +2,7 @@ import type { McpRegistryContext } from '../registry.js'
 import {
   CoordinatorRequestError,
   applyAuthoringResponseMode,
+  applyEventResponseMode,
   applyLifecycleResponseMode,
   approvalGateEventStatus,
   approvalGateStatus,
@@ -542,13 +543,16 @@ export function registerPlanningOperations(context: McpRegistryContext): void {
         planId: z.string(),
         afterSequence: z.number().int().nonnegative().default(0),
         limit: z.number().int().positive().max(100).default(100),
+        responseMode: responseModeSchema,
       },
     },
-    async ({ planId, afterSequence, limit }) => {
+    async ({ planId, afterSequence, limit, responseMode }) => {
       const result = (await api.request(`plans/${planId}/events?after=${afterSequence}&limit=${limit}`)) as {
         events?: CoordinatorToolEvent[]
       }
-      return text({ planId, ...orderedEventBatch(afterSequence, result.events ?? []) })
+      return text(
+        applyEventResponseMode({ planId, ...orderedEventBatch(afterSequence, result.events ?? []) }, responseMode),
+      )
     },
   )
 

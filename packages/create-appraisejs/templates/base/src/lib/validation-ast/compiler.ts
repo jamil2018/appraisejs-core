@@ -502,6 +502,7 @@ function validateCoverageArgument(ast: ValidationAst, actions: ActionDescriptor[
 }
 
 const SEMANTIC_TOKEN_STOP_WORDS = new Set([
+  'apr',
   'after',
   'assert',
   'before',
@@ -509,6 +510,7 @@ const SEMANTIC_TOKEN_STOP_WORDS = new Set([
   'click',
   'element',
   'item',
+  'locator',
   'page',
   'result',
   'should',
