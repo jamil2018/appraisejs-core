@@ -1,0 +1,157 @@
+description: Create a modest, polished single-page tasks application named SecondWife in the registered empty workspace. The app will support creating, editing, completing and reopening, deleting, filtering, and locally persisting tasks. It will use a responsive, keyboard-accessible interface and provide a deterministic local development/runtime setup suitable for Appraise-managed browser validation.
+edges:
+  - from: scaffold-app
+    to: task-state-persistence
+    type: blocks
+  - from: task-state-persistence
+    to: task-crud
+    type: blocks
+  - from: task-crud
+    to: completion-and-filters
+    type: blocks
+  - from: completion-and-filters
+    to: polish-and-verify
+    type: blocks
+goal: Build the SecondWife task manager
+implementationGroups:
+  - id: foundation
+    taskIds:
+      - scaffold-app
+      - task-state-persistence
+  - id: core-experience
+    taskIds:
+      - task-crud
+      - completion-and-filters
+  - id: quality
+    taskIds:
+      - polish-and-verify
+lifecycle: completed
+planId: pln_01kxt6sb3g0qa92z4rz63nwktn
+requirementAssessment:
+  domainCandidates:
+    - confidence: 0.99
+      domain: task-management
+      evidence:
+        - The brief explicitly requests a simple tasks app.
+        - Create, edit, completion, deletion, filters, and persistence are task-list capabilities.
+  requirements:
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: task-crud
+        - surface: validationIntent
+          taskId: task-crud
+      id: req-create
+      kind: functional
+      text: Create tasks.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: task-crud
+        - surface: validationIntent
+          taskId: task-crud
+      id: req-edit
+      kind: functional
+      text: Edit task titles.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: completion-and-filters
+        - surface: validationIntent
+          taskId: completion-and-filters
+      id: req-complete
+      kind: functional
+      text: Complete and uncomplete tasks.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: task-crud
+        - surface: validationIntent
+          taskId: task-crud
+      id: req-delete
+      kind: functional
+      text: Delete tasks.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: completion-and-filters
+        - surface: validationIntent
+          taskId: completion-and-filters
+      id: req-filter
+      kind: functional
+      text: Filter tasks by all, active, and completed.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: task-state-persistence
+        - surface: validationIntent
+          taskId: task-state-persistence
+      id: req-persist
+      kind: data
+      text: Persist task data locally across reloads.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: polish-and-verify
+        - surface: validationIntent
+          taskId: polish-and-verify
+      id: req-clean-ui
+      kind: quality
+      text: Provide a clean, usable, responsive and accessible interface.
+    - coveredBy:
+        - surface: validationIntent
+          taskId: polish-and-verify
+        - surface: validationIntent
+          taskId: task-crud
+        - surface: validationIntent
+          taskId: completion-and-filters
+      id: req-managed-validation
+      kind: validation
+      text: Validate the complete behavior through managed browser checks.
+  selectedDomain: task-management
+  uncoveredRequirementIds: []
+  warnings: []
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - "`npm install` and the documented development command start the app on a predictable local URL."
+      - A production build completes successfully.
+      - The rendered page identifies the product as SecondWife and provides the main task-management region.
+      - The app remains fully client-side and requires no accounts, network API, or backend service.
+    description: Create a lightweight React and TypeScript application in the empty target workspace with deterministic development and build scripts, a single responsive page shell, and no external service dependency.
+    id: scaffold-app
+    title: Establish the runnable application foundation
+    validationIntent: Use build/type checks plus managed browser validation that opens the configured local URL and verifies the SecondWife page shell is visible.
+  - acceptanceCriteria:
+      - Each task has a stable identifier, non-empty title, completion state, and timestamps needed by the UI.
+      - The current task collection is saved after user-visible mutations and restored after a reload.
+      - An empty or malformed localStorage value does not crash the app and falls back to an empty list.
+      - Persistence uses a versioned, application-specific storage key.
+    description: Define a typed task model and a small persistence boundary that loads and saves tasks in browser localStorage while handling absent or malformed stored data safely.
+    id: task-state-persistence
+    title: Model task state and local persistence
+    validationIntent: Managed browser scenarios create task data, reload the page, and assert that valid state is restored; implementation checks cover malformed-storage fallback.
+  - acceptanceCriteria:
+      - Submitting a trimmed non-empty title creates exactly one task and clears the entry field.
+      - Whitespace-only task submissions are rejected without creating a task.
+      - A user can enter edit mode, save a trimmed non-empty title, or cancel without changing the task.
+      - A user can delete a task and the task is removed from both the visible list and persisted state.
+      - Interactive controls have accessible names and work with keyboard activation.
+    description: Provide focused interactions to add a task, edit its title in place, save or cancel editing, and delete a task without leaving stale UI state.
+    id: task-crud
+    title: Implement task creation, editing, and deletion
+    validationIntent: Managed Chromium scenarios exercise create, edit/save, edit/cancel, validation of blank input, and delete using stable accessible roles and visible text.
+  - acceptanceCriteria:
+      - Each task can be marked complete and later returned to active.
+      - All shows every task, Active shows only incomplete tasks, and Completed shows only completed tasks.
+      - The selected filter is visually and programmatically identifiable.
+      - The remaining active-task count updates after create, complete, reopen, and delete actions.
+      - A helpful empty state appears when the current filter has no matching tasks.
+    description: Let users mark tasks complete or active, reverse that decision, and view All, Active, or Completed subsets with clear counts and empty states.
+    id: completion-and-filters
+    title: Implement completion toggles and task filters
+    validationIntent: Managed browser scenarios create multiple tasks, toggle completion both directions, switch each filter, and assert task visibility and the active count.
+  - acceptanceCriteria:
+      - The layout remains usable without horizontal overflow at common mobile and desktop widths.
+      - Keyboard focus is clearly visible and focus moves predictably after add, edit, save/cancel, and delete actions.
+      - Status and validation feedback are available to assistive technology without disruptive dialogs.
+      - Color, spacing, typography, and interaction states form a coherent, readable interface.
+      - Automated project checks and a production build pass for the final implementation.
+    description: Finish a clean responsive visual treatment, focus behavior, feedback, and project checks so the complete task lifecycle is usable on desktop and small viewports.
+    id: polish-and-verify
+    title: Polish accessibility and verify the complete flow
+    validationIntent: Run focused project checks and managed Chromium validation for the full CRUD/persistence/filter flow, keyboard focus, and responsive no-overflow behavior.
+version: "1"

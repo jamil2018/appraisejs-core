@@ -1,0 +1,132 @@
+description: Create a dependency-light browser grocery list application in /private/tmp/HomeChores. Users can add grocery items, see the current list, toggle each item between purchased and unpurchased, delete items, and retain the exact list state across page reloads. Include a usable responsive interface, accessible controls, deterministic local startup, and Appraise-managed browser validation.
+edges:
+  - from: scaffold-app
+    to: manage-items
+    type: blocks
+  - from: manage-items
+    to: update-items
+    type: blocks
+  - from: update-items
+    to: persist-items
+    type: blocks
+goal: Build the HomeChores grocery list app
+implementationGroups:
+  - id: homechores-foundation
+    taskIds:
+      - scaffold-app
+  - id: homechores-features
+    taskIds:
+      - manage-items
+      - update-items
+      - persist-items
+lifecycle: completed
+planId: pln_01kxtk1rx65jvq6b1ft1xwb0kt
+requirementAssessment:
+  domainCandidates:
+    - confidence: 0.99
+      domain: grocery-list-web-app
+      evidence:
+        - The brief explicitly requests adding, viewing, purchasing, deleting, and persisting grocery items.
+  requirements:
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: manage-items
+        - surface: validationIntent
+          taskId: manage-items
+      id: req-add
+      kind: functional
+      text: Users can add grocery items.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: scaffold-app
+        - surface: acceptanceCriteria
+          taskId: manage-items
+      id: req-view
+      kind: functional
+      text: Users can view the grocery list.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: update-items
+        - surface: validationIntent
+          taskId: update-items
+      id: req-toggle
+      kind: functional
+      text: Users can mark items purchased and unpurchased.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: update-items
+        - surface: validationIntent
+          taskId: update-items
+      id: req-delete
+      kind: functional
+      text: Users can delete grocery items.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: persist-items
+        - surface: validationIntent
+          taskId: persist-items
+      id: req-persist
+      kind: data
+      text: The grocery list and item state persist across reloads.
+    - coveredBy:
+        - surface: acceptanceCriteria
+          taskId: scaffold-app
+        - surface: acceptanceCriteria
+          taskId: persist-items
+      id: req-quality
+      kind: quality
+      text: The app is usable, accessible, responsive, and resilient.
+    - coveredBy:
+        - surface: validationIntent
+          taskId: scaffold-app
+        - surface: validationIntent
+          taskId: manage-items
+        - surface: validationIntent
+          taskId: update-items
+        - surface: validationIntent
+          taskId: persist-items
+      id: req-validation
+      kind: validation
+      text: The behavior is validated through Appraise-managed runtime evidence.
+  selectedDomain: grocery-list-web-app
+  uncoveredRequirementIds: []
+  warnings: []
+revision: 1
+tasks:
+  - acceptanceCriteria:
+      - The project has documented npm commands that start HomeChores on a configurable local port.
+      - The page visibly identifies itself as HomeChores and presents an accessible grocery-item form and list region.
+      - The layout remains usable at narrow and desktop viewport widths, with keyboard-focus indicators on interactive controls.
+      - When no groceries exist, the app communicates an empty-list state without showing stale items.
+    description: Create a dependency-light web app with deterministic local development/start commands, semantic HTML structure, responsive styling, and clear empty/list states.
+    id: scaffold-app
+    title: Create the runnable HomeChores shell
+    validationIntent: Launch the app through its project command, confirm the HomeChores heading, form, list region, empty state, keyboard focus visibility, and absence of horizontal overflow at desktop and mobile widths.
+  - acceptanceCriteria:
+      - Submitting a non-empty grocery item adds it to the visible list and clears the input.
+      - Items appear in insertion order and each rendered row exposes its item name and purchased state.
+      - Blank or whitespace-only submissions do not create list entries.
+      - Repeated item names are supported as distinct list entries.
+    description: Implement controlled grocery-item entry and ordered rendering with stable item identities and sensible input normalization.
+    id: manage-items
+    title: Add and view grocery items
+    validationIntent: Add multiple items, including repeated names, verify ordered visible rows and cleared input, and verify whitespace-only submission leaves the list unchanged.
+  - acceptanceCriteria:
+      - Each grocery row has an accessible control that toggles purchased and unpurchased state.
+      - The visual treatment and accessible state both distinguish purchased from unpurchased items.
+      - Each row has an accessible delete control that removes only that grocery entry.
+      - Toggling or deleting one of two identically named entries acts on the selected identity only.
+    description: Add per-item controls for switching purchased state in both directions and deleting only the selected grocery entry.
+    id: update-items
+    title: Toggle and delete grocery items
+    validationIntent: Toggle an item purchased then unpurchased and assert the control state and presentation; add duplicate names, delete one selected row, and verify the other remains.
+  - acceptanceCriteria:
+      - Added items survive a full page reload in the same browser context.
+      - Purchased state and insertion order survive a full page reload.
+      - Deleted items remain absent after reload.
+      - Missing or malformed persisted data falls back to an empty usable list instead of crashing the app.
+    description: Store and restore grocery identities, names, order, and purchased states in browser-local storage with safe handling of missing or malformed stored data.
+    id: persist-items
+    title: Persist grocery state across reloads
+    validationIntent: Create and modify groceries, reload the page, verify names/order/purchased/deleted state, and exercise an empty fresh browser state; malformed-data fallback may be covered by a focused unit or browser setup check.
+version: "1"

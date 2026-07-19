@@ -1,0 +1,645 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts:
+  - browser: chromium
+    classification: unrelated_existing_failure
+    completedAt: 2026-07-18T07:12:07.478Z
+    createdAt: 2026-07-18T07:11:40.499Z
+    environment: apr-dd6060609f4dc6b84414def6
+    evidence:
+      logsUrl: /api/test-runs/a0cb45e8-f145-4191-968e-707069d4f9a4/logs?targetProjectId=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+      reportUrl: /test-runs/a0cb45e8-f145-4191-968e-707069d4f9a4?project=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-4a2796e1-3a86-4eed-bfb7-3f4a6a7a0413
+    signatureHash: sha256:1832bdff9bb3365acffb86a8db237d605b00a4741a05fd630debdc3973cc6eba
+    status: completed
+    testRunId: a0cb45e8-f145-4191-968e-707069d4f9a4
+    validationId: bewise-happy-path
+  - browser: chromium
+    classification: expected_product_failure
+    completedAt: 2026-07-18T07:21:36.444Z
+    createdAt: 2026-07-18T07:21:15.582Z
+    environment: apr-dd6060609f4dc6b84414def6
+    evidence:
+      logsUrl: /api/test-runs/3fa4c97c-1b00-4bf0-ad3f-3a4d13ac8976/logs?targetProjectId=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+      reportUrl: /test-runs/3fa4c97c-1b00-4bf0-ad3f-3a4d13ac8976?project=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-2ba1aac6-2b80-4247-bce4-d0bd41500781
+    signatureHash: sha256:1832bdff9bb3365acffb86a8db237d605b00a4741a05fd630debdc3973cc6eba
+    status: completed
+    testRunId: 3fa4c97c-1b00-4bf0-ad3f-3a4d13ac8976
+    validationId: bewise-happy-path
+baselineDecision: accepted
+baseRevision:
+  gitCommit: null
+  reducedAssurance: false
+  snapshotHash: sha256:74e156a9c8af892bd6829096d4fa1a2544ac57c39dc5843f40136ca4eec02e45
+classificationOverrides: []
+files: []
+implementation:
+  approvedGroupIds:
+    - group-features
+    - group-foundation
+    - group-quality
+  checkpoint:
+    queuedFeedbackCount: 0
+    reachedAt: 2026-07-18T07:36:02.941Z
+    taskIds:
+      - task-foundation
+      - task-browse
+      - task-add-persist
+      - task-quality
+    type: before_completion
+  commits:
+    - createdAt: 2026-07-18T07:27:54.123Z
+      hash: 98f5714020865d1e20e9979ddfbe407cd57083ee
+      taskIds:
+        - task-foundation
+    - createdAt: 2026-07-18T07:31:22.425Z
+      hash: cf5c6f324c8972cbecf3863d9fe79559a520e51b
+      taskIds:
+        - task-add-persist
+        - task-browse
+    - createdAt: 2026-07-18T07:33:16.510Z
+      hash: a4dff1e89ae99dd088425c448f556b6a68f5677f
+      taskIds:
+        - task-quality
+  evidenceProtected: false
+  pausedTaskIds: []
+  reconciliationReceipts: []
+  taskStates:
+    task-add-persist: verified
+    task-browse: verified
+    task-foundation: verified
+    task-quality: verified
+  validationRuns:
+    - assurance: full
+      browser: chromium
+      commitHash: a4dff1e89ae99dd088425c448f556b6a68f5677f
+      completedAt: 2026-07-18T07:34:58.596Z
+      environment: apr-dd6060609f4dc6b84414def6
+      evidence:
+        logsUrl: /api/test-runs/ac02e6d3-93ff-48f5-aa1a-fe06102144a2/logs?targetProjectId=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+        reportUrl: /test-runs/ac02e6d3-93ff-48f5-aa1a-fe06102144a2?project=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/ac02e6d3-93ff-48f5-aa1a-fe06102144a2?project=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+        - /api/test-runs/ac02e6d3-93ff-48f5-aa1a-fe06102144a2/logs?targetProjectId=99eb7278-a820-4ae6-8a97-3bf2c4292efc
+      fresh: true
+      id: implementation-validation-bewise-happy-path-chromium-apr-dd6060609f4dc6b84414def6-20260718073455
+      required: true
+      status: passed
+      tagExpression: (@ts_ast-c20599c80772-suite and @tc_ast-c20599c80772-browse-quotes) or (@ts_ast-c20599c80772-suite and @tc_ast-c20599c80772-validate-add-form) or (@ts_ast-c20599c80772-suite and @tc_ast-c20599c80772-add-and-persist) or (@ts_ast-c20599c80772-suite and @tc_ast-c20599c80772-responsive-accessible)
+      taskIds:
+        - task-foundation
+        - task-browse
+        - task-add-persist
+        - task-quality
+      testRunId: ac02e6d3-93ff-48f5-aa1a-fe06102144a2
+      validationId: bewise-happy-path
+manifestPaths: []
+planId: pln_01kxt0hb2q5qbn0msqqa67zfmb
+reviewSubmittedAt: 2026-07-18T07:20:27.617Z
+revision: 1
+validationDecisions:
+  - contentHash: sha256:a2bbe2deb9dbe7b4422c79595df9db9c6cf477857ccabb3eb5213a380334abd9
+    decidedAt: 2026-07-18T07:20:25.591Z
+    decidedBy: local-user
+    decision: approved
+    validationId: bewise-happy-path
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: apr-cc112545b6e559a9518235b0
+          moduleId: apr-2cd8d3c1d4b8931851a034b6
+          name: BeWise home page
+          route: /
+      locators:
+        - id: apr-00b5c1dc6a7b9c8084dac832
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: Prominent quote author
+          value: '[data-testid="quote-author"]'
+        - id: apr-0ce59c7e2ae1dff3ba048772
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: Quote text input
+          value: '[data-testid="quote-input"]'
+        - id: apr-14255ab17a6e006f623bdd58
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: Quote author input
+          value: '[data-testid="author-input"]'
+        - id: apr-3685fec4430b04751e44cfaa
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: App title
+          value: '[data-testid="app-title"]'
+        - id: apr-4e3358b573d05ca6da9245ba
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: Add quote button
+          value: '[data-testid="add-quote"]'
+        - id: apr-4eefac53051a1db6aef02f79
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: Quote form validation error
+          value: '[data-testid="form-error"]'
+        - id: apr-736a809ab5a5d0bed071855b
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: Show another quote button
+          value: '[data-testid="next-quote"]'
+        - id: apr-83f1f9b45a816e3b2e268a56
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: App shell
+          value: '[data-testid="app-shell"]'
+        - id: apr-aef6abbef7dc0911a2c7d3f6
+          locatorGroupId: apr-cc112545b6e559a9518235b0
+          name: Prominent quote text
+          value: '[data-testid="quote-text"]'
+      modules:
+        - id: ast-c20599c80772-module
+          name: BeWise quotes happy path
+      testCases:
+        - description: Validate the BeWise shell, seeded quote browsing, adding and persisting a personal quote, accessible controls, validation feedback, and responsive mobile layout.
+          id: ast-c20599c80772-browse-quotes
+          steps:
+            - gherkinStep: Given Open the BeWise application
+              id: ast-ce631752224b6258eef8-step
+              label: Open the BeWise application
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: And Wait for the BeWise page to be ready
+              id: ast-236fd63f06d69352f7bc-step
+              label: Wait for the BeWise page to be ready
+              order: 1
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+            - gherkinStep: Then The BeWise application shell is visible
+              id: ast-bc71c31101991c781a3c-step
+              label: The BeWise application shell is visible
+              order: 2
+              parameters:
+                - locatorId: apr-83f1f9b45a816e3b2e268a56
+                  locatorName: App shell
+                  name: target
+                  value: '{"id":"locator_apr-83f1f9b45a816e3b2e268a56","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+            - gherkinStep: And The application identifies itself as BeWise
+              id: ast-dff5010bcf7cfe1bb68d-step
+              label: The application identifies itself as BeWise
+              order: 3
+              parameters:
+                - locatorId: apr-3685fec4430b04751e44cfaa
+                  locatorName: App title
+                  name: target
+                  value: '{"id":"locator_apr-3685fec4430b04751e44cfaa","version":"1","ref":"locator"}'
+                - name: text
+                  value: BeWise
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And The first wisdom quote is displayed prominently
+              id: ast-39bd168d58f55be7e374-step
+              label: The first wisdom quote is displayed prominently
+              order: 4
+              parameters:
+                - locatorId: apr-aef6abbef7dc0911a2c7d3f6
+                  locatorName: Prominent quote text
+                  name: target
+                  value: '{"id":"locator_apr-aef6abbef7dc0911a2c7d3f6","version":"1","ref":"locator"}'
+                - name: text
+                  value: The only true wisdom is in knowing you know nothing.
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And The first wisdom quote shows its author
+              id: ast-39509914e49185f45b37-step
+              label: The first wisdom quote shows its author
+              order: 5
+              parameters:
+                - locatorId: apr-00b5c1dc6a7b9c8084dac832
+                  locatorName: Prominent quote author
+                  name: target
+                  value: '{"id":"locator_apr-00b5c1dc6a7b9c8084dac832","version":"1","ref":"locator"}'
+                - name: text
+                  value: Socrates
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And The another quote control exposes accessible semantics
+              id: ast-13acab4ef347fad09d95-step
+              label: The another quote control exposes accessible semantics
+              order: 6
+              parameters:
+                - locatorId: apr-736a809ab5a5d0bed071855b
+                  locatorName: Show another quote button
+                  name: target
+                  value: '{"id":"locator_apr-736a809ab5a5d0bed071855b","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+            - gherkinStep: When Request another wisdom quote
+              id: ast-35f2f7fcff55054c564f-step
+              label: Request another wisdom quote
+              order: 7
+              parameters:
+                - locatorId: apr-736a809ab5a5d0bed071855b
+                  locatorName: Show another quote button
+                  name: target
+                  value: '{"id":"locator_apr-736a809ab5a5d0bed071855b","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then A different wisdom quote replaces the first quote
+              id: ast-0636b0a8a518133b51b3-step
+              label: A different wisdom quote replaces the first quote
+              order: 8
+              parameters:
+                - locatorId: apr-aef6abbef7dc0911a2c7d3f6
+                  locatorName: Prominent quote text
+                  name: target
+                  value: '{"id":"locator_apr-aef6abbef7dc0911a2c7d3f6","version":"1","ref":"locator"}'
+                - name: text
+                  value: The journey of a thousand miles begins with one step.
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And The replacement quote shows its author
+              id: ast-27dde456df5ee8025f68-step
+              label: The replacement quote shows its author
+              order: 9
+              parameters:
+                - locatorId: apr-00b5c1dc6a7b9c8084dac832
+                  locatorName: Prominent quote author
+                  name: target
+                  value: '{"id":"locator_apr-00b5c1dc6a7b9c8084dac832","version":"1","ref":"locator"}'
+                - name: text
+                  value: Lao Tzu
+              templateStepName: browser.assertions.text@1
+          title: Browse the curated wisdom quotes
+        - description: Validate the BeWise shell, seeded quote browsing, adding and persisting a personal quote, accessible controls, validation feedback, and responsive mobile layout.
+          id: ast-c20599c80772-validate-add-form
+          steps:
+            - gherkinStep: Given Open the BeWise application for form validation
+              id: ast-dc26a57d00fc17edd734-step
+              label: Open the BeWise application for form validation
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: And Wait for the form to be ready
+              id: ast-63e735bc50bda3fce1c8-step
+              label: Wait for the form to be ready
+              order: 1
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+            - gherkinStep: When Submit the empty personal quote form
+              id: ast-581f8c73fc2786fa1601-step
+              label: Submit the empty personal quote form
+              order: 2
+              parameters:
+                - locatorId: apr-4e3358b573d05ca6da9245ba
+                  locatorName: Add quote button
+                  name: target
+                  value: '{"id":"locator_apr-4e3358b573d05ca6da9245ba","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then Accessible validation feedback asks for both fields
+              id: ast-399004222110004bec80-step
+              label: Accessible validation feedback asks for both fields
+              order: 3
+              parameters:
+                - locatorId: apr-4eefac53051a1db6aef02f79
+                  locatorName: Quote form validation error
+                  name: target
+                  value: '{"id":"locator_apr-4eefac53051a1db6aef02f79","version":"1","ref":"locator"}'
+                - name: text
+                  value: Please add both a quote and an author.
+              templateStepName: browser.assertions.text@1
+          title: Reject an empty personal quote
+        - description: Validate the BeWise shell, seeded quote browsing, adding and persisting a personal quote, accessible controls, validation feedback, and responsive mobile layout.
+          id: ast-c20599c80772-add-and-persist
+          steps:
+            - gherkinStep: Given Open the BeWise application to add a quote
+              id: ast-f3c209b762c3ff6d7d46-step
+              label: Open the BeWise application to add a quote
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: And Wait for the quote form to be ready
+              id: ast-587c7e6293114420e92d-step
+              label: Wait for the quote form to be ready
+              order: 1
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+            - gherkinStep: Then The quote field exposes accessible semantics
+              id: ast-616b7e071e889f98e23a-step
+              label: The quote field exposes accessible semantics
+              order: 2
+              parameters:
+                - locatorId: apr-0ce59c7e2ae1dff3ba048772
+                  locatorName: Quote text input
+                  name: target
+                  value: '{"id":"locator_apr-0ce59c7e2ae1dff3ba048772","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+            - gherkinStep: And The author field exposes accessible semantics
+              id: ast-9c5adf3159697d2096d3-step
+              label: The author field exposes accessible semantics
+              order: 3
+              parameters:
+                - locatorId: apr-14255ab17a6e006f623bdd58
+                  locatorName: Quote author input
+                  name: target
+                  value: '{"id":"locator_apr-14255ab17a6e006f623bdd58","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+            - gherkinStep: When Move keyboard focus to the quote field
+              id: ast-5dae6bee30ce99815c7c-step
+              label: Move keyboard focus to the quote field
+              order: 4
+              parameters:
+                - locatorId: apr-0ce59c7e2ae1dff3ba048772
+                  locatorName: Quote text input
+                  name: target
+                  value: '{"id":"locator_apr-0ce59c7e2ae1dff3ba048772","version":"1","ref":"locator"}'
+              templateStepName: browser.keyboard.focus@1
+            - gherkinStep: And Enter a unique personal quote
+              id: ast-a0abb984a50fd7f0db41-step
+              label: Enter a unique personal quote
+              order: 5
+              parameters:
+                - locatorId: apr-0ce59c7e2ae1dff3ba048772
+                  locatorName: Quote text input
+                  name: target
+                  value: '{"id":"locator_apr-0ce59c7e2ae1dff3ba048772","version":"1","ref":"locator"}'
+                - name: value
+                  value: Wisdom grows when it is shared.
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And Enter the quote author attribution
+              id: ast-7d3b79f8c39845982767-step
+              label: Enter the quote author attribution
+              order: 6
+              parameters:
+                - locatorId: apr-14255ab17a6e006f623bdd58
+                  locatorName: Quote author input
+                  name: target
+                  value: '{"id":"locator_apr-14255ab17a6e006f623bdd58","version":"1","ref":"locator"}'
+                - name: value
+                  value: BeWise Test
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And Submit the personal quote
+              id: ast-a209d2cfd7b007dbb670-step
+              label: Submit the personal quote
+              order: 7
+              parameters:
+                - locatorId: apr-4e3358b573d05ca6da9245ba
+                  locatorName: Add quote button
+                  name: target
+                  value: '{"id":"locator_apr-4e3358b573d05ca6da9245ba","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then The added quote becomes prominent
+              id: ast-e386dafca3adcb092c15-step
+              label: The added quote becomes prominent
+              order: 8
+              parameters:
+                - locatorId: apr-aef6abbef7dc0911a2c7d3f6
+                  locatorName: Prominent quote text
+                  name: target
+                  value: '{"id":"locator_apr-aef6abbef7dc0911a2c7d3f6","version":"1","ref":"locator"}'
+                - name: text
+                  value: Wisdom grows when it is shared.
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And The added quote shows its author
+              id: ast-17c36fd32bdc9232ad5f-step
+              label: The added quote shows its author
+              order: 9
+              parameters:
+                - locatorId: apr-00b5c1dc6a7b9c8084dac832
+                  locatorName: Prominent quote author
+                  name: target
+                  value: '{"id":"locator_apr-00b5c1dc6a7b9c8084dac832","version":"1","ref":"locator"}'
+                - name: text
+                  value: BeWise Test
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When Reload the BeWise application
+              id: ast-fbfc3b4cd4f38b609f77-step
+              label: Reload the BeWise application
+              order: 10
+              parameters: []
+              templateStepName: browser.navigation.reload@1
+            - gherkinStep: Then The added quote remains represented after reload
+              id: ast-8fb7c4ca93ac801b6deb-step
+              label: The added quote remains represented after reload
+              order: 11
+              parameters:
+                - locatorId: apr-aef6abbef7dc0911a2c7d3f6
+                  locatorName: Prominent quote text
+                  name: target
+                  value: '{"id":"locator_apr-aef6abbef7dc0911a2c7d3f6","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.persisted@1
+            - gherkinStep: And The exact added quote remains visible after reload
+              id: ast-8b9467cdf5fa76825aef-step
+              label: The exact added quote remains visible after reload
+              order: 12
+              parameters:
+                - locatorId: apr-aef6abbef7dc0911a2c7d3f6
+                  locatorName: Prominent quote text
+                  name: target
+                  value: '{"id":"locator_apr-aef6abbef7dc0911a2c7d3f6","version":"1","ref":"locator"}'
+                - name: text
+                  value: Wisdom grows when it is shared.
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: And The exact author remains visible after reload
+              id: ast-2f27fd687a18f89d6640-step
+              label: The exact author remains visible after reload
+              order: 13
+              parameters:
+                - locatorId: apr-00b5c1dc6a7b9c8084dac832
+                  locatorName: Prominent quote author
+                  name: target
+                  value: '{"id":"locator_apr-00b5c1dc6a7b9c8084dac832","version":"1","ref":"locator"}'
+                - name: text
+                  value: BeWise Test
+              templateStepName: browser.assertions.text@1
+          title: Add and persist a personal quote
+        - description: Validate the BeWise shell, seeded quote browsing, adding and persisting a personal quote, accessible controls, validation feedback, and responsive mobile layout.
+          id: ast-c20599c80772-responsive-accessible
+          steps:
+            - gherkinStep: Given Open the BeWise application for responsive validation
+              id: ast-0d065a561c2d68ac457b-step
+              label: Open the BeWise application for responsive validation
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: And Wait for the page to be ready
+              id: ast-62f6cf2f0ec897e391a0-step
+              label: Wait for the page to be ready
+              order: 1
+              parameters: []
+              templateStepName: browser.waits.page-ready@1
+            - gherkinStep: When Set a narrow mobile viewport
+              id: ast-946ff0848b835e910d89-step
+              label: Set a narrow mobile viewport
+              order: 2
+              parameters:
+                - name: width
+                  value: "390"
+                - name: height
+                  value: "844"
+              templateStepName: browser.viewport.set@1
+            - gherkinStep: Then The mobile page has no horizontal overflow
+              id: ast-965fed6c20699658fe0f-step
+              label: The mobile page has no horizontal overflow
+              order: 3
+              parameters: []
+              templateStepName: browser.assertions.no-horizontal-overflow@1
+            - gherkinStep: And The add quote control exposes accessible semantics
+              id: ast-0ab9ccc8cda67247a77d-step
+              label: The add quote control exposes accessible semantics
+              order: 4
+              parameters:
+                - locatorId: apr-4e3358b573d05ca6da9245ba
+                  locatorName: Add quote button
+                  name: target
+                  value: '{"id":"locator_apr-4e3358b573d05ca6da9245ba","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+          title: Use BeWise at a mobile viewport
+      testSuites:
+        - description: Validate the BeWise shell, seeded quote browsing, adding and persisting a personal quote, accessible controls, validation feedback, and responsive mobile layout.
+          id: ast-c20599c80772-suite
+          moduleId: ast-c20599c80772-module
+          name: BeWise quotes happy path
+          testCaseIds:
+            - ast-c20599c80772-browse-quotes
+            - ast-c20599c80772-validate-add-form
+            - ast-c20599c80772-add-and-persist
+            - ast-c20599c80772-responsive-accessible
+    astProvenance:
+      astHash: sha256:a10c45cf615d7e0e9ddc090d4448fab372d676ee0078e6927916bb0eb772ad4d
+      executionAuthority: reviewed_publication
+      publishOperationId: astpub_d2bab3b36fe03e7cdef4adf245eb40abc3ff46ef7e7fc6a2bc1fba4ca4f08f88
+      receiptHash: sha256:d2bab3b36fe03e7cdef4adf245eb40abc3ff46ef7e7fc6a2bc1fba4ca4f08f88
+      runtimeInputHash: sha256:4f8947b654b0802bf3b28b55809f55a42548727056fba1124e306be3f0fc75eb
+      schemaVersion: "2"
+    coverageArgument:
+      mappings:
+        - kind: task
+          observationStepIds:
+            - browse-shell
+            - browse-title
+          rationale: Navigation plus visible branded shell assertions demonstrate the runnable BeWise foundation.
+          scenarioIds:
+            - browse-quotes
+          state: covered
+          stimulusStepIds:
+            - browse-open
+          targetId: task-foundation
+        - kind: task
+          observationStepIds:
+            - browse-initial-quote
+            - browse-initial-author
+            - browse-changed-quote
+            - browse-changed-author
+          rationale: The scenario observes a seeded quote and author, requests another quote, and observes a known different quote and author.
+          scenarioIds:
+            - browse-quotes
+          state: covered
+          stimulusStepIds:
+            - browse-next
+          targetId: task-browse
+        - kind: task
+          observationStepIds:
+            - invalid-error
+            - persist-prominent-quote
+            - persist-prominent-author
+            - persist-after-reload
+            - persist-text-after-reload
+            - persist-author-after-reload
+          rationale: The scenarios prove empty-input feedback, valid quote authoring, immediate prominence, and persisted exact content after reload.
+          scenarioIds:
+            - validate-add-form
+            - add-and-persist
+          state: covered
+          stimulusStepIds:
+            - invalid-add
+            - persist-fill-quote
+            - persist-fill-author
+            - persist-submit
+            - persist-reload
+          targetId: task-add-persist
+        - kind: task
+          observationStepIds:
+            - invalid-error
+            - persist-quote-accessible
+            - persist-author-accessible
+            - responsive-overflow
+            - responsive-add-accessible
+          rationale: Accessible semantics, keyboard focus, understandable error copy, and a no-overflow mobile assertion cover the primary quality behaviors.
+          scenarioIds:
+            - validate-add-form
+            - add-and-persist
+            - responsive-accessible
+          state: covered
+          stimulusStepIds:
+            - invalid-add
+            - persist-focus-quote
+            - responsive-mobile
+          targetId: task-quality
+        - kind: quality-concern
+          observationStepIds:
+            - browse-next-accessible
+            - persist-quote-accessible
+            - persist-author-accessible
+            - responsive-add-accessible
+          rationale: Primary buttons and fields expose accessible semantics and the main quote field accepts keyboard focus.
+          scenarioIds:
+            - browse-quotes
+            - add-and-persist
+            - responsive-accessible
+          state: covered
+          stimulusStepIds:
+            - persist-focus-quote
+          targetId: accessibility
+        - kind: quality-concern
+          observationStepIds:
+            - persist-after-reload
+            - persist-text-after-reload
+            - persist-author-after-reload
+          rationale: The personal quote and author are asserted after a full reload.
+          scenarioIds:
+            - add-and-persist
+          state: covered
+          stimulusStepIds:
+            - persist-submit
+            - persist-reload
+          targetId: persistence
+        - kind: quality-concern
+          observationStepIds:
+            - responsive-overflow
+          rationale: A narrow mobile viewport is applied and document overflow is asserted.
+          scenarioIds:
+            - responsive-accessible
+          state: covered
+          stimulusStepIds:
+            - responsive-mobile
+          targetId: responsive
+    executable:
+      path: automation/features/bewise-happy-path.feature
+    expectedFailures:
+      - browser: chromium
+        environment: apr-dd6060609f4dc6b84414def6
+        lastPassingStepId: null
+        order: 0
+        signature: net::ERR_CONNECTION_REFUSED
+    gherkinPaths:
+      - automation/features/bewise-happy-path.feature
+    id: bewise-happy-path
+    matrix:
+      - browser: chromium
+        environment: apr-dd6060609f4dc6b84414def6
+    required: true
+    stepPaths: []
+    taskIds:
+      - task-foundation
+      - task-browse
+      - task-add-persist
+      - task-quality
+    testCaseIds:
+      - ast-c20599c80772-browse-quotes
+      - ast-c20599c80772-validate-add-form
+      - ast-c20599c80772-add-and-persist
+      - ast-c20599c80772-responsive-accessible
+version: "1"

@@ -1,0 +1,589 @@
+approvals: []
+baselineAcknowledgements: []
+baselineAttempts:
+  - browser: chromium
+    classification: expected_product_failure
+    completedAt: 2026-07-18T09:04:05.093Z
+    createdAt: 2026-07-18T09:03:31.567Z
+    environment: apr-1faa0b125dda9b8f17d16512
+    evidence:
+      logsUrl: /api/test-runs/a55931b1-b77f-4ef4-a8e8-ec74210924b8/logs?targetProjectId=a1db9e6b-bacc-4798-badf-c1fe54b3f1d4
+      reportUrl: /test-runs/a55931b1-b77f-4ef4-a8e8-ec74210924b8?project=a1db9e6b-bacc-4798-badf-c1fe54b3f1d4
+      screenshotUrls: []
+      traceUrls: []
+    id: baseline-c439d50a-2bb1-4550-ac44-e4cbc78e0c59
+    signatureHash: sha256:d9a7275859fcfca3a8a3b5aff40fd7298b9f0bf037f761c57cffc2bdefb404ee
+    status: completed
+    testRunId: a55931b1-b77f-4ef4-a8e8-ec74210924b8
+    validationId: secondwife-happy-path
+baselineDecision: accepted
+baseRevision:
+  gitCommit: null
+  reducedAssurance: false
+  snapshotHash: sha256:490f5638f70ba4e93a2e955eeea4d95f4c41e301a3c69694aafb54bb1a97c2f6
+classificationOverrides: []
+files: []
+implementation:
+  approvedGroupIds:
+    - core-experience
+    - foundation
+    - quality
+  checkpoint:
+    queuedFeedbackCount: 0
+    reachedAt: 2026-07-18T09:24:01.218Z
+    taskIds:
+      - scaffold-app
+      - task-state-persistence
+      - task-crud
+      - completion-and-filters
+      - polish-and-verify
+    type: before_completion
+  commits: []
+  evidenceProtected: false
+  pausedTaskIds: []
+  reconciliationReceipts: []
+  taskStates:
+    completion-and-filters: verified
+    polish-and-verify: verified
+    scaffold-app: verified
+    task-crud: verified
+    task-state-persistence: verified
+  validationRuns:
+    - assurance: full
+      browser: chromium
+      commitHash: pending
+      completedAt: 2026-07-18T09:23:02.397Z
+      environment: apr-1faa0b125dda9b8f17d16512
+      evidence:
+        logsUrl: /api/test-runs/57aa732b-c7d6-4606-9f3b-1a983f1c79e6/logs?targetProjectId=a1db9e6b-bacc-4798-badf-c1fe54b3f1d4
+        reportUrl: /test-runs/57aa732b-c7d6-4606-9f3b-1a983f1c79e6?project=a1db9e6b-bacc-4798-badf-c1fe54b3f1d4
+        screenshotUrls: []
+        traceUrls: []
+      evidenceSource: managed
+      evidenceUrls:
+        - /test-runs/57aa732b-c7d6-4606-9f3b-1a983f1c79e6?project=a1db9e6b-bacc-4798-badf-c1fe54b3f1d4
+        - /api/test-runs/57aa732b-c7d6-4606-9f3b-1a983f1c79e6/logs?targetProjectId=a1db9e6b-bacc-4798-badf-c1fe54b3f1d4
+      fresh: true
+      id: implementation-validation-secondwife-happy-path-chromium-apr-1faa0b125dda9b8f17d16512-20260718092259
+      required: true
+      status: passed
+      tagExpression: (@ts_ast-0fe5a415383c-suite and @tc_ast-0fe5a415383c-manage-tasks)
+      taskIds:
+        - scaffold-app
+        - task-state-persistence
+        - task-crud
+        - completion-and-filters
+        - polish-and-verify
+      testRunId: 57aa732b-c7d6-4606-9f3b-1a983f1c79e6
+      validationId: secondwife-happy-path
+manifestPaths: []
+planId: pln_01kxt6sb3g0qa92z4rz63nwktn
+reviewSubmittedAt: 2026-07-18T09:03:04.513Z
+revision: 1
+validationDecisions:
+  - contentHash: sha256:2442f48993644a39e0601a51bf887a7fa4025475f947f1a9d55b9245136ffb4d
+    decidedAt: 2026-07-18T09:02:42.013Z
+    decidedBy: local-user
+    decision: approved
+    validationId: secondwife-happy-path
+validations:
+  - appraiseArtifacts:
+      locatorGroups:
+        - id: apr-7031156c2e3159aeb196c671
+          moduleId: apr-808945e05aa1ac72de97b444
+          name: SecondWife tasks page
+          route: /
+      locators:
+        - id: apr-0a2f495c3fcb88bf57b0e3e5
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: All tasks filter
+          value: '[data-testid="filter-all"]'
+        - id: apr-28d6b8757c965f6f92d148dc
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: First task edit input
+          value: '[data-testid="task-item"]:nth-child(1) [data-testid="task-edit-input"]'
+        - id: apr-3fa1bd9b77b63389ef1dbbcb
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: Completed tasks filter
+          value: '[data-testid="filter-completed"]'
+        - id: apr-48f9f9f13cb0547e40ace53d
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: Application title
+          value: '[data-testid="app-title"]'
+        - id: apr-4bdad1990d951b872a89ef84
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: First task delete button
+          value: '[data-testid="task-item"]:nth-child(1) [data-testid="task-delete"]'
+        - id: apr-4c94fb13211830971c50b954
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: First task edit button
+          value: '[data-testid="task-item"]:nth-child(1) [data-testid="task-edit"]'
+        - id: apr-5e55855a19d646a59401ea86
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: First task title
+          value: '[data-testid="task-item"]:nth-child(1) [data-testid="task-title"]'
+        - id: apr-5fac0b5bf2c7b468ef399444
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: Active tasks filter
+          value: '[data-testid="filter-active"]'
+        - id: apr-96a61f17cfaf9c5560699f8c
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: Active task count
+          value: '[data-testid="active-count"]'
+        - id: apr-a6464ae68f08ee99e4617fd4
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: First task item
+          value: '[data-testid="task-item"]:nth-child(1)'
+        - id: apr-c9d26c7d67184546c0ad9389
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: Add task button
+          value: '[data-testid="add-task-button"]'
+        - id: apr-d2a305d7e7d8b6dfce89c8d4
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: Filtered empty state
+          value: '[data-testid="empty-state"]'
+        - id: apr-dba7dd1439dde51878932283
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: New task input
+          value: '[data-testid="new-task-input"]'
+        - id: apr-e8d0c00059f86edfee5b3a8c
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: First task completion toggle
+          value: '[data-testid="task-item"]:nth-child(1) [data-testid="task-toggle"]'
+        - id: apr-fc068d0666693e8d59b73dab
+          locatorGroupId: apr-7031156c2e3159aeb196c671
+          name: First task save button
+          value: '[data-testid="task-item"]:nth-child(1) [data-testid="task-save"]'
+      modules:
+        - id: ast-0fe5a415383c-module
+          name: SecondWife task workflow
+      testCases:
+        - description: A user manages one locally persisted task through the primary SecondWife workflow.
+          id: ast-0fe5a415383c-manage-tasks
+          steps:
+            - gherkinStep: Given the user opens the SecondWife task manager
+              id: ast-f502d74b909ebb2856b7-step
+              label: the user opens the SecondWife task manager
+              order: 0
+              parameters:
+                - name: url
+                  value: /
+              templateStepName: browser.navigation.goto@1
+            - gherkinStep: Then the SecondWife title is visible
+              id: ast-5d0f1e860a8e18f203ed-step
+              label: the SecondWife title is visible
+              order: 1
+              parameters:
+                - locatorId: apr-48f9f9f13cb0547e40ace53d
+                  locatorName: Application title
+                  name: target
+                  value: '{"id":"locator_apr-48f9f9f13cb0547e40ace53d","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+            - gherkinStep: Then the task entry field has accessible semantics
+              id: ast-7f653d6617f6b924f154-step
+              label: the task entry field has accessible semantics
+              order: 2
+              parameters:
+                - locatorId: apr-dba7dd1439dde51878932283
+                  locatorName: New task input
+                  name: target
+                  value: '{"id":"locator_apr-dba7dd1439dde51878932283","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.accessible@1
+            - gherkinStep: When the user enters the first task title
+              id: ast-89ba45cbd52af30c11f6-step
+              label: the user enters the first task title
+              order: 3
+              parameters:
+                - locatorId: apr-dba7dd1439dde51878932283
+                  locatorName: New task input
+                  name: target
+                  value: '{"id":"locator_apr-dba7dd1439dde51878932283","version":"1","ref":"locator"}'
+                - name: value
+                  value: Plan the weekend
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user adds the first task
+              id: ast-be9331d6d6ae4ab3068c-step
+              label: the user adds the first task
+              order: 4
+              parameters:
+                - locatorId: apr-c9d26c7d67184546c0ad9389
+                  locatorName: Add task button
+                  name: target
+                  value: '{"id":"locator_apr-c9d26c7d67184546c0ad9389","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the created task title is displayed
+              id: ast-5f7c350de72eda5c38f8-step
+              label: the created task title is displayed
+              order: 5
+              parameters:
+                - locatorId: apr-5e55855a19d646a59401ea86
+                  locatorName: First task title
+                  name: target
+                  value: '{"id":"locator_apr-5e55855a19d646a59401ea86","version":"1","ref":"locator"}'
+                - name: text
+                  value: Plan the weekend
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: Then the created task is represented in persisted application state
+              id: ast-ef76eb3599d1209bf86c-step
+              label: the created task is represented in persisted application state
+              order: 6
+              parameters:
+                - locatorId: apr-a6464ae68f08ee99e4617fd4
+                  locatorName: First task item
+                  name: target
+                  value: '{"id":"locator_apr-a6464ae68f08ee99e4617fd4","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.persisted@1
+            - gherkinStep: When the user reloads the application
+              id: ast-4cd4e3e8fad6e318b8c9-step
+              label: the user reloads the application
+              order: 7
+              parameters: []
+              templateStepName: browser.navigation.reload@1
+            - gherkinStep: Then the created task remains after reload
+              id: ast-45dd569451e903c41081-step
+              label: the created task remains after reload
+              order: 8
+              parameters:
+                - locatorId: apr-5e55855a19d646a59401ea86
+                  locatorName: First task title
+                  name: target
+                  value: '{"id":"locator_apr-5e55855a19d646a59401ea86","version":"1","ref":"locator"}'
+                - name: text
+                  value: Plan the weekend
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user starts editing the first task
+              id: ast-03e256abb5b6b24a21e9-step
+              label: the user starts editing the first task
+              order: 9
+              parameters:
+                - locatorId: apr-4c94fb13211830971c50b954
+                  locatorName: First task edit button
+                  name: target
+                  value: '{"id":"locator_apr-4c94fb13211830971c50b954","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user replaces the first task title
+              id: ast-dd52ee0f54189f98e29f-step
+              label: the user replaces the first task title
+              order: 10
+              parameters:
+                - locatorId: apr-28d6b8757c965f6f92d148dc
+                  locatorName: First task edit input
+                  name: target
+                  value: '{"id":"locator_apr-28d6b8757c965f6f92d148dc","version":"1","ref":"locator"}'
+                - name: value
+                  value: Plan a restful weekend
+              templateStepName: browser.forms.fill@1
+            - gherkinStep: And the user saves the edited title
+              id: ast-63c08d1610ac6cd9d372-step
+              label: the user saves the edited title
+              order: 11
+              parameters:
+                - locatorId: apr-fc068d0666693e8d59b73dab
+                  locatorName: First task save button
+                  name: target
+                  value: '{"id":"locator_apr-fc068d0666693e8d59b73dab","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the edited title is displayed
+              id: ast-ad49f289486ea6c44853-step
+              label: the edited title is displayed
+              order: 12
+              parameters:
+                - locatorId: apr-5e55855a19d646a59401ea86
+                  locatorName: First task title
+                  name: target
+                  value: '{"id":"locator_apr-5e55855a19d646a59401ea86","version":"1","ref":"locator"}'
+                - name: text
+                  value: Plan a restful weekend
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the user marks the first task complete
+              id: ast-ff373e50bcc0dfae8d77-step
+              label: the user marks the first task complete
+              order: 13
+              parameters:
+                - locatorId: apr-e8d0c00059f86edfee5b3a8c
+                  locatorName: First task completion toggle
+                  name: target
+                  value: '{"id":"locator_apr-e8d0c00059f86edfee5b3a8c","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the first task is checked
+              id: ast-16cd86cf4a93b28e5838-step
+              label: the first task is checked
+              order: 14
+              parameters:
+                - locatorId: apr-e8d0c00059f86edfee5b3a8c
+                  locatorName: First task completion toggle
+                  name: target
+                  value: '{"id":"locator_apr-e8d0c00059f86edfee5b3a8c","version":"1","ref":"locator"}'
+                - name: checked
+                  value: "true"
+              templateStepName: browser.assertions.checked@1
+            - gherkinStep: When the user chooses the Completed filter
+              id: ast-0eb5d5a667531a34dfdc-step
+              label: the user chooses the Completed filter
+              order: 15
+              parameters:
+                - locatorId: apr-3fa1bd9b77b63389ef1dbbcb
+                  locatorName: Completed tasks filter
+                  name: target
+                  value: '{"id":"locator_apr-3fa1bd9b77b63389ef1dbbcb","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the completed task remains visible
+              id: ast-de84eb7fcc291870176b-step
+              label: the completed task remains visible
+              order: 16
+              parameters:
+                - locatorId: apr-a6464ae68f08ee99e4617fd4
+                  locatorName: First task item
+                  name: target
+                  value: '{"id":"locator_apr-a6464ae68f08ee99e4617fd4","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+            - gherkinStep: When the user chooses the Active filter
+              id: ast-b5ca1947d6bfd580e738-step
+              label: the user chooses the Active filter
+              order: 17
+              parameters:
+                - locatorId: apr-5fac0b5bf2c7b468ef399444
+                  locatorName: Active tasks filter
+                  name: target
+                  value: '{"id":"locator_apr-5fac0b5bf2c7b468ef399444","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the completed task is absent from the active view
+              id: ast-c88f871220f03b78d9ef-step
+              label: the completed task is absent from the active view
+              order: 18
+              parameters:
+                - locatorId: apr-a6464ae68f08ee99e4617fd4
+                  locatorName: First task item
+                  name: target
+                  value: '{"id":"locator_apr-a6464ae68f08ee99e4617fd4","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.hidden@1
+            - gherkinStep: When the user returns to the All filter
+              id: ast-5ff0b7ebc58cf8e7f39a-step
+              label: the user returns to the All filter
+              order: 19
+              parameters:
+                - locatorId: apr-0a2f495c3fcb88bf57b0e3e5
+                  locatorName: All tasks filter
+                  name: target
+                  value: '{"id":"locator_apr-0a2f495c3fcb88bf57b0e3e5","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: And the user returns the first task to active
+              id: ast-463e702d32485a62a621-step
+              label: the user returns the first task to active
+              order: 20
+              parameters:
+                - locatorId: apr-e8d0c00059f86edfee5b3a8c
+                  locatorName: First task completion toggle
+                  name: target
+                  value: '{"id":"locator_apr-e8d0c00059f86edfee5b3a8c","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the first task is unchecked
+              id: ast-dd14ffe744dbabc48916-step
+              label: the first task is unchecked
+              order: 21
+              parameters:
+                - locatorId: apr-e8d0c00059f86edfee5b3a8c
+                  locatorName: First task completion toggle
+                  name: target
+                  value: '{"id":"locator_apr-e8d0c00059f86edfee5b3a8c","version":"1","ref":"locator"}'
+                - name: checked
+                  value: "false"
+              templateStepName: browser.assertions.checked@1
+            - gherkinStep: And the active count reports one remaining task
+              id: ast-78fbf55b895b17eefec8-step
+              label: the active count reports one remaining task
+              order: 22
+              parameters:
+                - locatorId: apr-96a61f17cfaf9c5560699f8c
+                  locatorName: Active task count
+                  name: target
+                  value: '{"id":"locator_apr-96a61f17cfaf9c5560699f8c","version":"1","ref":"locator"}'
+                - name: text
+                  value: 1 task left
+              templateStepName: browser.assertions.text@1
+            - gherkinStep: When the viewport is set to a common mobile size
+              id: ast-bc12f7b6a75c0c22927d-step
+              label: the viewport is set to a common mobile size
+              order: 23
+              parameters:
+                - name: width
+                  value: "390"
+                - name: height
+                  value: "844"
+              templateStepName: browser.viewport.set@1
+            - gherkinStep: Then the page has no horizontal overflow
+              id: ast-fa14e72e16f6f8468e6c-step
+              label: the page has no horizontal overflow
+              order: 24
+              parameters: []
+              templateStepName: browser.assertions.no-horizontal-overflow@1
+            - gherkinStep: When the user deletes the first task
+              id: ast-2f9733f5471a590ecfb1-step
+              label: the user deletes the first task
+              order: 25
+              parameters:
+                - locatorId: apr-4bdad1990d951b872a89ef84
+                  locatorName: First task delete button
+                  name: target
+                  value: '{"id":"locator_apr-4bdad1990d951b872a89ef84","version":"1","ref":"locator"}'
+              templateStepName: browser.mouse.click@1
+            - gherkinStep: Then the deleted task is absent
+              id: ast-19080da36f293e2051d8-step
+              label: the deleted task is absent
+              order: 26
+              parameters:
+                - locatorId: apr-a6464ae68f08ee99e4617fd4
+                  locatorName: First task item
+                  name: target
+                  value: '{"id":"locator_apr-a6464ae68f08ee99e4617fd4","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.hidden@1
+            - gherkinStep: And the empty state is shown
+              id: ast-f54e81ca9b28afd1831d-step
+              label: the empty state is shown
+              order: 27
+              parameters:
+                - locatorId: apr-d2a305d7e7d8b6dfce89c8d4
+                  locatorName: Filtered empty state
+                  name: target
+                  value: '{"id":"locator_apr-d2a305d7e7d8b6dfce89c8d4","version":"1","ref":"locator"}'
+              templateStepName: browser.assertions.visible@1
+          title: Manage a task through its complete lifecycle
+      testSuites:
+        - description: Verify the complete SecondWife create, persist, edit, complete, filter, reopen, responsive, and delete workflow in Chromium.
+          id: ast-0fe5a415383c-suite
+          moduleId: ast-0fe5a415383c-module
+          name: SecondWife task workflow
+          testCaseIds:
+            - ast-0fe5a415383c-manage-tasks
+    astProvenance:
+      astHash: sha256:8432fb61cd319b3c1824ec9bd2c6814ee32480caf73e91bd982899ed65034067
+      executionAuthority: reviewed_publication
+      publishOperationId: astpub_cf27f9125573a582581ff1dc7d88e5de6d2012fb0207043113c7b2e83d24f5c3
+      receiptHash: sha256:cf27f9125573a582581ff1dc7d88e5de6d2012fb0207043113c7b2e83d24f5c3
+      runtimeInputHash: sha256:4ad5b0ad26d03de2a635a3a679d6f2f31f653148df215d88369c46b1d29595f9
+      schemaVersion: "2"
+    coverageArgument:
+      mappings:
+        - kind: task
+          observationStepIds:
+            - see-title
+          rationale: Navigation and visible product-shell evidence cover the runnable application foundation.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - open-app
+          targetId: scaffold-app
+        - kind: task
+          observationStepIds:
+            - first-task-persisted
+            - task-survives-reload
+          rationale: Creation followed by reload and persistence assertions covers local durable state.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - add-first-task
+            - reload-after-create
+          targetId: task-state-persistence
+        - kind: task
+          observationStepIds:
+            - first-task-visible
+            - edited-title-visible
+            - deleted-task-hidden
+          rationale: The scenario observes successful creation, edit, and deletion outcomes.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - add-first-task
+            - start-edit
+            - save-edit
+            - delete-task
+          targetId: task-crud
+        - kind: task
+          observationStepIds:
+            - task-is-complete
+            - completed-task-visible
+            - completed-task-hidden
+            - task-is-active
+            - active-count-updated
+          rationale: Completion in both directions and all filter views are exercised with visible state assertions.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - complete-task
+            - show-completed
+            - show-active
+            - show-all
+            - reopen-task
+          targetId: completion-and-filters
+        - kind: task
+          observationStepIds:
+            - title-accessible
+            - no-mobile-overflow
+          rationale: Accessible semantics and responsive overflow checks provide managed quality evidence.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - set-mobile-viewport
+          targetId: polish-and-verify
+        - kind: quality-concern
+          observationStepIds:
+            - title-accessible
+          rationale: The managed accessible assertion checks the named task entry control.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - open-app
+          targetId: accessibility
+        - kind: quality-concern
+          observationStepIds:
+            - first-task-persisted
+            - task-survives-reload
+          rationale: The persisted assertion and reload observation verify local persistence.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - add-first-task
+            - reload-after-create
+          targetId: persistence
+        - kind: quality-concern
+          observationStepIds:
+            - no-mobile-overflow
+          rationale: The mobile viewport is checked for horizontal overflow.
+          scenarioIds:
+            - manage-tasks
+          state: covered
+          stimulusStepIds:
+            - set-mobile-viewport
+          targetId: responsive
+    executable:
+      path: automation/features/secondwife-happy-path.feature
+    expectedFailures:
+      - browser: chromium
+        environment: apr-1faa0b125dda9b8f17d16512
+        lastPassingStepId: null
+        order: 0
+        signature: net::ERR_CONNECTION_REFUSED
+    gherkinPaths:
+      - automation/features/secondwife-happy-path.feature
+    id: secondwife-happy-path
+    matrix:
+      - browser: chromium
+        environment: apr-1faa0b125dda9b8f17d16512
+    required: true
+    stepPaths: []
+    taskIds:
+      - scaffold-app
+      - task-state-persistence
+      - task-crud
+      - completion-and-filters
+      - polish-and-verify
+    testCaseIds:
+      - ast-0fe5a415383c-manage-tasks
+version: "1"
