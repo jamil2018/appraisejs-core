@@ -203,13 +203,9 @@ class LocatorPickerCompanion {
       this.browser = launchedBrowser.browser
       this.context = launchedBrowser.context
 
-      await this.context.exposeBinding(
-        '__appraiseLocatorPickerPreview',
-        async ({ page }, elementHandle) => {
-          return this.generatePreview(page, elementHandle as ElementHandle)
-        },
-        { handle: true },
-      )
+      await this.context.exposeBinding('__appraiseLocatorPickerPreview', async ({ page }, elementHandle) => {
+        return this.generatePreview(page, elementHandle as ElementHandle)
+      })
 
       await this.context.exposeBinding('__appraiseLocatorPickerConfirm', async (_source, payload) => {
         await this.confirmSelection(payload as CompanionPickedLocatorPayload)

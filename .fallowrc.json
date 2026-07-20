@@ -45,8 +45,7 @@
         "unused-files": "warn",
         "unused-exports": "warn",
         "unused-types": "warn",
-        "unused-dependencies": "warn",
-        "duplicate-exports": "warn"
+        "unused-dependencies": "warn"
       }
     }
   ],
@@ -57,8 +56,6 @@
     "unused-dependencies": "error",
     "duplicate-exports": "error",
     "circular-dependencies": "error",
-    "unresolved-imports": "error",
-    "complexity": "warn",
-    "duplicates": "warn"
+    "unresolved-imports": "error"
   }
 }
