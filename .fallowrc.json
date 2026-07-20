@@ -19,7 +19,16 @@
     "registry/**",
     "templates/**"
   ],
-  "ignoreDependencies": ["@codemirror/lang-jinja", "@faker-js/faker", "chai", "chai-as-promised", "dotenv"],
+  "ignoreDependencies": [
+    "@codemirror/lang-jinja",
+    "@faker-js/faker",
+    "@locator-picker-companion/launcher",
+    "@locator-picker-companion/session-file",
+    "@locator-picker-companion/types",
+    "chai",
+    "chai-as-promised",
+    "dotenv"
+  ],
   "duplicates": {
     "ignore": ["automation/**", "packages/**", "registry/**", "templates/**"]
   },
