@@ -293,7 +293,11 @@ export function PlanReviewWorkspace({ detail, initialTab, initialSidebarTab }: P
     slug: detail.projection.slug,
     legacyPlanId: detail.projection.legacyPlanId,
   })
-  const semanticFlow = useMemo(() => projectPlanFlow(detail.graph), [detail.graph])
+  const implementationTaskStates = detail.validation?.implementation?.taskStates
+  const semanticFlow = useMemo(
+    () => projectPlanFlow(detail.graph, implementationTaskStates),
+    [detail.graph, implementationTaskStates],
+  )
   const uncoveredRequirementIds = useMemo(
     () => new Set(detail.plan.requirementAssessment?.uncoveredRequirementIds ?? []),
     [detail.plan.requirementAssessment?.uncoveredRequirementIds],

@@ -6,10 +6,11 @@
 Then(
   'the download in variable {string} should have suggested filename {string}',
   async function (this: CustomWorld, variableName: string, expected: string) {
-    const download = this.getVar<{ suggestedFilename(): string }>(variableName)
-    if (!download || typeof download.suggestedFilename !== 'function') {
-      throw new Error(`Stored variable ${variableName} does not contain a Playwright download`)
-    }
-    expect(download.suggestedFilename()).to.equal(expected)
+    await executeHumanOperation(
+      'browser.download.assertion.assert.stored.download.filename@1',
+      this,
+      ['variableName', 'expected'],
+      [variableName, expected],
+    )
   },
 )

@@ -1,0 +1,2869 @@
+{
+  "schemaVersion": 2,
+  "summary": {
+    "operationRows": 125,
+    "legacyTemplateSteps": 125,
+    "managedActions": 20,
+    "capsuleDelegatedHandlers": 125,
+    "structuredOperationCases": 2
+  },
+  "sources": {
+    "templateManifestVersion": 1,
+    "operationRegistryHash": "sha256:3cdbecf7b3929e76b336f6d54858ef70be32348376781c3954f3e466398387c4",
+    "capsuleDelegatedHandlerRefs": [
+      "browser.active.state.assertion.assert.element.active@1",
+      "browser.assertions.accessible@1",
+      "browser.assertions.checked@1",
+      "browser.assertions.hidden@1",
+      "browser.assertions.no-console-errors@1",
+      "browser.assertions.no-failed-network-requests@1",
+      "browser.assertions.no-horizontal-overflow@1",
+      "browser.assertions.persisted@1",
+      "browser.assertions.text-contains@1",
+      "browser.assertions.text@1",
+      "browser.assertions.value@1",
+      "browser.assertions.visibility@1",
+      "browser.assertions.visible@1",
+      "browser.browser.assertion.assert.browser.cookie@1",
+      "browser.browser.assertion.assert.full.url@1",
+      "browser.browser.assertion.assert.local.storage.value@1",
+      "browser.browser.assertion.assert.page.title@1",
+      "browser.browser.assertion.assert.session.storage.value@1",
+      "browser.browser.assertion.assert.url.contains@1",
+      "browser.browser.state.clear.browser.cookies@1",
+      "browser.browser.state.clear.web.storage@1",
+      "browser.browser.state.go.forward@1",
+      "browser.browser.state.navigate.to.stored.url@1",
+      "browser.browser.state.set.browser.cookie@1",
+      "browser.browser.state.set.local.storage.value@1",
+      "browser.browser.state.set.session.storage.value@1",
+      "browser.browser.state.set.storage.from.variable@1",
+      "browser.click.double.click@1",
+      "browser.click.right.click@1",
+      "browser.data.diagnostics.capture.page.screenshot@1",
+      "browser.data.diagnostics.log.stored.variable@1",
+      "browser.data.diagnostics.store.current.url@1",
+      "browser.data.diagnostics.store.element.attribute@1",
+      "browser.data.diagnostics.store.page.title@1",
+      "browser.download.assertion.assert.download.path.available@1",
+      "browser.download.assertion.assert.downloaded.filename@1",
+      "browser.download.assertion.assert.stored.download.filename@1",
+      "browser.downloads.click.and.store.download@1",
+      "browser.downloads.click.and.wait.for.download@1",
+      "browser.downloads.save.download.to.path@1",
+      "browser.downloads.wait.for.download.event@1",
+      "browser.element.property.assertion.assert.element.attribute@1",
+      "browser.element.property.assertion.assert.element.bounding.box@1",
+      "browser.element.property.assertion.assert.element.class@1",
+      "browser.element.property.assertion.assert.element.count@1",
+      "browser.element.property.assertion.assert.element.css.property@1",
+      "browser.element.state.assertion.assert.element.attached@1",
+      "browser.element.state.assertion.assert.element.editable@1",
+      "browser.element.state.assertion.assert.element.empty@1",
+      "browser.element.state.assertion.assert.element.enabled@1",
+      "browser.element.state.assertion.assert.element.focused@1",
+      "browser.forms.choose.radio.control@1",
+      "browser.forms.fill.content.editable.element@1",
+      "browser.forms.fill.date.input@1",
+      "browser.forms.fill@1",
+      "browser.forms.select.dropdown.option.by.index@1",
+      "browser.forms.select.dropdown.option.by.label@1",
+      "browser.forms.select.dropdown.option.by.value@1",
+      "browser.forms.upload.file@1",
+      "browser.forms.upload.stored.file@1",
+      "browser.hover.hover@1",
+      "browser.input.check@1",
+      "browser.input.clear@1",
+      "browser.input.fill.input.with.stored.value@1",
+      "browser.input.select.dropdown.option@1",
+      "browser.input.uncheck@1",
+      "browser.keyboard.focus@1",
+      "browser.keyboard.hold.keyboard.key.down@1",
+      "browser.keyboard.press.key.on.element@1",
+      "browser.keyboard.press@1",
+      "browser.keyboard.release.keyboard.key@1",
+      "browser.keyboard.type.text.sequentially@1",
+      "browser.mouse.click@1",
+      "browser.navigation.assertion.assert.url.route.equals@1",
+      "browser.navigation.go.back@1",
+      "browser.navigation.goto@1",
+      "browser.navigation.navigate.to.environment.base.url@1",
+      "browser.navigation.reload@1",
+      "browser.pointer.blur.element@1",
+      "browser.pointer.capture.element.screenshot@1",
+      "browser.pointer.click.element.coordinates@1",
+      "browser.pointer.click.page.coordinates@1",
+      "browser.pointer.drag.element.to.element@1",
+      "browser.pointer.force.click.element@1",
+      "browser.pointer.scroll.element.into.view@1",
+      "browser.pointer.scroll.page.by.offset@1",
+      "browser.random.data.generate.random.address.and.save.in.variable@1",
+      "browser.random.data.generate.random.email.and.save.in.variable@1",
+      "browser.random.data.generate.random.first.name.and.save.in.variable@1",
+      "browser.random.data.generate.random.full.name.and.save.in.variable@1",
+      "browser.random.data.generate.random.last.name.and.save.in.variable@1",
+      "browser.random.data.generate.random.password.and.save.in.variable@1",
+      "browser.random.data.generate.random.phone.and.save.in.variable@1",
+      "browser.random.data.generate.random.unique.text.and.save.in.variable@1",
+      "browser.store.store.element.text@1",
+      "browser.store.store.text.input.text@1",
+      "browser.store.store.textarea.text@1",
+      "browser.structured.operations.run.structured.locator.operation@1",
+      "browser.structured.operations.run.structured.page.operation@1",
+      "browser.synchronization.wait.for.dialog@1",
+      "browser.synchronization.wait.for.element.state@1",
+      "browser.synchronization.wait.for.element.text@1",
+      "browser.synchronization.wait.for.input.value@1",
+      "browser.synchronization.wait.for.load.state@1",
+      "browser.synchronization.wait.for.popup@1",
+      "browser.synchronization.wait.for.request@1",
+      "browser.synchronization.wait.for.response@1",
+      "browser.synchronization.wait.for.url@1",
+      "browser.tabs.frames.dialogs.accept.next.dialog@1",
+      "browser.tabs.frames.dialogs.answer.next.prompt.dialog@1",
+      "browser.tabs.frames.dialogs.click.and.switch.to.popup@1",
+      "browser.tabs.frames.dialogs.click.element.inside.frame@1",
+      "browser.tabs.frames.dialogs.close.current.browser.tab@1",
+      "browser.tabs.frames.dialogs.dismiss.next.dialog@1",
+      "browser.tabs.frames.dialogs.fill.element.inside.frame@1",
+      "browser.tabs.frames.dialogs.switch.browser.tab@1",
+      "browser.text.assertion.assert.element.contains.stored.variable.text@1",
+      "browser.text.assertion.assert.element.equals.text@1",
+      "browser.viewport.set@1",
+      "browser.wait.wait.for.element.to.disappear@1",
+      "browser.wait.wait.for.element@1",
+      "browser.wait.wait.for.url.route@1",
+      "browser.waits.duration@1",
+      "browser.waits.page-ready@1",
+      "browser.waits.timeout@1"
+    ]
+  },
+  "rows": [
+    {
+      "canonicalOperation": "browser.active.state.assertion.assert.element.active@1",
+      "descriptorHash": "sha256:ecaaecd79926d787b99e04fcb897609e176047f352b25bd38a124ebb6d7bd200",
+      "handlerHash": "sha256:29ddeb080183c432b35b18886e5db1264e43e96915c9cf392ef8532d1b519be6",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "active-state-assertion/assert-element-active",
+          "signature": "the element {string} should have active status {boolean} ",
+          "group": "active-state-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.accessible@1",
+      "descriptorHash": "sha256:b9c32a82e6ede7b56c0a5bc620300214628f4c5c58622f161d4d99700aa06c7d",
+      "handlerHash": "sha256:673c8422f8d6f57098b3c2300a047ff164f10c2981e9e1b7f39d3772e3e2e327",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-property-assertion/assert-accessible",
+          "signature": "the {string} element should have an accessible name",
+          "group": "element-property-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.accessible",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.checked@1",
+      "descriptorHash": "sha256:f8bcdde35f60c57182eff208bfe1e06e44643b563ee4ab2fb033057012ab2f43",
+      "handlerHash": "sha256:72c7f8450a2da1ce4b6bf7f1c860432de32f312ea92a80ddf8b4438095e6edcf",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-state-assertion/assert-checked-state",
+          "signature": "the {string} element checked status should be {boolean}",
+          "group": "element-state-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.checked",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.hidden@1",
+      "descriptorHash": "sha256:94ca47226f8c4b43be7eecefa1c0caeea8333d3ca4d30cbf571aff139f299a5b",
+      "handlerHash": "sha256:97b2894f62f62c2948000bb51363f875aca7906e67485672cf5d0cc7191c8bcc",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "visibility-assertion/assert-absent-or-hidden",
+          "signature": "the {string} element should be hidden or absent",
+          "group": "visibility-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.hidden",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.no-console-errors@1",
+      "descriptorHash": "sha256:869d40bafe6b89e7d70cf3e5e10a16ebae88769e7a4d9d0010a3e0a103d4d589",
+      "handlerHash": "sha256:99b15116574e1d63cdfdc076766b3fe4d0c2beac93327d16ad8db00bdaa058b1",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-no-browser-errors",
+          "signature": "the browser should have no console or page errors",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.no-console-errors",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.no-failed-network-requests@1",
+      "descriptorHash": "sha256:5deeacc3ed59f1ee5590cf3a1b882402b81f81c2d76319e08a70e4c7b05b890e",
+      "handlerHash": "sha256:d1a75388420acdb7898f109eda44bff174128136922c46ec63f6739c5e7b71bd",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-no-failed-network-requests",
+          "signature": "the browser should have no failed network requests",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.no-failed-network-requests",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.no-horizontal-overflow@1",
+      "descriptorHash": "sha256:df47d15cad8b10a61b452b8d9befa15b59f331fc876051da1dc87e731d24f52c",
+      "handlerHash": "sha256:bb20b1ca2ca40ad5741991bc6d0bd9b5d28a6ea0b15e8bbd6db80e2659491c41",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-no-horizontal-overflow",
+          "signature": "the page should have no horizontal overflow",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.no-horizontal-overflow",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.persisted@1",
+      "descriptorHash": "sha256:20a9de490b31c3523dce0dfc9adb1d42e88d307578cb86b403cedd68aad97856",
+      "handlerHash": "sha256:599be8bd602f6b3ee1fa68ecd0cbaf8872a2e93de77ae315f74ac62d5815647b",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "visibility-assertion/assert-persisted-result",
+          "signature": "the persisted {string} element should be visible",
+          "group": "visibility-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.persisted",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.text-contains@1",
+      "descriptorHash": "sha256:0591e286768f69964e87e9d5447caeba0c14bdb66d7e6613a7e6117ae2754e40",
+      "handlerHash": "sha256:73b6bb04576654eeff37e1623e8ae37e685ba4dd166fd3228766e2253fe22d4c",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "text-assertion/assert-element-contains-text",
+          "signature": "the element {string} should {boolean} contain the text {string}",
+          "group": "text-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.text@1",
+      "descriptorHash": "sha256:4f232bfd87abf4c02f395c3b5889cacb6477a27802c6e4ee742a29ecb3420877",
+      "handlerHash": "sha256:afd565f76627b072e4d9a4ed0cf8ef3ca36b3f129051b5787cb108f37043c2f3",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "text-assertion/assert-text",
+          "signature": "the {string} element should contain the text {string}",
+          "group": "text-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.text",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.value@1",
+      "descriptorHash": "sha256:0b24d8ab119efe72c7e64ac922da9d850e5351fe9822183cbcc265ab91642f19",
+      "handlerHash": "sha256:2d65933b31b3d9fefd6c44f07866faabc73c7bd88c135998deff95fadbcc3237",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-property-assertion/assert-field-value",
+          "signature": "the {string} input value should equal {string}",
+          "group": "element-property-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.value",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.visibility@1",
+      "descriptorHash": "sha256:429f5ce3e13055883b2060d4f0194f0da51a73969f7b1bf16d475726a182c4f7",
+      "handlerHash": "sha256:aa92c17ea527a4a6581f3e03468c63dbe858523afc087aab3469781764051972",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "visibility-assertion/assert-element-visible",
+          "signature": "the visibility status of the {string} element should be {boolean}",
+          "group": "visibility-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.assertions.visible@1",
+      "descriptorHash": "sha256:961619f7ad0fd71039ffba046ea15d6d55688b0f7acc0635dcbbe7fbd329194f",
+      "handlerHash": "sha256:d885b4b146cf942c75015145c732e043eec32f56301928055d3a2a80625451ca",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "visibility-assertion/assert-visible",
+          "signature": "the {string} element should be visible",
+          "group": "visibility-assertion"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.assertions.visible",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.assertion.assert.browser.cookie@1",
+      "descriptorHash": "sha256:52439275a5f925ac22a5b1f04a58560b464f2027331d9c21898a5c84846e5ff1",
+      "handlerHash": "sha256:9c70445fb256292b6b6113fac5450e5c7dcb56dd26e5a9e95cce447cf20de668",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-browser-cookie",
+          "signature": "the browser cookie {string} should equal {string}",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.assertion.assert.full.url@1",
+      "descriptorHash": "sha256:08e22f4979d8be79b035d18e7fd5b375790aafbc4ef5c2641d6ae4db9b72c879",
+      "handlerHash": "sha256:0a7ce216361af812a07226cb4df56d97228b16e4842ef5b038f3e63abd76ed96",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-full-url",
+          "signature": "the full page url should equal {string}",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.assertion.assert.local.storage.value@1",
+      "descriptorHash": "sha256:065c69ff5a83f22ee5902c30b89e260f7b1d770508567e41b79593021ef2d335",
+      "handlerHash": "sha256:ce8cba28169cd5aee5123da50e13d69bcce27dbeacbcfdf0917d0c184a6812b6",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-local-storage-value",
+          "signature": "local storage key {string} should equal {string}",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.assertion.assert.page.title@1",
+      "descriptorHash": "sha256:82c2a99190647e9c2de7e30d34d7a824b95a74336afd7e61cddfdd0074c5d34a",
+      "handlerHash": "sha256:4b4e36a4ed091e3cc496ba44d0de7a007dbb2d07a28d0e9f44d1c5538a9f475e",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-page-title",
+          "signature": "the page title should equal {string}",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.assertion.assert.session.storage.value@1",
+      "descriptorHash": "sha256:9e75b3aa67b2c9dbe7b9c141f57efbf6cc43f2ef9fd76edc49756ac1f1d8f4cb",
+      "handlerHash": "sha256:c9c53989e60686be8b8529057553d82579363b1e10af6743e73cc70f09bfe4a4",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-session-storage-value",
+          "signature": "session storage key {string} should equal {string}",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.assertion.assert.url.contains@1",
+      "descriptorHash": "sha256:b53f1ed7ffff51b170bcc19132d6e51e76271fc3844b5073cb004cb8fa057ad1",
+      "handlerHash": "sha256:55b5ec459203111fa5773642a19e5207379337dedf5578b602449af802358575",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-assertion/assert-url-contains",
+          "signature": "the full page url should contain {string}",
+          "group": "browser-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.clear.browser.cookies@1",
+      "descriptorHash": "sha256:fd79509507c13bb819d89d5212901a26f6a06eb3597bad8092d44489bc69404d",
+      "handlerHash": "sha256:4ab63a9a8df87f51029843cca546a47f8fcfa6c85672860d9c104375f9f78bb0",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/clear-browser-cookies",
+          "signature": "the user clears all browser cookies",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.clear.web.storage@1",
+      "descriptorHash": "sha256:0ecfaf9f0637e6312e1fbf710ce4069566fbec4779b73e0339261dfc858bca4b",
+      "handlerHash": "sha256:037f603a477ca2f3cc438b2aa43117b9246ecf261225313a5c2bb56a422267fd",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/clear-web-storage",
+          "signature": "the user clears local and session storage",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.go.forward@1",
+      "descriptorHash": "sha256:5952e7d59d34388dac3447b0be85f926320a951cdfbf934cbca7e7baaf4f5378",
+      "handlerHash": "sha256:88b8657f1c5ea5edc4d9fc7ffea5a8385538b00439312dbe73dcb1aeefa57526",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/go-forward",
+          "signature": "the user goes forward to the next page",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.navigate.to.stored.url@1",
+      "descriptorHash": "sha256:731f02537509ed92b5e5be4ad0ce32c565aac0070c572581b84b49d110d931b4",
+      "handlerHash": "sha256:3dc637a9418638a64dbcdd4bb83cb6b9e1e2c44cb8cd64482f42e240f73fc95e",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/navigate-to-stored-url",
+          "signature": "the user navigates to the url in variable {string}",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.set.browser.cookie@1",
+      "descriptorHash": "sha256:f65df393fb6802f1c3ddd41e85cb77e7f4d8bcfd0cb45231eae8d0cf6bfbda14",
+      "handlerHash": "sha256:cd9b144b6ad16d2f3e70e3807375e2cd1c15dfd941af2796131c6d84be5c63de",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/set-browser-cookie",
+          "signature": "the user sets the browser cookie {string} to {string}",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.set.local.storage.value@1",
+      "descriptorHash": "sha256:8dc61280f0420938883c796fb9d2c1d830f1c55a6b3263509d5ef573acd071f4",
+      "handlerHash": "sha256:b5408acff85bae5ed35c5db39b138643728cd7f132a8e50adfa7550b479ef97b",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/set-local-storage-value",
+          "signature": "the user sets local storage key {string} to {string}",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.set.session.storage.value@1",
+      "descriptorHash": "sha256:3472edffa21f7276a0aefd3e6a0d852686f4dba4ebf4545dcd7a17a82b0bbe1e",
+      "handlerHash": "sha256:4880369cf048cad16fb13bb640509b2f9631b817d39003f774f0b0bb57563bd6",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/set-session-storage-value",
+          "signature": "the user sets session storage key {string} to {string}",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.browser.state.set.storage.from.variable@1",
+      "descriptorHash": "sha256:af8406a26e080b1c0a1c9e7d53ceffaff113f63f7a883f52695f2ff9327e7692",
+      "handlerHash": "sha256:15a78793c0c7013feafe7833649e8c5b9d541d9129b80517874df416f97f179c",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/set-storage-from-variable",
+          "signature": "the user sets local storage key {string} from variable {string}",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.click.double.click@1",
+      "descriptorHash": "sha256:138e27ff151003db6c8602cf03ec3d3a0cfeb78dc0218a0278f2f32d7e024563",
+      "handlerHash": "sha256:937a68412e3379a96c95b2d91e81bc4aa5d13fb67005e65672471e34179feed4",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "click/double-click",
+          "signature": "the user double clicks on the {string} element",
+          "group": "click"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.click.right.click@1",
+      "descriptorHash": "sha256:f5781f1bb82791435d5fe73600d43ee5884fe859aeb6af64b36029fd69ad6cc5",
+      "handlerHash": "sha256:9a449383280904ac5dca4efe16e658a2e809172c99aaba179b5c9b98c14a6164",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "click/right-click",
+          "signature": "the user right clicks on the {string} element",
+          "group": "click"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.data.diagnostics.capture.page.screenshot@1",
+      "descriptorHash": "sha256:80198fdfbbfcdf1037468873a83cb052aaab066254b3ca9e73cf27e13deacef2",
+      "handlerHash": "sha256:5d053196478437bb95900c4f17a036d9bef6c18413f4212cc7344463d854b919",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "data-diagnostics/capture-page-screenshot",
+          "signature": "the user captures a full page screenshot in variable {string}",
+          "group": "data-diagnostics"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.data.diagnostics.log.stored.variable@1",
+      "descriptorHash": "sha256:6b68749f1966b88481bd5fd7cc5cb43fb0300423b465a790359e342b0a088d25",
+      "handlerHash": "sha256:aa59c33fa54c6edd6aee84c74cc0815720d92a5d8aea18c625f3d5dcf8bb4a87",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "data-diagnostics/log-stored-variable",
+          "signature": "the user logs the stored variable {string}",
+          "group": "data-diagnostics"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.data.diagnostics.store.current.url@1",
+      "descriptorHash": "sha256:d3427d036edf0a4e5e062627dd4ce33ff438c755d71f06ccf77f4a24b4a45896",
+      "handlerHash": "sha256:7057cb9bb78f5b09b51ac4fd53aa0fc7703cb02b7ffbb937334996f8a7603212",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "data-diagnostics/store-current-url",
+          "signature": "the user stores the current url in variable {string}",
+          "group": "data-diagnostics"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.data.diagnostics.store.element.attribute@1",
+      "descriptorHash": "sha256:900b9d0ed8a9cc3b324ffda873da0d7771cab110c139fc7483f89f5527a50f29",
+      "handlerHash": "sha256:9765b9eb8fbfb862d7b74ad8fcddacddc1f537d1ac6e79a794049c85e37a75e5",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "data-diagnostics/store-element-attribute",
+          "signature": "the user stores attribute {string} from the {string} element in variable {string}",
+          "group": "data-diagnostics"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.data.diagnostics.store.page.title@1",
+      "descriptorHash": "sha256:c7ba858bef75a9741ea15874ab18eb9d3e989a63d5807e40580fceb60b1ba33b",
+      "handlerHash": "sha256:d9ecd180793b7b3b2746609d0eccb8b49c2cb7a5a6d0e039d2071ac28eafa084",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "data-diagnostics/store-page-title",
+          "signature": "the user stores the page title in variable {string}",
+          "group": "data-diagnostics"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.download.assertion.assert.download.path.available@1",
+      "descriptorHash": "sha256:2261efd2171cf6ae66f550eaf7cb15228b5da0579d0cfaceb28deb01bd7f3e1e",
+      "handlerHash": "sha256:d7ffdf22c2b0fbabdf5f606896784dcebadafc9a69a16f9f33fe3faa310de770",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "download-assertion/assert-download-path-available",
+          "signature": "the downloaded path in variable {string} should be available",
+          "group": "download-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.download.assertion.assert.downloaded.filename@1",
+      "descriptorHash": "sha256:50a0a3f43ad72f6ac5ec78eece95de950b31abac5d09567426f3389fd4e8b48f",
+      "handlerHash": "sha256:1d554538b922a3a5446a040f0f1a5665274706d06a1be85da5984e3a1edeaf66",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "download-assertion/assert-downloaded-filename",
+          "signature": "the downloaded filename in variable {string} should equal {string}",
+          "group": "download-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.download.assertion.assert.stored.download.filename@1",
+      "descriptorHash": "sha256:99c09ab3534ac0ddea52d3981c640270557fe953333278b4d7a7d21053b235b9",
+      "handlerHash": "sha256:d2badc8d61a6d7623f02b7c1f89e21523ecaf13f3bc03af18b10c5fd319be996",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "download-assertion/assert-stored-download-filename",
+          "signature": "the download in variable {string} should have suggested filename {string}",
+          "group": "download-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.downloads.click.and.store.download@1",
+      "descriptorHash": "sha256:ae973351f00555fb6d8fc213eea61e05d9ef960fcc8119be758a243b349a86d2",
+      "handlerHash": "sha256:fc6c043c13868c9c421ccb176cfeeb652dcde753e5af6e2a638b0cf9698bd001",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "downloads/click-and-store-download",
+          "signature": "the user clicks the {string} element and stores the download in {string}",
+          "group": "downloads"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.downloads.click.and.wait.for.download@1",
+      "descriptorHash": "sha256:acfce0d9e231e756bd7c937bdd2d26a78f193b4730b4b7214a06001291c8d6f2",
+      "handlerHash": "sha256:55f7b55b420f3529089a5c0a962b2ec38d53cf313af71b52274c67690fe48f0e",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "downloads/click-and-wait-for-download",
+          "signature": "the user clicks the {string} element and stores the download filename in {string} and path in {string}",
+          "group": "downloads"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.downloads.save.download.to.path@1",
+      "descriptorHash": "sha256:d5de0e177c4ba689e487713f206626c5ba486dfddfe644fc98d182f07aeb7160",
+      "handlerHash": "sha256:cf0072c9fb63d49f4c12f0bef08e65068be37821f5174480376fd8fbb1ff4c9e",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "downloads/save-download-to-path",
+          "signature": "the user saves the download in variable {string} to {string}",
+          "group": "downloads"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.downloads.wait.for.download.event@1",
+      "descriptorHash": "sha256:bcb63351645171f39d5ccf93b75a7cee941622855d75140309fba61ea75406a5",
+      "handlerHash": "sha256:926ce76bb7d23b1494251e779f693d6c53a3866938bf65f9ed8218bca17a18d5",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "downloads/wait-for-download-event",
+          "signature": "the user waits for a download and stores it in {string}",
+          "group": "downloads"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.property.assertion.assert.element.attribute@1",
+      "descriptorHash": "sha256:d8b3209d38e5eb48a91dfcb25d642130fa5ac22392fd8b4b5cb28fa72c711969",
+      "handlerHash": "sha256:8a4ec98617d4a8b1e8c662ee46a4625d1dd8bc51c7b1d1ec3c4f0e9459a79271",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-property-assertion/assert-element-attribute",
+          "signature": "the {string} element attribute {string} should equal {string}",
+          "group": "element-property-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.property.assertion.assert.element.bounding.box@1",
+      "descriptorHash": "sha256:becda758e965a146b0bcee9f8dc7fab00d3e66836dd916ad4207e317c3a506b6",
+      "handlerHash": "sha256:61f9e29f987620adbf85e5c3a5b0016cc9d7dfb7558af566e9724c42f842417b",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-property-assertion/assert-element-bounding-box",
+          "signature": "the {string} element bounding box should be x {int} y {int} width {int} height {int}",
+          "group": "element-property-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.property.assertion.assert.element.class@1",
+      "descriptorHash": "sha256:46450dee2ac5a8c3bf7a45b398471e98168e60297f3a7221a82529d637c43900",
+      "handlerHash": "sha256:2534bdd2860da3a00855dbc440e09d24da754674f605c03ca34bb9d19f403a40",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-property-assertion/assert-element-class",
+          "signature": "the {string} element should {boolean} have class {string}",
+          "group": "element-property-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.property.assertion.assert.element.count@1",
+      "descriptorHash": "sha256:dc6132aa446c0ee07a8a6ddd8c382af9fc12f36bd9353827c18946ba9f964bbc",
+      "handlerHash": "sha256:ce8b585ed6dec11fffae929a0c743c29427b0c376157a5ea694fb7d865302ff5",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-property-assertion/assert-element-count",
+          "signature": "the {string} locator should match {int} elements",
+          "group": "element-property-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.property.assertion.assert.element.css.property@1",
+      "descriptorHash": "sha256:c6694dcdc8f0bdf429159e632e24ae5aa494699bb226005bfb7e13891ac40231",
+      "handlerHash": "sha256:44ee4e28c6cb10024c20643a3e296234f823971d4b51f7dc15a2e04cf40fe3ee",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-property-assertion/assert-element-css-property",
+          "signature": "the {string} element css property {string} should equal {string}",
+          "group": "element-property-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.state.assertion.assert.element.attached@1",
+      "descriptorHash": "sha256:d3a29fb22c2de51319be7df75c837d9e9d1c4d5628b255499235ca7831a124ee",
+      "handlerHash": "sha256:ce95c52cdcef7c7c3392298d3237de27a6444712f1f67a04c32524145a68b647",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-state-assertion/assert-element-attached",
+          "signature": "the {string} element attached status should be {boolean}",
+          "group": "element-state-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.state.assertion.assert.element.editable@1",
+      "descriptorHash": "sha256:5c591f778160d7031042b8b618be428ffeabf20b97f2ef17977601364888f4c7",
+      "handlerHash": "sha256:24feb9075430c474230a2f8d54b2edc0dbe258a1f2efdd8ba0a5934a8ba366cd",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-state-assertion/assert-element-editable",
+          "signature": "the {string} element editable status should be {boolean}",
+          "group": "element-state-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.state.assertion.assert.element.empty@1",
+      "descriptorHash": "sha256:f3fb565d3de17b2cfd3955d8a7390bdb96c1deaaea2251e04e654fc4ff218951",
+      "handlerHash": "sha256:3fa7a45fc7d3eceb28968bdc0af9036ee21c05f8a0731e6bf932eec4dcfa6421",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-state-assertion/assert-element-empty",
+          "signature": "the {string} element empty status should be {boolean}",
+          "group": "element-state-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.state.assertion.assert.element.enabled@1",
+      "descriptorHash": "sha256:29728c4b8de64e65d4dac1e11565055b7b4d8985fafce39be5770b7d3251c507",
+      "handlerHash": "sha256:ddab031a8eb4972655b90c01cf6b443a62aff58927197bb2c57386cf8ef3fd17",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-state-assertion/assert-element-enabled",
+          "signature": "the {string} element enabled status should be {boolean}",
+          "group": "element-state-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.element.state.assertion.assert.element.focused@1",
+      "descriptorHash": "sha256:bd5fcfa2bf74a8d0ab8e45129753c6334287263e5234c85c3a324864ddf3ec4b",
+      "handlerHash": "sha256:64dc0cb78f74d2dca0e1b4d429cf70dc9860f2e94fbbc36841c03e67aa579909",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "element-state-assertion/assert-element-focused",
+          "signature": "the {string} element focused status should be {boolean}",
+          "group": "element-state-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.choose.radio.control@1",
+      "descriptorHash": "sha256:e21d634280c09bea232c6c6dbeec83edb9c506aee2b9a7a0e3d180ca50de874a",
+      "handlerHash": "sha256:2c707e69584f104fcbcc2e1dc013853f333529898913967901f7b41cda144bc3",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/choose-radio-control",
+          "signature": "the user chooses the {string} radio control",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.fill.content.editable.element@1",
+      "descriptorHash": "sha256:9ca3c5c1f291fccf06be5217a66cc8497a54b9aeec2db16295d7d51fb20ea32a",
+      "handlerHash": "sha256:03546d7ebfe9d2e1a7c7d4445c99e31b9f2e3985af11c26f301d4b78fd1c3d04",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/fill-content-editable-element",
+          "signature": "the user fills the content editable {string} element with {string}",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.fill.date.input@1",
+      "descriptorHash": "sha256:acb4807728aa1a6ec3f27acf14f81e59041b07a9f7a777b6dd1a062ac0d06e27",
+      "handlerHash": "sha256:9401797abc4b49484c6d54daaa0f116211b99f3f8d104d67126da9c5ed1d3d08",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/fill-date-input",
+          "signature": "the user fills the {string} date input with {string}",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.fill@1",
+      "descriptorHash": "sha256:929d80c2dff3133f098e67c38dc38e764d222f4c74430fcd3150cf6f2fbbc4d6",
+      "handlerHash": "sha256:906a075277347a8f0afa1af9c892409d3ff267dcd41b0a0b2cd3b7d38cceccf0",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "input/fill-field",
+          "signature": "the user fills in the {string} input field with value {string}",
+          "group": "input"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.forms.fill",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.select.dropdown.option.by.index@1",
+      "descriptorHash": "sha256:60d652750133d72142dbc0d906c78726415bb8fba8f87d8bee5eef40d1ddf91c",
+      "handlerHash": "sha256:96b60f9de74b10da3042eb0a231d1f87d0f21df52bf5d58af720152050b861e0",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/select-dropdown-option-by-index",
+          "signature": "the user selects option index {int} from the {string} dropdown",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.select.dropdown.option.by.label@1",
+      "descriptorHash": "sha256:bd6d9e0ae8217e62ddd982332ebbebcbd86f08af362bd7e2029647efba1be6bc",
+      "handlerHash": "sha256:fab239ea47874736ca52c6c594f1b12edf97c25253620562f436f22d10b7debe",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/select-dropdown-option-by-label",
+          "signature": "the user selects label {string} from the {string} dropdown",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.select.dropdown.option.by.value@1",
+      "descriptorHash": "sha256:ac61e47c088e72811f836fec576c95caf54cab196597371904fa776b76160f4b",
+      "handlerHash": "sha256:13765dcc23a083a7721a930c949600f58274088137f71e921b3b9a5d80631a10",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/select-dropdown-option-by-value",
+          "signature": "the user selects value {string} from the {string} dropdown",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.upload.file@1",
+      "descriptorHash": "sha256:3826eeef355062ab968a9e9ebc35174956e95bb277ffec8766e930c3e545651c",
+      "handlerHash": "sha256:facf6095f04fd57591cce1484f17d89ee131d9baaadb2fd4d49e857de5ff90eb",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/upload-file",
+          "signature": "the user uploads the file {string} through the {string} input",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.forms.upload.stored.file@1",
+      "descriptorHash": "sha256:965c6065e43f1e5f2dc01d38fd48c7a47a58af9e244fd03eefb070dd2e1fd2a3",
+      "handlerHash": "sha256:b7baa57639c5816cf125d25bd7b546c8bac2384adf1eb10266ef35b59b71503e",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "forms/upload-stored-file",
+          "signature": "the user uploads the file path in variable {string} through the {string} input",
+          "group": "forms"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.hover.hover@1",
+      "descriptorHash": "sha256:49a2580a067266c250e7a854451e8a7502fb0e7a37894a0ec87e2a1181c03402",
+      "handlerHash": "sha256:2fc9198e59ea4fd49af8ec3af2ca5fcdacedaa740c936d2523913cd88e3b4495",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "hover/hover",
+          "signature": "the user hovers the cursor over the {string} element",
+          "group": "hover"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.input.check@1",
+      "descriptorHash": "sha256:aa62331af1453e426f37434820815f7ab179ee223d0d746050d396e58e6c26b4",
+      "handlerHash": "sha256:0bb315c668dcd1d32e0f4acd29c1a226a9ebb46ad3597d28445355fa412cbe5f",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "input/check",
+          "signature": "the user checks the {string} checkbox",
+          "group": "input"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.input.clear@1",
+      "descriptorHash": "sha256:3ac3f4b47990791267cec521fa2b930e848110bb57bc69e28334db62390a7ed4",
+      "handlerHash": "sha256:30d24541857c0f37b24970ea23f729a0ae28c8b9263b37d34997e9a08dd7e07f",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "input/clear",
+          "signature": "the user clears the {string} field",
+          "group": "input"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.input.fill.input.with.stored.value@1",
+      "descriptorHash": "sha256:0352590c89abf2636efd8ec6c57d9625cc8e411ecc9cabb35f0f32055a332cd4",
+      "handlerHash": "sha256:ed1cb1e99eadc0e5219e411e46bf4307589148484a2f6d92c7bdf52250bf81eb",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "input/fill-input-with-stored-value",
+          "signature": "the user fills in the {string} input with data from the stored variable {string}",
+          "group": "input"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.input.select.dropdown.option@1",
+      "descriptorHash": "sha256:438a5457136e8f8386c83d9d2f40021179323ec3a4da68ccafabcf4d65190f90",
+      "handlerHash": "sha256:6a129764a5b72f3ddf875cb105259323d6632a285891287522a98713991df804",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "input/select-dropdown-option",
+          "signature": "the user selects the {string} option of the {string} dropdown",
+          "group": "input"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.input.uncheck@1",
+      "descriptorHash": "sha256:7a34e562d344327bf402d53150e3ff5e3720dedbd19479a9d3e69c6e4fc1d73d",
+      "handlerHash": "sha256:023a3157b79a93f9d869179e02c8057e0ffe300f1dbb91b3b6bfd82bea272ed8",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "input/uncheck",
+          "signature": "the user unchecks the {string} checkbox",
+          "group": "input"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.keyboard.focus@1",
+      "descriptorHash": "sha256:9798152383e3d684f32ae10ad9f49138608e29c3f44ed520edc16fff80baf7f9",
+      "handlerHash": "sha256:9839676f85974078a546667ec52f315a622be8dc934f3bac39a72a6044adadb2",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/focus-element",
+          "signature": "the user focuses the {string} element",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.keyboard.focus",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.keyboard.hold.keyboard.key.down@1",
+      "descriptorHash": "sha256:a671c6a7d3accba4e4b5581ce701321c41bb9e355bfe452aa0ebcea7e3bc7527",
+      "handlerHash": "sha256:2888b0e4b2d653a9c598c8f23acffe8d4cc1a2d9bc2cc116957f1f208a25847b",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "keyboard/hold-keyboard-key-down",
+          "signature": "the user holds the {string} keyboard key down",
+          "group": "keyboard"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.keyboard.press.key.on.element@1",
+      "descriptorHash": "sha256:19092336926bebd8c719ed43c1dd753e36a027aed7560fe3c6f97a7ccf207742",
+      "handlerHash": "sha256:42fb29af04f4cd73a839958e3d1d86b6dffe23c647594d7f3f5901aad32f2399",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "keyboard/press-key-on-element",
+          "signature": "the user presses the {string} key on the {string} element",
+          "group": "keyboard"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.keyboard.press@1",
+      "descriptorHash": "sha256:99b90af5f87a73d68b5ae2201c3291dd4a765d9ebb4f5532dbd781e9c6010560",
+      "handlerHash": "sha256:50d049ed1585c8ddbf5a7628ed3f7c01de4577c7d53d0d9628b6f24fdc5382f0",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "keyboard/press-keyboard-key",
+          "signature": "the user presses the keyboard shortcut {string}",
+          "group": "keyboard"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.keyboard.press",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.keyboard.release.keyboard.key@1",
+      "descriptorHash": "sha256:9c026e96b57418099bb6ace5f07e01aaf1d0282549ab4c533da7d5896bb49773",
+      "handlerHash": "sha256:4c7b26e921d3f5a78c06c575c6f3b03ca6be963b7540cfa94b1b6a9706dbab85",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "keyboard/release-keyboard-key",
+          "signature": "the user releases the {string} keyboard key",
+          "group": "keyboard"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.keyboard.type.text.sequentially@1",
+      "descriptorHash": "sha256:7bb340bf606146bb5e234ab8111e239db3b2200e17aef3dd975135e2e2162573",
+      "handlerHash": "sha256:78bec5c8e88be18d699e520f9bac808f218d1eac90cbdf4a7b0c5ce1e06f74f7",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "keyboard/type-text-sequentially",
+          "signature": "the user types {string} sequentially into the {string} element with delay {int} milliseconds",
+          "group": "keyboard"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.mouse.click@1",
+      "descriptorHash": "sha256:623574e6fa6316bef396f63a4648ff563cd73151b59a54e95c855ec66e62683d",
+      "handlerHash": "sha256:46077f6c70929168cb6e3b59266a36059dc9cc9b392e8d5cf923de1d3705e14c",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "click/click-element",
+          "signature": "the user clicks on the {string} element",
+          "group": "click"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.mouse.click",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.navigation.assertion.assert.url.route.equals@1",
+      "descriptorHash": "sha256:cffa995c91fbf1fa54758c3ca19515b276d43aea8021cce613e5d1c232bee0c4",
+      "handlerHash": "sha256:0530d01b616708ca2923c8c9bbd573d16abf76ad85280b3a869e40bc71f16062",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "navigation-assertion/assert-url-route-equals",
+          "signature": "the url route should be equal to {string}",
+          "group": "navigation-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.navigation.go.back@1",
+      "descriptorHash": "sha256:ff24d9ff854d43263d1eb17bde1735e4582f3f13cf9e84fd42686dc9646f549a",
+      "handlerHash": "sha256:22acaaeb84fc56382284d75739728426ee2718d72399e32c79879b67ffb57e3a",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "navigation/go-back",
+          "signature": "the user goes back to the previous page",
+          "group": "navigation"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.navigation.goto@1",
+      "descriptorHash": "sha256:80dd996143fe83123318b8dcf50655598e2215f12381aa79d305e0628088b431",
+      "handlerHash": "sha256:066f407027986fb9a934d5405a38751532bc9c77e5a52a0d73e45a9e8b8c60ca",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "navigation/navigate-to-url",
+          "signature": "the user navigates to the {string} url",
+          "group": "navigation"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.navigation.goto",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.navigation.navigate.to.environment.base.url@1",
+      "descriptorHash": "sha256:20cca3bc0d957970277dd57be70780988cfa26345e8a6c692693425c01f5db58",
+      "handlerHash": "sha256:61612e0025c6f7eaf5e817a01ce4dc52cee16587bbdd5fa448d5b947de9d8a69",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "navigation/navigate-to-environment-base-url",
+          "signature": "the user navigates to the base url of the selected environment",
+          "group": "navigation"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.navigation.reload@1",
+      "descriptorHash": "sha256:72e775b5a696ee2d2ae5995bdd1ff7ace213f452aeec73e9b0f4765ec4c01494",
+      "handlerHash": "sha256:917623e440853ee5e119d81b74a1d8cee97241a436636005556dd659c069c2d4",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "navigation/reload-page",
+          "signature": "the user reloads the page",
+          "group": "navigation"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.navigation.reload",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.blur.element@1",
+      "descriptorHash": "sha256:4c50a7b77a5b29b5a5dad33267a3d4349e007dcba175e6ac34a53af408267428",
+      "handlerHash": "sha256:81a80d6eae6f198071d3c5c65a055cb1044615d437bdf04cd6f21558245389bb",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/blur-element",
+          "signature": "the user blurs the {string} element",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.capture.element.screenshot@1",
+      "descriptorHash": "sha256:241345905960e8953f1d02b8d4a1cead4ad3618208226bac53f3b22090730a05",
+      "handlerHash": "sha256:51ec8f02f8c5a9abadac313f06857f573f1ab39e29d5efaa4d837a6f8ee6e5c5",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/capture-element-screenshot",
+          "signature": "the user captures a screenshot of the {string} element in the variable {string}",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.click.element.coordinates@1",
+      "descriptorHash": "sha256:9c46efd4f7acbe0bfecb972b88846c379c8fe32cb6c3ca9337826cee1506e1b5",
+      "handlerHash": "sha256:62aee1589888079595c32f0628a668ad15854413bdd90d58be683145ddcb7836",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/click-element-coordinates",
+          "signature": "the user clicks coordinates x {int} and y {int} inside the {string} element",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.click.page.coordinates@1",
+      "descriptorHash": "sha256:3d0cb94cbe020cdf68f48664b0ca63566824c9d26579e1f228faed52d475ce5a",
+      "handlerHash": "sha256:621858a38688dcd697a3901fbed70cc29ef6702080ed5825fb078165304e0b84",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/click-page-coordinates",
+          "signature": "the user clicks page coordinates x {int} and y {int}",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.drag.element.to.element@1",
+      "descriptorHash": "sha256:d5eecf1ed39859934f496da09fc3ab1223d311ff3854963bf2d6ec6aeb59d752",
+      "handlerHash": "sha256:91dd7041c6bcbf1f0e8f3a59f8294883db0d3b7ab194e69042ae049a0df70f53",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/drag-element-to-element",
+          "signature": "the user drags the {string} element onto the {string} element",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.force.click.element@1",
+      "descriptorHash": "sha256:0c528c55bd9e1435016a1e16156ba5982bea12f6396171c7819375e9a0967d64",
+      "handlerHash": "sha256:52d7fbf6079ebaba2d6dd2c0fbc1ec4bc2bf38efee531c382c7e1f1e5f2e8811",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/force-click-element",
+          "signature": "the user force clicks the {string} element",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.scroll.element.into.view@1",
+      "descriptorHash": "sha256:eb584b0035f20cdf0a85e920628686bbbc1d321a35ba70cb6960ef74af17c98d",
+      "handlerHash": "sha256:4ace8789634d7588d4c2b6189abd39cce6a5feb9eb5ac37113cffb8538d3da93",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/scroll-element-into-view",
+          "signature": "the user scrolls the {string} element into view",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.pointer.scroll.page.by.offset@1",
+      "descriptorHash": "sha256:ae915ca8c60ec49c092f50ee27b8c85001a866b78e78e15d6a04b94971b830b9",
+      "handlerHash": "sha256:73879ce504d2d75ee8729c7b9fcfaa8bb89cf9e84d25e95111b959cf5e419c5f",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "pointer/scroll-page-by-offset",
+          "signature": "the user scrolls the page by x {int} and y {int}",
+          "group": "pointer"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.address.and.save.in.variable@1",
+      "descriptorHash": "sha256:8f49c6989187df923723fe1365f224df06c0ed793ee80cf8e228f664e3d31336",
+      "handlerHash": "sha256:5f1cc72b69a7b6b0ff9c0d40126f1dcfabe42c8b77e6b5995bf8987e3261a7f4",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-address-and-save-in-variable",
+          "signature": "the user generates a random address and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.email.and.save.in.variable@1",
+      "descriptorHash": "sha256:ac38318ca0e6b7e32a0789f892f984c78390221cfd0696b67f20c777e969fb32",
+      "handlerHash": "sha256:c7ad7fe36f690c7e4fe52bf7ff8e68c7fedd3ce2348600de5832abcf5be8bfd1",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-email-and-save-in-variable",
+          "signature": "the user generates a random email and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.first.name.and.save.in.variable@1",
+      "descriptorHash": "sha256:1739291f7994a9e03581d50fd41a078735632d4b69630bdd393ca64e97159e9e",
+      "handlerHash": "sha256:f573459dc1c4de5bfe6373faa680c944f88c380e4971a93ac63ba34fd80fc909",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-first-name-and-save-in-variable",
+          "signature": "the user generates a random first name and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.full.name.and.save.in.variable@1",
+      "descriptorHash": "sha256:430d5475e8b7faae804206a1f154e4eb960954cb2ab5c1dd30a109141eab7ccc",
+      "handlerHash": "sha256:dc6bb2359fede4e4bc2408f3f60c3c00d1b311507f9c3d986fbad8cae7771193",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-full-name-and-save-in-variable",
+          "signature": "the user generates a random full name and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.last.name.and.save.in.variable@1",
+      "descriptorHash": "sha256:b244259ee1db351a551ea208a1a7d3bf3179eba23e37b88b69d52a4bcdcfbd43",
+      "handlerHash": "sha256:90370e054e7f6f014d25da67dc554f189ecd6a32d5f217d73d1c67bc151de0ff",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-last-name-and-save-in-variable",
+          "signature": "the user generates a random last name and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.password.and.save.in.variable@1",
+      "descriptorHash": "sha256:76da1774bf86b40139dc16e313ecdfdeae369f8edeb45106b42205d25471de9d",
+      "handlerHash": "sha256:f404865072a03bd46911442b757c11690ea10c6d1c9c9cbffd79f23b8ec87bfa",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-password-and-save-in-variable",
+          "signature": "the user generates a random password and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.phone.and.save.in.variable@1",
+      "descriptorHash": "sha256:a18af0f6cfb9a038a39e58826bfbd68ba61d2bd72d316bec4c0e93dd1500342d",
+      "handlerHash": "sha256:9de5de97b3a8fee59f90d5fb3cd3aba5a32134bdd766a8eaf46807abd3bcf87a",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-phone-and-save-in-variable",
+          "signature": "the user generates a random phone and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.random.data.generate.random.unique.text.and.save.in.variable@1",
+      "descriptorHash": "sha256:4b79b18c4df90a1b1e8f58cd467a4d3e2bbf4e02bef4cb98086534ace20c617f",
+      "handlerHash": "sha256:b82c1b67722c74b96be6adc9a1c57958830ba1e86da5b5ee217d6f8732c708e4",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "random-data/generate-random-unique-text-and-save-in-variable",
+          "signature": "the user generates a random unique text and stores it inside the variable {string}",
+          "group": "random-data"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.store.store.element.text@1",
+      "descriptorHash": "sha256:2751e6e6e54461eb85dabe3beb8481400d8e99493e947fc481191a51df7a40c3",
+      "handlerHash": "sha256:3bb7becbc9e9bf317556daec1d429949dac03c973883fd5d5427d5de4ed88324",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "store/store-element-text",
+          "signature": "the user stores the {string} element text inside the variable {string}",
+          "group": "store"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.store.store.text.input.text@1",
+      "descriptorHash": "sha256:a0be81d3b84ac0c9fd6b10505de181f0672f015b1615c416ba24c14ad7b49575",
+      "handlerHash": "sha256:d6869f46c34c2b058a96404c357f4f53d4e95a6477c1f7b8c6cb0c6128bfe319",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "store/store-text-input-text",
+          "signature": "the user stores the {string} text input value inside the variable {string}",
+          "group": "store"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.store.store.textarea.text@1",
+      "descriptorHash": "sha256:737bad896d7d528be3a3bb5e7bd5ecbc54724ded9538a66197c8b3ea348ace89",
+      "handlerHash": "sha256:0186ff4d871d405c8e47433f1a818e0f7073635d6d77d5ec5ba1e9229fcec1fe",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "store/store-textarea-text",
+          "signature": "the user stores the {string} textarea input value inside the variable {string}",
+          "group": "store"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.structured.operations.run.structured.locator.operation@1",
+      "descriptorHash": "sha256:f5cdfa40904fd59180e2a6f3d61660bed300b5169932b11f3d1e7f73a81c0773",
+      "handlerHash": "sha256:873accf0c097c88a2e7579188984c092319b206c96778153a4222942bcb963a2",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "structured-operations/run-structured-locator-operation",
+          "signature": "the user runs locator operation {string} on the {string} element with arguments {string} and options {string}",
+          "group": "structured-operations"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.structured.operations.run.structured.page.operation@1",
+      "descriptorHash": "sha256:2d7093d4b14dd52a957ec0bee19f464e39865a6d37e81754654983e2f97cbbb8",
+      "handlerHash": "sha256:0325ad180e023716ddb21bef4d4bf525dce4e94e5112cee775cc9a49d7725b85",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "structured-operations/run-structured-page-operation",
+          "signature": "the user runs page operation {string} with arguments {string} and options {string}",
+          "group": "structured-operations"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.dialog@1",
+      "descriptorHash": "sha256:4e844d1089679fc756062b62cdb85afe708c30d5e27274d0b8ed8ccca049739c",
+      "handlerHash": "sha256:c8e6fbd9c957305abd3ead1bf0549206760ae0222884868bb5905903e5c53da6",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-dialog",
+          "signature": "the user waits for a dialog and stores its message in {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.element.state@1",
+      "descriptorHash": "sha256:f2e962cfac2d81a810734c45c039499a21dd4e296a2a29d382523f92b5235bbf",
+      "handlerHash": "sha256:dfb3396878c5ff7c35e29e4fffcbed701a62202ea7e0c6bfd977534b66599973",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-element-state",
+          "signature": "the user waits for the {string} element state to be {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.element.text@1",
+      "descriptorHash": "sha256:6ae327dfc60a70bda6bf0068b64292c4d5315197bd7f8b81beac00f84832d3f8",
+      "handlerHash": "sha256:5aff6d050b304deb9dc5a8ef72b46a5392feadf60bde0f137f5166ba9374f881",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-element-text",
+          "signature": "the user waits for the {string} element to contain text {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.input.value@1",
+      "descriptorHash": "sha256:afbb0d4fcc1090c798648629110cfa98fab2c8bd812dc7247197f729733db63c",
+      "handlerHash": "sha256:663dd7007b0a8a1dffbb5e240e8e2487ec0795d5c887f4e36e34b351900dcbfd",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-input-value",
+          "signature": "the user waits for the {string} input value to equal {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.load.state@1",
+      "descriptorHash": "sha256:70e4a677004b0b8ab4422cb06a38418cab37cf852aa0a672d2a48ab8417689e9",
+      "handlerHash": "sha256:a8a9ad73e815ae17a9a0a98a66068c6e0f319ef6d969b46300d9b6115a081283",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-load-state",
+          "signature": "the user waits for page load state {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.popup@1",
+      "descriptorHash": "sha256:8a51367deb3af62eefe73e1b5b38a7d3db8cc2f72158f4ece68fa47dd45d492f",
+      "handlerHash": "sha256:8cd51e72101a2b23723974d8e7ecb10e5132dd12dded7e33314d912c1521e343",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-popup",
+          "signature": "the user waits for a popup and stores it in {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.request@1",
+      "descriptorHash": "sha256:0836872f743fa08addad18260bf44a34d138a3662b41e50b271d330628b195b5",
+      "handlerHash": "sha256:66f561504a79fa893af8423b3704251c0232beb9c890a63fff010d33872100bc",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-request",
+          "signature": "the user waits for a request url containing {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.response@1",
+      "descriptorHash": "sha256:b5e4d05ec06d5845e76fb6e305dda422ad7e05e0d34a2330a369f62169f3b13a",
+      "handlerHash": "sha256:c02f5cadc237ebf4735af40cbb005396d13c65e905ee16cd34f5d78babd83aa4",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-response",
+          "signature": "the user waits for a response url containing {string} with status {int}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.synchronization.wait.for.url@1",
+      "descriptorHash": "sha256:f49e40d3247033348641123f99db816d3fc5407034303cf3bcd615e3111fb7e5",
+      "handlerHash": "sha256:286797235fa1df7b0282da47426b082bbe3afb75e18b30ea10a1532803ef96ad",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "synchronization/wait-for-url",
+          "signature": "the user waits for the url to contain {string}",
+          "group": "synchronization"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.accept.next.dialog@1",
+      "descriptorHash": "sha256:711772d20a54e479813e17b6d7758a50fd7c896b560ef515fe7eb7cc175bf1a6",
+      "handlerHash": "sha256:e3532f02a93eb16e24daa81f1de1cd802253c3d5221de854441abf06eef277a0",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/accept-next-dialog",
+          "signature": "the user accepts the next browser dialog",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.answer.next.prompt.dialog@1",
+      "descriptorHash": "sha256:fb79a9074cbd8c44e4716c76255e2bc7aaf1e389cd5c6b3cc3d63002e3c8ea29",
+      "handlerHash": "sha256:57402979a458a205dcfe4db82bf5f123bde6be90bb952ed00517b79ac15bb861",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/answer-next-prompt-dialog",
+          "signature": "the user answers the next browser prompt with {string}",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.click.and.switch.to.popup@1",
+      "descriptorHash": "sha256:cea62ac7f1fa586291c8e6b491bbcce698cf5ab75e84ca50f55c825263e2fd75",
+      "handlerHash": "sha256:bfcaacb3cde5edd663d5ea735b65ac04efa6a194558de57f2947d5bc1386ccf5",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/click-and-switch-to-popup",
+          "signature": "the user clicks the {string} element and switches to the opened popup",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.click.element.inside.frame@1",
+      "descriptorHash": "sha256:fe71f2c6e74b3901d4e2a7bea58459d283aaf086e2ec6e47f17924eb08cff0fe",
+      "handlerHash": "sha256:f897ec81342f5a78fc8efd03d51ba088c8dad21d5207252439ff180e766fe901",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/click-element-inside-frame",
+          "signature": "the user clicks the {string} element inside the {string} frame",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.close.current.browser.tab@1",
+      "descriptorHash": "sha256:99d43b74196db03f586357cd3dd76957f4ff783b774b0864e5017040e1f5576b",
+      "handlerHash": "sha256:435cfd322c2414f4765c03d718d32dbe3dbd18226f0b54b12a9f319fab93c3fc",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/close-current-browser-tab",
+          "signature": "the user closes the current browser tab",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.dismiss.next.dialog@1",
+      "descriptorHash": "sha256:b8edd95f8a0aa24cbcfac916d69883c93e13173a2553dd0d31c6cf789cbc69f7",
+      "handlerHash": "sha256:f5a956c1da745867fc8b5b374b47078fd39db720b16f326fde4866a355406a3a",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/dismiss-next-dialog",
+          "signature": "the user dismisses the next browser dialog",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.fill.element.inside.frame@1",
+      "descriptorHash": "sha256:ddca01e25c81f0fd6088b9077a019a32013ca5c58167c0f40df912c59725e4f6",
+      "handlerHash": "sha256:1f4995a1a09ab1740c63499a3b613595ab9e8b76b08c83a2082d6026ca3e9e6e",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/fill-element-inside-frame",
+          "signature": "the user fills the {string} element inside the {string} frame with {string}",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.tabs.frames.dialogs.switch.browser.tab@1",
+      "descriptorHash": "sha256:fdb67c1f9fabc962cbbc22e3f4c5210655bedef832f39a691ad3f8591c76aee4",
+      "handlerHash": "sha256:43bd971e19c871faa860eeee335124f685540601d09074e01c0e2b2ec09609a3",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "tabs-frames-dialogs/switch-browser-tab",
+          "signature": "the user switches to browser tab {int}",
+          "group": "tabs-frames-dialogs"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.text.assertion.assert.element.contains.stored.variable.text@1",
+      "descriptorHash": "sha256:8f5091d4389c960b6d251d5d09ab24492432e786fe9b300477225ce23cceeaa3",
+      "handlerHash": "sha256:18e9b8dab38bb0cb5a0116baf704b9fad9ca81c0c266ddf8aab2dad122654082",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "text-assertion/assert-element-contains-stored-variable-text",
+          "signature": "the element {string} should contain the text inside the stored variable {string}",
+          "group": "text-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.text.assertion.assert.element.equals.text@1",
+      "descriptorHash": "sha256:9e38fead273e0e83f311b363425f1ae1cd34ecd9697d7eeb62040afb26e15940",
+      "handlerHash": "sha256:79fc3a21bb0c64ad1a978df06e06ea63dd41a1bc8d1ecaa751aed03f8bd3b276",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "text-assertion/assert-element-equals-text",
+          "signature": "the element {string} should {boolean} equal the text {string}",
+          "group": "text-assertion"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.viewport.set@1",
+      "descriptorHash": "sha256:d8b7f598afe0edbf23df8b6a8532b826bf8b4e2043bc6d1afa584d77f225decc",
+      "handlerHash": "sha256:1958dac654705b59945527040faaaf600018e4ef8ac8e5c03630ce100dc7a3f5",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "browser-state/set-viewport-size",
+          "signature": "the user sets the viewport to width {int} and height {int}",
+          "group": "browser-state"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.viewport.set",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.wait.wait.for.element.to.disappear@1",
+      "descriptorHash": "sha256:9b19e4863495642f12f5e44d9d5f7abd6859f2bca069da2bfb57d8eaa49bcec3",
+      "handlerHash": "sha256:658dc10284e40e9e17bb0657c6d2a533bb6ba6e572cff62c72c7f6319b12386c",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "wait/wait-for-element-to-disappear",
+          "signature": "the user waits for the {string} element to disappear",
+          "group": "wait"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.wait.wait.for.element@1",
+      "descriptorHash": "sha256:2a26e4d5f0e3464a2ec62fee1800fadfd37158250115982d1a3ada09df058757",
+      "handlerHash": "sha256:d34b27ca32de84d6e965ee507c6b2ac0529c9f48ec319afd5358d565745b7a52",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "wait/wait-for-element",
+          "signature": "the user waits for the element {string} to become visible",
+          "group": "wait"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.wait.wait.for.url.route@1",
+      "descriptorHash": "sha256:d12f1a739729532817975a1c3506c6731a446b09a671fba89b3280d9dd0ab07b",
+      "handlerHash": "sha256:3b9b02a08ff6408c3e3218165f107c371a881524aaef7a9b83ea4d5f38b3238f",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "wait/wait-for-url-route",
+          "signature": "the user waits for the route {string} to be loaded",
+          "group": "wait"
+        }
+      ],
+      "managedActions": [],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.waits.duration@1",
+      "descriptorHash": "sha256:dd4668a75205e295da9adda603ea16f09c02d3f84b642c4de8a3a6c27a04634a",
+      "handlerHash": "sha256:447cd2b71b27015be030106e5d3cc3365813367a704111660d1c3f8f0fa56227",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "wait/wait-for-duration",
+          "signature": "the user waits for {int} seconds",
+          "group": "wait"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.waits.duration",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.waits.page-ready@1",
+      "descriptorHash": "sha256:dc065f5042f3feb8c97044670107aef56adee07358ae2940ff86cf19f23984ee",
+      "handlerHash": "sha256:7c03881b88605d9725ba2e078e7e4b4965916d3905176e66d2a0f579f810283a",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "wait/wait-for-page",
+          "signature": "the user waits for the current page to be loaded",
+          "group": "wait"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.waits.page-ready",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    },
+    {
+      "canonicalOperation": "browser.waits.timeout@1",
+      "descriptorHash": "sha256:fd2fc11f24c1e2aa8ac8400bed615f260ce1a1339695a0b9304226694f1968dc",
+      "handlerHash": "sha256:94c57ea9fd23db9174bf0d67138461c4cd0a87171a00edd246d582fbb8b3e3ff",
+      "mappingKind": "exact",
+      "reviewState": "approved",
+      "reviewNote": "Built-in Gherkin is a generated human projection over the shared trusted operation handler.",
+      "legacySteps": [
+        {
+          "slug": "wait/wait-with-timeout",
+          "signature": "the user waits for {int} milliseconds",
+          "group": "wait"
+        }
+      ],
+      "managedActions": [
+        {
+          "id": "browser.waits.timeout",
+          "version": "1"
+        }
+      ],
+      "humanAuthoring": "native",
+      "agentAuthoring": "native",
+      "capsuleExecution": "shared-operation-handler",
+      "manualExecution": "shared-operation-handler",
+      "migrationState": "mapped"
+    }
+  ],
+  "ledgerHash": "sha256:fdda5793f4f62696d628e887f20a69cb4d49cf1452ef31ff30275b5da49eeae7"
+}

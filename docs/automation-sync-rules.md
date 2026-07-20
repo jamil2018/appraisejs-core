@@ -48,8 +48,10 @@ Reviewed managed-validation runs use Appraise-owned capsule projections under
 database ownership plus the sealed manifest/receipt are authoritative, and agents must not hand-edit or import them.
 Legacy runs continue to use `automation/reports`.
 
-The reusable Playwright catalog is authored in `automation/steps/actions` and `automation/steps/validations`. Build
-registry fragments from those files rather than editing `packages/appraisejs/registry/template-steps` directly. For
+The reusable Playwright catalog is projected into `automation/steps/actions/generated` and
+`automation/steps/validations/generated` by `npm run operation:projections`. Author built-in behavior in the canonical
+operation definitions and handlers, then build registry fragments from the generated wrappers rather than editing
+either the wrappers or `packages/appraisejs/registry/template-steps` directly. For
 validation authoring, prefer a semantic template step, then the structured allowlisted fallback, then a justified
 custom step. See `docs/reusable-playwright-template-steps.md` for the operation and stored-variable contract.
 

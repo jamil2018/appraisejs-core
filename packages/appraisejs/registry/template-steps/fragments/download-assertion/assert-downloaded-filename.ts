@@ -6,6 +6,11 @@
 Then(
   'the downloaded filename in variable {string} should equal {string}',
   async function (this: CustomWorld, variableName: string, expected: string) {
-    expect(this.getVar<unknown>(variableName)).to.equal(expected)
+    await executeHumanOperation(
+      'browser.download.assertion.assert.downloaded.filename@1',
+      this,
+      ['variableName', 'expected'],
+      [variableName, expected],
+    )
   },
 )

@@ -4,6 +4,8 @@
     "rootDir": "src",
     "outDir": "dist",
     "noEmit": false,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "declaration": true,
     "emitDeclarationOnly": false
   },

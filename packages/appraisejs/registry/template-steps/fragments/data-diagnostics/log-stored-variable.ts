@@ -4,6 +4,5 @@
  * @icon DEBUG
  */
 When('the user logs the stored variable {string}', async function (this: CustomWorld, variableName: string) {
-  const value = this.getVar(variableName)
-  console.log(`[stored:${variableName}]`, JSON.stringify(value))
+  await executeHumanOperation('browser.data.diagnostics.log.stored.variable@1', this, ['variableName'], [variableName])
 })

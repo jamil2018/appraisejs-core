@@ -24,6 +24,7 @@ import {
   validateCucumberSingleton,
   validateExpectedCaseEvidence,
   validateRuntimeIdentity,
+  validateOperationClosure,
 } from './preflight-validators'
 
 const invalidReceiptHash = `sha256:${'0'.repeat(64)}`
@@ -211,6 +212,7 @@ export class RuntimeCapsulePreflight {
       })
       try {
         validateRuntimeIdentity(receipt, currentRuntime)
+        validateOperationClosure(manifest)
       } catch {
         throw new PreflightFailure('APPRAISE_RUNTIME_DRIFT', 'Restore the sealed Appraise runtime and reseal.')
       }

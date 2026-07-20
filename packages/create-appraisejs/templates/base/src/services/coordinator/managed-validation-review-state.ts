@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   parseYamlArtifact,
   serializeYamlArtifact,
@@ -48,8 +49,32 @@ export function immutableValidationProjection(value: string | null | undefined) 
   return JSON.stringify({ ...validation, validationDecisions: [], reviewSubmittedAt: undefined })
 }
 
+export function managedValidationStateHash(content: string) {
+  try {
+    return digest(canonicalContractJson(parseYamlArtifact('validation', content)))
+  } catch {
+    return digest(content)
+  }
+}
+
+export function managedReviewStateHash(content: string) {
+  try {
+    return digest(canonicalContractJson(parseYamlArtifact('review', content)))
+  } catch {
+    return digest(content)
+  }
+}
+
+export function managedValidationProjectionState(value: string) {
+  try {
+    return canonicalContractJson(JSON.parse(value))
+  } catch {
+    return value
+  }
+}
+
 export function validationReviewStateReceipt(state: ReviewState) {
-  const json = JSON.stringify(state)
+  const json = canonicalContractJson(state)
   return { json, hash: digest(json) }
 }
 
@@ -80,9 +105,9 @@ export async function reconcileManagedValidationReviewState(
     throw new ServiceError('Immutable managed validation publication content changed.', 'CONFLICT')
 
   const receipt = validationReviewStateReceipt({
-    validationHash: validation.hash,
-    reviewHash: review.hash,
-    validationProjectionJson: projection.validationJson,
+    validationHash: managedValidationStateHash(validation.content),
+    reviewHash: managedReviewStateHash(review.content),
+    validationProjectionJson: managedValidationProjectionState(projection.validationJson),
   })
   await client.validationAstPublishOperation.update({
     where: { id: operation.id },

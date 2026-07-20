@@ -19,31 +19,31 @@ const ast = validationAstSchema.parse({
           id: 'open',
           keyword: 'When',
           description: 'the user opens the app',
-          action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+          operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
         },
         {
           id: 'assert-accessible',
           keyword: 'Then',
           description: 'the result is accessible',
-          action: { id: 'browser.assertions.accessible', version: '1', inputs: { target: 'result' } },
+          operation: { id: 'browser.assertions.accessible', version: '1', inputs: { target: 'result' } },
         },
         {
           id: 'assert-persisted',
           keyword: 'Then',
           description: 'the result is persisted',
-          action: { id: 'browser.assertions.persisted', version: '1', inputs: { target: 'result' } },
+          operation: { id: 'browser.assertions.persisted', version: '1', inputs: { target: 'result' } },
         },
         {
           id: 'assert-console-clean',
           keyword: 'And',
           description: 'the browser has no runtime errors',
-          action: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+          operation: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
         },
         {
           id: 'assert-network-clean',
           keyword: 'And',
           description: 'the browser has no failed network activity',
-          action: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+          operation: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
         },
       ],
     },
@@ -53,7 +53,7 @@ const ast = validationAstSchema.parse({
 })
 const profile = validationAstAuthoringProfileSchema.parse({ id: 'simple-happy-path', version: '1' })
 const actions = defaultActionCatalog.readActions(
-  ast.scenarios[0]!.steps.map(step => ({ id: step.action.id, version: step.action.version })),
+  ast.scenarios[0]!.steps.map(step => ({ id: step.operation.id, version: step.operation.version })),
 )
 
 describe('simple happy-path authoring profile', () => {
@@ -86,10 +86,10 @@ describe('simple happy-path authoring profile', () => {
       id: 'wait',
       keyword: 'And',
       description: 'the user waits',
-      action: { id: 'browser.waits.duration', version: '1', inputs: { duration: 60 } },
+      operation: { id: 'browser.waits.duration', version: '1', inputs: { duration: 60 } },
     })
     const advancedActions = defaultActionCatalog.readActions(
-      advancedAst.scenarios[0]!.steps.map(step => ({ id: step.action.id, version: step.action.version })),
+      advancedAst.scenarios[0]!.steps.map(step => ({ id: step.operation.id, version: step.operation.version })),
     )
     expect(checkValidationAstAuthoringProfile(advancedAst, profile, advancedActions).map(issue => issue.code)).toEqual([
       'simple-profile-matrix-count',
@@ -111,17 +111,17 @@ describe('simple happy-path authoring profile', () => {
         id: 'fake-assertion',
         keyword: 'Then',
         description: 'the result appears asserted',
-        action: { id: 'browser.assertions.visible', version: '1', inputs: { target: 'result' } },
+        operation: { id: 'browser.assertions.visible', version: '1', inputs: { target: 'result' } },
       },
       {
         id: 'millisecond-wait',
         keyword: 'And',
         description: 'the user waits too long',
-        action: { id: 'browser.waits.timeout', version: '1', inputs: { timeout: 30_001 } },
+        operation: { id: 'browser.waits.timeout', version: '1', inputs: { timeout: 30_001 } },
       },
     ]
     const bypassActions = defaultActionCatalog.readActions(
-      bypass.scenarios[0]!.steps.map(step => ({ id: step.action.id, version: step.action.version })),
+      bypass.scenarios[0]!.steps.map(step => ({ id: step.operation.id, version: step.operation.version })),
     )
     expect(checkValidationAstAuthoringProfile(bypass, profile, bypassActions).map(issue => issue.code)).toEqual([
       'simple-profile-assertion-concern-missing',

@@ -4,8 +4,5 @@
  * @icon STORE
  */
 When('the user clears local and session storage', async function (this: CustomWorld) {
-  await this.page.evaluate(() => {
-    localStorage.clear()
-    sessionStorage.clear()
-  })
+  await executeHumanOperation('browser.browser.state.clear.web.storage@1', this, [], [])
 })

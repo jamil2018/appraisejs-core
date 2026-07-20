@@ -6,13 +6,11 @@
 When(
   'the user generates a random first name and stores it inside the variable {string}',
   async function (this: CustomWorld, variableName: string) {
-    const data = generateRandomData(RandomDataType.FIRST_NAME)
-    try {
-      this.setVar(variableName, data)
-    } catch (error) {
-      throw new Error(
-        `Failed to generate a random first name and store it inside the variable ${variableName}: ${error}`,
-      )
-    }
+    await executeHumanOperation(
+      'browser.random.data.generate.random.first.name.and.save.in.variable@1',
+      this,
+      ['variableName'],
+      [variableName],
+    )
   },
 )

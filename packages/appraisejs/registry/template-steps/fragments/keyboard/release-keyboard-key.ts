@@ -4,5 +4,5 @@
  * @icon INPUT
  */
 When('the user releases the {string} keyboard key', async function (this: CustomWorld, key: string) {
-  await this.page.keyboard.up(key)
+  await executeHumanOperation('browser.keyboard.release.keyboard.key@1', this, ['key'], [key])
 })

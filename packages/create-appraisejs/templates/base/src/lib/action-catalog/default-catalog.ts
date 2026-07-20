@@ -1,252 +1,46 @@
-import { createActionCatalog, type ActionDescriptorDefinition } from './action-catalog'
+import { defaultOperationRegistry } from '@/lib/operation-catalog/default-operation-registry'
+import { projectOperationAsAction } from '@/lib/operation-catalog/action-projection'
 
-const categories = [
-  { id: 'browser', title: 'Browser', description: 'Actions executed in a browser runtime.' },
-  {
-    id: 'browser.navigation',
-    parentCategoryId: 'browser',
-    title: 'Navigation',
-    description: 'Navigate browser pages.',
-  },
-  { id: 'browser.mouse', parentCategoryId: 'browser', title: 'Mouse', description: 'Interact with pointer targets.' },
-  { id: 'browser.forms', parentCategoryId: 'browser', title: 'Forms', description: 'Edit browser form controls.' },
-  {
-    id: 'browser.keyboard',
-    parentCategoryId: 'browser',
-    title: 'Keyboard',
-    description: 'Use keyboard input and focus.',
-  },
-  {
-    id: 'browser.viewport',
-    parentCategoryId: 'browser',
-    title: 'Viewport',
-    description: 'Set and inspect viewport layout.',
-  },
-  { id: 'browser.waits', parentCategoryId: 'browser', title: 'Waits', description: 'Wait for browser state.' },
-  { id: 'browser.assertions', parentCategoryId: 'browser', title: 'Assertions', description: 'Assert browser state.' },
-] as const
+import { createActionCatalog, type ActionCategory, type ActionDescriptorDefinition } from './action-catalog'
 
-const input = (name: string, type: string, description: string) => ({ name, type, required: true, description })
-const browserAction = (
-  action: Pick<
-    ActionDescriptorDefinition,
-    'id' | 'title' | 'description' | 'categories' | 'inputs' | 'requirements' | 'examples'
-  > &
-    Partial<Pick<ActionDescriptorDefinition, 'assertionConcerns'>>,
-): ActionDescriptorDefinition => ({
-  ...action,
-  version: '1',
-  outputs: [],
-  assertionConcerns: action.assertionConcerns ?? [],
-  deprecated: false,
-})
+function readAllOperations() {
+  const summaries = []
+  let cursor: number | null = 0
+  while (cursor != null) {
+    const page = defaultOperationRegistry.list({ surface: 'agent' }, cursor, 100)
+    summaries.push(...page.items)
+    cursor = page.nextCursor
+  }
+  const definitions = []
+  for (let index = 0; index < summaries.length; index += 50) {
+    definitions.push(
+      ...defaultOperationRegistry.read(summaries.slice(index, index + 50).map(({ id, version }) => ({ id, version }))),
+    )
+  }
+  return definitions
+}
 
-const actions: ActionDescriptorDefinition[] = [
-  browserAction({
-    id: 'browser.navigation.goto',
-    title: 'Navigate to URL',
-    description: 'Navigate to an absolute or environment-relative URL.',
-    categories: ['browser.navigation'],
-    inputs: [input('url', 'string', 'Destination URL.')],
-    requirements: { runtime: 'browser', capabilities: ['navigation'] },
-    examples: [{ description: 'Open the home route.', inputs: { url: '/' } }],
-  }),
-  browserAction({
-    id: 'browser.navigation.reload',
-    title: 'Reload page',
-    description: 'Reload the current browser page.',
-    categories: ['browser.navigation'],
-    inputs: [],
-    requirements: { runtime: 'browser', capabilities: ['navigation'] },
-    examples: [{ description: 'Reload the current page.', inputs: {} }],
-  }),
-  browserAction({
-    id: 'browser.mouse.click',
-    title: 'Click element',
-    description: 'Click a resolved locator target.',
-    categories: ['browser.mouse'],
-    inputs: [input('target', 'locator', 'Locator reference to click.')],
-    requirements: { runtime: 'browser', capabilities: ['mouse'] },
-    examples: [{ description: 'Click submit.', inputs: { target: 'submit-button' } }],
-  }),
-  browserAction({
-    id: 'browser.forms.fill',
-    title: 'Fill field',
-    description: 'Replace a field value through a resolved locator.',
-    categories: ['browser.forms'],
-    inputs: [input('target', 'locator', 'Locator reference to fill.'), input('value', 'string', 'Value to enter.')],
-    requirements: { runtime: 'browser', capabilities: ['forms'] },
-    examples: [{ description: 'Fill a title.', inputs: { target: 'title-input', value: 'Meditate' } }],
-  }),
-  browserAction({
-    id: 'browser.keyboard.press',
-    title: 'Press keyboard key',
-    description: 'Press a portable Playwright keyboard key or chord.',
-    categories: ['browser.keyboard'],
-    inputs: [input('key', 'string', 'Key or chord such as Tab, Enter, or Shift+Tab.')],
-    requirements: { runtime: 'browser', capabilities: ['keyboard'] },
-    examples: [{ description: 'Move focus forward.', inputs: { key: 'Tab' } }],
-  }),
-  browserAction({
-    id: 'browser.keyboard.focus',
-    title: 'Focus element',
-    description: 'Move keyboard focus to a resolved locator.',
-    categories: ['browser.keyboard'],
-    inputs: [input('target', 'locator', 'Locator reference to focus.')],
-    requirements: { runtime: 'browser', capabilities: ['keyboard'] },
-    examples: [{ description: 'Focus the title input.', inputs: { target: 'title-input' } }],
-  }),
-  browserAction({
-    id: 'browser.viewport.set',
-    title: 'Set viewport size',
-    description: 'Set the browser viewport to an exact width and height.',
-    categories: ['browser.viewport'],
-    inputs: [
-      input('width', 'number', 'Viewport width in pixels.'),
-      input('height', 'number', 'Viewport height in pixels.'),
-    ],
-    requirements: { runtime: 'browser', capabilities: ['viewport'] },
-    examples: [{ description: 'Use a mobile viewport.', inputs: { width: 390, height: 844 } }],
-  }),
-  browserAction({
-    id: 'browser.waits.page-ready',
-    title: 'Wait for page',
-    description: 'Wait for the current page load state.',
-    categories: ['browser.waits'],
-    inputs: [],
-    requirements: { runtime: 'browser', capabilities: ['waits'] },
-    examples: [{ description: 'Wait after navigation.', inputs: {} }],
-  }),
-  browserAction({
-    id: 'browser.waits.duration',
-    title: 'Wait for duration',
-    description: 'Wait for a bounded number of seconds.',
-    categories: ['browser.waits'],
-    inputs: [
-      {
-        ...input('duration', 'number', 'Duration in seconds.'),
-        numeric: { unit: 'seconds', minimum: 0, maximum: 300 },
-      },
-    ],
-    requirements: { runtime: 'browser', capabilities: ['waits'] },
-    examples: [{ description: 'Wait briefly.', inputs: { duration: 1 } }],
-  }),
-  browserAction({
-    id: 'browser.waits.timeout',
-    title: 'Wait with timeout',
-    description: 'Wait using a bounded millisecond timeout.',
-    categories: ['browser.waits'],
-    inputs: [
-      {
-        ...input('timeout', 'number', 'Timeout in milliseconds.'),
-        numeric: { unit: 'milliseconds', minimum: 0, maximum: 300_000 },
-      },
-    ],
-    requirements: { runtime: 'browser', capabilities: ['waits'] },
-    examples: [{ description: 'Wait briefly.', inputs: { timeout: 1_000 } }],
-  }),
-  browserAction({
-    id: 'browser.assertions.visible',
-    title: 'Assert visible',
-    description: 'Assert that a resolved locator is visible.',
-    categories: ['browser.assertions'],
-    inputs: [input('target', 'locator', 'Locator reference to inspect.')],
-    requirements: { runtime: 'browser', capabilities: ['assertions'] },
-    examples: [{ description: 'Verify confirmation.', inputs: { target: 'confirmation' } }],
-  }),
-  browserAction({
-    id: 'browser.assertions.hidden',
-    title: 'Assert absent or hidden',
-    description: 'Assert that a resolved target is absent from the DOM or not visible.',
-    categories: ['browser.assertions'],
-    inputs: [input('target', 'locator', 'Locator reference to inspect.')],
-    requirements: { runtime: 'browser', capabilities: ['assertions'] },
-    examples: [{ description: 'Verify an error is absent.', inputs: { target: 'error-message' } }],
-  }),
-  browserAction({
-    id: 'browser.assertions.checked',
-    title: 'Assert checked state',
-    description: 'Assert the exact checked state of a form control.',
-    categories: ['browser.assertions'],
-    inputs: [
-      input('target', 'locator', 'Locator reference to inspect.'),
-      input('checked', 'boolean', 'Expected checked state.'),
-    ],
-    requirements: { runtime: 'browser', capabilities: ['assertions'] },
-    examples: [{ description: 'Verify completion.', inputs: { target: 'complete-checkbox', checked: true } }],
-  }),
-  browserAction({
-    id: 'browser.assertions.value',
-    title: 'Assert field value',
-    description: 'Assert the exact value of a form control.',
-    categories: ['browser.assertions'],
-    inputs: [input('target', 'locator', 'Locator reference to inspect.'), input('value', 'string', 'Expected value.')],
-    requirements: { runtime: 'browser', capabilities: ['assertions'] },
-    examples: [{ description: 'Verify title input.', inputs: { target: 'title-input', value: 'Meditate' } }],
-  }),
-  browserAction({
-    id: 'browser.assertions.text',
-    title: 'Assert text',
-    description: 'Assert that a resolved target contains expected text.',
-    categories: ['browser.assertions'],
-    inputs: [input('target', 'locator', 'Locator reference to inspect.'), input('text', 'string', 'Expected text.')],
-    requirements: { runtime: 'browser', capabilities: ['assertions'] },
-    examples: [{ description: 'Verify result text.', inputs: { target: 'result', text: 'Meditate' } }],
-  }),
-  browserAction({
-    id: 'browser.assertions.no-console-errors',
-    title: 'Assert no browser errors',
-    description: 'Assert that the page emitted no console errors or uncaught page errors during the scenario.',
-    categories: ['browser.assertions'],
-    inputs: [],
-    requirements: { runtime: 'browser', capabilities: ['assertions', 'console-observation'] },
-    examples: [{ description: 'Verify a clean browser console.', inputs: {} }],
-  }),
-  browserAction({
-    id: 'browser.assertions.no-failed-network-requests',
-    title: 'Assert no failed network requests',
-    description: 'Assert that the page emitted no failed requests or HTTP error responses during the scenario.',
-    categories: ['browser.assertions'],
-    inputs: [],
-    requirements: { runtime: 'browser', capabilities: ['assertions', 'network-observation'] },
-    examples: [{ description: 'Verify clean network activity.', inputs: {} }],
-  }),
-  {
-    ...browserAction({
-      id: 'browser.assertions.no-horizontal-overflow',
-      title: 'Assert no horizontal overflow',
-      description: 'Assert that the document width fits within the configured viewport.',
-      categories: ['browser.assertions', 'browser.viewport'],
-      inputs: [],
-      requirements: { runtime: 'browser', capabilities: ['assertions', 'viewport'] },
-      examples: [{ description: 'Verify narrow responsive layout.', inputs: {} }],
-    }),
-    assertionConcerns: ['responsive'],
-  },
-  {
-    ...browserAction({
-      id: 'browser.assertions.accessible',
-      title: 'Assert accessible',
-      description: 'Assert that the resolved target exposes an accessible name and role.',
-      categories: ['browser.assertions'],
-      inputs: [input('target', 'locator', 'Locator reference to inspect.')],
-      requirements: { runtime: 'browser', capabilities: ['assertions'] },
-      examples: [{ description: 'Verify accessible control semantics.', inputs: { target: 'start-button' } }],
-    }),
-    assertionConcerns: ['accessibility'],
-  },
-  {
-    ...browserAction({
-      id: 'browser.assertions.persisted',
-      title: 'Assert persisted result',
-      description: 'Assert that a persisted result is represented by the resolved target.',
-      categories: ['browser.assertions'],
-      inputs: [input('target', 'locator', 'Locator reference containing the persisted result.')],
-      requirements: { runtime: 'browser', capabilities: ['assertions'] },
-      examples: [{ description: 'Verify persisted completion.', inputs: { target: 'completion' } }],
-    }),
-    assertionConcerns: ['persistence'],
-  },
-]
+const operations = readAllOperations()
+const categoryIds = new Set<string>(['browser'])
+for (const operation of operations) {
+  for (const category of operation.categories) {
+    const parts = category.split('.')
+    for (let index = 1; index <= parts.length; index += 1) categoryIds.add(parts.slice(0, index).join('.'))
+  }
+}
 
-export const defaultActionCatalog = createActionCatalog({ categories: [...categories], actions })
+const categories: ActionCategory[] = [...categoryIds].sort().map(id => ({
+  id,
+  ...(id.includes('.') ? { parentCategoryId: id.slice(0, id.lastIndexOf('.')) } : {}),
+  title: id
+    .slice(id.lastIndexOf('.') + 1)
+    .split('-')
+    .map(part => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' '),
+  description: `Compatibility projection for canonical ${id} operations.`,
+}))
+
+const actions: ActionDescriptorDefinition[] = operations.map(projectOperationAsAction)
+
+/** @deprecated Use defaultOperationRegistry. This is a bounded compatibility projection only. */
+export const defaultActionCatalog = createActionCatalog({ categories, actions })

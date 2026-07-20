@@ -38,6 +38,16 @@
     },
     {
       "kind": "resource",
+      "name": "operation-catalog",
+      "uri": "appraise://operations/catalog"
+    },
+    {
+      "kind": "resource",
+      "name": "operation-catalog-contract",
+      "uri": "appraise://contracts/operation-catalog"
+    },
+    {
+      "kind": "resource",
       "name": "plan",
       "uri": "appraise://plans/{planId}"
     },
@@ -1427,6 +1437,117 @@
           "title",
           "milestones",
           "plans"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "operation_categories",
+      "description": "List bounded canonical operation categories; known manifest hashes return unchanged.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "knownManifestHash": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "operation_read",
+      "description": "Read exact canonical operation descriptors and handler identities for selected references.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operationRefs": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "operationRefs"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "operation_search",
+      "description": "Rank canonical operations by intent and exact capability filters before authoring validation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "parameterNames": {
+            "maxItems": 32,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "category": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "inputType": {
+            "type": "string"
+          },
+          "runtime": {
+            "type": "string",
+            "enum": [
+              "browser",
+              "api",
+              "node",
+              "database"
+            ]
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "human",
+              "agent"
+            ]
+          },
+          "deprecated": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "query"
         ],
         "additionalProperties": false
       }
@@ -3803,6 +3924,16 @@
     },
     {
       "kind": "resource",
+      "name": "operation-catalog",
+      "uri": "appraise://operations/catalog"
+    },
+    {
+      "kind": "resource",
+      "name": "operation-catalog-contract",
+      "uri": "appraise://contracts/operation-catalog"
+    },
+    {
+      "kind": "resource",
       "name": "plan",
       "uri": "appraise://plans/{planId}"
     },
@@ -5202,6 +5333,117 @@
           "title",
           "milestones",
           "plans"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "operation_categories",
+      "description": "List bounded canonical operation categories; known manifest hashes return unchanged.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "knownManifestHash": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "operation_read",
+      "description": "Read exact canonical operation descriptors and handler identities for selected references.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operationRefs": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "operationRefs"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "kind": "tool",
+      "name": "operation_search",
+      "description": "Rank canonical operations by intent and exact capability filters before authoring validation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "parameterNames": {
+            "maxItems": 32,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "category": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "inputType": {
+            "type": "string"
+          },
+          "runtime": {
+            "type": "string",
+            "enum": [
+              "browser",
+              "api",
+              "node",
+              "database"
+            ]
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "human",
+              "agent"
+            ]
+          },
+          "deprecated": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "query"
         ],
         "additionalProperties": false
       }

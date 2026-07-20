@@ -48,21 +48,28 @@ model LinkedJiraTicket {
 }
 
 model TemplateStep {
-  id                   String                  @id @default(uuid())
-  name                 String
-  description          String?
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
-  signature            String
-  functionDefinition   String?
-  type                 TemplateStepType
-  icon                 TemplateStepIcon
-  templateStepGroupId  String
-  templateStepGroup    TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
-  parameters           TemplateStepParameter[]
-  TemplateTestCaseStep TemplateTestCaseStep[]
-  TestCaseStep         TestCaseStep[]
-  StepBlockStep        StepBlockStep[]
+  id                      String                  @id @default(uuid())
+  name                    String
+  description             String?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  signature               String
+  functionDefinition      String?
+  operationId             String?
+  operationVersion        String?
+  operationDescriptorHash String?
+  humanProjectionId       String?
+  operationMigrationState String?
+  type                    TemplateStepType
+  icon                    TemplateStepIcon
+  templateStepGroupId     String
+  templateStepGroup       TemplateStepGroup       @relation("TemplateStepGroupSteps", fields: [templateStepGroupId], references: [id], onDelete: Cascade)
+  parameters              TemplateStepParameter[]
+  TemplateTestCaseStep    TemplateTestCaseStep[]
+  TestCaseStep            TestCaseStep[]
+  StepBlockStep           StepBlockStep[]
+
+  @@index([operationId, operationVersion])
 }
 
 model TemplateStepParameter {
@@ -105,13 +112,15 @@ model StepBlock {
 }
 
 model StepBlockStep {
-  id             String       @id @default(uuid())
-  stepBlockId    String
-  templateStepId String
-  order          Int
-  parameterMap   String       @default("{}")
-  stepBlock      StepBlock    @relation(fields: [stepBlockId], references: [id], onDelete: Cascade)
-  templateStep   TemplateStep @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  id                      String       @id @default(uuid())
+  stepBlockId             String
+  templateStepId          String
+  order                   Int
+  parameterMap            String       @default("{}")
+  operationInvocationJson String?
+  compositionVersionHash  String?
+  stepBlock               StepBlock    @relation(fields: [stepBlockId], references: [id], onDelete: Cascade)
+  templateStep            TemplateStep @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
 
   @@unique([stepBlockId, order])
 }
@@ -137,17 +146,18 @@ model TestCase {
 }
 
 model TestCaseStep {
-  id             String                  @id @default(uuid())
-  flowNodeId     String?
-  testCaseId     String
-  order          Int
-  gherkinStep    String
-  icon           TemplateStepIcon
-  label          String
-  templateStepId String
-  TemplateStep   TemplateStep            @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-  testCase       TestCase                @relation(fields: [testCaseId], references: [id])
-  parameters     TestCaseStepParameter[]
+  id                      String                  @id @default(uuid())
+  flowNodeId              String?
+  testCaseId              String
+  order                   Int
+  gherkinStep             String
+  icon                    TemplateStepIcon
+  label                   String
+  templateStepId          String
+  operationInvocationJson String?
+  TemplateStep            TemplateStep            @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  testCase                TestCase                @relation(fields: [testCaseId], references: [id])
+  parameters              TestCaseStepParameter[]
 }
 
 model TestCaseFlowBlock {
@@ -181,17 +191,18 @@ model TemplateTestCase {
 }
 
 model TemplateTestCaseStep {
-  id                 String                          @id @default(uuid())
-  flowNodeId         String?
-  order              Int
-  gherkinStep        String
-  icon               TemplateStepIcon
-  label              String
-  templateTestCaseId String
-  templateStepId     String
-  TemplateStep       TemplateStep                    @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-  templateTestCase   TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
-  parameters         TemplateTestCaseStepParameter[]
+  id                      String                          @id @default(uuid())
+  flowNodeId              String?
+  order                   Int
+  gherkinStep             String
+  icon                    TemplateStepIcon
+  label                   String
+  templateTestCaseId      String
+  templateStepId          String
+  operationInvocationJson String?
+  TemplateStep            TemplateStep                    @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  templateTestCase        TemplateTestCase                @relation(fields: [templateTestCaseId], references: [id])
+  parameters              TemplateTestCaseStepParameter[]
 }
 
 model TemplateTestCaseFlowBlock {

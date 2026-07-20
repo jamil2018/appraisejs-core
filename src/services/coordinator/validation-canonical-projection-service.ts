@@ -131,19 +131,29 @@ function parameterType(type: string | undefined) {
   return StepParameterType.STRING
 }
 
-async function ensureValidationTemplateStep(
-  step: ValidationArtifact['validations'][number]['appraiseArtifacts']['testCases'][number]['steps'][number],
-  client: ProjectionClient,
-) {
+type ValidationStep =
+  ValidationArtifact['validations'][number]['appraiseArtifacts']['testCases'][number]['steps'][number]
+
+async function findMappedValidationTemplateStep(step: ValidationStep, client: ProjectionClient) {
   if (step.templateStepId) {
     const existing = await client.templateStep.findUnique({ where: { id: step.templateStepId } })
     if (existing) return existing
   }
-  if (step.templateStepName) {
-    const existing = await client.templateStep.findFirst({ where: { name: step.templateStepName } })
-    if (existing) return existing
-  }
-  const group =
+  if (!step.operationRef) return null
+  const separator = step.operationRef.lastIndexOf('@')
+  const existing = await client.templateStep.findFirst({
+    where: {
+      operationId: step.operationRef.slice(0, separator),
+      operationVersion: step.operationRef.slice(separator + 1),
+      operationMigrationState: 'mapped',
+    },
+  })
+  if (!existing) throw new Error(`Canonical operation projection ${step.operationRef} is not synchronized.`)
+  return existing
+}
+
+async function validationTemplateStepGroup(client: ProjectionClient) {
+  return (
     (await client.templateStepGroup.findFirst({ where: { name: validationStepGroupName } })) ??
     (await client.templateStepGroup.create({
       data: {
@@ -152,6 +162,17 @@ async function ensureValidationTemplateStep(
         type: TemplateStepGroupType.VALIDATION,
       },
     }))
+  )
+}
+
+async function ensureValidationTemplateStep(step: ValidationStep, client: ProjectionClient) {
+  const mapped = await findMappedValidationTemplateStep(step, client)
+  if (mapped) return mapped
+  if (step.templateStepName) {
+    const existing = await client.templateStep.findFirst({ where: { name: step.templateStepName } })
+    if (existing) return existing
+  }
+  const group = await validationTemplateStepGroup(client)
   const name = step.templateStepName ?? `Validation step ${step.id}`
   const existing = await client.templateStep.findFirst({ where: { name, templateStepGroupId: group.id } })
   if (existing) return existing

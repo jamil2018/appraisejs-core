@@ -6,7 +6,11 @@
 Then(
   'session storage key {string} should equal {string}',
   async function (this: CustomWorld, key: string, expected: string) {
-    const actual = await this.page.evaluate(storageKey => sessionStorage.getItem(storageKey), key)
-    expect(actual ?? '').to.equal(expected)
+    await executeHumanOperation(
+      'browser.browser.assertion.assert.session.storage.value@1',
+      this,
+      ['key', 'expected'],
+      [key, expected],
+    )
   },
 )

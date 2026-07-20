@@ -4,9 +4,5 @@
  * @icon NAVIGATION
  */
 When('the user goes back to the previous page', async function (this: CustomWorld) {
-  try {
-    await this.page.goBack({ waitUntil: 'domcontentloaded' })
-  } catch (error) {
-    throw new Error(`Failed to go back to the previous page: ${error}`)
-  }
+  await executeHumanOperation('browser.navigation.go.back@1', this, [], [])
 })

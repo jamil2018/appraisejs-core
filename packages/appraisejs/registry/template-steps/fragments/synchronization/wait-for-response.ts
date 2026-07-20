@@ -6,6 +6,11 @@
 When(
   'the user waits for a response url containing {string} with status {int}',
   async function (this: CustomWorld, urlPart: string, status: number) {
-    await this.page.waitForResponse(response => response.url().includes(urlPart) && response.status() === status)
+    await executeHumanOperation(
+      'browser.synchronization.wait.for.response@1',
+      this,
+      ['urlPart', 'status'],
+      [urlPart, status],
+    )
   },
 )

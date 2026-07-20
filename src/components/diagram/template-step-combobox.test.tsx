@@ -11,17 +11,31 @@ import type { TemplateStepWithGroup } from '@/types/diagram/template-step'
 
 function buildTemplateStep(step: Partial<TemplateStepWithGroup> = {}): TemplateStepWithGroup {
   const groupId = step.templateStepGroupId ?? 'group-actions'
+  const timestamp = new Date('2026-01-01T00:00:00.000Z')
+  const defaults = {
+    id: 'step-1',
+    name: 'Click button',
+    description: 'Clicks the target button',
+    signature: 'click {string}',
+    functionDefinition: '',
+    type: TemplateStepType.ACTION,
+    icon: TemplateStepIcon.MOUSE,
+    operationId: null,
+    operationVersion: null,
+    operationDescriptorHash: null,
+    humanProjectionId: null,
+    operationMigrationState: 'manual-only-custom',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    parameters: [
+      { id: 'param-target', name: 'target' },
+      { id: 'param-timeout', name: 'timeoutMs' },
+    ],
+  } satisfies Omit<TemplateStepWithGroup, 'templateStepGroupId' | 'templateStepGroup'>
   return {
-    id: step.id ?? 'step-1',
-    name: step.name ?? 'Click button',
-    description: step.description ?? 'Clicks the target button',
-    signature: step.signature ?? 'click {string}',
-    functionDefinition: step.functionDefinition ?? '',
-    type: step.type ?? TemplateStepType.ACTION,
-    icon: step.icon ?? TemplateStepIcon.MOUSE,
+    ...defaults,
+    ...step,
     templateStepGroupId: groupId,
-    createdAt: step.createdAt ?? new Date('2026-01-01T00:00:00.000Z'),
-    updatedAt: step.updatedAt ?? new Date('2026-01-01T00:00:00.000Z'),
     templateStepGroup: step.templateStepGroup ?? {
       id: groupId,
       name: 'actions',
@@ -31,10 +45,6 @@ function buildTemplateStep(step: Partial<TemplateStepWithGroup> = {}): TemplateS
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     },
-    parameters: step.parameters ?? [
-      { id: 'param-target', name: 'target' },
-      { id: 'param-timeout', name: 'timeoutMs' },
-    ],
   }
 }
 

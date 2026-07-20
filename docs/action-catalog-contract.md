@@ -1,11 +1,13 @@
-# Action Catalog Contract
+# Action Catalog Compatibility Contract
 
-The action catalog is a versioned, read-only discovery contract. It does not change existing validation authoring or
-select an action for an agent.
+> Deprecated authoring surface: use the canonical operation catalog in `docs/operation-catalog-contract.md`. These
+> action APIs remain bounded compatibility aliases for older clients.
 
-Canonical contract code lives in `src/lib/action-catalog`. Catalog definitions contain categories and versioned action
-descriptors. Construction validates category, replacement, and `(id, version)` references, then calculates stable
-SHA-256 hashes independent of definition order.
+The action catalog is a versioned, read-only projection of the canonical operation registry. It does not own
+definitions, validation compilation, or runtime behavior.
+
+Compatibility contract code lives in `src/lib/action-catalog`. `defaultActionCatalog` derives categories and
+descriptors from `defaultOperationRegistry`; adding definitions here is prohibited.
 
 Discovery is progressive:
 
@@ -16,8 +18,8 @@ Discovery is progressive:
 3. `readActions(refs)` returns complete descriptors, including inputs, outputs, requirements, examples, deprecation,
    replacement, and descriptor hash. Callers must provide a version when an ID has multiple versions.
 
-The initial contract version is `1`. Limits are between 1 and 100. The default catalog projects the shared browser
-navigation, mouse, form, wait, and assertion behaviors supported by the runtime step library.
+The compatibility contract version is `1`. Limits are between 1 and 100. The default catalog projects every
+agent-supported canonical operation.
 
 Operational adapters use the same canonical catalog:
 

@@ -4,5 +4,5 @@
  * @icon INPUT
  */
 When('the user answers the next browser prompt with {string}', async function (this: CustomWorld, value: string) {
-  this.page.once('dialog', dialog => dialog.accept(value))
+  await executeHumanOperation('browser.tabs.frames.dialogs.answer.next.prompt.dialog@1', this, ['value'], [value])
 })

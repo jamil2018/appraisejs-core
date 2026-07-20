@@ -6,11 +6,11 @@
 When(
   'the user sets local storage key {string} from variable {string}',
   async function (this: CustomWorld, key: string, variableName: string) {
-    const value = this.getVar<unknown>(variableName)
-    if (typeof value !== 'string') throw new Error(`Stored variable ${variableName} must contain a string`)
-    await this.page.evaluate(
-      ([storageKey, storageValue]) => localStorage.setItem(storageKey, storageValue),
-      [key, value],
+    await executeHumanOperation(
+      'browser.browser.state.set.storage.from.variable@1',
+      this,
+      ['key', 'variableName'],
+      [key, variableName],
     )
   },
 )

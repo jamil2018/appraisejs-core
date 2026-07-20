@@ -14,6 +14,20 @@ import {
 } from '@/services/project-resource/project-resource-ownership-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
+const reusableTemplateStepSelect = {
+  id: true,
+  name: true,
+  description: true,
+  signature: true,
+  templateStepGroupId: true,
+  operationId: true,
+  operationVersion: true,
+  operationDescriptorHash: true,
+  humanProjectionId: true,
+  operationMigrationState: true,
+  parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
+  templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
+} as const
 type ReusableRef = {
   id: string
   name?: string
@@ -25,6 +39,13 @@ type ReusableRef = {
   groupDescription?: string | null
   groupType?: string
   path?: string
+  canonicalOperation?: {
+    id: string
+    version: string
+    descriptorHash: string
+    humanProjectionId: string
+  }
+  managedAuthoringStatus?: 'ready' | 'handler-migration-required' | 'composition-migration-required'
 }
 
 function hashContent(content: string) {
@@ -159,15 +180,7 @@ async function readPlanContext(planId: string, options: Options = {}) {
 async function readReusableResources(client: PrismaClient, targetProjectId: string) {
   const [templateSteps, stepBlocks] = await Promise.all([
     client.templateStep.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        signature: true,
-        templateStepGroupId: true,
-        parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
-        templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
-      },
+      select: reusableTemplateStepSelect,
       orderBy: { name: 'asc' },
     }),
     client.stepBlock.findMany({
@@ -180,15 +193,7 @@ async function readReusableResources(client: PrismaClient, targetProjectId: stri
           orderBy: { order: 'asc' },
           select: {
             templateStep: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                signature: true,
-                templateStepGroupId: true,
-                parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
-                templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
-              },
+              select: reusableTemplateStepSelect,
             },
           },
         },
@@ -209,6 +214,15 @@ type ResolvedTemplateStep = ReusableResources['templateSteps'][number]
 type ResolvedStepBlock = ReusableResources['stepBlocks'][number]
 
 function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
+  const canonicalOperation =
+    step.operationId && step.operationVersion && step.operationDescriptorHash && step.humanProjectionId
+      ? {
+          id: step.operationId,
+          version: step.operationVersion,
+          descriptorHash: step.operationDescriptorHash,
+          humanProjectionId: step.humanProjectionId,
+        }
+      : undefined
   return {
     id: step.id,
     name: step.name,
@@ -220,11 +234,13 @@ function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
     groupDescription: step.templateStepGroup.description,
     groupType: step.templateStepGroup.type,
     path: templateStepGroupPath(step.templateStepGroup.name, step.templateStepGroup.type),
+    ...(canonicalOperation ? { canonicalOperation } : {}),
+    managedAuthoringStatus: canonicalOperation ? 'ready' : 'handler-migration-required',
   }
 }
 
 function stepBlockRef(block: ResolvedStepBlock): ReusableRef {
-  return { id: block.id, name: block.name }
+  return { id: block.id, name: block.name, managedAuthoringStatus: 'composition-migration-required' }
 }
 
 // fallow-ignore-next-line complexity
@@ -267,9 +283,11 @@ export async function resolveReusableValidationSteps(
       returnedCandidates: templateSteps.length + stepBlocks.length,
       durationMs: Date.now() - startedAt,
     },
-    nextRecommendedAction: selected
-      ? 'Use the selected reusable reference while authoring the managed Validation AST, then call validation_ast_check.'
-      : 'Review the bounded alternatives, then propose a justified custom step only if none is compatible.',
+    nextRecommendedAction: selected?.canonicalOperation
+      ? 'Use selected.canonicalOperation as the managed AST operation reference, then call validation_ast_check.'
+      : selected
+        ? 'This human reusable result is not yet managed-authoring ready. Call operation_search for a canonical equivalent; do not copy its source or invent an overlapping custom operation.'
+        : 'Review the bounded alternatives and call operation_search, then propose a justified custom operation only if no canonical capability is compatible.',
   }
 }
 
@@ -325,25 +343,25 @@ function starterSubmission(
           id: `${scenarioId}-navigate`,
           keyword: 'Given' as const,
           description: 'the agent opens the target application',
-          action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+          operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
         },
         {
           id: `${scenarioId}-observe`,
           keyword: 'When' as const,
           description: 'the agent waits for the application to become ready',
-          action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+          operation: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
         },
         {
           id: `${scenarioId}-console-clean`,
           keyword: 'Then' as const,
           description: 'the browser reports no console or page errors',
-          action: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+          operation: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
         },
         {
           id: `${scenarioId}-network-clean`,
           keyword: 'And' as const,
           description: 'the browser reports no failed network activity',
-          action: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+          operation: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
         },
       ],
     }

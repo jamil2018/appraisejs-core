@@ -28,8 +28,8 @@ export function ExactExecutionPreview({
         </dl>
         <div className="grid gap-3 lg:grid-cols-2">
           <PreviewList
-            title="Selected actions"
-            values={preview.actions.map(action => `${action.id}@${action.version}`)}
+            title="Selected operations"
+            values={preview.operations.map(operation => `${operation.id}@${operation.version}`)}
           />
           <PreviewList
             title="Selected locators"

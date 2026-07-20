@@ -65,13 +65,31 @@ describe('projectPlanFlow', () => {
     ])
   })
 
-  it('keeps disconnected tasks deterministic and ignores non-sequencing relationships for ordering', () => {
+  it('uses blocks edges as forward implementation sequencing constraints', () => {
+    const result = projectPlanFlow(
+      graph(
+        ['foundation', 'storage', 'experience'],
+        [
+          { id: 'foundation-blocks-storage', from: 'foundation', to: 'storage', type: 'blocks' },
+          { id: 'storage-blocks-experience', from: 'storage', to: 'experience', type: 'blocks' },
+        ],
+      ),
+    )
+
+    expect(result.tasks.map(({ id, stage }) => ({ id, stage }))).toEqual([
+      { id: 'foundation', stage: 0 },
+      { id: 'storage', stage: 1 },
+      { id: 'experience', stage: 2 },
+    ])
+  })
+
+  it('keeps disconnected tasks deterministic and ignores relates-to relationships for ordering', () => {
     const result = projectPlanFlow(
       graph(
         ['related', 'blocked', 'dependent', 'prerequisite'],
         [
           { id: 'related-relates-to-dependent-0', from: 'related', to: 'dependent', type: 'relates-to' },
-          { id: 'blocked-blocks-prerequisite-0', from: 'blocked', to: 'prerequisite', type: 'blocks' },
+          { id: 'blocked-relates-to-prerequisite-0', from: 'blocked', to: 'prerequisite', type: 'relates-to' },
           dependsOn('dependent', 'prerequisite'),
         ],
       ),
@@ -82,7 +100,7 @@ describe('projectPlanFlow', () => {
     expect(result.edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: 'relates-to', source: 'related', target: 'dependent' }),
-        expect.objectContaining({ type: 'blocks', source: 'blocked', target: 'prerequisite' }),
+        expect.objectContaining({ type: 'relates-to', source: 'blocked', target: 'prerequisite' }),
       ]),
     )
   })
@@ -91,6 +109,18 @@ describe('projectPlanFlow', () => {
     const result = projectPlanFlow(graph(['parallel-b', 'parallel-a', 'later'], [dependsOn('later', 'parallel-a')]))
 
     expect(result.tasks.map(task => task.id)).toEqual(['parallel-b', 'parallel-a', 'later'])
+  })
+
+  it('projects durable implementation task states over plan-review readiness states', () => {
+    const result = projectPlanFlow(graph(['foundation', 'experience']), {
+      foundation: 'verified',
+      experience: 'implemented',
+    })
+
+    expect(result.tasks.map(({ id, status }) => ({ id, status }))).toEqual([
+      { id: 'foundation', status: 'verified' },
+      { id: 'experience', status: 'implemented' },
+    ])
   })
 
   it('falls back deterministically for cycles and invalid edges without crashing', () => {

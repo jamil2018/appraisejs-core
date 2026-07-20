@@ -6,8 +6,11 @@
 Then(
   'the {string} element editable status should be {boolean}',
   async function (this: CustomWorld, elementName: SelectorName, expected: boolean) {
-    const selector = await resolveLocator(this.page, elementName, { validate: { requireVisible: false } })
-    if (!selector) throw new Error(`Selector ${elementName} not found`)
-    expect(await this.page.locator(selector).isEditable()).to.equal(expected)
+    await executeHumanOperation(
+      'browser.element.state.assertion.assert.element.editable@1',
+      this,
+      ['elementName', 'expected'],
+      [elementName, expected],
+    )
   },
 )

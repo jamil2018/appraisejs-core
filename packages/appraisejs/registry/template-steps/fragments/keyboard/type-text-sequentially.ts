@@ -6,8 +6,11 @@
 When(
   'the user types {string} sequentially into the {string} element with delay {int} milliseconds',
   async function (this: CustomWorld, value: string, elementName: SelectorName, delay: number) {
-    const selector = await resolveLocator(this.page, elementName)
-    if (!selector) throw new Error(`Selector ${elementName} not found`)
-    await this.page.locator(selector).pressSequentially(value, { delay })
+    await executeHumanOperation(
+      'browser.keyboard.type.text.sequentially@1',
+      this,
+      ['value', 'elementName', 'delay'],
+      [value, elementName, delay],
+    )
   },
 )

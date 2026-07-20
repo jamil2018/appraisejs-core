@@ -1,4 +1,5 @@
 export const ACTION_CATALOG_CONTRACT_VERSION = '1' as const
+export const OPERATION_CATALOG_CONTRACT_VERSION = '1' as const
 export const LOCATOR_GRAPH_CONTRACT_VERSION = '1' as const
 export const VALIDATION_AST_SCHEMA_VERSION = 1 as const
 export const DELEGATED_AUTHORIZATION_VERSION = '1' as const
@@ -56,24 +57,28 @@ export const VALIDATION_AST_JSON_SCHEMA = {
         },
       ],
     },
+    operationRef: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'version', 'inputs'],
+      properties: {
+        id: { type: 'string' },
+        version: { type: 'string' },
+        descriptorHash: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' },
+        inputs: { type: 'object', additionalProperties: { $ref: '#/$defs/value' }, maxProperties: 32 },
+      },
+    },
     step: {
       type: 'object',
       additionalProperties: false,
-      required: ['id', 'keyword', 'description', 'action'],
+      required: ['id', 'keyword', 'description'],
+      oneOf: [{ required: ['operation'] }, { required: ['action'] }],
       properties: {
         id: { $ref: '#/$defs/id' },
         keyword: { enum: ['Given', 'When', 'Then', 'And'] },
         description: { type: 'string', minLength: 1, maxLength: 2000 },
-        action: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['id', 'version', 'inputs'],
-          properties: {
-            id: { type: 'string' },
-            version: { type: 'string' },
-            inputs: { type: 'object', additionalProperties: { $ref: '#/$defs/value' }, maxProperties: 32 },
-          },
-        },
+        operation: { $ref: '#/$defs/operationRef' },
+        action: { $ref: '#/$defs/operationRef' },
         store: {
           type: 'object',
           additionalProperties: false,
@@ -221,7 +226,14 @@ export type ValidationAst = {
       id: string
       keyword: 'Given' | 'When' | 'Then' | 'And'
       description: string
-      action: { id: string; version: string; inputs: Record<string, ValidationAstValue> }
+      operation?: {
+        id: string
+        version: string
+        descriptorHash?: string
+        inputs: Record<string, ValidationAstValue>
+      }
+      /** Legacy compatibility input; new submissions should use operation. */
+      action?: { id: string; version: string; descriptorHash?: string; inputs: Record<string, ValidationAstValue> }
       store?: { output: string; as: string }
     }>
   }>

@@ -6,8 +6,11 @@
 When(
   'the user selects option index {int} from the {string} dropdown',
   async function (this: CustomWorld, index: number, elementName: SelectorName) {
-    const selector = await resolveLocator(this.page, elementName)
-    if (!selector) throw new Error(`Selector ${elementName} not found`)
-    await this.page.locator(selector).selectOption({ index })
+    await executeHumanOperation(
+      'browser.forms.select.dropdown.option.by.index@1',
+      this,
+      ['index', 'elementName'],
+      [index, elementName],
+    )
   },
 )

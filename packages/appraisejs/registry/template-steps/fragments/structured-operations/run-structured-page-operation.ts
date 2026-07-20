@@ -6,10 +6,11 @@
 When(
   'the user runs page operation {string} with arguments {string} and options {string}',
   async function (this: CustomWorld, operation: string, argumentsJson: string, optionsJson: string) {
-    try {
-      await runPageTemplateOperation(this.page, operation, argumentsJson, optionsJson, name => this.getVar(name))
-    } catch (error) {
-      throw new Error(`Structured page operation ${operation} failed: ${error}`)
-    }
+    await executeHumanOperation(
+      'browser.structured.operations.run.structured.page.operation@1',
+      this,
+      ['operation', 'argumentsJson', 'optionsJson'],
+      [operation, argumentsJson, optionsJson],
+    )
   },
 )

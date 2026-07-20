@@ -4,5 +4,5 @@
  * @icon NAVIGATION
  */
 When('the user dismisses the next browser dialog', async function (this: CustomWorld) {
-  this.page.once('dialog', dialog => dialog.dismiss())
+  await executeHumanOperation('browser.tabs.frames.dialogs.dismiss.next.dialog@1', this, [], [])
 })

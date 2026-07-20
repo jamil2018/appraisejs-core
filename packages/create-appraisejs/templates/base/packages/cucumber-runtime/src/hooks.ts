@@ -2,9 +2,9 @@ import { After, AfterAll, AfterStep, Before, BeforeAll, setDefaultTimeout } from
 import { config } from 'dotenv'
 import { promises as fs } from 'fs'
 import { chromium, firefox, webkit, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright'
-import { getAutomationScreenshotDir, getAutomationTraceDir, toProjectRelativePath } from './paths.js'
-import { BrowserName } from './types.js'
-import { CustomWorld } from './world.js'
+import { getAutomationScreenshotDir, getAutomationTraceDir, toProjectRelativePath } from './paths.ts'
+import { BrowserName } from './types.ts'
+import { CustomWorld } from './world.ts'
 
 config()
 

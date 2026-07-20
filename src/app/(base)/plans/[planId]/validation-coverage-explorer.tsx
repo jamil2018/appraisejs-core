@@ -4,30 +4,47 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PlanReviewDetail } from '@/services/plan-review/plan-review-service'
 
+function mappingStepIds(mapping: { observationStepIds: string[]; stimulusStepIds?: string[] }) {
+  return [...(Array.isArray(mapping.stimulusStepIds) ? mapping.stimulusStepIds : []), ...mapping.observationStepIds]
+}
+
+function validationCoverageRow(detail: PlanReviewDetail, task: PlanReviewDetail['plan']['tasks'][number]) {
+  const validations = (detail.validation?.validations ?? []).filter(validation => validation.taskIds.includes(task.id))
+  const mappings = validations.flatMap(validation =>
+    (validation.coverageArgument?.mappings ?? []).filter(mapping => mapping.targetId === task.id),
+  )
+  const previewMappings = (detail.validationAstPreview?.coverage ?? []).filter(
+    mapping => mapping.kind === 'task' && mapping.targetId === task.id,
+  )
+  const effectiveMappings = mappings.length ? mappings : previewMappings
+  const covered = effectiveMappings.some(mapping => mapping.state === 'covered')
+  const state = covered
+    ? ('covered' as const)
+    : effectiveMappings.length
+      ? ('partial' as const)
+      : ('uncovered' as const)
+  const validationIds = validations.length
+    ? validations.map(validation => validation.id)
+    : previewMappings.map(() => detail.validationAstPreview!.astId).slice(0, 1)
+  return {
+    taskId: task.id,
+    title: task.title,
+    intent: task.validationIntent,
+    state,
+    validationIds,
+    scenarioIds: [...new Set(effectiveMappings.flatMap(mapping => mapping.scenarioIds))],
+    stepIds: [...new Set(effectiveMappings.flatMap(mappingStepIds))],
+  }
+}
+
 export function validationCoverageRows(detail: PlanReviewDetail) {
-  return detail.plan.tasks.map(task => {
-    const validations = (detail.validation?.validations ?? []).filter(validation =>
-      validation.taskIds.includes(task.id),
-    )
-    const mappings = validations.flatMap(validation =>
-      (validation.coverageArgument?.mappings ?? []).filter(mapping => mapping.targetId === task.id),
-    )
-    const covered = mappings.some(mapping => mapping.state === 'covered')
-    return {
-      taskId: task.id,
-      title: task.title,
-      intent: task.validationIntent,
-      state: covered ? ('covered' as const) : mappings.length ? ('partial' as const) : ('uncovered' as const),
-      validationIds: validations.map(validation => validation.id),
-      scenarioIds: [...new Set(mappings.flatMap(mapping => mapping.scenarioIds))],
-      stepIds: [...new Set(mappings.flatMap(mapping => [...mapping.stimulusStepIds, ...mapping.observationStepIds]))],
-    }
-  })
+  return detail.plan.tasks.map(task => validationCoverageRow(detail, task))
 }
 
 export function ValidationCoverageExplorer({ detail }: { detail: PlanReviewDetail }) {
   const rows = validationCoverageRows(detail)
   const preview = detail.exactExecutionPreview
+  const uncoveredCount = rows.filter(row => row.state !== 'covered').length
   return (
     <Card aria-labelledby="validation-coverage-title">
       <CardHeader className="pb-3">
@@ -62,9 +79,13 @@ export function ValidationCoverageExplorer({ detail }: { detail: PlanReviewDetai
           ))}
         </div>
         <p className="text-muted-foreground">
-          Reviewed runtime selection: {preview?.actions.length ?? 0} actions, {preview?.locators.length ?? 0} locators,
-          {preview?.scenarios.length ?? 0} scenarios. Uncovered intent blocks readiness until the agent authors an
-          explicit mapping and Appraise validates it.
+          Reviewed runtime selection: {preview?.operations.length ?? 0} operations, {preview?.locators.length ?? 0}{' '}
+          locators, {preview?.scenarios.length ?? detail.validationAstPreview?.scenarios.length ?? 0} scenarios.{' '}
+          {uncoveredCount
+            ? 'Uncovered intent blocks readiness until the agent authors an explicit mapping and Appraise validates it.'
+            : detail.validation?.validations.length
+              ? 'Every task is covered by the published validation mapping.'
+              : 'Every task is covered by the validated AST preview; publish it to create the managed validation.'}
         </p>
       </CardContent>
     </Card>

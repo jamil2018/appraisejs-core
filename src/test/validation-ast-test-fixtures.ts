@@ -1,8 +1,15 @@
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { PrismaClient } from '@prisma/client'
+import {
+  PrismaClient,
+  StepParameterType,
+  TemplateStepGroupType,
+  TemplateStepIcon,
+  TemplateStepType,
+} from '@prisma/client'
 
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import {
   copyMigratedTestDatabase,
   prepareCleanCoordinatorPlanRuntimeTestDatabase,
@@ -28,7 +35,7 @@ export function basicValidationAstSubmission(planHash: string, taskId = 'task-on
               id: 'open',
               keyword: 'When' as const,
               description: 'the user opens home',
-              action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+              operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
             },
           ],
         },
@@ -60,25 +67,25 @@ export function inadequateFreshTargetAuditSubmission(planHash: string) {
               id: 'open',
               keyword: 'When' as const,
               description: 'the user opens the application',
-              action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+              operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
             },
             {
               id: 'ready',
               keyword: 'Then' as const,
               description: 'the page is ready',
-              action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+              operation: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
             },
             {
               id: 'reload',
               keyword: 'When' as const,
               description: 'the user reloads the application',
-              action: { id: 'browser.navigation.reload', version: '1', inputs: {} },
+              operation: { id: 'browser.navigation.reload', version: '1', inputs: {} },
             },
             {
               id: 'ready-again',
               keyword: 'Then' as const,
               description: 'the page is ready again',
-              action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+              operation: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
             },
           ],
         },
@@ -92,6 +99,70 @@ export function inadequateFreshTargetAuditSubmission(planHash: string) {
 
 export function sqliteTestClient(databasePath: string) {
   return new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
+}
+
+const testParameterType = (type: string): StepParameterType => {
+  if (type === 'number') return StepParameterType.NUMBER
+  if (type === 'boolean') return StepParameterType.BOOLEAN
+  if (type === 'locator') return StepParameterType.LOCATOR
+  return StepParameterType.STRING
+}
+
+export async function seedCanonicalOperationProjections(client: PrismaClient) {
+  const summaries = [
+    ...defaultOperationRegistry.list({}, 0, 100).items,
+    ...defaultOperationRegistry.list({}, 100, 100).items,
+  ]
+  const descriptors = summaries.flatMap((_, offset) =>
+    offset % 50 === 0
+      ? defaultOperationRegistry.read(summaries.slice(offset, offset + 50).map(({ id, version }) => ({ id, version })))
+      : [],
+  )
+  const groups = new Map<string, string>()
+
+  for (const descriptor of descriptors) {
+    for (const projection of descriptor.humanProjections) {
+      let groupId = groups.get(projection.group)
+      if (!groupId) {
+        const group = await client.templateStepGroup.upsert({
+          where: { name: projection.group },
+          update: {},
+          create: {
+            name: projection.group,
+            type: descriptor.categories.some(category => category.includes('assertion'))
+              ? TemplateStepGroupType.VALIDATION
+              : TemplateStepGroupType.ACTION,
+          },
+        })
+        groupId = group.id
+        groups.set(projection.group, group.id)
+      }
+      await client.templateStep.create({
+        data: {
+          name: projection.title,
+          description: projection.description,
+          signature: projection.signature,
+          operationId: descriptor.id,
+          operationVersion: descriptor.version,
+          operationDescriptorHash: descriptor.descriptorHash,
+          humanProjectionId: projection.id,
+          operationMigrationState: 'mapped',
+          type: descriptor.categories.some(category => category.includes('assertion'))
+            ? TemplateStepType.ASSERTION
+            : TemplateStepType.ACTION,
+          icon: projection.icon as TemplateStepIcon,
+          templateStepGroupId: groupId,
+          parameters: {
+            create: projection.parameterOrder.map((name, order) => ({
+              name,
+              order,
+              type: testParameterType(descriptor.inputs.find(input => input.name === name)?.type ?? 'string'),
+            })),
+          },
+        },
+      })
+    }
+  }
 }
 
 export async function createPlanRuntimeTestWorkspace(prefix: string, databaseName: string) {

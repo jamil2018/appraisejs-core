@@ -56,7 +56,9 @@ export async function sealCapsuleCommandReceipt(input: {
     appraiseRuntimeModulePath: APPRAISE_RUNTIME_PATH,
     appraiseRuntimeHooksPath: APPRAISE_HOOKS_PATH,
   })
-  const typescriptPackage = JSON.parse(await fs.readFile(runtimeRequire.resolve('typescript/package.json'), 'utf8')) as {
+  const typescriptPackage = JSON.parse(
+    await fs.readFile(runtimeRequire.resolve('typescript/package.json'), 'utf8'),
+  ) as {
     version: string
   }
   const fileByPath = new Map(

@@ -4,5 +4,5 @@
  * @icon STORE
  */
 When('the user stores the page title in variable {string}', async function (this: CustomWorld, variableName: string) {
-  this.setVar(variableName, await this.page.title())
+  await executeHumanOperation('browser.data.diagnostics.store.page.title@1', this, ['variableName'], [variableName])
 })

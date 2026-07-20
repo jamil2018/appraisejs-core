@@ -6,6 +6,6 @@
 When(
   'the user sets the browser cookie {string} to {string}',
   async function (this: CustomWorld, name: string, value: string) {
-    await this.context.addCookies([{ name, value, url: this.page.url() }])
+    await executeHumanOperation('browser.browser.state.set.browser.cookie@1', this, ['name', 'value'], [name, value])
   },
 )

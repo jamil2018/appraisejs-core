@@ -54,8 +54,14 @@ export async function listTemplateSteps() {
 export async function deleteTemplateSteps(templateStepIds: string[]): Promise<void> {
   const stepsToDelete = await prisma.templateStep.findMany({
     where: { id: { in: templateStepIds } },
-    select: { templateStepGroupId: true },
+    select: { templateStepGroupId: true, operationMigrationState: true },
   })
+  if (stepsToDelete.some(step => step.operationMigrationState === 'mapped'))
+    throw new ServiceError(
+      'Canonical built-in projections are generated and cannot be deleted individually',
+      'VALIDATION',
+      400,
+    )
 
   await prisma.$transaction(async tx => {
     await tx.templateTestCaseStepParameter.deleteMany({
@@ -93,6 +99,7 @@ export async function createTemplateStep(value: z.infer<typeof templateStepSchem
       signature: value.signature,
       description,
       functionDefinition,
+      operationMigrationState: 'manual-only-custom',
       parameters: {
         create: value.params.map(param => ({
           name: param.name,
@@ -119,11 +126,17 @@ export async function updateTemplateStep(
 
   const currentStep = await prisma.templateStep.findUnique({
     where: { id },
-    select: { templateStepGroupId: true },
+    select: { templateStepGroupId: true, operationMigrationState: true },
   })
   if (!currentStep) {
     throw new ServiceError('Template step not found', 'NOT_FOUND', 404)
   }
+  if (currentStep.operationMigrationState === 'mapped')
+    throw new ServiceError(
+      'Canonical built-in projections are generated; create a custom step or change the operation definition',
+      'VALIDATION',
+      400,
+    )
   const description = normalizeOptionalText(value.description)
   const functionDefinition = await normalizeFunctionDefinition(value.functionDefinition)
 
@@ -135,6 +148,11 @@ export async function updateTemplateStep(
       signature: value.signature,
       description,
       functionDefinition,
+      operationId: null,
+      operationVersion: null,
+      operationDescriptorHash: null,
+      humanProjectionId: null,
+      operationMigrationState: 'manual-only-custom',
       parameters: {
         deleteMany: { templateStepId: id },
         create: value.params.map(param => ({

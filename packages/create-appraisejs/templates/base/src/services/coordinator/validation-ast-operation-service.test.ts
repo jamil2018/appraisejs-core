@@ -50,13 +50,13 @@ describe('Validation AST operational context', () => {
         id: 'press-tab',
         keyword: 'When',
         description: 'the user presses Tab',
-        action: { id: 'browser.keyboard.press', version: '1', inputs: { key: 'Tab' } },
+        operation: { id: 'browser.keyboard.press', version: '1', inputs: { key: 'Tab' } },
       },
       {
         id: 'mobile-viewport',
         keyword: 'Then',
         description: 'the viewport is mobile sized',
-        action: { id: 'browser.viewport.set', version: '1', inputs: { width: 390, height: 844 } },
+        operation: { id: 'browser.viewport.set', version: '1', inputs: { width: 390, height: 844 } },
       },
     )
 

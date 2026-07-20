@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs'
 import { globSync } from 'glob'
 import * as path from 'path'
-import { LocatorCollection, LocatorMap } from './types.js'
-import { getAutomationLocatorMapPath, getAutomationLocatorsDir } from './paths.js'
+import { LocatorCollection, LocatorMap } from './types.ts'
+import { getAutomationLocatorMapPath, getAutomationLocatorsDir } from './paths.ts'
 
 function toGlobPath(targetPath: string): string {
   return targetPath.split(path.sep).join('/')

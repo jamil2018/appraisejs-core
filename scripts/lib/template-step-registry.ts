@@ -23,7 +23,8 @@ export type RegistryStepEntry = {
 
 export type StepRegistryManifest = {
   version: 1
-  generatedAt: string
+  /** Retained for compatibility when reading older manifests; new manifests are content deterministic. */
+  generatedAt?: string
   steps: RegistryStepEntry[]
 }
 
@@ -132,7 +133,6 @@ export async function buildStepRegistry(baseDir: string): Promise<BuiltStepRegis
   return {
     manifest: {
       version: 1,
-      generatedAt: new Date().toISOString(),
       steps: steps.sort((left, right) => left.slug.localeCompare(right.slug)),
     },
     fragments: fragments.sort((left, right) => left.path.localeCompare(right.path)),

@@ -153,6 +153,9 @@ coordinator operation or an explicitly documented local MCP boundary. Stable wor
 `appraise://plans/{planId}/validation-context`, and `appraise://plans/{planId}/validation-draft`; the validation-draft
 template resolves through the bounded draft-context coordinator operation.
 
+`operation_categories`, `operation_search`, and `operation_read` expose the canonical cross-surface operation
+catalog. The legacy action tools remain bounded compatibility aliases during migration.
+
 `template_step_search` and `template_step_match` share one server-side ranked
 resolver. It scores exact and ordered intent phrases, semantic token overlap, and exact parameter-name compatibility,
 applies a confidence threshold, returns bounded
@@ -259,7 +262,7 @@ both hub-bound and registered-target ready receipts against the real server and 
 `validation_ast_check` is read-only and both check and preview require the authoritative plan to remain in a
 validation-preparation lifecycle. Preview returns exact `previewHash`, `contextHash`, and `receiptHash` values and
 records one deduplicated, bounded `validation_ast_previewed` plan event. The plan review UI renders that event's
-scenario steps, actions, coverage claims, blockers, and semantic warnings before compilation; it never treats the
+scenario steps, operations, coverage claims, blockers, and semantic warnings before compilation; it never treats the
 event as approval or executable authority.
 `validation_ast_compile` accepts only that exact receipt and prepares a durable idempotent publish operation before
 writing artifacts or projecting canonical entities.
@@ -387,8 +390,8 @@ AST, preview, receipt, projection, validation, and runtime-input hashes.
 Exact preview review can be performed from the hash-bound MCP response; the browser validation-review surface is
 created by compilation and is not a prerequisite for compile. Persisted validation approval still occurs only after
 compile through the Appraise-owned validation review gate.
-AST capability availability is derived from the current built-in action catalog for each runtime, so discovered browser
-keyboard and viewport actions remain authorable without custom extensions.
+AST capability availability is derived from the canonical operation registry for each runtime, so discovered browser
+keyboard and viewport operations remain authorable without custom extensions.
 
 Managed baseline and implementation runs execute only immutable Appraise-owned runtime capsules. Target repository
 files are never managed execution authority; optional repository export is a separate receipt-bound operation.

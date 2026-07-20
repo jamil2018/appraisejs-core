@@ -5,7 +5,8 @@ const STAGE_HEIGHT = 150
 
 type Graph = PlanReviewDetail['graph']
 
-export type SemanticTask = Graph['nodes'][number] & {
+export type SemanticTask = Omit<Graph['nodes'][number], 'status'> & {
+  status: string
   step: number
   stage: number
   position: { x: number; y: number }
@@ -21,15 +22,23 @@ function buildDependencyMaps(graph: Graph, canonicalIndex: Map<string, number>) 
   const dependents = new Map(graph.nodes.map(task => [task.id, new Set<string>()]))
 
   for (const edge of graph.edges) {
-    if (edge.type !== 'depends-on' || !canonicalIndex.has(edge.from) || !canonicalIndex.has(edge.to)) continue
-    prerequisites.get(edge.from)?.add(edge.to)
-    dependents.get(edge.to)?.add(edge.from)
+    if (!canonicalIndex.has(edge.from) || !canonicalIndex.has(edge.to)) continue
+    if (edge.type === 'depends-on') {
+      prerequisites.get(edge.from)?.add(edge.to)
+      dependents.get(edge.to)?.add(edge.from)
+    } else if (edge.type === 'blocks') {
+      prerequisites.get(edge.to)?.add(edge.from)
+      dependents.get(edge.from)?.add(edge.to)
+    }
   }
 
   return { prerequisites, dependents }
 }
 
-export function projectPlanFlow(graph: Graph): {
+export function projectPlanFlow(
+  graph: Graph,
+  taskStates: Record<string, string> = {},
+): {
   tasks: SemanticTask[]
   edges: SemanticEdge[]
   hasCycle: boolean
@@ -74,6 +83,7 @@ export function projectPlanFlow(graph: Graph): {
     stageOffsets.set(stage, stageOffset + 1)
     return {
       ...task,
+      status: taskStates[task.id] ?? task.status,
       step: index + 1,
       stage,
       position: { x: stage * STAGE_WIDTH, y: stageOffset * STAGE_HEIGHT },

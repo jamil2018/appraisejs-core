@@ -58,6 +58,7 @@ When('click {string}', async function (this: CustomWorld, elementName: SelectorN
 
     const registry = await buildStepRegistry(workspace)
     expect(registry.manifest.version).toBe(1)
+    expect(registry.manifest).not.toHaveProperty('generatedAt')
     expect(registry.manifest.steps).toHaveLength(1)
 
     const entry = registry.manifest.steps[0]
@@ -122,21 +123,37 @@ When('click {string}', async function () {})
     const registry = await buildStepRegistry(repoRoot)
 
     const structuredOperationsSource = await fs.readFile(
-      path.join(repoRoot, 'automation/steps/actions/structured_operations.step.ts'),
+      path.join(repoRoot, 'automation/steps/actions/generated/structured-operations.step.ts'),
       'utf8',
     )
     const structuredOperationsAst = parse(structuredOperationsSource, {
       sourceType: 'module',
       plugins: ['typescript'],
     })
-    const runtimeImport = structuredOperationsAst.program.body.find(
+    const generatedRuntimeImport = structuredOperationsAst.program.body.find(
       node =>
-        node.type === 'ImportDeclaration' && node.source.value === '../../../packages/cucumber-runtime/src/index.js',
+        node.type === 'ImportDeclaration' && node.source.value === '../../../../packages/cucumber-runtime/src/index.js',
     )
-    const runtimeImportNames =
-      runtimeImport?.type === 'ImportDeclaration' ? runtimeImport.specifiers.map(specifier => specifier.local.name) : []
+    const generatedRuntimeImportNames =
+      generatedRuntimeImport?.type === 'ImportDeclaration'
+        ? generatedRuntimeImport.specifiers.map(specifier => specifier.local.name)
+        : []
 
-    expect(runtimeImportNames).toEqual(
+    const handlerSource = await fs.readFile(
+      path.join(repoRoot, 'packages/cucumber-runtime/src/operations/builtins/structured-operations.ts'),
+      'utf8',
+    )
+    const handlerAst = parse(handlerSource, { sourceType: 'module', plugins: ['typescript'] })
+    const handlerRuntimeImport = handlerAst.program.body.find(
+      node => node.type === 'ImportDeclaration' && node.source.value === '../../template-step-operations.ts',
+    )
+    const handlerRuntimeImportNames =
+      handlerRuntimeImport?.type === 'ImportDeclaration'
+        ? handlerRuntimeImport.specifiers.map(specifier => specifier.local.name)
+        : []
+
+    expect(generatedRuntimeImportNames).toEqual(expect.arrayContaining(['executeHumanOperation']))
+    expect(handlerRuntimeImportNames).toEqual(
       expect.arrayContaining(['runLocatorTemplateOperation', 'runPageTemplateOperation']),
     )
 
@@ -147,7 +164,7 @@ When('click {string}', async function () {})
 
     const searchTerms = [
       'upload',
-      'keyboard-shortcut',
+      'keyboard-key',
       'popup',
       'dialog',
       'download',

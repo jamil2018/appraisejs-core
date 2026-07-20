@@ -4,9 +4,5 @@
  * @icon NAVIGATION
  */
 When('the user switches to browser tab {int}', async function (this: CustomWorld, index: number) {
-  const pages = this.context.pages()
-  const target = pages[index]
-  if (!target) throw new Error(`Browser tab index ${index} does not exist; ${pages.length} tab(s) are open`)
-  this.page = target
-  await target.bringToFront()
+  await executeHumanOperation('browser.tabs.frames.dialogs.switch.browser.tab@1', this, ['index'], [index])
 })

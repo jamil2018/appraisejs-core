@@ -6,15 +6,11 @@
 Then(
   'the visibility status of the {string} element should be {boolean}',
   async function (this: CustomWorld, elementName: SelectorName, isVisible: boolean) {
-    try {
-      const selector = await resolveLocator(this.page, elementName, {
-        validate: isVisible ? undefined : false,
-      })
-      if (!selector) throw new Error(`Selector ${elementName} not found`)
-      const elementVisibilityStatus = await this.page.locator(selector).isVisible({ timeout: 10000 })
-      expect(elementVisibilityStatus).to.equal(isVisible)
-    } catch (error) {
-      throw new Error(`Failed to validate the visibility of the element ${elementName}: ${error}`)
-    }
+    await executeHumanOperation(
+      'browser.assertions.visibility@1',
+      this,
+      ['elementName', 'isVisible'],
+      [elementName, isVisible],
+    )
   },
 )

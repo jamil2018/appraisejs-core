@@ -63,7 +63,7 @@ not repeat the brief or handoff. Pending review or pending approval is not compl
 transition it permits succeeds. `validation_preparation_started` permits managed Validation AST authoring. Agents call
 `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and call
 `validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
-Preview records a bounded, hash-bound plan event, and the browser review surface shows proposed scenarios, actions,
+Preview records a bounded, hash-bound plan event, and the browser review surface shows proposed scenarios, operations,
 coverage claims, and semantic warnings before compile. This preview is advisory: the Appraise-owned validation approval
 gate remains the persisted post-compile UI review.
 That persisted review renders the canonical Gherkin projection, selected action and locator identities, scenarios,
@@ -75,9 +75,11 @@ Managed execution uses only the exact Appraise-owned immutable runtime capsule; 
 Successful compilation returns the exact project-scoped `review=validation` browser link and the Appraise resource
 link directly, so the agent can hand off the review gate without another plan read.
 
-Validation authoring is registry-first through the managed action catalog and locator graph. Choose a semantic
-template step first, then the allowlisted structured locator/page fallback, and only then a justified custom step for
-application-specific behavior or a documented catalog gap. See `docs/reusable-playwright-template-steps.md`.
+Validation authoring is registry-first through the unified operation catalog and locator graph. Use
+`operation_search` and `operation_read` to select an exact semantic operation, then the allowlisted structured
+locator/page fallback, and only then a justified custom operation for application-specific behavior or a documented
+catalog gap. Human template search is a compatibility projection of the same migration ledger. See
+`docs/reusable-playwright-template-steps.md`.
 Extensions require exact review evidence; target file paths are never managed execution authority.
 Reusable-resource ranking gives ordered phrase matches and exact parameter names priority over loose token overlap.
 The simple happy-path authoring profile also requires explicit assertions for a clean browser console/page runtime and

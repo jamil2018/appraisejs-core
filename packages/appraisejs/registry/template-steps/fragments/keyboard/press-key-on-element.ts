@@ -6,8 +6,11 @@
 When(
   'the user presses the {string} key on the {string} element',
   async function (this: CustomWorld, key: string, elementName: SelectorName) {
-    const selector = await resolveLocator(this.page, elementName)
-    if (!selector) throw new Error(`Selector ${elementName} not found`)
-    await this.page.locator(selector).press(key)
+    await executeHumanOperation(
+      'browser.keyboard.press.key.on.element@1',
+      this,
+      ['key', 'elementName'],
+      [key, elementName],
+    )
   },
 )

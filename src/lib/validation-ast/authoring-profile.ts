@@ -34,7 +34,7 @@ function effectiveThenSteps(ast: ValidationAst) {
 function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDescriptor>): AuthoringProfileIssue[] {
   const thenSteps = effectiveThenSteps(ast)
   const assertedConcerns = new Set(
-    thenSteps.flatMap(step => descriptors.get(actionKey(step.action))?.assertionConcerns ?? []),
+    thenSteps.flatMap(step => descriptors.get(actionKey(step.operation))?.assertionConcerns ?? []),
   )
   const issues: AuthoringProfileIssue[] = SIMPLE_CONCERNS.filter(
     concern => !ast.qualityConcerns.includes(concern) || !assertedConcerns.has(concern),
@@ -43,7 +43,7 @@ function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDesc
     message: `Simple happy-path authoring requires a registered Then assertion for the ${concern} concern.`,
     referenceId: concern,
   }))
-  if (!thenSteps.some(step => descriptors.get(actionKey(step.action))?.categories.includes('browser.assertions')))
+  if (!thenSteps.some(step => descriptors.get(actionKey(step.operation))?.categories.includes('browser.assertions')))
     issues.push({
       code: 'simple-profile-assertion-missing',
       message: 'Simple happy-path authoring requires an explicit Then assertion.',
@@ -54,9 +54,9 @@ function assertionIssues(ast: ValidationAst, descriptors: Map<string, ActionDesc
 function timingIssues(ast: ValidationAst, descriptors: Map<string, ActionDescriptor>): AuthoringProfileIssue[] {
   return ast.scenarios.flatMap(scenario =>
     scenario.steps.flatMap(step => {
-      const inputs = descriptors.get(actionKey(step.action))?.inputs ?? []
+      const inputs = descriptors.get(actionKey(step.operation))?.inputs ?? []
       const exceedsLimit = inputs.some(input => {
-        const value = step.action.inputs[input.name]
+        const value = step.operation.inputs[input.name]
         if (typeof value !== 'number' || !input.numeric) return false
         return (input.numeric.unit === 'milliseconds' ? value / 1_000 : value) > 30
       })
@@ -74,7 +74,7 @@ function timingIssues(ast: ValidationAst, descriptors: Map<string, ActionDescrip
 }
 
 function runtimeCleanlinessIssues(ast: ValidationAst): AuthoringProfileIssue[] {
-  const actionIds = new Set(effectiveThenSteps(ast).map(step => actionKey(step.action)))
+  const actionIds = new Set(effectiveThenSteps(ast).map(step => actionKey(step.operation)))
   return SIMPLE_RUNTIME_CLEANLINESS_ACTIONS.filter(requiredAction => !actionIds.has(requiredAction)).map(
     requiredAction => ({
       code: 'simple-profile-runtime-cleanliness-missing',

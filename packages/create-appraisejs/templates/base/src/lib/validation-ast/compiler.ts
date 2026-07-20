@@ -248,16 +248,26 @@ function validateStep(
   const location = { scenarioId, stepId: step.id }
   const action = resolveAction(
     state.context.actionCatalog,
-    step.action.id,
-    step.action.version,
+    step.operation.id,
+    step.operation.version,
     location,
     state.blockers,
   )
   if (!action) return
+  if (step.operation.descriptorHash && step.operation.descriptorHash !== action.contentHash) {
+    state.blockers.push(
+      issue(
+        'operation-descriptor-stale',
+        `Operation ${action.id}@${action.version} descriptor hash is stale.`,
+        location,
+      ),
+    )
+    return
+  }
   state.actions.set(`${action.id}@${action.version}`, action)
   validateActionAvailability(action, location, state)
-  validateActionInputs(action, step.action.inputs, state.stored, location, state.blockers)
-  for (const value of Object.values(step.action.inputs))
+  validateActionInputs(action, step.operation.inputs, state.stored, location, state.blockers)
+  for (const value of Object.values(step.operation.inputs))
     if (value && typeof value === 'object' && 'ref' in value)
       validateReference(value as AstReference, action, location, state)
   recordStoredOutput(step.store, action, location, state)
@@ -422,7 +432,7 @@ function validateCoverageObservations(
   const unobservable = mapping.observationStepIds.flatMap(stepId => {
     const step = steps.get(stepId)
     if (!step) return []
-    const action = actionByIdentity.get(`${step.action.id}@${step.action.version}`)
+    const action = actionByIdentity.get(`${step.operation.id}@${step.operation.version}`)
     return action?.requirements.capabilities.includes('assertions')
       ? []
       : [
@@ -524,7 +534,7 @@ const SEMANTIC_TOKEN_STOP_WORDS = new Set([
 ])
 
 function semanticTokens(step: ValidationAst['scenarios'][number]['steps'][number]) {
-  const inputText = Object.values(step.action.inputs)
+  const inputText = Object.values(step.operation.inputs)
     .flatMap(value => {
       if (typeof value === 'string') return [value]
       if (value && typeof value === 'object' && 'id' in value && typeof value.id === 'string') return [value.id]
@@ -549,7 +559,7 @@ function hasSharedSemanticToken(
 
 function describesEntityDestruction(description: string) {
   return (
-    /\b(delete(?:s|d|ing)?|remove(?:s|d|ing)?|discard(?:s|ed|ing)?)\b/i.test(description) ||
+    /\b(delete(?:s|ing)?|remove(?:s|ing)?|discard(?:s|ing)?)\b/i.test(description) ||
     /\bclear(?:s|ed|ing)?\s+(?:all\b|stored\b|saved\b|persisted\b|local\s+(?:data|state)\b)/i.test(description)
   )
 }
@@ -565,7 +575,7 @@ function persistenceObservationWarnings(
   if (observationIndex < 0) return []
   const observation = scenario.steps[observationIndex]!
   const warnings: ValidationAstIssue[] = []
-  const reloadIndex = scenario.steps.findIndex(step => step.action.id === 'browser.navigation.reload')
+  const reloadIndex = scenario.steps.findIndex(step => step.operation.id === 'browser.navigation.reload')
   if (reloadIndex < 0 || observationIndex <= reloadIndex) {
     warnings.push(
       issue(
@@ -684,7 +694,7 @@ export function previewValidationAst(value: unknown, context: ValidationAstCompi
     authoringProfile: checked.submission.authoringProfile ?? null,
     astHash: hash(ast),
     entities,
-    actions: checked.resolved.actions.map(action => ({
+    operations: checked.resolved.actions.map(action => ({
       id: action.id,
       version: action.version,
       contentHash: action.contentHash,

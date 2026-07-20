@@ -34,9 +34,28 @@ export const runtimeCapsuleManifestSchema = z
     generator: z
       .object({
         id: z.literal('appraise.validation-ast-capsule'),
-        version: z.literal('1'),
+        version: z.enum(['1', '2']),
       })
       .strict(),
+    operations: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
+            version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
+            descriptorHash: runtimeCapsuleHashSchema,
+            handler: z
+              .object({
+                id: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/),
+                version: z.string().regex(/^\d+(?:\.\d+){0,2}$/),
+                contentHash: runtimeCapsuleHashSchema,
+              })
+              .strict(),
+          })
+          .strict(),
+      )
+      .max(256)
+      .default([]),
     expectedCases: z
       .array(
         z
@@ -85,6 +104,13 @@ export const runtimeCapsuleManifestSchema = z
     const expectedCaseIds = manifest.expectedCases.map(item => `${item.validationId}/${item.suiteId}/${item.caseId}`)
     if (new Set(expectedCaseIds).size !== expectedCaseIds.length)
       context.addIssue({ code: 'custom', path: ['expectedCases'], message: 'expected cases must be unique' })
+    const operationRefs = manifest.operations.map(item => `${item.id}@${item.version}`)
+    const sortedOperationRefs = [...operationRefs].sort()
+    if (
+      new Set(operationRefs).size !== operationRefs.length ||
+      operationRefs.some((ref, index) => ref !== sortedOperationRefs[index])
+    )
+      context.addIssue({ code: 'custom', path: ['operations'], message: 'operations must be unique and ordered' })
   })
 
 export type RuntimeCapsuleManifest = z.infer<typeof runtimeCapsuleManifestSchema>

@@ -6,6 +6,6 @@
 When(
   'the user waits for a download and stores it in {string}',
   async function (this: CustomWorld, variableName: string) {
-    this.setVar(variableName, await this.page.waitForEvent('download'))
+    await executeHumanOperation('browser.downloads.wait.for.download.event@1', this, ['variableName'], [variableName])
   },
 )

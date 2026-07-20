@@ -44,7 +44,7 @@ const ast = {
           id: 'finish',
           keyword: 'Then',
           description: 'the session is complete',
-          action: { id: 'assert.visible', version: '1', inputs: {} },
+          operation: { id: 'assert.visible', version: '1', inputs: {} },
         },
       ],
     },
@@ -75,7 +75,7 @@ describe('Validation AST canonical projection compiler', () => {
       testSuites: [{ id: expect.stringMatching(/^ast-[a-f0-9]{12}-suite$/), testCaseIds: node.testCaseIds }],
     })
     expect(node.appraiseArtifacts.testCases[0]!.steps.map(step => step.order)).toEqual([0, 1])
-    expect(node.appraiseArtifacts.testCases[0]!.steps[0]).toMatchObject({ templateStepName: 'browser.click@1' })
+    expect(node.appraiseArtifacts.testCases[0]!.steps[0]).toMatchObject({ operationRef: 'browser.click@1' })
     expect(node.appraiseArtifacts.locators).toEqual([expect.objectContaining({ id: 'start-button' })])
   })
 
@@ -92,7 +92,7 @@ describe('Validation AST canonical projection compiler', () => {
 
   it('binds reviewed extensions to the authoritative target and passes them into the canonical transaction', async () => {
     const extensionAst = structuredClone({ ...ast, customExtensions: ['observe-breathing'] })
-    ;(extensionAst.scenarios[0].steps[1].action.inputs as Record<string, unknown>).extension = {
+    ;(extensionAst.scenarios[0].steps[1]!.operation.inputs as Record<string, unknown>).extension = {
       ref: 'custom-extension',
       id: 'observe-breathing',
       version: '1.0.0',

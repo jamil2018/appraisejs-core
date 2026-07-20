@@ -146,6 +146,19 @@ export async function createCoordinatorClient(options: CoordinatorOptions) {
     },
     readActions: (refs: Array<{ id: string; version?: string }>) =>
       request(`actions/read?refs=${encodeURIComponent(JSON.stringify(refs))}`),
+    listOperationCategories: (knownManifestHash?: string) => {
+      const query = new URLSearchParams()
+      if (knownManifestHash) query.set('knownManifestHash', knownManifestHash)
+      return request(`operations/categories?${query}`)
+    },
+    searchOperations: (input: Record<string, string | number | boolean | readonly string[] | undefined>) => {
+      const query = new URLSearchParams()
+      for (const [key, value] of Object.entries(input))
+        if (value !== undefined) query.set(key, Array.isArray(value) ? value.join(',') : String(value))
+      return request(`operations/search?${query}`)
+    },
+    readOperations: (refs: Array<{ id: string; version?: string }>) =>
+      request(`operations/read?refs=${encodeURIComponent(JSON.stringify(refs))}`),
     readPlan: (planId: string) => request(`plans/${planId}`),
     revisePlan: (planId: string, body: { expectedHash: string; plan: unknown }) =>
       request(`plans/${planId}`, { method: 'PUT', body: JSON.stringify(body) }),

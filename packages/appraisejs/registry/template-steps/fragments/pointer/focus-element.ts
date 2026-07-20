@@ -1,10 +1,8 @@
 /**
- * @name focus element
- * @description Move keyboard focus to an element
+ * @name Focus element
+ * @description Move keyboard focus to a resolved locator.
  * @icon MOUSE
  */
-When('the user focuses the {string} element', async function (this: CustomWorld, elementName: SelectorName) {
-  const selector = await resolveLocator(this.page, elementName)
-  if (!selector) throw new Error(`Selector ${elementName} not found`)
-  await this.page.locator(selector).focus()
+When('the user focuses the {string} element', async function (this: CustomWorld, target: SelectorName) {
+  await executeHumanOperation('browser.keyboard.focus@1', this, ['target'], [target])
 })

@@ -33,7 +33,8 @@ export type RegistryStepEntry = {
 
 export type StepRegistryManifest = {
   version: 1
-  generatedAt: string
+  /** Present on older manifests. New manifests omit wall-clock metadata so rebuilds are byte stable. */
+  generatedAt?: string
   steps: RegistryStepEntry[]
 }
 

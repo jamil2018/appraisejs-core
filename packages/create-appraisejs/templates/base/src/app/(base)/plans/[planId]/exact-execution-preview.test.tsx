@@ -20,7 +20,7 @@ describe('ExactExecutionPreview', () => {
             projectionHash: 'sha256:projection',
             runtimeInputHash: 'sha256:runtime',
           },
-          actions: [{ id: 'browser.forms.fill', version: '1' }],
+          operations: [{ id: 'browser.forms.fill', version: '1' }],
           locators: [{ id: 'title-input', version: '1' }],
           scenarios: [{ scenarioId: 'create-todo', stepIds: ['fill-title'] }],
           matrix: [{ browser: 'chromium', environment: 'local' }],

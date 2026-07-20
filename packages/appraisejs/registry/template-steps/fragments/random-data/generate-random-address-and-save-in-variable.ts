@@ -6,11 +6,11 @@
 When(
   'the user generates a random address and stores it inside the variable {string}',
   async function (this: CustomWorld, variableName: string) {
-    const data = generateRandomData(RandomDataType.ADDRESS)
-    try {
-      this.setVar(variableName, data)
-    } catch (error) {
-      throw new Error(`Failed to generate a random address and store it inside the variable ${variableName}: ${error}`)
-    }
+    await executeHumanOperation(
+      'browser.random.data.generate.random.address.and.save.in.variable@1',
+      this,
+      ['variableName'],
+      [variableName],
+    )
   },
 )

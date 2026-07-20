@@ -23,7 +23,7 @@ const submission = {
             id: 'step-one',
             keyword: 'Given',
             description: 'Start',
-            action: { id: 'browser.click', version: '1', inputs: {} },
+            operation: { id: 'browser.click', version: '1', inputs: {} },
           },
         ],
       },

@@ -10,9 +10,40 @@ const boundedId = z.string().min(1).max(256)
 
 const descriptorSchema = z.object({ id: boundedId, version: boundedId, contentHash: hashSchema }).strict()
 
+function validateRuntimeInputShape(
+  value: {
+    schemaVersion: '1' | '2'
+    actions?: unknown[]
+    operations?: unknown[]
+    locators: Array<{ id: string; version: string }>
+    extensions: Array<{ id: string; version: string }>
+    expected: { scenarioCount: number; scenarios: Array<{ scenarioId: string; caseId: string }> }
+  },
+  context: z.RefinementCtx,
+) {
+  const legacyShapeInvalid = value.schemaVersion === '1' && (!value.actions || value.operations)
+  const currentShapeInvalid = value.schemaVersion === '2' && (!value.operations || value.actions)
+  if (legacyShapeInvalid)
+    context.addIssue({ code: 'custom', path: ['actions'], message: 'legacy v1 input requires actions only' })
+  if (currentShapeInvalid)
+    context.addIssue({ code: 'custom', path: ['operations'], message: 'v2 input requires operations only' })
+  if (value.expected.scenarioCount !== value.expected.scenarios.length)
+    context.addIssue({ code: 'custom', path: ['expected', 'scenarioCount'], message: 'must equal scenarios length' })
+  const identities = new Map<string, string[]>([
+    ['locators', value.locators.map(item => `${item.id}@${item.version}`)],
+    ['extensions', value.extensions.map(item => `${item.id}@${item.version}`)],
+    ['scenarios', value.expected.scenarios.map(item => item.scenarioId)],
+    ['cases', value.expected.scenarios.map(item => item.caseId)],
+  ])
+  identities.forEach((values, key) => {
+    if (new Set(values).size !== values.length)
+      context.addIssue({ code: 'custom', path: [key], message: 'identities must be unique' })
+  })
+}
+
 const validationAstRuntimeInputV1Schema = z
   .object({
-    schemaVersion: z.literal('1'),
+    schemaVersion: z.enum(['1', '2']),
     targetProjectId: boundedId,
     targetFingerprint: hashSchema,
     astId: boundedId,
@@ -42,7 +73,8 @@ const validationAstRuntimeInputV1Schema = z
         contentHash: hashSchema,
       })
       .strict(),
-    actions: z.array(descriptorSchema).min(1).max(512),
+    actions: z.array(descriptorSchema).min(1).max(512).optional(),
+    operations: z.array(descriptorSchema).min(1).max(512).optional(),
     locators: z
       .array(
         descriptorSchema.extend({
@@ -85,30 +117,26 @@ const validationAstRuntimeInputV1Schema = z
     gherkinHash: hashSchema,
   })
   .strict()
-  .superRefine((value, context) => {
-    if (value.expected.scenarioCount !== value.expected.scenarios.length)
-      context.addIssue({ code: 'custom', path: ['expected', 'scenarioCount'], message: 'must equal scenarios length' })
-    for (const [key, values] of [
-      ['locators', value.locators.map(item => `${item.id}@${item.version}`)],
-      ['extensions', value.extensions.map(item => `${item.id}@${item.version}`)],
-      ['scenarios', value.expected.scenarios.map(item => item.scenarioId)],
-      ['cases', value.expected.scenarios.map(item => item.caseId)],
-    ] as const)
-      if (new Set(values).size !== values.length)
-        context.addIssue({ code: 'custom', path: [key], message: 'identities must be unique' })
-  })
+  .superRefine(validateRuntimeInputShape)
 
 export type ValidationAstRuntimeInputV1 = z.infer<typeof validationAstRuntimeInputV1Schema>
+
+function runtimeInputOperations(value: ValidationAstRuntimeInputV1) {
+  return value.operations ?? value.actions ?? []
+}
 
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 
 export function uniqueProjectedActionReferences(
-  testCases: Array<{ steps?: Array<{ templateStepName?: string }> }>,
+  testCases: Array<{ steps?: Array<{ operationRef?: string; templateStepName?: string }> }>,
 ): string[] {
   return [
     ...new Set(
       testCases.flatMap(testCase =>
-        (testCase.steps ?? []).flatMap(step => (step.templateStepName ? [step.templateStepName] : [])),
+        (testCase.steps ?? []).flatMap(step => {
+          const ref = step.operationRef ?? step.templateStepName
+          return ref ? [ref] : []
+        }),
       ),
     ),
   ]
@@ -136,7 +164,10 @@ export function validateValidationAstRuntimeInput(input: {
       matrix?: unknown
       testCaseIds?: string[]
       appraiseArtifacts?: {
-        testCases?: Array<{ id?: string; steps?: Array<{ id?: string; templateStepName?: string }> }>
+        testCases?: Array<{
+          id?: string
+          steps?: Array<{ id?: string; operationRef?: string; templateStepName?: string }>
+        }>
         locators?: unknown
       }
     }
@@ -178,7 +209,9 @@ export function validateValidationAstRuntimeInput(input: {
   const projectedCases = projection.validationNode?.appraiseArtifacts?.testCases ?? []
   const expectedCases = runtimeInput.expected.scenarios.map(item => item.caseId)
   const projectedActions = uniqueProjectedActionReferences(projectedCases)
-  const expectedActions = runtimeInput.actions.map(action => `${action.id}@${action.version}`)
+  const expectedOperations = runtimeInputOperations(runtimeInput).map(
+    operation => `${operation.id}@${operation.version}`,
+  )
   const projectedStepIds = projectedCases.map(testCase => (testCase.steps ?? []).map(step => step.id))
   const expectedStepIds = runtimeInput.expected.scenarios.map(scenario => scenario.stepIds)
   const projectedLocators = [
@@ -192,7 +225,7 @@ export function validateValidationAstRuntimeInput(input: {
       projectedLocators,
     ],
     ['cases', expectedCases, projection.validationNode?.testCaseIds],
-    ['actions', expectedActions, projectedActions],
+    ['operations', expectedOperations, projectedActions],
     ['steps', expectedStepIds, projectedStepIds],
   ] as const
   const projectionMismatch = mismatchChecks.find(

@@ -84,7 +84,7 @@ export type PlanReviewDetail = {
       projectionHash: string
       runtimeInputHash?: string
     }
-    actions: Array<{ id: string; version: string }>
+    operations: Array<{ id: string; version: string }>
     locators: Array<{ id: string; version: string }>
     scenarios: Array<{ scenarioId: string; stepIds: string[] }>
     matrix: Array<{ browser: string; environment: string }>
@@ -378,9 +378,34 @@ async function readValidationReviewEvidence(
 
 type ExactPreviewRuntime = {
   actions?: Array<{ id?: unknown; version?: unknown }>
+  operations?: Array<{ id?: unknown; version?: unknown }>
   locators?: Array<{ id?: unknown; version?: unknown }>
   expected?: { scenarios?: Array<{ scenarioId?: unknown; stepIds?: unknown }> }
   matrix?: Array<{ browser?: unknown; environment?: unknown }>
+}
+
+function strings(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function versionedReferences(values: Array<{ id?: unknown; version?: unknown }> = []) {
+  return values.flatMap(value =>
+    typeof value.id === 'string' && typeof value.version === 'string' ? [{ id: value.id, version: value.version }] : [],
+  )
+}
+
+function scenarioReferences(values: NonNullable<ExactPreviewRuntime['expected']>['scenarios'] = []) {
+  return values.flatMap(value =>
+    typeof value.scenarioId === 'string' ? [{ scenarioId: value.scenarioId, stepIds: strings(value.stepIds) }] : [],
+  )
+}
+
+function matrixEntries(values: ExactPreviewRuntime['matrix'] = []) {
+  return values.flatMap(value =>
+    typeof value.browser === 'string' && typeof value.environment === 'string'
+      ? [{ browser: value.browser, environment: value.environment }]
+      : [],
+  )
 }
 
 async function readExactExecutionPreview(
@@ -394,8 +419,6 @@ async function readExactExecutionPreview(
   if (!operation?.runtimeInputJson) return undefined
   const runtime = JSON.parse(operation.runtimeInputJson) as ExactPreviewRuntime
   const projection = JSON.parse(operation.projectionJson) as { gherkin?: unknown }
-  const strings = (value: unknown) =>
-    Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
   return {
     operationId: operation.id,
     phase: operation.phase,
@@ -407,26 +430,10 @@ async function readExactExecutionPreview(
       projectionHash: operation.projectionHash,
       runtimeInputHash: operation.runtimeInputHash ?? undefined,
     },
-    actions: (runtime.actions ?? []).flatMap(action =>
-      typeof action.id === 'string' && typeof action.version === 'string'
-        ? [{ id: action.id, version: action.version }]
-        : [],
-    ),
-    locators: (runtime.locators ?? []).flatMap(locator =>
-      typeof locator.id === 'string' && typeof locator.version === 'string'
-        ? [{ id: locator.id, version: locator.version }]
-        : [],
-    ),
-    scenarios: (runtime.expected?.scenarios ?? []).flatMap(scenario =>
-      typeof scenario.scenarioId === 'string'
-        ? [{ scenarioId: scenario.scenarioId, stepIds: strings(scenario.stepIds) }]
-        : [],
-    ),
-    matrix: (runtime.matrix ?? []).flatMap(entry =>
-      typeof entry.browser === 'string' && typeof entry.environment === 'string'
-        ? [{ browser: entry.browser, environment: entry.environment }]
-        : [],
-    ),
+    operations: versionedReferences(runtime.operations ?? runtime.actions),
+    locators: versionedReferences(runtime.locators),
+    scenarios: scenarioReferences(runtime.expected?.scenarios),
+    matrix: matrixEntries(runtime.matrix),
     gherkin: strings(projection.gherkin),
   }
 }

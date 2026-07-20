@@ -6,10 +6,11 @@
 When(
   'the user drags the {string} element onto the {string} element',
   async function (this: CustomWorld, sourceName: SelectorName, targetName: SelectorName) {
-    const sourceSelector = await resolveLocator(this.page, sourceName)
-    const targetSelector = await resolveLocator(this.page, targetName)
-    if (!sourceSelector) throw new Error(`Selector ${sourceName} not found`)
-    if (!targetSelector) throw new Error(`Selector ${targetName} not found`)
-    await this.page.locator(sourceSelector).dragTo(this.page.locator(targetSelector))
+    await executeHumanOperation(
+      'browser.pointer.drag.element.to.element@1',
+      this,
+      ['sourceName', 'targetName'],
+      [sourceName, targetName],
+    )
   },
 )

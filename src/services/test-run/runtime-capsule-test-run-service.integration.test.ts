@@ -377,6 +377,7 @@ async function seededAttempt(state: 'STARTING' | 'RUNNING' | 'COMPLETED' = 'RUNN
     runtimeInputHash: hash('6'),
     commandReceipt: { path: 'command-receipt.json', hash: receiptHash },
     generator: { id: 'appraise.validation-ast-capsule', version: '1' },
+    operations: [],
     expectedCases: [],
     files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: receiptHash, size: 2 }],
   })
@@ -421,6 +422,7 @@ async function createReadyCapsule(name: string) {
     runtimeInputHash: hash('6'),
     commandReceipt: { path: 'command-receipt.json', hash: receiptHash },
     generator: { id: 'appraise.validation-ast-capsule', version: '1' },
+    operations: [],
     expectedCases: [],
     files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: receiptHash, size: 2 }],
   }
