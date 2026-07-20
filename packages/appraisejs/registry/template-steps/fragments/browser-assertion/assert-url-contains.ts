@@ -4,5 +4,5 @@
  * @icon VALIDATION
  */
 Then('the full page url should contain {string}', async function (this: CustomWorld, expected: string) {
-  expect(this.page.url()).to.contain(expected)
+  await executeHumanOperation('browser.browser.assertion.assert.url.contains@1', this, ['expected'], [expected])
 })

@@ -53,7 +53,7 @@ export function buildValidationAstReviewPreview(input: {
         id: step.id,
         keyword: step.keyword,
         description: boundedText(step.description),
-        actionId: `${step.action.id}@${step.action.version}`,
+        actionId: `${step.operation.id}@${step.operation.version}`,
       })),
     })),
     coverage: (ast.coverageArgument?.mappings ?? []).map(mapping => ({

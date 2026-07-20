@@ -356,11 +356,19 @@ export async function decideValidationNode(
     serializeYamlArtifact('validation', next),
   )
   await syncPlans({ projectDirectory: artifacts.projectRoot, client: options.client ?? prisma })
-  await reconcileManagedValidationReviewState(input.planId, {
+  const reviewState = await reconcileManagedValidationReviewState(input.planId, {
     client,
     projectDirectory: artifacts.projectRoot,
   })
-  return decision
+  return {
+    ...decision,
+    reviewBinding: {
+      operationId: publishOperation.id,
+      operationHash: publishOperation.operationHash,
+      reviewStateHash: reviewState.reviewStateHash,
+      extensionArtifactHashes: publishOperation.extensionReviews.map(item => item.artifactHash).sort(),
+    },
+  }
 }
 
 async function readValidationFileForReview(planId: string, path: string, options: Options = {}) {

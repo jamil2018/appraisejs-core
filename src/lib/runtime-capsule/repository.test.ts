@@ -29,6 +29,7 @@ const manifest: RuntimeCapsuleManifest = {
   runtimeInputHash: validationHash,
   commandReceipt: { path: 'command-receipt.json', hash: commandHash },
   generator: { id: 'appraise.validation-ast-capsule', version: '1' },
+  operations: [],
   expectedCases: [],
   files: [{ path: 'command-receipt.json', role: 'command-receipt', hash: commandHash, size: commandBytes.length }],
 }

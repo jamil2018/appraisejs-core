@@ -63,7 +63,7 @@ not repeat the brief or handoff. Pending review or pending approval is not compl
 transition it permits succeeds. `validation_preparation_started` permits managed Validation AST authoring. Agents call
 `validation_ast_check`, then `validation_ast_preview`, obtain exact human review of the preview receipt, and call
 `validation_ast_compile`. Compilation projects canonical entities and creates the durable managed publication operation.
-Preview records a bounded, hash-bound plan event, and the browser review surface shows proposed scenarios, actions,
+Preview records a bounded, hash-bound plan event, and the browser review surface shows proposed scenarios, operations,
 coverage claims, and semantic warnings before compile. This preview is advisory: the Appraise-owned validation approval
 gate remains the persisted post-compile UI review.
 That persisted review renders the canonical Gherkin projection, selected action and locator identities, scenarios,
@@ -75,10 +75,15 @@ Managed execution uses only the exact Appraise-owned immutable runtime capsule; 
 Successful compilation returns the exact project-scoped `review=validation` browser link and the Appraise resource
 link directly, so the agent can hand off the review gate without another plan read.
 
-Validation authoring is registry-first through the managed action catalog and locator graph. Choose a semantic
-template step first, then the allowlisted structured locator/page fallback, and only then a justified custom step for
-application-specific behavior or a documented catalog gap. See `docs/reusable-playwright-template-steps.md`.
+Validation authoring is registry-first through the unified operation catalog and locator graph. Use
+`operation_search` and `operation_read` to select an exact semantic operation, then the allowlisted structured
+locator/page fallback, and only then a justified custom operation for application-specific behavior or a documented
+catalog gap. Human template search is a compatibility projection of the same migration ledger. See
+`docs/reusable-playwright-template-steps.md`.
 Extensions require exact review evidence; target file paths are never managed execution authority.
+Reusable-resource ranking gives ordered phrase matches and exact parameter names priority over loose token overlap.
+The simple happy-path authoring profile also requires explicit assertions for a clean browser console/page runtime and
+for the absence of failed requests or HTTP error responses.
 
 Draft check, publication, and runtime preflight share one locator-binding rule: every locator-bearing parameter must
 resolve to exactly one locator in the projected validation resources, and that locator must belong to a declared
@@ -89,8 +94,10 @@ case, step, requested locator, and a corrective locator lookup action.
 
 Validation review uses two hash domains. The publish operation protects immutable compiled validation, review, and
 projection content. Node decisions, file approvals, and review submission advance a separate current-review-state
-receipt. Validation submission must present the exact current receipt shown in the review UI. A legitimate review
-decision therefore cannot invalidate compile-time publication integrity.
+receipt. Each node decision returns its refreshed `reviewBinding`, including the current `reviewStateHash`, in the
+same response, so normal callers do not perform a separate reconciliation round trip. Validation submission must
+present that exact current receipt. A legitimate review decision therefore cannot invalidate compile-time publication
+integrity.
 
 Coordinator waits and the review UI report `integrity_blocked` and hide approval controls when either immutable
 content or the current receipt disagrees. A staged `prepared`, `artifacts_written`, or `projected` operation resumes
@@ -130,6 +137,8 @@ Before creating baseline TestRuns, `baseline_start` checks loopback environment 
 identity. An explicitly configured expected page title must match. A title matching a different registered target is a
 conflict even without an explicit title. The diagnostic offers a free replacement local port when available; agents
 must update or repropose the environment rather than running against an unrelated application.
+The same reservation-aware replacement is returned during validation-resource proposal, so greenfield authoring can
+recover with the exact `suggestedBaseUrl` instead of guessing ports before baseline.
 
 When a baseline is intentionally red before implementation, the managed Validation AST must declare `expectedFailures`
 for the exact browser/environment matrix entry. Entries preserve legacy baseline semantics: each approved `signature`
@@ -259,6 +268,11 @@ The plan review Approval tab renders **Approve final completion** only while lif
 current completion receipt is ready. The user must explicitly confirm intent, and the server action submits the exact
 displayed evidence hash. A concurrent event or artifact change rejects the stale hash and leaves the plan incomplete
 until the refreshed receipt is reviewed and confirmed again.
+
+The completion review receipt exports a bounded efficiency snapshot grouped by lifecycle phase. Each phase reports
+duration, wait time, retries, tool calls, response bytes, and recovery cost, with the event sequence at capture time.
+This diagnostic snapshot is intentionally outside the approval evidence hash so recording or reading telemetry cannot
+make an otherwise unchanged completion approval stale.
 
 If the UI records final sign-off before a connected agent relays `implementation_complete`, replaying the exact signed
 completion evidence hash is idempotent and returns the existing terminal artifacts without duplicating events or

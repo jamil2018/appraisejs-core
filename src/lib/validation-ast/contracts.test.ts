@@ -54,7 +54,9 @@ const ast = {
 
 describe('validation AST contracts', () => {
   it('represents action, locator, stored-value, matrix, concern, and extension references', () => {
-    expect(validationAstSchema.parse(ast)).toEqual(ast)
+    const parsed = validationAstSchema.parse(ast)
+    expect(parsed.scenarios[0]!.steps[0]!.operation.id).toBe('browser-click')
+    expect(parsed.scenarios[0]!.steps[0]).not.toHaveProperty('action')
     expect(
       customActionExtensionProposalSchema.parse({
         schemaVersion: 1,
@@ -69,6 +71,27 @@ describe('validation AST contracts', () => {
         implementation: { language: 'typescript', source: 'export async function run() { return 0 }' },
       }),
     ).toMatchObject({ id: 'read-session-timer' })
+  })
+
+  it('accepts canonical operation references and normalizes legacy action references through one reader', () => {
+    const operationAst = {
+      ...ast,
+      scenarios: [
+        {
+          ...ast.scenarios[0],
+          steps: ast.scenarios[0].steps.map(step => {
+            const { action, ...rest } = step
+            return { ...rest, operation: { ...action, descriptorHash: hash('d') } }
+          }),
+        },
+      ],
+    }
+    const parsed = validationAstSchema.parse(operationAst)
+    expect(parsed.scenarios[0]!.steps[0]!.operation).toMatchObject({
+      id: 'browser-click',
+      descriptorHash: hash('d'),
+    })
+    expect(parsed.scenarios[0]!.steps[0]).not.toHaveProperty('action')
   })
 
   it('rejects unknown versions, duplicate step ids, and raw executable action fields', () => {

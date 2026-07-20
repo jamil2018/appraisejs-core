@@ -1,9 +1,11 @@
 import prisma from '@/config/db-config'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
 import { ServiceError } from '@/services/shared/errors'
-import { Prisma, StepParameterType } from '@prisma/client'
+import { flowBlockCreates, templateTestCaseStepCreates } from '@/services/shared/authored-step-persistence'
+import { Prisma } from '@prisma/client'
 import type { TemplateTestCase } from '@prisma/client'
 import type { z } from 'zod'
+import { type CanonicalTemplateStepMapping } from '@/lib/operation-catalog'
 
 const templateTestCaseInclude = {
   steps: {
@@ -51,50 +53,32 @@ async function validateTemplateSteps(value: TemplateTestCaseInput) {
   const ids = [...new Set(value.steps.map(step => step.templateStepId))]
   const steps = await prisma.templateStep.findMany({
     where: { id: { in: ids } },
-    select: { id: true },
+    select: {
+      id: true,
+      operationId: true,
+      operationVersion: true,
+      operationDescriptorHash: true,
+      humanProjectionId: true,
+      operationMigrationState: true,
+    },
   })
   if (steps.length !== ids.length)
     throw new ServiceError('One or more template steps were not found', 'VALIDATION', 400)
+  return new Map(steps.map(step => [step.id, step satisfies CanonicalTemplateStepMapping & { id: string }]))
 }
 
 export async function createTemplateTestCase(
   value: TemplateTestCaseInput,
   targetProjectId: string,
 ): Promise<TemplateTestCase> {
-  await validateTemplateSteps(value)
+  const operationMappings = await validateTemplateSteps(value)
   return prisma.templateTestCase.create({
     data: {
       name: value.title,
       description: value.description ?? '',
       targetProjectId,
-      steps: {
-        create: value.steps.map(step => ({
-          gherkinStep: step.gherkinStep,
-          flowNodeId: step.nodeId,
-          label: step.label,
-          icon: step.icon,
-          parameters: {
-            create: step.parameters.map(param => ({
-              name: param.name,
-              defaultValue: param.value,
-              type: param.type as StepParameterType,
-              order: param.order,
-            })),
-          },
-          TemplateStep: { connect: { id: step.templateStepId } },
-          order: step.order,
-        })),
-      },
-      flowBlocks: {
-        create: (value.flowBlocks ?? []).map((block, index) => ({
-          id: block.id,
-          name: block.name,
-          order: index,
-          nodes: {
-            create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
-          },
-        })),
-      },
+      steps: { create: templateTestCaseStepCreates(value.steps, operationMappings) },
+      flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
     },
   })
 }
@@ -126,7 +110,7 @@ export async function updateTemplateTestCase(
     )
   }
   await getTemplateTestCaseByIdOrThrow(id, targetProjectId)
-  await validateTemplateSteps(value)
+  const operationMappings = await validateTemplateSteps(value)
 
   const steps = await prisma.templateTestCaseStep.findMany({
     where: { templateTestCaseId: id },
@@ -148,34 +132,8 @@ export async function updateTemplateTestCase(
     data: {
       name: value.title,
       description: value.description ?? '',
-      steps: {
-        create: value.steps.map(step => ({
-          gherkinStep: step.gherkinStep,
-          flowNodeId: step.nodeId,
-          label: step.label ?? '',
-          icon: step.icon ?? '',
-          parameters: {
-            create: step.parameters.map(param => ({
-              name: param.name,
-              defaultValue: param.value,
-              type: param.type as StepParameterType,
-              order: param.order,
-            })),
-          },
-          templateStepId: step.templateStepId,
-          order: step.order,
-        })),
-      },
-      flowBlocks: {
-        create: (value.flowBlocks ?? []).map((block, index) => ({
-          id: block.id,
-          name: block.name,
-          order: index,
-          nodes: {
-            create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
-          },
-        })),
-      },
+      steps: { create: templateTestCaseStepCreates(value.steps, operationMappings) },
+      flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
     },
     include: { steps: true },
   })

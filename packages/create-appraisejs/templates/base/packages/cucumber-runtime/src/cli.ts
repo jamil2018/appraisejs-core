@@ -1,7 +1,7 @@
 import { Command, Option, OptionValues } from 'commander'
 import parseTagExpression from '@cucumber/tag-expressions'
-import { getAllEnvironments } from './environment.util.js'
-import { BrowserName } from './types.js'
+import { getAllEnvironments } from './environment.util.ts'
+import { BrowserName } from './types.ts'
 
 export interface CliOptions extends OptionValues {
   environment: string

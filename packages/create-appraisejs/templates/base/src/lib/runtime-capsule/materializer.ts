@@ -25,6 +25,7 @@ import { materializeRuntimeCapsuleFile, resolveRuntimeCapsulePaths } from './sto
 import { ManagedProjectManifestRepository } from './project-manifest'
 import { generateCucumberConfig, generateReviewedFeature, generateSupportFiles } from './file-generator'
 import { generateExecutableBindings } from './binding-generator'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 
 type ValidationNode = ValidationArtifact['validations'][number]
 type CapsuleFile = { path: string; role: RuntimeCapsuleManifest['files'][number]['role']; bytes: Buffer }
@@ -33,7 +34,7 @@ type PublishOperation = Prisma.ValidationAstPublishOperationGetPayload<{
 }>
 type MaterializerTestRun = Prisma.TestRunGetPayload<{ include: { environment: true } }>
 
-const GENERATOR = { id: 'appraise.validation-ast-capsule', version: '1' } as const
+const GENERATOR = { id: 'appraise.validation-ast-capsule', version: '2' } as const
 const APPRAISE_RUNTIME_IMPORT = pathToFileURL(
   path.resolve(process.cwd(), 'packages/cucumber-runtime/dist/index.js'),
 ).href
@@ -99,7 +100,7 @@ export function buildReviewedRuntimeCapsuleFiles(input: {
       .map(step => ({
         id: step.id,
         keywordText: step.gherkinStep,
-        action: step.templateStepName,
+        operation: step.operationRef ?? step.templateStepName,
         parameters: [...step.parameters].sort((left, right) => left.name.localeCompare(right.name)),
       })),
   }))
@@ -164,7 +165,7 @@ export function buildReviewedRuntimeCapsuleFiles(input: {
     },
     { path: 'expected-cases.json', role: 'expected-cases', bytes: Buffer.from(canonicalRuntimeCapsuleJson(cases)) },
   ]
-  return { cases, files: files.sort((left, right) => left.path.localeCompare(right.path)) }
+  return { cases, bindings, files: files.sort((left, right) => left.path.localeCompare(right.path)) }
 }
 
 function reviewedValidationFor(operation: PublishOperation) {
@@ -257,6 +258,32 @@ async function buildCapsuleManifest(
     runtimeInputHash: operation.runtimeInputHash,
     commandReceipt: { path: 'command-receipt.json', hash: hashCapsuleCommandReceipt(commandReceipt) },
     generator: GENERATOR,
+    operations: [
+      ...new Set(
+        built.bindings
+          .flatMap(testCase => testCase.steps.map(step => step.operation))
+          .filter((ref): ref is string => typeof ref === 'string'),
+      ),
+    ]
+      .sort()
+      .flatMap(ref => {
+        const separator = ref.lastIndexOf('@')
+        try {
+          const selected = defaultOperationRegistry.read([
+            { id: ref.slice(0, separator), version: ref.slice(separator + 1) },
+          ])[0]!
+          return [
+            {
+              id: selected.id,
+              version: selected.version,
+              descriptorHash: selected.descriptorHash,
+              handler: selected.handler,
+            },
+          ]
+        } catch {
+          return []
+        }
+      }),
     expectedCases: built.cases,
     files: built.files.map(file => ({
       path: file.path,

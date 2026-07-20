@@ -4,5 +4,5 @@
  * @icon VALIDATION
  */
 Then('the full page url should equal {string}', async function (this: CustomWorld, expected: string) {
-  expect(this.page.url()).to.equal(expected)
+  await executeHumanOperation('browser.browser.assertion.assert.full.url@1', this, ['expected'], [expected])
 })

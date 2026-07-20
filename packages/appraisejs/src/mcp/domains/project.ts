@@ -402,6 +402,48 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   )
 
   server.registerTool(
+    'operation_categories',
+    {
+      description: 'List bounded canonical operation categories; known manifest hashes return unchanged.',
+      inputSchema: { knownManifestHash: z.string().optional() },
+    },
+    async input => text(await api.listOperationCategories(input.knownManifestHash)),
+  )
+
+  server.registerTool(
+    'operation_search',
+    {
+      description: 'Rank canonical operations by intent and exact capability filters before authoring validation.',
+      inputSchema: {
+        query: z.string().min(1).max(500),
+        parameterNames: z.array(z.string().min(1)).max(32).optional(),
+        category: z.string().optional(),
+        capability: z.string().optional(),
+        inputType: z.string().optional(),
+        runtime: z.enum(['browser', 'api', 'node', 'database']).optional(),
+        surface: z.enum(['human', 'agent']).optional(),
+        deprecated: z.boolean().optional(),
+        limit: z.number().int().min(1).max(100).optional(),
+      },
+    },
+    async input => text(await api.searchOperations(input)),
+  )
+
+  server.registerTool(
+    'operation_read',
+    {
+      description: 'Read exact canonical operation descriptors and handler identities for selected references.',
+      inputSchema: {
+        operationRefs: z
+          .array(z.object({ id: z.string(), version: z.string().optional() }))
+          .min(1)
+          .max(50),
+      },
+    },
+    async ({ operationRefs }) => text(await api.readOperations(operationRefs)),
+  )
+
+  server.registerTool(
     'action_categories_list',
     {
       description: 'List bounded action category summaries; known catalog hashes return unchanged.',

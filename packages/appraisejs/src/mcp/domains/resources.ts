@@ -1,6 +1,7 @@
 import type { McpRegistryContext } from '../registry.js'
 import {
   ACTION_CATALOG_CONTRACT_VERSION,
+  OPERATION_CATALOG_CONTRACT_VERSION,
   DELEGATED_AUTHORIZATION_VERSION,
   LOCATOR_GRAPH_CONTRACT_VERSION,
   ResourceTemplate,
@@ -18,6 +19,16 @@ import {
 export function registerResourcesOperations(context: McpRegistryContext): void {
   const { server, api } = context
   const phase1Contracts = [
+    {
+      name: 'operation-catalog-contract',
+      uri: 'appraise://contracts/operation-catalog',
+      title: 'Unified operation catalog contract',
+      value: {
+        version: OPERATION_CATALOG_CONTRACT_VERSION,
+        operations: ['categories', 'search', 'read'],
+        legacyAliases: ['actions', 'template-steps'],
+      },
+    },
     {
       name: 'action-catalog-contract',
       uri: 'appraise://contracts/action-catalog',
@@ -146,6 +157,17 @@ export function registerResourcesOperations(context: McpRegistryContext): void {
     { title: 'AppraiseJS agent workflow guide', mimeType: 'application/json' },
     async uri => ({
       contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(agentGuide) }],
+    }),
+  )
+
+  server.registerResource(
+    'operation-catalog',
+    'appraise://operations/catalog',
+    { title: 'AppraiseJS unified operation catalog categories', mimeType: 'application/json' },
+    async uri => ({
+      contents: [
+        { uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await api.listOperationCategories()) },
+      ],
     }),
   )
 

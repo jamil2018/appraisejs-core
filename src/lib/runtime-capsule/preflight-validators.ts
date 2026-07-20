@@ -5,6 +5,8 @@ import { CUSTOM_EXTENSION_RUNTIME_DECLARATIONS } from '@/lib/validation-ast/exte
 import type { CapsuleCommandReceiptV1 } from './command-receipt-contract'
 import { canonicalRuntimeCapsuleJson, hashRuntimeCapsuleBytes } from './contracts'
 import type { resolveCapsuleRuntimeIdentity } from './runtime-identity'
+import type { RuntimeCapsuleManifest } from './contracts'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 
 const require = createRequire(import.meta.url)
 const hashText = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`
@@ -21,6 +23,18 @@ export function validateRuntimeIdentity(
   ])
     if (canonicalRuntimeCapsuleJson(actual) !== canonicalRuntimeCapsuleJson(sealed))
       throw new Error('runtime identity drift')
+}
+
+export function validateOperationClosure(manifest: RuntimeCapsuleManifest) {
+  if (manifest.generator.version === '1') return
+  for (const sealed of manifest.operations) {
+    const current = defaultOperationRegistry.read([{ id: sealed.id, version: sealed.version }])[0]!
+    if (
+      current.descriptorHash !== sealed.descriptorHash ||
+      canonicalRuntimeCapsuleJson(current.handler) !== canonicalRuntimeCapsuleJson(sealed.handler)
+    )
+      throw new Error(`operation closure drift for ${sealed.id}@${sealed.version}`)
+  }
 }
 
 export function validateCucumberSingleton(

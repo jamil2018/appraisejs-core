@@ -6,7 +6,11 @@
 Then(
   'the browser cookie {string} should equal {string}',
   async function (this: CustomWorld, name: string, expected: string) {
-    const cookies = await this.context.cookies(this.page.url())
-    expect(cookies.find(cookie => cookie.name === name)?.value ?? '').to.equal(expected)
+    await executeHumanOperation(
+      'browser.browser.assertion.assert.browser.cookie@1',
+      this,
+      ['name', 'expected'],
+      [name, expected],
+    )
   },
 )

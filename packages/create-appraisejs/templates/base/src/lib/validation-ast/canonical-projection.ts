@@ -22,7 +22,7 @@ export function locatorBindingsForAst(
   const refs = new Set<string>()
   for (const scenario of ast.scenarios)
     for (const step of scenario.steps)
-      for (const value of Object.values(step.action.inputs))
+      for (const value of Object.values(step.operation.inputs))
         if (
           value &&
           typeof value === 'object' &&
@@ -79,8 +79,8 @@ export function createValidationAstCanonicalProjection(
       order,
       label: step.description,
       gherkinStep: `${step.keyword} ${step.description}`,
-      templateStepName: `${step.action.id}@${step.action.version}`,
-      parameters: Object.entries(step.action.inputs).map(([name, input]) => parameter(name, input, bindings)),
+      operationRef: `${step.operation.id}@${step.operation.version}`,
+      parameters: Object.entries(step.operation.inputs).map(([name, input]) => parameter(name, input, bindings)),
     })),
   }))
   const projectedStepIds = new Map(

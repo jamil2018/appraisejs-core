@@ -4,5 +4,5 @@
  * @icon NAVIGATION
  */
 When('the user goes forward to the next page', async function (this: CustomWorld) {
-  await this.page.goForward({ waitUntil: 'domcontentloaded' })
+  await executeHumanOperation('browser.browser.state.go.forward@1', this, [], [])
 })

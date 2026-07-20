@@ -6,8 +6,10 @@
 When(
   'the user sets session storage key {string} to {string}',
   async function (this: CustomWorld, key: string, value: string) {
-    await this.page.evaluate(
-      ([storageKey, storageValue]) => sessionStorage.setItem(storageKey, storageValue),
+    await executeHumanOperation(
+      'browser.browser.state.set.session.storage.value@1',
+      this,
+      ['key', 'value'],
       [key, value],
     )
   },

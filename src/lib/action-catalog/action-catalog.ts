@@ -7,6 +7,7 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 export const ACTION_CATALOG_CONTRACT_VERSION = '1' as const
 export const actionCategoryIdSchema = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
 const idSchema = actionCategoryIdSchema
+const inputNameSchema = z.string().regex(/^[a-z][a-zA-Z0-9-]*$/)
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 export const actionAssertionConcernSchema = z.enum(['accessibility', 'persistence', 'responsive'])
 export const actionNumericUnitSchema = z.enum(['milliseconds', 'seconds'])
@@ -19,7 +20,7 @@ export const actionCategorySchema = z.object({
 })
 
 const actionInputSchema = z.object({
-  name: idSchema,
+  name: inputNameSchema,
   type: z.string().min(1),
   required: z.boolean(),
   description: z.string().min(1),

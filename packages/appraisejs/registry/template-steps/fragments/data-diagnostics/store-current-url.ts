@@ -4,5 +4,5 @@
  * @icon STORE
  */
 When('the user stores the current url in variable {string}', async function (this: CustomWorld, variableName: string) {
-  this.setVar(variableName, this.page.url())
+  await executeHumanOperation('browser.data.diagnostics.store.current.url@1', this, ['variableName'], [variableName])
 })

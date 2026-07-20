@@ -12,14 +12,11 @@ When(
     argumentsJson: string,
     optionsJson: string,
   ) {
-    const selector = await resolveLocator(this.page, elementName, { validate: { requireVisible: false } })
-    if (!selector) throw new Error(`Selector ${elementName} not found`)
-    try {
-      await runLocatorTemplateOperation(this.page.locator(selector), operation, argumentsJson, optionsJson, name =>
-        this.getVar(name),
-      )
-    } catch (error) {
-      throw new Error(`Structured locator operation ${operation} failed for ${elementName}: ${error}`)
-    }
+    await executeHumanOperation(
+      'browser.structured.operations.run.structured.locator.operation@1',
+      this,
+      ['operation', 'elementName', 'argumentsJson', 'optionsJson'],
+      [operation, elementName, argumentsJson, optionsJson],
+    )
   },
 )

@@ -4,5 +4,5 @@
  * @icon MOUSE
  */
 When('the user clicks page coordinates x {int} and y {int}', async function (this: CustomWorld, x: number, y: number) {
-  await this.page.mouse.click(x, y)
+  await executeHumanOperation('browser.pointer.click.page.coordinates@1', this, ['x', 'y'], [x, y])
 })

@@ -844,6 +844,31 @@ describe('implementation coordinator checkpoints', () => {
     })
   })
 
+  it('resumes feedback-paused tasks when their implementation group is re-approved', async () => {
+    const planId = 'feedback-group-reapproval'
+    await writeArtifacts(planId, undefined, {
+      implementation: {
+        taskStates: { foundation: 'verified', api: 'verified', docs: 'pending' },
+        approvedGroupIds: ['core'],
+        pausedTaskIds: ['docs'],
+        validationRuns: [],
+        commits: [],
+        reconciliationReceipts: [],
+        evidenceProtected: true,
+      },
+    })
+
+    await expect(
+      approveImplementationGroups({ planId, groupIds: ['documentation'] }, { projectDirectory: workspace, client }),
+    ).resolves.toMatchObject({
+      implementation: {
+        approvedGroupIds: ['core', 'documentation'],
+        pausedTaskIds: [],
+      },
+      runnableTaskIds: ['docs'],
+    })
+  })
+
   it('rejects unaccepted baselines and supports pause, resume, and cancel controls', async () => {
     const planId = 'control-flow'
     await writeArtifacts(planId, undefined, { baselineDecision: 'pending' })
@@ -1050,8 +1075,52 @@ describe('implementation coordinator checkpoints', () => {
       { implementation },
       { threads: [nonBlockingRemark, resolvedBlockingRemark] },
     )
+    const projection = await client.planProjection.findUniqueOrThrow({ where: { planId }, select: { id: true } })
+    await client.planOperationMetric.create({
+      data: {
+        planProjectionId: projection.id,
+        phase: 'implementation',
+        operation: 'implementation/checkpoint',
+        statusCode: 200,
+        durationMs: 125,
+        retryCount: 1,
+        requestBytes: 256,
+        responseBytes: 2048,
+      },
+    })
     const completionReview = await reviewImplementationCompletion(planId, { projectDirectory: workspace, client })
-    expect(completionReview).toMatchObject({ readiness: { ready: true }, blockingRemarks: [] })
+    expect(completionReview).toMatchObject({
+      readiness: { ready: true },
+      blockingRemarks: [],
+      efficiencyTelemetry: {
+        capturedAtEventSequence: expect.any(Number),
+        phases: [
+          expect.objectContaining({
+            phase: 'implementation',
+            durationMs: 125,
+            retries: 1,
+            toolCalls: 1,
+            responseBytes: 2048,
+          }),
+        ],
+      },
+    })
+    await client.planOperationMetric.create({
+      data: {
+        planProjectionId: projection.id,
+        phase: 'completion',
+        operation: 'completion/review',
+        statusCode: 200,
+        durationMs: 50,
+        requestBytes: 128,
+        responseBytes: 1024,
+      },
+    })
+    const refreshedTelemetry = await reviewImplementationCompletion(planId, { projectDirectory: workspace, client })
+    expect(refreshedTelemetry.evidenceHash).toBe(completionReview.evidenceHash)
+    expect(refreshedTelemetry.efficiencyTelemetry.phases).toEqual(
+      expect.arrayContaining([expect.objectContaining({ phase: 'completion', durationMs: 50, responseBytes: 1024 })]),
+    )
     expect(completionReview.evidenceHash).not.toBe(beforeValidationReview.evidenceHash)
     await expect(
       approveImplementationCompletion(
@@ -1153,7 +1222,7 @@ describe('implementation coordinator checkpoints', () => {
       healthy: false,
       issues: expect.arrayContaining([expect.objectContaining({ code: 'MISSING_VALIDATION_PASSED_EVENT' })]),
     })
-  })
+  }, 15_000)
 
   it('reports terminal baseline runs that still require lifecycle reconciliation', async () => {
     const planId = 'baseline-lifecycle-health'

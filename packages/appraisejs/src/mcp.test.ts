@@ -280,6 +280,8 @@ describe('compact lifecycle responses', () => {
         created: { planId: 'plan-1', planContentHash: `sha256:${'a'.repeat(64)}`, duplicatedPlan: 'x'.repeat(20_000) },
         reviewReady: {
           planId: 'plan-1',
+          goal: 'Build a focused notes app.',
+          description: 'Users can create and search persistent notes.',
           lifecycle: 'awaiting_plan_review',
           revision: 1,
           planContentHash: `sha256:${'a'.repeat(64)}`,
@@ -299,6 +301,8 @@ describe('compact lifecycle responses', () => {
 
     expect(compact).toMatchObject({
       planId: 'plan-1',
+      goal: 'Build a focused notes app.',
+      description: 'Users can create and search persistent notes.',
       lifecycle: 'awaiting_plan_review',
       browserUrl: 'http://localhost:3000/plans/plan-1?project=project-1',
       nextAfterSequence: 2,
@@ -537,6 +541,59 @@ describe('compact lifecycle responses', () => {
       blockers: ['Task ui is not verified.'],
       nextAllowedAction: { tool: 'implementation_task_update', taskId: 'ui', status: 'implemented' },
     })
+  })
+
+  it('keeps completion receipts, bounded evidence counts, and final runs in summary mode', () => {
+    const evidenceHash = `sha256:${'e'.repeat(64)}`
+    const compact = applyLifecycleResponseMode(
+      {
+        plan: { planId: 'plan-1', lifecycle: 'validation_passed', revision: 1 },
+        evidenceHash,
+        eventSequence: 58,
+        readiness: { ready: true, blockers: [] },
+        tasks: [
+          { id: 'foundation', status: 'verified', verbose: 'x'.repeat(10_000) },
+          { id: 'quality', status: 'verified', verbose: 'x'.repeat(10_000) },
+        ],
+        validationRuns: [
+          {
+            id: 'implementation-run-1',
+            validationId: 'happy-path',
+            testRunId: 'test-run-1',
+            status: 'passed',
+            fresh: true,
+            assurance: 'full',
+            verbose: 'x'.repeat(10_000),
+          },
+        ],
+        blockingRemarks: [],
+        nonBlockingRemarks: [{ id: 'remark-1', verbose: 'x'.repeat(10_000) }],
+        links: { browser: 'http://localhost:3000/plans/plan-1', appraise: 'appraise://plans/plan-1' },
+      },
+      'summary',
+    )
+
+    expect(compact).toMatchObject({
+      planId: 'plan-1',
+      lifecycle: 'validation_passed',
+      evidenceHash,
+      eventSequence: 58,
+      ready: true,
+      counts: { tasks: 2, verifiedTasks: 2, validationRuns: 1, blockingRemarks: 0, nonBlockingRemarks: 1 },
+      runs: [
+        {
+          id: 'implementation-run-1',
+          validationId: 'happy-path',
+          testRunId: 'test-run-1',
+          status: 'passed',
+          fresh: true,
+          assurance: 'full',
+        },
+      ],
+      links: { browser: 'http://localhost:3000/plans/plan-1', appraise: 'appraise://plans/plan-1' },
+    })
+    expect(compact).not.toHaveProperty('tasks')
+    expect(measureMcpResponse(compact).estimatedTokens).toBeLessThan(MCP_RESPONSE_TOKEN_BUDGETS.validationMutation)
   })
 
   it('does not repeat baseline attempts in implementation mutation summaries', () => {

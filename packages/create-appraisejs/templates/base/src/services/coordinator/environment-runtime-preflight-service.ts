@@ -1,4 +1,3 @@
-import { createServer } from 'node:net'
 import path from 'node:path'
 
 import type { PrismaClient } from '@prisma/client'
@@ -7,6 +6,7 @@ import type { ValidationArtifact } from '@/lib/plan-contract'
 import {
   assertLoopbackOriginReservation,
   normalizedLoopbackOrigin,
+  suggestAvailableLoopbackBaseUrl,
 } from '@/services/environment/environment-origin-reservation'
 import { ServiceError } from '@/services/shared/errors'
 
@@ -59,28 +59,6 @@ async function readBoundedBody(response: Response, maxBytes = 65_536) {
   return new TextDecoder().decode(body)
 }
 
-async function portAvailable(port: number, hostname: string) {
-  return new Promise<boolean>(resolve => {
-    const server = createServer()
-    server.unref()
-    server.once('error', () => resolve(false))
-    server.listen({ port, host: hostname, exclusive: true }, () => server.close(() => resolve(true)))
-  })
-}
-
-async function suggestAvailableLoopbackBaseUrl(baseUrl: string) {
-  const url = new URL(baseUrl)
-  const start = Number(url.port || (url.protocol === 'https:' ? 443 : 80))
-  const hostname =
-    url.hostname.replace(/^\[|\]$/g, '') === 'localhost' ? '127.0.0.1' : url.hostname.replace(/^\[|\]$/g, '')
-  for (let port = start + 1; port <= Math.min(start + 50, 65_535); port += 1) {
-    if (!(await portAvailable(port, hostname))) continue
-    url.port = String(port)
-    return url.toString().replace(/\/$/, '')
-  }
-  return undefined
-}
-
 async function fetchPageTitle(baseUrl: string, fetchImpl: FetchLike) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 1_500)
@@ -112,9 +90,13 @@ async function throwIdentityMismatch(
   environment: { id: string; name: string; baseUrl: string; expectedPageTitle: string | null },
   targetProject: TargetProjectIdentity,
   observedPageTitle: string | undefined,
+  client: PrismaClient,
   conflictingTargetProjectId?: string,
 ): Promise<never> {
-  const suggestedBaseUrl = await suggestAvailableLoopbackBaseUrl(environment.baseUrl)
+  const suggestedBaseUrl = await suggestAvailableLoopbackBaseUrl(
+    { baseUrl: environment.baseUrl, targetProjectId: targetProject.id, excludeEnvironmentId: environment.id },
+    client,
+  )
   throw new ServiceError(
     `Environment ${environment.name} is serving an unexpected application at ${environment.baseUrl}.`,
     'CONFLICT',
@@ -171,6 +153,7 @@ async function probeEnvironment(
   environment: { id: string; name: string; baseUrl: string; expectedPageTitle: string | null },
   targetProject: TargetProjectIdentity,
   foreignProjects: Array<{ id: string; displayName: string }>,
+  client: PrismaClient,
   fetchImpl: FetchLike,
 ): Promise<EnvironmentRuntimePreflight> {
   const origin = normalizedLoopbackOrigin(environment.baseUrl)
@@ -202,7 +185,7 @@ async function probeEnvironment(
     foreignProjects,
   )
   if (explicitMismatch || foreignMatch) {
-    await throwIdentityMismatch(environment, targetProject, observedPageTitle, foreignMatch?.id)
+    await throwIdentityMismatch(environment, targetProject, observedPageTitle, client, foreignMatch?.id)
   }
   return reachablePreflight(environment, targetProject, origin, observedPageTitle, verified)
 }
@@ -233,7 +216,7 @@ export async function preflightBaselineEnvironments(
         { baseUrl: environment.baseUrl, targetProjectId: targetProject.id, excludeEnvironmentId: environment.id },
         client,
       )
-      return probeEnvironment(environment, targetProject, foreignProjects, fetchImpl)
+      return probeEnvironment(environment, targetProject, foreignProjects, client, fetchImpl)
     }),
   )
 }

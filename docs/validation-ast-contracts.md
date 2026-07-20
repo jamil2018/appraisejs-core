@@ -1,8 +1,10 @@
 # Validation AST And Delegated Authorization Contracts
 
-The version 1 Validation AST is the canonical agent-authored description of validation intent. It binds execution to
-versioned action and locator references while retaining descriptions for human review. The public schemas are exported
-from `src/lib/validation-ast`.
+The version 1 Validation AST is the canonical agent-authored description of validation intent. New steps bind
+execution through versioned `operation` and locator references while retaining descriptions for human review. A
+bounded compatibility reader still accepts the legacy `action` property and normalizes it to the same internal
+reference. Optional descriptor hashes are checked for staleness. The public schemas are exported from
+`src/lib/validation-ast`.
 
 The complete versioned submission JSON Schema is also available at `appraise://contracts/validation-ast`. Its
 content-addressed response includes the schema hash, current compiler phases, and locator binding fields returned by
@@ -16,7 +18,7 @@ through a versioned `CustomActionExtensionProposal`, including the capability ga
 capabilities.
 
 `checkValidationAst` and `previewValidationAst` provide the read-only compiler front end. Check validates the
-exact plan/task, action, locator, environment, stored-value, extension, runtime, capability, state, compatibility, and
+exact plan/task, operation, locator, environment, stored-value, extension, runtime, capability, state, compatibility, and
 input/output references. Preview returns bounded deterministic entity IDs, action/locator/extension descriptors,
 human-readable Gherkin, blockers, warnings, hashes, and an immutable command-receipt preview. These operations do not
 persist canonical validation entities or compile runtime bindings; publication remains later compiler work.
@@ -133,7 +135,7 @@ environment, and existing-validation snapshot before its first write. Preview an
 collision-resistant entity IDs, exact Gherkin steps, referenced locators, and reviewed custom-extension hashes. This
 projection does not replace later runtime materialization and validation review publication.
 
-Operational check and preview load the authoritative plan-bound target, plan/task hashes, action catalog, locator
+Operational check and preview load the authoritative plan-bound target, plan/task hashes, operation registry, locator
 graph, environments, runtimes, and capabilities. Their bounded preview receipt binds the AST, plan, catalog, graph,
 environment context, entities, Gherkin, and command receipt. Compile recomputes that receipt and rejects drift inside
 the projection transaction before any write; validation review and runtime materialization remain separate Appraise

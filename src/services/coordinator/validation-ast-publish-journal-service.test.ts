@@ -131,17 +131,17 @@ describe('Validation AST publish journal', () => {
     await expect(
       prepareValidationAstPublish({ ...input, runtimeInputHash: digest('tampered') }, client),
     ).rejects.toThrow(/hash does not match/)
-    const missingLastAction = { ...runtimeInput, actions: runtimeInput.actions.slice(0, -1) }
+    const missingLastOperation = { ...runtimeInput, actions: runtimeInput.actions.slice(0, -1) }
     await expect(
       prepareValidationAstPublish(
         {
           ...input,
-          runtimeInputJson: canonicalContractJson(missingLastAction),
-          runtimeInputHash: contractDigest(missingLastAction),
+          runtimeInputJson: canonicalContractJson(missingLastOperation),
+          runtimeInputHash: contractDigest(missingLastOperation),
         },
         client,
       ),
-    ).rejects.toThrow(/actions do not match/)
+    ).rejects.toThrow(/operations do not match/)
     const missingLastStep = {
       ...runtimeInput,
       expected: {

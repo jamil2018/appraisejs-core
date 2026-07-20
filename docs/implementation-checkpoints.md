@@ -12,6 +12,8 @@ between polls is queued with an immediate statement that it will be acknowledged
 Blocking feedback produces an impact payload containing directly affected tasks, transitive dependents, approvals that
 need confirmation, and independent tasks. The user must confirm this impact before unaffected approvals survive.
 Affected tasks and dependents pause; independent tasks may continue unless the user selects a plan-wide pause.
+Re-approving an affected implementation group resumes its paused tasks; dependency and task-state checks still decide
+which resumed tasks are immediately runnable.
 
 Pause and resume preserve task and evidence state. Cancellation asks separately whether active validation runs should
 stop and emits that decision in the cancellation event.

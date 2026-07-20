@@ -299,7 +299,7 @@ export function registerValidationOperations(context: McpRegistryContext): void 
     'validation_review_reconcile',
     {
       description:
-        'Reconcile a review_ready validation after a crash by preserving immutable publication content and refreshing only the exact current review-state receipt.',
+        'Recovery-only reconciliation for a review_ready validation after a crash. Normal validation decisions return the refreshed review binding atomically.',
       inputSchema: { planId: z.string() },
     },
     async ({ planId }) =>

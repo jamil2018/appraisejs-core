@@ -3,8 +3,10 @@ import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { automationProjectionService } from '@/lib/automation/projection-service'
 import { generateUniqueTestCaseIdentifier } from '@/lib/test-case-utils'
 import { z } from 'zod'
-import { StepParameterType, TagType } from '@prisma/client'
+import { TagType } from '@prisma/client'
 import { ServiceError } from '@/services/shared/errors'
+import { type CanonicalTemplateStepMapping } from '@/lib/operation-catalog'
+import { flowBlockCreates, testCaseStepCreates } from '@/services/shared/authored-step-persistence'
 
 export async function deleteTestCasesByIds(ids: string[], targetProjectId: string): Promise<void> {
   const affectedTestSuites = await prisma.testSuite.findMany({
@@ -119,7 +121,14 @@ async function validateTestCaseRelationships(value: TestCaseInput, targetProject
     prisma.tag.findMany({ where: { id: { in: value.tagIds ?? [] }, targetProjectId }, select: { id: true } }),
     prisma.templateStep.findMany({
       where: { id: { in: templateStepIds } },
-      select: { id: true },
+      select: {
+        id: true,
+        operationId: true,
+        operationVersion: true,
+        operationDescriptorHash: true,
+        humanProjectionId: true,
+        operationMigrationState: true,
+      },
     }),
   ])
   if (
@@ -132,10 +141,11 @@ async function validateTestCaseRelationships(value: TestCaseInput, targetProject
       'VALIDATION',
       400,
     )
+  return new Map(templateSteps.map(step => [step.id, step satisfies CanonicalTemplateStepMapping & { id: string }]))
 }
 
 export async function createTestCaseFromInput(value: TestCaseInput, targetProjectId: string) {
-  await validateTestCaseRelationships(value, targetProjectId)
+  const operationMappings = await validateTestCaseRelationships(value, targetProjectId)
   const uniqueTestCaseIdentifier = generateUniqueTestCaseIdentifier()
   const testCaseIdentifierTag = await prisma.tag.create({
     data: {
@@ -153,34 +163,8 @@ export async function createTestCaseFromInput(value: TestCaseInput, targetProjec
     TestSuite: {
       connect: value.testSuiteIds.map(id => ({ id })),
     },
-    steps: {
-      create: value.steps.map(step => ({
-        gherkinStep: step.gherkinStep,
-        flowNodeId: step.nodeId,
-        label: step.label,
-        icon: step.icon,
-        parameters: {
-          create: step.parameters.map(param => ({
-            name: param.name,
-            value: param.value,
-            type: param.type as StepParameterType,
-            order: param.order,
-          })),
-        },
-        templateStepId: step.templateStepId,
-        order: step.order,
-      })),
-    },
-    flowBlocks: {
-      create: (value.flowBlocks ?? []).map((block, index) => ({
-        id: block.id,
-        name: block.name,
-        order: index,
-        nodes: {
-          create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
-        },
-      })),
-    },
+    steps: { create: testCaseStepCreates(value.steps, operationMappings) },
+    flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
   }
 
   const data =
@@ -257,7 +241,7 @@ export async function getTestCaseByIdOrThrow(id: string, targetProjectId: string
 
 export async function updateTestCaseFromInput(value: TestCaseInput, id: string, targetProjectId: string) {
   await getTestCaseByIdOrThrow(id, targetProjectId)
-  await validateTestCaseRelationships(value, targetProjectId)
+  const operationMappings = await validateTestCaseRelationships(value, targetProjectId)
   const affectedTestSuites = await prisma.testSuite.findMany({
     where: {
       targetProjectId,
@@ -321,34 +305,8 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
       tags: {
         set: allTagIds.map(tagId => ({ id: tagId })),
       },
-      steps: {
-        create: value.steps.map(step => ({
-          gherkinStep: step.gherkinStep,
-          flowNodeId: step.nodeId,
-          label: step.label ?? '',
-          icon: step.icon ?? '',
-          parameters: {
-            create: step.parameters.map(param => ({
-              name: param.name,
-              value: param.value,
-              type: param.type as StepParameterType,
-              order: param.order,
-            })),
-          },
-          templateStepId: step.templateStepId,
-          order: step.order,
-        })),
-      },
-      flowBlocks: {
-        create: (value.flowBlocks ?? []).map((block, index) => ({
-          id: block.id,
-          name: block.name,
-          order: index,
-          nodes: {
-            create: block.nodeIds.map(nodeId => ({ flowNodeId: nodeId })),
-          },
-        })),
-      },
+      steps: { create: testCaseStepCreates(value.steps, operationMappings) },
+      flowBlocks: { create: flowBlockCreates(value.flowBlocks) },
     },
     include: {
       steps: true,

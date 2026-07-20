@@ -4,5 +4,5 @@
  * @icon NAVIGATION
  */
 When('the user accepts the next browser dialog', async function (this: CustomWorld) {
-  this.page.once('dialog', dialog => dialog.accept())
+  await executeHumanOperation('browser.tabs.frames.dialogs.accept.next.dialog@1', this, [], [])
 })

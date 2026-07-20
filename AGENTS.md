@@ -97,6 +97,13 @@ outputs.
 For E2E or Playwright changes, follow `docs/test-run-runtime.md` for runtime behavior and
 `docs/agent-task-recipes.md` for focused validation routing.
 
+## Unified Operation Authority
+
+Do not add built-in browser behavior directly to generated `automation/steps` wrappers, the deprecated action
+projection, or capsule bindings. Add or change the canonical operation definition and shared handler, regenerate human
+projections with `npm run operation:projections`, then update generic conformance coverage. Project-owned custom
+template steps remain manual-only until explicitly reviewed and migrated.
+
 For package work, read the package `AGENTS.md` first when present, then the package README, `package.json`, and tests.
 Package instructions may narrow validation but do not override root safety rules.
 

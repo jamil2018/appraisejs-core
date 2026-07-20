@@ -4,5 +4,5 @@
  * @icon INPUT
  */
 When('the user holds the {string} keyboard key down', async function (this: CustomWorld, key: string) {
-  await this.page.keyboard.down(key)
+  await executeHumanOperation('browser.keyboard.hold.keyboard.key.down@1', this, ['key'], [key])
 })

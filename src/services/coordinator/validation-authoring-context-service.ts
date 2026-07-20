@@ -14,6 +14,20 @@ import {
 } from '@/services/project-resource/project-resource-ownership-service'
 
 type Options = { client?: PrismaClient; projectDirectory?: string }
+const reusableTemplateStepSelect = {
+  id: true,
+  name: true,
+  description: true,
+  signature: true,
+  templateStepGroupId: true,
+  operationId: true,
+  operationVersion: true,
+  operationDescriptorHash: true,
+  humanProjectionId: true,
+  operationMigrationState: true,
+  parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
+  templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
+} as const
 type ReusableRef = {
   id: string
   name?: string
@@ -25,28 +39,52 @@ type ReusableRef = {
   groupDescription?: string | null
   groupType?: string
   path?: string
+  canonicalOperation?: {
+    id: string
+    version: string
+    descriptorHash: string
+    humanProjectionId: string
+  }
+  managedAuthoringStatus?: 'ready' | 'handler-migration-required' | 'composition-migration-required'
 }
 
 function hashContent(content: string) {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`
 }
 
+function normalizedWords(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+}
+
 function scoreIntent(candidate: string, intent: string) {
   const ignored = new Set(['and', 'the', 'then', 'when', 'with', 'from', 'into', 'that', 'this', 'step', 'user'])
   const tokens = (value: string) =>
-    new Set(
-      value
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter(part => part.length > 2 && !ignored.has(part)),
-    )
+    new Set(normalizedWords(value).filter(part => part.length > 2 && !ignored.has(part)))
+  const normalizedCandidate = normalizedWords(candidate).join(' ')
+  const normalizedIntent = normalizedWords(intent).join(' ')
   const candidateTokens = tokens(candidate)
   const intentTokens = tokens(intent)
   const matchedTerms = [...intentTokens].filter(token => candidateTokens.has(token))
+  const intentWords = [...intentTokens]
+  const matchedPhrases = intentWords
+    .slice(0, -1)
+    .map((word, index) => `${word} ${intentWords[index + 1]}`)
+    .filter(phrase => normalizedCandidate.includes(phrase))
+  const exactPhrase = normalizedCandidate === normalizedIntent
+  const containedPhrase = !exactPhrase && normalizedIntent.length > 0 && normalizedCandidate.includes(normalizedIntent)
+  const phraseScore = exactPhrase ? 8 : containedPhrase ? 5 : matchedPhrases.length * 2
   return {
-    score: matchedTerms.length,
-    confidence: intentTokens.size === 0 ? 0 : matchedTerms.length / intentTokens.size,
+    score: matchedTerms.length + phraseScore,
+    confidence:
+      intentTokens.size === 0
+        ? 0
+        : Math.min(1, matchedTerms.length / intentTokens.size + (exactPhrase ? 0.4 : containedPhrase ? 0.25 : 0)),
     matchedTerms,
+    matchedPhrases,
+    exactPhrase,
   }
 }
 
@@ -54,7 +92,7 @@ function signatureParameters(signature: string) {
   return Array.from(signature.matchAll(/\{([^}]+)\}/g), match => match[1]!.trim().toLowerCase())
 }
 
-function rankReusableResources(resources: ReusableResources, intent: string, parameterNames: string[] = []) {
+export function rankReusableResources(resources: ReusableResources, intent: string, parameterNames: string[] = []) {
   const requestedParameters = new Set(parameterNames.map(name => name.trim().toLowerCase()).filter(Boolean))
   const rank = <T extends { id: string; name: string }>(
     values: T[],
@@ -66,20 +104,21 @@ function rankReusableResources(resources: ReusableResources, intent: string, par
         const match = scoreIntent(searchable(value), intent)
         const availableParameters = parameters(value)
         const namedMatches = [...requestedParameters].filter(name => availableParameters.includes(name)).length
-        const compatibleParameterCount = Math.min(
-          requestedParameters.size,
-          Math.max(namedMatches, availableParameters.length),
-        )
+        const positionalFallback =
+          requestedParameters.size > 0 && namedMatches === 0 && availableParameters.length >= requestedParameters.size
+            ? 0.25
+            : 0
+        const compatibleParameterCount = namedMatches + positionalFallback
         const parameterCompatibility =
           requestedParameters.size === 0 ? 1 : compatibleParameterCount / requestedParameters.size
         const confidence = Math.min(1, match.confidence * 0.8 + parameterCompatibility * 0.2)
         return {
           value,
-          score: match.score + compatibleParameterCount,
+          score: match.score + namedMatches * 2 + positionalFallback,
           confidence,
           matchedTerms: match.matchedTerms,
           parameterCompatibility,
-          explanation: `Matched ${match.matchedTerms.length} intent term(s); ${compatibleParameterCount}/${requestedParameters.size} requested parameter(s) fit the reusable signature.`,
+          explanation: `Matched ${match.matchedTerms.length} intent term(s) and ${match.matchedPhrases.length} ordered phrase(s); ${namedMatches}/${requestedParameters.size} requested parameter name(s) match the reusable signature.`,
         }
       })
       .filter(candidate => candidate.score > 0)
@@ -141,15 +180,7 @@ async function readPlanContext(planId: string, options: Options = {}) {
 async function readReusableResources(client: PrismaClient, targetProjectId: string) {
   const [templateSteps, stepBlocks] = await Promise.all([
     client.templateStep.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        signature: true,
-        templateStepGroupId: true,
-        parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
-        templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
-      },
+      select: reusableTemplateStepSelect,
       orderBy: { name: 'asc' },
     }),
     client.stepBlock.findMany({
@@ -162,15 +193,7 @@ async function readReusableResources(client: PrismaClient, targetProjectId: stri
           orderBy: { order: 'asc' },
           select: {
             templateStep: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                signature: true,
-                templateStepGroupId: true,
-                parameters: { select: { name: true, type: true, order: true }, orderBy: { order: 'asc' } },
-                templateStepGroup: { select: { id: true, name: true, description: true, type: true } },
-              },
+              select: reusableTemplateStepSelect,
             },
           },
         },
@@ -191,6 +214,15 @@ type ResolvedTemplateStep = ReusableResources['templateSteps'][number]
 type ResolvedStepBlock = ReusableResources['stepBlocks'][number]
 
 function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
+  const canonicalOperation =
+    step.operationId && step.operationVersion && step.operationDescriptorHash && step.humanProjectionId
+      ? {
+          id: step.operationId,
+          version: step.operationVersion,
+          descriptorHash: step.operationDescriptorHash,
+          humanProjectionId: step.humanProjectionId,
+        }
+      : undefined
   return {
     id: step.id,
     name: step.name,
@@ -202,11 +234,13 @@ function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
     groupDescription: step.templateStepGroup.description,
     groupType: step.templateStepGroup.type,
     path: templateStepGroupPath(step.templateStepGroup.name, step.templateStepGroup.type),
+    ...(canonicalOperation ? { canonicalOperation } : {}),
+    managedAuthoringStatus: canonicalOperation ? 'ready' : 'handler-migration-required',
   }
 }
 
 function stepBlockRef(block: ResolvedStepBlock): ReusableRef {
-  return { id: block.id, name: block.name }
+  return { id: block.id, name: block.name, managedAuthoringStatus: 'composition-migration-required' }
 }
 
 // fallow-ignore-next-line complexity
@@ -249,9 +283,11 @@ export async function resolveReusableValidationSteps(
       returnedCandidates: templateSteps.length + stepBlocks.length,
       durationMs: Date.now() - startedAt,
     },
-    nextRecommendedAction: selected
-      ? 'Use the selected reusable reference while authoring the managed Validation AST, then call validation_ast_check.'
-      : 'Review the bounded alternatives, then propose a justified custom step only if none is compatible.',
+    nextRecommendedAction: selected?.canonicalOperation
+      ? 'Use selected.canonicalOperation as the managed AST operation reference, then call validation_ast_check.'
+      : selected
+        ? 'This human reusable result is not yet managed-authoring ready. Call operation_search for a canonical equivalent; do not copy its source or invent an overlapping custom operation.'
+        : 'Review the bounded alternatives and call operation_search, then propose a justified custom operation only if no canonical capability is compatible.',
   }
 }
 
@@ -307,13 +343,25 @@ function starterSubmission(
           id: `${scenarioId}-navigate`,
           keyword: 'Given' as const,
           description: 'the agent opens the target application',
-          action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
+          operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/' } },
         },
         {
           id: `${scenarioId}-observe`,
-          keyword: 'Then' as const,
+          keyword: 'When' as const,
           description: 'the agent waits for the application to become ready',
-          action: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+          operation: { id: 'browser.waits.page-ready', version: '1', inputs: {} },
+        },
+        {
+          id: `${scenarioId}-console-clean`,
+          keyword: 'Then' as const,
+          description: 'the browser reports no console or page errors',
+          operation: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+        },
+        {
+          id: `${scenarioId}-network-clean`,
+          keyword: 'And' as const,
+          description: 'the browser reports no failed network activity',
+          operation: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
         },
       ],
     }
@@ -336,10 +384,11 @@ function starterSubmission(
             targetId: task.id,
             scenarioIds: [scenarioId],
             stimulusStepIds: [`${scenarioId}-navigate`],
-            observationStepIds: [],
+            observationStepIds: [`${scenarioId}-console-clean`, `${scenarioId}-network-clean`],
             rationale: `Starter mapping for ${task.validationIntent}`,
             state: 'uncovered' as const,
-            limitation: 'Replace the placeholder observation with an explicit reviewed assertion before preview.',
+            limitation:
+              'Add product-outcome assertions before preview; runtime cleanliness alone does not prove behavior.',
           }
         }),
       },

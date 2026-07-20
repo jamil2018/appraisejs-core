@@ -6,11 +6,11 @@
 Then(
   'the {string} element css property {string} should equal {string}',
   async function (this: CustomWorld, elementName: SelectorName, property: string, expected: string) {
-    const selector = await resolveLocator(this.page, elementName, { validate: { requireVisible: false } })
-    if (!selector) throw new Error(`Selector ${elementName} not found`)
-    const actual = await this.page
-      .locator(selector)
-      .evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property)
-    expect(actual).to.equal(expected)
+    await executeHumanOperation(
+      'browser.element.property.assertion.assert.element.css.property@1',
+      this,
+      ['elementName', 'property', 'expected'],
+      [elementName, property, expected],
+    )
   },
 )

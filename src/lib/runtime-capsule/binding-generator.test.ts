@@ -40,12 +40,15 @@ describe('executable binding generator', () => {
         bindings: [
           {
             caseId: 'case',
-            steps: [{ id: 'step', keywordText: 'When it runs', action: 'browser.navigation.reload@1', parameters: [] }],
+            steps: [
+              { id: 'step', keywordText: 'When it runs', operation: 'browser.navigation.reload@1', parameters: [] },
+            ],
           },
         ],
       })
-      expect(source).toContain("'labels' in element")
-      expect(source).toContain("element.getAttribute('aria-labelledby')")
+      expect(source).toContain('executeBrowserOperation')
+      expect(source).toContain('allowedOperationRefs')
+      expect(source).not.toContain("case 'browser.navigation.reload@1'")
       await expectGeneratedBindingToDryRun(root, source, 'Feature: Test\n  Scenario: Run\n    When it runs\n')
     } finally {
       await fs.rm(root, { recursive: true, force: true })
@@ -57,7 +60,7 @@ describe('executable binding generator', () => {
     try {
       const runtimeImport = pathToFileURL(path.resolve('packages/cucumber-runtime/dist/index.js')).href
       const repeatedStep = {
-        action: 'browser.navigation.reload@1',
+        operation: 'browser.navigation.reload@1',
         parameters: [],
       }
       const source = generateExecutableBindings({
@@ -73,7 +76,7 @@ describe('executable binding generator', () => {
           },
         ],
       })
-      expect(source).toContain('.split(/\\s+/)')
+      expect(source).toContain('registeredExpressions')
       await expectGeneratedBindingToDryRun(
         root,
         source,

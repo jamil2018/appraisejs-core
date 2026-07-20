@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 56 files from prisma/schema.prisma and migrations
+- 57 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1166 nodes · 2622 edges · 177 communities
+- 1176 nodes · 2645 edges · 178 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
-1. `String` - 460 edges
-2. `schema.prisma` - 157 edges
+1. `String` - 469 edges
+2. `schema.prisma` - 158 edges
 3. `TargetProject` - 157 edges
 4. `DateTime` - 128 edges
 5. `PlanProjection` - 91 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (177 total)
+## Communities (178 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -56,7 +56,7 @@ Nodes (9): Review, Review.id, Review.testCaseId, Review.reviewerId, Review.statu
 Nodes (9): LinkedJiraTicket, LinkedJiraTicket.id, LinkedJiraTicket.testCaseId, LinkedJiraTicket.jiraTicketId, LinkedJiraTicket.jiraTicketUrl, LinkedJiraTicket.jiraStatus, LinkedJiraTicket.createdAt, LinkedJiraTicket.updatedAt (+more)
 
 ### Community 4 - "TemplateStep"
-Nodes (16): TemplateStep, TemplateStep.id, TemplateStep.name, TemplateStep.description, TemplateStep.createdAt, TemplateStep.updatedAt, TemplateStep.signature, TemplateStep.functionDefinition (+more)
+Nodes (21): TemplateStep, TemplateStep.id, TemplateStep.name, TemplateStep.description, TemplateStep.createdAt, TemplateStep.updatedAt, TemplateStep.signature, TemplateStep.functionDefinition (+more)
 
 ### Community 5 - "TemplateStepParameter"
 Nodes (9): TemplateStepParameter, TemplateStepParameter.id, TemplateStepParameter.name, TemplateStepParameter.createdAt, TemplateStepParameter.updatedAt, TemplateStepParameter.templateStepId, TemplateStepParameter.order, TemplateStepParameter.type (+more)
@@ -68,13 +68,13 @@ Nodes (10): TemplateStepGroup, TemplateStepGroup.id, TemplateStepGroup.name, Tem
 Nodes (10): StepBlock, StepBlock.id, StepBlock.name, StepBlock.description, StepBlock.intent, StepBlock.createdAt, StepBlock.updatedAt, StepBlock.steps (+more)
 
 ### Community 8 - "StepBlockStep"
-Nodes (8): StepBlockStep, StepBlockStep.id, StepBlockStep.stepBlockId, StepBlockStep.templateStepId, StepBlockStep.order, StepBlockStep.parameterMap, StepBlockStep.stepBlock, StepBlockStep.templateStep
+Nodes (10): StepBlockStep, StepBlockStep.id, StepBlockStep.stepBlockId, StepBlockStep.templateStepId, StepBlockStep.order, StepBlockStep.parameterMap, StepBlockStep.operationInvocationJson, StepBlockStep.compositionVersionHash (+more)
 
 ### Community 9 - "TestCase"
 Nodes (16): TestCase, TestCase.id, TestCase.title, TestCase.description, TestCase.createdAt, TestCase.updatedAt, TestCase.linkedJiraTickets, TestCase.reviews (+more)
 
 ### Community 10 - "TestCaseStep"
-Nodes (12): TestCaseStep, TestCaseStep.id, TestCaseStep.flowNodeId, TestCaseStep.testCaseId, TestCaseStep.order, TestCaseStep.gherkinStep, TestCaseStep.icon, TestCaseStep.label (+more)
+Nodes (13): TestCaseStep, TestCaseStep.id, TestCaseStep.flowNodeId, TestCaseStep.testCaseId, TestCaseStep.order, TestCaseStep.gherkinStep, TestCaseStep.icon, TestCaseStep.label (+more)
 
 ### Community 11 - "TestCaseFlowBlock"
 Nodes (7): TestCaseFlowBlock, TestCaseFlowBlock.id, TestCaseFlowBlock.name, TestCaseFlowBlock.testCaseId, TestCaseFlowBlock.order, TestCaseFlowBlock.testCase, TestCaseFlowBlock.nodes
@@ -86,7 +86,7 @@ Nodes (5): TestCaseFlowBlockNode, TestCaseFlowBlockNode.id, TestCaseFlowBlockNod
 Nodes (10): TemplateTestCase, TemplateTestCase.id, TemplateTestCase.name, TemplateTestCase.description, TemplateTestCase.createdAt, TemplateTestCase.updatedAt, TemplateTestCase.steps, TemplateTestCase.flowBlocks (+more)
 
 ### Community 14 - "TemplateTestCaseStep"
-Nodes (12): TemplateTestCaseStep, TemplateTestCaseStep.id, TemplateTestCaseStep.flowNodeId, TemplateTestCaseStep.order, TemplateTestCaseStep.gherkinStep, TemplateTestCaseStep.icon, TemplateTestCaseStep.label, TemplateTestCaseStep.templateTestCaseId (+more)
+Nodes (13): TemplateTestCaseStep, TemplateTestCaseStep.id, TemplateTestCaseStep.flowNodeId, TemplateTestCaseStep.order, TemplateTestCaseStep.gherkinStep, TemplateTestCaseStep.icon, TemplateTestCaseStep.label, TemplateTestCaseStep.templateTestCaseId (+more)
 
 ### Community 15 - "TemplateTestCaseFlowBlock"
 Nodes (7): TemplateTestCaseFlowBlock, TemplateTestCaseFlowBlock.id, TemplateTestCaseFlowBlock.name, TemplateTestCaseFlowBlock.templateTestCaseId, TemplateTestCaseFlowBlock.order, TemplateTestCaseFlowBlock.templateTestCase, TemplateTestCaseFlowBlock.nodes
@@ -573,6 +573,9 @@ Nodes (1): 20260718160000_add_plan_observability
 
 ### Community 176 - "20260718193000_add_environment_identity_expectation"
 Nodes (1): 20260718193000_add_environment_identity_expectation
+
+### Community 177 - "20260720010000_add_canonical_operation_mappings"
+Nodes (1): 20260720010000_add_canonical_operation_mappings
 
 ## Suggested Questions
 - Which models are connected to PlanProjection?

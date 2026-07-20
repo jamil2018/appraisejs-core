@@ -4,5 +4,5 @@
  * @icon DATA
  */
 When('the user clears all browser cookies', async function (this: CustomWorld) {
-  await this.context.clearCookies()
+  await executeHumanOperation('browser.browser.state.clear.browser.cookies@1', this, [], [])
 })

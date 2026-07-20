@@ -46,11 +46,14 @@ export const astValueSchema: z.ZodType<unknown> = z.union([
 ])
 
 export const actionReferenceSchema = actionReferenceIdentitySchema.extend({
+  descriptorHash: hashSchema.optional(),
   inputs: z.record(idSchema, astValueSchema).superRefine((value, context) => {
     if (Object.keys(value).length > VALIDATION_AST_LIMITS.actionInputs)
       context.addIssue({ code: 'custom', message: 'Too many action inputs.' })
   }),
 })
+
+export const operationReferenceSchema = actionReferenceSchema
 
 export const validationMatrixEntrySchema = z.object({
   browser: z.enum(['chromium', 'firefox', 'webkit']).optional(),
@@ -84,15 +87,23 @@ export const coverageMappingSchema = z
   })
   .strict()
 
+const validationAstStepBaseSchema = z.object({
+  id: idSchema,
+  keyword: z.enum(['Given', 'When', 'Then', 'And']),
+  description: gherkinTextSchema,
+  store: z.object({ output: idSchema, as: idSchema }).optional(),
+})
+
 export const validationAstStepSchema = z
-  .object({
-    id: idSchema,
-    keyword: z.enum(['Given', 'When', 'Then', 'And']),
-    description: gherkinTextSchema,
-    action: actionReferenceSchema,
-    store: z.object({ output: idSchema, as: idSchema }).optional(),
+  .union([
+    validationAstStepBaseSchema.extend({ operation: operationReferenceSchema }).strict(),
+    validationAstStepBaseSchema.extend({ action: actionReferenceSchema }).strict(),
+  ])
+  .transform(value => {
+    if ('operation' in value) return value
+    const { action, ...step } = value
+    return { ...step, operation: action }
   })
-  .strict()
 
 export const validationAstSchema = z
   .object({

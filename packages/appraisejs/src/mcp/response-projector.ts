@@ -118,8 +118,13 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     payload.readiness && typeof payload.readiness === 'object'
       ? (payload.readiness as Record<string, unknown>)
       : undefined
-  const runs = Array.isArray(payload.runs)
-    ? payload.runs.map(run => {
+  const rawRuns = Array.isArray(payload.runs)
+    ? payload.runs
+    : Array.isArray(payload.validationRuns)
+      ? payload.validationRuns
+      : undefined
+  const runs = rawRuns
+    ? rawRuns.map(run => {
         const item = run as Record<string, unknown>
         return {
           id: item.id,
@@ -138,6 +143,9 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
   const baselineAttempts = implementation ? undefined : allBaselineAttempts
   const testRunIds = implementation ? payload.testRunIds : allTestRunIds
   const attemptIds = implementation ? undefined : allAttemptIds
+  const completionTasks = Array.isArray(payload.tasks)
+    ? payload.tasks.filter(task => task && typeof task === 'object' && !Array.isArray(task))
+    : undefined
   const common = {
     planId: payload.planId ?? plan?.planId,
     lifecycle: payload.lifecycle ?? plan?.lifecycle,
@@ -145,6 +153,8 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
     contentHash: payload.contentHash ?? payload.validationHash,
     currentValidationHash: payload.currentValidationHash,
     status: payload.status,
+    evidenceHash: payload.evidenceHash,
+    eventSequence: payload.eventSequence,
     nextAllowedAction: payload.nextAllowedAction,
     nextRecommendedAction: payload.nextRecommendedAction,
     nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
@@ -187,14 +197,23 @@ export function applyLifecycleResponseMode(value: unknown, responseMode: z.infer
             verifiedTasks: Object.values(taskStates).filter(status => status === 'verified').length,
             validationRuns: Array.isArray(implementation?.validationRuns) ? implementation.validationRuns.length : 0,
           }
-        : undefined),
+        : completionTasks
+          ? {
+              tasks: completionTasks.length,
+              verifiedTasks: completionTasks.filter(task => (task as Record<string, unknown>).status === 'verified')
+                .length,
+              validationRuns: runs?.length ?? 0,
+              blockingRemarks: Array.isArray(payload.blockingRemarks) ? payload.blockingRemarks.length : 0,
+              nonBlockingRemarks: Array.isArray(payload.nonBlockingRemarks) ? payload.nonBlockingRemarks.length : 0,
+            }
+          : undefined),
     runnableTaskIds: payload.runnableTaskIds,
     approvedGroupIds: implementation?.approvedGroupIds,
     taskStates,
     ...(payload.taskStates ? {} : { checkpoint: payload.checkpoint }),
     runs,
     receipt: payload.receipt,
-    ready: readiness?.ready,
+    ready: payload.ready ?? readiness?.ready,
     blockers: payload.blockers ?? readiness?.blockers ?? payload.blockingReasons,
     structuredBlockers: payload.structuredBlockers,
     warnings: payload.warnings,
@@ -292,6 +311,8 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     nextRequiredAgentBehavior: payload.nextRequiredAgentBehavior,
   }
   const handoff = {
+    goal: payload.goal ?? reviewReady?.goal ?? created?.goal,
+    description: payload.description ?? reviewReady?.description ?? created?.description,
     links: payload.links ?? reviewReady?.links ?? created?.links,
     browserUrl: payload.browserUrl ?? reviewReady?.browserUrl,
     appraiseUrl: payload.appraiseUrl ?? reviewReady?.appraiseUrl,

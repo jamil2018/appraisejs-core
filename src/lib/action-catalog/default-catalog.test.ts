@@ -3,13 +3,12 @@ import { defaultActionCatalog } from './default-catalog'
 
 describe('default action catalog', () => {
   it('publishes current runtime-backed browser actions through progressive discovery', () => {
-    expect(defaultActionCatalog.listCategories().categories).toMatchObject([
-      { id: 'browser', childCategoryCount: 7, actionCount: 18 },
-    ])
-    expect(defaultActionCatalog.listActions({ categoryId: 'browser.navigation' }).items.map(item => item.id)).toEqual([
-      'browser.navigation.goto',
-      'browser.navigation.reload',
-    ])
+    const browser = defaultActionCatalog.listCategories().categories.find(category => category.id === 'browser')
+    expect(browser?.actionCount).toBeGreaterThanOrEqual(116)
+    expect(browser?.childCategoryCount).toBeGreaterThan(7)
+    expect(defaultActionCatalog.listActions({ categoryId: 'browser.navigation' }).items.map(item => item.id)).toEqual(
+      expect.arrayContaining(['browser.navigation.goto', 'browser.navigation.reload']),
+    )
     expect(defaultActionCatalog.readActions([{ id: 'browser.mouse.click', version: '1' }])[0]).toMatchObject({
       requirements: { runtime: 'browser', capabilities: ['mouse'] },
       inputs: [{ type: 'locator' }],
@@ -27,5 +26,14 @@ describe('default action catalog', () => {
         { id: 'browser.assertions.no-horizontal-overflow', version: '1' },
       ]),
     ).toHaveLength(3)
+    expect(
+      defaultActionCatalog.readActions([
+        { id: 'browser.assertions.no-console-errors', version: '1' },
+        { id: 'browser.assertions.no-failed-network-requests', version: '1' },
+      ]),
+    ).toMatchObject([
+      { requirements: { capabilities: ['assertions', 'console-observation'] } },
+      { requirements: { capabilities: ['assertions', 'network-observation'] } },
+    ])
   })
 })

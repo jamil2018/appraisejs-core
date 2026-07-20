@@ -6,7 +6,11 @@
 When(
   'the user captures a full page screenshot in variable {string}',
   async function (this: CustomWorld, variableName: string) {
-    const screenshot = await this.page.screenshot({ fullPage: true })
-    this.setVar(variableName, screenshot.toString('base64'))
+    await executeHumanOperation(
+      'browser.data.diagnostics.capture.page.screenshot@1',
+      this,
+      ['variableName'],
+      [variableName],
+    )
   },
 )

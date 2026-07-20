@@ -72,6 +72,7 @@ const coordinatorOperationPrefixes: ReadonlyArray<readonly [string, CoordinatorO
   ['actions_', 'actions'],
   ['baseline_', 'plan-baseline-write'],
   ['implementation_', 'plan-implementation-write'],
+  ['operation_', 'operations'],
   ['provider_run_', 'provider-runs-write'],
   ['provider_', 'providers-write'],
   ['validation_', 'plan-validation-write'],

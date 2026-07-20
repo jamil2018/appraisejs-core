@@ -6,8 +6,6 @@
 When(
   'the user waits for a dialog and stores its message in {string}',
   async function (this: CustomWorld, variableName: string) {
-    const dialog = await this.page.waitForEvent('dialog')
-    this.setVar(variableName, dialog.message())
-    await dialog.dismiss()
+    await executeHumanOperation('browser.synchronization.wait.for.dialog@1', this, ['variableName'], [variableName])
   },
 )

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
-import { defaultActionCatalog } from '@/lib/action-catalog'
+import { listOperationCapabilities, operationValidationCatalog } from '@/lib/operation-catalog'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   parseYamlArtifact,
@@ -69,17 +69,13 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
     projectFingerprint: plan.targetProject.fingerprint,
     capabilityImports: PROJECT_EXTENSION_CAPABILITY_IMPORTS,
   })
-  const builtInBrowserCapabilities = [
-    ...new Set(
-      defaultActionCatalog.listActions({ runtime: 'browser' }, 0, 100).items.flatMap(action => action.capabilities),
-    ),
-  ].sort()
+  const builtInBrowserCapabilities = listOperationCapabilities('browser')
   const compilerContext: ValidationAstCompilerContext = {
     project: { id: plan.targetProject.id, fingerprint: plan.targetProject.fingerprint },
     planScope: `${plan.targetProject.fingerprint}:${plan.planId}`,
     currentPlanHash: plan.sourceHash,
     planTaskIds: plan.tasks.map(task => task.taskId),
-    actionCatalog: defaultActionCatalog,
+    actionCatalog: operationValidationCatalog,
     locatorGraph,
     environments: environmentContext,
     availableRuntimes: ['browser'],
@@ -89,7 +85,7 @@ async function loadValidationAstContext(planId: string, client: PrismaClient) {
   const contextHash = hash({
     targetFingerprint: plan.targetProject.fingerprint,
     planHash: plan.sourceHash,
-    catalogHash: defaultActionCatalog.catalogHash,
+    catalogHash: operationValidationCatalog.catalogHash,
     locatorGraphHash: locatorGraph.contentHash,
     environments: environmentContext,
     extensionPolicy,
@@ -173,7 +169,7 @@ function bindPublishProvenance(
   const receiptHash = hash({ previewHash: preview.previewHash, contextHash: context.contextHash })
   const publishOperationId = `astpub_${receiptHash.slice('sha256:'.length)}`
   const runtimeInput = {
-    schemaVersion: '1',
+    schemaVersion: '2',
     targetProjectId: context.plan.targetProject!.id,
     targetFingerprint: context.plan.targetProject!.fingerprint,
     astId: preview.canonicalProjection.validationNode.id,
@@ -183,7 +179,7 @@ function bindPublishProvenance(
     receiptHash,
     compilerReceipt: preview.commandReceipt,
     extensionPolicy: context.compilerContext.extensionPolicy,
-    actions: preview.actions,
+    operations: preview.operations,
     locators: preview.locators.map(locator => ({
       ...locator,
       binding: preview.canonicalProjection.validationNode.appraiseArtifacts.locators.find(

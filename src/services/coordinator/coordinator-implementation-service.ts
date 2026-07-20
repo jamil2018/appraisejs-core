@@ -35,6 +35,7 @@ import {
   withPlanEventStreamLock,
 } from './coordinator-service'
 import { loadManagedImplementationRun, type ImplementationValidationRun } from './implementation-evidence-service'
+import { readPlanEfficiencyTelemetry } from './plan-observability-service'
 
 type CompletionCrashPhase =
   | 'after_validation_write'
@@ -471,10 +472,19 @@ export async function approveImplementationGroups(
     throw new ServiceError(`Implementation groups were not found: ${unknownGroupIds.join(', ')}.`, 'NOT_FOUND')
   }
   const approvedGroupIds = Array.from(new Set([...implementation.approvedGroupIds, ...input.groupIds])).sort()
+  const resumedTaskIds = new Set(
+    artifacts.plan.implementationGroups
+      .filter(group => input.groupIds.includes(group.id))
+      .flatMap(group => group.taskIds),
+  )
+  const pausedTaskIds = implementation.pausedTaskIds.filter(taskId => !resumedTaskIds.has(taskId))
   const taskStates = Object.fromEntries(
     artifacts.plan.tasks.map(task => [task.id, implementation.taskStates[task.id] ?? 'pending']),
   ) as Record<string, TaskState>
-  const validation = { ...artifacts.validation, implementation: { ...implementation, approvedGroupIds, taskStates } }
+  const validation = {
+    ...artifacts.validation,
+    implementation: { ...implementation, approvedGroupIds, pausedTaskIds, taskStates },
+  }
   await writeArtifacts(artifacts, artifacts.plan, validation, artifacts.review, client)
   const runnableTaskIds = runnableTasks(
     artifacts.plan,
@@ -1196,7 +1206,11 @@ async function evaluateImplementationCompletion(
     ready: readiness.ready && remarkBlockers.length === 0,
     blockers: [...readiness.blockers, ...remarkBlockers],
   }
-  const receipt = {
+  const [eventSequence, efficiencyTelemetry] = await Promise.all([
+    readLatestPlanEventSequence(artifacts.plan.planId, client),
+    readPlanEfficiencyTelemetry(artifacts.plan.planId, client),
+  ])
+  const evidence = {
     plan: {
       planId: artifacts.plan.planId,
       revision: artifacts.plan.revision,
@@ -1226,9 +1240,16 @@ async function evaluateImplementationCompletion(
     blockingRemarks,
     nonBlockingRemarks: artifacts.review.threads.filter(thread => !thread.blocking),
     finalSignOff: artifacts.review.finalSignOff,
-    eventSequence: await readLatestPlanEventSequence(artifacts.plan.planId, client),
+    eventSequence,
   }
-  return { ...receipt, evidenceHash: completionEvidenceHash(receipt) }
+  return {
+    ...evidence,
+    evidenceHash: completionEvidenceHash(evidence),
+    efficiencyTelemetry: {
+      ...efficiencyTelemetry,
+      capturedAtEventSequence: eventSequence,
+    },
+  }
 }
 
 function restorePartialCompletionEvidence<T extends Awaited<ReturnType<typeof readArtifacts>>>(current: T): T {

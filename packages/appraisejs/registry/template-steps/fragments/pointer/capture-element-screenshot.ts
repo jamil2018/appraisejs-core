@@ -6,9 +6,11 @@
 When(
   'the user captures a screenshot of the {string} element in the variable {string}',
   async function (this: CustomWorld, elementName: SelectorName, variableName: string) {
-    const selector = await resolveLocator(this.page, elementName)
-    if (!selector) throw new Error(`Selector ${elementName} not found`)
-    const screenshot = await this.page.locator(selector).screenshot()
-    this.setVar(variableName, screenshot.toString('base64'))
+    await executeHumanOperation(
+      'browser.pointer.capture.element.screenshot@1',
+      this,
+      ['elementName', 'variableName'],
+      [elementName, variableName],
+    )
   },
 )

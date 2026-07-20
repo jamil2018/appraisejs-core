@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
 import { defaultActionCatalog } from '@/lib/action-catalog'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 
 import {
   coordinatorContractVersion,
@@ -327,36 +328,35 @@ async function getValidations(request: Request, operation: string[]) {
 }
 
 function getActionCategories(query: URLSearchParams) {
-  return Response.json(
-    defaultActionCatalog.listCategories(
+  return Response.json({
+    ...defaultActionCatalog.listCategories(
       query.get('parentCategoryId') ?? undefined,
       query.get('knownCatalogHash') ?? undefined,
     ),
-  )
+    deprecatedTool: true,
+    replacement: 'operation_categories',
+  })
 }
 
 function getActionsByReference(query: URLSearchParams) {
-  const refs = z
-    .string()
-    .transform((value, context) => {
-      try {
-        return JSON.parse(value) as unknown
-      } catch {
-        context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
-        return z.NEVER
-      }
-    })
-    .pipe(
-      z
-        .array(z.object({ id: z.string(), version: z.string().optional() }))
-        .min(1)
-        .max(50),
-    )
-    .parse(query.get('refs') ?? '[]')
   return Response.json({
     catalogHash: defaultActionCatalog.catalogHash,
-    actions: defaultActionCatalog.readActions(refs),
+    actions: defaultActionCatalog.readActions(operationRefs(query)).map(withCanonicalOperation),
+    deprecatedTool: true,
+    replacement: 'operation_read',
   })
+}
+
+function withCanonicalOperation<T extends { id: string; version: string }>(action: T) {
+  const operation = defaultOperationRegistry.read([{ id: action.id, version: action.version }])[0]!
+  return {
+    ...action,
+    canonicalOperation: {
+      id: operation.id,
+      version: operation.version,
+      descriptorHash: operation.descriptorHash,
+    },
+  }
 }
 
 function optionalQuery(query: URLSearchParams, key: string) {
@@ -393,7 +393,13 @@ function listActions(query: URLSearchParams) {
     deprecated: parseDeprecatedFilter(query),
     idPrefix: optionalQuery(query, 'idPrefix'),
   }
-  return Response.json(defaultActionCatalog.listActions(filter, parseActionCursor(query), parseActionLimit(query)))
+  const result = defaultActionCatalog.listActions(filter, parseActionCursor(query), parseActionLimit(query))
+  return Response.json({
+    ...result,
+    items: result.items.map(withCanonicalOperation),
+    deprecatedTool: true,
+    replacement: 'operation_search',
+  })
 }
 
 async function getActions(request: Request, operation: string[]) {
@@ -402,6 +408,218 @@ async function getActions(request: Request, operation: string[]) {
     categories: () => getActionCategories(query),
     read: () => getActionsByReference(query),
     list: () => listActions(query),
+  }
+  return (handlers[operation[1] ?? 'list'] ?? handlers.list)()
+}
+
+function operationRefs(query: URLSearchParams) {
+  return z
+    .string()
+    .transform((value, context) => {
+      try {
+        return JSON.parse(value) as unknown
+      } catch {
+        context.addIssue({ code: 'custom', message: 'refs must be valid JSON.' })
+        return z.NEVER
+      }
+    })
+    .pipe(
+      z
+        .array(z.object({ id: z.string(), version: z.string().optional() }))
+        .min(1)
+        .max(50),
+    )
+    .parse(query.get('refs') ?? '[]')
+}
+
+function operationCategories(query: URLSearchParams) {
+  if (query.get('knownManifestHash') === defaultOperationRegistry.manifestHash)
+    return Response.json({ status: 'unchanged', manifestHash: defaultOperationRegistry.manifestHash, categories: [] })
+  const operations = defaultOperationRegistry.list({}, 0, 100).items
+  const counts = new Map<string, number>()
+  operations.forEach(operation =>
+    operation.categories.forEach(category => counts.set(category, (counts.get(category) ?? 0) + 1)),
+  )
+  return Response.json({
+    status: 'current',
+    manifestHash: defaultOperationRegistry.manifestHash,
+    categories: [...counts]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([id, operationCount]) => ({ id, operationCount })),
+  })
+}
+
+function operationListFilter(query: URLSearchParams) {
+  return {
+    category: optionalQuery(query, 'category'),
+    capability: optionalQuery(query, 'capability'),
+    runtime: z.enum(['browser', 'api', 'node', 'database']).optional().parse(optionalQuery(query, 'runtime')),
+  }
+}
+
+type OperationSearchContext = {
+  intent: string
+  terms: Set<string>
+  requestedParameters: Set<string>
+}
+
+function operationMatchExplanation(input: {
+  exactId: boolean
+  matchedAlias: string | null
+  matchedTerms: string[]
+  termCount: number
+  matchedParameterCount: number
+  requestedParameterCount: number
+}) {
+  if (input.exactId) return 'Exact canonical operation identity match.'
+  if (input.matchedAlias)
+    return `Compatibility alias ${JSON.stringify(input.matchedAlias)} resolves to this canonical operation.`
+  return `Matched ${input.matchedTerms.length}/${input.termCount} intent terms and ${input.matchedParameterCount}/${input.requestedParameterCount} requested parameters.`
+}
+
+function matchBoost(exactId: boolean, matchedAlias: string | null) {
+  return exactId || matchedAlias ? 100 : 0
+}
+
+function parameterCompatibility(requestedCount: number, matchedCount: number) {
+  return requestedCount === 0 ? 1 : matchedCount / requestedCount
+}
+
+function operationSearchText(
+  operation: ReturnType<typeof defaultOperationRegistry.list>['items'][number],
+  descriptor: ReturnType<typeof defaultOperationRegistry.read>[number],
+  aliases: string[],
+) {
+  const humanProjectionText = descriptor.humanProjections
+    .flatMap(projection => [projection.signature, projection.title, projection.description])
+    .join(' ')
+  const agentTerms = descriptor.agentProjection?.searchTerms.join(' ') ?? ''
+  return `${operation.id} ${operation.title} ${operation.description} ${operation.categories.join(' ')} ${operation.capabilities.join(' ')} ${agentTerms} ${humanProjectionText} ${aliases.join(' ')}`.toLowerCase()
+}
+
+function rankOperation(
+  operation: ReturnType<typeof defaultOperationRegistry.list>['items'][number],
+  context: OperationSearchContext,
+) {
+  const descriptor = defaultOperationRegistry.read([{ id: operation.id, version: operation.version }])[0]!
+  const aliases = descriptor.aliases.map(alias => alias.value)
+  const text = operationSearchText(operation, descriptor, aliases)
+  const matchedTerms = [...context.terms].filter(term => text.includes(term))
+  const availableParameters = new Set(descriptor.inputs.map(input => input.name))
+  const matchedParameters = [...context.requestedParameters].filter(name => availableParameters.has(name))
+  const missingRequiredBindings = descriptor.inputs
+    .filter(input => input.required && !context.requestedParameters.has(input.name))
+    .map(input => ({ name: input.name, type: input.type }))
+  const exactId = operation.id === context.intent
+  const matchedAlias = aliases.find(alias => alias.toLowerCase() === context.intent.toLowerCase()) ?? null
+  return {
+    ...operation,
+    score: matchedTerms.length + matchedParameters.length * 2 + matchBoost(exactId, matchedAlias),
+    matchedTerms,
+    matchedAlias,
+    parameterCompatibility: parameterCompatibility(context.requestedParameters.size, matchedParameters.length),
+    missingRequiredBindings,
+    explanation: operationMatchExplanation({
+      exactId,
+      matchedAlias,
+      matchedTerms,
+      termCount: context.terms.size,
+      matchedParameterCount: matchedParameters.length,
+      requestedParameterCount: context.requestedParameters.size,
+    }),
+  }
+}
+
+function nextOperationAction(ranked: Array<ReturnType<typeof rankOperation>>) {
+  const recommended = ranked[0]
+  if (!recommended) return 'Refine the query or inspect bounded operation categories before proposing custom behavior.'
+  return recommended.missingRequiredBindings.length
+    ? 'Resolve the recommended operation binding gaps, then call operation_read for its exact descriptor.'
+    : 'Call operation_read for the selected exact version, then use its canonical reference in the Validation AST.'
+}
+
+function searchOperations(query: URLSearchParams) {
+  const intent = z.string().trim().min(1).max(500).parse(query.get('query'))
+  const terms = new Set(
+    intent
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean),
+  )
+  const requestedParameters = new Set(
+    (query.get('parameterNames') ?? '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+  )
+  const listing = defaultOperationRegistry.list(
+    {
+      ...operationListFilter(query),
+      inputType: z
+        .enum([
+          'string',
+          'number',
+          'boolean',
+          'json',
+          'locator',
+          'environment-ref',
+          'stored-value-ref',
+          'artifact-ref',
+          'reviewed-extension-ref',
+        ])
+        .optional()
+        .parse(optionalQuery(query, 'inputType')),
+      surface: z.enum(['human', 'agent']).optional().parse(optionalQuery(query, 'surface')),
+      deprecated: parseDeprecatedFilter(query),
+    },
+    0,
+    100,
+  )
+  const limit = parseActionLimit(query)
+  const ranked = listing.items
+    .map(operation => rankOperation(operation, { intent, terms, requestedParameters }))
+    .filter(operation => operation.score > 0)
+    .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))
+    .slice(0, limit)
+  return Response.json({
+    manifestHash: defaultOperationRegistry.manifestHash,
+    query: intent,
+    recommended: ranked[0] ?? null,
+    alternatives: ranked.slice(1),
+    nextRecommendedAction: nextOperationAction(ranked),
+  })
+}
+
+function listOperations(query: URLSearchParams) {
+  return Response.json(
+    defaultOperationRegistry.list(
+      {
+        ...operationListFilter(query),
+        surface: z.enum(['human', 'agent']).optional().parse(optionalQuery(query, 'surface')),
+        deprecated: parseDeprecatedFilter(query),
+        idPrefix: optionalQuery(query, 'idPrefix'),
+      },
+      parseActionCursor(query),
+      parseActionLimit(query),
+      optionalQuery(query, 'knownManifestHash'),
+    ),
+  )
+}
+
+function readOperations(query: URLSearchParams) {
+  return Response.json({
+    manifestHash: defaultOperationRegistry.manifestHash,
+    operations: defaultOperationRegistry.read(operationRefs(query)),
+  })
+}
+
+async function getOperations(request: Request, operation: string[]) {
+  const query = new URL(request.url).searchParams
+  const handlers: Record<string, () => Response> = {
+    categories: () => operationCategories(query),
+    read: () => readOperations(query),
+    search: () => searchOperations(query),
+    list: () => listOperations(query),
   }
   return (handlers[operation[1] ?? 'list'] ?? handlers.list)()
 }
@@ -438,6 +656,7 @@ async function dispatchGet(request: Request, operation: string[]) {
     'plan-health': async () =>
       Response.json(await readImplementationLifecycleHealth(routePlanIdSchema.parse(operation[1]))),
     actions: () => getActions(request, operation),
+    operations: () => getOperations(request, operation),
     'target-projects-list': async () => Response.json({ targetProjects: await listTargetProjects() }),
     'locator-graph': () => getLocatorGraph(request, operation),
     'providers-list': async () => {

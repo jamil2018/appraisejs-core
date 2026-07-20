@@ -68,10 +68,12 @@ Run-local ancestors receive the same anchored containment and symlink checks, an
 verified before readiness. The capsule becomes `ready` only after every database blob row, path reference, and
 run-local file is complete. The manifest binds
 the publish operation, projection, compiler receipt, runtime-input snapshot, and a versioned capsule-generator
-identity. Generated bindings embed the exact frozen runtime-input locator ID/name-to-selector map, register every
-frozen Gherkin step, and dispatch only the reviewed Appraise action IDs through the physical Appraise-owned Cucumber
-runtime. They call `page.locator` with reviewed selectors directly and never consult target automation or a mutable
-global locator cache; world and hook support uses that same runtime instance. Reviewed
+identity. Generator-version-2 bindings embed the exact frozen runtime-input locator ID/name-to-selector map, register
+every frozen Gherkin step, and delegate reviewed operation IDs to the shared Appraise handler registry through a
+review-derived allowlist. The manifest seals descriptor and handler hashes, and preflight rejects closure drift.
+Bindings call `page.locator` with reviewed selectors directly and never consult target automation or a mutable global
+locator cache; world and hook support uses that same runtime instance. Historical generator-version-1 capsules remain
+readable under their original semantics and are never silently upgraded. Reviewed
 extension bytes use validated portable ID/version paths and are never recompiled. A periodic database-lease heartbeat
 renews during slow blob writes, and ownership is reasserted before every blob, manifest, reference, and ready-state
 authority transition. Materialization alone does not authorize execution: the capsule service must prepare the
@@ -212,6 +214,11 @@ lifecycle progression.
 Reviewed managed validations use capsule execution for baseline and implementation. Mixed artifacts keep legacy validations
 on the legacy runtime while routing reviewed managed nodes through their exact publish operation. Both paths reconcile into
 the same evidence-health contract; only valid managed evidence provides full assurance.
+
+The browser runtime records console errors, uncaught page errors, failed requests, and HTTP responses with status 400
+or greater for each scenario. Managed operations `browser.assertions.no-console-errors@1` and
+`browser.assertions.no-failed-network-requests@1` expose those observations as explicit evidence. The simple
+happy-path authoring profile requires both operations; product-outcome assertions remain independently required.
 
 Projected baseline scenarios carry plan, validation, suite, and case identifier tags. Partial-suite selection uses the
 same `@ts_<suiteId> and @tc_<caseId>` identifiers; a zero-scenario report is invalid evidence, never a passing or

@@ -44,7 +44,19 @@ describe('step block service', () => {
     } satisfies StepBlockDetail
 
     vi.mocked(prisma.stepBlock.create).mockResolvedValue(createdStepBlock as never)
-    vi.mocked(prisma.templateStep.findMany).mockResolvedValue([{ id: 'step-1' }, { id: 'step-2' }] as never)
+    vi.mocked(prisma.templateStep.findMany).mockResolvedValue([
+      {
+        id: 'step-1',
+        signature: 'the user fills {string}',
+        operationId: 'browser.forms.fill',
+        operationVersion: '1',
+        operationDescriptorHash: `sha256:${'a'.repeat(64)}`,
+        humanProjectionId: 'browser.forms.fill.gherkin',
+        operationMigrationState: 'mapped',
+        parameters: [{ name: 'value' }],
+      },
+      { id: 'step-2', operationMigrationState: 'manual-only-custom', parameters: [] },
+    ] as never)
 
     await createStepBlock(
       {
@@ -58,7 +70,16 @@ describe('step block service', () => {
 
     expect(prisma.templateStep.findMany).toHaveBeenCalledWith({
       where: { id: { in: ['step-1', 'step-2'] } },
-      select: { id: true },
+      select: {
+        id: true,
+        signature: true,
+        operationId: true,
+        operationVersion: true,
+        operationDescriptorHash: true,
+        humanProjectionId: true,
+        operationMigrationState: true,
+        parameters: { orderBy: { order: 'asc' }, select: { name: true } },
+      },
     })
 
     expect(prisma.stepBlock.create).toHaveBeenCalledWith(
@@ -69,7 +90,13 @@ describe('step block service', () => {
           intent: 'Log in',
           steps: {
             create: [
-              { templateStepId: 'step-1', order: 0, parameterMap: '{}' },
+              expect.objectContaining({
+                templateStepId: 'step-1',
+                order: 0,
+                parameterMap: '{"value":"value"}',
+                operationInvocationJson: expect.stringContaining('browser.forms.fill'),
+                compositionVersionHash: expect.stringMatching(/^sha256:/),
+              }),
               { templateStepId: 'step-2', order: 1, parameterMap: '{}' },
             ],
           },

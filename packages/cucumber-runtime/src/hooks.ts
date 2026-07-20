@@ -2,9 +2,9 @@ import { After, AfterAll, AfterStep, Before, BeforeAll, setDefaultTimeout } from
 import { config } from 'dotenv'
 import { promises as fs } from 'fs'
 import { chromium, firefox, webkit, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright'
-import { getAutomationScreenshotDir, getAutomationTraceDir, toProjectRelativePath } from './paths.js'
-import { BrowserName } from './types.js'
-import { CustomWorld } from './world.js'
+import { getAutomationScreenshotDir, getAutomationTraceDir, toProjectRelativePath } from './paths.ts'
+import { BrowserName } from './types.ts'
+import { CustomWorld } from './world.ts'
 
 config()
 
@@ -33,6 +33,7 @@ BeforeAll(async function () {
 
 Before(async function (this: CustomWorld) {
   this.clearVars()
+  this.clearBrowserRuntimeIssues()
   this.context = await browser.newContext()
   await this.context.tracing.start({
     screenshots: true,
@@ -40,6 +41,28 @@ Before(async function (this: CustomWorld) {
     sources: true,
   })
   this.page = await this.context.newPage()
+  this.page.on('console', message => {
+    if (message.type() === 'error')
+      this.recordBrowserRuntimeIssue({ source: 'console', message: message.text(), url: message.location().url })
+  })
+  this.page.on('pageerror', error => {
+    this.recordBrowserRuntimeIssue({ source: 'page', message: error.message })
+  })
+  this.page.on('requestfailed', request => {
+    this.recordBrowserRuntimeIssue({
+      source: 'network',
+      message: request.failure()?.errorText ?? 'Request failed',
+      url: request.url(),
+    })
+  })
+  this.page.on('response', response => {
+    if (response.status() >= 400)
+      this.recordBrowserRuntimeIssue({
+        source: 'network',
+        message: `HTTP ${response.status()} ${response.statusText()}`,
+        url: response.url(),
+      })
+  })
 })
 
 AfterStep(async function (this: CustomWorld, result) {

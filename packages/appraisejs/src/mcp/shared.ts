@@ -9,6 +9,7 @@ export { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 export { z } from 'zod'
 export {
   ACTION_CATALOG_CONTRACT_VERSION,
+  OPERATION_CATALOG_CONTRACT_VERSION,
   DELEGATED_AUTHORIZATION_VERSION,
   LOCATOR_GRAPH_CONTRACT_VERSION,
   VALIDATION_AST_SCHEMA_VERSION,
@@ -26,7 +27,7 @@ const packageJson = require('../../package.json') as {
 
 const serverStartedAt = new Date().toISOString()
 
-const mcpSurfaceVersion = '2026-07-18.unified-agent-preflight'
+const mcpSurfaceVersion = '2026-07-20.unified-operation-catalog'
 
 const truthyFeatureValues = new Set(['1', 'true', 'yes', 'on'])
 
@@ -35,6 +36,9 @@ export function providerNativeRunsEnabled() {
 }
 
 const baseWorkflowCriticalTools = [
+  'operation_categories',
+  'operation_search',
+  'operation_read',
   'action_categories_list',
   'actions_list',
   'actions_read',
@@ -124,6 +128,8 @@ const baseWorkflowResourceUris = [
 const providerNativeWorkflowResourceUris = ['appraise://providers', 'appraise://provider-runs'] as const
 
 const phase1ContractResourceUris = [
+  'appraise://operations/catalog',
+  'appraise://contracts/operation-catalog',
   'appraise://actions/catalog',
   'appraise://actions/category/{categoryId}',
   'appraise://locator-graph/visual',
@@ -280,6 +286,7 @@ export const validationPreparationWorkflow = {
   happyPath: [
     'plan_start',
     'validation_context_read',
+    'operation_search and operation_read for exact canonical behavior',
     'validation_resources_propose when target-bound resources are missing',
     'validation_ast_check',
     'validation_ast_preview',

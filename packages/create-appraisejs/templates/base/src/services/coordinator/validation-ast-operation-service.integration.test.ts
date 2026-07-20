@@ -9,7 +9,11 @@ import {
   copyMigratedTestDatabase,
   prepareCleanCoordinatorPlanRuntimeTestDatabase,
 } from '@/test/plan-runtime-schema-test-helper'
-import { basicValidationAstSubmission, sqliteTestClient } from '@/test/validation-ast-test-fixtures'
+import {
+  basicValidationAstSubmission,
+  seedCanonicalOperationProjections,
+  sqliteTestClient,
+} from '@/test/validation-ast-test-fixtures'
 import { parseYamlArtifact, serializeYamlArtifact, type ValidationArtifact } from '@/lib/plan-contract'
 import { hashFileContent } from '@/lib/validation-review/file-review'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
@@ -48,7 +52,7 @@ const meditationSubmission = () => ({
             id: 'open-meditation',
             keyword: 'Given',
             description: 'the meditation page is open',
-            action: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/meditate' } },
+            operation: { id: 'browser.navigation.goto', version: '1', inputs: { url: '/meditate' } },
           },
           {
             id: 'start-meditation',
@@ -80,6 +84,18 @@ const meditationSubmission = () => ({
               inputs: { target: { ref: 'locator', id: 'locator_completion', version: '1' } },
             },
           },
+          {
+            id: 'confirm-console-clean',
+            keyword: 'And',
+            description: 'the browser reports no console errors',
+            operation: { id: 'browser.assertions.no-console-errors', version: '1', inputs: {} },
+          },
+          {
+            id: 'confirm-network-clean',
+            keyword: 'And',
+            description: 'the browser reports no failed network activity',
+            operation: { id: 'browser.assertions.no-failed-network-requests', version: '1', inputs: {} },
+          },
         ],
       },
     ],
@@ -91,7 +107,12 @@ const meditationSubmission = () => ({
           targetId: 'task-one',
           scenarioIds: ['complete-meditation'],
           stimulusStepIds: ['start-meditation'],
-          observationStepIds: ['confirm-accessibility', 'confirm-persistence'],
+          observationStepIds: [
+            'confirm-accessibility',
+            'confirm-persistence',
+            'confirm-console-clean',
+            'confirm-network-clean',
+          ],
           rationale: 'Starting meditation is followed by observable accessibility and persistence assertions.',
           state: 'covered',
         },
@@ -130,6 +151,7 @@ beforeEach(async () => {
   await copyMigratedTestDatabase(databasePath)
   client = sqliteTestClient(databasePath)
   await prepareCleanCoordinatorPlanRuntimeTestDatabase(databasePath)
+  await seedCanonicalOperationProjections(client)
   const target = await client.targetProject.create({
     data: { canonicalPath: workspace, displayName: 'Target', fingerprint: `sha256:${'b'.repeat(64)}` },
   })
@@ -256,7 +278,7 @@ describe('Validation AST SQLite preview to compile', () => {
       valid: true,
       authoringProfile: { id: 'simple-happy-path', version: '1' },
     })
-    expect(preview.actions).toHaveLength(4)
+    expect(preview.operations).toHaveLength(6)
     expect(preview.locators).toHaveLength(2)
     expect(preview.customExtensions.length).toBeLessThanOrEqual(1)
     await previewValidationAstForPlan('plan-one', proposal, client)
@@ -303,6 +325,14 @@ describe('Validation AST SQLite preview to compile', () => {
       validationHash: hashFileContent(validationArtifact.content),
       extensionReviewHashes: [],
     })
+    await syncPlans({ projectDirectory: workspace, client })
+    await expect(
+      auditManagedValidationIntegrity('plan-one', { client, projectDirectory: workspace }),
+    ).resolves.toMatchObject({
+      status: 'green',
+      mismatches: [],
+      nextRepairAction: undefined,
+    })
     const firstDecision = await decideValidationNode(
       {
         planId: 'plan-one',
@@ -314,6 +344,12 @@ describe('Validation AST SQLite preview to compile', () => {
       },
       { client, projectDirectory: workspace },
     )
+    expect(firstDecision.reviewBinding).toMatchObject({
+      operationId: published.id,
+      operationHash: published.operationHash,
+      reviewStateHash: expect.stringMatching(/^sha256:/),
+      extensionArtifactHashes: [],
+    })
     await new Promise(resolve => setTimeout(resolve, 5))
     const retriedDecision = await decideValidationNode(
       {
@@ -353,7 +389,13 @@ describe('Validation AST SQLite preview to compile', () => {
         },
       },
     })
-    expect(JSON.parse(decisionEvent.payloadJson!)).toMatchObject(firstDecision)
+    expect(JSON.parse(decisionEvent.payloadJson!)).toMatchObject({
+      validationId: firstDecision.validationId,
+      decision: firstDecision.decision,
+      contentHash: firstDecision.contentHash,
+      decidedBy: firstDecision.decidedBy,
+      decidedAt: firstDecision.decidedAt,
+    })
     await expect(
       auditManagedValidationIntegrity('plan-one', { client, projectDirectory: workspace }),
     ).resolves.toMatchObject({

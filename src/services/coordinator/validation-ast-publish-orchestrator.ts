@@ -5,7 +5,12 @@ import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifac
 import type { CompiledCustomExtension } from '@/lib/validation-ast'
 import { ServiceError } from '@/services/shared/errors'
 import { projectCompiledValidationArtifacts } from './validation-canonical-projection-service'
-import { validationReviewStateReceipt } from './managed-validation-review-state'
+import {
+  managedReviewStateHash,
+  managedValidationProjectionState,
+  managedValidationStateHash,
+  validationReviewStateReceipt,
+} from './managed-validation-review-state'
 import {
   advanceValidationAstPublish,
   validateStoredValidationAstPublish,
@@ -64,9 +69,9 @@ async function markValidationReviewReady(operation: PublishOperation, client: Pr
       },
     })
     const reviewState = validationReviewStateReceipt({
-      validationHash: operation.validationHash,
-      reviewHash: operation.reviewHash,
-      validationProjectionJson: operation.validationProjectionJson,
+      validationHash: managedValidationStateHash(operation.validationContent),
+      reviewHash: managedReviewStateHash(operation.reviewContent),
+      validationProjectionJson: managedValidationProjectionState(operation.validationProjectionJson),
     })
     return tx.validationAstPublishOperation.update({
       where: { id: operation.id },

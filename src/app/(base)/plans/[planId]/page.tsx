@@ -127,6 +127,8 @@ export default async function PlanReviewPage({ params, searchParams }: PageProps
   if (detail)
     return (
       <PlanReviewWorkspace
+        // Exact-review links only change the query string, so remount local tab state for the requested surface.
+        key={reviewMode ?? 'default'}
         detail={detail}
         initialTab={reviewMode === 'validation' ? 'validations' : undefined}
         initialSidebarTab={

@@ -1,5 +1,22 @@
 import { Page } from 'playwright'
-import { LocatorCache, LocatorMapCache } from './cache.util.js'
+import { LocatorCache, LocatorMapCache } from './cache.util.ts'
+
+const reviewedSelectorResolvers = new WeakMap<Page, (locatorName: unknown) => string | null>()
+
+export async function withReviewedSelectorResolver<T>(
+  page: Page,
+  resolver: (locatorName: unknown) => string | null,
+  execute: () => Promise<T>,
+): Promise<T> {
+  const previous = reviewedSelectorResolvers.get(page)
+  reviewedSelectorResolvers.set(page, resolver)
+  try {
+    return await execute()
+  } finally {
+    if (previous) reviewedSelectorResolvers.set(page, previous)
+    else reviewedSelectorResolvers.delete(page)
+  }
+}
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -189,6 +206,8 @@ export async function resolveLocator(
         }
   } = {},
 ): Promise<string | null> {
+  const reviewedResolver = reviewedSelectorResolvers.get(page)
+  if (reviewedResolver) return reviewedResolver(locatorName)
   try {
     for (let pass = 0; pass < maxResolvePasses; pass++) {
       await waitForRouteSettled(page, {

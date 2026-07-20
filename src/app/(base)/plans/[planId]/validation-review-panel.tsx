@@ -141,9 +141,12 @@ function AppraiseArtifactSummary({ artifacts }: { artifacts?: ValidationAppraise
                   <div className="min-w-0">
                     <p className="font-medium">{step.label}</p>
                     <p className="break-words font-mono text-xs text-muted-foreground">{step.gherkinStep}</p>
-                    {step.templateStepName || step.parameters.length ? (
+                    {step.operationRef || step.templateStepName || step.parameters.length ? (
                       <p className="mt-1 break-words text-xs text-muted-foreground">
-                        {[step.templateStepName, ...step.parameters.map(param => `${param.name}: ${param.value}`)]
+                        {[
+                          step.operationRef ?? step.templateStepName,
+                          ...step.parameters.map(param => `${param.name}: ${param.value}`),
+                        ]
                           .filter(Boolean)
                           .join(' | ')}
                       </p>

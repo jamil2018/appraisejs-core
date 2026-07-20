@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs'
-import { getAutomationEnvironmentsFilePath } from './paths.js'
+import { getAutomationEnvironmentsFilePath } from './paths.ts'
 
 interface EnvironmentConfig {
   baseUrl: string

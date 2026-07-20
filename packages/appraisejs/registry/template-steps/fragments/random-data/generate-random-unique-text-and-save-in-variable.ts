@@ -6,13 +6,11 @@
 When(
   'the user generates a random unique text and stores it inside the variable {string}',
   async function (this: CustomWorld, variableName: string) {
-    const data = generateRandomData(RandomDataType.UNIQUE_TEXT)
-    try {
-      this.setVar(variableName, data)
-    } catch (error) {
-      throw new Error(
-        `Failed to generate a random unique text and store it inside the variable ${variableName}: ${error}`,
-      )
-    }
+    await executeHumanOperation(
+      'browser.random.data.generate.random.unique.text.and.save.in.variable@1',
+      this,
+      ['variableName'],
+      [variableName],
+    )
   },
 )

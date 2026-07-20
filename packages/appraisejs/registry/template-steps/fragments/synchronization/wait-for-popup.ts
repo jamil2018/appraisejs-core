@@ -4,5 +4,5 @@
  * @icon WAIT
  */
 When('the user waits for a popup and stores it in {string}', async function (this: CustomWorld, variableName: string) {
-  this.setVar(variableName, await this.page.waitForEvent('popup'))
+  await executeHumanOperation('browser.synchronization.wait.for.popup@1', this, ['variableName'], [variableName])
 })

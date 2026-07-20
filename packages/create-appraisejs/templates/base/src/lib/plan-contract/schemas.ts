@@ -117,6 +117,7 @@ const validationAppraiseArtifactsSchema = z.object({
             label: z.string().min(1),
             gherkinStep: z.string().min(1),
             templateStepId: idSchema.optional(),
+            operationRef: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*@\d+(?:\.\d+){0,2}$/).optional(),
             templateStepName: z.string().min(1).optional(),
             parameters: z
               .array(

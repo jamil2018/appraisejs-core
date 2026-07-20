@@ -4,5 +4,5 @@
  * @icon WAIT
  */
 When('the user waits for a request url containing {string}', async function (this: CustomWorld, urlPart: string) {
-  await this.page.waitForRequest(request => request.url().includes(urlPart))
+  await executeHumanOperation('browser.synchronization.wait.for.request@1', this, ['urlPart'], [urlPart])
 })

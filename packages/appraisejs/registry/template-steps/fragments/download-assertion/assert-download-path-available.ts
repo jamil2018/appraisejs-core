@@ -6,7 +6,11 @@
 Then(
   'the downloaded path in variable {string} should be available',
   async function (this: CustomWorld, variableName: string) {
-    const value = this.getVar<unknown>(variableName)
-    expect(typeof value === 'string' && value.length > 0).to.equal(true)
+    await executeHumanOperation(
+      'browser.download.assertion.assert.download.path.available@1',
+      this,
+      ['variableName'],
+      [variableName],
+    )
   },
 )

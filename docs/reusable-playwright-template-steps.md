@@ -8,13 +8,15 @@ omits bundled template steps so teams can install only the registry fragments th
 
 Validation authors and agents should choose browser behavior in this order:
 
-1. Use a semantic template step whose name, description, signature, parameters, and group match the intent.
+1. Use a semantic operation whose human Template Step projection matches the intent.
 2. Use a structured locator or page operation when the Playwright mechanic is uncommon but allowlisted.
 3. Propose a custom step only for application-specific behavior or a documented catalog gap.
 
 Use `template_step_search` or `template_step_match` before proposing a custom step. Resolver results include intent
 scores, parameter compatibility, signatures, descriptions, ordered parameters, group metadata, and the canonical
 group path. `validation_context_read` exposes the same selection metadata for bounded template-step reads.
+Canonical cross-surface discovery is available through `operation_categories`, `operation_search`, and
+`operation_read`; template search is the human-projection compatibility view of the same operation registry.
 
 ## Semantic Coverage
 
@@ -55,8 +57,11 @@ results through stored variables. `setInputFiles` accepts only a path string or 
 
 ## Authoring And Distribution
 
-`automation/steps/actions` and `automation/steps/validations` are the canonical authored sources. Build the public
-registry with `npm run build-step-registry`. Synchronize groups before steps with
+Built-in handler semantics live under `packages/cucumber-runtime/src/operations/builtins`; reviewed descriptors and
+projection metadata live in `packages/cucumber-runtime/src/operations/definitions.json`. Run
+`npm run operation:projections` to generate Cucumber wrappers under `automation/steps/*/generated`; those wrappers
+must contain delegation only and must not be hand edited. Build the public registry with
+`npm run build-step-registry`. Synchronize groups before steps with
 `npm run sync-template-step-groups && npm run sync-template-steps`. Synchronization updates existing rows by stable
 Cucumber signature and preserves an orphaned row when a test case or template test case still references it.
 

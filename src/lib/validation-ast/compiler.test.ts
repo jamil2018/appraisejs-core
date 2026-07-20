@@ -88,7 +88,7 @@ const submission = {
             id: 'fill-title',
             keyword: 'When',
             description: 'the user fills the title',
-            action: {
+            operation: {
               id: 'browser.forms.fill',
               version: '1',
               inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Meditate' },
@@ -128,6 +128,23 @@ const submission = {
   customExtensionProposals: [],
 } as const
 
+type ValidationStep = ValidationAstSubmission['ast']['scenarios'][number]['steps'][number]
+
+function persistenceSubmissionWithSteps(...steps: ValidationStep[]) {
+  const persistenceSubmission = structuredClone(submission) as unknown as ValidationAstSubmission
+  persistenceSubmission.ast.qualityConcerns = ['persistence']
+  persistenceSubmission.ast.scenarios[0]!.steps = [
+    {
+      id: 'reload-notes',
+      keyword: 'When',
+      description: 'the user reloads the notes app',
+      operation: { id: 'browser.navigation.reload', version: '1', inputs: {} },
+    },
+    ...steps,
+  ]
+  return persistenceSubmission
+}
+
 describe('Validation AST check and preview', () => {
   it('resolves exact references and returns a deterministic bounded preview without mutation', () => {
     expect(checkValidationAst(submission, context)).toMatchObject({ valid: true, blockers: [] })
@@ -137,7 +154,7 @@ describe('Validation AST check and preview', () => {
     expect(first).toMatchObject({
       valid: true,
       entities: [{ scenarioId: 'create-todo' }],
-      actions: [{ id: 'browser.forms.fill', version: '1' }],
+      operations: [{ id: 'browser.forms.fill', version: '1' }],
       locators: [{ id: 'title-input', version: '1' }],
       gherkin: [expect.stringContaining('When the user fills the title')],
       commandReceipt: {
@@ -175,7 +192,7 @@ describe('Validation AST check and preview', () => {
 
   it('accepts a persistent locator id as an alias for its AST graph reference', () => {
     const aliased = structuredClone(submission) as unknown as ValidationAstSubmission
-    const target = aliased.ast.scenarios[0]!.steps[0]!.action.inputs.target as { id: string }
+    const target = aliased.ast.scenarios[0]!.steps[0]!.operation.inputs.target as { id: string }
     target.id = 'title-input-row'
 
     expect(checkValidationAst(aliased, context)).toMatchObject({ valid: true, blockers: [] })
@@ -197,7 +214,7 @@ describe('Validation AST check and preview', () => {
         id: 'delete-bread',
         keyword: 'When',
         description: 'the user deletes Bread',
-        action: {
+        operation: {
           id: 'browser.forms.fill',
           version: '1',
           inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Bread' },
@@ -207,7 +224,7 @@ describe('Validation AST check and preview', () => {
         id: 'observe-bread',
         keyword: 'Then',
         description: 'Bread should retain its purchased state',
-        action: {
+        operation: {
           id: 'browser.forms.fill',
           version: '1',
           inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Bread' },
@@ -245,17 +262,108 @@ describe('Validation AST check and preview', () => {
     )
 
     const unrelatedOpaqueLocators = structuredClone(persistenceSubmission)
-    unrelatedOpaqueLocators.ast.scenarios[0]!.steps[0]!.action.inputs = {
+    unrelatedOpaqueLocators.ast.scenarios[0]!.steps[0]!.operation.inputs = {
       target: { ref: 'locator', id: 'locator_apr-12fd248e34355b56e2a60a13', version: '1' },
       value: 'Bread',
     }
     unrelatedOpaqueLocators.ast.scenarios[0]!.steps[1]!.description = 'Milk should retain its purchased state'
-    unrelatedOpaqueLocators.ast.scenarios[0]!.steps[1]!.action.inputs = {
+    unrelatedOpaqueLocators.ast.scenarios[0]!.steps[1]!.operation.inputs = {
       target: { ref: 'locator', id: 'locator_apr-42344f112428bbecd2bc9567', version: '1' },
       value: 'Milk',
     }
 
     expect(checkValidationAst(unrelatedOpaqueLocators, context).warnings).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'semantic-persistence-target-destroyed' })]),
+    )
+  })
+
+  it('does not treat clearing a search field as destroying persisted entities', () => {
+    const persistenceSubmission = persistenceSubmissionWithSteps(
+      {
+        id: 'clear-note-search',
+        keyword: 'And',
+        description: 'the user clears the note search field',
+        operation: {
+          id: 'browser.forms.fill',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: '' },
+        },
+      },
+      {
+        id: 'observe-note',
+        keyword: 'Then',
+        description: 'the persisted note remains visible',
+        operation: {
+          id: 'browser.assertions.text',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Bread' },
+        },
+      },
+    )
+    persistenceSubmission.ast.coverageArgument = {
+      mappings: [
+        {
+          kind: 'quality-concern',
+          targetId: 'persistence',
+          scenarioIds: ['create-todo'],
+          stimulusStepIds: ['reload-notes'],
+          observationStepIds: ['observe-note'],
+          rationale: 'Claims the note survives reload.',
+          state: 'covered',
+        },
+      ],
+    }
+
+    expect(checkValidationAst(persistenceSubmission, context).warnings).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'semantic-persistence-target-destroyed' })]),
+    )
+
+    persistenceSubmission.ast.scenarios[0]!.steps[1]!.description = 'the user clears all persisted notes'
+    expect(checkValidationAst(persistenceSubmission, context).warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'semantic-persistence-target-destroyed', referenceId: 'clear-note-search' }),
+      ]),
+    )
+  })
+
+  it('does not treat a past-participle entity description as a destructive action', () => {
+    const persistenceSubmission = persistenceSubmissionWithSteps(
+      {
+        id: 'search-deleted-note',
+        keyword: 'And',
+        description: 'the user searches for the deleted Reading list note',
+        operation: {
+          id: 'browser.forms.fill',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Reading list' },
+        },
+      },
+      {
+        id: 'observe-deleted-note',
+        keyword: 'Then',
+        description: 'the deleted Reading list note remains absent after reload',
+        operation: {
+          id: 'browser.assertions.text',
+          version: '1',
+          inputs: { target: { ref: 'locator', id: 'title-input', version: '1' }, value: 'Reading list' },
+        },
+      },
+    )
+    persistenceSubmission.ast.coverageArgument = {
+      mappings: [
+        {
+          kind: 'quality-concern',
+          targetId: 'persistence',
+          scenarioIds: ['create-todo'],
+          stimulusStepIds: ['reload-notes', 'search-deleted-note'],
+          observationStepIds: ['observe-deleted-note'],
+          rationale: 'Confirms a deleted note remains absent after reload.',
+          state: 'covered',
+        },
+      ],
+    }
+
+    expect(checkValidationAst(persistenceSubmission, context).warnings).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ code: 'semantic-persistence-target-destroyed' })]),
     )
   })
@@ -304,14 +412,14 @@ describe('Validation AST check and preview', () => {
       ast: {
         coversTaskIds: string[]
         scenarios: Array<{
-          steps: Array<{ action: { inputs: { value: string | number; target: { id: string } } } }>
+          steps: Array<{ operation: { inputs: { value: string | number; target: { id: string } } } }>
         }>
       }
     }
     invalid.expectedPlanHash = hash('b')
     invalid.ast.coversTaskIds = ['missing-task']
-    invalid.ast.scenarios[0].steps[0].action.inputs.value = 42
-    invalid.ast.scenarios[0].steps[0].action.inputs.target.id = 'missing-locator'
+    invalid.ast.scenarios[0].steps[0]!.operation.inputs.value = 42
+    invalid.ast.scenarios[0].steps[0]!.operation.inputs.target.id = 'missing-locator'
     const checked = checkValidationAst(invalid, { ...context, availableCapabilities: [] })
     expect(checked.valid).toBe(false)
     expect(checked.blockers.map(blocker => blocker.code)).toEqual(
@@ -344,7 +452,7 @@ describe('Validation AST check and preview', () => {
   it('returns exact compiled extension reviews and deterministic security blockers', () => {
     const withExtension = structuredClone(submission) as unknown as ValidationAstSubmission
     withExtension.ast.customExtensions = ['project-assertion']
-    ;(withExtension.ast.scenarios[0].steps[0].action.inputs as Record<string, unknown>).value = {
+    ;(withExtension.ast.scenarios[0].steps[0]!.operation.inputs as Record<string, unknown>).value = {
       ref: 'custom-extension',
       id: 'project-assertion',
       version: '1.0.0',

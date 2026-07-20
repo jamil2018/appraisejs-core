@@ -1,6 +1,6 @@
 import { execa } from 'execa'
 import { config } from 'dotenv'
-import { startCli } from './cli.js'
+import { startCli } from './cli.ts'
 
 async function bootstrap(): Promise<void> {
   config()

@@ -38,4 +38,32 @@ describe('validationCoverageRows', () => {
       }),
     ])
   })
+
+  it('uses the validated AST preview before managed validation publication', () => {
+    const detail = {
+      plan: { tasks: [{ id: 'task-one', title: 'One', validationIntent: 'Observe one.' }] },
+      validationAstPreview: {
+        astId: 'notice-happy-path',
+        coverage: [
+          {
+            kind: 'task',
+            targetId: 'task-one',
+            state: 'covered',
+            scenarioIds: ['scenario-one'],
+            observationStepIds: ['observe-one'],
+          },
+        ],
+      },
+    } as unknown as PlanReviewDetail
+
+    expect(validationCoverageRows(detail)).toEqual([
+      expect.objectContaining({
+        taskId: 'task-one',
+        state: 'covered',
+        validationIds: ['notice-happy-path'],
+        scenarioIds: ['scenario-one'],
+        stepIds: ['observe-one'],
+      }),
+    ])
+  })
 })

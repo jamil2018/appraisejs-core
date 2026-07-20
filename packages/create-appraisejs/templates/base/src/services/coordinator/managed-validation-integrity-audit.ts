@@ -8,6 +8,9 @@ import {
   immutableReviewContent,
   immutableValidationContent,
   immutableValidationProjection,
+  managedReviewStateHash,
+  managedValidationProjectionState,
+  managedValidationStateHash,
   validationReviewStateReceipt,
 } from './managed-validation-review-state'
 
@@ -159,9 +162,9 @@ export async function auditManagedValidationIntegrity(
     reviewStateHash:
       validationArtifact && reviewArtifact && projection?.validationJson
         ? validationReviewStateReceipt({
-            validationHash: validationArtifact.hash,
-            reviewHash: reviewArtifact.hash,
-            validationProjectionJson: projection.validationJson,
+            validationHash: managedValidationStateHash(validationArtifact.content),
+            reviewHash: managedReviewStateHash(reviewArtifact.content),
+            validationProjectionJson: managedValidationProjectionState(projection.validationJson),
           }).hash
         : undefined,
     expectedReviewStateHash: operation?.reviewStateHash,

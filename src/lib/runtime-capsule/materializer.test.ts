@@ -393,6 +393,19 @@ describe('reviewed runtime capsule materialization integration', () => {
     expect(one.row.integrityState).toBe('ready')
     expect(two.row.integrityState).toBe('ready')
     expect(one.row.storagePath).not.toBe(two.row.storagePath)
+    expect(one.manifest.generator).toEqual({ id: 'appraise.validation-ast-capsule', version: '2' })
+    expect(one.manifest.operations).toEqual([
+      expect.objectContaining({
+        id: 'browser.navigation.goto',
+        version: '1',
+        descriptorHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        handler: expect.objectContaining({
+          id: 'browser.navigation.goto',
+          version: '1',
+          contentHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        }),
+      }),
+    ])
     const firstReceiptFile = one.manifest.files.find(file => file.role === 'command-receipt')!
     expect(one.manifest.commandReceipt).toEqual({ path: firstReceiptFile.path, hash: firstReceiptFile.hash })
     const firstReceiptBytes = await fs.readFile(

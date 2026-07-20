@@ -51,6 +51,7 @@ export const coordinatorOperationRegistry = createCoordinatorOperationRegistry([
   { id: 'test-run-evidence', method: 'GET', pattern: ['test-runs', '*'] },
   { id: 'plan-health', method: 'GET', pattern: ['plans', ':planId', 'health'] },
   { id: 'actions', method: 'GET', pattern: ['actions', '*'] },
+  { id: 'operations', method: 'GET', pattern: ['operations', '*'] },
   { id: 'target-projects-list', method: 'GET', pattern: ['target-projects'] },
   { id: 'locator-graph', method: 'GET', pattern: ['locator-graph', '*'] },
   { id: 'providers-list', method: 'GET', pattern: ['providers'] },

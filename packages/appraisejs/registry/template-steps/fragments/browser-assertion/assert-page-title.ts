@@ -4,5 +4,5 @@
  * @icon VALIDATION
  */
 Then('the page title should equal {string}', async function (this: CustomWorld, expected: string) {
-  expect(await this.page.title()).to.equal(expected)
+  await executeHumanOperation('browser.browser.assertion.assert.page.title@1', this, ['expected'], [expected])
 })

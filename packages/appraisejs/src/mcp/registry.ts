@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { CoordinatorOptions as McpOptions } from '../coordinator-client.js'
+import { CoordinatorRequestError, toolError } from './coordinator-call.js'
 import type { PlanSnapshot } from './shared.js'
 import { registerResourcesOperations } from './domains/resources.js'
 import { registerProjectOperations } from './domains/project.js'
@@ -29,6 +30,19 @@ export type McpContractDefinition = {
 const contracts = new WeakMap<McpServer, readonly McpContractDefinition[]>()
 const canonicalContracts = new Map<string, readonly McpContractDefinition[]>()
 
+type ToolHandler = (...args: unknown[]) => unknown
+
+export function withStructuredCoordinatorErrors(handler: ToolHandler): ToolHandler {
+  return async (...args: unknown[]) => {
+    try {
+      return await handler(...args)
+    } catch (error) {
+      if (error instanceof CoordinatorRequestError) return toolError(error)
+      throw error
+    }
+  }
+}
+
 function registrationTarget(server: McpServer, definitions: McpContractDefinition[]): McpServer {
   const names = new Set<string>()
   return {
@@ -41,7 +55,11 @@ function registrationTarget(server: McpServer, definitions: McpContractDefinitio
         ...(config.description ? { description: config.description } : {}),
         inputSchema: z.toJSONSchema(z.object(config.inputSchema ?? {})),
       })
-      return server.registerTool(name, config as never, handler as never)
+      return server.registerTool(
+        name,
+        config as never,
+        withStructuredCoordinatorErrors(handler as ToolHandler) as never,
+      )
     },
     registerResource(name: string, uri: unknown, config: { description?: string }, handler: unknown) {
       if (!name || names.has(`resource:${name}`))
