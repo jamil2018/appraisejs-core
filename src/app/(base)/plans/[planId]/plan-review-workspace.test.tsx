@@ -141,7 +141,7 @@ const detail: PlanReviewDetail = {
     ],
     edges: [
       { from: 'task-one', to: 'task-two', type: 'depends-on' },
-      { from: 'task-one', to: 'task-two', type: 'blocks' },
+      { from: 'task-two', to: 'task-one', type: 'blocks' },
       { from: 'task-two', to: 'task-one', type: 'relates-to' },
     ],
     implementationGroups: [{ id: 'delivery', taskIds: ['task-one', 'task-two'] }],
@@ -202,9 +202,9 @@ const detail: PlanReviewDetail = {
         type: 'depends-on',
       },
       {
-        id: 'task-one-blocks-task-two-1',
-        from: 'task-one',
-        to: 'task-two',
+        id: 'task-two-blocks-task-one-1',
+        from: 'task-two',
+        to: 'task-one',
         type: 'blocks',
       },
       {
@@ -534,7 +534,7 @@ describe('PlanReviewWorkspace', () => {
     expect(screen.getByText('Step 1: Prerequisite task at 500,501')).toBeInTheDocument()
     expect(screen.getByText('Step 2: Dependent task at 900,901')).toBeInTheDocument()
     expect(screen.getByText('depends-on: task-two to task-one')).toBeInTheDocument()
-    expect(screen.getByText('blocks: task-one to task-two')).toBeInTheDocument()
+    expect(screen.getByText('blocks: task-two to task-one')).toBeInTheDocument()
     expect(screen.getByText('relates-to: task-two to task-one')).toBeInTheDocument()
     expect(screen.getByText(/tasks in the same stage may proceed in parallel/i)).toBeInTheDocument()
   })
@@ -552,9 +552,10 @@ describe('PlanReviewWorkspace', () => {
     expect(taskButtons[1]).toHaveTextContent('Dependent task')
     expect(taskButtons[0]).toHaveTextContent('Stage 1')
     expect(taskButtons[0]).toHaveTextContent('depends-on to task-one')
-    expect(taskButtons[0]).toHaveTextContent('blocks from task-one')
+    expect(taskButtons[0]).toHaveTextContent('blocks to task-one')
     expect(taskButtons[1]).toHaveTextContent('Stage 2')
     expect(taskButtons[1]).toHaveTextContent('depends-on from task-two')
+    expect(taskButtons[1]).toHaveTextContent('blocks from task-two')
     expect(taskButtons[1]).toHaveTextContent('relates-to from task-two')
 
     const taskButton = screen.getByRole('button', { name: /dependent task/i })

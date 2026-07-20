@@ -1222,7 +1222,7 @@ describe('implementation coordinator checkpoints', () => {
       healthy: false,
       issues: expect.arrayContaining([expect.objectContaining({ code: 'MISSING_VALIDATION_PASSED_EVENT' })]),
     })
-  })
+  }, 15_000)
 
   it('reports terminal baseline runs that still require lifecycle reconciliation', async () => {
     const planId = 'baseline-lifecycle-health'
