@@ -277,10 +277,30 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   )
 
   server.registerTool(
+    'step_search',
+    {
+      description:
+        'Preferred combined discovery for human-authored and agent-authored steps. Returns semantic Template Step naming together with canonical typed operation identity when mapped.',
+      inputSchema: {
+        planId: z.string(),
+        query: z.string().min(1),
+        parameterNames: z.array(z.string().min(1)).default([]),
+        limit: z.number().int().positive().max(25).default(5),
+      },
+    },
+    async ({ planId, query, parameterNames, limit }) =>
+      text(
+        await api.request(
+          `plans/${planId}/validations/resolver?intent=${encodeURIComponent(query)}&parameterNames=${encodeURIComponent(parameterNames.join(','))}&limit=${limit}`,
+        ),
+      ),
+  )
+
+  server.registerTool(
     'template_step_search',
     {
       description:
-        'Resolve live template steps with ranked intent and parameter compatibility before proposing custom steps.',
+        'Compatibility name for step_search. Resolve combined human Template Step and canonical agent-operation results before proposing custom steps.',
       inputSchema: {
         planId: z.string(),
         query: z.string().min(1),
@@ -299,7 +319,8 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   server.registerTool(
     'template_step_match',
     {
-      description: 'Rank reusable template steps and step blocks for a behavior intent before proposing custom steps.',
+      description:
+        'Compatibility name for step_search. Rank combined reusable steps and step blocks for a behavior intent.',
       inputSchema: {
         planId: z.string(),
         intent: z.string().min(1),
@@ -413,7 +434,8 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   server.registerTool(
     'operation_search',
     {
-      description: 'Rank canonical operations by intent and exact capability filters before authoring validation.',
+      description:
+        'Search the low-level canonical operation catalog with paired human Step naming. Prefer step_search when a planId is available so user-authored steps participate too.',
       inputSchema: {
         query: z.string().min(1).max(500),
         parameterNames: z.array(z.string().min(1)).max(32).optional(),

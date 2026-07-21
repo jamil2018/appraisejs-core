@@ -76,7 +76,9 @@ Successful compilation returns the exact project-scoped `review=validation` brow
 link directly, so the agent can hand off the review gate without another plan read.
 
 Validation authoring is registry-first through the unified operation catalog and locator graph. Use
-`operation_search` and `operation_read` to select an exact semantic operation, then the allowlisted structured
+Use `step_search` for combined human and agent discovery. It returns the semantic Template Step name together with
+the canonical operation identity when one is mapped, and includes project-authored steps without a canonical mapping.
+Use the lower-level `operation_search` and `operation_read` to inspect an exact semantic operation, then the allowlisted structured
 locator/page fallback, and only then a justified custom operation for application-specific behavior or a documented
 catalog gap. Human template search is a compatibility projection of the same migration ledger. See
 `docs/reusable-playwright-template-steps.md`.
@@ -104,6 +106,12 @@ content or the current receipt disagrees. A staged `prepared`, `artifacts_writte
 through its exact `validation_ast_compile` receipt. A `review_ready` operation whose immutable content is intact may
 use the idempotent `validation_review_reconcile` action to refresh only its current review-state receipt; history and
 the original publication receipt remain unchanged.
+
+Publish recovery accepts an artifact that still has the operation's expected pre-write hash or already has the exact
+desired hash recorded by that operation. This makes a crash after the plan artifact write replay-safe. Legacy
+validation projections that predate `partialAcknowledgement` persistence are repaired only when their immutable
+projection matches exactly after removing that field; the acknowledgement is then restored from the signed AST
+projection. Other immutable-content mismatches remain blocked.
 
 Validation feedback must be routed by scope. Product-scope or plan-scope feedback reopens plan review. Validation
 artifact feedback reopens validation review. `validations_approved` is required before baseline execution proceeds;
@@ -331,5 +339,6 @@ Agent-authored project resources inherit the plan projection's `targetProjectId`
 modules, suites, cases, Step Blocks, locator groups, locators, and environments owned by that project, together with
 the global shared Template Step library. Resource proposals and canonical publication write the project ID onto
 created project roots, may reference shared Template Step Groups, and reject cross-project references or ID
-collisions for project-owned entities. Coordinator callers must not use global lookup as a fallback for scoped entity
-types.
+collisions for project-owned entities. Project-owned names, including locator-group names, are unique within a target
+project rather than across the Appraise hub. Coordinator callers must not use global lookup as a fallback for scoped
+entity types.

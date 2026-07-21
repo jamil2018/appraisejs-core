@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { defaultActionCatalog } from '@/lib/action-catalog'
 import { defaultOperationRegistry } from '@/lib/operation-catalog'
+import { canonicalStepDiscoveryText, stepDiscoveryTerms } from '@/lib/step-discovery'
 
 import {
   coordinatorContractVersion,
@@ -490,13 +491,10 @@ function operationSearchText(
   descriptor: ReturnType<typeof defaultOperationRegistry.read>[number],
   aliases: string[],
 ) {
-  const humanProjectionText = descriptor.humanProjections
-    .flatMap(projection => [projection.signature, projection.title, projection.description])
-    .join(' ')
-  const agentTerms = descriptor.agentProjection?.searchTerms.join(' ') ?? ''
-  return `${operation.id} ${operation.title} ${operation.description} ${operation.categories.join(' ')} ${operation.capabilities.join(' ')} ${agentTerms} ${humanProjectionText} ${aliases.join(' ')}`.toLowerCase()
+  return `${canonicalStepDiscoveryText(descriptor)} ${aliases.join(' ')}`.toLowerCase()
 }
 
+// fallow-ignore-next-line complexity
 function rankOperation(
   operation: ReturnType<typeof defaultOperationRegistry.list>['items'][number],
   context: OperationSearchContext,
@@ -512,8 +510,20 @@ function rankOperation(
     .map(input => ({ name: input.name, type: input.type }))
   const exactId = operation.id === context.intent
   const matchedAlias = aliases.find(alias => alias.toLowerCase() === context.intent.toLowerCase()) ?? null
+  const humanProjection = descriptor.humanProjections.find(projection => !projection.deprecated) ?? null
   return {
     ...operation,
+    displayName: humanProjection?.title ?? operation.title,
+    canonicalRef: `${operation.id}@${operation.version}`,
+    agentOperation: { id: operation.id, version: operation.version, ref: `${operation.id}@${operation.version}` },
+    humanStep: humanProjection
+      ? {
+          name: humanProjection.title,
+          description: humanProjection.description,
+          signature: humanProjection.signature,
+          groupName: humanProjection.group,
+        }
+      : null,
     score: matchedTerms.length + matchedParameters.length * 2 + matchBoost(exactId, matchedAlias),
     matchedTerms,
     matchedAlias,
@@ -540,12 +550,7 @@ function nextOperationAction(ranked: Array<ReturnType<typeof rankOperation>>) {
 
 function searchOperations(query: URLSearchParams) {
   const intent = z.string().trim().min(1).max(500).parse(query.get('query'))
-  const terms = new Set(
-    intent
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter(Boolean),
-  )
+  const terms = stepDiscoveryTerms(intent)
   const requestedParameters = new Set(
     (query.get('parameterNames') ?? '')
       .split(',')
@@ -582,10 +587,13 @@ function searchOperations(query: URLSearchParams) {
     .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))
     .slice(0, limit)
   return Response.json({
+    discoveryKind: 'combined-step',
     manifestHash: defaultOperationRegistry.manifestHash,
     query: intent,
     recommended: ranked[0] ?? null,
+    recommendedStep: ranked[0] ?? null,
     alternatives: ranked.slice(1),
+    steps: ranked,
     nextRecommendedAction: nextOperationAction(ranked),
   })
 }

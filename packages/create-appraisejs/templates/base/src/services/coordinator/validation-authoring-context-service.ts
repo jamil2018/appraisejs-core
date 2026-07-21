@@ -3,10 +3,12 @@ import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import { defaultOperationRegistry } from '@/lib/operation-catalog'
 import { parseYamlArtifact, validationArtifactSchema, type PlanArtifact } from '@/lib/plan-contract'
 import { validationAstSubmissionSchema, type ValidationAstSubmission } from '@/lib/validation-ast/schemas'
 import { PlanArtifactRepository } from '@/lib/plans/artifact-repository'
 import { findProjectRoot } from '@/lib/plans/project-root'
+import { canonicalStepDiscoveryText, stepDiscoveryTerms } from '@/lib/step-discovery'
 import { templateStepGroupPath } from './template-step-group-path'
 import {
   readVisibleResourceOwnerships,
@@ -30,7 +32,9 @@ const reusableTemplateStepSelect = {
 } as const
 type ReusableRef = {
   id: string
+  kind?: 'template-step' | 'step-block'
   name?: string
+  displayName?: string
   description?: string | null
   signature?: string
   parameters?: Array<{ name: string; type: string; order: number }>
@@ -45,6 +49,18 @@ type ReusableRef = {
     descriptorHash: string
     humanProjectionId: string
   }
+  humanStep?: {
+    name: string
+    description: string | null
+    signature: string
+    groupName: string
+  }
+  agentOperation?: {
+    id: string
+    version: string
+    ref: string
+    descriptorHash: string
+  } | null
   managedAuthoringStatus?: 'ready' | 'handler-migration-required' | 'composition-migration-required'
 }
 
@@ -62,7 +78,7 @@ function normalizedWords(value: string) {
 function scoreIntent(candidate: string, intent: string) {
   const ignored = new Set(['and', 'the', 'then', 'when', 'with', 'from', 'into', 'that', 'this', 'step', 'user'])
   const tokens = (value: string) =>
-    new Set(normalizedWords(value).filter(part => part.length > 2 && !ignored.has(part)))
+    new Set([...stepDiscoveryTerms(value)].filter(part => part.length > 2 && !ignored.has(part)))
   const normalizedCandidate = normalizedWords(candidate).join(' ')
   const normalizedIntent = normalizedWords(intent).join(' ')
   const candidateTokens = tokens(candidate)
@@ -90,6 +106,17 @@ function scoreIntent(candidate: string, intent: string) {
 
 function signatureParameters(signature: string) {
   return Array.from(signature.matchAll(/\{([^}]+)\}/g), match => match[1]!.trim().toLowerCase())
+}
+
+function canonicalOperationDiscoveryText(step: ResolvedTemplateStep) {
+  if (!step.operationId || !step.operationVersion || step.operationMigrationState !== 'mapped') return ''
+  try {
+    const descriptor = defaultOperationRegistry.read([{ id: step.operationId, version: step.operationVersion }])[0]
+    if (!descriptor) return ''
+    return canonicalStepDiscoveryText(descriptor)
+  } catch {
+    return ''
+  }
 }
 
 export function rankReusableResources(resources: ReusableResources, intent: string, parameterNames: string[] = []) {
@@ -133,7 +160,7 @@ export function rankReusableResources(resources: ReusableResources, intent: stri
     templateSteps: rank(
       resources.templateSteps,
       step =>
-        `${step.name} ${step.description ?? ''} ${step.signature} ${step.templateStepGroup.name} ${step.templateStepGroup.description ?? ''}`,
+        `${step.name} ${step.description ?? ''} ${step.signature} ${step.templateStepGroup.name} ${step.templateStepGroup.description ?? ''} ${canonicalOperationDiscoveryText(step)}`,
       step => signatureParameters(step.signature),
     ),
     stepBlocks: rank(
@@ -225,7 +252,9 @@ function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
       : undefined
   return {
     id: step.id,
+    kind: 'template-step',
     name: step.name,
+    displayName: step.name,
     description: step.description,
     signature: step.signature,
     parameters: step.parameters,
@@ -235,12 +264,33 @@ function templateStepRef(step: ResolvedTemplateStep): ReusableRef {
     groupType: step.templateStepGroup.type,
     path: templateStepGroupPath(step.templateStepGroup.name, step.templateStepGroup.type),
     ...(canonicalOperation ? { canonicalOperation } : {}),
+    humanStep: {
+      name: step.name,
+      description: step.description,
+      signature: step.signature,
+      groupName: step.templateStepGroup.name,
+    },
+    agentOperation: canonicalOperation
+      ? {
+          id: canonicalOperation.id,
+          version: canonicalOperation.version,
+          ref: `${canonicalOperation.id}@${canonicalOperation.version}`,
+          descriptorHash: canonicalOperation.descriptorHash,
+        }
+      : null,
     managedAuthoringStatus: canonicalOperation ? 'ready' : 'handler-migration-required',
   }
 }
 
 function stepBlockRef(block: ResolvedStepBlock): ReusableRef {
-  return { id: block.id, name: block.name, managedAuthoringStatus: 'composition-migration-required' }
+  return {
+    id: block.id,
+    kind: 'step-block',
+    name: block.name,
+    displayName: block.name,
+    agentOperation: null,
+    managedAuthoringStatus: 'composition-migration-required',
+  }
 }
 
 // fallow-ignore-next-line complexity
@@ -270,10 +320,16 @@ export async function resolveReusableValidationSteps(
   const selected = [...templateSteps, ...stepBlocks]
     .filter(candidate => candidate.score >= 2 && candidate.confidence >= threshold)
     .sort((left, right) => right.score - left.score || right.confidence - left.confidence)[0]
+  const steps = [...templateSteps, ...stepBlocks].sort(
+    (left, right) => right.score - left.score || right.confidence - left.confidence,
+  )
   return {
+    discoveryKind: 'combined-step',
     intent: input.intent,
     threshold,
     selected: selected ?? null,
+    recommendedStep: selected ?? null,
+    steps,
     alternatives: { templateSteps, stepBlocks },
     metrics: {
       resolverCalls: 1,

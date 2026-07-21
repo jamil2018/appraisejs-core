@@ -11,6 +11,7 @@ import {
   planArtifactSchema,
   serializeJsonArtifact,
   serializeYamlArtifact,
+  validationArtifactSchema,
 } from './index'
 
 const plan = {
@@ -107,6 +108,77 @@ describe('artifact schemas and codecs', () => {
   it('requires a description and limits the plan title to 80 characters', () => {
     expect(planArtifactSchema.safeParse({ ...plan, description: '' }).success).toBe(false)
     expect(planArtifactSchema.safeParse({ ...plan, goal: 'a'.repeat(81) }).success).toBe(false)
+  })
+
+  it('preserves partial coverage acknowledgements in validation artifacts', () => {
+    const parsed = validationArtifactSchema.parse({
+      version: '1',
+      planId: 'partial-coverage',
+      revision: 1,
+      baseRevision: { gitCommit: null, snapshotHash: `sha256:${'a'.repeat(64)}`, reducedAssurance: false },
+      classificationOverrides: [],
+      validations: [
+        {
+          id: 'responsive-validation',
+          taskIds: ['responsive-task'],
+          required: true,
+          coverageArgument: {
+            mappings: [
+              {
+                kind: 'task',
+                targetId: 'responsive-task',
+                scenarioIds: ['responsive-scenario'],
+                stimulusStepIds: ['open-page'],
+                observationStepIds: ['check-layout'],
+                rationale: 'Exercise the available responsive evidence.',
+                state: 'partial',
+                limitation: 'No portable viewport operation is available.',
+                partialAcknowledgement: 'The reviewer accepted the bounded viewport evidence.',
+              },
+            ],
+          },
+          testCaseIds: ['responsive-case'],
+          appraiseArtifacts: {
+            modules: [{ id: 'responsive-module', name: 'Responsive module' }],
+            testSuites: [
+              {
+                id: 'responsive-suite',
+                name: 'Responsive suite',
+                moduleId: 'responsive-module',
+                testCaseIds: ['responsive-case'],
+              },
+            ],
+            testCases: [{ id: 'responsive-case', title: 'Responsive case', description: 'Checks layout.', steps: [] }],
+            locatorGroups: [],
+            locators: [],
+          },
+          gherkinPaths: ['automation/features/responsive.feature'],
+          stepPaths: [],
+          executable: { path: 'automation/features/responsive.feature' },
+          astProvenance: {
+            schemaVersion: '2',
+            astHash: `sha256:${'b'.repeat(64)}`,
+            executionAuthority: 'reviewed_publication',
+            publishOperationId: 'responsive-publication',
+            receiptHash: `sha256:${'c'.repeat(64)}`,
+            runtimeInputHash: `sha256:${'d'.repeat(64)}`,
+          },
+          matrix: [{ browser: 'chromium', environment: 'local' }],
+          expectedFailures: [],
+        },
+      ],
+      approvals: [],
+      validationDecisions: [],
+      files: [],
+      manifestPaths: [],
+      baselineAttempts: [],
+      baselineAcknowledgements: [],
+      baselineDecision: 'pending',
+    })
+
+    expect(parsed.validations[0]?.coverageArgument?.mappings[0]?.partialAcknowledgement).toBe(
+      'The reviewer accepted the bounded viewport evidence.',
+    )
   })
 })
 

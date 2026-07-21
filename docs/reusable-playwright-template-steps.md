@@ -12,11 +12,14 @@ Validation authors and agents should choose browser behavior in this order:
 2. Use a structured locator or page operation when the Playwright mechanic is uncommon but allowlisted.
 3. Propose a custom step only for application-specific behavior or a documented catalog gap.
 
-Use `template_step_search` or `template_step_match` before proposing a custom step. Resolver results include intent
-scores, parameter compatibility, signatures, descriptions, ordered parameters, group metadata, and the canonical
-group path. `validation_context_read` exposes the same selection metadata for bounded template-step reads.
-Canonical cross-surface discovery is available through `operation_categories`, `operation_search`, and
-`operation_read`; template search is the human-projection compatibility view of the same operation registry.
+Use `step_search` before proposing a custom step. It is the shared human-and-agent discovery surface: each mapped
+result pairs the readable Template Step name/signature with its canonical typed operation reference, while
+user-authored steps participate in the same ranking and clearly report that no agent-operation mapping exists yet.
+The compatibility names `template_step_search` and `template_step_match` resolve through the same service. Results
+include intent scores, semantic-concept matches, parameter compatibility, signatures, descriptions, ordered
+parameters, group metadata, and the canonical group path. `validation_context_read` exposes the same selection
+metadata for bounded reads. Lower-level canonical catalog inspection remains available through
+`operation_categories`, `operation_search`, and `operation_read`.
 
 ## Semantic Coverage
 

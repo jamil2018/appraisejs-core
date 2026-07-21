@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { validationArtifactSchema } from '@/lib/plan-contract'
 import { PlanArtifactRepository, PlanRepositoryError } from '@/lib/plans/artifact-repository'
 import type { CompiledCustomExtension } from '@/lib/validation-ast'
@@ -22,15 +23,24 @@ type PublishOperation = Prisma.ValidationAstPublishOperationGetPayload<{ include
 function assertReviewOwnership(
   ownership: Prisma.ValidationAstPublishOperationGetPayload<{ include: { plan: true; targetProject: true } }>,
 ) {
+  const desiredValidation = validationArtifactSchema.parse(JSON.parse(ownership.validationProjectionJson))
+  const legacyValidation = structuredClone(desiredValidation)
+  for (const validation of legacyValidation.validations)
+    for (const mapping of validation.coverageArgument?.mappings ?? []) delete mapping.partialAcknowledgement
+  const validationProjectionMatches =
+    ownership.plan.validationJson === ownership.validationProjectionJson ||
+    (ownership.plan.validationJson !== null &&
+      canonicalContractJson(JSON.parse(ownership.plan.validationJson)) === canonicalContractJson(legacyValidation))
   const matches = [
     ownership.plan.id === ownership.planProjectionId,
     ownership.targetProject.id === ownership.targetProjectId,
     ownership.plan.sourceHash === ownership.expectedPlanHash,
     ownership.targetProject.fingerprint === ownership.targetFingerprint,
     ['preparing_validations', 'validation_changes_requested'].includes(ownership.plan.lifecycle),
-    ownership.plan.validationJson === ownership.validationProjectionJson,
+    validationProjectionMatches,
   ]
   if (matches.some(match => !match)) throw new ServiceError('Publish operation review context changed.', 'CONFLICT')
+  return ownership.plan.validationJson !== ownership.validationProjectionJson
 }
 
 async function markValidationReviewReady(operation: PublishOperation, client: PrismaClient) {
@@ -41,10 +51,13 @@ async function markValidationReviewReady(operation: PublishOperation, client: Pr
       where: { id: operation.id },
       include: { plan: true, targetProject: true },
     })
-    assertReviewOwnership(ownership)
+    const repairLegacyValidationProjection = assertReviewOwnership(ownership)
     const plan = await tx.planProjection.update({
       where: { planId: current.planId },
-      data: { lifecycle: 'awaiting_validation_review' },
+      data: {
+        lifecycle: 'awaiting_validation_review',
+        ...(repairLegacyValidationProjection ? { validationJson: operation.validationProjectionJson } : {}),
+      },
     })
     const latest = await tx.planEvent.findFirst({
       where: { planProjectionId: plan.id },
@@ -117,6 +130,7 @@ async function assertStagedArtifacts(
   operation: {
     planId: string
     expectedPlanArtifactHash: string
+    planHash: string
     validationHash: string
     reviewHash: string
   },
@@ -127,7 +141,7 @@ async function assertStagedArtifacts(
     repository.read('review', operation.planId),
   ])
   if (
-    plan.hash !== operation.expectedPlanArtifactHash ||
+    ![operation.expectedPlanArtifactHash, operation.planHash].includes(plan.hash) ||
     validation.hash !== operation.validationHash ||
     review.hash !== operation.reviewHash
   )

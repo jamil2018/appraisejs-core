@@ -4756,149 +4756,6 @@
       "id": "certify_plan_builder_lifecycle_client"
     },
     {
-      "label": "generate-coordinator-reference.ts",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "generate-coordinator-reference.ts",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference"
-    },
-    {
-      "label": "McpDefinition",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L12",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "mcpdefinition",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_mcpdefinition"
-    },
-    {
-      "label": "McpFixture",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L13",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "mcpfixture",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_mcpfixture"
-    },
-    {
-      "label": "PublicOperationReference",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L14",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "publicoperationreference",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_publicoperationreference"
-    },
-    {
-      "label": "localSearchTools",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L18",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "localsearchtools",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_localsearchtools"
-    },
-    {
-      "label": "localWorkflowTools",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L25",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "localworkflowtools",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_localworkflowtools"
-    },
-    {
-      "label": "exactCoordinatorOperations",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L33",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "exactcoordinatoroperations",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_exactcoordinatoroperations"
-    },
-    {
-      "label": "coordinatorOperationPrefixes",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L70",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "coordinatoroperationprefixes",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_coordinatoroperationprefixes"
-    },
-    {
-      "label": "referenceForMcpTool()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L81",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "referenceformcptool()",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_referenceformcptool"
-    },
-    {
-      "label": "coordinator()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L91",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "coordinator()",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_coordinator"
-    },
-    {
-      "label": "escapeCell()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L95",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "escapecell()",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_escapecell"
-    },
-    {
-      "label": "generateCoordinatorReference()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L99",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "generatecoordinatorreference()",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_generatecoordinatorreference"
-    },
-    {
-      "label": "main()",
-      "file_type": "code",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L156",
-      "_origin": "ast",
-      "community": 12,
-      "norm_label": "main()",
-      "community_name": "Community 12",
-      "id": "generate_coordinator_reference_main"
-    },
-    {
       "label": "operation-ledger-reader.ts",
       "file_type": "code",
       "source_file": "lib/operation-ledger-reader.ts",
@@ -5951,8 +5808,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "check-generated-artifacts.mjs",
-      "id": "check_generated_artifacts",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts"
     },
     {
       "label": "allowedDatabaseFixtures",
@@ -5962,8 +5819,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "alloweddatabasefixtures",
-      "id": "check_generated_artifacts_alloweddatabasefixtures",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_alloweddatabasefixtures"
     },
     {
       "label": "committedGraphifyScopes",
@@ -5973,8 +5830,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "committedgraphifyscopes",
-      "id": "check_generated_artifacts_committedgraphifyscopes",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_committedgraphifyscopes"
     },
     {
       "label": "committedGraphifyFiles",
@@ -5984,8 +5841,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "committedgraphifyfiles",
-      "id": "check_generated_artifacts_committedgraphifyfiles",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_committedgraphifyfiles"
     },
     {
       "label": "runtimeDirectoryPatterns",
@@ -5995,8 +5852,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "runtimedirectorypatterns",
-      "id": "check_generated_artifacts_runtimedirectorypatterns",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_runtimedirectorypatterns"
     },
     {
       "label": "runtimeArtifactReason()",
@@ -6006,8 +5863,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "runtimeartifactreason()",
-      "id": "check_generated_artifacts_runtimeartifactreason",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_runtimeartifactreason"
     },
     {
       "label": "findForbiddenRuntimeArtifacts()",
@@ -6017,8 +5874,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "findforbiddenruntimeartifacts()",
-      "id": "check_generated_artifacts_findforbiddenruntimeartifacts",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_findforbiddenruntimeartifacts"
     },
     {
       "label": "gitPaths()",
@@ -6028,8 +5885,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "gitpaths()",
-      "id": "check_generated_artifacts_gitpaths",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_gitpaths"
     },
     {
       "label": "main()",
@@ -6039,8 +5896,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "main()",
-      "id": "check_generated_artifacts_main",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "check_generated_artifacts_main"
     },
     {
       "label": "check-generated-artifacts.test.ts",
@@ -6050,8 +5907,8 @@
       "_origin": "ast",
       "community": 17,
       "norm_label": "check-generated-artifacts.test.ts",
-      "id": "lib_check_generated_artifacts_test",
-      "community_name": "Community 17"
+      "community_name": "Community 17",
+      "id": "lib_check_generated_artifacts_test"
     },
     {
       "label": "graphify-command-args.mjs",
@@ -6061,8 +5918,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "graphify-command-args.mjs",
-      "id": "lib_graphify_command_args",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "lib_graphify_command_args"
     },
     {
       "label": "GRAPH_COMMANDS",
@@ -6072,8 +5929,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "graph_commands",
-      "id": "lib_graphify_command_args_graph_commands",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "lib_graphify_command_args_graph_commands"
     },
     {
       "label": "withDefaultGraph()",
@@ -6083,8 +5940,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "withdefaultgraph()",
-      "id": "lib_graphify_command_args_withdefaultgraph",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "lib_graphify_command_args_withdefaultgraph"
     },
     {
       "label": "graphify-command-args.test.ts",
@@ -6094,8 +5951,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "graphify-command-args.test.ts",
-      "id": "lib_graphify_command_args_test",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "lib_graphify_command_args_test"
     },
     {
       "label": "run-graphify.mjs",
@@ -6105,8 +5962,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "run-graphify.mjs",
-      "id": "run_graphify",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify"
     },
     {
       "label": "args",
@@ -6116,8 +5973,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "args",
-      "id": "run_graphify_args",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_args"
     },
     {
       "label": "graphifyCommand",
@@ -6127,8 +5984,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "graphifycommand",
-      "id": "run_graphify_graphifycommand",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_graphifycommand"
     },
     {
       "label": "graphifyMcpCommand",
@@ -6138,8 +5995,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "graphifymcpcommand",
-      "id": "run_graphify_graphifymcpcommand",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_graphifymcpcommand"
     },
     {
       "label": "versionCheck",
@@ -6149,8 +6006,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "versioncheck",
-      "id": "run_graphify_versioncheck",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_versioncheck"
     },
     {
       "label": "result",
@@ -6160,8 +6017,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "result",
-      "id": "run_graphify_result",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_result"
     },
     {
       "label": "runCommand()",
@@ -6171,8 +6028,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "runcommand()",
-      "id": "run_graphify_runcommand",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_runcommand"
     },
     {
       "label": "resolveCommand()",
@@ -6182,8 +6039,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "resolvecommand()",
-      "id": "run_graphify_resolvecommand",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_resolvecommand"
     },
     {
       "label": "resolveCommandFromPath()",
@@ -6193,8 +6050,8 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "resolvecommandfrompath()",
-      "id": "run_graphify_resolvecommandfrompath",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_resolvecommandfrompath"
     },
     {
       "label": "resolveCommandFromUvToolPath()",
@@ -6204,8 +6061,151 @@
       "_origin": "ast",
       "community": 14,
       "norm_label": "resolvecommandfromuvtoolpath()",
-      "id": "run_graphify_resolvecommandfromuvtoolpath",
-      "community_name": "Community 14"
+      "community_name": "Community 14",
+      "id": "run_graphify_resolvecommandfromuvtoolpath"
+    },
+    {
+      "label": "generate-coordinator-reference.ts",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "generate-coordinator-reference.ts",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference"
+    },
+    {
+      "label": "McpDefinition",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L12",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "mcpdefinition",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_mcpdefinition"
+    },
+    {
+      "label": "McpFixture",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L13",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "mcpfixture",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_mcpfixture"
+    },
+    {
+      "label": "PublicOperationReference",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L14",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "publicoperationreference",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_publicoperationreference"
+    },
+    {
+      "label": "localSearchTools",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L17",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "localsearchtools",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_localsearchtools"
+    },
+    {
+      "label": "localWorkflowTools",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L25",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "localworkflowtools",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_localworkflowtools"
+    },
+    {
+      "label": "exactCoordinatorOperations",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L33",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "exactcoordinatoroperations",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_exactcoordinatoroperations"
+    },
+    {
+      "label": "coordinatorOperationPrefixes",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L70",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "coordinatoroperationprefixes",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_coordinatoroperationprefixes"
+    },
+    {
+      "label": "referenceForMcpTool()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L81",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "referenceformcptool()",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_referenceformcptool"
+    },
+    {
+      "label": "coordinator()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L91",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "coordinator()",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_coordinator"
+    },
+    {
+      "label": "escapeCell()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L95",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "escapecell()",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_escapecell"
+    },
+    {
+      "label": "generateCoordinatorReference()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L99",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "generatecoordinatorreference()",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_generatecoordinatorreference"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L156",
+      "_origin": "ast",
+      "community": 12,
+      "norm_label": "main()",
+      "community_name": "Community 12",
+      "id": "generate_coordinator_reference_main"
     }
   ],
   "links": [
@@ -13582,148 +13582,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L91",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_coordinator"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L70",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_coordinatoroperationprefixes"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L95",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_escapecell"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L33",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_exactcoordinatoroperations"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L99",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_generatecoordinatorreference"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L18",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_localsearchtools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_localworkflowtools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L156",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_main"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_mcpdefinition"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_mcpfixture"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_publicoperationreference"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L81",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference",
-      "target": "generate_coordinator_reference_referenceformcptool"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L85",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference_referenceformcptool",
-      "target": "generate_coordinator_reference_coordinator"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "generate-coordinator-reference.ts",
-      "source_location": "L162",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "generate_coordinator_reference_main",
-      "target": "generate_coordinator_reference_generatecoordinatorreference"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "lib/operation-ledger-reader.ts",
       "source_location": "L6",
       "weight": 1.0,
@@ -15305,8 +15163,150 @@
       "confidence_score": 1.0,
       "source": "run_graphify_resolvecommand",
       "target": "run_graphify_resolvecommandfromuvtoolpath"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L91",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_coordinator"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L70",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_coordinatoroperationprefixes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L95",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_escapecell"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_exactcoordinatoroperations"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L99",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_generatecoordinatorreference"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_localsearchtools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_localworkflowtools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L156",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_main"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_mcpdefinition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_mcpfixture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_publicoperationreference"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L81",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference",
+      "target": "generate_coordinator_reference_referenceformcptool"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L85",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference_referenceformcptool",
+      "target": "generate_coordinator_reference_coordinator"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "generate-coordinator-reference.ts",
+      "source_location": "L162",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "generate_coordinator_reference_main",
+      "target": "generate_coordinator_reference_generatecoordinatorreference"
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "95835407dfe66e1697ba30168f1a320e84b80231"
+  "built_at_commit": "19d7f4927ce96030685990e78f1507bcb880cef5"
 }

@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 57 files from prisma/schema.prisma and migrations
+- 58 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 1176 nodes · 2645 edges · 178 communities
+- 1177 nodes · 2645 edges · 179 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
 1. `String` - 469 edges
-2. `schema.prisma` - 158 edges
+2. `schema.prisma` - 159 edges
 3. `TargetProject` - 157 edges
 4. `DateTime` - 128 edges
 5. `PlanProjection` - 91 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (178 total)
+## Communities (179 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -576,6 +576,9 @@ Nodes (1): 20260718193000_add_environment_identity_expectation
 
 ### Community 177 - "20260720010000_add_canonical_operation_mappings"
 Nodes (1): 20260720010000_add_canonical_operation_mappings
+
+### Community 178 - "20260722013000_scope_locator_group_names_to_project"
+Nodes (1): 20260722013000_scope_locator_group_names_to_project
 
 ## Suggested Questions
 - Which models are connected to PlanProjection?

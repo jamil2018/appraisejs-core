@@ -333,7 +333,7 @@ export function applyAuthoringResponseMode(value: unknown, responseMode: z.infer
     bindings,
     returnedResourceCounts,
     resourceSearchGuidance: resources
-      ? 'Use validation_context_read with resourceTypes/query and a small limit, or the dedicated template_step_search, step_block_search, and locator_search tools, before requesting full context.'
+      ? 'Use validation_context_read with resourceTypes/query and a small limit, or the preferred combined step_search, step_block_search, and locator_search tools, before requesting full context.'
       : undefined,
   }
 }

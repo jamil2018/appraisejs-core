@@ -153,15 +153,20 @@ coordinator operation or an explicitly documented local MCP boundary. Stable wor
 `appraise://plans/{planId}/validation-context`, and `appraise://plans/{planId}/validation-draft`; the validation-draft
 template resolves through the bounded draft-context coordinator operation.
 
-`operation_categories`, `operation_search`, and `operation_read` expose the canonical cross-surface operation
-catalog. The legacy action tools remain bounded compatibility aliases during migration.
+`step_search` is the preferred plan-bound discovery surface. It searches semantic human Template Step names,
+signatures, descriptions, groups, canonical operation descriptors, aliases, agent search terms, and examples as one
+ranked index. Every mapped result returns both `humanStep` and `agentOperation`; user-authored steps remain visible
+with `agentOperation: null` until they have a reviewed shared-handler mapping. `operation_categories`,
+`operation_search`, and `operation_read` remain the lower-level canonical catalog surface, and operation search also
+returns paired human naming. The legacy action tools remain bounded compatibility aliases during migration.
 
-`template_step_search` and `template_step_match` share one server-side ranked
-resolver. It scores exact and ordered intent phrases, semantic token overlap, and exact parameter-name compatibility,
+`template_step_search` and `template_step_match` remain compatibility names for the same `step_search` server-side
+resolver. It scores exact and ordered intent phrases, shared semantic concepts, and exact parameter-name compatibility,
 applies a confidence threshold, returns bounded
 explained alternatives when no confident match exists, and includes resolver-call, fallback, rank, candidate-count,
 and response-size-oriented metrics without returning the full validation context. Returned template-step candidates
-include descriptions, signatures, ordered parameters, and group metadata. Selection order is semantic template step,
+include `displayName`, `humanStep`, `agentOperation`, descriptions, signatures, ordered parameters, and group metadata.
+Selection order is semantic template step,
 allowlisted structured operation, then a justified custom step; the fallback contract and allowlists are documented in
 `docs/reusable-playwright-template-steps.md`.
 
